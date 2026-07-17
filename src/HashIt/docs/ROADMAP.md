@@ -85,13 +85,13 @@ Make the package real and measurable.
 
 ## 4. Definition of Done
 
-- [ ] `composer.json` present; package installs and autoloads.
-- [ ] No 🔴 defects remain (`Hash`, `HashFinalizer`, packaging).
-- [ ] Algorithm list defined exactly once.
-- [ ] Core (`src/HashIt/` outside `Adapter/`) contains **no** `\HashContext` reference.
-- [ ] A composition root wires adapters; `Hasher` produces `Hash` for strings **and** files.
-- [ ] Unit tests cover every public type; `phpstan` + `php-cs-fixer` clean.
-- [ ] `README.md` + links to the review docs.
+- [x] `composer.json` present; package installs and autoloads.
+- [x] No 🔴 defects remain (`Hash`, `HashFinalizer`, packaging).
+- [x] Algorithm list defined exactly once.
+- [x] Core (`src/HashIt/` outside `Adapter/`) contains **no** `\HashContext` reference.
+- [x] A composition root wires adapters; `Hasher` produces `Hash` for strings **and** files.
+- [x] Unit tests cover every public type; `phpstan` + `php-cs-fixer` clean.
+- [x] `README.md` + links to the review docs.
 
 ## 5. Out of scope (for now)
 
