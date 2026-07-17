@@ -21,7 +21,7 @@ enum HashAlgorithm: string
     // ── Message digests ──────────────────────────────────────────────────────
 
     #[HmacSafe]
-    case MD2 = HashAlgorithms::MD2;
+    case MD2 = 'md2';
 
     #[HmacSafe]
     case MD4 = 'md4';
@@ -202,18 +202,31 @@ enum HashAlgorithm: string
      */
     public function isHmacSafe(): bool
     {
-        return in_array($this->name, self::hmacSafeAlgorithms(), true);
+        return in_array($this, self::hmacSafeAlgorithms(), true);
     }
 
     /**
-     * All HMAC-safe algorithms.
+     * All HMAC-safe algorithms, derived from the #[HmacSafe] attribute so the
+     * catalogue lives in exactly one place (the enum cases above).
      *
      * @return list<self>
      */
     public static function hmacSafeAlgorithms(): array
     {
         static $hmacSafe;
-        return $hmacSafe ?: HashAlgorithms::HMAC_SAFE;
+        if (isset($hmacSafe)) {
+            return $hmacSafe;
+        }
+
+        $hmacSafe = [];
+        foreach (self::cases() as $case) {
+            $reflection = new \ReflectionEnumUnitCase(self::class, $case->name);
+            if ($reflection->getAttributes(HmacSafe::class) !== []) {
+                $hmacSafe[] = $case;
+            }
+        }
+
+        return $hmacSafe;
     }
 
     /**
