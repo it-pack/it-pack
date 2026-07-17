@@ -15,7 +15,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\src;
 
 interface HashAlgorithms
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\src;
 
 /**
  * Marks a HashAlgorithm case as accepted by hash_hmac() / hash_hmac_algos().

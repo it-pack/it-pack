@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\src;
 
 /**
  * All algorithms available via hash_algos() as of PHP 8.1.

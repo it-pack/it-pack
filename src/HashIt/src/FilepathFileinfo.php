@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\src;
 
-use SPLFileInfo    ;
+use SPLFileInfo;
 
 readonly class FilepathFileinfo implements FilepathInterface
 {
