@@ -1,5 +1,5 @@
 {
-    "name": "it-pack/derive-ite",
+    "name": "it-pack/derive-it",
     "require": {
         "nette/php-generator": "^4.2",
         "nikic/php-parser": "^5.7",
