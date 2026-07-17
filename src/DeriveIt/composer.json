@@ -1,0 +1,52 @@
+{
+    "name": "it-pack/derive-ite",
+    "require": {
+        "nette/php-generator": "^4.2",
+        "nikic/php-parser": "^5.7",
+        "codeception/module-phpbrowser": "*",
+        "codeception/module-asserts": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "ItPack\\DeriveIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "_Fixture\\": "fixtures/",
+            "_Vendor\\": "fixtures/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "require-dev": {
+        "just-bases/php-unit-test-base": "^1.0",
+        "just-bases/php-qa-base": "^1.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "dantleech/what-changed": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "scripts": {
+        "test:unit": "vendor/bin/codecept run Unit",
+        "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse"
+    },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
+        }
+    }
+}
