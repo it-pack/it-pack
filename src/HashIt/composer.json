@@ -1,10 +1,11 @@
 {
     "name": "it-pack/hash-it",
     "require": {
+        "ext-hash": "*"
     },
     "autoload": {
         "psr-4": {
-            "ItPack\\HashIt\\": "."
+            "ItPack\\HashIt\\": "src/"
         }
     },
     "autoload-dev": {
