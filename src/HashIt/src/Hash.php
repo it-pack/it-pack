@@ -2,41 +2,44 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt\src;
+namespace ItPack\HashIt;
 
-class Hash implements HashInterface
+final class Hash implements HashInterface
 {
-    public function __construct(){}
-
-    public string $algorithm {
-        get {
-            return $this->algorithm;
-        }
-    }
-    public bool $binary {
-        get {
-            return $this->binary;
-        }
-    }
-    public string $value {
-        get {
-            return $this->value;
-        }
-    }
-
-    public int $length {
-        get {
-            return $this->length ?: strlen($this->value);
-        }
-    }
-
-    public static function create(): self
-    {
-        return new self();
+    public function __construct(
+        private string $value,
+        private string $algorithm,
+        private bool $binary = false,
+    ) {
     }
 
     public function __toString(): string
     {
         return $this->value;
+    }
+
+    public function value(): string
+    {
+        return $this->value;
+    }
+
+    public function algorithm(): string
+    {
+        return $this->algorithm;
+    }
+
+    public function binary(): bool
+    {
+        return $this->binary;
+    }
+
+    public function length(): int
+    {
+        return strlen($this->value);
+    }
+
+    public static function create(string $value, string $algorithm, bool $binary = false): self
+    {
+        return new self($value, $algorithm, $binary);
     }
 }

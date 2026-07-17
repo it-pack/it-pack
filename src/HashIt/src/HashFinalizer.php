@@ -2,16 +2,18 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt\src;
+namespace ItPack\HashIt;
 
 use HashContext;
 
-class HashFinalizer implements HashFinalizerInterface
+final class HashFinalizer implements HashFinalizerInterface
 {
-    public function __construct(bool $binary = false){}
+    public function __construct(private bool $binary = false)
+    {
+    }
 
     public function finalize(HashContext $context): string
     {
-        return hash_final($context, false);
+        return hash_final($context, $this->binary);
     }
 }

@@ -15,7 +15,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt\src;
+namespace ItPack\HashIt;
 
 enum HashAlgorithmEnum: string
 {
