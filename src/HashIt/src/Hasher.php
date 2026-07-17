@@ -30,9 +30,15 @@ final readonly class Hasher
 
     public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = 'sha256'): HashInterface
     {
-        $contents = file_get_contents((string) $path);
+        $file = (string) $path;
+
+        if (!is_file($file) || !is_readable($file)) {
+            throw new \RuntimeException('Unable to read file: ' . $file);
+        }
+
+        $contents = file_get_contents($file);
         if ($contents === false) {
-            throw new \RuntimeException('Unable to read file: ' . $path);
+            throw new \RuntimeException('Unable to read file: ' . $file);
         }
 
         return $this->hash($contents, $algorithm);
