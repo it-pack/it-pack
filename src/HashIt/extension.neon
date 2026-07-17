@@ -1,0 +1,4 @@
+# Auto-included by composer extra.phpstan.includes.
+# Generated/overwritten by phpstan/extension-installer on install when phpstan
+# extensions are present; kept minimal so `phpstan analyse` always resolves.
+parameters:
