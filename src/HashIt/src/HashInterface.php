@@ -15,4 +15,6 @@ interface HashInterface extends Stringable
     public function binary(): bool;
 
     public function value(): string;
+
+    public function equals(HashInterface $other): bool;
 }

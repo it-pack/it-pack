@@ -66,4 +66,28 @@ class HasherTest extends Unit
             new NativeFilepathFileinfo(new \SplFileInfo('/nonexistent/path/xyz')),
         );
     }
+
+    public function testVerifyMatchesExpectedDigest(): void
+    {
+        $hasher = $this->hasher();
+        $expected = $hasher->hash('abc');
+
+        verify($hasher->verify('abc', $expected))->true();
+    }
+
+    public function testVerifyRejectsWrongData(): void
+    {
+        $hasher = $this->hasher();
+        $expected = $hasher->hash('abc');
+
+        verify($hasher->verify('abd', $expected))->false();
+    }
+
+    public function testVerifyBinaryMatchesExpectedDigest(): void
+    {
+        $hasher = $this->hasher();
+        $expected = $hasher->hashBinary('abc');
+
+        verify($hasher->verifyBinary('abc', $expected))->true();
+    }
 }

@@ -43,4 +43,14 @@ final readonly class Hasher
 
         return $this->hash($contents, $algorithm);
     }
+
+    public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = 'sha256'): bool
+    {
+        return $this->hash($data, $algorithm)->equals($expected);
+    }
+
+    public function verifyBinary(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = 'sha256'): bool
+    {
+        return $this->hashBinary($data, $algorithm)->equals($expected);
+    }
 }

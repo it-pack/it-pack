@@ -42,4 +42,13 @@ final class Hash implements HashInterface
     {
         return new self($value, $algorithm, $binary);
     }
+
+    public function equals(HashInterface $other): bool
+    {
+        if ($this->algorithm !== $other->algorithm() || $this->binary !== $other->binary()) {
+            return false;
+        }
+
+        return hash_equals($this->value, $other->value());
+    }
 }

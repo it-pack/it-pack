@@ -34,4 +34,36 @@ class HashTest extends Unit
         verify($hash->algorithm())->equals('md5');
         verify($hash->value())->equals('abc');
     }
+
+    public function testEqualsMatchesEqualHashes(): void
+    {
+        $a = new Hash('deadbeef', 'sha256', false);
+        $b = new Hash('deadbeef', 'sha256', false);
+
+        verify($a->equals($b))->true();
+    }
+
+    public function testEqualsRejectsDifferentValues(): void
+    {
+        $a = new Hash('deadbeef', 'sha256', false);
+        $b = new Hash('feedface', 'sha256', false);
+
+        verify($a->equals($b))->false();
+    }
+
+    public function testEqualsRejectsDifferentAlgorithm(): void
+    {
+        $a = new Hash('deadbeef', 'sha256', false);
+        $b = new Hash('deadbeef', 'md5', false);
+
+        verify($a->equals($b))->false();
+    }
+
+    public function testEqualsRejectsDifferentBinaryFlag(): void
+    {
+        $a = new Hash('deadbeef', 'sha256', false);
+        $b = new Hash('deadbeef', 'sha256', true);
+
+        verify($a->equals($b))->false();
+    }
 }
