@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use ItPack\HashIt\Hasher;
+use ItPack\HashIt\HmacHasherInterface;
 
 /**
  * Composition root: binds the native (PHP hash extension) adapters into the
@@ -16,5 +17,10 @@ final class NativeHashIt
     public static function create(): Hasher
     {
         return new Hasher(new NativeContextFactory());
+    }
+
+    public static function hmacHasher(): HmacHasherInterface
+    {
+        return new NativeHmacHasher();
     }
 }
