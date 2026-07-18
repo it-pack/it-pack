@@ -90,4 +90,42 @@ class HasherTest extends Unit
 
         verify($hasher->verifyBinary('abc', $expected))->true();
     }
+
+    public function testHashStreamMatchesHashFile(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'hashit');
+        file_put_contents($tmp, 'hello world streamed');
+
+        $hasher = $this->hasher();
+        $stream = fopen($tmp, 'rb');
+
+        $streamed = $hasher->hashStream($stream);
+        fclose($stream);
+
+        verify($streamed->value())->equals(hash('sha256', 'hello world streamed'));
+
+        unlink($tmp);
+    }
+
+    public function testHashStreamHandlesLargePayloadInChunks(): void
+    {
+        $payload = str_repeat('abcdefgh', 20000); // ~160 KiB, spans 3 chunks at 64 KiB
+        $stream = fopen('php://memory', 'rb+');
+        fwrite($stream, $payload);
+        rewind($stream);
+
+        $hash = $this->hasher()->hashStream($stream, 'sha256', 65536);
+        fclose($stream);
+
+        verify($hash->value())->equals(hash('sha256', $payload));
+    }
+
+    public function testHashStreamRejectsNonResource(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $closed = tmpfile();
+        fclose($closed);
+        $this->hasher()->hashStream($closed);
+    }
 }

@@ -53,4 +53,35 @@ final readonly class Hasher
     {
         return $this->hashBinary($data, $algorithm)->equals($expected);
     }
+
+    /**
+     * Hash a readable stream in fixed chunks without loading it fully into memory.
+     *
+     * @param resource $stream
+     */
+    public function hashStream($stream, string|HashAlgorithm $algorithm = 'sha256', int $chunkSize = 65536): HashInterface
+    {
+        if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
+            throw new \InvalidArgumentException('hashStream() expects a stream resource');
+        }
+
+        $builder = HashBuilder::start($this->factory, $algorithm);
+        $position = ftell($stream);
+        if ($position === false) {
+            $position = 0;
+        }
+        fseek($stream, 0);
+
+        while (!feof($stream)) {
+            $chunk = fread($stream, $chunkSize);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+            $builder = $builder->append($chunk);
+        }
+
+        fseek($stream, $position);
+
+        return $builder->digest();
+    }
 }
