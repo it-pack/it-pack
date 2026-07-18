@@ -9,4 +9,6 @@ interface HashContextInterface
     public function update(string $data): void;
 
     public function finalize(bool $binary): string;
+
+    public function copy(): HashContextInterface;
 }

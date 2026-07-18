@@ -11,9 +11,9 @@ final class NativeHashContext implements HashContextInterface
 {
     private HashContext $context;
 
-    public function __construct(string $algorithm)
+    public function __construct(string|HashContext $algorithm)
     {
-        $this->context = hash_init($algorithm);
+        $this->context = $algorithm instanceof HashContext ? $algorithm : hash_init($algorithm);
     }
 
     public function update(string $data): void
@@ -24,5 +24,10 @@ final class NativeHashContext implements HashContextInterface
     public function finalize(bool $binary): string
     {
         return hash_final($this->context, $binary);
+    }
+
+    public function copy(): HashContextInterface
+    {
+        return new self(hash_copy($this->context));
     }
 }
