@@ -17,4 +17,9 @@ final readonly class NativeFilepathFileinfo implements FilepathInterface
     {
         return (string) $this->fileInfo;
     }
+
+    public static function of(string $path): self
+    {
+        return new self(new SplFileInfo($path));
+    }
 }

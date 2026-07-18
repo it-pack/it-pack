@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
+use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
+
 final readonly class Hasher
 {
     public function __construct(private ContextFactoryInterface $factory)
@@ -83,5 +85,43 @@ final readonly class Hasher
         fseek($stream, $position);
 
         return $builder->digest();
+    }
+
+    /**
+     * Hash many files at once, returning a path => Hash map.
+     *
+     * @param iterable<FilepathInterface> $paths
+     * @return array<string, HashInterface>
+     */
+    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = 'sha256'): array
+    {
+        $result = [];
+
+        foreach ($paths as $path) {
+            $result[(string) $path] = $this->hashFile($path, $algorithm);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Hash every regular file directly inside a directory (non-recursive).
+     *
+     * @return array<string, HashInterface>
+     */
+    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = 'sha256'): array
+    {
+        if (!is_dir($directory)) {
+            throw new \RuntimeException('Not a directory: ' . $directory);
+        }
+
+        $paths = [];
+        foreach (new \DirectoryIterator($directory) as $item) {
+            if ($item->isFile()) {
+                $paths[] = new NativeFilepathFileinfo($item->getFileInfo());
+            }
+        }
+
+        return $this->hashFiles($paths, $algorithm);
     }
 }

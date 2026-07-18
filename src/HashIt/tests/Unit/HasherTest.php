@@ -128,4 +128,55 @@ class HasherTest extends Unit
         fclose($closed);
         $this->hasher()->hashStream($closed);
     }
+
+    public function testHashFilesReturnsPathMap(): void
+    {
+        $a = tempnam(sys_get_temp_dir(), 'hashit');
+        $b = tempnam(sys_get_temp_dir(), 'hashit');
+        file_put_contents($a, 'file a');
+        file_put_contents($b, 'file b');
+
+        $hasher = $this->hasher();
+        $map = $hasher->hashFiles([
+            NativeFilepathFileinfo::of($a),
+            NativeFilepathFileinfo::of($b),
+        ]);
+
+        verify(count($map))->equals(2);
+        verify($map[$a]->value())->equals(hash('sha256', 'file a'));
+        verify($map[$b]->value())->equals(hash('sha256', 'file b'));
+
+        unlink($a);
+        unlink($b);
+    }
+
+    public function testHashDirectoryHashesRegularFilesOnly(): void
+    {
+        $dir = sys_get_temp_dir() . '/hashit_dir_' . uniqid();
+        mkdir($dir);
+        file_put_contents($dir . '/one.txt', 'one');
+        file_put_contents($dir . '/two.txt', 'two');
+        mkdir($dir . '/sub');
+
+        $map = $this->hasher()->hashDirectory($dir);
+
+        verify(count($map))->equals(2);
+        verify($map[$dir . '/one.txt']->value())->equals(hash('sha256', 'one'));
+        verify($map[$dir . '/two.txt']->value())->equals(hash('sha256', 'two'));
+
+        $files = glob($dir . '/*.*');
+        if ($files === false) {
+            $files = [];
+        }
+        array_map('unlink', $files);
+        rmdir($dir . '/sub');
+        rmdir($dir);
+    }
+
+    public function testHashDirectoryRejectsNonDirectory(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        $this->hasher()->hashDirectory('/nonexistent/path/xyz');
+    }
 }
