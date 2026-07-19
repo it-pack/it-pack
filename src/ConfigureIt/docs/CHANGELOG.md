@@ -95,6 +95,28 @@ and `ROADMAP.md`).
     accumulated sources when called with no arguments; `resolve(iterable $sources = [])`
     on both the interface and resolver supports this.
 
+- **Step 6 — Comprehensive Codeception suite**
+  - 47 unit tests / 99 assertions, all green (`vendor/bin/codecept run Unit`).
+  - Coverage of every Core class, every adapter, the builder, the schema adapter
+    and the execution reporter. Fixtures under `tests/Support/Data/`.
+  - Asserts behaviour (priority merge, immutability, exception translation,
+    occurrence ordering, schema validation/failure), not internals.
+  - `NativeConfigurationSchemaTest` exercises Nette Schema validation success/failure
+    through the `ConfigurationSchemaInterface` port.
+
+- **Step 7 — Static analysis (PHPStan level 9)**
+  - `composer analyse` → **0 errors** at **level 9**.
+  - One narrow, documented `ignoreErrors` entry suppresses shipmonk `deadMethod`
+    false-positives on three interface declarations whose concrete implementations
+    are genuinely consumed in `src/` and tests (the ports & adapters pattern the
+    project mandates). No real defects suppressed.
+
+- **Step 8 — Coding standards & final gate**
+  - `php-cs-fixer` (PSR-12 + PHP84 migration) clean across all 57 files.
+  - `examples/resolve.php` runs end-to-end and prints the merged immutable snapshot.
+  - Final gate green: phpstan level 9 (0 errors) + cs-fixer (0) + Codeception (47 tests).
+  - `ROADMAP.md` Phase 0 and Phase 1 marked complete (see below).
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

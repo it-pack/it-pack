@@ -18,14 +18,14 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/MODEL.md "Configuration Source"
  */
-final class FileSource implements ConfigurationSourceInterface
+final readonly class FileSource implements ConfigurationSourceInterface
 {
     /**
      * @param array<string, string> $extensions map of file extension => format value.
      */
     public function __construct(
-        private readonly string $directory,
-        private readonly array $extensions = [
+        private string $directory,
+        private array  $extensions = [
             'php' => Format::PHP->value,
             'json' => Format::JSON->value,
         ],
@@ -47,6 +47,8 @@ final class FileSource implements ConfigurationSourceInterface
         );
         $iterator = new \RecursiveIteratorIterator($directory);
 
+        $paths = [];
+
         foreach ($iterator as $file) {
             /** @var \SplFileInfo $file */
             if (!$file->isFile()) {
@@ -54,13 +56,19 @@ final class FileSource implements ConfigurationSourceInterface
             }
 
             $extension = strtolower($file->getExtension());
-            $formatValue = $this->extensions[$extension] ?? null;
 
-            if ($formatValue === null) {
+            if (!array_key_exists($extension, $this->extensions)) {
                 continue;
             }
 
-            yield new ConfigurationResource($file->getPathname(), Format::fromString($formatValue));
+            $paths[] = $file->getPathname();
+        }
+
+        sort($paths);
+
+        foreach ($paths as $path) {
+            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+            yield new ConfigurationResource($path, Format::fromString($this->extensions[$extension]));
         }
     }
 }

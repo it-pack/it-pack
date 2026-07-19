@@ -20,10 +20,10 @@ use Nette\Schema\ValidationException;
  *
  * @see docs/architecture/MODEL.md "Configuration Schema"
  */
-final class NativeConfigurationSchema implements ConfigurationSchemaInterface
+final readonly class NativeConfigurationSchema implements ConfigurationSchemaInterface
 {
     public function __construct(
-        private readonly Schema $schema,
+        private Schema $schema,
     ) {
     }
 

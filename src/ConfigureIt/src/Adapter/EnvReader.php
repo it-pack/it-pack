@@ -17,13 +17,13 @@ use ItPack\ConfigureIt\Exception\ReadException;
  *
  * @see docs/architecture/MODEL.md "Configuration Reader"
  */
-final class EnvReader implements ConfigurationReaderInterface
+final readonly class EnvReader implements ConfigurationReaderInterface
 {
     /**
      * @param list<string>|null $only when set, only these variable names are read.
      */
     public function __construct(
-        private readonly ?array $only = null,
+        private ?array $only = null,
     ) {
     }
 

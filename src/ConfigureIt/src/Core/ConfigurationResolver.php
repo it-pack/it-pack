@@ -27,19 +27,19 @@ use ItPack\ConfigureIt\ValueObject\ValidationResult;
  *
  * @see docs/architecture/MODEL.md "Configuration Resolver"
  */
-final class ConfigurationResolver implements ConfigurationResolverInterface
+final readonly class ConfigurationResolver implements ConfigurationResolverInterface
 {
     /**
      * @param iterable<ConfigurationLoaderInterface> $loaders
      * @param iterable<ConfigurationSourceInterface> $sources default sources used when resolve() is called without arguments.
      */
     public function __construct(
-        private readonly ConfigurationReaderInterface $reader,
-        private readonly iterable $loaders,
-        private readonly ConfigurationPipeline $pipeline,
-        private readonly ?ConfigurationSchemaInterface $schema = null,
-        private readonly ?ResolutionReporter $reporter = null,
-        private readonly iterable $sources = [],
+        private ConfigurationReaderInterface  $reader,
+        private iterable                      $loaders,
+        private ConfigurationPipeline         $pipeline,
+        private ?ConfigurationSchemaInterface $schema = null,
+        private ?ResolutionReporter           $reporter = null,
+        private iterable                      $sources = [],
     ) {
     }
 

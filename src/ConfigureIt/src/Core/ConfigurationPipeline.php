@@ -20,14 +20,14 @@ use ItPack\ConfigureIt\Execution\ResolutionReporter;
  *
  * @see docs/architecture/PIPELINE.md "Configuration Pipeline"
  */
-final class ConfigurationPipeline implements ConfigurationPipelineInterface
+final readonly class ConfigurationPipeline implements ConfigurationPipelineInterface
 {
     /**
      * @param list<ConfigurationProcessorInterface> $processors
      */
     public function __construct(
-        private readonly array $processors = [],
-        private readonly ?ResolutionReporter $reporter = null,
+        private array               $processors = [],
+        private ?ResolutionReporter $reporter = null,
     ) {
     }
 

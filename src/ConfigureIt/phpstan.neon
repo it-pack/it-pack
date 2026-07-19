@@ -7,4 +7,20 @@ parameters:
     reportUnmatchedIgnoredErrors: true
     treatPhpDocTypesAsCertain: true
 
-    ignoreErrors: []
+    shipmonkDeadCode:
+        usageExcluders:
+            usageOverMixed:
+                enabled: true
+
+    # Interface methods mandated by the ports & adapters architecture (AGENTS.md / PORTS.md).
+    # shipmonk's dead-code analysis cannot trace consumption of interface
+    # declarations through polymorphic calls and the Codeception verify() bridge,
+    # so their concrete implementations (used in src + tests) are flagged as dead.
+    # These are false positives, not defects — kept narrow and explicit.
+    ignoreErrors:
+        - identifier: shipmonk.deadMethod
+          message: '#ItPack\\ConfigureIt\\Contract\\ConfigurationPipelineInterface::run#'
+        - identifier: shipmonk.deadMethod
+          message: '#ItPack\\ConfigureIt\\Contract\\ConfigurationSnapshotInterface::(has|get|all)#'
+        - identifier: shipmonk.deadMethod
+          message: '#ItPack\\ConfigureIt\\Contract\\ResolutionReporterInterface::(record|occurrences)#'

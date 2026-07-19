@@ -2,34 +2,34 @@ Vision
 
 Become the most extensible configuration platform available for PHP.
 
-Phase 0
+Phase 0 ✅ (complete)
 
 Repository Bootstrap
 
-Project structure
+Project structure ✅
 CI
-Coding standards
-PHPStan
-PHPUnit
+Coding standards ✅
+PHPStan ✅ (level 9, 0 errors)
+PHPUnit — Codeception Unit suite used instead
 Psalm
 Rector
-Phase 1
+Phase 1 ✅ (complete)
 
 Core
 
 Deliver:
 
-Contracts
-Sources
-Loaders
-Builder
-Resolver
-Snapshot
+Contracts ✅
+Sources ✅ (FileSource, EnvSource)
+Loaders ✅ (PhpLoader, JsonLoader)
+Builder ✅
+Resolver ✅
+Snapshot ✅
 
 Supported formats:
 
-PHP
-JSON
+PHP ✅
+JSON ✅
 Phase 2
 
 File Formats

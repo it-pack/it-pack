@@ -17,10 +17,10 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/MODEL.md "Environment"
  */
-final class EnvSource implements ConfigurationSourceInterface
+final readonly class EnvSource implements ConfigurationSourceInterface
 {
     public function __construct(
-        private readonly string $uri = 'env://environment',
+        private string $uri = 'env://environment',
     ) {
     }
 

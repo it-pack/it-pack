@@ -15,13 +15,13 @@ use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
  *
  * @see docs/architecture/PIPELINE.md "Defaults"
  */
-final class DefaultsProcessor implements ConfigurationProcessorInterface
+final readonly class DefaultsProcessor implements ConfigurationProcessorInterface
 {
     /**
      * @param array<string, mixed> $defaults flat dotted-key defaults.
      */
     public function __construct(
-        private readonly array $defaults,
+        private array $defaults,
     ) {
     }
 
