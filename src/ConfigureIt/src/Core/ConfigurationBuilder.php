@@ -75,10 +75,11 @@ final class ConfigurationBuilder
     public function build(?ResolutionReporter $reporter = null): ConfigurationResolverInterface
     {
         $pipeline = new ConfigurationPipeline($this->processors, $reporter);
+        $loaderFactory = new LoaderFactory($this->loaders);
 
         return new ConfigurationResolver(
             reader: $this->reader,
-            loaders: $this->loaders,
+            loaders: $loaderFactory,
             pipeline: $pipeline,
             schema: $this->schema,
             reporter: $reporter,
