@@ -8,7 +8,7 @@ namespace ItPack\ConfigureIt\Contract;
  * A parsed, format-independent representation of configuration.
  *
  * Documents are produced by loaders and consumed by processors/pipelines. They
- * are independent from file format, storage and transport.
+ * are independent of file format, storage and transport.
  *
  * @see docs/architecture/MODEL.md "Configuration Document"
  */

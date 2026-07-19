@@ -71,7 +71,10 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
     }
 
     /**
-     * @param array<mixed> $data
+     * @param array $data
+     * @param string $prefix
+     * @param string $source
+     * @param int $priority
      * @return list<ConfigurationNode>
      */
     private function flatten(array $data, string $prefix, string $source, int $priority): array

@@ -19,7 +19,7 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/decisions/ADR-0006-Loader-Factory.md
  */
-final class LoaderFactory implements LoaderFactoryInterface
+final readonly class LoaderFactory implements LoaderFactoryInterface
 {
     /**
      * @param iterable<ConfigurationLoaderInterface> $loaders

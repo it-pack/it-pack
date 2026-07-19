@@ -9,7 +9,7 @@ namespace ItPack\ConfigureIt\Contract;
  *
  * Unlike nested arrays, the graph preserves relationships and per-value
  * metadata. It is implementation-independent and eventually enables
- * diagnostics, provenance and explainability.
+ * diagnostics, provenance, and explainability.
  *
  * @see docs/architecture/GRAPH.md "Node Model"
  */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
+use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 /**
@@ -19,7 +20,7 @@ use ItPack\ConfigureIt\ValueObject\Format;
 interface LoaderFactoryInterface
 {
     /**
-     * @throws \ItPack\ConfigureIt\Exception\ResolutionException when no loader supports the format.
+     * @throws ResolutionException when no loader supports the format.
      */
     public function loaderFor(Format $format): ConfigurationLoaderInterface;
 }
