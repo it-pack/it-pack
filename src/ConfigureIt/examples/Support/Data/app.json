@@ -1,0 +1,9 @@
+{
+    "app": {
+        "debug": true,
+        "name": "configure-it-override"
+    },
+    "cache": {
+        "enabled": true
+    }
+}

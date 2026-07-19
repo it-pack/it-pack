@@ -68,6 +68,33 @@ and `ROADMAP.md`).
   - `src/Core/DefaultsProcessor` — applies flat dotted-key defaults without
     overriding resolved values (pipeline "Apply Defaults" stage).
 
+- **Step 4 — Native adapters (Ports & Adapters; ADR-0002)**
+  - `src/Adapter/FileSource` — recursive directory discovery → `ConfigurationResource`
+    per supported extension (no third-party finder; SPL only).
+  - `src/Adapter/FileReader` — reads file content (standard library only).
+  - `src/Adapter/EnvSource` / `EnvReader` — exposes process environment as a single
+    ENV resource; reader serialises `KEY=VALUE` lines.
+  - `src/Adapter/PhpLoader` — parses a `<?php return [...]` file via a throwaway temp
+    file (isolates `require`).
+  - `src/Adapter/JsonLoader` — parses JSON via `ext-json` with `JSON_THROW_ON_ERROR`.
+  - `src/Adapter/NativeConfigurationSchema` — wraps `nette/schema`; translates vendor
+    `ValidationException` (via `getMessageObjects()`) into domain `ValidationResult`.
+    Core never sees Nette types.
+
+  PHPStan level 9: **0 genuine type errors** (remaining 47 findings are
+  `shipmonk.deadMethod` — unused until Step 5 wiring + Step 6 tests consume them).
+  Coding standard (`php-cs-fixer`) clean across all 41 files.
+
+- **Step 5 — Default wiring & example**
+  - `examples/resolve.php` — wires `FileSource` + `PhpLoader`/`JsonLoader` via the
+    `ConfigurationBuilder`, resolves to an immutable `ConfigurationSnapshot`, and
+    prints merged values. Runs end-to-end (`php examples/resolve.php`).
+  - `examples/Support/Data/app.php` and `app.json` — fixtures demonstrating merge
+    (PHP + JSON, last-wins by discovery order).
+  - `ConfigurationBuilder::build()` now returns a resolver that resolves with its
+    accumulated sources when called with no arguments; `resolve(iterable $sources = [])`
+    on both the interface and resolver supports this.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

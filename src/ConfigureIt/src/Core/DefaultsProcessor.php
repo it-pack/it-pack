@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 
 /**

@@ -8,8 +8,8 @@ use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
-use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\Execution\Occurrence;
+use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
 /**
  * The ordered sequence of processors transforming documents into a graph.

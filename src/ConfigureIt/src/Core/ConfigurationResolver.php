@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
-use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
-use ItPack\ConfigureIt\Execution\Occurrence;
-use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\Exception\ValidationException;
+use ItPack\ConfigureIt\Execution\Occurrence;
+use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
 
 /**
@@ -32,6 +31,7 @@ final class ConfigurationResolver implements ConfigurationResolverInterface
 {
     /**
      * @param iterable<ConfigurationLoaderInterface> $loaders
+     * @param iterable<ConfigurationSourceInterface> $sources default sources used when resolve() is called without arguments.
      */
     public function __construct(
         private readonly ConfigurationReaderInterface $reader,
@@ -39,17 +39,20 @@ final class ConfigurationResolver implements ConfigurationResolverInterface
         private readonly ConfigurationPipeline $pipeline,
         private readonly ?ConfigurationSchemaInterface $schema = null,
         private readonly ?ResolutionReporter $reporter = null,
+        private readonly iterable $sources = [],
     ) {
     }
 
     /**
-     * @param iterable<ConfigurationSourceInterface> $sources
+     * @param iterable<ConfigurationSourceInterface> $sources when empty, the sources supplied at construction are used.
      */
-    public function resolve(iterable $sources): ConfigurationSnapshotInterface
+    public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
     {
+        $effectiveSources = $sources === [] ? $this->sources : $sources;
+
         $documents = [];
 
-        foreach ($sources as $source) {
+        foreach ($effectiveSources as $source) {
             foreach ($source->discover() as $resource) {
                 $raw = $this->reader->read($resource);
                 $loader = $this->loaderFor($resource->format());

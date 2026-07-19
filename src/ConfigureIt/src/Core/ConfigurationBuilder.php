@@ -82,6 +82,7 @@ final class ConfigurationBuilder
             pipeline: $pipeline,
             schema: $this->schema,
             reporter: $reporter,
+            sources: $this->sources,
         );
     }
 }
