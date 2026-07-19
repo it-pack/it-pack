@@ -1,5 +1,6 @@
 # Composer
 vendor/
+var/
 composer.lock
 composer.phar
 
