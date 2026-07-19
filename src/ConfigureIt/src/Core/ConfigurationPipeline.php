@@ -76,16 +76,17 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
      */
     private function flatten(array $data, string $prefix, string $source, int $priority): array
     {
+        $key = $prefix === '' ? null : Key::fromString($prefix);
         $nodes = [];
 
-        foreach ($data as $key => $value) {
-            $path = $prefix === '' ? (string) $key : $prefix . '.' . (string) $key;
+        foreach ($data as $segment => $value) {
+            $child = $key === null ? Key::fromString((string) $segment) : $key->child((string) $segment);
 
-            if (is_array($value) && $this->isAssociative($value)) {
-                $nodes = [...$nodes, ...$this->flatten($value, $path, $source, $priority)];
+            if (is_array($value) && Key::isAssociative($value)) {
+                $nodes = [...$nodes, ...$this->flatten($value, $child->toString(), $source, $priority)];
             } else {
                 $nodes[] = new ConfigurationNode(
-                    key: $path,
+                    key: $child->toString(),
                     value: $value,
                     source: $source,
                     priority: $priority,
@@ -95,17 +96,5 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
         }
 
         return $nodes;
-    }
-
-    /**
-     * @param array<mixed> $value
-     */
-    private function isAssociative(array $value): bool
-    {
-        if ($value === []) {
-            return false;
-        }
-
-        return array_keys($value) !== range(0, count($value) - 1);
     }
 }

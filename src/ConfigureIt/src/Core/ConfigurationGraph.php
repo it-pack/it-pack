@@ -82,29 +82,9 @@ final class ConfigurationGraph implements ConfigurationGraphInterface
         $tree = [];
 
         foreach ($this->nodes as $key => $node) {
-            $this->assign($tree, $key, $node->value());
+            Key::fromString($key)->set($tree, $node->value());
         }
 
         return $tree;
-    }
-
-    /**
-     * @param array<string, mixed> $tree
-     */
-    private function assign(array &$tree, string $key, mixed $value): void
-    {
-        $segments = explode('.', $key);
-        $cursor = &$tree;
-
-        foreach ($segments as $segment) {
-            if (!is_array($cursor)) {
-                $cursor = [];
-            }
-
-            $cursor = &$cursor[$segment];
-        }
-
-        $cursor = $value;
-        unset($cursor);
     }
 }

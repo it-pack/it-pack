@@ -33,34 +33,12 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
 
     public function get(string $path, mixed $default = null): mixed
     {
-        $segments = explode('.', $path);
-        $cursor = $this->tree;
-
-        foreach ($segments as $segment) {
-            if (!is_array($cursor) || !array_key_exists($segment, $cursor)) {
-                return $default;
-            }
-
-            $cursor = $cursor[$segment];
-        }
-
-        return $cursor;
+        return Key::fromString($path)->get($this->tree, $default);
     }
 
     public function has(string $path): bool
     {
-        $segments = explode('.', $path);
-        $cursor = $this->tree;
-
-        foreach ($segments as $segment) {
-            if (!is_array($cursor) || !array_key_exists($segment, $cursor)) {
-                return false;
-            }
-
-            $cursor = $cursor[$segment];
-        }
-
-        return true;
+        return Key::fromString($path)->has($this->tree);
     }
 
     /**

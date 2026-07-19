@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
-use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
-use ItPack\ConfigureIt\Exception\ResolutionException;
+use ItPack\ConfigureIt\Contract\LoaderFactoryInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
@@ -30,16 +29,15 @@ use ItPack\ConfigureIt\ValueObject\ValidationResult;
 final readonly class ConfigurationResolver implements ConfigurationResolverInterface
 {
     /**
-     * @param iterable<ConfigurationLoaderInterface> $loaders
      * @param iterable<ConfigurationSourceInterface> $sources default sources used when resolve() is called without arguments.
      */
     public function __construct(
-        private ConfigurationReaderInterface  $reader,
-        private iterable                      $loaders,
-        private ConfigurationPipeline         $pipeline,
+        private ConfigurationReaderInterface $reader,
+        private LoaderFactoryInterface       $loaders,
+        private ConfigurationPipeline        $pipeline,
         private ?ConfigurationSchemaInterface $schema = null,
-        private ?ResolutionReporter           $reporter = null,
-        private iterable                      $sources = [],
+        private ?ResolutionReporter          $reporter = null,
+        private iterable                     $sources = [],
     ) {
     }
 
@@ -55,10 +53,10 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         foreach ($effectiveSources as $source) {
             foreach ($source->discover() as $resource) {
                 $raw = $this->reader->read($resource);
-                $loader = $this->loaderFor($resource->format());
+                $loader = $this->loaders->loaderFor($resource->format());
                 $parsed = $loader->load($raw);
 
-                $documents[] = new \ItPack\ConfigureIt\Core\ConfigurationDocument(
+                $documents[] = new ConfigurationDocument(
                     $parsed->toArray(),
                     $resource->format(),
                     $resource->uri(),
@@ -95,17 +93,6 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         ));
 
         return $snapshot;
-    }
-
-    private function loaderFor(\ItPack\ConfigureIt\ValueObject\Format $format): ConfigurationLoaderInterface
-    {
-        foreach ($this->loaders as $loader) {
-            if ($loader->supports($format)) {
-                return $loader;
-            }
-        }
-
-        throw new ResolutionException(sprintf('No loader supports format "%s".', $format->value));
     }
 
     private function describe(ValidationResult $result): string
