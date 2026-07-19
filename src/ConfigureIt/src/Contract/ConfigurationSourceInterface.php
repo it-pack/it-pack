@@ -11,8 +11,6 @@ namespace ItPack\ConfigureIt\Contract;
  * parses data and never reads content — it only yields resources.
  *
  * @see docs/architecture/MODEL.md "Configuration Source"
- *
- * @template-covariant T of ConfigurationResourceInterface
  */
 interface ConfigurationSourceInterface
 {

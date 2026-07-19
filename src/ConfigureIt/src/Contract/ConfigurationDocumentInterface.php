@@ -20,7 +20,7 @@ interface ConfigurationDocumentInterface
     public function toArray(): array;
 
     /**
-     * @return non-empty-string|null the origin identifier (uri) of the source, if known.
+     * @return string|null the origin identifier (uri) of the source, if known.
      */
     public function origin(): ?string;
 

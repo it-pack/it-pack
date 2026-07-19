@@ -52,6 +52,22 @@ and `ROADMAP.md`).
 - `src/ConfigureIt/docs/IMPLEMENTATION_PLAN.md` — added authoritative build plan
   (context, package layout, step-by-step sequence, risks, definition of done).
 
+- **Step 3 — Core implementation**
+  - `src/Core/ConfigurationDocument` — parsed format-independent document (value object).
+  - `src/Core/ConfigurationNode` — single graph value with source/priority/metadata.
+  - `src/Core/ConfigurationGraph` — flat dotted-key graph; deterministic
+    higher-priority-wins merge; nested arrays expanded to dotted keys.
+  - `src/Core/ConfigurationSnapshot` — immutable frozen snapshot (dotted-path `get`/`has`).
+  - `src/Core/ConfigurationPipeline` — documents → nodes → processors → graph;
+    emits `ConfigurationLoaded` / `ConfigurationMerged` occurrences.
+  - `src/Core/ConfigurationResolver` — orchestrates source→reader→loader→pipeline→
+    schema→snapshot; emits `ConfigurationValidated` / `ConfigurationResolved` /
+    `SnapshotCreated` occurrences; throws `ValidationException` on schema failure.
+  - `src/Core/ConfigurationBuilder` — mutable fluent assembler (sources, loaders,
+    processors, schema) producing a `ConfigurationResolver`.
+  - `src/Core/DefaultsProcessor` — applies flat dotted-key defaults without
+    overriding resolved values (pipeline "Apply Defaults" stage).
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
