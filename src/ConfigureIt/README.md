@@ -204,9 +204,9 @@ No matter where configuration originates, consumers use the same API.
                     │
         Resolution Pipeline Engine
                     │
-      ┌────────────────────────────────┐
-      │ Sources │ Loaders │ Processors │
-      └────────────────────────────────┘
+     ┌────────────────────────────────┐
+     │ Sources │ Loaders │ Processors │
+     └────────────────────────────────┘
                     │
            Configuration Graph
                     │
