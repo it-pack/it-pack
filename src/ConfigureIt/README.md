@@ -196,22 +196,21 @@ No matter where configuration originates, consumers use the same API.
 ## Architecture
 
 ```text
-                      Application
-                           │
-                   ConfigureIt API
-                           │
-                 Configuration Builder
-                           │
-               Resolution Pipeline Engine
-                           │
-            ┌────────────────────────────────┐
-            │ Sources │ Loaders │ Processors │
-            └────────────────────────────────┘
-                           │
-                  Configuration Graph
-                           │
-                 Immutable Configuration
-                       Snapshot
+               Application
+                    │
+            ConfigureIt API
+                    │
+          Configuration Builder
+                    │
+        Resolution Pipeline Engine
+                    │
+      ┌────────────────────────────────┐
+      │ Sources │ Loaders │ Processors │
+      └────────────────────────────────┘
+                    │
+            Configuration Graph
+                    │
+      Immutable Configuration Snapshot
 ```
 
 ---
