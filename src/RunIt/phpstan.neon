@@ -1,0 +1,12 @@
+parameters:
+    tmpDir: var/cache/phpstan
+    level: 9
+    paths:
+        - ./src
+        - ./tests/Acceptance
+        - ./tests/Functional
+        - ./tests/Unit
+    reportUnmatchedIgnoredErrors: false
+
+    ignoreErrors: []
+

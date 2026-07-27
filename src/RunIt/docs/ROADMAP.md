@@ -59,14 +59,14 @@ The roadmap covers:
 
 A source-code task is implemented only when:
 
-- [ ] The required contract or behavior exists.
-- [ ] The implementation follows architectural dependency rules.
-- [ ] Relevant automated tests pass.
-- [ ] PHPStan reports no new violations.
-- [ ] DepTrac reports no unapproved violations.
-- [ ] Public behavior is documented.
-- [ ] Security and performance implications have been reviewed.
-- [ ] Backward-compatibility impact has been recorded.
+- The required contract or behavior exists.
+- The implementation follows architectural dependency rules.
+- Relevant automated tests pass.
+- PHPStan reports no new violations.
+- DepTrac reports no unapproved violations.
+- Public behavior is documented.
+- Security and performance implications have been reviewed.
+- Backward-compatibility impact has been recorded.
 
 ### 2.3 Definition of verified
 
@@ -97,17 +97,12 @@ The roadmap uses relative implementation weeks because team capacity and kickoff
 | Hardening | Week 11 |
 | Release candidate and adoption | Week 12 |
 
-Calendar dates must be assigned after confirming:
-
-- Team size.
-- Contributor availability.
-- Repository readiness.
-- Required external integration priorities.
-- Release approval process.
 
 ---
 
 ## 3. Release Overview
+
+Any time designations are just estimates, no hard requirements are implied.
 
 | Milestone | Target | Primary outcome |
 |---|---:|---|
@@ -275,9 +270,9 @@ Calendar dates must be assigned after confirming:
 
 ## M0.6 Tooling bootstrap
 
-- [ ] Configure the selected test runner.
-- [ ] Configure PHPStan at the highest practical level.
-- [ ] Add strict PHPStan rules.
+- [x] Configure the selected test runner. (codeception)
+- [x] Configure PHPStan at the highest practical level.
+- [x] Add strict PHPStan rules.
 - [ ] Configure DepTrac layers and dependency rules.
 - [ ] Configure PHP-CS-Fixer.
 - [ ] Configure Infection.
