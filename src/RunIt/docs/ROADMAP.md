@@ -135,14 +135,14 @@ Any time designations are just estimates, no hard requirements are implied.
 
 - [x] Create the RunIt repository.
 - [x] Add `README.md`.
-- [ ] Add `EXECUTION.md`.
+- [ ] Add `docs/EXECUTION.md`.
 - [x] Add `AGENTS.md`.
-- [x] Add `ROADMAP.md`.
+- [x] Add `docs/ROADMAP.md`.
 - [ ] Add `LICENSE`.
 - [ ] Add `CONTRIBUTING.md`. — postponed
-- [ ] Add `SECURITY.md`. — postponed
-- [ ] Add `CHANGELOG.md`.
-- [ ] Add `UPGRADING.md`. — postponed
+- [ ] Add `docs/SECURITY.md`. — postponed
+- [ ] Add `docs/CHANGELOG.md`.
+- [ ] Add `docs/UPGRADING.md`. — postponed
 - [ ] Add `.gitignore`.
 - [ ] Add `.gitattributes`.
 - [ ] Add `.editorconfig`.
@@ -412,10 +412,10 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Define `ThrowableMapperInterface`.
 - [ ] Implement default safe throwable mapper.
 - [ ] Capture throwable class.
-- [ ] Capture safe message according to policy.
+- [ ] Capture a safe message according to policy.
 - [ ] Capture code where serializable.
 - [ ] Capture safe previous-cause relationships.
-- [ ] Add stack-trace inclusion policy.
+- [ ] Add a stack-trace inclusion policy.
 - [ ] Add maximum cause depth.
 - [ ] Add maximum trace length.
 - [ ] Avoid retaining the original throwable in immutable artifacts.
@@ -566,9 +566,9 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Define `ExecutionResultInterface`.
 - [ ] Implement success result metadata.
 - [ ] Implement failure result metadata.
-- [ ] Add optional parent execution reference.
+- [ ] Add an optional parent execution reference.
 - [ ] Add optional linked execution references.
-- [ ] Add start timestamp.
+- [ ] Add a start timestamp.
 - [ ] Add optional end timestamp.
 - [ ] Add execution context.
 - [ ] Add artifact sequence.
@@ -583,13 +583,13 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Define `ActivityDefinitionInterface`.
 - [ ] Implement immutable `ActivityDefinition`.
 - [ ] Define `ActivityStatusInterface`.
-- [ ] Implement closed activity-status enum.
+- [ ] Implement a closed activity-status enum.
 - [ ] Add execution identity.
 - [ ] Add optional parent activity identity.
-- [ ] Add start timestamp.
+- [ ] Add a start timestamp.
 - [ ] Add optional end timestamp.
 - [ ] Add attributes.
-- [ ] Add optional throwable description.
+- [ ] Add an optional throwable description.
 - [ ] Implement immutable activity record.
 - [ ] Define deterministic activity normalization.
 - [ ] Add nested-identity tests.
@@ -608,10 +608,10 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add timestamp.
 - [ ] Add sequence.
 - [ ] Add attributes.
-- [ ] Implement counter named constructor.
+- [ ] Implement counter-named constructor.
 - [ ] Implement gauge named constructor.
 - [ ] Implement duration named constructor.
-- [ ] Implement size named constructor.
+- [ ] Implement size-named constructor.
 - [ ] Implement ratio named constructor.
 - [ ] Reject non-finite floating-point values where required.
 - [ ] Add measurement normalization tests.
@@ -628,7 +628,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add optional activity identity.
 - [ ] Add timestamp.
 - [ ] Add sequence.
-- [ ] Add optional throwable description.
+- [ ] Add an optional throwable description.
 - [ ] Implement severity-specific named constructors.
 - [ ] Add observation normalization tests.
 - [ ] Test throwable-free serialization.
@@ -649,7 +649,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add optional activity identity.
 - [ ] Add sequence.
 - [ ] Implement immutable occurrence.
-- [ ] Validate stable occurrence-type format.
+- [ ] Validate a stable occurrence-type format.
 - [ ] Reject PHP class names as implicit event types.
 - [ ] Define deterministic normalization.
 - [ ] Add occurrence versioning tests.
@@ -671,7 +671,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add normalized state payload.
 - [ ] Add content type.
 - [ ] Add content hash.
-- [ ] Add optional predecessor identity.
+- [ ] Add an optional predecessor identity.
 - [ ] Add attributes.
 - [ ] Implement immutable generic snapshot.
 - [ ] Implement immutable execution snapshot.
@@ -741,7 +741,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Resolve parent or linked execution identity.
 - [ ] Resolve effective execution context.
 - [ ] Allocate initial sequence.
-- [ ] Create running execution record.
+- [ ] Create a running execution record.
 - [ ] Attach execution scope.
 - [ ] Publish execution-started artifact.
 - [ ] Invoke consumer operation.
@@ -750,7 +750,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Map thrown `Throwable`.
 - [ ] Record failure observation.
 - [ ] Complete failed execution.
-- [ ] Produce terminal execution snapshot.
+- [ ] Produce a terminal execution snapshot.
 - [ ] Restore prior context in `finally`.
 - [ ] Rethrow the original throwable.
 - [ ] Ensure publication failure cannot replace business failure.
@@ -873,7 +873,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Implement auto-fail-open-activities policy.
 - [ ] Implement auto-cancel-open-activities policy.
 - [ ] Implement fail-execution-on-open-activities policy.
-- [ ] Implement warning-and-ignore policy if retained.
+- [ ] Implement a warning-and-ignore policy if retained.
 - [ ] Select and document the default.
 - [ ] Record diagnostic observations for auto-resolved activities.
 - [ ] Test execution completion with open activities.
@@ -900,7 +900,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Bind active activity identity automatically.
 - [ ] Allocate sequence automatically.
 - [ ] Add timestamp automatically.
-- [ ] Normalize throwables through the configured mapper.
+- [ ] Normalize throwable through the configured mapper.
 - [ ] Publish recorded observation.
 - [ ] Add severity-specific convenience methods where justified.
 - [ ] Test observation recording with and without active activity.
@@ -912,7 +912,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Bind execution identity automatically.
 - [ ] Bind active activity identity automatically.
 - [ ] Allocate sequence automatically.
-- [ ] Add default source where configured.
+- [ ] Add a default source where configured.
 - [ ] Add timestamp automatically.
 - [ ] Publish recorded occurrence.
 - [ ] Test occurrence type validation.
@@ -1007,9 +1007,9 @@ Any time designations are just estimates, no hard requirements are implied.
 
 - [ ] Implement always-sample policy.
 - [ ] Implement never-sample policy.
-- [ ] Implement ratio-based policy.
+- [ ] Implement a ratio-based policy.
 - [ ] Implement execution-kind policy.
-- [ ] Implement severity-aware policy.
+- [ ] Implement a severity-aware policy.
 - [ ] Ensure errors can override ordinary sampling.
 - [ ] Define parent-child sampling behavior.
 - [ ] Implement `SamplingArtifactPublisher`.
@@ -1022,7 +1022,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Implement fail-open policy.
 - [ ] Implement fail-closed policy.
 - [ ] Implement collect-and-continue policy.
-- [ ] Implement report-to-fallback policy.
+- [ ] Implement a report-to-fallback policy.
 - [ ] Implement `FailSafeArtifactPublisher`.
 - [ ] Preserve original business exceptions.
 - [ ] Preserve original adapter exceptions for diagnostics.
@@ -1035,7 +1035,7 @@ Any time designations are just estimates, no hard requirements are implied.
 
 - [ ] Implement publication guard.
 - [ ] Detect nested publication on the same execution path.
-- [ ] Send guarded failures to internal health reporter.
+- [ ] Send guarded failures to an internal health reporter.
 - [ ] Implement `ErrorLogHealthReporter`.
 - [ ] Implement callback health reporter.
 - [ ] Ensure health reporters do not call the guarded publisher.
@@ -1050,13 +1050,13 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Define maximum estimated bytes.
 - [ ] Define maximum buffer age.
 - [ ] Define batch size.
-- [ ] Define flush interval.
+- [ ] Define a flush interval.
 - [ ] Define shutdown flush budget.
 - [ ] Implement drop-newest overflow strategy.
 - [ ] Implement drop-oldest overflow strategy.
 - [ ] Implement drop-low-priority strategy.
-- [ ] Implement block-with-timeout strategy if safe.
-- [ ] Implement fail overflow strategy.
+- [ ] Implement a block-with-timeout strategy if safe.
+- [ ] Implement a fail overflow strategy.
 - [ ] Implement `BufferedArtifactPublisher`.
 - [ ] Count dropped artifacts through recursion-safe health reporting.
 - [ ] Prevent unbounded memory growth.
@@ -1142,8 +1142,8 @@ Any time designations are just estimates, no hard requirements are implied.
 ## M7.4 Service decorators
 
 - [ ] Add documented decorator pattern.
-- [ ] Add example instrumented service interface.
-- [ ] Add example final readonly decorator.
+- [ ] Add an example instrumented service interface.
+- [ ] Add an example final readonly decorator.
 - [ ] Demonstrate dependency inversion.
 - [ ] Demonstrate preserving the wrapped contract.
 - [ ] Avoid general runtime proxy generation in `1.0.0`.
@@ -1156,7 +1156,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Keep attributes immutable.
 - [ ] Ensure attributes contain metadata only.
 - [ ] Add metadata-reader port.
-- [ ] Add optional reflection-based reader outside the hot path.
+- [ ] Add an optional reflection-based reader outside the hot path.
 - [ ] Cache parsed metadata safely.
 - [ ] Add attribute-validation tests.
 - [ ] Document that attributes do not instrument code by themselves.
@@ -1164,8 +1164,8 @@ Any time designations are just estimates, no hard requirements are implied.
 ## M7.6 Developer experience
 
 - [ ] Provide minimal null-runtime factory.
-- [ ] Provide in-memory runtime factory for tests.
-- [ ] Provide recommended production-builder example.
+- [ ] Provide an in-memory runtime factory for tests.
+- [ ] Provide the recommended production-builder example.
 - [ ] Ensure simple instrumentation requires no more than a few lines.
 - [ ] Add IDE-friendly PHPDoc generics.
 - [ ] Add examples for result type preservation.
@@ -1192,7 +1192,7 @@ Any time designations are just estimates, no hard requirements are implied.
 ## M8.1 PSR-20 clock
 
 - [ ] Implement PSR-20 clock adapter.
-- [ ] Keep monotonic duration clock separate.
+- [ ] Keep the monotonic duration clock separate.
 - [ ] Add PSR-20 adapter tests.
 - [ ] Document wall-clock versus monotonic-clock responsibilities.
 
@@ -1266,8 +1266,8 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Document PSR-3 mappings.
 - [ ] Document PSR-14 failure behavior.
 - [ ] Document PSR-15 middleware.
-- [ ] Add HTTP server example.
-- [ ] Add outbound HTTP client example.
+- [ ] Add an HTTP server example.
+- [ ] Add an outbound HTTP client example.
 
 ## M8 acceptance gate
 
@@ -1357,7 +1357,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Map approved attributes.
 - [ ] Include execution and activity correlation.
 - [ ] Include throwable information under policy.
-- [ ] Optionally map selected observations to span events.
+- [ ] Optionally, map selected observations to span events.
 - [ ] Prevent duplicate logging when PSR-3 and OTel bridges are both enabled.
 - [ ] Add OTel log exporter tests.
 - [ ] Test disabled log-provider behavior.
@@ -1390,7 +1390,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Document OTLP exporter configuration as application responsibility.
 - [ ] Document cardinality controls.
 - [ ] Document Fiber considerations.
-- [ ] Add executable OTel example.
+- [ ] Add an executable OTel example.
 
 ## M9 acceptance gate
 
@@ -1443,7 +1443,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Validate required CloudEvent fields.
 - [ ] Reject unsupported or malformed fields safely.
 - [ ] Reconstruct occurrence identity.
-- [ ] Reconstruct occurrence type.
+- [ ] Reconstruct an occurrence type.
 - [ ] Reconstruct source and subject.
 - [ ] Reconstruct time.
 - [ ] Reconstruct schema and content type.
@@ -1485,7 +1485,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Document occurrence naming.
 - [ ] Document event-size limits.
 - [ ] Document delivery guarantees.
-- [ ] Add structured JSON example.
+- [ ] Add a structured JSON example.
 - [ ] Add HTTP publication example if supported.
 
 ## M10 acceptance gate
@@ -1512,7 +1512,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Handle main execution outside a Fiber.
 - [ ] Restore parent Fiber context correctly.
 - [ ] Use `WeakMap` for Fiber associations where appropriate.
-- [ ] Remove completed Fiber state.
+- [ ] Remove the completed Fiber state.
 - [ ] Handle Fiber exceptions.
 - [ ] Handle Fiber suspension and resumption.
 - [ ] Add parallel-Fiber isolation tests.
@@ -1564,7 +1564,7 @@ Any time designations are just estimates, no hard requirements are implied.
 
 - [ ] Define server execution middleware contract.
 - [ ] Create one execution per request.
-- [ ] Extract incoming correlation context.
+- [ ] Extract the incoming correlation context.
 - [ ] Record response status.
 - [ ] Record request duration.
 - [ ] Record unhandled throwable.
@@ -1580,7 +1580,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Represent worker stop.
 - [ ] Represent worker failure.
 - [ ] Separate worker lifecycle execution from request/job execution.
-- [ ] Add runtime reset hook.
+- [ ] Add a runtime reset hook.
 - [ ] Flush publishers within shutdown budget.
 - [ ] Add worker-reload tests.
 - [ ] Add long-running memory tests.
@@ -1592,8 +1592,8 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Document persistent-worker requirements.
 - [ ] Document context cleanup.
 - [ ] Document runtime limitations.
-- [ ] Add Fiber example.
-- [ ] Add Swoole/OpenSwoole example where supported.
+- [ ] Add a Fiber example.
+- [ ] Add a Swoole / OpenSwoole example where supported.
 
 ## M11 acceptance gate
 
@@ -1687,8 +1687,8 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Ratify in-memory execution latency target.
 - [ ] Ratify activity latency target.
 - [ ] Ratify artifact-publication throughput target.
-- [ ] Ratify memory-per-execution target.
-- [ ] Define acceptable regression threshold.
+- [ ] Ratify the memory-per-execution target.
+- [ ] Define an acceptable regression threshold.
 - [ ] Add non-blocking benchmark comparison to pull requests.
 - [ ] Add blocking regression gate after baseline stability.
 - [ ] Document measured results rather than theoretical claims.
@@ -1703,7 +1703,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Inject publisher failures.
 - [ ] Inject snapshot-store failures.
 - [ ] Inject context-detach failures.
-- [ ] Verify original operation result or throwable priority.
+- [ ] Verify an original operation result or throwable priority.
 - [ ] Verify failure fallback does not recurse.
 - [ ] Verify buffer overflow behavior.
 - [ ] Verify bounded shutdown behavior.
@@ -1718,7 +1718,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Pin CI actions by immutable reference according to project policy.
 - [ ] Enable repository secret scanning.
 - [ ] Document vulnerability-reporting process.
-- [ ] Verify release provenance approach.
+- [ ] Verify the release provenance approach.
 
 ## M12 acceptance gate
 
@@ -1775,7 +1775,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add custom rule: concrete classes require interfaces.
 - [ ] Add custom rule: domain cannot import adapters.
 - [ ] Add custom rule: prohibit mutable static state.
-- [ ] Add custom rule: prohibit direct wall-clock access outside adapters.
+- [ ] Add a custom rule: prohibit direct wall-clock access outside adapters.
 - [ ] Add custom rule: prohibit arbitrary object serialization.
 - [ ] Maintain zero first-party baseline entries.
 - [ ] Add a non-blocking bleeding-edge analysis job.
@@ -1787,7 +1787,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Define Application layer.
 - [ ] Define Port layer.
 - [ ] Define SDK layer.
-- [ ] Define Common Adapter layer.
+- [ ] Define a Common Adapter layer.
 - [ ] Define External Adapter layer.
 - [ ] Define Test Support layer.
 - [ ] Enforce documented allowed dependencies.
@@ -1808,7 +1808,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Enforce trailing commas where appropriate.
 - [ ] Enforce modern PHP 8.4 syntax consistently.
 - [ ] Review risky rules individually.
-- [ ] Add check-only CI job.
+- [ ] Add a check-only CI job.
 - [ ] Document local auto-fix command.
 
 ## M13.5 Mutation testing
@@ -1828,15 +1828,15 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Review escaped mutants.
 - [ ] Add tests for meaningful escaped mutants.
 - [ ] Document justified ignored mutations.
-- [ ] Add full nightly mutation job.
+- [ ] Add a full nightly mutation job.
 
 ## M13.6 Backward compatibility
 
 - [ ] Configure public API compatibility checker.
 - [ ] Define public namespace scope.
 - [ ] Exclude documented internal namespaces.
-- [ ] Establish API baseline at the first release candidate.
-- [ ] Add pull-request compatibility job after baseline creation.
+- [ ] Establish an API baseline at the first release candidate.
+- [ ] Add a pull-request compatibility job after baseline creation.
 - [ ] Detect public interface method additions.
 - [ ] Detect removed or narrowed types.
 - [ ] Detect enum case changes where applicable.
@@ -1887,10 +1887,10 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Create `docs/architecture/security.md`.
 - [ ] Create `docs/architecture/performance.md`.
 - [ ] Create `docs/architecture/self-instrumentation.md`.
-- [ ] Add architecture dependency diagram.
+- [ ] Add an architecture dependency diagram.
 - [ ] Add execution lifecycle diagram.
 - [ ] Add activity nesting diagram.
-- [ ] Add artifact publication diagram.
+- [ ] Add an artifact publication diagram.
 - [ ] Add context propagation diagrams for synchronous, Fiber, and coroutine runtimes.
 
 ## M14.3 Integration documentation
@@ -1907,14 +1907,14 @@ Any time designations are just estimates, no hard requirements are implied.
 ## M14.4 Recipes
 
 - [ ] Add basic callable recipe.
-- [ ] Add nested-activity recipe.
+- [ ] Add a nested-activity recipe.
 - [ ] Add HTTP request recipe.
 - [ ] Add CLI command recipe.
 - [ ] Add queue-job recipe.
 - [ ] Add scheduler recipe.
 - [ ] Add background-worker recipe.
 - [ ] Add configuration-resolution recipe.
-- [ ] Add workflow recipe.
+- [ ] Add a workflow recipe.
 - [ ] Add OpenTelemetry recipe.
 - [ ] Add CloudEvents recipe.
 - [ ] Add PSR-3 recipe.
@@ -1923,20 +1923,20 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M14.5 Executable examples
 
-- [ ] Add null-runtime example.
-- [ ] Add in-memory-runtime example.
-- [ ] Add successful execution example.
-- [ ] Add failed execution example.
+- [ ] Add a null-runtime example.
+- [ ] Add an in-memory-runtime example.
+- [ ] Add a successful execution example.
+- [ ] Add a failed execution example.
 - [ ] Add nested activities example.
 - [ ] Add measurements example.
 - [ ] Add observations example.
 - [ ] Add occurrences example.
 - [ ] Add snapshots example.
-- [ ] Add context classification example.
+- [ ] Add a context classification example.
 - [ ] Add OTel example.
 - [ ] Add CloudEvents example.
-- [ ] Add Fiber example.
-- [ ] Add Swoole example where available.
+- [ ] Add a Fiber example.
+- [ ] Add a Swoole example where available.
 - [ ] Execute all examples in CI.
 - [ ] Ensure examples use only public APIs.
 
@@ -1974,7 +1974,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Record configuration-loaded occurrence.
 - [ ] Record schema-validated occurrence.
 - [ ] Record snapshot-created occurrence.
-- [ ] Produce configuration snapshot.
+- [ ] Produce a configuration snapshot.
 - [ ] Verify ConfigureIt domain remains free of adapter dependencies.
 - [ ] Add end-to-end ConfigureIt integration tests.
 - [ ] Document the adoption case study.
@@ -1982,7 +1982,7 @@ Any time designations are just estimates, no hard requirements are implied.
 ## M14.8 Third-party usability validation
 
 - [ ] Build one sample third-party publisher.
-- [ ] Run publisher conformance suite.
+- [ ] Run the publisher conformance suite.
 - [ ] Build one sample context-storage adapter.
 - [ ] Run context-storage conformance suite.
 - [ ] Validate documentation with a clean consumer project.
@@ -2020,7 +2020,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Review default security limits.
 - [ ] Review default failure policies.
 - [ ] Review optional dependency constraints.
-- [ ] Create backward-compatibility baseline.
+- [ ] Create a backward-compatibility baseline.
 - [ ] Update changelog.
 - [ ] Update upgrade guide.
 - [ ] Publish `1.0.0-rc.1`.
@@ -2032,11 +2032,11 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Run lowest-dependency matrix.
 - [ ] Run stable-dependency matrix.
 - [ ] Run supported operating-system matrix.
-- [ ] Run full unit suite.
-- [ ] Run full integration suite.
-- [ ] Run full concurrency suite.
-- [ ] Run full mutation suite.
-- [ ] Run full benchmark suite.
+- [ ] Run the full unit suite.
+- [ ] Run the full integration suite.
+- [ ] Run the full concurrency suite.
+- [ ] Run the full mutation suite.
+- [ ] Run the full benchmark suite.
 - [ ] Run security audit.
 - [ ] Generate SBOM.
 - [ ] Verify package archive contents.
@@ -2052,7 +2052,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Confirm no unresolved critical defect.
 - [ ] Confirm no unresolved high-risk security issue.
 - [ ] Confirm performance targets.
-- [ ] Confirm backward-compatibility policy.
+- [ ] Confirm the backward-compatibility policy.
 - [ ] Confirm support and maintenance policy.
 - [ ] Confirm Packagist metadata.
 - [ ] Tag `1.0.0`.
@@ -2124,13 +2124,13 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M16.4 Operational maturity
 
-- [ ] Add release performance dashboard.
+- [ ] Add a release performance dashboard.
 - [ ] Add long-duration memory regression testing.
 - [ ] Add compatibility testing against upcoming PHP versions.
 - [ ] Add adapter compatibility matrix automation.
 - [ ] Add deprecation telemetry policy.
 - [ ] Add schema registry guidance for occurrences and snapshots.
-- [ ] Add durable outbox reference adapter if demanded by consumers.
+- [ ] Add a durable outbox reference adapter if demanded by consumers.
 - [ ] Add signed-snapshot adapter if demanded by security requirements.
 - [ ] Review default limits using production evidence.
 
@@ -2178,9 +2178,9 @@ The following checks apply throughout the roadmap.
 
 ## Error handling
 
-- [ ] Original business result is preserved.
+- [ ] Original business results are preserved.
 - [ ] Original business throwable is preserved.
-- [ ] Adapter failures follow configured policy.
+- [ ] Adapter failures follow the configured policy.
 - [ ] Context restoration occurs in `finally`.
 - [ ] Publication recursion is prevented.
 - [ ] Buffer overflow is explicit.
