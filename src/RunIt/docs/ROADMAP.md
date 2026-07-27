@@ -143,7 +143,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add `docs/SECURITY.md`. — postponed
 - [ ] Add `docs/CHANGELOG.md`.
 - [ ] Add `docs/UPGRADING.md`. — postponed
-- [ ] Add `.gitignore`.
+- [x] Add `.gitignore`.
 - [ ] Add `.gitattributes`.
 - [ ] Add `.editorconfig`.
 - [ ] Add a pull request template. — postponed
@@ -166,17 +166,17 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Set PHP constraint to `^8.4`.
 - [x] Define `ItPack\RunIt\` PSR-4 source mapping.
 - [x] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
-- [x] Add package description and keywords.
+- [x] Add a package description and keywords.
 - [x] Add license metadata.
 - [x] Add author and support metadata.
 - [x] Set `minimum-stability` and `prefer-stable` deliberately.
-- [ ] Add optional integrations under `suggest`.
-- [ ] Add development dependencies for initial tooling.
+- [x] Add optional integrations under `suggest`.
+- [x] Add development dependencies for initial tooling.
 - [ ] Add Composer scripts for:
-    - [ ] Tests.
-    - [ ] Static analysis.
+    - [x] Tests.
+    - [x] Static analysis.
     - [ ] Architecture analysis.
-    - [ ] Coding-style checks.
+    - [x] Coding-style checks.
     - [ ] Mutation testing.
     - [ ] Benchmarks.
     - [ ] Security audit.
@@ -274,9 +274,9 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Configure PHPStan at the highest practical level.
 - [x] Add strict PHPStan rules.
 - [ ] Configure DepTrac layers and dependency rules.
-- [ ] Configure PHP-CS-Fixer.
+- [x] Configure PHP-CS-Fixer.
 - [ ] Configure Infection.
-- [ ] Configure code coverage.
+- [x] Configure code coverage.
 - [ ] Configure Composer audit.
 - [ ] Configure backward-compatibility checks.
 - [ ] Configure Markdown linting.
