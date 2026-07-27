@@ -144,15 +144,15 @@ Calendar dates must be assigned after confirming:
 - [x] Add `AGENTS.md`.
 - [x] Add `ROADMAP.md`.
 - [ ] Add `LICENSE`.
-- [ ] Add `CONTRIBUTING.md`.
-- [ ] Add `SECURITY.md`.
+- [ ] Add `CONTRIBUTING.md`. — postponed
+- [ ] Add `SECURITY.md`. — postponed
 - [ ] Add `CHANGELOG.md`.
-- [ ] Add `UPGRADING.md`.
+- [ ] Add `UPGRADING.md`. — postponed
 - [ ] Add `.gitignore`.
 - [ ] Add `.gitattributes`.
 - [ ] Add `.editorconfig`.
-- [ ] Add a pull request template.
-- [ ] Add issue templates for:
+- [ ] Add a pull request template. — postponed
+- [ ] Add issue templates for: — postponed
     - [ ] Bug reports.
     - [ ] Feature proposals.
     - [ ] Adapter proposals.
@@ -160,8 +160,8 @@ Calendar dates must be assigned after confirming:
     - [ ] Security reports.
 - [x] Define the default branch.
 - [x] Configure protected-branch rules.
-- [ ] Require review for public API changes.
-- [ ] Require successful CI before merge.
+- [ ] Require review for public API changes. — postponed
+- [ ] Require successful CI before merge. — postponed
 
 ## M0.2 Composer package
 
@@ -192,49 +192,49 @@ Calendar dates must be assigned after confirming:
 
 ## M0.3 Directory structure
 
-- [ ] Create `src/Contract/Domain/`.
-- [ ] Create `src/Contract/Application/`.
-- [ ] Create `src/Contract/Port/`.
-- [ ] Create `src/Contract/Exception/`.
-- [ ] Create `src/Domain/Execution/`.
-- [ ] Create `src/Domain/Context/`.
-- [ ] Create `src/Domain/Activity/`.
-- [ ] Create `src/Domain/Measurement/`.
-- [ ] Create `src/Domain/Observation/`.
-- [ ] Create `src/Domain/Occurrence/`.
-- [ ] Create `src/Domain/Snapshot/`.
-- [ ] Create `src/Domain/Shared/`.
-- [ ] Create `src/Application/Runner/`.
-- [ ] Create `src/Application/Scope/`.
-- [ ] Create `src/Application/Lifecycle/`.
-- [ ] Create `src/Application/Publication/`.
-- [ ] Create `src/Application/Propagation/`.
-- [ ] Create `src/Application/Policy/`.
-- [ ] Create `src/Adapter/Null/`.
-- [ ] Create `src/Adapter/Memory/`.
-- [ ] Create `src/Adapter/Callback/`.
-- [ ] Create `src/Adapter/Fiber/`.
-- [ ] Create `src/Adapter/Psr/`.
-- [ ] Create `src/Adapter/OpenTelemetry/`.
-- [ ] Create `src/Adapter/CloudEvents/`.
-- [ ] Create `src/Adapter/Swoole/`.
-- [ ] Create `src/SDK/Builder/`.
-- [ ] Create `src/SDK/Decorator/`.
-- [ ] Create `src/SDK/Middleware/`.
-- [ ] Create `src/SDK/Attribute/`.
-- [ ] Create `tests/Unit/`.
-- [ ] Create `tests/Contract/`.
-- [ ] Create `tests/Integration/`.
-- [ ] Create `tests/Concurrency/`.
-- [ ] Create `tests/Architecture/`.
-- [ ] Create `tests/Performance/`.
-- [ ] Create `benchmarks/`.
-- [ ] Create `examples/`.
-- [ ] Create `docs/architecture/`.
-- [ ] Create `docs/concepts/`.
-- [ ] Create `docs/integrations/`.
-- [ ] Create `docs/recipes/`.
-- [ ] Create `docs/adr/`.
+- [x] Create `src/Contract/Domain/`.
+- [x] Create `src/Contract/Application/`.
+- [x] Create `src/Contract/Port/`.
+- [x] Create `src/Contract/Exception/`.
+- [x] Create `src/Domain/Execution/`.
+- [x] Create `src/Domain/Context/`.
+- [x] Create `src/Domain/Activity/`.
+- [x] Create `src/Domain/Measurement/`.
+- [x] Create `src/Domain/Observation/`.
+- [x] Create `src/Domain/Occurrence/`.
+- [x] Create `src/Domain/Snapshot/`.
+- [x] Create `src/Domain/Shared/`.
+- [x] Create `src/Application/Runner/`.
+- [x] Create `src/Application/Scope/`.
+- [x] Create `src/Application/Lifecycle/`.
+- [x] Create `src/Application/Publication/`.
+- [x] Create `src/Application/Propagation/`.
+- [x] Create `src/Application/Policy/`.
+- [x] Create `src/Adapter/Null/`.
+- [x] Create `src/Adapter/Memory/`.
+- [x] Create `src/Adapter/Callback/`.
+- [x] Create `src/Adapter/Fiber/`.
+- [x] Create `src/Adapter/Psr/`.
+- [x] Create `src/Adapter/OpenTelemetry/`.
+- [x] Create `src/Adapter/CloudEvents/`.
+- [x] Create `src/Adapter/Swoole/`.
+- [x] Create `src/SDK/Builder/`.
+- [x] Create `src/SDK/Decorator/`.
+- [x] Create `src/SDK/Middleware/`.
+- [x] Create `src/SDK/Attribute/`.
+- [x] Create `tests/Unit/`.
+- [x] Create `tests/Contract/`.
+- [x] Create `tests/Integration/`.
+- [x] Create `tests/Concurrency/`.
+- [x] Create `tests/Architecture/`.
+- [x] Create `tests/Performance/`.
+- [x] Create `benchmarks/`.
+- [x] Create `examples/`.
+- [x] Create `docs/architecture/`.
+- [x] Create `docs/concepts/`.
+- [x] Create `docs/integrations/`.
+- [x] Create `docs/recipes/`.
+- [x] Create `docs/adr/`.
 
 ## M0.4 Coding and architectural standards
 
