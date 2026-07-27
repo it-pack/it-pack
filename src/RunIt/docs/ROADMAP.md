@@ -165,16 +165,16 @@ Calendar dates must be assigned after confirming:
 
 ## M0.2 Composer package
 
-- [ ] Create `composer.json`.
-- [ ] Set package name to `it-pack/run-it`.
-- [ ] Set package type to `library`.
-- [ ] Set PHP constraint to `^8.4`.
-- [ ] Define `ItPack\RunIt\` PSR-4 source mapping.
-- [ ] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
-- [ ] Add package description and keywords.
-- [ ] Add license metadata.
-- [ ] Add author and support metadata.
-- [ ] Set `minimum-stability` and `prefer-stable` deliberately.
+- [x] Create `composer.json`.
+- [x] Set package name to `it-pack/run-it`.
+- [x] Set package type to `library`.
+- [x] Set PHP constraint to `^8.4`.
+- [x] Define `ItPack\RunIt\` PSR-4 source mapping.
+- [x] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
+- [x] Add package description and keywords.
+- [x] Add license metadata.
+- [x] Add author and support metadata.
+- [x] Set `minimum-stability` and `prefer-stable` deliberately.
 - [ ] Add optional integrations under `suggest`.
 - [ ] Add development dependencies for initial tooling.
 - [ ] Add Composer scripts for:

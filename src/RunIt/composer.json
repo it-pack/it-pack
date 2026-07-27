@@ -1,0 +1,23 @@
+{
+    "name": "it-pack/run-it",
+    "description": "The execution model and runtime backbone for the ItPack ecosystem.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "ItPack\\RunIt\\": "src/",
+            "ItPack\\RunIt\\Tests\\": "tests"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.4"
+    }
+}
