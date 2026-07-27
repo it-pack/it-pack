@@ -138,11 +138,11 @@ Calendar dates must be assigned after confirming:
 
 ## M0.1 Repository initialization
 
-- [ ] Create the RunIt repository.
-- [ ] Add `README.md`.
+- [x] Create the RunIt repository.
+- [x] Add `README.md`.
 - [ ] Add `EXECUTION.md`.
-- [ ] Add `AGENTS.md`.
-- [ ] Add `ROADMAP.md`.
+- [x] Add `AGENTS.md`.
+- [x] Add `ROADMAP.md`.
 - [ ] Add `LICENSE`.
 - [ ] Add `CONTRIBUTING.md`.
 - [ ] Add `SECURITY.md`.
@@ -158,8 +158,8 @@ Calendar dates must be assigned after confirming:
     - [ ] Adapter proposals.
     - [ ] Architecture decisions.
     - [ ] Security reports.
-- [ ] Define the default branch.
-- [ ] Configure protected-branch rules.
+- [x] Define the default branch.
+- [x] Configure protected-branch rules.
 - [ ] Require review for public API changes.
 - [ ] Require successful CI before merge.
 
