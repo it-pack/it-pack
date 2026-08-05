@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\ConfigureIt\Contract;
+namespace ItPack\ConfigureIt\Contract\ValueObject;
 
 use ItPack\ConfigureIt\ValueObject\Format;
 

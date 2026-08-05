@@ -17,10 +17,10 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/decisions/ADR-0006-Loader-Factory.md
  */
-interface LoaderFactoryInterface
+interface ConfigurationLoaderFactoryInterface
 {
     /**
      * @throws ResolutionException when no loader supports the format.
      */
-    public function loaderFor(Format $format): ConfigurationLoaderInterface;
+    public function build(Format $format): ConfigurationLoaderInterface;
 }

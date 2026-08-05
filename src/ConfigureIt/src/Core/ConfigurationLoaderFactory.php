@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
-use ItPack\ConfigureIt\Contract\LoaderFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 /**
- * Default {@see LoaderFactoryInterface} backed by an explicit loader registry.
+ * Default {@see ConfigurationLoaderFactoryInterface} backed by an explicit loader registry.
  *
  * Built from a set of {@see ConfigurationLoaderInterface} instances; the first
  * loader declaring {@see ConfigurationLoaderInterface::supports()} for a format
@@ -19,17 +19,21 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/decisions/ADR-0006-Loader-Factory.md
  */
-final readonly class LoaderFactory implements LoaderFactoryInterface
+final readonly class ConfigurationLoaderFactory implements ConfigurationLoaderFactoryInterface
 {
     /**
      * @param iterable<ConfigurationLoaderInterface> $loaders
      */
     public function __construct(
         private iterable $loaders,
-    ) {
+    ) {}
+
+    public static function create(iterable $loaders): self
+    {
+        return new self($loaders);
     }
 
-    public function loaderFor(Format $format): ConfigurationLoaderInterface
+    public function build(Format $format): ConfigurationLoaderInterface
     {
         foreach ($this->loaders as $loader) {
             if ($loader->supports($format)) {

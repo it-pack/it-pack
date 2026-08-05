@@ -1,0 +1,19 @@
+{
+    "name": "it-pack/file-it",
+    "description": "ItPack File Package",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "ItPack\\FileIt\\": ""
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
