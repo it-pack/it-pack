@@ -252,6 +252,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Define normalization and serialization conventions.
 - [x] Define public versus internal API conventions.
 - [x] Define experimental API annotations or namespaces.
+- [x] Require vocabulary references for public implementations and documentation.
 - [x] Document the composition-over-inheritance rule.
 - [x] Document the prohibition on global mutable state.
 - [x] Document the prohibition on framework dependencies in the core.

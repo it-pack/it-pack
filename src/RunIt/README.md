@@ -24,6 +24,11 @@ OpenTelemetry, CloudEvents, PSR interfaces, Fibers, and Swoole are integrations 
 
 > **Everything happens within an execution.**
 
+The canonical semantic resources are the
+[RunIt OWL vocabulary](vocab/run-it.ttl) and its companion
+[SKOS taxonomy](vocab/run-it-taxonomy.ttl). Public contracts and documentation
+refer to the relevant terms as they are implemented.
+
 ---
 
 ## Table of Contents

@@ -415,6 +415,28 @@ CommonService
 Utility
 ```
 
+## Vocabulary Alignment
+
+`vocab/run-it.ttl` is the canonical OWL vocabulary for RunIt domain concepts.
+`vocab/run-it-taxonomy.ttl` is the companion SKOS taxonomy for extensible kinds,
+context keys, occurrence types, and other recommended controlled values.
+
+When adding or materially changing a public domain contract, value object,
+serialized field, standard name, kind, context key, occurrence type, or its
+documentation, reference the corresponding vocabulary resource:
+
+- In implementation code, use a PHPDoc `@see` reference to the canonical term
+  IRI where a corresponding term exists.
+- In public documentation, link to the relevant local vocabulary file and,
+  when useful, its canonical IRI or taxonomy scheme.
+- Keep the reference adjacent to the defining contract or concept; do not add
+  RDF concerns to the runtime model or make the vocabulary a runtime dependency.
+
+If no suitable term exists, add or revise the vocabulary and its documentation
+in the same change before using a new public term. Taxonomy entries are
+recommended and extensible unless the ontology explicitly defines them as a
+closed set.
+
 ---
 
 ## External Adapter Rules

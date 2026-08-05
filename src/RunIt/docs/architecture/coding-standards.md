@@ -15,6 +15,14 @@ explicit, deterministic, bounded, and must never use arbitrary object
 serialization. Global mutable execution state and framework dependencies in the
 core are prohibited.
 
+`vocab/run-it.ttl` is the canonical OWL vocabulary for public domain concepts;
+`vocab/run-it-taxonomy.ttl` supplies extensible recommended kinds, context keys,
+and occurrence types. A public implementation that corresponds to a vocabulary
+term must include an adjacent PHPDoc `@see` link to its canonical IRI. The
+matching public documentation must link to the relevant vocabulary resource.
+These references document semantic alignment only: RDF is not a runtime
+dependency. New public terms require a vocabulary update in the same change.
+
 PHPDoc generics supplement, but never contradict, native types. Experimental
 public APIs must be documented as experimental until their compatibility policy
 is accepted.

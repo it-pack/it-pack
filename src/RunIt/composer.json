@@ -4,10 +4,12 @@
     "type": "library",
     "license": "MIT",
     "keywords": [
+        "runtime",
         "execution",
         "observability",
         "telemetry",
         "context",
+        "it-pack",
         "itpack"
     ],
     "autoload": {
