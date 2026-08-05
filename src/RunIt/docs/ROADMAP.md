@@ -7,6 +7,13 @@
 **Target package:** `it-pack/run-it`  
 **Target stable release:** `1.0.0`
 
+**Status audit:** August 5, 2026. The repository is in bootstrap state: its
+planning documents, Composer configuration, Codeception configuration, PHPStan
+configuration, PHP-CS-Fixer configuration, and vocabulary files exist, but
+there is no tracked production source or executable test implementation yet.
+Checklist items below reflect repository evidence and the validation results
+recorded in the M0 status audit.
+
 ---
 
 ## 1. Purpose
@@ -135,7 +142,7 @@ Any time designations are just estimates, no hard requirements are implied.
 
 - [x] Create the RunIt repository.
 - [x] Add `README.md`.
-- [ ] Add `docs/EXECUTION.md`.
+- [x] Add `docs/EXECUTION.md`.
 - [x] Add `AGENTS.md`.
 - [x] Add `docs/ROADMAP.md`.
 - [ ] Add `LICENSE`.
@@ -165,10 +172,10 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Set package type to `library`.
 - [x] Set PHP constraint to `^8.4`.
 - [x] Define `ItPack\RunIt\` PSR-4 source mapping.
-- [x] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
-- [x] Add a package description and keywords.
+- [ ] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
+- [ ] Add a package description and keywords.
 - [x] Add license metadata.
-- [x] Add author and support metadata.
+- [ ] Add author and support metadata.
 - [x] Set `minimum-stability` and `prefer-stable` deliberately.
 - [x] Add optional integrations under `suggest`.
 - [x] Add development dependencies for initial tooling.
@@ -187,49 +194,49 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M0.3 Directory structure
 
-- [x] Create `src/Contract/Domain/`.
-- [x] Create `src/Contract/Application/`.
-- [x] Create `src/Contract/Port/`.
-- [x] Create `src/Contract/Exception/`.
-- [x] Create `src/Domain/Execution/`.
-- [x] Create `src/Domain/Context/`.
-- [x] Create `src/Domain/Activity/`.
-- [x] Create `src/Domain/Measurement/`.
-- [x] Create `src/Domain/Observation/`.
-- [x] Create `src/Domain/Occurrence/`.
-- [x] Create `src/Domain/Snapshot/`.
-- [x] Create `src/Domain/Shared/`.
-- [x] Create `src/Application/Runner/`.
-- [x] Create `src/Application/Scope/`.
-- [x] Create `src/Application/Lifecycle/`.
-- [x] Create `src/Application/Publication/`.
-- [x] Create `src/Application/Propagation/`.
-- [x] Create `src/Application/Policy/`.
-- [x] Create `src/Adapter/Null/`.
-- [x] Create `src/Adapter/Memory/`.
-- [x] Create `src/Adapter/Callback/`.
-- [x] Create `src/Adapter/Fiber/`.
-- [x] Create `src/Adapter/Psr/`.
-- [x] Create `src/Adapter/OpenTelemetry/`.
-- [x] Create `src/Adapter/CloudEvents/`.
-- [x] Create `src/Adapter/Swoole/`.
-- [x] Create `src/SDK/Builder/`.
-- [x] Create `src/SDK/Decorator/`.
-- [x] Create `src/SDK/Middleware/`.
-- [x] Create `src/SDK/Attribute/`.
-- [x] Create `tests/Unit/`.
-- [x] Create `tests/Contract/`.
-- [x] Create `tests/Integration/`.
-- [x] Create `tests/Concurrency/`.
-- [x] Create `tests/Architecture/`.
-- [x] Create `tests/Performance/`.
-- [x] Create `benchmarks/`.
-- [x] Create `examples/`.
-- [x] Create `docs/architecture/`.
-- [x] Create `docs/concepts/`.
-- [x] Create `docs/integrations/`.
-- [x] Create `docs/recipes/`.
-- [x] Create `docs/adr/`.
+- [ ] Create `src/Contract/Domain/`.
+- [ ] Create `src/Contract/Application/`.
+- [ ] Create `src/Contract/Port/`.
+- [ ] Create `src/Contract/Exception/`.
+- [ ] Create `src/Domain/Execution/`.
+- [ ] Create `src/Domain/Context/`.
+- [ ] Create `src/Domain/Activity/`.
+- [ ] Create `src/Domain/Measurement/`.
+- [ ] Create `src/Domain/Observation/`.
+- [ ] Create `src/Domain/Occurrence/`.
+- [ ] Create `src/Domain/Snapshot/`.
+- [ ] Create `src/Domain/Shared/`.
+- [ ] Create `src/Application/Runner/`.
+- [ ] Create `src/Application/Scope/`.
+- [ ] Create `src/Application/Lifecycle/`.
+- [ ] Create `src/Application/Publication/`.
+- [ ] Create `src/Application/Propagation/`.
+- [ ] Create `src/Application/Policy/`.
+- [ ] Create `src/Adapter/Null/`.
+- [ ] Create `src/Adapter/Memory/`.
+- [ ] Create `src/Adapter/Callback/`.
+- [ ] Create `src/Adapter/Fiber/`.
+- [ ] Create `src/Adapter/Psr/`.
+- [ ] Create `src/Adapter/OpenTelemetry/`.
+- [ ] Create `src/Adapter/CloudEvents/`.
+- [ ] Create `src/Adapter/Swoole/`.
+- [ ] Create `src/SDK/Builder/`.
+- [ ] Create `src/SDK/Decorator/`.
+- [ ] Create `src/SDK/Middleware/`.
+- [ ] Create `src/SDK/Attribute/`.
+- [ ] Create `tests/Unit/`.
+- [ ] Create `tests/Contract/`.
+- [ ] Create `tests/Integration/`.
+- [ ] Create `tests/Concurrency/`.
+- [ ] Create `tests/Architecture/`.
+- [ ] Create `tests/Performance/`.
+- [ ] Create `benchmarks/`.
+- [ ] Create `examples/`.
+- [ ] Create `docs/architecture/`.
+- [ ] Create `docs/concepts/`.
+- [ ] Create `docs/integrations/`.
+- [ ] Create `docs/recipes/`.
+- [ ] Create `docs/adr/`.
 
 ## M0.4 Coding and architectural standards
 
@@ -294,6 +301,17 @@ Any time designations are just estimates, no hard requirements are implied.
 - [ ] Add a security-audit CI job.
 
 ## M0 acceptance gate
+
+### M0 status audit — August 5, 2026
+
+- `composer validate --strict` fails: the two Codeception module requirements
+  use unbounded `*` constraints.
+- `composer test:unit` exits successfully, but Codeception reports that zero
+  tests were executed.
+- `composer analyse` fails because the configured `src` and test-suite paths
+  do not exist yet.
+- The PHP-CS-Fixer configuration is present, but its check is not yet recorded
+  as verified.
 
 - [ ] Fresh `composer install` succeeds.
 - [ ] Composer validation succeeds.
