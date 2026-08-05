@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use Countable;
+
 /**
  * Contract for artifacts or values that carry a point in time.
  *
@@ -19,7 +21,7 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#startedAt
  */
-interface TimestampedInterface
+interface TimestampedInterface extends Countable
 {
     /**
      * Returns the Unix epoch seconds at which this artifact was produced, or

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use Countable;
+
 /**
  * Contract for artifacts that are ordered within their execution.
  *
@@ -19,7 +21,7 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#sequence
  */
-interface SequencedInterface
+interface SequencedInterface extends Countable
 {
     /**
      * Returns the monotonic sequence number of this artifact within its

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use Stringable;
+
 /**
  * Contract for immutable string-backed identifiers.
  *
@@ -20,7 +22,7 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#executionId
  */
-interface StringIdentifierInterface
+interface StringIdentifierInterface extends Stringable
 {
     /**
      * Returns the canonical string form of this identifier.
