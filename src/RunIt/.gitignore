@@ -34,3 +34,6 @@ Thumbs.db
 
 # symlink
 packages/
+
+# deptrac
+/.deptrac.cache
