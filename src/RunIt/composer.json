@@ -3,10 +3,21 @@
     "description": "The execution model and runtime backbone for the ItPack ecosystem.",
     "type": "library",
     "license": "MIT",
+    "keywords": [
+        "execution",
+        "observability",
+        "telemetry",
+        "context",
+        "itpack"
+    ],
     "autoload": {
         "psr-4": {
-            "ItPack\\RunIt\\": "src/",
-            "ItPack\\RunIt\\Tests\\": "tests"
+            "ItPack\\RunIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ItPack\\RunIt\\Tests\\": "tests/"
         }
     },
     "authors": [
@@ -15,18 +26,22 @@
             "email": "timomichna@yahoo.de"
         }
     ],
+    "support": {
+        "issues": "https://github.com/it-pack/it-pack/issues",
+        "source": "https://github.com/it-pack/it-pack/tree/main/src/RunIt"
+    },
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
         "php": "^8.4",
-        "just-bases/php-obs-base": "^1.0",
-        "codeception/module-phpbrowser": "*",
-        "codeception/module-asserts": "*"
+        "just-bases/php-obs-base": "^1.0"
     },
     "require-dev": {
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
+        "codeception/module-phpbrowser": "^4.1",
+        "codeception/module-asserts": "^3.3",
         "symfony/http-client": "^8.1",
         "nyholm/psr7": "^1.8"
     },
@@ -43,13 +58,29 @@
         "ext-swoole": "Swoole coroutine execution adapter"
     },
     "scripts": {
+        "test": [
+            "@test:unit",
+            "@test:functional",
+            "@test:integration"
+        ],
         "test:unit": "vendor/bin/codecept run Unit",
-        "test:functional": "vendor/bin/codecept run Unit",
-        "test:integration": "vendor/bin/codecept run Unit",
+        "test:functional": "vendor/bin/codecept run Functional",
+        "test:integration": "vendor/bin/codecept run Integration",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse"
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
+        "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
+        "audit": "@composer audit",
+        "quality": [
+            "@composer validate --strict",
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test"
+        ]
     },
     "config": {
         "allow-plugins": {

@@ -1,0 +1,38 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Contract
+      collectors:
+        - type: directory
+          value: src/Contract/.*
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/Domain/.*
+    - name: Application
+      collectors:
+        - type: directory
+          value: src/Application/.*
+    - name: SDK
+      collectors:
+        - type: directory
+          value: src/SDK/.*
+    - name: Adapter
+      collectors:
+        - type: directory
+          value: src/Adapter/.*
+  ruleset:
+    Contract: ~
+    Domain:
+      - Contract
+    Application:
+      - Contract
+      - Domain
+    SDK:
+      - Contract
+      - Domain
+      - Application
+    Adapter:
+      - Contract
+      - Domain
