@@ -6,5 +6,4 @@ namespace Tests\Support;
 
 final class IntegrationTester extends \Codeception\Actor
 {
-    use _generated\IntegrationTesterActions;
 }

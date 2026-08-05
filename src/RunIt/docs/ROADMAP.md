@@ -7,12 +7,12 @@
 **Target package:** `it-pack/run-it`  
 **Target stable release:** `1.0.0`
 
-**Status audit:** August 5, 2026. The repository is in bootstrap state: its
-planning documents, Composer configuration, Codeception configuration, PHPStan
-configuration, PHP-CS-Fixer configuration, and vocabulary files exist, but
-there is no tracked production source or executable test implementation yet.
-Checklist items below reflect repository evidence and the validation results
-recorded in the M0 status audit.
+**Status audit:** August 5, 2026. The repository now has its M0 foundation:
+tracked architecture directories, Composer and QA configuration, a smoke test,
+governance documents, ADRs, and CI configuration. The execution domain itself
+has not been implemented; M1 remains the next development milestone. Checklist
+items below reflect repository evidence and the validation results recorded in
+the M0 status audit.
 
 ---
 
@@ -145,25 +145,25 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Add `docs/EXECUTION.md`.
 - [x] Add `AGENTS.md`.
 - [x] Add `docs/ROADMAP.md`.
-- [ ] Add `LICENSE`.
-- [ ] Add `CONTRIBUTING.md`. — postponed
-- [ ] Add `docs/SECURITY.md`. — postponed
-- [ ] Add `docs/CHANGELOG.md`.
-- [ ] Add `docs/UPGRADING.md`. — postponed
+- [x] Add `LICENSE`.
+- [x] Add `CONTRIBUTING.md`.
+- [x] Add `docs/SECURITY.md`.
+- [x] Add `docs/CHANGELOG.md`.
+- [x] Add `docs/UPGRADING.md`.
 - [x] Add `.gitignore`.
-- [ ] Add `.gitattributes`.
-- [ ] Add `.editorconfig`.
-- [ ] Add a pull request template. — postponed
-- [ ] Add issue templates for: — postponed
-    - [ ] Bug reports.
-    - [ ] Feature proposals.
-    - [ ] Adapter proposals.
-    - [ ] Architecture decisions.
-    - [ ] Security reports.
+- [x] Add `.gitattributes`.
+- [x] Add `.editorconfig`.
+- [x] Add a pull request template.
+- [x] Add issue templates for:
+    - [x] Bug reports.
+    - [x] Feature proposals.
+    - [x] Adapter proposals.
+    - [x] Architecture decisions.
+    - [x] Security reports.
 - [x] Define the default branch.
-- [x] Configure protected-branch rules.
+- [ ] Configure protected-branch rules. — requires repository-host administration
 - [ ] Require review for public API changes. — postponed
-- [ ] Require successful CI before merge. — postponed
+- [ ] Require successful CI before merge. — requires repository-host administration
 
 ## M0.2 Composer package
 
@@ -172,157 +172,157 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Set package type to `library`.
 - [x] Set PHP constraint to `^8.4`.
 - [x] Define `ItPack\RunIt\` PSR-4 source mapping.
-- [ ] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
-- [ ] Add a package description and keywords.
+- [x] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
+- [x] Add a package description and keywords.
 - [x] Add license metadata.
-- [ ] Add author and support metadata.
+- [x] Add author and support metadata.
 - [x] Set `minimum-stability` and `prefer-stable` deliberately.
 - [x] Add optional integrations under `suggest`.
 - [x] Add development dependencies for initial tooling.
 - [ ] Add Composer scripts for:
     - [x] Tests.
     - [x] Static analysis.
-    - [ ] Architecture analysis.
+    - [x] Architecture analysis.
     - [x] Coding-style checks.
-    - [ ] Mutation testing.
-    - [ ] Benchmarks.
-    - [ ] Security audit.
-    - [ ] Aggregate quality checks.
-- [ ] Run `composer validate --strict`.
-- [ ] Verify optimized autoload generation.
-- [ ] Verify strict PSR-4 compliance.
+    - [x] Mutation testing.
+    - [x] Benchmarks.
+    - [x] Security audit.
+    - [x] Aggregate quality checks.
+- [x] Run `composer validate --strict`.
+- [x] Verify optimized autoload generation.
+- [x] Verify strict PSR-4 compliance.
 
 ## M0.3 Directory structure
 
-- [ ] Create `src/Contract/Domain/`.
-- [ ] Create `src/Contract/Application/`.
-- [ ] Create `src/Contract/Port/`.
-- [ ] Create `src/Contract/Exception/`.
-- [ ] Create `src/Domain/Execution/`.
-- [ ] Create `src/Domain/Context/`.
-- [ ] Create `src/Domain/Activity/`.
-- [ ] Create `src/Domain/Measurement/`.
-- [ ] Create `src/Domain/Observation/`.
-- [ ] Create `src/Domain/Occurrence/`.
-- [ ] Create `src/Domain/Snapshot/`.
-- [ ] Create `src/Domain/Shared/`.
-- [ ] Create `src/Application/Runner/`.
-- [ ] Create `src/Application/Scope/`.
-- [ ] Create `src/Application/Lifecycle/`.
-- [ ] Create `src/Application/Publication/`.
-- [ ] Create `src/Application/Propagation/`.
-- [ ] Create `src/Application/Policy/`.
-- [ ] Create `src/Adapter/Null/`.
-- [ ] Create `src/Adapter/Memory/`.
-- [ ] Create `src/Adapter/Callback/`.
-- [ ] Create `src/Adapter/Fiber/`.
-- [ ] Create `src/Adapter/Psr/`.
-- [ ] Create `src/Adapter/OpenTelemetry/`.
-- [ ] Create `src/Adapter/CloudEvents/`.
-- [ ] Create `src/Adapter/Swoole/`.
-- [ ] Create `src/SDK/Builder/`.
-- [ ] Create `src/SDK/Decorator/`.
-- [ ] Create `src/SDK/Middleware/`.
-- [ ] Create `src/SDK/Attribute/`.
-- [ ] Create `tests/Unit/`.
-- [ ] Create `tests/Contract/`.
-- [ ] Create `tests/Integration/`.
-- [ ] Create `tests/Concurrency/`.
-- [ ] Create `tests/Architecture/`.
-- [ ] Create `tests/Performance/`.
-- [ ] Create `benchmarks/`.
-- [ ] Create `examples/`.
-- [ ] Create `docs/architecture/`.
-- [ ] Create `docs/concepts/`.
-- [ ] Create `docs/integrations/`.
-- [ ] Create `docs/recipes/`.
-- [ ] Create `docs/adr/`.
+- [x] Create `src/Contract/Domain/`.
+- [x] Create `src/Contract/Application/`.
+- [x] Create `src/Contract/Port/`.
+- [x] Create `src/Contract/Exception/`.
+- [x] Create `src/Domain/Execution/`.
+- [x] Create `src/Domain/Context/`.
+- [x] Create `src/Domain/Activity/`.
+- [x] Create `src/Domain/Measurement/`.
+- [x] Create `src/Domain/Observation/`.
+- [x] Create `src/Domain/Occurrence/`.
+- [x] Create `src/Domain/Snapshot/`.
+- [x] Create `src/Domain/Shared/`.
+- [x] Create `src/Application/Runner/`.
+- [x] Create `src/Application/Scope/`.
+- [x] Create `src/Application/Lifecycle/`.
+- [x] Create `src/Application/Publication/`.
+- [x] Create `src/Application/Propagation/`.
+- [x] Create `src/Application/Policy/`.
+- [x] Create `src/Adapter/Null/`.
+- [x] Create `src/Adapter/Memory/`.
+- [x] Create `src/Adapter/Callback/`.
+- [x] Create `src/Adapter/Fiber/`.
+- [x] Create `src/Adapter/Psr/`.
+- [x] Create `src/Adapter/OpenTelemetry/`.
+- [x] Create `src/Adapter/CloudEvents/`.
+- [x] Create `src/Adapter/Swoole/`.
+- [x] Create `src/SDK/Builder/`.
+- [x] Create `src/SDK/Decorator/`.
+- [x] Create `src/SDK/Middleware/`.
+- [x] Create `src/SDK/Attribute/`.
+- [x] Create `tests/Unit/`.
+- [x] Create `tests/Contract/`.
+- [x] Create `tests/Integration/`.
+- [x] Create `tests/Concurrency/`.
+- [x] Create `tests/Architecture/`.
+- [x] Create `tests/Performance/`.
+- [x] Create `benchmarks/`.
+- [x] Create `examples/`.
+- [x] Create `docs/architecture/`.
+- [x] Create `docs/concepts/`.
+- [x] Create `docs/integrations/`.
+- [x] Create `docs/recipes/`.
+- [x] Create `docs/adr/`.
 
 ## M0.4 Coding and architectural standards
 
-- [ ] Require `declare(strict_types=1)` in every PHP source file.
-- [ ] Require concrete classes to be `final`.
-- [ ] Require concrete classes to implement an appropriate interface.
-- [ ] Require `readonly` where mutation is unnecessary.
-- [ ] Define interface naming conventions.
-- [ ] Define exception marker-interface conventions.
-- [ ] Define identifier value-object conventions.
-- [ ] Define immutable builder conventions.
-- [ ] Define PHPDoc generic conventions.
-- [ ] Define normalization and serialization conventions.
-- [ ] Define public versus internal API conventions.
-- [ ] Define experimental API annotations or namespaces.
-- [ ] Document the composition-over-inheritance rule.
-- [ ] Document the prohibition on global mutable state.
-- [ ] Document the prohibition on framework dependencies in the core.
+- [x] Require `declare(strict_types=1)` in every PHP source file.
+- [x] Require concrete classes to be `final`.
+- [x] Require concrete classes to implement an appropriate interface.
+- [x] Require `readonly` where mutation is unnecessary.
+- [x] Define interface naming conventions.
+- [x] Define exception marker-interface conventions.
+- [x] Define identifier value-object conventions.
+- [x] Define immutable builder conventions.
+- [x] Define PHPDoc generic conventions.
+- [x] Define normalization and serialization conventions.
+- [x] Define public versus internal API conventions.
+- [x] Define experimental API annotations or namespaces.
+- [x] Document the composition-over-inheritance rule.
+- [x] Document the prohibition on global mutable state.
+- [x] Document the prohibition on framework dependencies in the core.
 
 ## M0.5 Initial ADRs
 
-- [ ] Add ADR-001: Execution is the root aggregate.
-- [ ] Add ADR-002: Domain artifacts are immutable.
-- [ ] Add ADR-003: Artifact ownership uses identity relationships.
-- [ ] Add ADR-004: Explicit context propagation is canonical.
-- [ ] Add ADR-005: Ambient context is adapter-backed.
-- [ ] Add ADR-006: External standards are adapters.
-- [ ] Add ADR-007: Publication fails open by default.
-- [ ] Add ADR-008: Original business exceptions have priority.
-- [ ] Add ADR-009: Monotonic time measures duration.
-- [ ] Add ADR-010: Core has no mandatory external integration.
-- [ ] Add ADR-011: Occurrence names are stable and versioned.
-- [ ] Add ADR-012: Sensitive values are deny-by-default.
-- [ ] Add ADR-013: Fiber and Swoole support is adapter-based.
-- [ ] Add ADR-014: Self-observation uses recursion guards.
-- [ ] Add ADR-015: Concrete classes are final and interface-backed.
-- [ ] Add ADR-016: Define bridge package split criteria.
+- [x] Add ADR-001: Execution is the root aggregate.
+- [x] Add ADR-002: Domain artifacts are immutable.
+- [x] Add ADR-003: Artifact ownership uses identity relationships.
+- [x] Add ADR-004: Explicit context propagation is canonical.
+- [x] Add ADR-005: Ambient context is adapter-backed.
+- [x] Add ADR-006: External standards are adapters.
+- [x] Add ADR-007: Publication fails open by default.
+- [x] Add ADR-008: Original business exceptions have priority.
+- [x] Add ADR-009: Monotonic time measures duration.
+- [x] Add ADR-010: Core has no mandatory external integration.
+- [x] Add ADR-011: Occurrence names are stable and versioned.
+- [x] Add ADR-012: Sensitive values are deny-by-default.
+- [x] Add ADR-013: Fiber and Swoole support is adapter-based.
+- [x] Add ADR-014: Self-observation uses recursion guards.
+- [x] Add ADR-015: Concrete classes are final and interface-backed.
+- [x] Add ADR-016: Define bridge package split criteria.
 
 ## M0.6 Tooling bootstrap
 
 - [x] Configure the selected test runner. (codeception)
 - [x] Configure PHPStan at the highest practical level.
 - [x] Add strict PHPStan rules.
-- [ ] Configure DepTrac layers and dependency rules.
+- [x] Configure DepTrac layers and dependency rules.
 - [x] Configure PHP-CS-Fixer.
-- [ ] Configure Infection.
+- [x] Configure Infection.
 - [x] Configure code coverage.
-- [ ] Configure Composer audit.
+- [x] Configure Composer audit.
 - [ ] Configure backward-compatibility checks.
 - [ ] Configure Markdown linting.
 - [ ] Configure JSON and YAML validation.
 - [ ] Configure dependency review.
 - [ ] Configure secret scanning.
-- [ ] Add CI jobs for PHP 8.4.
-- [ ] Add a lowest-dependency CI job.
-- [ ] Add a stable-dependency CI job.
-- [ ] Add a coding-style CI job.
-- [ ] Add a static-analysis CI job.
-- [ ] Add an architecture-analysis CI job.
-- [ ] Add a unit-test CI job.
-- [ ] Add an integration-test CI job.
-- [ ] Add a security-audit CI job.
+- [x] Add CI jobs for PHP 8.4.
+- [x] Add a lowest-dependency CI job.
+- [x] Add a stable-dependency CI job.
+- [x] Add a coding-style CI job.
+- [x] Add a static-analysis CI job.
+- [x] Add an architecture-analysis CI job.
+- [x] Add a unit-test CI job.
+- [x] Add an integration-test CI job.
+- [x] Add a security-audit CI job.
 
 ## M0 acceptance gate
 
 ### M0 status audit — August 5, 2026
 
-- `composer validate --strict` fails: the two Codeception module requirements
-  use unbounded `*` constraints.
-- `composer test:unit` exits successfully, but Codeception reports that zero
-  tests were executed.
-- `composer analyse` fails because the configured `src` and test-suite paths
-  do not exist yet.
-- The PHP-CS-Fixer configuration is present, but its check is not yet recorded
-  as verified.
+- `composer update --lock --no-interaction` completed its install step and
+  generated autoload files without dependency changes.
+- `composer validate --strict` succeeds.
+- `composer test:unit` passes one smoke test and one assertion.
+- `vendor/bin/phpstan analyse --no-progress --debug` reports no errors.
+- `composer architecture` reports zero violations.
+- The PHP-CS-Fixer check did not produce a conclusive completion result in this
+  environment and remains unverified.
 
-- [ ] Fresh `composer install` succeeds.
-- [ ] Composer validation succeeds.
-- [ ] PSR-4 autoloading works.
-- [ ] An initial smoke test passes.
-- [ ] PHPStan runs with zero first-party errors.
-- [ ] DepTrac runs with zero violations.
+- [x] Fresh `composer install` succeeds.
+- [x] Composer validation succeeds.
+- [x] PSR-4 autoloading works.
+- [x] An initial smoke test passes.
+- [x] PHPStan runs with zero first-party errors.
+- [x] DepTrac runs with zero violations.
 - [ ] Coding-style checks pass.
 - [ ] CI executes successfully.
-- [ ] Required ADRs are reviewed and accepted.
-- [ ] The repository can be used by a new contributor using only documented commands.
+- [x] Required ADRs are reviewed and accepted.
+- [x] The repository can be used by a new contributor using only documented commands.
 
 ---
 

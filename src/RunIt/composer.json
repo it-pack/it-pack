@@ -17,7 +17,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "ItPack\\RunIt\\Tests\\": "tests/"
+            "ItPack\\RunIt\\Tests\\": "tests/",
+            "Tests\\": "tests/"
         }
     },
     "authors": [
@@ -73,13 +74,14 @@
         "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
         "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
-        "audit": "@composer audit",
+        "security:audit": "@composer audit",
         "quality": [
             "@composer validate --strict",
             "@cs:check",
             "@analyse",
             "@architecture",
-            "@test"
+            "@test",
+            "@security:audit"
         ]
     },
     "config": {
