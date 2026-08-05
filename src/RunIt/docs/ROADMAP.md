@@ -335,15 +335,15 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M1.1 Base contracts
 
-- [ ] Define `NormalizableInterface`.
-- [ ] Define `StringIdentifierInterface`.
-- [ ] Define `ExecutionArtifactInterface`.
-- [ ] Define `ExecutionOwnedInterface`.
-- [ ] Define `ActivityOwnedInterface`.
-- [ ] Define `TimestampedInterface`.
-- [ ] Define `SequencedInterface`.
-- [ ] Define `AttributedInterface`.
-- [ ] Define marker interfaces for public exception categories.
+- [x] Define `NormalizableInterface`.
+- [x] Define `StringIdentifierInterface`.
+- [x] Define `ExecutionArtifactInterface`.
+- [x] Define `ExecutionOwnedInterface`.
+- [x] Define `ActivityOwnedInterface`.
+- [x] Define `TimestampedInterface`.
+- [x] Define `SequencedInterface`.
+- [x] Define `AttributedInterface`.
+- [x] Define marker interfaces for public exception categories.
 
 ## M1.2 Identifiers
 
