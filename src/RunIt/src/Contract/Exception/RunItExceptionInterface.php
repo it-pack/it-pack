@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Exception;
 
+use Stringable;
+use Throwable;
+
 /**
  * Root marker interface implemented by every exception RunIt throws publicly.
  *
@@ -11,6 +14,6 @@ namespace ItPack\RunIt\Contract\Exception;
  * SPL exception they extend, so consumers can catch failures originating from
  * RunIt without depending on a framework or a package-specific base class.
  */
-interface RunItExceptionInterface
+interface RunItExceptionInterface extends Throwable
 {
 }
