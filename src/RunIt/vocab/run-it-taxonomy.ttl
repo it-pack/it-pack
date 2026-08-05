@@ -1,0 +1,500 @@
+@prefix :               <https://w3id.org/itpack/runit/taxonomy#> .
+@prefix runit-tax:      <https://w3id.org/itpack/runit/taxonomy#> .
+@prefix runit:          <https://w3id.org/itpack/runit#> .
+@prefix rdf:            <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:           <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:            <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:            <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:           <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms:        <http://purl.org/dc/terms/> .
+@prefix vann:           <http://purl.org/vocab/vann/> .
+
+# =============================================================================
+# Taxonomy header
+# =============================================================================
+
+<https://w3id.org/itpack/runit/taxonomy>
+    a                   owl:Ontology ;
+    dcterms:title       "RunIt Execution Taxonomy"@en ;
+    dcterms:description "SKOS taxonomy of extensible execution kinds, activity kinds, context keys, occurrence types, and other controlled vocabularies for the RunIt execution model. Consumers may extend these concept schemes with their own concepts."@en ;
+    dcterms:creator     "ItPack contributors"@en ;
+    dcterms:license     <https://opensource.org/licenses/MIT> ;
+    dcterms:date        "2026-07-30"^^xsd:date ;
+    vann:preferredNamespacePrefix  "runit-tax" ;
+    vann:preferredNamespaceUri     "https://w3id.org/itpack/runit/taxonomy#" ;
+    owl:imports         <https://w3id.org/itpack/runit> ;
+    rdfs:seeAlso        <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# Concept schemes
+# =============================================================================
+
+runit-tax:ExecutionKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Execution Kind Taxonomy"@en ;
+    rdfs:comment        "Taxonomy of execution kinds. Execution kinds classify the type of runtime operation an execution represents. Extensible: consumers may define additional kinds."@en ;
+    skos:hasTopConcept  runit-tax:http-request ,
+                        runit-tax:cli-command ,
+                        runit-tax:queue-job ,
+                        runit-tax:configuration-resolution ,
+                        runit-tax:workflow ,
+                        runit-tax:worker-iteration ,
+                        runit-tax:scheduled-task ,
+                        runit-tax:build ,
+                        runit-tax:migration ,
+                        runit-tax:event-processing ,
+                        runit-tax:llm-pipeline ,
+                        runit-tax:custom-operation ;
+.
+
+runit-tax:ActivityKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Activity Kind Taxonomy"@en ;
+    rdfs:comment        "Taxonomy of activity kinds. Activities describe bounded units of work inside an execution. Extensible."@en ;
+    skos:hasTopConcept  runit-tax:discover-files ,
+                        runit-tax:read-resources ,
+                        runit-tax:load-yaml ,
+                        runit-tax:merge-documents ,
+                        runit-tax:validate-schema ,
+                        runit-tax:resolve-variables ,
+                        runit-tax:download-secrets ,
+                        runit-tax:build-graph ,
+                        runit-tax:freeze-snapshot ;
+.
+
+runit-tax:ContextKeys
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Standard Context Key Vocabulary"@en ;
+    rdfs:comment        "Recommended standard context keys for execution context entries. These are conventions; consumers may use additional keys."@en ;
+    skos:hasTopConcept  runit-tax:ctx-environment ,
+                        runit-tax:ctx-tenant-id ,
+                        runit-tax:ctx-workspace-id ,
+                        runit-tax:ctx-locale ,
+                        runit-tax:ctx-principal-id ,
+                        runit-tax:ctx-principal-type ,
+                        runit-tax:ctx-correlation-id ,
+                        runit-tax:ctx-trace-id ,
+                        runit-tax:ctx-feature-flags ,
+                        runit-tax:ctx-configuration-snapshot-id ,
+                        runit-tax:ctx-service-name ,
+                        runit-tax:ctx-service-version ,
+                        runit-tax:ctx-deployment-environment ;
+.
+
+runit-tax:OccurrenceTypes
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Occurrence Type Vocabulary"@en ;
+    rdfs:comment        "Recommended stable occurrence type names. Occurrence types follow the pattern <organization>.<domain>.<fact>.<version>. Extensible."@en ;
+    skos:hasTopConcept  runit-tax:occ-configuration-loaded ,
+                        runit-tax:occ-schema-validated ,
+                        runit-tax:occ-snapshot-created ,
+                        runit-tax:occ-pipeline-completed ,
+                        runit-tax:occ-workflow-completed ;
+.
+
+# =============================================================================
+# Execution kind concepts
+# =============================================================================
+
+runit-tax:http-request
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "HTTP request"@en ;
+    skos:notation       "http.request" ;
+    skos:definition     "An execution representing an incoming or outgoing HTTP request."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:cli-command
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "CLI command"@en ;
+    skos:notation       "cli.command" ;
+    skos:definition     "An execution representing a CLI command invocation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:queue-job
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Queue job"@en ;
+    skos:notation       "queue.job" ;
+    skos:definition     "An execution representing a single queue job processing cycle."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:configuration-resolution
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Configuration resolution"@en ;
+    skos:notation       "configuration.resolution" ;
+    skos:definition     "An execution representing a configuration resolution pipeline (discover, load, merge, validate, resolve, freeze)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:workflow
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Workflow"@en ;
+    skos:notation       "workflow" ;
+    skos:definition     "An execution representing a multi-step workflow or process."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:worker-iteration
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Worker iteration"@en ;
+    skos:notation       "worker.iteration" ;
+    skos:definition     "An execution representing one iteration of a persistent background worker."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:scheduled-task
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Scheduled task"@en ;
+    skos:notation       "scheduled.task" ;
+    skos:definition     "An execution representing a scheduled or cron task."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:build
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Build"@en ;
+    skos:notation       "build" ;
+    skos:definition     "An execution representing a build or compilation process."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:migration
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Migration"@en ;
+    skos:notation       "migration" ;
+    skos:definition     "An execution representing a database or schema migration."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:event-processing
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Event processing"@en ;
+    skos:notation       "event.processing" ;
+    skos:definition     "An execution representing an event processing cycle."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:llm-pipeline
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "LLM pipeline"@en ;
+    skos:notation       "llm.pipeline" ;
+    skos:definition     "An execution representing an LLM inference or pipeline operation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:custom-operation
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ExecutionKinds ;
+    skos:topConceptOf   runit-tax:ExecutionKinds ;
+    skos:prefLabel      "Custom operation"@en ;
+    skos:notation       "custom" ;
+    skos:definition     "A custom execution kind not covered by the standard taxonomy. Use this for application-specific execution types."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+# =============================================================================
+# Activity kind concepts
+# =============================================================================
+
+runit-tax:discover-files
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Discover files"@en ;
+    skos:notation       "discover.files" ;
+    skos:definition     "Activity that discovers configuration or resource files within a search path."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:read-resources
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Read resources"@en ;
+    skos:notation       "read.resources" ;
+    skos:definition     "Activity that reads resource content from files, streams, or remote sources."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:load-yaml
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Load YAML"@en ;
+    skos:notation       "load.yaml" ;
+    skos:definition     "Activity that parses YAML content into structured data."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:merge-documents
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Merge documents"@en ;
+    skos:notation       "merge.documents" ;
+    skos:definition     "Activity that merges multiple configuration documents or data sources."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:validate-schema
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Validate schema"@en ;
+    skos:notation       "validate.schema" ;
+    skos:definition     "Activity that validates data against a schema definition."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:resolve-variables
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Resolve variables"@en ;
+    skos:notation       "resolve.variables" ;
+    skos:definition     "Activity that resolves variable references, placeholders, or interpolation patterns."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:download-secrets
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Download secrets"@en ;
+    skos:notation       "download.secrets" ;
+    skos:definition     "Activity that retrieves secrets from a secrets manager or vault."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:build-graph
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Build graph"@en ;
+    skos:notation       "build.graph" ;
+    skos:definition     "Activity that constructs a dependency or resolution graph."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:freeze-snapshot
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ActivityKinds ;
+    skos:topConceptOf   runit-tax:ActivityKinds ;
+    skos:prefLabel      "Freeze snapshot"@en ;
+    skos:notation       "freeze.snapshot" ;
+    skos:definition     "Activity that creates an immutable snapshot of resolved state."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+# =============================================================================
+# Standard context key concepts
+# =============================================================================
+
+runit-tax:ctx-environment
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Environment"@en ;
+    skos:notation       "environment" ;
+    skos:definition     "The runtime environment name (e.g. 'production', 'staging', 'development')."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-tenant-id
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Tenant ID"@en ;
+    skos:notation       "tenant.id" ;
+    skos:definition     "The tenant or organisation identifier for multi-tenant operations."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-workspace-id
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Workspace ID"@en ;
+    skos:notation       "workspace.id" ;
+    skos:definition     "The workspace or project identifier."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-locale
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Locale"@en ;
+    skos:notation       "locale" ;
+    skos:definition     "The locale or language setting for the execution (e.g. 'en-US', 'de-DE')."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-principal-id
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Principal ID"@en ;
+    skos:notation       "principal.id" ;
+    skos:definition     "The authenticated principal or user identifier."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-principal-type
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Principal type"@en ;
+    skos:notation       "principal.type" ;
+    skos:definition     "The type of the authenticated principal (e.g. 'user', 'service-account', 'system')."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-correlation-id
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Correlation ID"@en ;
+    skos:notation       "correlation.id" ;
+    skos:definition     "A correlation identifier used to trace related executions across service boundaries."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-trace-id
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Trace ID"@en ;
+    skos:notation       "trace.id" ;
+    skos:definition     "A distributed trace identifier for integration with tracing systems (e.g. OpenTelemetry)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-feature-flags
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Feature flags"@en ;
+    skos:notation       "feature_flags" ;
+    skos:definition     "Snapshot of active feature flags at the time of execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-configuration-snapshot-id
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Configuration snapshot ID"@en ;
+    skos:notation       "configuration.snapshot_id" ;
+    skos:definition     "Identifier of the configuration snapshot version used by this execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-service-name
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Service name"@en ;
+    skos:notation       "service.name" ;
+    skos:definition     "The name of the service or application performing the execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-service-version
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Service version"@en ;
+    skos:notation       "service.version" ;
+    skos:definition     "The version of the service or application performing the execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:ctx-deployment-environment
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:ContextKeys ;
+    skos:topConceptOf   runit-tax:ContextKeys ;
+    skos:prefLabel      "Deployment environment"@en ;
+    skos:notation       "deployment.environment" ;
+    skos:definition     "The deployment environment identifier (e.g. 'production-us-east-1')."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+# =============================================================================
+# Occurrence type concepts
+# =============================================================================
+
+runit-tax:occ-configuration-loaded
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:OccurrenceTypes ;
+    skos:topConceptOf   runit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Configuration loaded"@en ;
+    skos:notation       "itpack.configuration.loaded.v1" ;
+    skos:definition     "Published when configuration has been fully loaded and resolved."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:occ-schema-validated
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:OccurrenceTypes ;
+    skos:topConceptOf   runit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Schema validated"@en ;
+    skos:notation       "itpack.schema.validated.v1" ;
+    skos:definition     "Published when a schema validation check has completed."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:occ-snapshot-created
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:OccurrenceTypes ;
+    skos:topConceptOf   runit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Snapshot created"@en ;
+    skos:notation       "itpack.snapshot.created.v1" ;
+    skos:definition     "Published when a snapshot has been created and stored."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:occ-pipeline-completed
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:OccurrenceTypes ;
+    skos:topConceptOf   runit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Pipeline completed"@en ;
+    skos:notation       "itpack.pipeline.completed.v1" ;
+    skos:definition     "Published when a pipeline has completed execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+runit-tax:occ-workflow-completed
+    a                   skos:Concept ;
+    skos:inScheme       runit-tax:OccurrenceTypes ;
+    skos:topConceptOf   runit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Workflow completed"@en ;
+    skos:notation       "itpack.workflow.completed.v1" ;
+    skos:definition     "Published when a workflow has completed execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit/taxonomy> ;
+.

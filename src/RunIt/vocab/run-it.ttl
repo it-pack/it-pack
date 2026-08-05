@@ -1,0 +1,992 @@
+@prefix :               <https://w3id.org/itpack/runit#> .
+@prefix runit:          <https://w3id.org/itpack/runit#> .
+@prefix rdf:            <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:           <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:            <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:            <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:           <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:           <http://www.w3.org/ns/prov#> .
+@prefix qudt:           <http://qudt.org/schema/qudt/> .
+@prefix dcterms:        <http://purl.org/dc/terms/> .
+@prefix vann:           <http://purl.org/vocab/vann/> .
+@prefix vs:             <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+
+# =============================================================================
+# Ontology header
+# =============================================================================
+
+<https://w3id.org/itpack/runit>
+    a                   owl:Ontology ;
+    dcterms:title       "RunIt Execution Ontology"@en ;
+    dcterms:description "Vendor-neutral execution model ontology for the ItPack ecosystem. Models execution itself — context, activities, measurements, observations, occurrences, and snapshots — independently of any telemetry, eventing, or logging standard."@en ;
+    dcterms:creator     "ItPack contributors"@en ;
+    dcterms:license     <https://opensource.org/licenses/MIT> ;
+    dcterms:date         "2026-07-30"^^xsd:date ;
+    vann:preferredNamespacePrefix  "runit" ;
+    vann:preferredNamespaceUri     "https://w3id.org/itpack/runit#" ;
+    owl:imports         <http://www.w3.org/ns/prov> ;
+    owl:imports         <http://qudt.org/schema/qudt/> ;
+    rdfs:seeAlso        <https://w3id.org/itpack/runit/taxonomy> ;
+.
+
+# =============================================================================
+# Core domain classes
+# =============================================================================
+
+# --- Execution ----------------------------------------------------------------
+
+runit:Execution
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Activity ;
+    rdfs:label          "Execution"@en ;
+    rdfs:comment        "One logical runtime operation. Every artifact belongs to exactly one execution. An execution has a lifecycle, immutable context, and produces snapshots."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ExecutionDefinition
+    a                   owl:Class ;
+    rdfs:label          "Execution Definition"@en ;
+    rdfs:comment        "A blueprint or specification for creating an execution. Carries name, kind, and optional parent references."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ExecutionStatus
+    a                   owl:Class ;
+    rdfs:label          "Execution Status"@en ;
+    rdfs:comment        "The lifecycle status of an execution. Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Context ------------------------------------------------------------------
+
+runit:ExecutionContext
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Entity ;
+    rdfs:label          "Execution Context"@en ;
+    rdfs:comment        "Immutable state surrounding an execution. Answers: where and under which conditions am I executing?"@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ContextEntry
+    a                   owl:Class ;
+    rdfs:label          "Context Entry"@en ;
+    rdfs:comment        "A single key-value entry within an execution context. Each entry carries a classification, optional propagation policy, and optional expiry."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ContextClassification
+    a                   owl:Class ;
+    rdfs:label          "Context Classification"@en ;
+    rdfs:comment        "Data classification for context entries. Determines default export and propagation behaviour."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Activity -----------------------------------------------------------------
+
+runit:Activity
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Activity ;
+    rdfs:label          "Activity"@en ;
+    rdfs:comment        "A bounded unit of work performed during an execution. Activities answer: what is currently happening? Activities may be nested."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ActivityDefinition
+    a                   owl:Class ;
+    rdfs:label          "Activity Definition"@en ;
+    rdfs:comment        "A blueprint for creating an activity. Carries name, kind, and optional configuration."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ActivityStatus
+    a                   owl:Class ;
+    rdfs:label          "Activity Status"@en ;
+    rdfs:comment        "The lifecycle status of an activity. Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Measurement --------------------------------------------------------------
+
+runit:Measurement
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Entity ;
+    rdfs:label          "Measurement"@en ;
+    rdfs:comment        "Quantitative information captured during execution. Answers: how much? Each measurement has a name, numeric value, unit, and kind."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:MeasurementKind
+    a                   owl:Class ;
+    rdfs:label          "Measurement Kind"@en ;
+    rdfs:comment        "The semantic kind of a measurement (counter, gauge, duration, size, ratio, etc.). Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Observation --------------------------------------------------------------
+
+runit:Observation
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Entity ;
+    rdfs:label          "Observation"@en ;
+    rdfs:comment        "Qualitative information noticed during execution. Answers: what did we notice? Includes log messages, warnings, diagnostics, and errors."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ObservationSeverity
+    a                   owl:Class ;
+    rdfs:label          "Observation Severity"@en ;
+    rdfs:comment        "Severity level of an observation. Mirrors PSR-3 log levels. Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Occurrence ---------------------------------------------------------------
+
+runit:Occurrence
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Event ;
+    rdfs:label          "Occurrence"@en ;
+    rdfs:comment        "An immutable fact that happened during execution. Answers: what happened? Occurrences have stable, versioned, lowercase types independent of implementation class names."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Snapshot -----------------------------------------------------------------
+
+runit:Snapshot
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Entity ;
+    rdfs:label          "Snapshot"@en ;
+    rdfs:comment        "Immutable resulting state produced during or after execution. Answers: what is the resulting state? Snapshots are classified as checkpoint or terminal."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:SnapshotClassification
+    a                   owl:Class ;
+    rdfs:label          "Snapshot Classification"@en ;
+    rdfs:comment        "Classification of a snapshot as checkpoint or terminal."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Publication Policy -------------------------------------------------------
+
+runit:PublicationFailurePolicy
+    a                   owl:Class ;
+    rdfs:label          "Publication Failure Policy"@en ;
+    rdfs:comment        "Policy controlling behaviour when artifact publication fails. Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Object properties
+# =============================================================================
+
+# --- Execution relationships --------------------------------------------------
+
+runit:hasContext
+    a                   owl:ObjectProperty ;
+    rdfs:subPropertyOf  prov:used ;
+    rdfs:label          "has context"@en ;
+    rdfs:comment        "Links an execution to its immutable context. An execution uses its context to determine where and how it runs."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          runit:ExecutionContext ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:hasActivity
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has activity"@en ;
+    rdfs:comment        "Links an execution to its contained activities. An execution may contain zero or more activities."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          runit:Activity ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:parentActivity
+    a                   owl:ObjectProperty ;
+    rdfs:label          "parent activity"@en ;
+    rdfs:comment        "Links a nested activity to its parent activity. Activities may be nested arbitrarily, forming a tree within an execution."@en ;
+    rdfs:domain         runit:Activity ;
+    rdfs:range          runit:Activity ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:parentExecution
+    a                   owl:ObjectProperty ;
+    rdfs:label          "parent execution"@en ;
+    rdfs:comment        "Links a child execution to its parent execution. Nested executions use explicit parent references."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          runit:Execution ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Artifact relationships ---------------------------------------------------
+
+runit:hasMeasurement
+    a                   owl:ObjectProperty ;
+    rdfs:subPropertyOf  prov:generated ;
+    rdfs:label          "has measurement"@en ;
+    rdfs:comment        "Links an execution or activity to a measurement it recorded. The measurement is generated by the execution or activity."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity ) ] ;
+    rdfs:range          runit:Measurement ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:hasObservation
+    a                   owl:ObjectProperty ;
+    rdfs:subPropertyOf  prov:generated ;
+    rdfs:label          "has observation"@en ;
+    rdfs:comment        "Links an execution or activity to an observation it captured. The observation is generated by the execution or activity."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity ) ] ;
+    rdfs:range          runit:Observation ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:hasOccurrence
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has occurrence"@en ;
+    rdfs:comment        "Links an execution or activity to an occurrence it published. Occurrences are immutable facts that happened during execution."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity ) ] ;
+    rdfs:range          runit:Occurrence ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:hasSnapshot
+    a                   owl:ObjectProperty ;
+    rdfs:subPropertyOf  prov:generated ;
+    rdfs:label          "has snapshot"@en ;
+    rdfs:comment        "Links an execution to a snapshot it produced. An execution may produce checkpoint snapshots during execution and a terminal snapshot at completion."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          runit:Snapshot ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Context structure --------------------------------------------------------
+
+runit:hasEntry
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has entry"@en ;
+    rdfs:comment        "Links an execution context to its constituent entries."@en ;
+    rdfs:domain         runit:ExecutionContext ;
+    rdfs:range          runit:ContextEntry ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:hasClassification
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has classification"@en ;
+    rdfs:comment        "Links a context entry to its data classification (public, internal, confidential, restricted, secret)."@en ;
+    rdfs:domain         runit:ContextEntry ;
+    rdfs:range          runit:ContextClassification ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Snapshot structure -------------------------------------------------------
+
+runit:snapshotClassification
+    a                   owl:ObjectProperty ;
+    rdfs:label          "snapshot classification"@en ;
+    rdfs:comment        "Links a snapshot to its classification (checkpoint or terminal)."@en ;
+    rdfs:domain         runit:Snapshot ;
+    rdfs:range          runit:SnapshotClassification ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:predecessorSnapshot
+    a                   owl:ObjectProperty ;
+    rdfs:subPropertyOf  prov:wasDerivedFrom ;
+    rdfs:label          "predecessor snapshot"@en ;
+    rdfs:comment        "Links a snapshot to its predecessor in a chain of snapshots."@en ;
+    rdfs:domain         runit:Snapshot ;
+    rdfs:range          runit:Snapshot ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Definition links ---------------------------------------------------------
+
+runit:definedBy
+    a                   owl:ObjectProperty ;
+    rdfs:label          "defined by"@en ;
+    rdfs:comment        "Links an execution or activity to its definition."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity ) ] ;
+    rdfs:range          [ a owl:UnionOf ; owl:members ( runit:ExecutionDefinition runit:ActivityDefinition ) ] ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Datatype properties
+# =============================================================================
+
+# --- Identification -----------------------------------------------------------
+
+runit:executionId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "execution ID"@en ;
+    rdfs:comment        "Stable identifier for an execution."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:activityId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "activity ID"@en ;
+    rdfs:comment        "Stable identifier for an activity."@en ;
+    rdfs:domain         runit:Activity ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:occurrenceId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "occurrence ID"@en ;
+    rdfs:comment        "Stable identifier for an occurrence."@en ;
+    rdfs:domain         runit:Occurrence ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:snapshotId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "snapshot ID"@en ;
+    rdfs:comment        "Stable identifier for a snapshot."@en ;
+    rdfs:domain         runit:Snapshot ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Name and kind ------------------------------------------------------------
+
+runit:executionName
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "execution name"@en ;
+    rdfs:comment        "Human-readable name for an execution (e.g. 'configuration.resolve')."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:executionKind
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "execution kind"@en ;
+    rdfs:comment        "The kind or category of execution (e.g. 'http.request', 'cli.command', 'configuration.resolution'). Kinds are extensible strings, not a closed enum."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:activityName
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "activity name"@en ;
+    rdfs:comment        "Human-readable name for an activity (e.g. 'load.yaml', 'validate.schema')."@en ;
+    rdfs:domain         runit:Activity ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:activityKind
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "activity kind"@en ;
+    rdfs:comment        "The kind or category of activity. Extensible string."@en ;
+    rdfs:domain         runit:Activity ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Status -------------------------------------------------------------------
+
+runit:executionStatus
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "execution status"@en ;
+    rdfs:comment        "The lifecycle status of an execution. Value must be one of the ExecutionStatus individuals."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          runit:ExecutionStatus ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:activityStatus
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "activity status"@en ;
+    rdfs:comment        "The lifecycle status of an activity. Value must be one of the ActivityStatus individuals."@en ;
+    rdfs:domain         runit:Activity ;
+    rdfs:range          runit:ActivityStatus ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Measurement properties ---------------------------------------------------
+
+runit:measurementName
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "measurement name"@en ;
+    rdfs:comment        "Name of the measurement (e.g. 'files.loaded', 'memory.peak')."@en ;
+    rdfs:domain         runit:Measurement ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:measurementValue
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "measurement value"@en ;
+    rdfs:comment        "Numeric value of the measurement. Supports both integer and floating-point values."@en ;
+    rdfs:domain         runit:Measurement ;
+    rdfs:range          xsd:decimal ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:measurementUnit
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "measurement unit"@en ;
+    rdfs:comment        "Unit of the measurement value. Should reference a QUDT unit where applicable (e.g. qudt:unit:NanoSecond, qudt:unit:Byte, qudt:unit:Count)."@en ;
+    rdfs:domain         runit:Measurement ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:measurementKind
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "measurement kind"@en ;
+    rdfs:comment        "The semantic kind of measurement (counter, gauge, duration, size, ratio, etc.)."@en ;
+    rdfs:domain         runit:Measurement ;
+    rdfs:range          runit:MeasurementKind ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Observation properties ---------------------------------------------------
+
+runit:observationMessage
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "observation message"@en ;
+    rdfs:comment        "Stable message template for the observation. Variable values should be carried in structured attributes, not embedded in the message string."@en ;
+    rdfs:domain         runit:Observation ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:observationSeverity
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "observation severity"@en ;
+    rdfs:comment        "Severity level of the observation. Must be one of the ObservationSeverity individuals."@en ;
+    rdfs:domain         runit:Observation ;
+    rdfs:range          runit:ObservationSeverity ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Occurrence properties ----------------------------------------------------
+
+runit:occurrenceType
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "occurrence type"@en ;
+    rdfs:comment        "Stable, versioned, lowercase type name for the occurrence (e.g. 'itpack.configuration.loaded.v1'). Independent of any implementation class name."@en ;
+    rdfs:domain         runit:Occurrence ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:occurrenceSubject
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "occurrence subject"@en ;
+    rdfs:comment        "Subject of the occurrence (e.g. 'configuration/production'). Maps to CloudEvents subject."@en ;
+    rdfs:domain         runit:Occurrence ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:occurrenceSource
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "occurrence source"@en ;
+    rdfs:comment        "Source of the occurrence, identifying the context in which it happened. Maps to CloudEvents source."@en ;
+    rdfs:domain         runit:Occurrence ;
+    rdfs:range          xsd:anyURI ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:dataSchema
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "data schema"@en ;
+    rdfs:comment        "URI identifying the schema of the occurrence data payload."@en ;
+    rdfs:domain         runit:Occurrence ;
+    rdfs:range          xsd:anyURI ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:contentType
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "content type"@en ;
+    rdfs:comment        "Media type of the occurrence data or snapshot payload (e.g. 'application/json')."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Occurrence runit:Snapshot ) ] ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Snapshot properties ------------------------------------------------------
+
+runit:snapshotType
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "snapshot type"@en ;
+    rdfs:comment        "Type name for the snapshot (e.g. 'configuration.snapshot', 'execution.snapshot')."@en ;
+    rdfs:domain         runit:Snapshot ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:schemaVersion
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "schema version"@en ;
+    rdfs:comment        "Version identifier for the snapshot payload schema."@en ;
+    rdfs:domain         runit:Snapshot ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:contentHash
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "content hash"@en ;
+    rdfs:comment        "Cryptographic hash of the snapshot payload for integrity verification."@en ;
+    rdfs:domain         runit:Snapshot ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Context entry properties -------------------------------------------------
+
+runit:entryKey
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "entry key"@en ;
+    rdfs:comment        "Key name of a context entry (e.g. 'environment', 'tenant.id', 'correlation.id')."@en ;
+    rdfs:domain         runit:ContextEntry ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:entryValue
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "entry value"@en ;
+    rdfs:comment        "Value of a context entry."@en ;
+    rdfs:domain         runit:ContextEntry ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Timing properties --------------------------------------------------------
+
+runit:startedAt
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "started at"@en ;
+    rdfs:comment        "Timestamp when the execution or activity started."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity ) ] ;
+    rdfs:range          xsd:dateTime ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:endedAt
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "ended at"@en ;
+    rdfs:comment        "Timestamp when the execution or activity ended."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity ) ] ;
+    rdfs:range          xsd:dateTime ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:duration
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "duration"@en ;
+    rdfs:comment        "Duration in nanoseconds, measured using monotonic time."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Execution runit:Activity runit:Measurement ) ] ;
+    rdfs:range          xsd:integer ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Sequence -----------------------------------------------------------------
+
+runit:sequence
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "sequence"@en ;
+    rdfs:comment        "Monotonically increasing sequence number within an execution. Used to order artifacts."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( runit:Measurement runit:Observation runit:Occurrence runit:Snapshot ) ] ;
+    rdfs:range          xsd:nonNegativeInteger ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Controlled individuals — ExecutionStatus
+# =============================================================================
+
+runit:StatusCreated
+    a                   runit:ExecutionStatus ;
+    rdfs:label          "created"@en ;
+    rdfs:comment        "The execution has been defined but not yet started."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:StatusRunning
+    a                   runit:ExecutionStatus , runit:ActivityStatus ;
+    rdfs:label          "running"@en ;
+    rdfs:comment        "The execution or activity is currently in progress."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:StatusSucceeded
+    a                   runit:ExecutionStatus , runit:ActivityStatus ;
+    rdfs:label          "succeeded"@en ;
+    rdfs:comment        "The execution or activity completed successfully."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:StatusFailed
+    a                   runit:ExecutionStatus , runit:ActivityStatus ;
+    rdfs:label          "failed"@en ;
+    rdfs:comment        "The execution or activity completed with a failure."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:StatusCancelled
+    a                   runit:ExecutionStatus , runit:ActivityStatus ;
+    rdfs:label          "cancelled"@en ;
+    rdfs:comment        "The execution or activity was cancelled before completion."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:StatusTimedOut
+    a                   runit:ExecutionStatus , runit:ActivityStatus ;
+    rdfs:label          "timed out"@en ;
+    rdfs:comment        "The execution or activity exceeded its time limit."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# Controlled individuals — ContextClassification
+# =============================================================================
+
+runit:ClassificationPublic
+    a                   runit:ContextClassification ;
+    rdfs:label          "public"@en ;
+    rdfs:comment        "Public information. Exportable by default. No sensitivity."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:ClassificationInternal
+    a                   runit:ContextClassification ;
+    rdfs:label          "internal"@en ;
+    rdfs:comment        "Internal operational data. Exportable by default."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:ClassificationConfidential
+    a                   runit:ContextClassification ;
+    rdfs:label          "confidential"@en ;
+    rdfs:comment        "Confidential information. Exportable only through explicit policy."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:ClassificationRestricted
+    a                   runit:ContextClassification ;
+    rdfs:label          "restricted"@en ;
+    rdfs:comment        "Restricted information. Redacted by default; export requires explicit policy configuration."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:ClassificationSecret
+    a                   runit:ContextClassification ;
+    rdfs:label          "secret"@en ;
+    rdfs:comment        "Secret information. Never exported under any policy."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# Controlled individuals — ObservationSeverity
+# =============================================================================
+
+runit:SeverityTrace
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "trace"@en ;
+    rdfs:comment        "Fine-grained diagnostic information."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityDebug
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "debug"@en ;
+    rdfs:comment        "Debug-level diagnostic information."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityInfo
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "info"@en ;
+    rdfs:comment        "Informational message about normal operation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityNotice
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "notice"@en ;
+    rdfs:comment        "Significant but normal condition."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityWarning
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "warning"@en ;
+    rdfs:comment        "Warning about a potential issue that does not prevent operation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityError
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "error"@en ;
+    rdfs:comment        "Error condition that caused a failure."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityCritical
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "critical"@en ;
+    rdfs:comment        "Critical condition requiring immediate attention."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityAlert
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "alert"@en ;
+    rdfs:comment        "Alert-level condition requiring immediate action."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SeverityEmergency
+    a                   runit:ObservationSeverity ;
+    rdfs:label          "emergency"@en ;
+    rdfs:comment        "System is unusable. Emergency condition."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# Controlled individuals — MeasurementKind
+# =============================================================================
+
+runit:MeasurementKindCounter
+    a                   runit:MeasurementKind ;
+    rdfs:label          "counter"@en ;
+    rdfs:comment        "A cumulative counter that increases monotonically."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindUpDownCounter
+    a                   runit:MeasurementKind ;
+    rdfs:label          "up/down counter"@en ;
+    rdfs:comment        "A counter that can increase or decrease."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindGauge
+    a                   runit:MeasurementKind ;
+    rdfs:label          "gauge"@en ;
+    rdfs:comment        "A gauge that represents a current value that can go up or down."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindHistogramSample
+    a                   runit:MeasurementKind ;
+    rdfs:label          "histogram sample"@en ;
+    rdfs:comment        "A single sample for histogram aggregation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindDuration
+    a                   runit:MeasurementKind ;
+    rdfs:label          "duration"@en ;
+    rdfs:comment        "A time duration measurement."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindSize
+    a                   runit:MeasurementKind ;
+    rdfs:label          "size"@en ;
+    rdfs:comment        "A size measurement (memory, file size, etc.)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindRatio
+    a                   runit:MeasurementKind ;
+    rdfs:label          "ratio"@en ;
+    rdfs:comment        "A ratio or percentage measurement."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:MeasurementKindCustom
+    a                   runit:MeasurementKind ;
+    rdfs:label          "custom"@en ;
+    rdfs:comment        "A custom measurement kind not covered by the standard kinds."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# Controlled individuals — SnapshotClassification
+# =============================================================================
+
+runit:SnapshotCheckpoint
+    a                   runit:SnapshotClassification ;
+    rdfs:label          "checkpoint"@en ;
+    rdfs:comment        "A snapshot created during execution, representing intermediate state."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:SnapshotTerminal
+    a                   runit:SnapshotClassification ;
+    rdfs:label          "terminal"@en ;
+    rdfs:comment        "A snapshot representing the final state of a completed execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# Controlled individuals — PublicationFailurePolicy
+# =============================================================================
+
+runit:FailOpen
+    a                   runit:PublicationFailurePolicy ;
+    rdfs:label          "fail open"@en ;
+    rdfs:comment        "Publication failures are silently ignored."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:FailClosed
+    a                   runit:PublicationFailurePolicy ;
+    rdfs:label          "fail closed"@en ;
+    rdfs:comment        "Publication failures propagate and may cause the execution to fail."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:CollectAndContinue
+    a                   runit:PublicationFailurePolicy ;
+    rdfs:label          "collect and continue"@en ;
+    rdfs:comment        "Failures are collected for later inspection but do not interrupt execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+runit:ReportToFallback
+    a                   runit:PublicationFailurePolicy ;
+    rdfs:label          "report to fallback"@en ;
+    rdfs:comment        "Failures are reported to a fallback handler and do not interrupt execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+.
+
+# =============================================================================
+# QUDT alignment — measurement unit references
+# =============================================================================
+
+runit:unitNanoSecond
+    a                   owl:NamedIndividual ;
+    owl:sameAs          <http://qudt.org/vocab/unit/NanoSecond> ;
+    rdfs:label          "nanosecond"@en ;
+    rdfs:comment        "Nanosecond time unit. Aligned with QUDT unit:NanoSecond."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:unitMillisecond
+    a                   owl:NamedIndividual ;
+    owl:sameAs          <http://qudt.org/vocab/unit/MilliSecond> ;
+    rdfs:label          "millisecond"@en ;
+    rdfs:comment        "Millisecond time unit. Aligned with QUDT unit:MilliSecond."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:unitByte
+    a                   owl:NamedIndividual ;
+    owl:sameAs          <http://qudt.org/vocab/unit/Byte> ;
+    rdfs:label          "byte"@en ;
+    rdfs:comment        "Byte unit for memory and data size. Aligned with QUDT unit:Byte."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:unitCount
+    a                   owl:NamedIndividual ;
+    owl:sameAs          <http://qudt.org/vocab/unit/Count> ;
+    rdfs:label          "count"@en ;
+    rdfs:comment        "Dimensionless count unit. Aligned with QUDT unit:Count."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:unitFile
+    a                   owl:NamedIndividual ;
+    rdfs:label          "file"@en ;
+    rdfs:comment        "Informal unit representing a count of files."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:unitNode
+    a                   owl:NamedIndividual ;
+    rdfs:label          "node"@en ;
+    rdfs:comment        "Informal unit representing a count of graph nodes."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:unitError
+    a                   owl:NamedIndividual ;
+    rdfs:label          "error"@en ;
+    rdfs:comment        "Informal unit representing a count of validation errors."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
