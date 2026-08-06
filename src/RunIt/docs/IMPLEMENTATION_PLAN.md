@@ -166,7 +166,9 @@ Exporter network latency is excluded because exporters are adapters outside the 
 - Zero high or critical dependency vulnerabilities at release.
 - All examples compile and execute in CI.
 
-PHPStan currently supports levels through 10 and provides `max` as the moving highest-level alias. New first-party packages should avoid introducing a baseline because the baseline is principally an incremental adoption mechanism for existing violations. ([phpstan.org](https://phpstan.org/user-guide/baseline?utm_source=openai))
+PHPStan currently supports levels through 10 and provides `max` as the moving highest-level alias. 
+New first-party packages should avoid introducing a baseline because the baseline is principally 
+an incremental adoption mechanism for existing violations. ([phpstan.org](https://phpstan.org/user-guide/baseline?utm_source=openai))
 
 ---
 
@@ -309,7 +311,8 @@ Required fields:
 - Attributes
 - Optional failure description
 
-Activities are nested by identity, not object ownership. This permits streaming, remote propagation, and low-memory execution.
+Activities are nested by identity, not object ownership. 
+This permits streaming, remote propagation, and low-memory execution.
 
 Activity lifecycle mirrors execution lifecycle but does not include `CREATED` as a publicly observable state:
 
@@ -385,7 +388,8 @@ ALERT
 EMERGENCY
 ```
 
-Observation messages should remain stable templates, with variable information held in attributes. This aligns cleanly with PSR-3’s message/context model. ([php-fig.org](https://www.php-fig.org/psr/psr-3/?utm_source=openai))
+Observation messages should remain stable templates, with variable information held in attributes. 
+This aligns cleanly with PSR-3’s message/context model. ([php-fig.org](https://www.php-fig.org/psr/psr-3/?utm_source=openai))
 
 ## 6.6 Occurrence
 
@@ -422,7 +426,8 @@ Occurrence type names must be:
 - Independent of PHP class names.
 - Suitable for CloudEvents `type` mapping.
 
-CloudEvents defines common context attributes independently of event data, making it appropriate as an external representation of RunIt occurrences rather than as the occurrence domain itself. ([github.com](https://github.com/cloudevents/spec?utm_source=openai))
+CloudEvents defines common context attributes independently of event data, making it appropriate 
+as an external representation of RunIt occurrences rather than as the occurrence domain itself. ([github.com](https://github.com/cloudevents/spec?utm_source=openai))
 
 ## 6.7 Snapshot
 
@@ -443,7 +448,8 @@ Snapshot fields:
 - `checkpoint` or `terminal` classification.
 - Metadata.
 
-Snapshots must not require arbitrary PHP object serialization. Payloads must be normalized through an injected serializer.
+Snapshots must not require arbitrary PHP object serialization. 
+Payloads must be normalized through an injected serializer.
 
 ---
 
@@ -560,7 +566,8 @@ Namespace root:
 ItPack\RunIt
 ```
 
-Composer should use package type `library` and PSR-4 autoloading, both of which are standard Composer mechanisms for reusable packages. ([getcomposer.org](https://getcomposer.org/doc/01-basic-usage.md?utm_source=openai))
+Composer should use package type `library` and PSR-4 autoloading, both of which are standard Composer mechanisms 
+for reusable packages. ([getcomposer.org](https://getcomposer.org/doc/01-basic-usage.md?utm_source=openai))
 
 ---
 
@@ -707,7 +714,8 @@ interface ThrowableMapperInterface {}
 interface ResourceDetectorInterface {}
 ```
 
-Prefer `Psr\Clock\ClockInterface` through a bridge or alias adapter rather than coupling domain value objects directly to PSR-20.
+Prefer `Psr\Clock\ClockInterface` through a bridge or alias adapter rather than coupling 
+domain value objects directly to PSR-20.
 
 ---
 
@@ -848,7 +856,8 @@ final readonly class InstrumentedConfigurationResolver
 }
 ```
 
-RunIt must not create generic reflection proxies as its primary design. Generated proxies may be offered later as tooling.
+RunIt must not create generic reflection proxies as its primary design. 
+Generated proxies may be offered later as tooling.
 
 ## 11.5 Attribute metadata
 
@@ -861,7 +870,8 @@ Optional metadata attributes:
 )]
 ```
 
-Attributes contain metadata only. Invocation remains the responsibility of a decorator, proxy factory, framework bridge, or SDK invoker.
+Attributes contain metadata only. Invocation remains the responsibility of a decorator, proxy factory, 
+framework bridge, or SDK invoker.
 
 ---
 
@@ -909,7 +919,9 @@ Implement:
 5. `NullContextStorage`
     - For disabled instrumentation.
 
-OpenTelemetry PHP supports Fiber-aware context storage, while enabling it may require FFI and preload configuration in some environments. RunIt must therefore keep Fiber integration optional and independently testable. ([opentelemetry.io](https://opentelemetry.io/docs/languages/php/?utm_source=openai))
+OpenTelemetry PHP supports Fiber-aware context storage, while enabling it may require FFI 
+and preload configuration in some environments. RunIt must therefore keep Fiber integration optional 
+and independently testable. ([opentelemetry.io](https://opentelemetry.io/docs/languages/php/?utm_source=openai))
 
 ## 12.4 `WeakMap` and weak references
 
@@ -919,7 +931,8 @@ Use `WeakMap` for associating:
 - Consumer objects with generated decorators.
 - Runtime handles with lifecycle metadata.
 
-Use `WeakReference` only for non-owning caches or parent runtime references. Execution correctness must never depend on a weakly referenced object remaining alive.
+Use `WeakReference` only for non-owning caches or parent runtime references. Execution correctness must never depend 
+on a weakly referenced object remaining alive.
 
 ---
 
@@ -1009,7 +1022,9 @@ Dropped artifacts must be counted through an internal, recursion-safe health cou
 
 ## 14. OpenTelemetry Adapter
 
-OpenTelemetry remains an adapter rather than the core model. The PHP implementation provides stable traces, metrics, and logs and recommends that libraries depend on API contracts while applications install and configure SDK/exporter components. ([opentelemetry.io](https://opentelemetry.io/docs/languages/php/?utm_source=openai))
+OpenTelemetry remains an adapter rather than the core model. The PHP implementation provides stable traces, metrics, 
+and logs and recommends that libraries depend on API contracts while applications install 
+and configure SDK/exporter components. ([opentelemetry.io](https://opentelemetry.io/docs/languages/php/?utm_source=openai))
 
 ### 14.1 Mapping
 
@@ -1061,7 +1076,9 @@ Options:
 
 ## 15. CloudEvents Adapter
 
-Target `cloudevents/sdk-php` while retaining an internal mapper contract so SDK replacement does not affect domain code. The PHP SDK is distributed through Composer, and the CloudEvents specification remains the source of semantic conformance. ([packagist.org](https://packagist.org/packages/cloudevents/?utm_source=openai))
+Target `cloudevents/sdk-php` while retaining an internal mapper contract so SDK replacement does not affect domain code. 
+The PHP SDK is distributed through Composer, and the CloudEvents specification remains the source 
+of semantic conformance. ([packagist.org](https://packagist.org/packages/cloudevents/?utm_source=openai))
 
 ### 15.1 Mapping
 
@@ -1126,7 +1143,8 @@ Provide:
 - `PsrEventOccurrenceAdapter`.
 - `OccurrenceFromPsrEventFactory`.
 
-PSR-14 dispatch is synchronous and listener exceptions propagate, so the adapter must apply RunIt’s configured publication failure policy around dispatch. ([php-fig.org](https://www.php-fig.org/psr/psr-14/?utm_source=openai))
+PSR-14 dispatch is synchronous and listener exceptions propagate, so the adapter must apply RunIt’s 
+configured publication failure policy around dispatch. ([php-fig.org](https://www.php-fig.org/psr/psr-14/?utm_source=openai))
 
 ## 16.3 Additional PSR bridges
 
@@ -1144,7 +1162,8 @@ Prioritize:
 
 ## 17.1 Scope
 
-RunIt should not become a coroutine scheduler. It should expose execution-engine and context-storage ports that permit coroutine-aware operation.
+RunIt should not become a coroutine scheduler. It should expose execution-engine and context-storage ports 
+that permit coroutine-aware operation.
 
 ## 17.2 Swoole adapters
 
@@ -1166,7 +1185,8 @@ The adapter must:
 - Prevent execution data from leaking between persistent requests.
 - Support worker-start and worker-stop executions separately from request executions.
 
-OpenSwoole coroutine execution occurs within coroutine contexts created explicitly or by server callbacks; therefore context attachment must be coroutine-local rather than process-global. ([openswoole.com](https://openswoole.com/docs/modules/swoole-coroutine-run?utm_source=openai))
+OpenSwoole coroutine execution occurs within coroutine contexts created explicitly or by server callbacks; 
+therefore, context attachment must be coroutine-local rather than process-global. ([openswoole.com](https://openswoole.com/docs/modules/swoole-coroutine-run?utm_source=openai))
 
 ## 17.3 Fiber adapter
 
@@ -1186,7 +1206,8 @@ Do not introduce a proprietary Promise API in `1.0.0`.
 
 ## 18. PHP 8.4 Language Usage
 
-PHP 8.4 adds property hooks and lazy objects, among other capabilities. Use these features where they simplify contracts without obscuring domain behavior. ([php.net](https://www.php.net/releases/8.4/en.php?utm_source=openai))
+PHP 8.4 adds property hooks and lazy objects, among other capabilities. Use these features where they simplify 
+contracts without obscuring domain behavior. ([php.net](https://www.php.net/releases/8.4/en.php?utm_source=openai))
 
 ### 18.1 Property hooks and virtual properties
 
@@ -1550,7 +1571,8 @@ Use Infection against:
 - Identifier validators.
 - Adapter mappings.
 
-Mutation testing measures whether the suite detects seeded changes rather than relying solely on line coverage. Infection exposes MSI and covered-code MSI for this purpose. ([infection.github.io](https://infection.github.io/guide/?utm_source=openai))
+Mutation testing measures whether the suite detects seeded changes rather than relying solely on line-coverage. 
+Infection exposes MSI and covered-code MSI for this purpose. ([infection.github.io](https://infection.github.io/guide/?utm_source=openai))
 
 CI policy:
 
@@ -1586,7 +1608,8 @@ Configuration:
 
 ## 23.2 DepTrac
 
-DepTrac groups classes into layers and enforces allowed dependencies, with undeclared dependencies forbidden by default. ([deptrac.github.io](https://deptrac.github.io/deptrac/concepts/?utm_source=openai))
+DepTrac groups classes into layers and enforces allowed dependencies, with undeclared dependencies 
+forbidden by default. ([deptrac.github.io](https://deptrac.github.io/deptrac/concepts/?utm_source=openai))
 
 Required layers:
 
@@ -1632,7 +1655,8 @@ Use PHP-CS-Fixer with:
 - Native function invocation policy where measured useful.
 - No risky modernization rule without review.
 
-PHP-CS-Fixer provides PER-compatible and modernization-oriented rule sets, including risky rules that must be enabled deliberately. ([github.com](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer?utm_source=openai))
+PHP-CS-Fixer provides PER-compatible and modernization-oriented rule sets, including risky rules that must be 
+enabled deliberately. ([github.com](https://github.com/PHP-CS-Fixer/PHP-CS-Fixer?utm_source=openai))
 
 ## 23.4 Additional tooling
 
@@ -2006,4 +2030,5 @@ RunIt is complete when:
 - [ ] Third-party adapter contracts and test harnesses are documented.
 - [ ] Semantic Versioning and backward-compatibility checks protect the public API.
 
-> **Everything happens within an execution. RunIt makes that execution explicit, composable, observable, portable, and safe.**
+> **Everything happens within an execution. 
+> RunIt makes that execution explicit, composable, observable, portable, and safe.**
