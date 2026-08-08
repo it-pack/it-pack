@@ -149,7 +149,7 @@ final class LineBasedRewriter implements RewriterInterface
         $names = [];
         $depth = 0;
 
-        for ($i = $braceLineIndex; $i < count($lines); $i++) {
+        for ($i = $braceLineIndex, $iMax = count($lines); $i < $iMax; $i++) {
             $depth += substr_count($lines[$i], '{');
             $depth -= substr_count($lines[$i], '}');
 
@@ -187,7 +187,7 @@ final class LineBasedRewriter implements RewriterInterface
             // Brace may be on this same line ("class Foo {") or one of the
             // next few lines ("class Foo\n{" or after an implements/extends
             // clause spanning multiple lines).
-            for ($i = $index; $i < count($lines); $i++) {
+            for ($i = $index, $iMax = count($lines); $i < $iMax; $i++) {
                 if (str_contains($lines[$i], '{')) {
                     return $i;
                 }

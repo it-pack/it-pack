@@ -105,7 +105,7 @@ final class RoleClassifier
         // and no sentence-ending punctuation. 'json', 'admin-user',
         // 'APP_KEY' pass; "Configuration key %s is empty." fails on the
         // first space + trailing period alone.
-        return (bool) preg_match('/^[A-Za-z0-9_\-\.\/:]+$/', $value)
+        return (bool) preg_match('/^[A-Za-z0-9_\-.\/:]+$/', $value)
             && !str_contains($value, ' ');
     }
 }
