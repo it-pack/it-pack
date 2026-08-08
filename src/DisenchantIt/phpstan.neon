@@ -1,0 +1,20 @@
+parameters:
+    phpVersion: 80400
+    level: 9
+    paths:
+        - src
+        - tests
+
+    # Extensions
+    scanDirectories:
+        - vendor
+
+    # Type coverage
+    reportUnmatchedIgnoredErrors: false
+    treatPhpDocTypesAsCertain: false
+
+    # Ignore PHP 8.4 property hooks syntax errors
+    ignoreErrors:
+        - '#Syntax error, unexpected#'
+        - '#unexpected T_OBJECT_OPERATOR#'
+        - '#unexpected T_DOUBLE_ARROW#'
