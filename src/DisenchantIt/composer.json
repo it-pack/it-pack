@@ -1,0 +1,76 @@
+{
+    "name": "it-pack/disenchant-it",
+    "description": "A library and SDK to find and replace magic scalar values in PHP. Finds and replaces magic scalar values in PHP code with constants or enums.",
+    "type": "library",
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "nette/php-generator": "^4.2",
+        "nikic/php-parser": "^5.8",
+        "rector/rector": "^1.2"
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.1",
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-phpbrowser": "^3.0",
+        "consolidation/robo": "^3.0",
+        "deptrac/deptrac": "^4.2",
+        "fivefilters/readability.php": "^3.3",
+        "friendsofphp/php-cs-fixer": "^3.64",
+        "phparkitect/phparkitect": "^1.2",
+        "phpstan/phpstan": "^1.12",
+        "phpstan/phpstan-strict-rules": "^1.6",
+        "open-telemetry/api": "^1.0",
+        "open-telemetry/sdk": "^1.0",
+        "open-telemetry/exporter-otlp": "^1.0",
+        "open-telemetry/sem-conv": "^1.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "ItPack\\DisenchantIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ItPack\\DisenchantIt\\Tests\\": "tests/",
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "allow-plugins": {
+            "php-http/discovery": true,
+            "tbachert/spi": false
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/codecept run",
+        "test:unit": "@test unit",
+        "test:integration": "@test run integration",
+        "test:acceptance": "@test run acceptance",
+        "test:coverage": "@test run --coverage --coverage-html",
+        "phpstan": "vendor/bin/phpstan",
+        "analyze": "@phpstan analyse src tests --level=9",
+        "fix": "vendor/bin/php-cs-fixer fix",
+        "format": "@fix --diff",
+        "format:check": "@fix --dry-run --diff",
+        "check:boundary": "php bin/check-architecture-boundary",
+        "rector": "vendor/bin/rector",
+        "refactor": "@rector process",
+        "refactor:dry": "@rector process --dry-run",
+        "quality": [
+            "@format:check",
+            "@analyze",
+            "@test"
+        ]
+    }
+}

@@ -1,0 +1,52 @@
+actor: Tester
+paths:
+    tests: tests
+    output: tests/_output
+    data: tests/_data
+    support: tests/_support
+    envs: tests/_envs
+
+settings:
+    bootstrap: _bootstrap.php
+    colors: true
+    memory_limit: 1024M
+
+modules:
+    config:
+        Asserts:
+            enabled: true
+
+coverage:
+    enabled: true
+    include:
+        - src/*
+    exclude:
+        - src/Infrastructure/Telemetry/*
+    remote: false
+    xml: tests/_output/coverage.xml
+    html: tests/_output/coverage
+    threshold: 80
+
+extensions:
+    enabled:
+        - Codeception\Extension\RunFailed
+
+suites:
+    unit:
+        actor: UnitTester
+        path: Unit
+        modules:
+            enabled:
+                - Asserts
+    integration:
+        actor: IntegrationTester
+        path: Integration
+        modules:
+            enabled:
+                - Asserts
+    acceptance:
+        actor: AcceptanceTester
+        path: Acceptance
+        modules:
+            enabled:
+                - Asserts
