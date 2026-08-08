@@ -1,0 +1,46 @@
+# Dependencies
+/vendor/
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Testing
+/tests/_output/
+/tests/_support/_generated/
+.phpunit.result.cache
+coverage/
+.phpunit.cache/
+
+# Build artifacts
+/build/
+/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Cache
+.php-cs-fixer.cache
+.phpstan.cache/
+
+#Prompts
+/prompts/
+
+
+/.deptrac.cache
+
+var/
