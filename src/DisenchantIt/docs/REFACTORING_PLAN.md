@@ -13,6 +13,12 @@
 > - **PHP 8.4+ language features**: property hooks, lazy objects, WeakMap /
 >   WeakReference, Fibers, readonly classes, backed enums
 > - **Traits** for composition where they reduce duplication
+> - **It_Pack Execution Model** (`docs/EXECUTION.md`): every run is an *Execution*
+>   carrying *Context*, *Activities*, *Measurements*, *Observations*, *Occurrences*
+>   and a *Snapshot*; external standards (OpenTelemetry, CloudEvents, PSR-3/14) are
+>   adapters, not the domain. DisenchantIt must be shaped so a future RunIt-based
+>   execution layer drops in as an adapter without touching Core (RunIt is WiP and
+>   is the future base execution layer for all it-pack packages).
 >
 > Each finding lists: location, principle, severity, current behaviour, proposed
 > refactoring. Severity follows the project convention.
@@ -223,6 +229,11 @@ dry-run adapter without copying the script.
   - `var/lab/disenchant.php` (and a future `bin/disenchant`) becomes a **thin CLI
     adapter**: parse argv → build factories → assemble the `Disenchanter` → print report.
     All domain rules move into Core.
+  - Shape `Disenchanter` as an **Activity within an Execution** (see §17): it receives a
+    `DisenchantContext`, records Occurrences / Observations / Measurements through an
+    optional `ExecutionRecorderInterface` port, and yields a `DisenchantSnapshot`. Core
+    must not depend on RunIt — the recorder port is no-op by default (ADR-0010), so the
+    execution model is an adapter, not a hard dependency.
   - Introduce **`Contract\PhpFileFinderInterface`** + `Adapter\RecursivePhpFileFinder`
     (see §10) so file discovery is also a port, not a copy-pasted `getAllPhpFiles()`.
 
@@ -501,6 +512,91 @@ three rule shapes we will carry over and extend.
 
 ---
 
+## 17. It_Pack Execution Model — shape Core around Execution/Context/Snapshot
+
+- **Location:** `docs/EXECUTION.md` (copied from the it-pack global docs); cross-cutting
+  with the `Disenchanter` Core (§5), the domain value objects (§7), and the CLI adapter
+  (§5). Reference implementations / vocabulary: `src/RunIt/docs`
+  (`base-contracts.md`, ADR-001/002/004/010/011/015, and the future ADR-013 fiber
+  adapters, ADR-016 bridge-package split).
+- **Principle:** Ports & Adapters, SRP, DIP, future-proofing (RunIt integration)
+- **Severity:** 🟠
+
+The PoC orchestration (`var/lab/disenchant.php`) tracks work only through `echo` and a
+dry-run diff — there is no notion of an execution, its context, the activities it ran,
+what it measured/observed, or the resulting snapshot. The it-pack family models
+**execution itself** as the root domain (EXECUTION.md): an Execution owns *Context*,
+*Activities*, *Measurements*, *Observations*, *Occurrences* and produces a *Snapshot*;
+OpenTelemetry / CloudEvents / PSR-3/14 are merely adapters. RunIt is the WiP base
+execution layer every it-pack package (including DisenchantIt) will build on — and
+DisenchantIt will even be used to dog-food-clean the other packages' code. So DisenchantIt
+must be *shaped* for that now, without taking a RunIt dependency yet.
+
+- **Proposed refactoring (internal, RunIt-free vocabulary that mirrors RunIt):**
+
+  - **`Contract\Execution\` ports** (no internal deps, no RunIt import):
+    - `ExecutionRecorderInterface` — the single seam the Core records into. Methods such
+      as `recordContext(ContextInterface)`, `beginActivity(string $name)`,
+      `recordMeasurement(string $name, int|float $value)`,
+      `recordObservation(ObservationInterface)`, `recordOccurrence(OccurrenceInterface)`,
+      `recordSnapshot(SnapshotInterface)`. Default `NullExecutionRecorder` is a no-op so
+      **Core has no mandatory integration** (RunIt ADR-0010) — this is the key constraint
+      that keeps DisenchantIt usable standalone and makes RunIt a drop-in adapter later.
+    - `ContextInterface`, `OccurrenceInterface`, `ObservationInterface`,
+      `MeasurementInterface`, `SnapshotInterface` — minimal RunIt-shaped markers
+      (`normalize(): array`, `executionId(): string`, `timestamp(): int`) so the artifacts
+      are *Normalizable* and *immutable* (RunIt ADR-002 / base-contracts
+      `NormalizableInterface`, `ExecutionArtifactInterface`), ready to map 1:1 onto RunIt's
+      `ExecutionArtifactInterface` family later.
+
+  - **Immutable value objects** in `ValueObject\Execution\`:
+    - `DisenchantContext` — the immutable *Context*: source root, `minOccurrences`
+      threshold, `dryRun` flag, correlation id. (RunIt ADR-004: explicit context
+      propagation; for now a plain value object, later adapter-backed.)
+    - `DisenchantOccurrence` — *Occurrences* are **lowercase, stable, versioned domain
+      strings** (RunIt ADR-011), e.g. `disenchant.it.file.scanned.v1`,
+      `disenchant.it.magic_value.detected.v1`, `disenchant.it.constant.promoted.v1`,
+      `disenchant.it.file.rewritten.v1`, `disenchant.it.semconv.collected.v1`. Carries
+      attributes (file, value, constant name, line) as a bounded, recursively-primitive map.
+    - `DisenchantObservation` — qualitative notices: skipped-prose warnings, SemConv name
+      collisions, idempotent no-ops (maps to PSR-3 via a future adapter).
+    - `DisenchantMeasurement` — quantitative: `files_scanned`, `literals_found`,
+      `candidates`, `placements`, `files_rewritten`, `duration_ms`, `memory_bytes`.
+    - `DisenchantSnapshot` — the resulting *Snapshot*: files changed, constants added per
+      file, SemConv entries collected. This is what a caller (or a future `--report`)
+      receives; the CLI adapter renders it.
+
+  - **`Core\Disenchanter`** (§5) becomes the orchestrating **Activity** and is structured
+    as explicit, individually-bounded steps so each can be timed/measured and later maps
+    to a RunIt *Activity* (span):
+    - Activity `scan` → per file: detect → filter → group (emit `files_scanned`,
+      `literals_found`, `magic_value.detected` occurrences).
+    - Activity `decide` → run placement strategies (emit `constant.promoted` occurrences).
+    - Activity `rewrite` → `LineBasedRewriter` per file (emit `file.rewritten`).
+    - Activity `collect-semconv` → `SemConvCollector` (emit `semconv.collected`).
+    - Activity `alias-semconv` → `SemConvAliasRewriter`.
+    Each activity is recorded through `ExecutionRecorderInterface`; nothing is `echo`ed
+    from Core (the CLI adapter owns output).
+
+  - **Fibers (RunIt ADR-013):** the per-file `scan` activity is a natural place to use a
+    **Fiber** per file so I/O (`file_get_contents`) overlaps with CPU-bound parsing —
+    cooperative concurrency that a future RunIt fiber/swoole adapter can subsume without
+    restructuring Core.
+
+  - **Future RunIt integration = a bridge package, not a Core edit.** Per RunIt ADR-016
+    (bridge package split criteria), a separate `it-pack/run-it-disenchant-it` adapter
+    maps `DisenchantOccurrence`/`Observation`/`Snapshot` onto RunIt's `Execution` aggregate
+    and its `StringIdentifierInterface`-based ids. DisenchantIt Core never imports
+    `ItPack\RunIt\*`. PHPArkitect (§16) can enforce this with a project rule:
+    *`Core` must not depend on `ItPack\RunIt\*`* (the same "Core never imports vendor /
+    external package" discipline).
+
+- **ADR:** **ADR-0005 DisenchantIt follows the It_Pack Execution Model** (mirrors the
+  global EXECUTION.md and RunIt ADR-001/002/004/010/011/015; RunIt itself remains an
+  optional future adapter via a bridge package).
+
+---
+
 ## Refactoring sequence (recommended order)
 
 | # | Finding | ADR | Effort | Pays off for |
@@ -517,7 +613,8 @@ three rule shapes we will carry over and extend.
 | 10 | §9 Lazy Objects + §8/§9 WeakMap caching | ADR-0003 | M | performance |
 | 11 | §14 OCP registry for strategies | ADR-0001 | S | future strategies |
 | 12 | §16 PHPArkitect + ADRs | ADR-0004 | M | guardrails |
-| 13 | §15 callable syntax / native return types | — | S | hygiene |
+| 13 | §17 Execution Model: `ExecutionRecorder` port + immutable Context/Occurrence/Observation/Measurement/Snapshot VOs + `Disenchanter` as Activity | ADR-0005 | M | RunIt-ready, observability |
+| 14 | §15 callable syntax / native return types | — | S | hygiene |
 
 ---
 
@@ -536,5 +633,14 @@ three rule shapes we will carry over and extend.
   adapters get fixture-based tests (`Fixture/*` source strings); the `WeakMap`/`LazyObject`
   behaviour is covered with explicit life-cycle assertions. The test suite must stay
   green across every step above — each step is independently shippable.
-- **No adapter imports a Core class; no Core class imports a vendor type** (ADR-0001 /
-  ADR-0002 preserved).
+- **No adapter imports a Core class; no Core class imports a vendor type or
+  `ItPack\RunIt\*`** (ADR-0001 / ADR-0002 preserved; the `RunIt` exclusion is the
+  execution-model guardrail from §17 / ADR-0005 — RunIt stays an optional future adapter,
+  never a Core dependency).
+- **Execution-model seam:** the Core `Disenchanter` records exclusively through
+  `ExecutionRecorderInterface`, whose default (`NullExecutionRecorder`) is a no-op, so the
+  library runs identically with or without an execution recorder attached (ADR-0010).
+  Domain artifacts (`DisenchantContext` / `DisenchantOccurrence` / `DisenchantObservation` /
+  `DisenchantMeasurement` / `DisenchantSnapshot`) are immutable and `Normalizable`
+  (ADR-0002), and occurrence names are lowercase + versioned (ADR-0011), so a future
+  `it-pack/run-it-disenchant-it` bridge maps them onto RunIt with no Core change.
