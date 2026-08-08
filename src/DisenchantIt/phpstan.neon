@@ -12,9 +12,3 @@ parameters:
     # Type coverage
     reportUnmatchedIgnoredErrors: false
     treatPhpDocTypesAsCertain: false
-
-    # Ignore PHP 8.4 property hooks syntax errors
-    ignoreErrors:
-        - '#Syntax error, unexpected#'
-        - '#unexpected T_OBJECT_OPERATOR#'
-        - '#unexpected T_DOUBLE_ARROW#'
