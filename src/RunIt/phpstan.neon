@@ -6,6 +6,7 @@ parameters:
         - ./tests/Acceptance
         - ./tests/Functional
         - ./tests/Integration
+        - ./tests/Support/Fixture
         - ./tests/Unit
     parallel:
         maximumNumberOfProcesses: 1
