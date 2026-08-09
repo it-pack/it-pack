@@ -367,6 +367,16 @@ runit:activityId
     vs:term_status      "stable" ;
 .
 
+runit:observationId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "observation ID"@en ;
+    rdfs:comment        "Stable identifier for an observation."@en ;
+    rdfs:domain         runit:Observation ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
 runit:occurrenceId
     a                   owl:DatatypeProperty ;
     rdfs:label          "occurrence ID"@en ;
@@ -383,6 +393,17 @@ runit:snapshotId
     rdfs:comment        "Stable identifier for a snapshot."@en ;
     rdfs:domain         runit:Snapshot ;
     rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:correlationId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "correlation ID"@en ;
+    rdfs:comment        "Identifier shared by related executions so that work spanning process or service boundaries can be correlated. A correlation identifier is not an execution identifier: it is not unique to one execution and may be supplied by a remote caller."@en ;
+    rdfs:domain         runit:Execution ;
+    rdfs:range          xsd:string ;
+    rdfs:seeAlso        <https://w3id.org/itpack/runit/taxonomy#ctx-correlation-id> ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
     vs:term_status      "stable" ;
 .
