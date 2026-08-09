@@ -10,5 +10,11 @@ namespace ItPack\DisenchantIt\ValueObject;
  */
 interface SemConvConfigInterface
 {
+    public string $interfaceName { get; }
+
+    public ?string $namespace { get; }
+
+    public string $outputPath { get; }
+
     public function fullyQualifiedName(): string;
 }

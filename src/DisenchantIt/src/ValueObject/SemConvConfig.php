@@ -38,8 +38,8 @@ use ItPack\DisenchantIt\SemConv;
  */
 final readonly class SemConvConfig implements SemConvConfigInterface
 {
-    private const string DEFAULT_INTERFACE_NAME = 'SemConv';
-    private const string DEFAULT_NAMESPACE = 'Generated';
+    public const string DEFAULT_INTERFACE_NAME = 'SemConv';
+    public const string DEFAULT_NAMESPACE = 'Generated';
     private const string DOT = '.';
     private const string PHP_FILE_EXTENSION = 'php';
 

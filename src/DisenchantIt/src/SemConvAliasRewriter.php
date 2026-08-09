@@ -6,7 +6,7 @@ namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
 
 /**
  * Step 3: rewrites each class's already-placed constant declaration so its
@@ -33,7 +33,7 @@ final readonly class SemConvAliasRewriter implements SemConvAliasRewriterInterfa
     private const int PREG_MATCH_VALUE = 1;
 
     public function __construct(
-        private SemConvConfig $config = new SemConvConfig(),
+        private SemConvConfigInterface $config,
     ) {
     }
 

@@ -6,7 +6,7 @@ namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
 use RuntimeException;
 
 /**
@@ -18,7 +18,7 @@ use RuntimeException;
 final readonly class SemConvCollector implements SemConvCollectorInterface
 {
     public function __construct(
-        private SemConvConfig $config = new SemConvConfig(),
+        private SemConvConfigInterface $config,
     ) {
     }
 
