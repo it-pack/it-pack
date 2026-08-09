@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Contract\Domain;
 
+use Codeception\Test\Unit;
+use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
+use ItPack\RunIt\Behavior\Domain\StringIdentifierBehavior;
+use ItPack\RunIt\Behavior\Domain\TimestampedBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityOwnedInterface;
 use ItPack\RunIt\Contract\Domain\AttributedInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -13,13 +17,36 @@ use ItPack\RunIt\Contract\Domain\SequencedInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\TimestampedInterface;
 
-final class BaseContractTest extends \Codeception\Test\Unit
+final class BaseContractTest extends Unit
 {
+    public const array DATA = [
+        'name' => 'demo',
+        'count' => 3,
+        'enabled' => true,
+    ];
+
+    public const array IDENTIFIERS = [
+        'exec-1',
+        'exec-2',
+    ];
+
+    public const array ATTRIBUTES = [
+        'tenant.id' => 't-1',
+        'tags' => [
+            'a',
+            'b']
+    ];
+
+    public const int TIMESTAMP = 1_700_000_000;
+    public const int SEQUENCE = 7;
+
     public function testExecutionArtifactIsNormalizable(): void
     {
-        $implements = class_implements(ExecutionArtifactInterface::class) ? class_implements(ExecutionArtifactInterface::class) : [];
-
-        self::assertContains(NormalizableInterface::class, $implements);
+        verify(
+            class_implements(ExecutionArtifactInterface::class) ?: []
+        )->arrayContains(
+            NormalizableInterface::class,
+        );
     }
 
     public function testNormalizableReturnsPrimitiveScalars(): void
@@ -27,25 +54,32 @@ final class BaseContractTest extends \Codeception\Test\Unit
         $artifact = new class () implements ExecutionArtifactInterface {
             public function normalize(): array
             {
-                return ['name' => 'demo', 'count' => 3, 'enabled' => true];
+                return BaseContractTest::DATA;
             }
         };
 
-        $normalized = $artifact->normalize();
+        verify(
+            $artifact->normalize()
+        )->equals(
+            self::DATA
+        );
 
-        self::assertSame(['name' => 'demo', 'count' => 3, 'enabled' => true], $normalized);
-        self::assertSame($normalized, $artifact->normalize());
+        verify(
+            $artifact->normalize()
+        )->equals(
+            $artifact->normalize()
+        );
     }
 
     public function testStringIdentifierEqualityIsByValue(): void
     {
-        $first = $this->identifier('exec-1');
-        $second = $this->identifier('exec-1');
-        $third = $this->identifier('exec-2');
+        $first = $this->createIdentifier(self::IDENTIFIERS[0]);
+        $second = $this->createIdentifier(self::IDENTIFIERS[0]);
+        $third = $this->createIdentifier(self::IDENTIFIERS[1]);
 
-        self::assertTrue($first->equals($second));
-        self::assertFalse($first->equals($third));
-        self::assertSame('exec-1', $first->toString());
+        verify($first)->equals($second);
+        verify($first)->notEquals($third);
+        verify(self::IDENTIFIERS[0])->equals($first->toString());
     }
 
     public function testExecutionOwnedReportsExecution(): void
@@ -54,9 +88,12 @@ final class BaseContractTest extends \Codeception\Test\Unit
             public function executionId(): StringIdentifierInterface
             {
                 return new class () implements StringIdentifierInterface {
+
+                    use StringIdentifierBehavior;
+
                     public function toString(): string
                     {
-                        return 'exec-42';
+                        return BaseContractTest::IDENTIFIERS[0];
                     }
 
                     public function equals(StringIdentifierInterface $other): bool
@@ -67,7 +104,11 @@ final class BaseContractTest extends \Codeception\Test\Unit
             }
         };
 
-        self::assertSame('exec-42', $artifact->executionId()->toString());
+        verify(
+            self::IDENTIFIERS[0]
+        )->equals(
+            $artifact->executionId()->toString()
+        );
     }
 
     public function testActivityOwnedAllowsMissingActivity(): void
@@ -85,21 +126,36 @@ final class BaseContractTest extends \Codeception\Test\Unit
     public function testTimestampAndSequenceProjectPrimitives(): void
     {
         $timed = new class () implements TimestampedInterface {
+
+            use TimestampedBehavior;
+
             public function timestamp(): int
             {
-                return 1_700_000_000;
+                return BaseContractTest::TIMESTAMP;
             }
         };
 
         $sequenced = new class () implements SequencedInterface {
+
+            use SequencedBehavior;
+
             public function sequence(): int
             {
-                return 7;
+                return BaseContractTest::SEQUENCE;
             }
         };
 
-        self::assertSame(1_700_000_000, $timed->timestamp());
-        self::assertSame(7, $sequenced->sequence());
+        verify(
+            $timed->timestamp()
+        )->equals(
+            self::TIMESTAMP
+        );
+
+        verify(
+            $sequenced->sequence()
+        )->equals(
+            self::SEQUENCE
+        );
     }
 
     public function testAttributesReturnBoundedPrimitiveMap(): void
@@ -107,28 +163,31 @@ final class BaseContractTest extends \Codeception\Test\Unit
         $attributed = new class () implements AttributedInterface {
             public function attributes(): array
             {
-                return ['tenant.id' => 't-1', 'tags' => ['a', 'b']];
+                return BaseContractTest::ATTRIBUTES;
             }
         };
 
-        self::assertSame(['tenant.id' => 't-1', 'tags' => ['a', 'b']], $attributed->attributes());
+        verify($attributed->attributes())->equals(self::ATTRIBUTES);
     }
 
-    private function identifier(string $value): StringIdentifierInterface
+    private function createIdentifier(string $value): StringIdentifierInterface
     {
-        return new class ($value) implements StringIdentifierInterface {
-            public function __construct(private readonly string $value)
-            {
-            }
+        return new readonly class ($value) implements StringIdentifierInterface {
 
-            public function toString(): string
+            use StringIdentifierBehavior;
+
+            public function __construct(private string $value)
             {
-                return $this->value;
             }
 
             public function equals(StringIdentifierInterface $other): bool
             {
                 return $other->toString() === $this->value;
+            }
+
+            public function toString(): string
+            {
+                return $this->value;
             }
         };
     }
