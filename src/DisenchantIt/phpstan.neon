@@ -5,6 +5,11 @@ parameters:
         - src
         - tests
 
+    # Codeception auto-generates these support classes; they are not first-party
+    # code and fail strict analysis, so exclude them from the scan.
+    excludePaths:
+        - tests/Support/_generated
+
     # Extensions
     scanDirectories:
         - vendor
