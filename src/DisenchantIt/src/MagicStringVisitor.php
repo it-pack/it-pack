@@ -21,7 +21,7 @@ use PhpParser\NodeVisitorAbstract;
 final class MagicStringVisitor extends NodeVisitorAbstract implements MagicStringVisitorInterface
 {
     /** @var list<StringLiteral> */
-    public array $found = [];
+    private array $found = [];
     private ?string $currentClass = null;
     private ?string $currentMethod = null;
 
@@ -92,6 +92,14 @@ final class MagicStringVisitor extends NodeVisitorAbstract implements MagicStrin
         }
 
         return false;
+    }
+
+    /**
+     * @return list<StringLiteral>
+     */
+    public function getFound(): array
+    {
+        return $this->found;
     }
 
 }

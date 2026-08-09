@@ -14,7 +14,8 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
  */
 interface MagicStringVisitorInterface
 {
-    public array $found {
-        get;
-    }
+    /**
+     * @return list<StringLiteralInterface>
+     */
+    public function getFound(): array;
 }

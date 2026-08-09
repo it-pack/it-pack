@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
-use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
+use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 
 final class SameClassConstantStrategy implements ConstantPlacementStrategyInterface
 {
+    public function __construct(
+        private readonly ConstantPlacementFactoryInterface $placements,
+    ) {
+    }
+
     /**
      * @param list<StringLiteralInterface> $occurrences
      */
@@ -31,7 +36,7 @@ final class SameClassConstantStrategy implements ConstantPlacementStrategyInterf
 
         $value = $occurrences[0]->value;
 
-        return [new ConstantPlacement(
+        return [$this->placements->build(
             className: $classNames[0],
             constantName: Detector::suggestConstantName($value, $occurrences[0]->role),
             value: $value,

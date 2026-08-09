@@ -56,7 +56,7 @@ final readonly class Detector implements StringLiteralDetectorInterface
         $traverser->addVisitor($visitor);
         $traverser->traverse($ast);
 
-        return $visitor->found;
+        return $visitor->getFound();
     }
 
     /**

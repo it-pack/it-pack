@@ -15,8 +15,8 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 final readonly class AutoConstantPlacementStrategy implements ConstantPlacementStrategyInterface
 {
     public function __construct(
-        private SameClassConstantStrategy $sameClass = new SameClassConstantStrategy(),
-        private PerClassConstantStrategy  $perClass = new PerClassConstantStrategy(),
+        private readonly ConstantPlacementStrategyInterface $sameClass,
+        private readonly ConstantPlacementStrategyInterface $perClass,
     ) {
     }
 
