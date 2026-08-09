@@ -18,11 +18,10 @@ final class ExceptionMarkerContractTest extends Unit
      */
     private function extendsInterface(string $candidate): bool
     {
-        return in_array(
-            RunItExceptionInterface::class,
-            class_implements($candidate) ?: [],
-            true
-        );
+        $implemented = class_implements($candidate);
+
+        return $implemented !== false
+            && in_array(RunItExceptionInterface::class, $implemented, true);
     }
 
     public function testCategoryMarkersShareTheRootMarker(): void

@@ -26,6 +26,8 @@ interface TimestampedInterface extends Countable
     /**
      * Returns the Unix epoch seconds at which this artifact was produced, or
      * the point in time it refers to.
+     *
+     * @return int<0, max>
      */
     public function timestamp(): int;
 }

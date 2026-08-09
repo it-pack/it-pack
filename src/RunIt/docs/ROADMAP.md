@@ -347,26 +347,40 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M1.2 Identifiers
 
-- [ ] Define `ExecutionIdInterface`.
-- [ ] Implement `ExecutionId`.
-- [ ] Define `ActivityIdInterface`.
-- [ ] Implement `ActivityId`.
-- [ ] Define `ObservationIdInterface`.
-- [ ] Implement `ObservationId`.
-- [ ] Define `OccurrenceIdInterface`.
-- [ ] Implement `OccurrenceId`.
-- [ ] Define `SnapshotIdInterface`.
-- [ ] Implement `SnapshotId`.
-- [ ] Define `CorrelationIdInterface`.
-- [ ] Implement `CorrelationId`.
-- [ ] Define identifier validation rules.
-- [ ] Decide UUID, ULID, opaque string, or pluggable generation policy.
-- [ ] Add deterministic string conversion.
-- [ ] Add equality behavior.
-- [ ] Reject empty identifiers.
-- [ ] Reject identifiers exceeding the documented maximum length.
-- [ ] Add identifier unit tests.
-- [ ] Add property-based identifier validation tests.
+- [x] Define `ExecutionIdInterface`.
+- [x] Implement `ExecutionId`.
+- [x] Define `ActivityIdInterface`.
+- [x] Implement `ActivityId`.
+- [x] Define `ObservationIdInterface`.
+- [x] Implement `ObservationId`.
+- [x] Define `OccurrenceIdInterface`.
+- [x] Implement `OccurrenceId`.
+- [x] Define `SnapshotIdInterface`.
+- [x] Implement `SnapshotId`.
+- [x] Define `CorrelationIdInterface`.
+- [x] Implement `CorrelationId`.
+- [x] Define identifier validation rules.
+- [x] Decide UUID, ULID, opaque string, or pluggable generation policy.
+- [x] Add deterministic string conversion.
+- [x] Add equality behavior.
+- [x] Reject empty identifiers.
+- [x] Reject identifiers exceeding the documented maximum length.
+- [x] Add identifier unit tests.
+- [x] Add property-based identifier validation tests.
+
+### M1.2 status audit
+
+- All six identifier contracts and `final`, `readonly` value objects are implemented.
+- `StringIdentifierValidator` enforces non-empty, ≤128-byte, visible-ASCII-only values, anchored with `\z` so a trailing newline is rejected. The property-based test confirmed `$` would have leaked a newline, which the corrected anchor closes.
+- `InvalidIdentifierException` implements `InvalidValueExceptionInterface` and never echoes the rejected value.
+- `IdentifierGeneratorInterface` (port) and `StringIdentifierFactory` provide pluggable, reflection-free generation bound to one identifier type.
+- `runit:observationId` and `runit:correlationId` were added to `vocab/run-it.ttl`; ADR-017 records the opaque-string-with-pluggable-generation decision.
+- Unit, validator, factory, and deterministic property-based tests pass.
+- `composer test:unit` passes (97 tests, 3945 assertions).
+- `composer analyse` (PHPStan, level max) reports zero errors.
+- `composer architecture` (DepTrac) reports zero violations and zero uncovered classes; the `Common` and `Behavior` namespaces were added as explicit layers.
+- `composer cs:check` (PHP-CS-Fixer) passes; Codeception `_generated` files are excluded from the finder.
+- Supporting M1.1 fixes were required for a clean gate: the `Countable` projection typing on `SequencedBehavior`/`TimestampedBehavior` was corrected so ShipMonk dead-code analysis can bind them, the misspelled `ExecutionIdInterfacee` was renamed to `ExecutionIdInterface`, the speculative reflection-based `ImmutableStringIdentifierFactory` was removed, and an empty `ExecutionInterface` stub (extending a non-existent interface) was deleted.
 
 ## M1.3 Names and kinds
 
@@ -443,13 +457,17 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M1 acceptance gate
 
-- [ ] All primitives are immutable.
-- [ ] All concrete classes are final and interface-backed.
-- [ ] Normalization is deterministic.
-- [ ] Invalid values fail with typed RunIt exceptions.
-- [ ] Unit and property-based tests pass.
-- [ ] PHPStan and DepTrac pass.
-- [ ] Public primitive semantics are documented.
+- [x] All primitives are immutable.
+- [x] All concrete classes are final and interface-backed.
+- [x] Normalization is deterministic.
+- [x] Invalid values fail with typed RunIt exceptions.
+- [x] Unit and property-based tests pass.
+- [x] PHPStan and DepTrac pass.
+- [x] Public primitive semantics are documented.
+
+> M1 is complete through M1.2 (identifiers). M1.3 (names and kinds), M1.4
+> (time and sequencing), M1.5 (attributes), and M1.6 (throwable normalization)
+> remain to be implemented before the milestone is formally closed.
 
 ---
 

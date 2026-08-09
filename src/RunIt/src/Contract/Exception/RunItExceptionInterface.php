@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Exception;
 
-use Stringable;
 use Throwable;
 
 /**

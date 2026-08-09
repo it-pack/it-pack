@@ -26,6 +26,8 @@ interface SequencedInterface extends Countable
     /**
      * Returns the monotonic sequence number of this artifact within its
      * execution.
+     *
+     * @return int<0, max>
      */
     public function sequence(): int;
 }

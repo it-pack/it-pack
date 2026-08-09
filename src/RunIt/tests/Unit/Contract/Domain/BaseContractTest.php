@@ -5,17 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\Contract\Domain;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
 use ItPack\RunIt\Behavior\Domain\StringIdentifierBehavior;
-use ItPack\RunIt\Behavior\Domain\TimestampedBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityOwnedInterface;
 use ItPack\RunIt\Contract\Domain\AttributedInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\NormalizableInterface;
-use ItPack\RunIt\Contract\Domain\SequencedInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
-use ItPack\RunIt\Contract\Domain\TimestampedInterface;
+use Tests\Support\Fixture\FixedSequencedArtifact;
+use Tests\Support\Fixture\FixedTimestampedArtifact;
 
 final class BaseContractTest extends Unit
 {
@@ -34,7 +32,7 @@ final class BaseContractTest extends Unit
         'tenant.id' => 't-1',
         'tags' => [
             'a',
-            'b']
+            'b'],
     ];
 
     public const int TIMESTAMP = 1_700_000_000;
@@ -42,8 +40,12 @@ final class BaseContractTest extends Unit
 
     public function testExecutionArtifactIsNormalizable(): void
     {
+        $implemented = class_implements(ExecutionArtifactInterface::class);
+
+        self::assertNotFalse($implemented);
+
         verify(
-            class_implements(ExecutionArtifactInterface::class) ?: []
+            $implemented
         )->arrayContains(
             NormalizableInterface::class,
         );
@@ -88,7 +90,6 @@ final class BaseContractTest extends Unit
             public function executionId(): StringIdentifierInterface
             {
                 return new class () implements StringIdentifierInterface {
-
                     use StringIdentifierBehavior;
 
                     public function toString(): string
@@ -125,25 +126,8 @@ final class BaseContractTest extends Unit
 
     public function testTimestampAndSequenceProjectPrimitives(): void
     {
-        $timed = new class () implements TimestampedInterface {
-
-            use TimestampedBehavior;
-
-            public function timestamp(): int
-            {
-                return BaseContractTest::TIMESTAMP;
-            }
-        };
-
-        $sequenced = new class () implements SequencedInterface {
-
-            use SequencedBehavior;
-
-            public function sequence(): int
-            {
-                return BaseContractTest::SEQUENCE;
-            }
-        };
+        $timed = new FixedTimestampedArtifact(self::TIMESTAMP);
+        $sequenced = new FixedSequencedArtifact(self::SEQUENCE);
 
         verify(
             $timed->timestamp()
@@ -153,6 +137,18 @@ final class BaseContractTest extends Unit
 
         verify(
             $sequenced->sequence()
+        )->equals(
+            self::SEQUENCE
+        );
+
+        verify(
+            $timed->count()
+        )->equals(
+            self::TIMESTAMP
+        );
+
+        verify(
+            $sequenced->count()
         )->equals(
             self::SEQUENCE
         );
@@ -173,7 +169,6 @@ final class BaseContractTest extends Unit
     private function createIdentifier(string $value): StringIdentifierInterface
     {
         return new readonly class ($value) implements StringIdentifierInterface {
-
             use StringIdentifierBehavior;
 
             public function __construct(private string $value)

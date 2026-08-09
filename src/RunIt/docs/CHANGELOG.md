@@ -20,3 +20,23 @@ pre-release versions.
     `LifecycleExceptionInterface`, and `UnsupportedOperationExceptionInterface`.
   - Contract-level unit tests validate determinism, value equality, ownership,
     primitive projections, and marker hierarchies.
+
+## Unreleased — M1.2 identifiers
+
+- Implemented the shared domain identifier primitives (milestone M1.2):
+  - Six identifier contracts and immutable value objects: `ExecutionId`,
+    `ActivityId`, `ObservationId`, `OccurrenceId`, `SnapshotId`, and
+    `CorrelationId`, each `final`, `readonly`, and interface-backed.
+  - `StringIdentifierValidator` enforcing structural rules: non-empty, bounded
+    to 128 bytes, visible-ASCII only (no whitespace, control, or non-ASCII
+    bytes), anchored so a trailing newline is rejected.
+  - `InvalidIdentifierException` implementing `InvalidValueExceptionInterface`
+    without echoing the rejected value.
+  - `IdentifierGeneratorInterface` port and `StringIdentifierFactory` for
+    pluggable, reflection-free generation bound to a specific identifier type.
+  - Added vocabulary terms `runit:observationId` and `runit:correlationId`, and
+    ADR-017 recording the opaque-string-with-pluggable-generation decision.
+  - Added unit, validator, factory, and deterministic property-based tests.
+  - Renamed the misspelled `ExecutionIdInterfacee` to `ExecutionIdInterface` and
+    removed the speculative reflection-based `ImmutableStringIdentifierFactory`.
+
