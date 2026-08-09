@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\DisenchantIt;
+namespace ItPack\DisenchantIt\ValueObject;
+
+use ItPack\DisenchantIt\SemConv;
 
 /**
  * Step 2 + Step 3 of the SemConv pattern discussed with Tydal:
@@ -34,7 +36,7 @@ namespace ItPack\DisenchantIt;
  * concept the way backed-enum cases are — and interfaces can hold constants
  * without needing any methods.
  */
-final readonly class SemConvConfig
+final readonly class SemConvConfig implements SemConvConfigInterface
 {
     private const string DEFAULT_INTERFACE_NAME = 'SemConv';
     private const string DEFAULT_NAMESPACE = 'Generated';

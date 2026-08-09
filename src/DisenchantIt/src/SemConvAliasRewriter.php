@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 
 /**
  * Step 3: rewrites each class's already-placed constant declaration so its
@@ -18,7 +20,7 @@ use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
  * '...';` declaration line's right-hand side is rewritten to
  * `SemConv::PATH`.
  */
-final readonly class SemConvAliasRewriter
+final readonly class SemConvAliasRewriter implements SemConvAliasRewriterInterface
 {
     private const string LINEBREAK = SemConv::LINEBREAK;
     private const string CONSTANT_SEPARATOR = SemConv::CONSTANT_SEPARATOR;

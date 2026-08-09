@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
+use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
 
@@ -25,15 +26,15 @@ use PhpParser\ParserFactory;
  *
  * Requires: nikic/php-parser ^5.0
  */
-final class Detector
+final readonly class Detector implements StringLiteralDetectorInterface
 {
     public function __construct(
-        private readonly RoleClassifier $classifier = new RoleClassifier(),
+        private RoleClassifier $classifier = new RoleClassifier(),
     ) {
     }
 
     /**
-     * @return list<StringLiteral> every string literal found, unfiltered —
+     * @return list<StringLiteralInterface> every string literal found, unfiltered —
      *         classification is attached, filtering is the caller's job.
      */
     public function scanSource(string $code): array
@@ -64,14 +65,14 @@ final class Detector
      * anything that doesn't look identifier-shaped. What's left is the
      * "good candidate" bucket worth turning into a constant.
      *
-     * @param list<StringLiteral> $literals
-     * @return list<StringLiteral>
+     * @param list<StringLiteralInterface> $literals
+     * @return list<StringLiteralInterface>
      */
     public function filterCandidates(array $literals): array
     {
         return array_values(array_filter(
             $literals,
-            fn (StringLiteral $lit): bool =>
+            fn (StringLiteralInterface $lit): bool =>
                 // A backed enum case's value (`case PHP = 'php';`) IS
                 // already the constant — PHP enums forbid a const and a
                 // case sharing a name in the same enum, so promoting one
@@ -88,8 +89,8 @@ final class Detector
      * "this is secretly an enum member" signal) is visible before deciding
      * what to name/generate.
      *
-     * @param list<StringLiteral> $candidates
-     * @return array<string, list<StringLiteral>>
+     * @param list<StringLiteralInterface> $candidates
+     * @return array<string, list<StringLiteralInterface>>
      */
     public function groupByValue(array $candidates): array
     {

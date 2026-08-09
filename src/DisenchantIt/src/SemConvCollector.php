@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 use RuntimeException;
 
 /**
@@ -13,7 +15,7 @@ use RuntimeException;
  * this only ever produces ONE new file's content; SemConvAliasRewriter
  * (below) is what touches the original classes.
  */
-final readonly class SemConvCollector
+final readonly class SemConvCollector implements SemConvCollectorInterface
 {
     public function __construct(
         private SemConvConfig $config = new SemConvConfig(),

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
 use PhpParser\Node\Scalar\String_;
@@ -14,7 +15,7 @@ use PhpParser\Node\Scalar\String_;
  * No string ever needs to be re-parsed for delimiters; the parser already
  * told us exactly where it starts and ends.
  */
-final class RoleClassifier
+final class RoleClassifier implements RoleClassifierInterface
 {
     private const array NOISE_FUNCTIONS = ['sprintf', 'printf', 'vsprintf', 'trigger_error'];
 
@@ -91,8 +92,8 @@ final class RoleClassifier
     }
 
     /**
-     * Shape-based pre-filter, independent of parent role: does this look
-     * like an identifier/token rather than prose? Cheap early-out before
+     * Shape-based pre-filter, independent of a parent role: does this look
+     * like an identifier/token rather than prose? Inexpensive early-out before
      * even considering the parent node.
      */
     public function looksIdentifierLike(string $value): bool

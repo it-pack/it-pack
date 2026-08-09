@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\Contract\MagicStringVisitorInterface;
 use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use PhpParser\Node;
 use PhpParser\Node\Scalar\String_;
@@ -17,15 +18,10 @@ use PhpParser\NodeVisitorAbstract;
  * policy separate, same as ConfigureIt keeps loader-selection separate from
  * document-construction).
  */
-final class MagicStringVisitor extends NodeVisitorAbstract
+final class MagicStringVisitor extends NodeVisitorAbstract implements MagicStringVisitorInterface
 {
     /** @var list<StringLiteral> */
-    public array $found = [] {
-        get {
-            return $this->found;
-        }
-    }
-
+    public array $found = [];
     private ?string $currentClass = null;
     private ?string $currentMethod = null;
 
