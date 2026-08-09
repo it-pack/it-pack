@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\MagicStringVisitorInterface;
+use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use PhpParser\Node;
 use PhpParser\Node\Scalar\String_;
@@ -25,7 +26,7 @@ final class MagicStringVisitor extends NodeVisitorAbstract implements MagicStrin
     private ?string $currentClass = null;
     private ?string $currentMethod = null;
 
-    public function __construct(private readonly RoleClassifier $classifier)
+    public function __construct(private readonly RoleClassifierInterface $classifier)
     {
     }
 

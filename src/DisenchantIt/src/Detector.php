@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
+use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
+use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
-use PhpParser\NodeTraverser;
-use PhpParser\ParserFactory;
 
 /**
  * Sketch / next-PoC-step for DisenchantIt's detection half.
@@ -29,7 +31,10 @@ use PhpParser\ParserFactory;
 final readonly class Detector implements StringLiteralDetectorInterface
 {
     public function __construct(
-        private RoleClassifier $classifier = new RoleClassifier(),
+        private readonly RoleClassifierInterface $classifier,
+        private readonly ParserFactoryInterface $parsers,
+        private readonly TraverserFactoryInterface $traversers,
+        private readonly MagicStringVisitorFactoryInterface $visitorFactory,
     ) {
     }
 
@@ -39,20 +44,14 @@ final readonly class Detector implements StringLiteralDetectorInterface
      */
     public function scanSource(string $code): array
     {
-        $parserFactory = new ParserFactory();
-        $parser = $parserFactory->createForNewestSupportedVersion();
-
+        $parser = $this->parsers->build();
         $ast = $parser->parse($code);
         if ($ast === null) {
             return [];
         }
 
-        $traverser = new NodeTraverser();
-        // NodeConnectingVisitor populates getAttribute('parent') for every
-        // node, which is what RoleClassifier relies on above.
-        $traverser->addVisitor(new \PhpParser\NodeVisitor\ParentConnectingVisitor());
-
-        $visitor = new MagicStringVisitor($this->classifier);
+        $traverser = $this->traversers->build();
+        $visitor = $this->visitorFactory->build($this->classifier);
         $traverser->addVisitor($visitor);
         $traverser->traverse($ast);
 

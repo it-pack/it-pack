@@ -12,7 +12,7 @@ use ItPack\DeriveIt\Resolver\RecursiveInterfaceResolver;
 use ItPack\DeriveIt\Resolver\RecursiveTraitResolver;
 use ReflectionClass;
 
-class ClassReflection extends ReflectionClass
+final class ClassReflection extends ReflectionClass
 {
     private static ?RecursiveClassResolverInterface $classResolver = null;
     private static ?RecursiveInterfaceResolverInterface $interfaceResolver = null;
