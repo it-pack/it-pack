@@ -12,11 +12,11 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
  * selection" logic that's safe to automate. Anything that would require
  * inventing a new shared class stays out of scope for v1.
  */
-final class AutoConstantPlacementStrategy implements ConstantPlacementStrategyInterface
+final readonly class AutoConstantPlacementStrategy implements ConstantPlacementStrategyInterface
 {
     public function __construct(
-        private readonly SameClassConstantStrategy $sameClass = new SameClassConstantStrategy(),
-        private readonly PerClassConstantStrategy $perClass = new PerClassConstantStrategy(),
+        private SameClassConstantStrategy $sameClass = new SameClassConstantStrategy(),
+        private PerClassConstantStrategy  $perClass = new PerClassConstantStrategy(),
     ) {
     }
 
