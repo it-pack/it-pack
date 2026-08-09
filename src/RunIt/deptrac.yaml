@@ -2,6 +2,10 @@ deptrac:
   paths:
     - ./src
   layers:
+    - name: Common
+      collectors:
+        - type: directory
+          value: src/Common/.*
     - name: Contract
       collectors:
         - type: directory
@@ -10,6 +14,8 @@ deptrac:
       collectors:
         - type: directory
           value: src/Domain/.*
+        - type: directory
+          value: src/Behavior/Domain/.*
     - name: Application
       collectors:
         - type: directory
@@ -23,16 +29,22 @@ deptrac:
         - type: directory
           value: src/Adapter/.*
   ruleset:
-    Contract: ~
+    Common: ~
+    Contract:
+      - Common
     Domain:
+      - Common
       - Contract
     Application:
+      - Common
       - Contract
       - Domain
     SDK:
+      - Common
       - Contract
       - Domain
       - Application
     Adapter:
+      - Common
       - Contract
       - Domain
