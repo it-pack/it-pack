@@ -39,9 +39,7 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 final readonly class StringIdentifierFactory implements StringIdentifierFactoryInterface
 {
     /**
-     * @param Closure(string): TIdentifier $constructor named constructor of the
-     *                                                  identifier type this
-     *                                                  factory mints
+     * @param Closure(string): TIdentifier $constructor named constructor of the identifier type this factory mints
      */
     public function __construct(
         private Closure $constructor,
