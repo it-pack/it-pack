@@ -33,9 +33,11 @@ return static function (Config $config): void {
         ->component('Core')->definedBy('ItPack\DisenchantIt\Core\*')
         ->component('Adapter')->definedBy('ItPack\DisenchantIt\Adapter\*')
         ->component('ValueObject')->definedBy('ItPack\DisenchantIt\ValueObject\*')
+        ->component('Factory')->definedBy('ItPack\DisenchantIt\Factory\*')
         ->where('Contract')->mayDependOnComponents('ValueObject')
         ->where('Core')->mayDependOnComponents('Contract', 'ValueObject')
-        ->where('Adapter')->mayDependOnComponents('Contract', 'ValueObject')
+        ->where('Adapter')->mayDependOnComponents('Contract', 'ValueObject', 'Adapter')
+        ->where('Factory')->mayDependOnComponents('Contract', 'ValueObject', 'Factory')
         ->where('ValueObject')->mayDependOnComponents('ValueObject');
 
     $layeredRules = $architecture->rules();
