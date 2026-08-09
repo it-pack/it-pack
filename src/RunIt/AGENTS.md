@@ -316,8 +316,30 @@ declare(strict_types=1);
 - Add PHPDoc generics where native PHP cannot express a relationship.
 - Do not use PHPDoc to contradict native types.
 - Use dedicated value objects for identifiers, names, units, and validated concepts.
+- Use `null` for optional values.
+- Use property hooks for value objects and back them with respective contracts.
 - Prefer extensible validated strings over closed enums for user-defined names and kinds.
 - Use enums for genuinely closed internal state sets.
+- Ensure interfaces only depend on interfaces/traits and no concrete classes.
+- Use `never` for exceptions that should never be thrown.
+- Use `object` for untyped objects.
+- Use `array` for untyped arrays.
+- Use `string` for untyped strings.
+- Use `int` for untyped integers.
+- Use `float` for untyped floats.
+- Use `bool` for untyped booleans.
+- Use `resource` for untyped resources.
+- Use `callable` for untyped callables.
+- Use Stringable for untyped stringable objects.
+- Use `iterable` for untyped iterable objects.
+- Use `Traversable` for untyped traversable objects.
+- Use `Generator` for untyped generator objects.
+- Use `Iterator` for untyped iterator objects.
+- Use `IteratorAggregate` for untyped iterator aggregates.
+- Use `Countable` for untyped countable objects.
+- Use `ArrayAccess` for untyped array-like objects.
+- Use `JsonSerializable` for untyped JSON serializable objects.
+- Use `__serialize` and `__deserialize` over the deprecated `Serializable` for untyped serializable objects.
 
 ### PHP 8.4 features
 
