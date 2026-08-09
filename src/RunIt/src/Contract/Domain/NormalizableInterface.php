@@ -9,7 +9,7 @@ namespace ItPack\RunIt\Contract\Domain;
  * normalization.
  *
  * Normalization is the RunIt-native projection of an immutable value into a
- * plain, recursively-primitive array. It must:
+ * plain, recursively primitive array. It must:
  *
  *  - always return the same output for the same input object (determinism);
  *  - never include secret or restricted values unless an explicit policy allows
@@ -25,7 +25,7 @@ namespace ItPack\RunIt\Contract\Domain;
 interface NormalizableInterface
 {
     /**
-     * Returns a deterministic, recursively-primitive projection of this value.
+     * Returns a deterministic, recursively primitive projection of this value.
      *
      * Values are limited to scalars, null, and lists/maps of scalar values.
      *
