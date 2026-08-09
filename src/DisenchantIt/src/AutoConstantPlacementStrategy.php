@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+
 /**
  * Picks SameClass vs PerClass automatically based on whether a value's
  * occurrences span one class or several — this is the only "strategy
@@ -18,10 +20,13 @@ final class AutoConstantPlacementStrategy implements ConstantPlacementStrategyIn
     ) {
     }
 
+    /**
+     * @param list<StringLiteralInterface> $occurrences
+     */
     public function decide(array $occurrences): array
     {
         $classCount = count(array_unique(array_map(
-            static fn (StringLiteral $lit): string => $lit->className,
+            static fn (StringLiteralInterface $lit): string => $lit->className,
             $occurrences,
         )));
 

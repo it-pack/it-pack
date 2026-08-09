@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+
 /**
  * Line-based implementation of RewriterInterface: no AST reprinting, no
  * nette/php-generator Printer, no full-file regeneration. Every line NOT
@@ -30,7 +32,7 @@ namespace ItPack\DisenchantIt;
 final class LineBasedRewriter implements RewriterInterface
 {
     /**
-     * @param list<ConstantPlacement> $placements
+     * @param list<ConstantPlacementInterface> $placements
      */
     public function rewrite(string $code, array $placements): string
     {
@@ -83,7 +85,7 @@ final class LineBasedRewriter implements RewriterInterface
      * brace so we don't compute stale offsets across multiple passes.
      *
      * @param list<string> $lines
-     * @param list<ConstantPlacement> $placements
+     * @param list<ConstantPlacementInterface> $placements
      * @return array<int, list<string>> line-index => lines to insert after it
      */
     private function planInsertions(array $lines, array $placements): array
@@ -171,6 +173,9 @@ final class LineBasedRewriter implements RewriterInterface
      * next line containing a bare `{`) rather than re-parsing with an AST —
      * this only needs to find ONE brace per class, and the detector has
      * already told us the class exists in this file.
+     */
+    /**
+     * @param list<string> $lines
      */
     private function findClassOpeningBraceLine(array $lines, string $className): ?int
     {

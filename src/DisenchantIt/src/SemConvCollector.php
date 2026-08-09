@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
 use RuntimeException;
 
 /**
@@ -35,6 +36,7 @@ final readonly class SemConvCollector
      *        run's placements — silently discarding every constant a prior
      *        run had already collected. Found and fixed via an actual
      *        two-runs-in-a-row test, not by inspection.
+     * @param list<ConstantPlacementInterface> $placements
      */
     public function collect(array $placements, ?string $existingSource = null): string
     {
@@ -55,7 +57,7 @@ final readonly class SemConvCollector
         if ($collisions !== []) {
             throw new RuntimeException(
                 sprintf(
-                    "SemConv collection found name collisions with differing values for: %s. " .
+                    'SemConv collection found name collisions with differing values for: %s. ' .
                     'These constant names are used for different values in different classes — ' .
                     'resolve the naming conflict manually before generating a shared SemConv file ' .
                     '(rename one of them, or accept them as genuinely separate concepts and exclude ' .
@@ -121,7 +123,7 @@ final readonly class SemConvCollector
             ' *',
             ' * This interface intentionally holds ONLY constants, no methods — there is no',
             ' * business logic here, only a shared vocabulary. Classes typically reference',
-            " * these indirectly, through their OWN local constant aliasing one of these",
+            ' * these indirectly, through their OWN local constant aliasing one of these',
             ' * (see SemConvAliasRewriter) — existing `self::FOO` call sites in those',
             ' * classes are unaffected by this file existing.',
             ' *',

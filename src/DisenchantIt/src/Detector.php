@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
 

@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
+use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+
 final class SameClassConstantStrategy implements ConstantPlacementStrategyInterface
 {
+    /**
+     * @param list<StringLiteralInterface> $occurrences
+     */
     public function decide(array $occurrences): array
     {
         if ($occurrences === []) {
@@ -13,7 +19,7 @@ final class SameClassConstantStrategy implements ConstantPlacementStrategyInterf
         }
 
         $classNames = array_unique(array_map(
-            static fn (StringLiteral $lit): string => $lit->className,
+            static fn (StringLiteralInterface $lit): string => $lit->className,
             $occurrences,
         ));
 

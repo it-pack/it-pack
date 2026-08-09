@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+
 /**
  * Step 3: rewrites each class's already-placed constant declaration so its
  * value aliases the SemConv interface's constant instead of the raw literal.
@@ -35,7 +37,7 @@ final readonly class SemConvAliasRewriter
 
     /**
      * @param string $code
-     * @param array $placements
+     * @param list<ConstantPlacementInterface> $placements
      * @return string
      */
     public function rewrite(string $code, array $placements): string
@@ -83,7 +85,7 @@ final readonly class SemConvAliasRewriter
     {
         $useStatement = sprintf(
             self::USE_STATEMENT_FORMAT,
-            $this->config->fullyQualifiedName()
+            $this->config->fullyQualifiedName(),
         );
 
         if (str_contains($code, $useStatement)) {

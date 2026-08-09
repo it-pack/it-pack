@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
+use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+
 final class PerClassConstantStrategy implements ConstantPlacementStrategyInterface
 {
+    /**
+     * @param list<StringLiteralInterface> $occurrences
+     */
     public function decide(array $occurrences): array
     {
         if ($occurrences === []) {

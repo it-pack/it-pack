@@ -16,7 +16,6 @@ interface StringLiteralInterface
 
     public int $line { get; }
 
-    /** @var non-empty-string */
     public string $role { get; }
 
     public string $className { get; }

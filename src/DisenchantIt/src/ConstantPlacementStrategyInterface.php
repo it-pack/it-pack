@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+
 /**
  * Decides WHERE a detected magic-string candidate's replacement constant
  * should live, given all the sites it was found at. Deliberately separate
@@ -25,9 +28,9 @@ namespace ItPack\DisenchantIt;
 interface ConstantPlacementStrategyInterface
 {
     /**
-     * @param list<StringLiteral> $occurrences all occurrences of one literal
+     * @param list<StringLiteralInterface> $occurrences all occurrences of one literal
      *        value, across however many files/classes.
-     * @return list<ConstantPlacement> one or more placements — SameClass
+     * @return list<ConstantPlacementInterface> one or more placements — SameClass
      *         produces exactly one, PerClass produces one per distinct class.
      */
     public function decide(array $occurrences): array;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+
 /**
  * Port for "apply a set of ConstantPlacements to one file's source text".
  *
@@ -26,7 +28,7 @@ namespace ItPack\DisenchantIt;
 interface RewriterInterface
 {
     /**
-     * @param list<ConstantPlacement> $placements all placements that apply
+     * @param list<ConstantPlacementInterface> $placements all placements that apply
      *        to this file. Must not mutate $code in a way that invalidates
      *        the line numbers recorded on OTHER placements' occurrences —
      *        implementations should process placements in a way that's safe

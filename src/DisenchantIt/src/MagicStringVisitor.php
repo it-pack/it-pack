@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use PhpParser\Node;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\NodeVisitorAbstract;
@@ -28,7 +29,11 @@ final class MagicStringVisitor extends NodeVisitorAbstract
     {
     }
 
-    public function enterNode(Node $node): void
+    /**
+     * In this visitor `enterNode` never redirects or mutates the tree, so it
+     * only ever returns null (compatible with the parent's nullable union).
+     */
+    public function enterNode(Node $node): null
     {
         if ($node instanceof Node\Stmt\ClassLike && $node->name !== null) {
             $this->currentClass = $node->name->toString();
@@ -44,11 +49,12 @@ final class MagicStringVisitor extends NodeVisitorAbstract
 
         if ($node instanceof String_) {
             if ($this->isInsideClassConstDeclaration($node)) {
-                return; // this literal IS a constant's value — not a usage site
+                return null; // this literal IS a constant's value — not a usage site
             }
 
             $parent = $node->getAttribute('parent');
-            $role = $this->classifier->classify($node, $parent);
+            $typedParent = $parent instanceof Node ? $parent : null;
+            $role = $this->classifier->classify($node, $typedParent);
 
             $this->found[] = new StringLiteral(
                 value: $node->value,
@@ -58,6 +64,8 @@ final class MagicStringVisitor extends NodeVisitorAbstract
                 methodName: $this->currentMethod ?? '(unknown)',
             );
         }
+
+        return null;
     }
 
     /**
