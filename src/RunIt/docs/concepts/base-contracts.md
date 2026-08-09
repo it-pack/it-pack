@@ -24,9 +24,19 @@ arbitrary object serialization. It is:
 ### StringIdentifierInterface
 
 Identifiers are stable opaque strings. `StringIdentifierInterface` guarantees a
-canonical `toString()` and value-based `equals()`. Concrete identifiers
-(execution, activity, observation, occurrence, snapshot, correlation) extend
-this base and are introduced in later milestones.
+canonical `toString()` and value-based `equals()`. Concrete identifiers extend
+this base and are implemented in milestone M1.2 (see
+[identifiers](identifiers.md)):
+
+- `ExecutionIdInterface` / `ExecutionId`
+- `ActivityIdInterface` / `ActivityId`
+- `ObservationIdInterface` / `ObservationId`
+- `OccurrenceIdInterface` / `OccurrenceId`
+- `SnapshotIdInterface` / `SnapshotId`
+- `CorrelationIdInterface` / `CorrelationId`
+
+All six value objects are `final`, `readonly`, validate their value on
+construction through `StringIdentifierValidator`, and compare by type and value.
 
 ### ExecutionArtifactInterface
 
