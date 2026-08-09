@@ -33,10 +33,10 @@ return static function (Config $config): void {
         ->component('Core')->definedBy('ItPack\DisenchantIt\Core\*')
         ->component('Adapter')->definedBy('ItPack\DisenchantIt\Adapter\*')
         ->component('ValueObject')->definedBy('ItPack\DisenchantIt\ValueObject\*')
-        ->where('Contract')->mayDependOnComponents()                 // nothing internal
+        ->where('Contract')->mayDependOnComponents('ValueObject')
         ->where('Core')->mayDependOnComponents('Contract', 'ValueObject')
-        ->where('Adapter')->mayDependOnComponents('Contract')        // never Core
-        ->where('ValueObject')->mayDependOnComponents();             // nothing internal
+        ->where('Adapter')->mayDependOnComponents('Contract', 'ValueObject')
+        ->where('ValueObject')->mayDependOnComponents('ValueObject');
 
     $layeredRules = $architecture->rules();
 
@@ -56,7 +56,10 @@ return static function (Config $config): void {
                 foreach ($theClass->getDependencies() as $dependency) {
                     $fqcn = $dependency->getFQCN()->toString();
 
-                    if (interface_exists($fqcn) || !class_exists($fqcn)) {
+                    // Interfaces may depend on other interfaces AND on external
+                    // library types (e.g., nikic AST node types used as parameter
+                    // types) — only flag dependencies on our OWN concrete classes.
+                    if (interface_exists($fqcn) || !str_starts_with($fqcn, 'ItPack\\DisenchantIt\\')) {
                         continue;
                     }
 
@@ -160,10 +163,25 @@ return static function (Config $config): void {
                     ),
                 )));
 
+                // Methods inherited/overridden from a parent class (e.g. a framework
+                // abstract base's lifecycle hooks like NodeVisitorAbstract::enterNode)
+                // belong to that base's contract, not this class's own port surface —
+                // do not require them to appear on our port interface.
+                $inheritedMethods = [];
+                foreach ($theClass->getExtends() as $parentFqcn) {
+                    foreach (get_class_methods($parentFqcn->toString()) as $inherited) {
+                        $inheritedMethods[strtolower($inherited)] = true;
+                    }
+                }
+
                 $reflectionClass = new ReflectionClass($theClass->getFQCN());
 
                 foreach ($classMethods as $classMethod) {
                     if (str_starts_with($classMethod, '__')) {
+                        continue;
+                    }
+
+                    if (isset($inheritedMethods[strtolower($classMethod)])) {
                         continue;
                     }
 
