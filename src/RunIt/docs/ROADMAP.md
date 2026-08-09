@@ -384,24 +384,47 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M1.3 Names and kinds
 
-- [ ] Define `ExecutionNameInterface`.
-- [ ] Implement `ExecutionName`.
-- [ ] Define `ExecutionKindInterface`.
-- [ ] Implement `ExecutionKind`.
-- [ ] Define `ActivityNameInterface`.
-- [ ] Implement `ActivityName`.
-- [ ] Define `ActivityKindInterface`.
-- [ ] Implement `ActivityKind`.
-- [ ] Define `MeasurementNameInterface`.
-- [ ] Implement `MeasurementName`.
-- [ ] Define `OccurrenceTypeInterface`.
-- [ ] Implement `OccurrenceType`.
-- [ ] Define `SnapshotTypeInterface`.
-- [ ] Implement `SnapshotType`.
-- [ ] Document allowed character sets.
-- [ ] Document maximum lengths.
-- [ ] Add tests for valid custom names and kinds.
-- [ ] Add tests proving kinds remain extensible.
+- [x] Define `ExecutionNameInterface`.
+- [x] Implement `ExecutionName`.
+- [x] Define `ExecutionKindInterface`.
+- [x] Implement `ExecutionKind`.
+- [x] Define `ActivityNameInterface`.
+- [x] Implement `ActivityName`.
+- [x] Define `ActivityKindInterface`.
+- [x] Implement `ActivityKind`.
+- [x] Define `MeasurementNameInterface`.
+- [x] Implement `MeasurementName`.
+- [x] Define `OccurrenceTypeInterface`.
+- [x] Implement `OccurrenceType`.
+- [x] Define `SnapshotTypeInterface`.
+- [x] Implement `SnapshotType`.
+- [x] Document allowed character sets.
+- [x] Document maximum lengths.
+- [x] Add tests for valid custom names and kinds.
+- [x] Add tests proving kinds remain extensible.
+
+### M1.3 status audit
+
+- All seven name/kind value objects are `final`, `readonly`, and interface-backed.
+- `StringValueValidator` enforces non-empty, ≤128-byte, letters/digits/`.`/`-`/`_`
+  only; values are stored verbatim. `OccurrenceType` adds a stricter lowercase,
+  dot-separated, versioned format and exposes `version()`.
+- `InvalidStringValueException` implements `InvalidValueExceptionInterface` and
+  never echoes the rejected value.
+- `StringProviderInterface` / `StringValueInterface` and the shared
+  `ValidatedStringValueBehavior` / `StringProviderBehavior` traits are reused by
+  every value object, so the domain stays DRY.
+- `InvalidStringValueException` was moved to `Contract/Exception` and
+  `StringValueValidator` / `StringProviderBehavior` to `Behavior/Domain` so the
+  `Behavior` layer (which depends only on `Contract`) does not cross into
+  `Domain`.
+- Unit, occurrence-type, and validator tests pass.
+- `composer test:unit` passes (192 tests).
+- `composer analyse` (PHPStan, level max) and `composer architecture` (DepTrac,
+  zero violations, zero uncovered) pass.
+- `composer cs:check` (PHP-CS-Fixer) passes.
+- ADR-018 records the extensible-validated-string decision; the `runit`
+  vocabulary already covered all seven concepts.
 
 ## M1.4 Time and sequencing
 

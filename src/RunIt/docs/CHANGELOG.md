@@ -40,3 +40,21 @@ pre-release versions.
   - Renamed the misspelled `ExecutionIdInterfacee` to `ExecutionIdInterface` and
     removed the speculative reflection-based `ImmutableStringIdentifierFactory`.
 
+## Unreleased — M1.3 names and kinds
+
+- Implemented the shared domain name and kind primitives (milestone M1.3):
+  - Seven `final`, `readonly` value objects: `ExecutionName`, `ExecutionKind`,
+    `ActivityName`, `ActivityKind`, `MeasurementName`, `OccurrenceType`, and
+    `SnapshotType`, each interface-backed.
+  - Shared `StringProviderInterface` / `StringValueInterface` contracts, the
+    `StringValueValidator` (non-empty, ≤128 bytes, letters/digits/`.`/`-`/`_`
+    only), `InvalidStringValueException`, and the `ValidatedStringValueBehavior`
+    / `StringProviderBehavior` traits.
+  - `OccurrenceType` enforces a stricter lowercase, dot-separated, versioned
+    format (e.g. `itpack.configuration.loaded.v1`) and exposes `version()`.
+  - ADR-018 records the decision to use extensible validated strings rather
+    than closed enums; occurrence types stay low-cardinality and independent of
+    PHP class names.
+  - Added unit tests for every value object, occurrence-type format and version
+    extraction, and validator boundaries.
+

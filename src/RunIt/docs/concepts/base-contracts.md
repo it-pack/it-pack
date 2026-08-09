@@ -21,6 +21,16 @@ arbitrary object serialization. It is:
 - bounded: no secret materialization, no unbounded payloads, no arbitrary
   objects.
 
+### StringProviderInterface and StringValueInterface
+
+Names, kinds, measurement names, occurrence types, and snapshot types all
+project to a single canonical string through `StringProviderInterface` and add
+type-aware `equals()` through `StringValueInterface`. They are validated string
+values, not identities: see [names and kinds](names-and-kinds.md). The shared
+primitives `StringValueValidator`, `InvalidStringValueException`, and the
+`ValidatedStringValueBehavior` / `StringProviderBehavior` traits underpin every
+concrete value object.
+
 ### StringIdentifierInterface
 
 Identifiers are stable opaque strings. `StringIdentifierInterface` guarantees a
