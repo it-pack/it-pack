@@ -7,7 +7,10 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__ . '/src',
         __DIR__ . '/tests',
     ])
-    ->notPath('bootstrap.php');
+    ->notPath('bootstrap.php')
+    ->notPath('_generated')
+    ->notPath('tests/Support/_generated')
+    ->notPath('tests/_output');
 
 $config = new PhpCsFixer\Config();
 
