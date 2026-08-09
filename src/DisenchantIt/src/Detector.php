@@ -55,7 +55,7 @@ final class Detector
         $traverser->addVisitor($visitor);
         $traverser->traverse($ast);
 
-        return $visitor->getFound();
+        return $visitor->found;
     }
 
     /**

@@ -16,7 +16,7 @@ use PhpParser\Node\Scalar\String_;
  */
 final class RoleClassifier
 {
-    private const NOISE_FUNCTIONS = ['sprintf', 'printf', 'vsprintf', 'trigger_error'];
+    private const array NOISE_FUNCTIONS = ['sprintf', 'printf', 'vsprintf', 'trigger_error'];
 
     public function classify(String_ $node, ?Node $parent): string
     {

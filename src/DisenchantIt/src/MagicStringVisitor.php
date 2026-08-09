@@ -20,7 +20,11 @@ use PhpParser\NodeVisitorAbstract;
 final class MagicStringVisitor extends NodeVisitorAbstract
 {
     /** @var list<StringLiteral> */
-    private array $found = [];
+    public array $found = [] {
+        get {
+            return $this->found;
+        }
+    }
 
     private ?string $currentClass = null;
     private ?string $currentMethod = null;
@@ -70,10 +74,10 @@ final class MagicStringVisitor extends NodeVisitorAbstract
 
     /**
      * Walks up from a String_ node to see whether it sits inside a
-     * `Node\Stmt\ClassConst` — i.e. IS a constant's declared value, such as
+     * `Node\Stmt\ClassConst` — i.e., IS a constant's declared value, such as
      * `private const string FOO = 'bar';`. Detecting these as fresh
      * candidates is what made earlier runs of disenchant.php re-wrap their
-     * own generated constants on every subsequent pass, producing duplicate
+     * own generated constants on every later pass, producing duplicate
      * declarations and, worse, self-referential values. A constant
      * declaration's own value must never be treated as a usage site.
      */
@@ -94,9 +98,4 @@ final class MagicStringVisitor extends NodeVisitorAbstract
         return false;
     }
 
-    /** @return list<StringLiteral> */
-    public function getFound(): array
-    {
-        return $this->found;
-    }
 }

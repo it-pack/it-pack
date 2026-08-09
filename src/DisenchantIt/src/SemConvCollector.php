@@ -21,14 +21,11 @@ final readonly class SemConvCollector
     }
 
     /**
-     * @param list<ConstantPlacement> $placements across the WHOLE scan, not
-     *        just one file — this is why it's a separate pass after all
-     *        files' Step-1 placements are known, not something folded into
-     *        per-file rewriting.
+     * @param list<ConstantPlacementInterface> $placements
      * @param string|null $existingSource the CURRENT content of the SemConv
      *        file, if one already exists from a prior run — passed in
      *        explicitly (rather than this class reading the filesystem
-     *        itself) to keep it a pure string-in/string-out transform, same
+     *        itself) to keep it a pure string-in/string-out transform, the same
      *        discipline as the rest of DisenchantIt. Without this, a second
      *        run whose Step 1 finds fewer NEW candidates than a first run
      *        found (expected, since idempotent Step 1 finds nothing left to
@@ -36,7 +33,7 @@ final readonly class SemConvCollector
      *        run's placements — silently discarding every constant a prior
      *        run had already collected. Found and fixed via an actual
      *        two-runs-in-a-row test, not by inspection.
-     * @param list<ConstantPlacementInterface> $placements
+     * @return string
      */
     public function collect(array $placements, ?string $existingSource = null): string
     {
