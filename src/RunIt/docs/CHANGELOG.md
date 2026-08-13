@@ -57,4 +57,18 @@ pre-release versions.
     PHP class names.
   - Added unit tests for every value object, occurrence-type format and version
     extraction, and validator boundaries.
+## Unreleased — M1.4 time and sequencing
 
+- Implemented the time and sequencing primitives (milestone M1.4):
+  - Immutable `Instant` (Unix epoch seconds, no timezone) and `Duration`
+    (integer nanoseconds, never negative) value objects in `Domain/Shared`.
+  - Immutable `ArtifactSequence` and the `SequenceAllocatorInterface` port, with
+    `InMemorySequenceAllocator` (per-execution monotonic counter, first
+    allocation returns zero).
+  - `MonotonicClockInterface` port keeping wall-clock seconds and monotonic
+    nanoseconds separate, with `SystemMonotonicClock` (`time()` + `hrtime()`)
+    and a `DeterministicMonotonicClock` test double.
+  - ADR-019 records the monotonic-time / integer-nanosecond / immutable-sequence
+    decision; `runit:instant` was added to the vocabulary.
+  - Added unit tests for instant/duration conversion and rejection of negatives,
+    increasing per-execution sequence allocation, and wall/monotonic separation.

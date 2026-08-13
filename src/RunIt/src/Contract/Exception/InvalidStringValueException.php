@@ -52,4 +52,11 @@ final class InvalidStringValueException extends InvalidArgumentException impleme
             . 'version such as ".v1" (e.g. "itpack.configuration.loaded.v1").',
         );
     }
+
+    public static function negativeValue(string $what): self
+    {
+        return new self(
+            sprintf('Value for %s must not be negative.', $what),
+        );
+    }
 }

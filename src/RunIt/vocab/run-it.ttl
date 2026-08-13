@@ -654,6 +654,15 @@ runit:startedAt
     vs:term_status      "stable" ;
 .
 
+runit:instant
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "instant"@en ;
+    rdfs:comment        "A point in time expressed as Unix epoch seconds. RunIt models instants as an immutable value (see ItPack\\RunIt\\Domain\\Shared\\Instant) with no timezone; any local representation is derived at the edge."@en ;
+    rdfs:range          xsd:nonNegativeInteger ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
 runit:endedAt
     a                   owl:DatatypeProperty ;
     rdfs:label          "ended at"@en ;

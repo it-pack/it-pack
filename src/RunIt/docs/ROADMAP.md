@@ -428,20 +428,43 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M1.4 Time and sequencing
 
-- [ ] Define an instant/timestamp abstraction.
-- [ ] Define a duration value object.
-- [ ] Represent internal duration with integer nanoseconds.
-- [ ] Define `ArtifactSequenceInterface`.
-- [ ] Implement immutable sequence values.
-- [ ] Define `SequenceAllocatorInterface`.
-- [ ] Implement an in-memory monotonic sequence allocator.
-- [ ] Define `MonotonicClockInterface`.
-- [ ] Implement system wall-clock adapter.
-- [ ] Implement system monotonic-clock adapter.
-- [ ] Implement deterministic test clocks.
-- [ ] Test increasing sequence allocation.
-- [ ] Test duration calculation.
-- [ ] Test wall-clock and monotonic-clock separation.
+- [x] Define an instant/timestamp abstraction.
+- [x] Define a duration value object.
+- [x] Represent internal duration with integer nanoseconds.
+- [x] Define `ArtifactSequenceInterface`.
+- [x] Implement immutable sequence values.
+- [x] Define `SequenceAllocatorInterface`.
+- [x] Implement an in-memory monotonic sequence allocator.
+- [x] Define `MonotonicClockInterface`.
+- [x] Implement system wall-clock adapter.
+- [x] Implement system monotonic-clock adapter.
+- [x] Implement deterministic test clocks.
+- [x] Test increasing sequence allocation.
+- [x] Test duration calculation.
+- [x] Test wall-clock and monotonic-clock separation.
+
+### M1.4 status audit
+
+- Immutable `Instant` (Unix epoch seconds, no timezone) and `Duration` (integer
+  nanoseconds, never negative) value objects were added in `Domain/Shared`.
+- `ArtifactSequence` is immutable: `next()` returns a new sequence and never
+  mutates the receiver.
+- `SequenceAllocatorInterface` (port) and `InMemorySequenceAllocator` allocate a
+  per-execution monotonic counter; the first allocation for an execution returns
+  the initial sequence (zero).
+- `MonotonicClockInterface` (port) keeps wall-clock `nowSeconds()` and monotonic
+  `monotonicNanoseconds()` separate; `SystemMonotonicClock` uses `time()` and
+  `hrtime()`, and `Tests\Support\Fixture\DeterministicMonotonicClock` is the
+  deterministic test double.
+- `runit:instant` was added to the vocabulary; `runit:duration` and `runit:sequence`
+  already existed.
+- ADR-019 records the monotonic-time / integer-nanosecond / immutable-sequence
+  decision.
+- Unit, sequence-allocator, and monotonic-clock tests pass.
+- `composer test:unit` passes (210 tests).
+- `composer analyse` (PHPStan, level max) and `composer architecture` (DepTrac,
+  zero violations, zero uncovered) pass.
+- `composer cs:check` (PHP-CS-Fixer) passes.
 
 ## M1.5 Attributes
 
