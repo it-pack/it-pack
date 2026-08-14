@@ -152,6 +152,22 @@ runit:ObservationSeverity
     vs:term_status      "stable" ;
 .
 
+runit:ThrowableDescription
+    a                   owl:Class ;
+    rdfs:label          "Throwable Description"@en ;
+    rdfs:comment        "A safe, immutable, recursively-primitive description of a thrown error or exception. Captures class, a bounded message, code, an optional previous cause, and a policy-gated stack trace, without retaining the original throwable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+runit:ExecutionContext
+    a                   owl:Class ;
+    rdfs:label          "Execution Context"@en ;
+    rdfs:comment        "An immutable, classified, bounded collection of context entries carried by an execution. Entries bind a validated key to a bounded value, a classification, and optional metadata; the context is copy-on-write and never mutates its receiver."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
 # --- Occurrence ---------------------------------------------------------------
 
 runit:Occurrence

@@ -468,38 +468,62 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M1.5 Attributes
 
-- [ ] Define `AttributeKeyInterface`.
-- [ ] Implement `AttributeKey`.
-- [ ] Define supported attribute scalar types.
-- [ ] Define supported scalar-array types.
-- [ ] Define `AttributeValueInterface` if required.
-- [ ] Define `AttributeCollectionInterface`.
-- [ ] Implement immutable `AttributeCollection`.
-- [ ] Enforce maximum key length.
-- [ ] Enforce maximum attribute count.
-- [ ] Reject unsupported objects and resources.
-- [ ] Define deterministic attribute normalization.
-- [ ] Add empty-collection behavior.
-- [ ] Add copy-on-write `with()` behavior.
-- [ ] Add copy-on-write `without()` behavior.
-- [ ] Add attribute boundary tests.
+- [x] Define `AttributeKeyInterface`.
+- [x] Implement `AttributeKey`.
+- [x] Define supported attribute scalar types.
+- [x] Define supported scalar-array types.
+- [x] Define `AttributeValueInterface` if required. — intentionally omitted; values are a closed union of scalar, `null`, and scalar-only lists/maps.
+- [x] Define `AttributeCollectionInterface`.
+- [x] Implement immutable `AttributeCollection`.
+- [x] Enforce maximum key length.
+- [x] Enforce maximum attribute count.
+- [x] Reject unsupported objects and resources.
+- [x] Define deterministic attribute normalization.
+- [x] Add empty-collection behavior.
+- [x] Add copy-on-write `with()` behavior.
+- [x] Add copy-on-write `without()` behavior.
+- [x] Add attribute boundary tests.
+
+### M1.5 status audit
+
+- `AttributeKeyInterface` and `AttributeKey` provide a validated, immutable key. `AttributeKey` validates through the same `AttributeValidator` used by `AttributeCollection`, so the two cannot enforce divergent key rules (both bound to `MAX_KEY_LENGTH = 256` and the `^[A-Za-z0-9._-]++\z` pattern). `AttributeKey` implements `StringValueInterface` with type-aware `equals()`.
+- `AttributeCollectionInterface` (immutable, `Countable`, `IteratorAggregate`) and `AttributeCollection` store attributes as scalars, `null`, or scalar-only lists/maps. `with()`/`without()` are copy-on-write and `toArray()` returns a deterministic, key-sorted, recursively-primitive map. `foreach` over the collection yields that same map.
+- `AttributeValidator` enforces a maximum key length of 256 bytes, a maximum of 64 attributes, the allowed key character set, and recursive rejection of objects and resources at any depth. `InvalidAttributeException` implements `InvalidValueExceptionInterface` and never echoes the rejected value.
+- `AttributeValueInterface` was intentionally not introduced: the supported value set is a closed union of PHP types, so a union documents it directly; the roadmap's "if required" clause does not apply.
+- Unit tests cover empty/fromArray/iteration, deterministic sorting, copy-on-write semantics, key/value boundary rejection (empty, oversized, illegal characters, too many attributes, objects, resources, and nested objects), and `AttributeKey` equality and rejection.
+- `composer test:unit` passes (230 tests, 4203 assertions).
+- `composer analyse` (PHPStan, level max) reports zero first-party errors on the new attribute code; the only remaining `shipmonk.deadMethod` findings are pre-existing core behaviors (`SequencedBehavior::count`, `TimestampedBehavior::count`, `ValidatedStringIdentifierBehavior`, `ValidatedStringValueBehavior::fromString`, `FactoryInterface::build`), unrelated to this milestone.
+- `composer architecture` (DepTrac) reports zero violations; `Domain` → `Behavior` (where `AttributeValidator` lives) is an allowed dependency.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Public semantics are documented in `docs/concepts/attributes.md`.
 
 ## M1.6 Throwable normalization
 
-- [ ] Define `ThrowableDescriptionInterface`.
-- [ ] Implement immutable `ThrowableDescription`.
-- [ ] Define `ThrowableMapperInterface`.
-- [ ] Implement default safe throwable mapper.
-- [ ] Capture throwable class.
-- [ ] Capture a safe message according to policy.
-- [ ] Capture code where serializable.
-- [ ] Capture safe previous-cause relationships.
-- [ ] Add a stack-trace inclusion policy.
-- [ ] Add maximum cause depth.
-- [ ] Add maximum trace length.
-- [ ] Avoid retaining the original throwable in immutable artifacts.
-- [ ] Test exception and error normalization.
-- [ ] Test recursive or deeply nested exception chains.
+- [x] Define `ThrowableDescriptionInterface`.
+- [x] Implement immutable `ThrowableDescription`.
+- [x] Define `ThrowableMapperInterface`.
+- [x] Implement default safe throwable mapper.
+- [x] Capture throwable class.
+- [x] Capture a safe message according to policy.
+- [x] Capture code where serializable.
+- [x] Capture safe previous-cause relationships.
+- [x] Add a stack-trace inclusion policy.
+- [x] Add maximum cause depth.
+- [x] Add maximum trace length.
+- [x] Avoid retaining the original throwable in immutable artifacts.
+- [x] Test exception and error normalization.
+- [x] Test recursive or deeply nested exception chains.
+
+### M1.6 status audit
+
+- `ThrowableDescriptionInterface` and the immutable, `final`, `readonly` `ThrowableDescription` capture only `class`, a bounded `message`, `code` (always an `int` from `Throwable::getCode()`), an optional `previous` description, and a policy-gated `trace`. The value object is constructed from primitives through `create()`, so it holds no `Throwable` reference; `toArray()` projects a deterministic, key-stable, recursively-primitive map.
+- `ThrowableMapperInterface` and `DefaultThrowableMapper` own the capture policy: message truncation (`DEFAULT_MAX_MESSAGE_LENGTH` = 1024 bytes), optional stack-trace inclusion (`DEFAULT` off) with length truncation (`DEFAULT_MAX_TRACE_LENGTH` = 8192 bytes), and a recursive previous-cause capture bounded by `DEFAULT_MAX_CAUSE_DEPTH` = 5. A negative bound disables the corresponding truncation for callers that intentionally widen capture. The mapper returns a throwable-free description and never stores the original exception.
+- Unit tests cover class/message/code capture, default trace exclusion, trace inclusion and length truncation, message truncation, bounded recursive cause capture, deterministic normalization, and verification (via reflection) that no `Throwable` is retained.
+- `composer test:unit` passes (240 tests, 4233 assertions).
+- `composer analyse` (PHPStan, level max) reports zero first-party errors on the new throwable-normalization code; the only remaining `shipmonk.deadMethod`/`trait.unused` findings are pre-existing core behaviors unrelated to this milestone.
+- `composer architecture` (DepTrac) reports zero violations; the default mapper and description live in the `Domain` layer, which depends only on `Common` and `Contract`, and the mapper does not cross into `Behavior`.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Public semantics are documented in `docs/concepts/throwable-normalization.md`, and `runit:ThrowableDescription` was added to `vocab/run-it.ttl`.
 
 ## M1 acceptance gate
 
@@ -511,9 +535,8 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] PHPStan and DepTrac pass.
 - [x] Public primitive semantics are documented.
 
-> M1 is complete through M1.2 (identifiers). M1.3 (names and kinds), M1.4
-> (time and sequencing), M1.5 (attributes), and M1.6 (throwable normalization)
-> remain to be implemented before the milestone is formally closed.
+> M1 is complete through M1.6 (throwable normalization). With all M1 checklists
+> implemented and verified, the M1 milestone is closed.
 
 ---
 
@@ -525,111 +548,125 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M2.1 Context contracts
 
-- [ ] Define `ExecutionContextInterface`.
-- [ ] Define `ContextEntryInterface`.
-- [ ] Define `ContextKeyInterface`.
-- [ ] Define `ContextClassificationInterface`.
-- [ ] Define `ContextPropagationPolicyInterface`.
-- [ ] Define `ContextSerializationPolicyInterface`.
-- [ ] Define `ContextSourceInterface` if source tracking is required.
+- [x] Define `ExecutionContextInterface`.
+- [x] Define `ContextEntryInterface`.
+- [x] Define `ContextKeyInterface`.
+- [x] Define `ContextClassificationInterface`.
+- [x] Define `ContextPropagationPolicyInterface`.
+- [x] Define `ContextSerializationPolicyInterface`.
+- [x] Define `ContextSourceInterface` if source tracking is required.
 
 ## M2.2 Context classification
 
-- [ ] Implement classifications:
-    - [ ] Public.
-    - [ ] Internal.
-    - [ ] Confidential.
-    - [ ] Restricted.
-    - [ ] Secret.
-- [ ] Define default export behavior for each classification.
-- [ ] Define propagation behavior independently of export behavior.
-- [ ] Define default serialization behavior.
-- [ ] Document that classification does not replace authorization.
-- [ ] Test default classification policies.
+- [x] Implement classifications:
+    - [x] Public.
+    - [x] Internal.
+    - [x] Confidential.
+    - [x] Restricted.
+    - [x] Secret.
+- [x] Define default export behavior for each classification.
+- [x] Define propagation behavior independently of export behavior.
+- [x] Define default serialization behavior.
+- [x] Document that classification does not replace authorization.
+- [x] Test default classification policies.
 
 ## M2.3 Context entries
 
-- [ ] Implement immutable `ContextKey`.
-- [ ] Implement immutable `ContextEntry`.
-- [ ] Add public-entry named constructor.
-- [ ] Add internal-entry named constructor.
-- [ ] Add confidential-entry named constructor.
-- [ ] Add restricted-entry named constructor.
-- [ ] Add secret-entry named constructor.
-- [ ] Add optional expiry metadata.
-- [ ] Add optional source metadata.
-- [ ] Validate supported context value types.
-- [ ] Enforce maximum value size.
-- [ ] Define deterministic normalization.
-- [ ] Test secret-entry normalization behavior.
-- [ ] Test expired-entry handling policy.
+- [x] Implement immutable `ContextKey`.
+- [x] Implement immutable `ContextEntry`.
+- [x] Add public-entry named constructor.
+- [x] Add internal-entry named constructor.
+- [x] Add confidential-entry named constructor.
+- [x] Add restricted-entry named constructor.
+- [x] Add secret-entry named constructor.
+- [x] Add optional expiry metadata.
+- [x] Add optional source metadata.
+- [x] Validate supported context value types.
+- [x] Enforce maximum value size.
+- [x] Define deterministic normalization.
+- [x] Test secret-entry normalization behavior.
+- [x] Test expired-entry handling policy.
 
 ## M2.4 Context collection
 
-- [ ] Implement immutable `ExecutionContext`.
-- [ ] Add `empty()` constructor.
-- [ ] Add `with()` copy-on-write operation.
-- [ ] Add `without()` copy-on-write operation.
-- [ ] Add `has()` query.
-- [ ] Add `get()` query.
-- [ ] Add safe `find()` query.
-- [ ] Add iteration without exposing mutable internals.
-- [ ] Add context merge operation.
-- [ ] Define collision behavior.
-- [ ] Define parent-child inheritance behavior.
-- [ ] Enforce maximum context entry count.
-- [ ] Ensure original context remains unchanged.
-- [ ] Add equality tests.
-- [ ] Add normalization tests.
-- [ ] Add maximum-capacity tests.
+- [x] Implement immutable `ExecutionContext`.
+- [x] Add `empty()` constructor.
+- [x] Add `with()` copy-on-write operation.
+- [x] Add `without()` copy-on-write operation.
+- [x] Add `has()` query.
+- [x] Add `get()` query.
+- [x] Add safe `find()` query.
+- [x] Add iteration without exposing mutable internals.
+- [x] Add context merge operation.
+- [x] Define collision behavior.
+- [x] Define parent-child inheritance behavior.
+- [x] Enforce maximum context entry count.
+- [x] Ensure original context remains unchanged.
+- [x] Add equality tests.
+- [x] Add normalization tests.
+- [x] Add maximum-capacity tests.
 
 ## M2.5 Standard context vocabulary
 
-- [ ] Document recommended `environment` key.
-- [ ] Document recommended `tenant.id` key.
-- [ ] Document recommended `workspace.id` key.
-- [ ] Document recommended `locale` key.
-- [ ] Document recommended `principal.id` key.
-- [ ] Document recommended `principal.type` key.
-- [ ] Document recommended `correlation.id` key.
-- [ ] Document recommended `trace.id` key.
-- [ ] Document recommended `service.name` key.
-- [ ] Document recommended `service.version` key.
-- [ ] Document recommended `deployment.environment` key.
-- [ ] Document recommended `configuration.snapshot_id` key.
-- [ ] Define which vocabulary is stable versus advisory.
+- [x] Document recommended `environment` key.
+- [x] Document recommended `tenant.id` key.
+- [x] Document recommended `workspace.id` key.
+- [x] Document recommended `locale` key.
+- [x] Document recommended `principal.id` key.
+- [x] Document recommended `principal.type` key.
+- [x] Document recommended `correlation.id` key.
+- [x] Document recommended `trace.id` key.
+- [x] Document recommended `service.name` key.
+- [x] Document recommended `service.version` key.
+- [x] Document recommended `deployment.environment` key.
+- [x] Document recommended `configuration.snapshot_id` key.
+- [x] Define which vocabulary is stable versus advisory.
 
 ## M2.6 Context security
 
-- [ ] Define `ContextRedactionPolicyInterface`.
-- [ ] Implement deny-secret policy.
-- [ ] Implement configurable confidential-value policy.
-- [ ] Ensure restricted values are redacted by default.
-- [ ] Prevent accidental environment-variable bulk capture.
-- [ ] Add tests for every classification.
-- [ ] Add tests proving secret values never reach normalized export output.
-- [ ] Add tests for oversized context values.
-- [ ] Add tests for excessive context entries.
+- [x] Define `ContextRedactionPolicyInterface`.
+- [x] Implement deny-secret policy.
+- [x] Implement configurable confidential-value policy.
+- [x] Ensure restricted values are redacted by default.
+- [x] Prevent accidental environment-variable bulk capture.
+- [x] Add tests for every classification.
+- [x] Add tests proving secret values never reach normalized export output.
+- [x] Add tests for oversized context values.
+- [x] Add tests for excessive context entries.
 
 ## M2 documentation
 
-- [ ] Create `docs/concepts/context.md`.
-- [ ] Document immutability.
-- [ ] Document classification.
-- [ ] Document propagation.
-- [ ] Document merging and collision behavior.
-- [ ] Document security recommendations.
-- [ ] Add context construction examples.
+- [x] Create `docs/concepts/context.md`.
+- [x] Document immutability.
+- [x] Document classification.
+- [x] Document propagation.
+- [x] Document merging and collision behavior.
+- [x] Document security recommendations.
+- [x] Add context construction examples.
+
+## M2 status audit
+
+- `ContextClassification` is a closed, `final` enum implementing `ContextClassificationInterface`. Each tier defines default export, propagation, and serialization behavior; `Secret` is denied everywhere, `Restricted` is serialized but masked on redaction, and `Public` is fully open.
+- `ContextKey` (`final`, `readonly`, interface-backed) validates keys through `ContextValueValidator` with the same rules as the context (≤256 bytes, allowed character set), so keys are safe in logs, headers, and serialized context.
+- `ContextEntry` (`final`, `readonly`) is built through classification-specific named constructors (`public()`, `internal()`, `confidential()`, `restricted()`, `secret()`). Values are validated by `ContextValueValidator` (scalars, `null`, scalar-only lists/maps; objects and resources rejected; `MAX_VALUE_LENGTH` = 4096 bytes, `MAX_ARRAY_ELEMENTS` = 64). Entries carry optional expiry (`Instant`) and source (`ContextSource`) metadata and project a deterministic `toArray()`.
+- `ExecutionContext` (`final`, `readonly`, interface-backed, `Countable`, `IteratorAggregate`) is copy-on-write (`with()`/`without()`), queryable (`has()`/`find()`/`get()`), iterable, and mergeable with an explicit `ContextCollisionPolicy` (`Replace`/`Keep`/`Throw`). It enforces `MAX_ENTRIES` = 64 and never mutates its receiver; `toArray()` returns a key-sorted, deterministic map.
+- Security is enforced through `ContextRedactionPolicyInterface` and `DefaultContextRedactionPolicy` (deny-secret by default: secret values dropped, restricted values masked, non-exportable internal/confidential values dropped, public values kept). `DefaultContextPropagationPolicy` and `DefaultContextSerializationPolicy` delegate to the classification.
+- Unit tests cover every classification's default policy, key and value validation (including nested objects, resources, and oversized values), entry expiry, context copy-on-write semantics, merge collision strategies, capacity enforcement, deterministic normalization, and redaction (including that the original context is never mutated).
+- `composer test:unit` passes (278 tests, 4321 assertions).
+- `composer analyse` (PHPStan, level max) reports zero first-party errors on the new context code; the only remaining `shipmonk.deadMethod`/`trait.unused` findings are pre-existing core behaviors unrelated to this milestone.
+- `composer architecture` (DepTrac) reports zero violations; the context domain lives in the `Domain` layer and depends only on `Common` and `Contract`.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Public semantics, the standard vocabulary, and the security posture are documented in `docs/concepts/context.md`, and `runit:ExecutionContext` was added to `vocab/run-it.ttl`.
 
 ## M2 acceptance gate
 
-- [ ] Context is immutable and copy-on-write.
-- [ ] Classification is mandatory and tested.
-- [ ] Secret values are not exportable.
-- [ ] Merge behavior is deterministic.
-- [ ] Context capacity is bounded.
-- [ ] Static analysis and architecture checks pass.
-- [ ] Security documentation is complete.
+- [x] Context is immutable and copy-on-write.
+- [x] Classification is mandatory and tested.
+- [x] Secret values are not exportable.
+- [x] Merge behavior is deterministic.
+- [x] Context capacity is bounded.
+- [x] Static analysis and architecture checks pass.
+- [x] Security documentation is complete.
 
 ---
 
