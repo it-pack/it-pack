@@ -1,0 +1,149 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Domain\Activity;
+
+use Codeception\Test\Unit;
+use ItPack\RunIt\Domain\Activity\Activity;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Activity\ActivityStatus;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+
+final class ActivityTest extends Unit
+{
+    public function testTerminalStatusesAreReported(): void
+    {
+        self::assertTrue(ActivityStatus::Succeeded->isTerminal());
+        self::assertFalse(ActivityStatus::Running->isTerminal());
+    }
+
+    private function definition(): ActivityDefinition
+    {
+        return ActivityDefinition::create(
+            ActivityName::fromString('http.call'),
+            ActivityKind::fromString('client'),
+            null,
+        );
+    }
+
+    public function testStartProducesRunningActivityWithOwnIdentities(): void
+    {
+        $activity = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        );
+
+        self::assertSame('act-1', $activity->id()->toString());
+        self::assertSame('exec-1', $activity->executionId()->toString());
+        self::assertSame('act-1', $activity->activityId()->toString());
+        self::assertSame(ActivityStatus::Running, $activity->status());
+        self::assertSame(1000, $activity->timestamp());
+        self::assertSame([], $activity->attributes());
+    }
+
+    public function testCompleteReturnsNewTerminalActivity(): void
+    {
+        $running = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        );
+
+        $done = $running->complete(
+            ActivityStatus::Succeeded,
+            null,
+            Instant::of(2000),
+        );
+
+        self::assertSame(ActivityStatus::Succeeded, $done->status());
+        self::assertSame(2000, $done->endedAt()?->epochSeconds());
+        self::assertNull($done->throwableDescription());
+        self::assertSame(ActivityStatus::Running, $running->status());
+    }
+
+    public function testFailedActivityCarriesThrowableDescription(): void
+    {
+        $running = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        );
+
+        $done = $running->complete(
+            ActivityStatus::Failed,
+            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            Instant::of(2000),
+        );
+
+        self::assertNotNull($done->throwableDescription());
+    }
+
+    public function testAttributesAreCaptured(): void
+    {
+        $activity = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+            null,
+            AttributeCollection::empty()->with('http.status', 200),
+        );
+
+        self::assertSame(['http.status' => 200], $activity->attributes());
+    }
+
+    public function testNormalizationIsDeterministic(): void
+    {
+        $activity = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        );
+
+        $expected = [
+            'id' => 'act-1',
+            'execution_id' => 'exec-1',
+            'name' => 'http.call',
+            'kind' => 'client',
+            'status' => 'running',
+            'started_at' => 1000,
+            'ended_at' => null,
+            'parent_activity_id' => null,
+            'sequence' => 0,
+            'attributes' => [],
+            'throwable' => null,
+        ];
+
+        self::assertSame($expected, $activity->normalize());
+    }
+
+    public function testParentActivityIdentityIsCaptured(): void
+    {
+        $definition = ActivityDefinition::create(
+            ActivityName::fromString('child'),
+            ActivityKind::fromString('step'),
+            ActivityId::fromString('parent-act'),
+        );
+
+        $activity = Activity::start(
+            ActivityId::fromString('act-2'),
+            ExecutionId::fromString('exec-1'),
+            $definition,
+            Instant::of(1),
+        );
+
+        self::assertSame('parent-act', $activity->definition()->parentActivityId()?->toString());
+    }
+}

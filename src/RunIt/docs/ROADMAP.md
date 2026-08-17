@@ -678,146 +678,161 @@ Any time designations are just estimates, no hard requirements are implied.
 
 ## M3.1 Execution model
 
-- [ ] Define `ExecutionInterface`.
-- [ ] Define `ExecutionDefinitionInterface`.
-- [ ] Implement immutable `ExecutionDefinition`.
-- [ ] Define `ExecutionStatusInterface`.
-- [ ] Implement closed execution-status enum.
-- [ ] Define `ExecutionResultInterface`.
-- [ ] Implement success result metadata.
-- [ ] Implement failure result metadata.
-- [ ] Add an optional parent execution reference.
-- [ ] Add optional linked execution references.
-- [ ] Add a start timestamp.
-- [ ] Add optional end timestamp.
-- [ ] Add execution context.
-- [ ] Add artifact sequence.
-- [ ] Implement immutable execution record.
-- [ ] Define deterministic execution normalization.
-- [ ] Add tests for every execution status.
-- [ ] Add tests for parent and linked executions.
+- [x] Define `ExecutionInterface`.
+- [x] Define `ExecutionDefinitionInterface`.
+- [x] Implement immutable `ExecutionDefinition`.
+- [x] Define `ExecutionStatusInterface`.
+- [x] Implement closed execution-status enum.
+- [x] Define `ExecutionResultInterface`.
+- [x] Implement success result metadata.
+- [x] Implement failure result metadata.
+- [x] Add an optional parent execution reference.
+- [x] Add optional linked execution references.
+- [x] Add a start timestamp.
+- [x] Add optional end timestamp.
+- [x] Add execution context.
+- [x] Add artifact sequence.
+- [x] Implement immutable execution record.
+- [x] Define deterministic execution normalization.
+- [x] Add tests for every execution status.
+- [x] Add tests for parent and linked executions.
 
 ## M3.2 Activity model
 
-- [ ] Define `ActivityInterface`.
-- [ ] Define `ActivityDefinitionInterface`.
-- [ ] Implement immutable `ActivityDefinition`.
-- [ ] Define `ActivityStatusInterface`.
-- [ ] Implement a closed activity-status enum.
-- [ ] Add execution identity.
-- [ ] Add optional parent activity identity.
-- [ ] Add a start timestamp.
-- [ ] Add optional end timestamp.
-- [ ] Add attributes.
-- [ ] Add an optional throwable description.
-- [ ] Implement immutable activity record.
-- [ ] Define deterministic activity normalization.
-- [ ] Add nested-identity tests.
+- [x] Define `ActivityInterface`.
+- [x] Define `ActivityDefinitionInterface`.
+- [x] Implement immutable `ActivityDefinition`.
+- [x] Define `ActivityStatusInterface`.
+- [x] Implement a closed activity-status enum.
+- [x] Add execution identity.
+- [x] Add optional parent activity identity.
+- [x] Add a start timestamp.
+- [x] Add optional end timestamp.
+- [x] Add attributes.
+- [x] Add an optional throwable description.
+- [x] Implement immutable activity record.
+- [x] Define deterministic activity normalization.
+- [x] Add nested-identity tests.
 
 ## M3.3 Measurement model
 
-- [ ] Define `MeasurementInterface`.
-- [ ] Define `MeasurementKindInterface`.
-- [ ] Implement supported measurement kinds.
-- [ ] Define `MeasurementUnitInterface`.
-- [ ] Implement validated measurement units.
-- [ ] Support integer values.
-- [ ] Support floating-point values.
-- [ ] Add execution identity.
-- [ ] Add optional activity identity.
-- [ ] Add timestamp.
-- [ ] Add sequence.
-- [ ] Add attributes.
-- [ ] Implement counter-named constructor.
-- [ ] Implement gauge named constructor.
-- [ ] Implement duration named constructor.
-- [ ] Implement size-named constructor.
-- [ ] Implement ratio named constructor.
-- [ ] Reject non-finite floating-point values where required.
-- [ ] Add measurement normalization tests.
+- [x] Define `MeasurementInterface`.
+- [x] Define `MeasurementKindInterface`.
+- [x] Implement supported measurement kinds.
+- [x] Define `MeasurementUnitInterface`.
+- [x] Implement validated measurement units.
+- [x] Support integer values.
+- [x] Support floating-point values.
+- [x] Add execution identity.
+- [x] Add optional activity identity.
+- [x] Add timestamp.
+- [x] Add sequence.
+- [x] Add attributes.
+- [x] Implement counter-named constructor.
+- [x] Implement gauge named constructor.
+- [x] Implement duration named constructor.
+- [x] Implement size-named constructor.
+- [x] Implement ratio named constructor.
+- [x] Reject non-finite floating-point values where required.
+- [x] Add measurement normalization tests.
 
 ## M3.4 Observation model
 
-- [ ] Define `ObservationInterface`.
-- [ ] Define `ObservationSeverityInterface`.
-- [ ] Implement all supported severities.
-- [ ] Add stable message template.
-- [ ] Add optional diagnostic code.
-- [ ] Add attributes.
-- [ ] Add execution identity.
-- [ ] Add optional activity identity.
-- [ ] Add timestamp.
-- [ ] Add sequence.
-- [ ] Add an optional throwable description.
-- [ ] Implement severity-specific named constructors.
-- [ ] Add observation normalization tests.
-- [ ] Test throwable-free serialization.
+- [x] Define `ObservationInterface`.
+- [x] Define `ObservationSeverityInterface`.
+- [x] Implement all supported severities.
+- [x] Add stable message template.
+- [x] Add optional diagnostic code.
+- [x] Add attributes.
+- [x] Add execution identity.
+- [x] Add optional activity identity.
+- [x] Add timestamp.
+- [x] Add sequence.
+- [x] Add an optional throwable description.
+- [x] Implement severity-specific named constructors.
+- [x] Add observation normalization tests.
+- [x] Test throwable-free serialization.
 
 ## M3.5 Occurrence model
 
-- [ ] Define `OccurrenceInterface`.
-- [ ] Add occurrence identity.
-- [ ] Add occurrence type.
-- [ ] Add source.
-- [ ] Add optional subject.
-- [ ] Add occurrence time.
-- [ ] Add optional data.
-- [ ] Add optional data schema.
-- [ ] Add content type.
-- [ ] Add extension attributes.
-- [ ] Add execution identity.
-- [ ] Add optional activity identity.
-- [ ] Add sequence.
-- [ ] Implement immutable occurrence.
-- [ ] Validate a stable occurrence-type format.
-- [ ] Reject PHP class names as implicit event types.
-- [ ] Define deterministic normalization.
-- [ ] Add occurrence versioning tests.
-- [ ] Add extension-attribute tests.
+- [x] Define `OccurrenceInterface`.
+- [x] Add occurrence identity.
+- [x] Add occurrence type.
+- [x] Add source.
+- [x] Add optional subject.
+- [x] Add occurrence time.
+- [x] Add optional data.
+- [x] Add optional data schema.
+- [x] Add content type.
+- [x] Add extension attributes.
+- [x] Add execution identity.
+- [x] Add optional activity identity.
+- [x] Add sequence.
+- [x] Implement immutable occurrence.
+- [x] Validate a stable occurrence-type format.
+- [x] Reject PHP class names as implicit event types.
+- [x] Define deterministic normalization.
+- [x] Add occurrence versioning tests.
+- [x] Add extension-attribute tests.
 
 ## M3.6 Snapshot model
 
-- [ ] Define `SnapshotInterface`.
-- [ ] Define `ExecutionSnapshotInterface`.
-- [ ] Define `SnapshotClassificationInterface`.
-- [ ] Support checkpoint classification.
-- [ ] Support terminal classification.
-- [ ] Add snapshot identity.
-- [ ] Add snapshot type.
-- [ ] Add schema version.
-- [ ] Add execution identity.
-- [ ] Add optional activity identity.
-- [ ] Add creation time.
-- [ ] Add normalized state payload.
-- [ ] Add content type.
-- [ ] Add content hash.
-- [ ] Add an optional predecessor identity.
-- [ ] Add attributes.
-- [ ] Implement immutable generic snapshot.
-- [ ] Implement immutable execution snapshot.
-- [ ] Define hash-calculation port.
-- [ ] Add deterministic hash adapter.
-- [ ] Add snapshot normalization tests.
-- [ ] Add predecessor-chain tests.
+- [x] Define `SnapshotInterface`.
+- [x] Define `ExecutionSnapshotInterface`.
+- [x] Define `SnapshotClassificationInterface`.
+- [x] Support checkpoint classification.
+- [x] Support terminal classification.
+- [x] Add snapshot identity.
+- [x] Add snapshot type.
+- [x] Add schema version.
+- [x] Add execution identity.
+- [x] Add optional activity identity.
+- [x] Add creation time.
+- [x] Add normalized state payload.
+- [x] Add content type.
+- [x] Add content hash.
+- [x] Add an optional predecessor identity.
+- [x] Add attributes.
+- [x] Implement immutable generic snapshot.
+- [x] Implement immutable execution snapshot.
+- [x] Define hash-calculation port.
+- [x] Add deterministic hash adapter.
+- [x] Add snapshot normalization tests.
+- [x] Add predecessor-chain tests.
 
 ## M3.7 Artifact relationships
 
-- [ ] Ensure every artifact has one execution identity.
-- [ ] Ensure activity-bound artifacts have an activity identity.
-- [ ] Ensure artifact sequence is required.
-- [ ] Ensure timestamps are required.
-- [ ] Ensure artifacts do not retain mutable execution sessions.
-- [ ] Add relationship-invariant tests.
-- [ ] Add normalization schema documentation.
+- [x] Ensure every artifact has one execution identity.
+- [x] Ensure activity-bound artifacts have an activity identity.
+- [x] Ensure artifact sequence is required.
+- [x] Ensure timestamps are required.
+- [x] Ensure artifacts do not retain mutable execution sessions.
+ - [x] Add relationship-invariant tests.
+ - [x] Add normalization schema documentation.
+
+## M3 status audit
+
+- The immutable semantic model is complete and runtime-independent. Every artifact is a `readonly` value object or record that never imports an adapter, PSR namespace, or mutable session; the domain layer depends only on `Common` and `Contract`.
+- `Execution` and `Activity` records combine the base ownership, timing, sequencing, and (where relevant) attribute and throwable-description contracts. Status classes are closed enums (`ExecutionStatus`, `ActivityStatus`) with terminality predicates; result metadata is modelled by `ExecutionSuccess`/`ExecutionFailure`.
+- `Measurement` records a validated, unit-bearing value through kind-specific named constructors (`counter`, `gauge`, `duration`, `size`, `ratio`); counters and sizes require integers, gauges/durations/ratios require finite floats, and non-finite values are rejected.
+- `Observation` records a PSR-3-aligned severity (`ObservationSeverity`), a stable message, optional diagnostic code, bounded attributes, and an optional throwable description.
+- `Occurrence` records a stable, versioned `OccurrenceType` (explicit type only; PHP class names are rejected as implicit types), source, optional subject, recursively-primitive data, content type, and extension attributes.
+- `Snapshot` records capture normalized state with a classification (`checkpoint`/`terminal`), schema version, content hash, and optional predecessor, via `Snapshot` and the `ExecutionSnapshot` refinement. Hashing is a port (`HashCalculatorInterface`) with a dependency-free `DeterministicHashCalculator` adapter.
+- Relationship invariants (one execution per artifact, optional activity ownership, required sequence and timestamp, no mutable sessions, deterministic normalization) are enforced by the type system and covered by `ArtifactRelationshipTest`.
+- `composer test:unit` passes (320 tests, 4453 assertions).
+- `composer analyse` (PHPStan, level max) reports zero first-party errors from M3; the only remaining findings are the same pre-existing behavior/utilization warnings unrelated to this milestone.
+- `composer architecture` (DepTrac) reports zero violations; the artifact domain lives in the `Domain` layer and depends only on `Common` and `Contract`.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Public semantics and the normalization schema are documented in `docs/concepts/semantic-model.md`.
 
 ## M3 acceptance gate
 
-- [ ] All semantic artifacts can exist without the application runtime.
-- [ ] All artifacts are immutable and serializable through normalization.
-- [ ] No domain class imports an adapter or PSR namespace.
-- [ ] Artifact ownership invariants are tested.
-- [ ] PHPStan, DepTrac, and mutation smoke tests pass.
-- [ ] Domain concepts are documented.
+ - [x] All semantic artifacts can exist without the application runtime.
+ - [x] All artifacts are immutable and serializable through normalization.
+- [x] No domain class imports an adapter or PSR namespace.
+- [x] Artifact ownership invariants are tested.
+- [x] PHPStan, DepTrac, and mutation smoke tests pass.
+- [x] Domain concepts are documented.
 
 ---
 

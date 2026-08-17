@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Occurrence;
 
-use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Behavior\Domain\ValidatedStringValueBehavior;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
@@ -23,7 +22,8 @@ use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
  *
  * Namespaces are recommended so types from different packages do not collide.
  * Versioning lets a consumer change the payload of an occurrence without
- * breaking existing consumers.
+ * breaking existing consumers. The format is validated on construction, so a
+ * PHP class name can never be used as an implicit event type.
  *
  * @api
  *
@@ -37,7 +37,13 @@ final readonly class OccurrenceType implements OccurrenceTypeInterface
 
     public static function fromString(string $value): static
     {
-        return new static($value, new OccurrenceTypeValidator());
+        $instance = new static($value);
+
+        if (preg_match(self::FORMAT, $value) !== 1) {
+            throw InvalidStringValueException::malformedOccurrenceType();
+        }
+
+        return $instance;
     }
 
     public function version(): string
@@ -45,23 +51,5 @@ final readonly class OccurrenceType implements OccurrenceTypeInterface
         $position = strrpos($this->toString(), '.v');
 
         return $position === false ? '' : substr($this->toString(), $position + 2);
-    }
-}
-
-/**
- * Validates the occurrence-type format on top of the shared string-value
- * rules.
- *
- * @internal
- */
-final readonly class OccurrenceTypeValidator extends StringValueValidator
-{
-    public function validate(string $value): void
-    {
-        parent::validate($value);
-
-        if (preg_match(OccurrenceType::FORMAT, $value) !== 1) {
-            throw InvalidStringValueException::malformedOccurrenceType();
-        }
     }
 }

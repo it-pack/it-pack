@@ -18,4 +18,10 @@ namespace ItPack\RunIt\Contract\Domain;
  */
 interface OccurrenceTypeInterface extends StringValueInterface
 {
+    /**
+     * Returns the version suffix of the type (the value after the final `.v`).
+     *
+     * For `itpack.configuration.loaded.v1` this returns `1`.
+     */
+    public function version(): string;
 }
