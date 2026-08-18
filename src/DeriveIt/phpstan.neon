@@ -8,5 +8,22 @@ parameters:
         - ./tests/Unit
     reportUnmatchedIgnoredErrors: false
 
-    ignoreErrors: []
+    ignoreErrors:
+        -
+            identifier: method.unused
+            path: tests/**
+        -
+            identifier: shipmonk.deadMethod
+            path: tests/**
+        # Contract interfaces are the public API surface; their methods are not
+        # invoked through the interface type within this package, so the
+        # dead-method detector would otherwise flag them as unused.
+        -
+            identifier: shipmonk.deadMethod
+            path: src/Contract/**
+        # The public DeriveIt facade exposes helper entry points (e.g.
+        # deriveTraitInterfaces) that are not consumed within the package.
+        -
+            identifier: shipmonk.deadMethod
+            path: src/DeriveIt.php
 

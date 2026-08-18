@@ -1,0 +1,16 @@
+# Dist archive hygiene: exclude dev/scaffolding files from the published package.
+/.gitattributes export-ignore
+/tests export-ignore
+/fixtures export-ignore
+/scripts export-ignore
+/var export-ignore
+/generated export-ignore
+/REVIEW.md export-ignore
+/IMPLEMENTATION_PLAN.md export-ignore
+/ROADMAP.md export-ignore
+/ROADMAP.doc export-ignore
+/AGENTS.md export-ignore
+/codeception.yml export-ignore
+/phpstan.neon export-ignore
+/.php-cs-fixer.php export-ignore
+/.phpstan export-ignore

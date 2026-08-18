@@ -30,8 +30,7 @@ final class ClassReflection extends ReflectionClass
 
     public static function getRecursiveClassResolver(): RecursiveClassResolverInterface
     {
-        return self::$classResolver
-            ?: self::$classResolver = RecursiveClassResolver::create();
+        return self::$classResolver ??= RecursiveClassResolver::create();
     }
 
     public static function setRecursiveClassResolver(RecursiveClassResolverInterface $resolver): void
@@ -46,8 +45,7 @@ final class ClassReflection extends ReflectionClass
 
     public static function getRecursiveInterfaceResolver(): RecursiveInterfaceResolverInterface
     {
-        return self::$interfaceResolver
-            ?: self::$interfaceResolver = RecursiveInterfaceResolver::create();
+        return self::$interfaceResolver ??= RecursiveInterfaceResolver::create();
     }
 
     public static function setRecursiveInterfaceResolver(RecursiveInterfaceResolverInterface $resolver): void
@@ -62,8 +60,7 @@ final class ClassReflection extends ReflectionClass
 
     public static function getRecursiveTraitResolver(): RecursiveTraitResolverInterface
     {
-        return self::$traitResolver
-            ?: self::$traitResolver = RecursiveTraitResolver::create();
+        return self::$traitResolver ??= RecursiveTraitResolver::create();
     }
 
     public static function setRecursiveTraitResolver(RecursiveTraitResolverInterface $resolver): void

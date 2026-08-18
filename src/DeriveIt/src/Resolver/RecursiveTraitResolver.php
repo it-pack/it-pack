@@ -21,7 +21,7 @@ final class RecursiveTraitResolver implements RecursiveTraitResolverInterface
     {
         $traits = $this->resolveClassInheritance($reflection);
 
-        return empty($traits)
+        return $traits === []
             ? []
             : array_unique(
                 array_merge(

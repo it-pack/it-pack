@@ -1,10 +1,8 @@
 {
     "name": "it-pack/derive-it",
     "require": {
-        "nette/php-generator": "^4.2",
-        "nikic/php-parser": "^5.7",
-        "codeception/module-phpbrowser": "*",
-        "codeception/module-asserts": "*"
+        "php": ">=8.4",
+        "nette/php-generator": "^4.2"
     },
     "autoload": {
         "psr-4": {
@@ -26,7 +24,9 @@
     ],
     "require-dev": {
         "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0"
+        "just-bases/php-qa-base": "^1.0",
+        "codeception/module-phpbrowser": "*",
+        "codeception/module-asserts": "*"
     },
     "config": {
         "allow-plugins": {

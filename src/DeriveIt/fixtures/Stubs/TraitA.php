@@ -7,4 +7,9 @@ namespace _Fixture\Stubs;
 trait TraitA
 {
     use TraitB;
+
+    public function traitAMethod(): string
+    {
+        return 'from TraitA';
+    }
 }
