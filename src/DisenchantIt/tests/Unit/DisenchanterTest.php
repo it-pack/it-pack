@@ -46,4 +46,37 @@ final class DisenchanterTest extends Unit
     {
         $this->assertSame([], $this->disenchanter->detect('<?php class C {}'));
     }
+
+    public function testRewritePromotesRepeatedLiteralIntoConstant(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            class C {
+                public function a(): string { return 'admin-user'; }
+                public function b(): string { return 'admin-user'; }
+            }
+            PHP;
+
+        $rewritten = $this->disenchanter->rewrite($code);
+
+        $this->assertStringContainsString("private const string ADMIN_USER = 'admin-user';", $rewritten);
+        $this->assertStringContainsString('self::ADMIN_USER', $rewritten);
+        $this->assertStringNotContainsString("return 'admin-user';", $rewritten);
+    }
+
+    public function testRewriteRespectsMinOccurrences(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            class C {
+                public function a(): string { return 'only-once'; }
+            }
+            PHP;
+
+        // Below threshold: nothing promoted, source returned unchanged.
+        $this->assertSame($code, $this->disenchanter->rewrite($code, 2));
+
+        // At threshold 1: single occurrence is promoted.
+        $this->assertStringContainsString('self::ONLY_ONCE', $this->disenchanter->rewrite($code, 1));
+    }
 }
