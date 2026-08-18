@@ -65,6 +65,40 @@ class TypeSubstitutionTest extends Unit
         verify($interface->getMethod('getRoot')->getReturnType())->equals('_Fixture\CustomNode');
     }
 
+    public function testFamilyDerivationLeaksNoConcreteAdapteeType(): void
+    {
+        $derived = new FamilyDeriver()->derive([\_Fixture\Node::class, \_Fixture\Tree::class]);
+
+        $concreteAdaptees = ['_Fixture\Node', '_Fixture\Tree'];
+
+        foreach ($derived as $interface) {
+            foreach ($interface->getMethods() as $method) {
+                $typeStrings = [];
+
+                $returnType = $method->getReturnType();
+                if (is_string($returnType) && $returnType !== '') {
+                    $typeStrings[] = $returnType;
+                }
+
+                foreach ($method->getParameters() as $parameter) {
+                    $paramType = $parameter->getType();
+                    if (is_string($paramType) && $paramType !== '') {
+                        $typeStrings[] = $paramType;
+                    }
+                }
+
+                foreach ($typeStrings as $type) {
+                    $segments = explode('|', str_replace(['?', '&'], '', $type));
+                    foreach ($segments as $segment) {
+                        foreach ($concreteAdaptees as $adaptee) {
+                            verify($segment === $adaptee)->false();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public function testFlatDerivationWithoutMapLeavesNativeType(): void
     {
         $interface = new InterfaceDeriver()->derive(\_Fixture\Tree::class);
