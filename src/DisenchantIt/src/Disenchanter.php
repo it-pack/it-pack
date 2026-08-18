@@ -8,9 +8,13 @@ use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
+use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
+use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\ValueObject\Candidate;
 use ItPack\DisenchantIt\ValueObject\CandidateInterface;
+use ItPack\DisenchantIt\ValueObject\DisenchantResult;
+use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 
 /**
@@ -33,6 +37,8 @@ final readonly class Disenchanter implements DisenchanterInterface
         private readonly ConstantNameGeneratorInterface $generator,
         private readonly ConstantPlacementStrategyInterface $placement,
         private readonly RewriterInterface $rewriter,
+        private readonly SemConvCollectorInterface $collector,
+        private readonly SemConvAliasRewriterInterface $aliasRewriter,
     ) {
     }
 
@@ -75,5 +81,32 @@ final readonly class Disenchanter implements DisenchanterInterface
         }
 
         return $this->rewriter->rewrite($code, $placements);
+    }
+
+    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null): DisenchantResultInterface
+    {
+        $candidates = $this->detect($code);
+
+        $placements = [];
+        foreach ($candidates as $candidate) {
+            if ($candidate->count() < $minOccurrences) {
+                continue;
+            }
+
+            foreach ($this->placement->decide($candidate->occurrences) as $placement) {
+                $placements[] = $placement;
+            }
+        }
+
+        // Step 1-3: promote literals to local constants.
+        $rewritten = $this->rewriter->rewrite($code, $placements);
+
+        // Step 4: merge placements into the shared SemConv registry.
+        $semconvSource = $this->collector->collect($placements, $existingSemConvSource);
+
+        // Step 5: alias each local constant's value at the registry constant.
+        $aliased = $this->aliasRewriter->rewrite($rewritten, $placements);
+
+        return new DisenchantResult($aliased, $semconvSource);
     }
 }

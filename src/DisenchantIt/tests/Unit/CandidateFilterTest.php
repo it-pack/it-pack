@@ -52,6 +52,13 @@ final class CandidateFilterTest extends Unit
         $this->assertCount(0, $kept);
     }
 
+    public function testDropsClassConstDeclarationValue(): void
+    {
+        $kept = $this->filter->filterCandidates([$this->literal('admin-user', 'class_const_value')]);
+
+        $this->assertCount(0, $kept, 'a class constant own declaration value is not a usage site');
+    }
+
     public function testDropsSentenceShapedLiteral(): void
     {
         $kept = $this->filter->filterCandidates([$this->literal('Configuration key is empty.', 'unclassified')]);

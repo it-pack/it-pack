@@ -79,4 +79,66 @@ final class DisenchanterTest extends Unit
         // At threshold 1: single occurrence is promoted.
         $this->assertStringContainsString('self::ONLY_ONCE', $this->disenchanter->rewrite($code, 1));
     }
+
+    public function testRewriteIsIdempotent(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            class C {
+                public function a(): string { return 'admin-user'; }
+                public function b(): string { return 'admin-user'; }
+            }
+            PHP;
+
+        $first = $this->disenchanter->rewrite($code);
+        $second = $this->disenchanter->rewrite($first);
+
+        $this->assertSame($first, $second, 're-running on rewritten code must not change it');
+        $this->assertStringNotContainsString('self::ADMIN_USER = self::ADMIN_USER', $first);
+    }
+
+    public function testRewriteDoesNotRepromoteAnExistingConstValue(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            class C {
+                private const string KNOWN = 'shared-value';
+                public function a(): string { return 'shared-value'; }
+                public function b(): string { return 'shared-value'; }
+            }
+            PHP;
+
+        $rewritten = $this->disenchanter->rewrite($code);
+
+        // The pre-existing const's OWN declaration value is untouched.
+        $this->assertStringContainsString("private const string KNOWN = 'shared-value';", $rewritten);
+        // The genuine usage sites are still promoted to a new const.
+        $this->assertStringContainsString("private const string SHARED_VALUE = 'shared-value';", $rewritten);
+        $this->assertStringContainsString('self::SHARED_VALUE', $rewritten);
+    }
+
+    public function testRewriteWithSemConvCollectsAndAliases(): void
+    {
+        $code = <<<'PHP'
+            <?php
+            namespace App;
+
+            class C {
+                public function a(): string { return 'admin-user'; }
+                public function b(): string { return 'admin-user'; }
+            }
+            PHP;
+
+        $result = $this->disenchanter->rewriteWithSemConv($code);
+
+        // Shared SemConv registry contains the collected constant.
+        $this->assertStringContainsString('interface SemConv', $result->semconvSource);
+        $this->assertStringContainsString("public const string ADMIN_USER = 'admin-user';", $result->semconvSource);
+
+        // The class constant now aliases the registry, with a use import added,
+        // while the method bodies keep using self::.
+        $this->assertStringContainsString('use Generated\\SemConv;', $result->code);
+        $this->assertStringContainsString('private const string ADMIN_USER = SemConv::ADMIN_USER;', $result->code);
+        $this->assertStringContainsString('self::ADMIN_USER', $result->code);
+    }
 }

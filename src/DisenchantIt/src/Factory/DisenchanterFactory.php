@@ -8,15 +8,22 @@ use ItPack\DisenchantIt\ConstantNameGenerator;
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterFactoryInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
+use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
+use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Disenchanter;
 use ItPack\DisenchantIt\LineBasedRewriter;
 use ItPack\DisenchantIt\RewriterInterface;
+use ItPack\DisenchantIt\SemConvAliasRewriter;
+use ItPack\DisenchantIt\SemConvCollector;
+use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 
 /**
- * Composition root for the detection + placement orchestrator. Pulls the
- * scanner, filter and grouper from the DetectorFactory, the name generator and
- * the (auto-routing) placement strategy from the ConstantPlacementStrategyFactory,
- * and the line-based rewriter, then assembles the Disenchanter.
+ * Composition root for the detection + placement (+ SemConv) orchestrator.
+ * Pulls the scanner/filter/grouper from the DetectorFactory, the name generator
+ * and the (auto-routing) placement strategy from the
+ * ConstantPlacementStrategyFactory, the line-based rewriter, and the SemConv
+ * collector + alias rewriter (both built from one SemConvConfig), then assembles
+ * the Disenchanter.
  */
 final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
 {
@@ -25,16 +32,22 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
         private readonly ConstantNameGeneratorInterface $generator,
         private readonly ConstantPlacementStrategyFactory $placements,
         private readonly RewriterInterface $rewriter,
+        private readonly SemConvCollectorInterface $semconvCollector,
+        private readonly SemConvAliasRewriterInterface $semconvAliasRewriter,
     ) {
     }
 
     public static function create(): self
     {
+        $semconvConfig = new SemConvConfig();
+
         return new self(
             DetectorFactory::create(),
             ConstantNameGenerator::create(),
             ConstantPlacementStrategyFactory::create(),
             new LineBasedRewriter(),
+            new SemConvCollector($semconvConfig),
+            new SemConvAliasRewriter($semconvConfig),
         );
     }
 
@@ -47,6 +60,8 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
             $this->generator,
             $this->placements->buildAuto(),
             $this->rewriter,
+            $this->semconvCollector,
+            $this->semconvAliasRewriter,
         );
     }
 }

@@ -88,6 +88,15 @@ final class RoleClassifier implements RoleClassifierInterface
             return 'enum_backing_value';
         }
 
+        // `private const string PATH = 'path';` — a class constant's OWN
+        // declaration value must never be treated as a usage site of that same
+        // constant. Excluding it is what makes a rewrite idempotent: on a
+        // second pass the const's value literal is no longer re-promoted
+        // (which would corrupt it into `self::PATH`).
+        if ($parent instanceof Node\Const_) {
+            return 'class_const_value';
+        }
+
         return 'unclassified';
     }
 

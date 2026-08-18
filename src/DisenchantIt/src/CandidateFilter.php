@@ -34,6 +34,10 @@ final readonly class CandidateFilter implements CandidateFilterInterface
                 // to a *separate* const doesn't just duplicate the value,
                 // it fatals ("Cannot redefine class constant").
                 $lit->role !== 'enum_backing_value'
+                // A class constant's own declaration value (`const FOO = 'bar';`)
+                // is not a usage site of that constant — excluding it is what
+                // keeps a rewrite idempotent (no self-rewrap on a second pass).
+                && $lit->role !== 'class_const_value'
                 && !in_array($lit->role, ['exception_message', 'format_string'], true)
                 && $this->classifier->looksIdentifierLike($lit->value),
         ));
