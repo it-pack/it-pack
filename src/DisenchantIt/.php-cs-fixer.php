@@ -7,7 +7,10 @@ $finder = PhpCsFixer\Finder::create()
     ->in(__DIR__ . '/tests')
     ->name('*.php')
     ->ignoreDotFiles(true)
-    ->ignoreVCS(true);
+    ->ignoreVCS(true)
+    // Codeception auto-generates these support actors; they are not
+    // first-party code and must not be style-checked.
+    ->exclude(['_support', 'Support']);
 
 $config = new PhpCsFixer\Config();
 return $config

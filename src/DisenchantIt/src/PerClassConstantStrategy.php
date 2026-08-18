@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
+use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 
@@ -11,6 +12,7 @@ final class PerClassConstantStrategy implements ConstantPlacementStrategyInterfa
 {
     public function __construct(
         private readonly ConstantPlacementFactoryInterface $placements,
+        private readonly ConstantNameGeneratorInterface $generator,
     ) {
     }
 
@@ -29,7 +31,7 @@ final class PerClassConstantStrategy implements ConstantPlacementStrategyInterfa
         }
 
         $value = $occurrences[0]->value;
-        $constantName = Detector::suggestConstantName($value, $occurrences[0]->role);
+        $constantName = $this->generator->generate($value, $occurrences[0]->role);
 
         $placements = [];
         foreach ($byClass as $className => $classOccurrences) {

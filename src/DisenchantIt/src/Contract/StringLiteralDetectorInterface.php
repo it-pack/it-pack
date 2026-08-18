@@ -7,7 +7,12 @@ namespace ItPack\DisenchantIt\Contract;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 
 /**
- * Port for detecting magic-string candidates in one PHP source string.
+ * Port for detecting magic-string candidates in one PHP source string. Raw
+ * detection only — filtering, grouping and naming live behind their own ports
+ * (CandidateFilterInterface, CandidateGrouperInterface,
+ * ConstantNameGeneratorInterface) so each responsibility is independently
+ * swappable and testable.
+ *
  * The default concrete adapter is nikic/AST based (Detector).
  */
 interface StringLiteralDetectorInterface
@@ -16,16 +21,4 @@ interface StringLiteralDetectorInterface
      * @return list<StringLiteralInterface>
      */
     public function scanSource(string $code): array;
-
-    /**
-     * @param list<StringLiteralInterface> $literals
-     * @return list<StringLiteralInterface>
-     */
-    public function filterCandidates(array $literals): array;
-
-    /**
-     * @param list<StringLiteralInterface> $candidates
-     * @return array<string, list<StringLiteralInterface>>
-     */
-    public function groupByValue(array $candidates): array;
 }

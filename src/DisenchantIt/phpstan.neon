@@ -5,10 +5,13 @@ parameters:
         - src
         - tests
 
-    # Codeception auto-generates these support classes; they are not first-party
-    # code and fail strict analysis, so exclude them from the scan.
+    # Codeception auto-generates these support classes (actors + their trait
+    # actions); they are not first-party code and fail strict analysis, so
+    # exclude them from the scan. The generated trees live under both the
+    # underscore (`tests/_support`) and capitalised (`tests/Support`) paths.
     excludePaths:
-        - tests/Support/_generated
+        - tests/_support
+        - tests/Support
 
     # Extensions
     scanDirectories:
