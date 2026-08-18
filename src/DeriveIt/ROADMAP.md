@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Last reviewed: 2026-08-18 · Status: Phases 0–4 complete, Phase 5 next · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-18 · Status: Phases 0–5 complete, Phase 6 next · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -257,24 +257,35 @@ leakage invariant intact even across a family of types.
 
 ## Phase 5 — Adapter Generation (v0.4.0)
 
+> **Status: ✅ Completed (2026-08-18).** `AdapterGenerator` (`src/Generator/AdapterGenerator.php`)
+> emits a `final` `ClassType` implementing the derived interface, with a constructor-injected
+> `readonly` adaptee and per-method delegation. When a method's (substituted) return type names a
+> derived interface present in `returnWrapperMap` (derived-interface FQCN => adapter class FQCN),
+> the returned value is wrapped in that adapter (null-safe for nullable returns). `DeriveIt::deriveAdapter()`
+> exposes it (emits interface + adapter together, self-contained). Covered by `AdapterGeneratorTest`:
+> golden-file match (`tests/_expected/Tree.adapter.php`), end-to-end delegation + return wrapping
+> (`Service`/`Collaborator`), void/nullable-return handling, and a `nette/php-generator`
+> (`PhpNamespace`) dogfood smoke test. Gates green: `test:unit` 113/113, `cs:check` 0, `analyse` 0.
+
 **Goal:** generate the delegating adapter that implements the derived interface and wraps the
-adaptee — this completes the "derive adapters" promise and provides the Dagger PHP SDK
-dogfood target from the plan.
+adaptee — this completes "derive adapters" and provides the real `nette/php-generator` dogfood
+target from the plan.
 
 ### 5.1 `AdapterGenerator`
 - New `src/Generator/AdapterGenerator.php` emits a `ClassType` implementing the derived
   interface, holding an adaptee instance (constructor-injected), delegating each method,
-  and wrapping return values via `TypeSubstitutor` / an adapter factory when the return type
-  was substituted (Phase 4).
-- **Acceptance:** adapter implements the derived interface; delegation is correct.
+  and wrapping return values via a `returnWrapperMap` (derived-interface FQCN => adapter class
+  FQCN) when the return type was substituted (Phase 4).
+- **Acceptance:** adapter implements the derived interface; delegation is correct; substituted
+  return values are wrapped.
 
 ### 5.2 Dogfood: `nette/php-generator`
-- Derive an interface + adapter for a real `nette/php-generator` class and use it in a
-  smoke test — proving the round-trip on a real-world, in-repo dependency.
+- Derive an interface + adapter for a real `nette/php-generator` class (`PhpNamespace`) and use
+  it in a smoke test — proving the round-trip on a real-world, in-repo dependency.
 
 ### 5.3 Tests
-- Golden-file tests for generated adapters plus at least one end-to-end
-  "adaptee → adapter → call → correct result" test.
+- Golden-file test for generated adapters plus an end-to-end
+  "adaptee → adapter → call → correct result" test (incl. return-value wrapping).
 
 ---
 

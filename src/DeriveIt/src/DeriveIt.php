@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt;
 
+use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\FamilyDeriver;
 use ItPack\DeriveIt\Generator\InterfaceDeriver;
@@ -79,6 +80,27 @@ final class DeriveIt
         }
 
         return $result;
+    }
+
+    /**
+     * Adapter derivation (Phase 5): derive the self-contained interface for $class
+     * and generate the delegating adapter that implements it, wrapping a concrete
+     * adaptee. The returned source defines both the interface and the adapter in
+     * the adaptee's own namespace so it is self-contained.
+     *
+     * @param ReflectionClass|class-string $class
+     * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
+     */
+    public static function deriveAdapter(
+        ReflectionClass|string $class,
+        array $returnWrapperMap = [],
+        DeriveConfig $config = new DeriveConfig(),
+    ): string {
+        $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+
+        $interface = new InterfaceDeriver(config: $config)->derive($reflection);
+
+        return new AdapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
     }
 
     private static function renderInterface(InterfaceType $interface, string $namespace): string
