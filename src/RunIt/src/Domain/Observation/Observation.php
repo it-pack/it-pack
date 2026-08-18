@@ -161,7 +161,7 @@ final readonly class Observation implements ObservationInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
     {
         return $this->executionId;
     }

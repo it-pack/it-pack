@@ -28,7 +28,7 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
  * The generated value is validated by the identifier itself, so a defective
  * generator fails at the point of creation rather than at export time.
  *
- * @template TIdentifier of StringIdentifierInterface
+ * @template-covariant TIdentifier of StringIdentifierInterface
  *
  * @implements StringIdentifierFactoryInterface<TIdentifier>
  *

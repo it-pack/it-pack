@@ -19,9 +19,41 @@ use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
  */
 final readonly class ExecutionSnapshot extends Snapshot implements ExecutionSnapshotInterface
 {
-    /**
-     * @param mixed $payload
-     */
+    public static function create(
+        \ItPack\RunIt\Contract\Domain\SnapshotIdInterface $id,
+        \ItPack\RunIt\Contract\Domain\ExecutionIdInterface $executionId,
+        \ItPack\RunIt\Contract\Domain\SnapshotTypeInterface $type,
+        int $schemaVersion,
+        mixed $payload,
+        \ItPack\RunIt\Contract\Domain\HashCalculatorInterface $hashCalculator,
+        ?\ItPack\RunIt\Contract\Domain\ActivityIdInterface $activityId = null,
+        ?\ItPack\RunIt\Contract\Domain\SnapshotIdInterface $predecessorId = null,
+        ?\ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface $classification = null,
+        ?\ItPack\RunIt\Contract\Domain\InstantInterface $createdAt = null,
+        string $contentType = 'application/json',
+        ?\ItPack\RunIt\Contract\Domain\AttributeCollectionInterface $attributes = null,
+        ?\ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface $sequence = null,
+    ): self {
+        $content = (string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return self::build(
+            $id,
+            $executionId,
+            $activityId,
+            $type,
+            $classification ?? \ItPack\RunIt\Domain\Snapshot\SnapshotClassification::Checkpoint,
+            $schemaVersion,
+            $createdAt ?? \ItPack\RunIt\Domain\Shared\Instant::now(),
+            $payload,
+            $contentType,
+            $hashCalculator->calculate($content),
+            $predecessorId,
+            $attributes ?? \ItPack\RunIt\Domain\Shared\AttributeCollection::empty(),
+            $sequence ?? \ItPack\RunIt\Domain\Shared\ArtifactSequence::initial(),
+        );
+    }
+
+
     protected static function build(
         \ItPack\RunIt\Contract\Domain\SnapshotIdInterface $id,
         \ItPack\RunIt\Contract\Domain\ExecutionIdInterface $executionId,

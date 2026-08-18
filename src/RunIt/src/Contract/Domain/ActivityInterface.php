@@ -28,4 +28,13 @@ interface ActivityInterface extends ExecutionArtifactInterface, ExecutionOwnedIn
     public function endedAt(): ?InstantInterface;
 
     public function throwableDescription(): ?ThrowableDescriptionInterface;
+
+    /**
+     * Returns a copy of this record carrying the terminal status, optional throwable
+     * description, and end time.
+     *
+     * The receiver is never mutated. The activity runner is the canonical place to decide
+     * whether completion is legal before calling this method.
+     */
+    public function complete(ActivityStatusInterface $status, ?ThrowableDescriptionInterface $throwableDescription, InstantInterface $endedAt): ActivityInterface;
 }

@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 
 /**
@@ -38,13 +39,31 @@ final readonly class Execution implements ExecutionInterface
     ) {
     }
 
+    public static function create(
+        ExecutionIdInterface $id,
+        ExecutionDefinitionInterface $definition,
+        InstantInterface $startedAt,
+        ?ArtifactSequenceInterface $sequence = null,
+    ): self {
+        return new self($id, $definition, ExecutionStatus::Created, $startedAt, null, null, $sequence ?? ArtifactSequence::initial());
+    }
+
     public static function start(
         ExecutionIdInterface $id,
         ExecutionDefinitionInterface $definition,
         InstantInterface $startedAt,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $definition, ExecutionStatus::Running, $startedAt, null, null, $sequence ?? ArtifactSequence::initial());
+        return self::create($id, $definition, $startedAt, $sequence)->beginRunning();
+    }
+
+    public function beginRunning(): self
+    {
+        if ($this->status !== ExecutionStatus::Created) {
+            throw InvalidLifecycleTransitionException::forTransition($this->status, ExecutionStatus::Running);
+        }
+
+        return new self($this->id, $this->definition, ExecutionStatus::Running, $this->startedAt, null, null, $this->sequence);
     }
 
     public function complete(ExecutionResultInterface $result, InstantInterface $endedAt): self
@@ -57,7 +76,7 @@ final readonly class Execution implements ExecutionInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
     {
         return $this->id;
     }

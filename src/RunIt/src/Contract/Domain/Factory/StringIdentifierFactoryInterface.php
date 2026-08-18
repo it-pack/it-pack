@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain\Factory;
 
-use ItPack\RunIt\Common\Contract\FactoryInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Common\Contract\FactoryInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 
 /**
@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
  * Reconstructing a known identifier does not require a factory: every
  * identifier value object exposes a `fromString()` named constructor.
  *
- * @template TIdentifier of StringIdentifierInterface
+ * @template-covariant TIdentifier of StringIdentifierInterface
  *
  * @api
  *

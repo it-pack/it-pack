@@ -145,7 +145,7 @@ final readonly class Measurement implements MeasurementInterface
         return $this->value;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
     {
         return $this->executionId;
     }

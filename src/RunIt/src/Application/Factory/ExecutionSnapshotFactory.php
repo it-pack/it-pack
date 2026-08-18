@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\RunIt\Application\Factory;
+
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
+use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
+use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+
+/**
+ * Default producer of the terminal execution snapshot.
+ *
+ * It captures the normalized execution state into an immutable, hash-bound `terminal`
+ * snapshot. Identity and hashing are supplied at construction so the factory stays
+ * free of randomness and extension-specific hashing.
+ *
+ * @see https://w3id.org/itpack/runit#Snapshot
+ */
+final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterface
+{
+    /**
+     * @param StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> $snapshotIdFactory
+     */
+    public function __construct(
+        private StringIdentifierFactoryInterface $snapshotIdFactory,
+        private HashCalculatorInterface $hashCalculator,
+        private ?SnapshotTypeInterface $type = null,
+    ) {
+    }
+
+    public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
+    {
+        $id = $this->snapshotIdFactory->build();
+        $this->type ??= SnapshotType::fromString('execution.terminal');
+
+        return ExecutionSnapshot::create(
+            $id,
+            $execution->executionId(),
+            $this->type,
+            1,
+            $execution->normalize(),
+            $this->hashCalculator,
+            null,
+            null,
+            SnapshotClassification::Terminal,
+        );
+    }
+}

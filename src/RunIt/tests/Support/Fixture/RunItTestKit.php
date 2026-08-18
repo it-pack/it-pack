@@ -1,0 +1,162 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Support\Fixture;
+
+use Closure;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
+use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Factory\ExecutionFactory;
+use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
+use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
+use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
+use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
+use ItPack\RunIt\Application\Propagation\CurrentExecution;
+use ItPack\RunIt\Application\Propagation\SafeArtifactPublisher;
+use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
+use ItPack\RunIt\Application\Scope\ExecutionScope;
+use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
+use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
+use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
+use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+
+/**
+ * Assembles a fully wired DefaultExecutionRunner for application-level tests.
+ *
+ * It uses in-memory and deterministic collaborators so tests are fast, isolated, and free of
+ * real randomness, clocks, or network effects. Tests may inspect {@see self::$publisher} to
+ * assert on emitted artifacts and {@see self::$storage} for context-storage behavior.
+ *
+ * This is a test double: it is not part of the production runtime.
+ */
+final class RunItTestKit
+{
+    public ArtifactPublisherInterface $publisher;
+
+    public DeterministicMonotonicClock $clock;
+
+    public StackContextStorage $storage;
+
+    public InMemorySequenceAllocator $allocator;
+
+    public DefaultExecutionRunner $runner;
+
+    private DeterministicHashCalculator $hashCalculator;
+
+    private DefaultThrowableMapper $throwableMapper;
+
+    private SafeArtifactPublisher $safePublisher;
+
+    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ExecutionIdInterface> */
+    private StringIdentifierFactoryInterface $executionIdFactory;
+
+    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
+    private StringIdentifierFactoryInterface $activityIdFactory;
+
+    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ObservationIdInterface> */
+    private StringIdentifierFactoryInterface $observationIdFactory;
+
+    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\OccurrenceIdInterface> */
+    private StringIdentifierFactoryInterface $occurrenceIdFactory;
+
+    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
+    private StringIdentifierFactoryInterface $snapshotIdFactory;
+
+    /** @var array<string, SequenceIdentifierGenerator> */
+    private array $generators = [];
+
+    /**
+     * @param Closure(\Throwable): void|null $onPublicationFailure
+     */
+    public function __construct(
+        ?ArtifactPublisherInterface $publisher = null,
+        ?Closure $onPublicationFailure = null,
+    ) {
+        $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
+        $this->safePublisher = new SafeArtifactPublisher($this->publisher, $onPublicationFailure);
+        $this->clock = new DeterministicMonotonicClock(1_000, 0);
+        $this->storage = new StackContextStorage();
+        $this->allocator = new InMemorySequenceAllocator();
+        $this->hashCalculator = new DeterministicHashCalculator();
+        $this->throwableMapper = new DefaultThrowableMapper();
+
+        $this->executionIdFactory = new StringIdentifierFactory(ExecutionId::fromString(...), $this->generator('exec'));
+        $this->activityIdFactory = new StringIdentifierFactory(ActivityId::fromString(...), $this->generator('act'));
+        $this->observationIdFactory = new StringIdentifierFactory(ObservationId::fromString(...), $this->generator('obs'));
+        $this->occurrenceIdFactory = new StringIdentifierFactory(OccurrenceId::fromString(...), $this->generator('occ'));
+        $this->snapshotIdFactory = new StringIdentifierFactory(SnapshotId::fromString(...), $this->generator('snap'));
+
+        $this->runner = new DefaultExecutionRunner(
+            new CurrentExecution($this->storage),
+            $this->storage,
+            $this->safePublisher,
+            new ExecutionFactory(),
+            new ExecutionLifecycleCoordinator(),
+            new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
+            new ChildExecutionPolicy(),
+            new AutoFailOpenActivitiesPolicy(),
+            $this->clock,
+            $this->allocator,
+            $this->executionIdFactory,
+            $this->activityIdFactory,
+            $this->observationIdFactory,
+            $this->occurrenceIdFactory,
+            $this->snapshotIdFactory,
+            $this->hashCalculator,
+            $this->throwableMapper,
+            $onPublicationFailure,
+        );
+    }
+
+    /**
+     * Builds an execution scope bound to this kit's collaborators.
+     *
+     * Used by context-storage tests that need real {@see ExecutionScope} instances without going
+     * through the runner.
+     */
+    public function buildScope(ExecutionInterface $execution, ExecutionContextInterface $context): ExecutionScope
+    {
+        return new ExecutionScope(
+            $execution,
+            $execution->executionId(),
+            $context,
+            $this->allocator,
+            $this->clock,
+            $this->safePublisher,
+            $this->throwableMapper,
+            $this->observationIdFactory,
+            $this->occurrenceIdFactory,
+            $this->snapshotIdFactory,
+            $this->activityIdFactory,
+            $this->hashCalculator,
+        );
+    }
+
+    private function generator(string $prefix): IdentifierGeneratorInterface
+    {
+        return $this->generators[$prefix] ??= new SequenceIdentifierGenerator($prefix);
+    }
+
+    /**
+     * @return list<\ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface>
+     */
+    public function artifacts(): array
+    {
+        if ($this->publisher instanceof InMemoryArtifactPublisher) {
+            return $this->publisher->published();
+        }
+
+        return [];
+    }
+}

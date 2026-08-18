@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+
 /**
  * Contract for artifacts that belong to exactly one execution.
  *
@@ -11,9 +14,9 @@ namespace ItPack\RunIt\Contract\Domain;
  * collection or a retained execution session. Every artifact must be able to
  * report the identifier of the execution it belongs to.
  *
- * The concrete identifier contract is specialized per artifact by later
- * milestones (for example `ExecutionIdInterface`); this base contract returns
- * the shared string-identifier contract introduced with the base layer.
+ * The identifier is always an {@see ExecutionIdInterface}; because it extends
+ * the shared string-identifier contract, callers that only need the string form
+ * can rely on that contract without a separate downcast.
  *
  * @api
  *
@@ -24,5 +27,5 @@ interface ExecutionOwnedInterface
     /**
      * Returns the identifier of the execution this artifact belongs to.
      */
-    public function executionId(): StringIdentifierInterface;
+    public function executionId(): ExecutionIdInterface;
 }

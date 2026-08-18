@@ -28,4 +28,21 @@ interface ExecutionInterface extends ExecutionArtifactInterface, ExecutionOwnedI
     public function endedAt(): ?InstantInterface;
 
     public function result(): ?ExecutionResultInterface;
+
+    /**
+     * Returns a copy of this record carrying the terminal result and end time.
+     *
+     * The receiver is never mutated. The lifecycle coordinator is the canonical place
+     * to decide whether the completion is legal before calling this method.
+     */
+    public function complete(ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface;
+
+    /**
+     * Returns a copy of this record carrying the running status.
+     *
+     * The receiver must be in the created state; the lifecycle coordinator is the
+     * canonical place to decide whether the transition is legal before calling this
+     * method.
+     */
+    public function beginRunning(): ExecutionInterface;
 }

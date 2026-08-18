@@ -9,6 +9,7 @@ use ItPack\RunIt\Behavior\Domain\StringIdentifierBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityOwnedInterface;
 use ItPack\RunIt\Contract\Domain\AttributedInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\NormalizableInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
@@ -87,9 +88,9 @@ final class BaseContractTest extends Unit
     public function testExecutionOwnedReportsExecution(): void
     {
         $artifact = new class () implements ExecutionOwnedInterface {
-            public function executionId(): StringIdentifierInterface
+            public function executionId(): ExecutionIdInterface
             {
-                return new class () implements StringIdentifierInterface {
+                return new class () implements ExecutionIdInterface {
                     use StringIdentifierBehavior;
 
                     public function toString(): string

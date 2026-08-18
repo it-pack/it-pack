@@ -26,4 +26,9 @@ interface DurationInterface
      * Returns the duration in whole seconds, rounding down.
      */
     public function seconds(): int;
+
+    /**
+     * Returns a human-readable, implementation-defined string representation.
+     */
+    public function toString(): string;
 }
