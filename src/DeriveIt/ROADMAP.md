@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Status: Early / active · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-18 · Status: Phases 0–4 complete, Phase 5 next · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -26,7 +26,8 @@ phase is built so a developer can pick it up cold.
 ## Phase 0 — Foundation & CI Greening
 
 > **Status: ✅ Completed (2026-08-14).** All three gates green; `test:unit` 26/26,
-> `cs:check` 0 files, `analyse` no errors. `composer.json` now declares `php >=8.4`,
+> `cs:check` 0 files, `analyse` no errors. (Suite has since grown to 108 tests with later
+> phases.) `composer.json` now declares `php >=8.4`,
 > Codeception modules moved to `require-dev`, `nikic/php-parser` dropped as a direct
 > dep, `.gitattributes` added.
 
@@ -83,7 +84,7 @@ exits 0 and that the package installs cleanly on a PHP 8.4+ platform.
 > interface for any class. Files: `src/Contract/Generator/DeriverInterface.php`,
 > `src/Generator/{MethodExtractor,MethodSignatureFactory,InterfaceDeriver}.php`,
 > `src/DeriveIt.php`. Golden tests over 42 class fixtures committed under `tests/_expected/`.
-> Gates green: `test:unit` 78/78, `cs:check` 0, `analyse` 0.
+> Gates green. (Suite has since grown to 108 tests with later phases.)
 
 **Goal:** given a class, produce a clean Nette `InterfaceType` exposing the effective public
 method surface with **zero leakage** from the adaptee's own hierarchy. This is the actual
@@ -218,6 +219,17 @@ option, currently only a single flat resolver path.
 ---
 
 ## Phase 4 — Type Substitution Map (v0.3.0)
+
+> **Status: ✅ Completed (2026-08-18).** `TypeSubstitutor` walks `ReflectionNamedType` /
+> `ReflectionUnionType` / `ReflectionIntersectionType` and rewrites class types to their
+> derived interface FQCN (kept canonical internally; Nette simplifies to short names in
+> rendered source). `FamilyDeriver::derive(array $classes)` builds the derive-set map
+> automatically and derives every member so cross-references point at derived interfaces.
+> Explicit overrides via `DeriveConfig::typeSubstitutionMap` win over auto-detection.
+> `DeriveIt::deriveFamily()` renders the family. Covered by `TypeSubstitutionTest`
+> (union/param rewrite, builtins untouched, family cross-references, explicit override,
+> flat-without-map leaves native type). Gates green: `test:unit` 108/108, `cs:check` 0,
+> `analyse` 0.
 
 **Goal:** when a derived method's type is itself something being derived, point at the derived
 interface instead of the concrete adaptee type (README roadmap item). This keeps the
