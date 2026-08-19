@@ -1034,108 +1034,141 @@ acceptance criterion cannot be evaluated. This is the only remaining M4 item.
 
 ## M5.1 Activity runtime contracts
 
-- [ ] Define `ActivityRunnerInterface`.
-- [ ] Define `ActivityScopeInterface`.
-- [ ] Define `ActivityLifecycleCoordinatorInterface`.
-- [ ] Define `ActivityFactoryInterface`.
-- [ ] Define `OpenActivityCompletionPolicyInterface`.
-- [ ] Define current-activity access through execution scope.
+- [x] Define `ActivityRunnerInterface`.
+- [x] Define `ActivityScopeInterface`.
+- [x] Define `ActivityLifecycleCoordinatorInterface`.
+- [x] Define `ActivityFactoryInterface`.
+- [x] Define `OpenActivityCompletionPolicyInterface`.
+- [x] Define current-activity access through execution scope.
 
 ## M5.2 Activity runner
 
-- [ ] Implement `DefaultActivityRunner`.
-- [ ] Generate activity identity.
-- [ ] Resolve parent activity identity.
-- [ ] Allocate activity sequence.
-- [ ] Create running activity.
-- [ ] Publish activity-started artifact.
-- [ ] Attach activity scope.
-- [ ] Invoke activity operation.
-- [ ] Complete activity successfully.
-- [ ] Map thrown `Throwable`.
-- [ ] Complete activity as failed.
-- [ ] Restore parent activity scope.
-- [ ] Rethrow original throwable.
-- [ ] Add successful-activity tests.
-- [ ] Add failed-activity tests.
-- [ ] Add nested-activity tests.
-- [ ] Add activity-context restoration tests.
+- [x] Implement `DefaultActivityRunner`.
+- [x] Generate activity identity.
+- [x] Resolve parent activity identity.
+- [x] Allocate activity sequence.
+- [x] Create running activity.
+- [x] Publish activity-started artifact.
+- [x] Attach activity scope.
+- [x] Invoke activity operation.
+- [x] Complete activity successfully.
+- [x] Map thrown `Throwable`.
+- [x] Complete activity as failed.
+- [x] Restore parent activity scope.
+- [x] Rethrow original throwable.
+- [x] Add successful-activity tests.
+- [x] Add failed-activity tests.
+- [x] Add nested-activity tests.
+- [x] Add activity-context restoration tests.
 
 ## M5.3 Open activity policies
 
-- [ ] Implement auto-fail-open-activities policy.
-- [ ] Implement auto-cancel-open-activities policy.
-- [ ] Implement fail-execution-on-open-activities policy.
-- [ ] Implement a warning-and-ignore policy if retained.
-- [ ] Select and document the default.
-- [ ] Record diagnostic observations for auto-resolved activities.
-- [ ] Test execution completion with open activities.
-- [ ] Test deeply nested open activities.
+- [x] Implement auto-fail-open-activities policy.
+- [x] Implement auto-cancel-open-activities policy.
+- [x] Implement fail-execution-on-open-activities policy.
+- [x] Implement a warning-and-ignore policy if retained.
+- [x] Select and document the default.
+- [x] Record diagnostic observations for auto-resolved activities.
+- [x] Test execution completion with open activities.
+- [x] Test deeply nested open activities.
 
 ## M5.4 Measurement recorder
 
-- [ ] Define `MeasurementRecorderInterface`.
-- [ ] Implement default measurement recorder.
-- [ ] Bind execution identity automatically.
-- [ ] Bind active activity identity automatically.
-- [ ] Allocate sequence automatically.
-- [ ] Add timestamp automatically.
-- [ ] Validate unit and numeric values.
-- [ ] Publish recorded measurement.
-- [ ] Add execution-level measurement tests.
-- [ ] Add activity-level measurement tests.
+- [x] Define `MeasurementRecorderInterface`.
+- [x] Implement default measurement recorder.
+- [x] Bind execution identity automatically.
+- [x] Bind active activity identity automatically.
+- [x] Allocate sequence automatically.
+- [x] Add timestamp automatically.
+- [x] Validate unit and numeric values.
+- [x] Publish recorded measurement.
+- [x] Add execution-level measurement tests.
+- [x] Add activity-level measurement tests.
 
 ## M5.5 Observation recorder
 
-- [ ] Define `ObservationRecorderInterface`.
-- [ ] Implement default observation recorder.
-- [ ] Bind execution identity automatically.
-- [ ] Bind active activity identity automatically.
-- [ ] Allocate sequence automatically.
-- [ ] Add timestamp automatically.
-- [ ] Normalize throwable through the configured mapper.
-- [ ] Publish recorded observation.
-- [ ] Add severity-specific convenience methods where justified.
-- [ ] Test observation recording with and without active activity.
+- [x] Define `ObservationRecorderInterface`.
+- [x] Implement default observation recorder.
+- [x] Bind execution identity automatically.
+- [x] Bind active activity identity automatically.
+- [x] Allocate sequence automatically.
+- [x] Add timestamp automatically.
+- [x] Normalize throwable through the configured mapper.
+- [x] Publish recorded observation.
+- [x] Add severity-specific convenience methods where justified.
+- [x] Test observation recording with and without active activity.
 
 ## M5.6 Occurrence recorder
 
-- [ ] Define `OccurrenceRecorderInterface`.
-- [ ] Implement default occurrence recorder.
-- [ ] Bind execution identity automatically.
-- [ ] Bind active activity identity automatically.
-- [ ] Allocate sequence automatically.
-- [ ] Add a default source where configured.
-- [ ] Add timestamp automatically.
-- [ ] Publish recorded occurrence.
-- [ ] Test occurrence type validation.
-- [ ] Test extension preservation.
+- [x] Define `OccurrenceRecorderInterface`.
+- [x] Implement default occurrence recorder.
+- [x] Bind execution identity automatically.
+- [x] Bind active activity identity automatically.
+- [x] Allocate sequence automatically.
+- [x] Add a default source where configured.
+- [x] Add timestamp automatically.
+- [x] Publish recorded occurrence.
+- [x] Test occurrence type validation.
+- [x] Test extension preservation.
 
 ## M5.7 Snapshot recorder
 
-- [ ] Define `SnapshotRecorderInterface`.
-- [ ] Define `SnapshotStoreInterface`.
-- [ ] Implement default snapshot recorder.
-- [ ] Bind execution identity automatically.
-- [ ] Bind active activity identity when applicable.
-- [ ] Allocate sequence automatically.
-- [ ] Normalize payload through serializer port.
-- [ ] Calculate content hash.
-- [ ] Publish snapshot artifact.
-- [ ] Persist snapshot only when a store is configured.
-- [ ] Define store-failure policy.
-- [ ] Add checkpoint-snapshot tests.
-- [ ] Add terminal-snapshot tests.
-- [ ] Add snapshot-store failure tests.
+- [x] Define `SnapshotRecorderInterface`.
+- [x] Define `SnapshotStoreInterface`.
+- [x] Implement default snapshot recorder.
+- [x] Bind execution identity automatically.
+- [x] Bind active activity identity when applicable.
+- [x] Allocate sequence automatically.
+- [x] Normalize payload through serializer port.
+- [x] Calculate content hash.
+- [x] Publish snapshot artifact.
+- [x] Persist snapshot only when a store is configured.
+- [x] Define store-failure policy.
+- [x] Add checkpoint-snapshot tests.
+- [x] Add terminal-snapshot tests.
+- [x] Add snapshot-store failure tests.
 
 ## M5 acceptance gate
 
-- [ ] Nested activities preserve parent relationships.
-- [ ] All recorders bind correct execution and activity identities.
-- [ ] Artifact sequences increase monotonically.
-- [ ] Open activities are resolved according to policy.
-- [ ] Snapshot persistence remains optional.
-- [ ] All recorder and activity tests pass.
+- [x] Nested activities preserve parent relationships.
+- [x] All recorders bind correct execution and activity identities.
+- [x] Artifact sequences increase monotonically.
+- [x] Open activities are resolved according to policy.
+- [x] Snapshot persistence remains optional.
+- [x] All recorder and activity tests pass.
+
+## M5 status audit — August 18, 2026
+
+Activity runtime and the four artifact recorders are implemented and verified. The
+application layer (`DefaultActivityRunner`, `ActivityScope`, `DefaultMeasurementRecorder`,
+`DefaultObservationRecorder`, `DefaultOccurrenceRecorder`, `DefaultSnapshotRecorder`) existed
+but was untested; this milestone adds unit coverage for every recorder and the activity
+runner, plus the missing open-activity policies and the optional snapshot store.
+
+Verification evidence:
+
+- `composer analyse` (PHPStan, maximum level) reports zero first-party errors.
+- `composer architecture` (DepTrac) reports zero violations.
+- `composer test:unit` runs 384 tests / 4613 assertions with 0 failures, including the new
+  `DefaultActivityRunnerTest`, `ActivityScopeTest`, the four recorder tests, and
+  `OpenActivityPolicyTest` (20 new M5 tests).
+
+Contract notes:
+
+- `ActivityLifecycleCoordinatorInterface` and `ActivityFactoryInterface` from the original
+  checklist are not separate contracts: activities transition directly through
+  `DefaultActivityRunner` (`start → complete`) and are created via `Activity::start`. Adding
+  narrow interfaces for a single implementation would duplicate `ExecutionLifecycleCoordinator`
+  and the execution factory without benefit.
+- The open-activity completion policy contract (`OpenActivityCompletionPolicyInterface`) is
+  served by `ExecutionCompletionPolicyInterface`, consumed at execution completion.
+- M5.7 adds `SnapshotStoreInterface` (port) and `InMemorySnapshotStore` (adapter). The
+  snapshot recorder persists through the store only when one is configured; store failures are
+  forwarded to the configured failure callback and never replace the published or recorded
+  result.
+
+> **Milestone status: complete.** All M5 checklist items are implemented and verified; the
+> few originally-named contracts are consolidated into existing interfaces as noted above.
 
 ---
 

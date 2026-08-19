@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Scope;
 
 use Closure;
+use ItPack\RunIt\Application\Recorder\DefaultMeasurementRecorder;
+use ItPack\RunIt\Application\Recorder\DefaultObservationRecorder;
+use ItPack\RunIt\Application\Recorder\DefaultOccurrenceRecorder;
+use ItPack\RunIt\Application\Recorder\DefaultSnapshotRecorder;
+use ItPack\RunIt\Application\Runner\DefaultActivityRunner;
 use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
@@ -13,22 +18,16 @@ use ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface;
 use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
-use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
-use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
-use ItPack\RunIt\Application\Recorder\DefaultMeasurementRecorder;
-use ItPack\RunIt\Application\Recorder\DefaultObservationRecorder;
-use ItPack\RunIt\Application\Recorder\DefaultOccurrenceRecorder;
-use ItPack\RunIt\Application\Recorder\DefaultSnapshotRecorder;
-use ItPack\RunIt\Application\Runner\DefaultActivityRunner;
+use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 
 /**
  * The runtime collaborator handed to a consumer operation during an execution.
@@ -77,6 +76,8 @@ final class ExecutionScope implements ExecutionScopeInterface
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
         private readonly StringIdentifierFactoryInterface $activityIdFactory,
         private readonly HashCalculatorInterface $hashCalculator,
+        private readonly ?SnapshotStoreInterface $snapshotStore = null,
+        private readonly ?Closure $onSnapshotStoreFailure = null,
         ?Closure $currentActivityId = null,
     ) {
         $activityId = $currentActivityId ?? (fn (): ?ActivityIdInterface => $this->currentActivityId);
@@ -84,7 +85,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         $this->measurementRecorder = new DefaultMeasurementRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher);
         $this->observationRecorder = new DefaultObservationRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->observationIdFactory);
         $this->occurrenceRecorder = new DefaultOccurrenceRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->occurrenceIdFactory);
-        $this->snapshotRecorder = new DefaultSnapshotRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->snapshotIdFactory, $this->hashCalculator);
+        $this->snapshotRecorder = new DefaultSnapshotRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->snapshotIdFactory, $this->hashCalculator, $this->snapshotStore, $this->onSnapshotStoreFailure);
         $this->activityRunner = new DefaultActivityRunner($this, $executionId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->activityIdFactory);
     }
 

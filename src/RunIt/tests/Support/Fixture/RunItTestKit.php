@@ -7,6 +7,7 @@ namespace Tests\Support\Fixture;
 use Closure;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Adapter\Memory\InMemorySnapshotStore;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
@@ -22,6 +23,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
+use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
@@ -43,6 +45,8 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 final class RunItTestKit
 {
     public ArtifactPublisherInterface $publisher;
+
+    public ?SnapshotStoreInterface $snapshotStore = null;
 
     public DeterministicMonotonicClock $clock;
 
@@ -82,8 +86,11 @@ final class RunItTestKit
     public function __construct(
         ?ArtifactPublisherInterface $publisher = null,
         ?Closure $onPublicationFailure = null,
+        ?SnapshotStoreInterface $snapshotStore = null,
+        ?Closure $onSnapshotStoreFailure = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
+        $this->snapshotStore = $snapshotStore;
         $this->safePublisher = new SafeArtifactPublisher($this->publisher, $onPublicationFailure);
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
         $this->storage = new StackContextStorage();
@@ -116,6 +123,8 @@ final class RunItTestKit
             $this->hashCalculator,
             $this->throwableMapper,
             $onPublicationFailure,
+            $snapshotStore,
+            $onSnapshotStoreFailure,
         );
     }
 
@@ -140,6 +149,8 @@ final class RunItTestKit
             $this->snapshotIdFactory,
             $this->activityIdFactory,
             $this->hashCalculator,
+            null,
+            null,
         );
     }
 
@@ -155,6 +166,18 @@ final class RunItTestKit
     {
         if ($this->publisher instanceof InMemoryArtifactPublisher) {
             return $this->publisher->published();
+        }
+
+        return [];
+    }
+
+    /**
+     * @return list<\ItPack\RunIt\Contract\Domain\SnapshotInterface>
+     */
+    public function storedSnapshots(): array
+    {
+        if ($this->snapshotStore instanceof InMemorySnapshotStore) {
+            return $this->snapshotStore->stored();
         }
 
         return [];

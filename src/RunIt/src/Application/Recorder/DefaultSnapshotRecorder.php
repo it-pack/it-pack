@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
@@ -18,10 +19,11 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
-use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
+use Throwable;
 
 /**
  * Default snapshot recorder.
@@ -46,6 +48,8 @@ final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
         private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
         private readonly HashCalculatorInterface $hashCalculator,
+        private readonly ?SnapshotStoreInterface $store = null,
+        private readonly ?Closure $onStoreFailure = null,
     ) {
     }
 
@@ -73,8 +77,24 @@ final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
         );
 
         $this->publisher->publish($snapshot);
+        $this->persist($snapshot);
 
         return $snapshot;
+    }
+
+    private function persist(SnapshotInterface $snapshot): void
+    {
+        if (!$this->store instanceof SnapshotStoreInterface) {
+            return;
+        }
+
+        try {
+            $this->store->store($snapshot);
+        } catch (Throwable $storeError) {
+            if ($this->onStoreFailure instanceof Closure) {
+                ($this->onStoreFailure)($storeError);
+            }
+        }
     }
 
     private function activityId(): ?ActivityIdInterface

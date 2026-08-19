@@ -26,6 +26,7 @@ use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -79,6 +80,8 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         private readonly HashCalculatorInterface $hashCalculator,
         private readonly ThrowableMapperInterface $throwableMapper,
         private readonly ?Closure $onPublicationFailure = null,
+        private readonly ?SnapshotStoreInterface $snapshotStore = null,
+        private readonly ?Closure $onSnapshotStoreFailure = null,
     ) {
         $this->safePublisher = new SafeArtifactPublisher($this->publisher, $this->onPublicationFailure);
     }
@@ -148,6 +151,8 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
             $this->snapshotIdFactory,
             $this->activityIdFactory,
             $this->hashCalculator,
+            $this->snapshotStore,
+            $this->onSnapshotStoreFailure,
         );
 
         $token = $this->contextStorage->attach($scope);
