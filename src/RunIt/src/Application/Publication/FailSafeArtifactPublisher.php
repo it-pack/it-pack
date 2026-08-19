@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -26,6 +27,7 @@ final class FailSafeArtifactPublisher implements ArtifactPublisherInterface, Flu
     public function __construct(
         private readonly ArtifactPublisherInterface $inner,
         private readonly PublicationFailurePolicyInterface $policy,
+        private readonly ?InternalHealthReporterInterface $health = null,
     ) {
     }
 
@@ -35,6 +37,7 @@ final class FailSafeArtifactPublisher implements ArtifactPublisherInterface, Flu
             $this->inner->publish($artifact);
         } catch (\Throwable $publicationError) {
             $this->policy->handle($publicationError, $artifact);
+            $this->health?->report($publicationError, $artifact);
         }
     }
 

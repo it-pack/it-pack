@@ -15,7 +15,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  * rethrows the original adapter exception unchanged; it never substitutes a business
  * exception.
  *
- * @see https://w3id.org/itpack/runit#Execution
+ * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
 final class FailClosedPolicy implements PublicationFailurePolicyInterface
 {

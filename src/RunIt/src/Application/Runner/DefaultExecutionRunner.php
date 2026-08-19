@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Runner;
 
 use Closure;
-use ItPack\RunIt\Application\Propagation\SafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\FailOpenPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
@@ -26,6 +28,7 @@ use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
@@ -55,11 +58,12 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
     /**
      * @param Closure(\Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
      */
-    private readonly SafeArtifactPublisher $safePublisher;
+    private readonly FailSafeArtifactPublisher $safePublisher;
     public function __construct(
         private readonly CurrentExecutionInterface $currentExecution,
         private readonly ContextStorageInterface $contextStorage,
         private readonly ArtifactPublisherInterface $publisher,
+        private readonly SerializerInterface $serializer,
         private readonly ExecutionFactoryInterface $executionFactory,
         private readonly ExecutionLifecycleCoordinatorInterface $coordinator,
         private readonly ExecutionSnapshotFactoryInterface $snapshotFactory,
@@ -83,7 +87,8 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         private readonly ?SnapshotStoreInterface $snapshotStore = null,
         private readonly ?Closure $onSnapshotStoreFailure = null,
     ) {
-        $this->safePublisher = new SafeArtifactPublisher($this->publisher, $this->onPublicationFailure);
+        $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
+        $this->safePublisher = new FailSafeArtifactPublisher($this->publisher, new FailOpenPolicy(), $health);
     }
 
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
@@ -145,6 +150,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
             $this->sequenceAllocator,
             $this->clock,
             $this->safePublisher,
+            $this->serializer,
             $this->throwableMapper,
             $this->observationIdFactory,
             $this->occurrenceIdFactory,
@@ -209,12 +215,6 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
 
     private function safePublish(ExecutionArtifactInterface $artifact): void
     {
-        try {
-            $this->publisher->publish($artifact);
-        } catch (Throwable $publicationError) {
-            if ($this->onPublicationFailure instanceof Closure) {
-                ($this->onPublicationFailure)($publicationError);
-            }
-        }
+        $this->safePublisher->publish($artifact);
     }
 }

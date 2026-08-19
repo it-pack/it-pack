@@ -26,8 +26,8 @@ final class InvalidLifecycleTransitionException extends RuntimeException impleme
         return new self(
             sprintf(
                 'Execution transition from "%s" to "%s" is not allowed.',
-                $from->name(),
-                $to->name(),
+                $from->label(),
+                $to->label(),
             ),
         );
     }

@@ -26,8 +26,8 @@ final class ConflictingCompletionException extends RuntimeException implements I
         return new self(
             sprintf(
                 'Execution is already terminal with status "%s"; conflicting completion to "%s" is not allowed.',
-                $existing->name(),
-                $attempted->name(),
+                $existing->label(),
+                $attempted->label(),
             ),
         );
     }

@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Policy;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
+use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
+use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
+use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
+use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
+use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -13,11 +17,6 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
-use ItPack\RunIt\Contract\Application\NestedExecutionMode;
-use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
-use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
-use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
-use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use Tests\Support\Fixture\RunItTestKit;
 
 final class NestedExecutionPolicyTest extends Unit

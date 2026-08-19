@@ -6,6 +6,7 @@ namespace Tests\Support\Fixture;
 
 use Closure;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
+use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Adapter\Memory\InMemorySnapshotStore;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
@@ -14,8 +15,10 @@ use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
-use ItPack\RunIt\Application\Propagation\SafeArtifactPublisher;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\FailOpenPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
@@ -48,6 +51,8 @@ final class RunItTestKit
 
     public ?SnapshotStoreInterface $snapshotStore = null;
 
+    private ?Closure $onPublicationFailure = null;
+
     public DeterministicMonotonicClock $clock;
 
     public StackContextStorage $storage;
@@ -59,8 +64,6 @@ final class RunItTestKit
     private DeterministicHashCalculator $hashCalculator;
 
     private DefaultThrowableMapper $throwableMapper;
-
-    private SafeArtifactPublisher $safePublisher;
 
     /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ExecutionIdInterface> */
     private StringIdentifierFactoryInterface $executionIdFactory;
@@ -91,7 +94,7 @@ final class RunItTestKit
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->snapshotStore = $snapshotStore;
-        $this->safePublisher = new SafeArtifactPublisher($this->publisher, $onPublicationFailure);
+        $this->onPublicationFailure = $onPublicationFailure;
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
         $this->storage = new StackContextStorage();
         $this->allocator = new InMemorySequenceAllocator();
@@ -107,7 +110,8 @@ final class RunItTestKit
         $this->runner = new DefaultExecutionRunner(
             new CurrentExecution($this->storage),
             $this->storage,
-            $this->safePublisher,
+            $this->publisher,
+            new JsonSnapshotSerializer(),
             new ExecutionFactory(),
             new ExecutionLifecycleCoordinator(),
             new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
@@ -142,7 +146,12 @@ final class RunItTestKit
             $context,
             $this->allocator,
             $this->clock,
-            $this->safePublisher,
+            new FailSafeArtifactPublisher(
+                $this->publisher,
+                new FailOpenPolicy(),
+                $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure),
+            ),
+            new JsonSnapshotSerializer(),
             $this->throwableMapper,
             $this->observationIdFactory,
             $this->occurrenceIdFactory,

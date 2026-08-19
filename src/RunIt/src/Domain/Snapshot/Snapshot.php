@@ -27,6 +27,11 @@ use ItPack\RunIt\Domain\Shared\Instant;
  * bound to its payload through a deterministic content hash. Snapshots may reference a predecessor
  * so a store can resolve history without retaining every payload inline.
  *
+ * This class is intentionally not `final`: it is the single closed base refined only by
+ * `ExecutionSnapshot`, mirroring the vocabulary (`runit:ExecutionSnapshot` is a subclass of
+ * `runit:Snapshot`). No further subtypes are permitted; this is the documented ADR-015 exception
+ * for a vocabulary-backed refinement.
+ *
  * @api
  *
  * @see https://w3id.org/itpack/runit#Snapshot

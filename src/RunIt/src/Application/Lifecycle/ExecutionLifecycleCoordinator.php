@@ -49,7 +49,7 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
             throw ConflictingCompletionException::forConflict($from, $to);
         }
 
-        if (!isset(self::ALLOWED[$from->name()]) || !in_array($to->name(), self::ALLOWED[$from->name()], true)) {
+        if (!isset(self::ALLOWED[$from->label()]) || !in_array($to->label(), self::ALLOWED[$from->label()], true)) {
             throw InvalidLifecycleTransitionException::forTransition($from, $to);
         }
 
@@ -77,6 +77,6 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
             return $from === $to;
         }
 
-        return isset(self::ALLOWED[$from->name()]) && in_array($to->name(), self::ALLOWED[$from->name()], true);
+        return isset(self::ALLOWED[$from->label()]) && in_array($to->label(), self::ALLOWED[$from->label()], true);
     }
 }

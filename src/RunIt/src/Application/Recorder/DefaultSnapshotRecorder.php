@@ -19,6 +19,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
@@ -45,6 +46,7 @@ final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
         private readonly SequenceAllocatorInterface $sequenceAllocator,
         private readonly MonotonicClockInterface $clock,
         private readonly ArtifactPublisherInterface $publisher,
+        private readonly SerializerInterface $serializer,
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
         private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
         private readonly HashCalculatorInterface $hashCalculator,
@@ -65,13 +67,13 @@ final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
             $this->executionId,
             $type,
             $schemaVersion,
-            $payload,
+            $this->serializer->normalize($payload),
             $this->hashCalculator,
             $this->activityId(),
             null,
             $classification ?? SnapshotClassification::Checkpoint,
             $this->now(),
-            'application/json',
+            $this->serializer->contentType(),
             $attributes,
             $this->sequence(),
         );

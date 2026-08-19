@@ -17,7 +17,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  * and routed to the health reporter instead of recursing back through the guarded
  * pipeline; the original publication error is never allowed to replace the business result.
  *
- * @see https://w3id.org/itpack/runit#Execution
+ * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
 final class ReportToFallbackPolicy implements PublicationFailurePolicyInterface
 {

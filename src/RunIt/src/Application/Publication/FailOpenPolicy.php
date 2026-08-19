@@ -13,7 +13,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  * This is the fail-open default: a broken transport must not replace the operation's
  * business result or the original business exception. The error is intentionally dropped.
  *
- * @see https://w3id.org/itpack/runit#Execution
+ * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
 final class FailOpenPolicy implements PublicationFailurePolicyInterface
 {

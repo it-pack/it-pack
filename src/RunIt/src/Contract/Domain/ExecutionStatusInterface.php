@@ -20,7 +20,7 @@ interface ExecutionStatusInterface
     /**
      * Returns the stable, lower-case status name.
      */
-    public function name(): string;
+    public function label(): string;
 
     /**
      * Returns whether this status is terminal (no further transitions allowed).

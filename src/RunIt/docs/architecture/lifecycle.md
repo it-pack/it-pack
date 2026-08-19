@@ -54,8 +54,9 @@ prior ambient context in a `finally` block:
 6. Rethrow the exact original `Throwable`.
 
 Publication failures never replace the business result or exception: the runner
-publishes through `SafeArtifactPublisher`, which catches publisher errors and
-forwards them to the configured health callback (`onPublicationFailure`).
+publishes through `FailSafeArtifactPublisher` (configured with the fail-open default
+policy), which catches publisher errors and forwards them to the configured health
+callback (`onPublicationFailure`).
 
 ## Nested execution
 

@@ -27,6 +27,7 @@ use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 
 /**
@@ -66,6 +67,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly SequenceAllocatorInterface $sequenceAllocator,
         private readonly MonotonicClockInterface $clock,
         private readonly ArtifactPublisherInterface $publisher,
+        private readonly SerializerInterface $serializer,
         private readonly ThrowableMapperInterface $throwableMapper,
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ObservationIdInterface> */
         private readonly StringIdentifierFactoryInterface $observationIdFactory,
@@ -85,7 +87,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         $this->measurementRecorder = new DefaultMeasurementRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher);
         $this->observationRecorder = new DefaultObservationRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->observationIdFactory);
         $this->occurrenceRecorder = new DefaultOccurrenceRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->occurrenceIdFactory);
-        $this->snapshotRecorder = new DefaultSnapshotRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->snapshotIdFactory, $this->hashCalculator, $this->snapshotStore, $this->onSnapshotStoreFailure);
+        $this->snapshotRecorder = new DefaultSnapshotRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->serializer, $this->snapshotIdFactory, $this->hashCalculator, $this->snapshotStore, $this->onSnapshotStoreFailure);
         $this->activityRunner = new DefaultActivityRunner($this, $executionId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->activityIdFactory);
     }
 

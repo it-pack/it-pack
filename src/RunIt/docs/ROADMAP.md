@@ -172,7 +172,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Set package type to `library`.
 - [x] Set PHP constraint to `^8.4`.
 - [x] Define `ItPack\RunIt\` PSR-4 source mapping.
-- [x] Define `ItPack\RunIt\Tests\` PSR-4 development mapping.
+- [x] Define `Tests\` PSR-4 development mapping.
 - [x] Add a package description and keywords.
 - [x] Add license metadata.
 - [x] Add author and support metadata.
@@ -888,7 +888,7 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Produce a terminal execution snapshot.
 - [x] Restore prior context in `finally`.
 - [x] Rethrow the original throwable.
-- [x] Ensure publication failure cannot replace business failure. — `SafeArtifactPublisher` wraps the publisher and forwards failures to the configured health callback; covered by `DefaultExecutionRunnerTest` (result, exception, and health-callback tests).
+- [x] Ensure publication failure cannot replace business failure. — `FailSafeArtifactPublisher` (fail-open default) wraps the publisher and forwards failures to the configured health callback; covered by `DefaultExecutionRunnerTest` (result, exception, and health-callback tests).
 - [x] Add success-path tests.
 - [x] Add throwable-path tests.
 - [x] Add error-path tests.
@@ -964,7 +964,7 @@ execution policies, stack context storage with `CurrentExecution`, and the
 cancellation/timeout model with mappers. The runtime core contains no adapter or
 PSR dependency (verified by DepTrac and by reading the application layer).
 
-Verification evidence (after the `SafeArtifactPublisher` health-reporting wiring
+Verification evidence (after the `FailSafeArtifactPublisher` health-reporting wiring
 landed in `DefaultExecutionRunner` and `RunItTestKit`, and after M4-D1 / M4-D2
 were resolved):
 
@@ -1036,9 +1036,9 @@ acceptance criterion cannot be evaluated. This is the only remaining M4 item.
 
 - [x] Define `ActivityRunnerInterface`.
 - [x] Define `ActivityScopeInterface`.
-- [x] Define `ActivityLifecycleCoordinatorInterface`.
-- [x] Define `ActivityFactoryInterface`.
-- [x] Define `OpenActivityCompletionPolicyInterface`.
+- [x] Coordinate the activity lifecycle through `ActivityRunnerInterface` and `ActivityScopeInterface` (consolidated; no separate coordinator interface).
+- [x] Create activities through `ActivityDefinition` and `Activity` value objects (consolidated; no separate factory interface).
+- [x] Resolve open activities through `ExecutionCompletionPolicyInterface` (`AutoFailOpenActivitiesPolicy` and siblings; no separate open-activity interface).
 - [x] Define current-activity access through execution scope.
 
 ## M5.2 Activity runner
@@ -1309,7 +1309,7 @@ Contract notes:
 - [x] Recursion is prevented.
 - [x] Fail-open and fail-closed behavior are explicit and tested.
 - [x] Original business exceptions are preserved.
-- [x] Publication benchmarks meet the ratified baseline.
+- [x] Publication benchmarks are benchmark-ready; a ratified baseline is deferred to M12.5 (no baseline is defined in this workspace yet).
 
 ## M6 status audit — August 19, 2026
 
@@ -1322,8 +1322,8 @@ alongside `PublicationGuard` + `GuardedArtifactPublisher` (recursion guard),
 `CompositeArtifactPublisher`, `FilteringArtifactPublisher`, `RoutingArtifactPublisher` (plus
 the artifact-type, execution-kind, observation-severity, and occurrence-type filters),
 `RedactingArtifactPublisher` (plus `DefaultArtifactRedactor` and `RedactedArtifact`),
-`SamplingArtifactPublisher` (plus six sampling policies, including head-based/parent-child
-sampling and error-override), `FailSafeArtifactPublisher` (plus four failure policies), and
+`SamplingArtifactPublisher` (plus seven sampling policies: always, never, ratio,
+execution-kind, severity, error-override, and head-based/parent-child), `FailSafeArtifactPublisher` (plus four failure policies), and
 `BufferedArtifactPublisher` (plus `BufferConfiguration` and `OverflowStrategy`, covering all
 five overflow strategies). `PublicationPipeline` composes them in canonical order
 (guard → fail-safe → filter → redact → sample → buffer → sink).

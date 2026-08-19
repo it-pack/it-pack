@@ -15,7 +15,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  * a caller can inspect, count, or later replay failures. The policy never throws, so the
  * operation continues as if publication had succeeded.
  *
- * @see https://w3id.org/itpack/runit#Execution
+ * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
 final class CollectAndContinuePolicy implements PublicationFailurePolicyInterface
 {

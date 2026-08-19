@@ -9,15 +9,17 @@ use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
 /**
  * The closed set of observation severities.
  *
- * Severities mirror the PSR-3 log levels so observations integrate with existing
- * logging without redefining the scale.
+ * Severities align with the PSR-3 log levels so observations integrate with existing
+ * logging without redefining the scale. The vocabulary extends PSR-3 with a `trace`
+ * severity (below `debug`) for fine-grained diagnostics.
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#Observation
+ * @see https://w3id.org/itpack/runit#ObservationSeverity
  */
 enum ObservationSeverity: string implements ObservationSeverityInterface
 {
+    case Trace = 'trace';
     case Debug = 'debug';
     case Info = 'info';
     case Notice = 'notice';
@@ -35,6 +37,7 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
     public function level(): int
     {
         return match ($this) {
+            self::Trace => 50,
             self::Debug => 100,
             self::Info => 200,
             self::Notice => 250,

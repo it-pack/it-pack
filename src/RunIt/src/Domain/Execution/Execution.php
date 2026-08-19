@@ -130,7 +130,7 @@ final readonly class Execution implements ExecutionInterface
             'id' => $this->id->toString(),
             'name' => $this->definition->name()->toString(),
             'kind' => $this->definition->kind()->toString(),
-            'status' => $this->status->name(),
+            'status' => $this->status->label(),
             'started_at' => $this->startedAt->epochSeconds(),
             'ended_at' => $this->endedAt?->epochSeconds(),
             'parent_execution_id' => $this->definition->parentExecutionId()?->toString(),
@@ -141,7 +141,7 @@ final readonly class Execution implements ExecutionInterface
             'sequence' => $this->sequence->value(),
             'context' => $this->definition->context()->toArray(),
             'result' => $this->result === null ? null : [
-                'status' => $this->result->status()->name(),
+                'status' => $this->result->status()->label(),
                 'throwable' => $this->result->throwableDescription()?->toArray(),
             ],
         ];

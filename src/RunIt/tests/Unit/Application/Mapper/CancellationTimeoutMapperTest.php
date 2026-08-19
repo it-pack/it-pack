@@ -7,7 +7,6 @@ namespace Tests\Unit\Application\Mapper;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Mapper\DefaultCancellationMapper;
 use ItPack\RunIt\Application\Mapper\DefaultTimeoutMapper;
-use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Domain\Execution\Cancellation;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\Timeout;

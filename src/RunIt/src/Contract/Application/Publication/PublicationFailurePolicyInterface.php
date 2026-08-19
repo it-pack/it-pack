@@ -20,7 +20,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#Execution
+ * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
 interface PublicationFailurePolicyInterface
 {

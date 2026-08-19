@@ -134,7 +134,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
 
         // From Running every terminal outcome is allowed.
         foreach ([ExecutionStatus::Succeeded, ExecutionStatus::Failed, ExecutionStatus::Cancelled, ExecutionStatus::TimedOut] as $terminal) {
-            self::assertTrue(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Running, $terminal), $terminal->name());
+            self::assertTrue(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Running, $terminal), $terminal->label());
         }
 
         // Terminal statuses cannot transition further.
