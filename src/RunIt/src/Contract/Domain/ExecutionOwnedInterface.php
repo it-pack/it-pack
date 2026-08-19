@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
-use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
-use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
-
 /**
  * Contract for artifacts that belong to exactly one execution.
  *

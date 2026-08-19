@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Policy;
 
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
-use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 
 /**
  * Nested-execution policy that runs a nested call as an activity of the current execution.

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Application;
 
-use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\CancellationInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 
 /**
  * Contract for mapping a cooperative cancellation to a failed execution result.

@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
-use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
-use ItPack\RunIt\Contract\Domain\DurationInterface;
-use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
-
 /**
  * Contract for an elapsed timeout of an execution.
  *

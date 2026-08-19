@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Application;
 
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
-use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 
 /**
  * Contract for deciding how a nested execution call is handled.

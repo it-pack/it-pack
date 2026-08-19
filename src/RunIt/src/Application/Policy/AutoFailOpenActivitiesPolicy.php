@@ -6,7 +6,6 @@ namespace ItPack\RunIt\Application\Policy;
 
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 
 /**

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain\Factory;
 
-use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Common\Contract\FactoryInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 
 /**

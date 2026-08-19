@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Propagation;
 
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
-use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
-use SplObjectStorage;
 
 /**
  * Immutable, last-in-first-out token identifying one attached execution scope.

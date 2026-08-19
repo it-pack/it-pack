@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
@@ -18,7 +19,6 @@ use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
-use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -57,7 +57,7 @@ final class DefaultObservationRecorder implements ObservationRecorderInterface
         ?Throwable $throwable = null,
         ?string $diagnosticCode = null,
     ): ObservationInterface {
-        $severity = $severity ?? ObservationSeverity::Info;
+        $severity ??= ObservationSeverity::Info;
         $id = $this->observationIdFactory->build();
         $description = $throwable === null ? null : $this->throwableMapper->describe($throwable);
         $observation = $this->instantiate($severity, $id, $message, $this->activityId(), $diagnosticCode, $attributes, $description);

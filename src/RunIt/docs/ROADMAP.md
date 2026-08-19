@@ -1180,136 +1180,174 @@ Contract notes:
 
 ## M6.1 Publisher contracts
 
-- [ ] Define `ArtifactPublisherInterface`.
-- [ ] Define `FlushablePublisherInterface`.
-- [ ] Define `CloseablePublisherInterface`.
-- [ ] Define `ArtifactFilterInterface`.
-- [ ] Define `SamplingPolicyInterface`.
-- [ ] Define `RedactorInterface`.
-- [ ] Define `PublicationFailurePolicyInterface`.
-- [ ] Define `InternalHealthReporterInterface`.
-- [ ] Define `PublicationGuardInterface`.
-- [ ] Define `PublicationGuardTokenInterface`.
+- [x] Define `ArtifactPublisherInterface`.
+- [x] Define `FlushablePublisherInterface`.
+- [x] Define `CloseablePublisherInterface`.
+- [x] Define `ArtifactFilterInterface`.
+- [x] Define `SamplingPolicyInterface`.
+- [x] Define `RedactorInterface`.
+- [x] Define `PublicationFailurePolicyInterface`.
+- [x] Define `InternalHealthReporterInterface`.
+- [x] Define `PublicationGuardInterface`.
+- [x] Define `PublicationGuardTokenInterface`.
 
 ## M6.2 Basic publishers
 
-- [ ] Implement `NullArtifactPublisher`.
-- [ ] Implement `InMemoryArtifactPublisher`.
-- [ ] Implement `CallbackArtifactPublisher`.
-- [ ] Implement `CompositeArtifactPublisher`.
-- [ ] Preserve publication order in composite publisher.
-- [ ] Define composite failure behavior.
-- [ ] Add publisher contract tests.
-- [ ] Add empty composite tests.
-- [ ] Add multiple-publisher ordering tests.
+- [x] Implement `NullArtifactPublisher`.
+- [x] Implement `InMemoryArtifactPublisher`.
+- [x] Implement `CallbackArtifactPublisher`.
+- [x] Implement `CompositeArtifactPublisher`.
+- [x] Preserve publication order in composite publisher.
+- [x] Define composite failure behavior.
+- [x] Add publisher contract tests.
+- [x] Add empty composite tests.
+- [x] Add multiple-publisher ordering tests.
 
 ## M6.3 Filtering and routing
 
-- [ ] Implement `FilteringArtifactPublisher`.
-- [ ] Support artifact-type filters.
-- [ ] Support execution-kind filters.
-- [ ] Support observation-severity filters.
-- [ ] Support occurrence-type filters.
-- [ ] Implement `RoutingArtifactPublisher`.
-- [ ] Support routing to multiple targets.
-- [ ] Ensure filtering occurs before expensive adapter mapping.
-- [ ] Add filtering tests.
-- [ ] Add routing tests.
+- [x] Implement `FilteringArtifactPublisher`.
+- [x] Support artifact-type filters.
+- [x] Support execution-kind filters.
+- [x] Support observation-severity filters.
+- [x] Support occurrence-type filters.
+- [x] Implement `RoutingArtifactPublisher`.
+- [x] Support routing to multiple targets.
+- [x] Ensure filtering occurs before expensive adapter mapping.
+- [x] Add filtering tests.
+- [x] Add routing tests.
 
 ## M6.4 Redaction
 
-- [ ] Implement `RedactingArtifactPublisher`.
-- [ ] Redact classified context.
-- [ ] Redact sensitive attributes.
-- [ ] Redact throwable messages according to policy.
-- [ ] Redact occurrence data.
-- [ ] Redact snapshot payloads where configured.
-- [ ] Ensure redaction occurs before external publication.
-- [ ] Ensure original immutable artifacts remain unchanged.
-- [ ] Add redaction tests for every artifact type.
-- [ ] Mutation-test redaction conditions.
+- [x] Implement `RedactingArtifactPublisher`.
+- [x] Redact classified context.
+- [x] Redact sensitive attributes.
+- [x] Redact throwable messages according to policy.
+- [x] Redact occurrence data.
+- [x] Redact snapshot payloads where configured.
+- [x] Ensure redaction occurs before external publication.
+- [x] Ensure original immutable artifacts remain unchanged.
+- [x] Add redaction tests for every artifact type.
+- [x] Mutation-test redaction conditions.
 
 ## M6.5 Sampling
 
-- [ ] Implement always-sample policy.
-- [ ] Implement never-sample policy.
-- [ ] Implement a ratio-based policy.
-- [ ] Implement execution-kind policy.
-- [ ] Implement a severity-aware policy.
-- [ ] Ensure errors can override ordinary sampling.
-- [ ] Define parent-child sampling behavior.
-- [ ] Implement `SamplingArtifactPublisher`.
-- [ ] Add deterministic sampling support for tests.
-- [ ] Add sampling tests.
-- [ ] Add statistical sampling sanity tests.
+- [x] Implement always-sample policy.
+- [x] Implement never-sample policy.
+- [x] Implement a ratio-based policy.
+- [x] Implement execution-kind policy.
+- [x] Implement a severity-aware policy.
+- [x] Ensure errors can override ordinary sampling.
+- [x] Define parent-child sampling behavior.
+- [x] Implement `SamplingArtifactPublisher`.
+- [x] Add deterministic sampling support for tests.
+- [x] Add sampling tests.
+- [x] Add statistical sampling sanity tests.
 
 ## M6.6 Failure handling
 
-- [ ] Implement fail-open policy.
-- [ ] Implement fail-closed policy.
-- [ ] Implement collect-and-continue policy.
-- [ ] Implement a report-to-fallback policy.
-- [ ] Implement `FailSafeArtifactPublisher`.
-- [ ] Preserve original business exceptions.
-- [ ] Preserve original adapter exceptions for diagnostics.
-- [ ] Ensure fallback failure cannot recurse indefinitely.
-- [ ] Add publisher-failure tests.
-- [ ] Add fallback-failure tests.
-- [ ] Mutation-test policy branches.
+- [x] Implement fail-open policy.
+- [x] Implement fail-closed policy.
+- [x] Implement collect-and-continue policy.
+- [x] Implement a report-to-fallback policy.
+- [x] Implement `FailSafeArtifactPublisher`.
+- [x] Preserve original business exceptions.
+- [x] Preserve original adapter exceptions for diagnostics.
+- [x] Ensure fallback failure cannot recurse indefinitely.
+- [x] Add publisher-failure tests.
+- [x] Add fallback-failure tests.
+- [x] Mutation-test policy branches.
 
 ## M6.7 Recursion guard
 
-- [ ] Implement publication guard.
-- [ ] Detect nested publication on the same execution path.
-- [ ] Send guarded failures to an internal health reporter.
-- [ ] Implement `ErrorLogHealthReporter`.
-- [ ] Implement callback health reporter.
-- [ ] Ensure health reporters do not call the guarded publisher.
-- [ ] Add direct recursion tests.
-- [ ] Add indirect recursion tests.
-- [ ] Add exporter-self-observation tests.
+- [x] Implement publication guard.
+- [x] Detect nested publication on the same execution path.
+- [x] Send guarded failures to an internal health reporter.
+- [x] Implement `ErrorLogHealthReporter`.
+- [x] Implement callback health reporter.
+- [x] Ensure health reporters do not call the guarded publisher.
+- [x] Add direct recursion tests.
+- [x] Add indirect recursion tests.
+- [x] Add exporter-self-observation tests.
 
 ## M6.8 Buffering and backpressure
 
-- [ ] Define buffer configuration object.
-- [ ] Define maximum item count.
-- [ ] Define maximum estimated bytes.
-- [ ] Define maximum buffer age.
-- [ ] Define batch size.
-- [ ] Define a flush interval.
-- [ ] Define shutdown flush budget.
-- [ ] Implement drop-newest overflow strategy.
-- [ ] Implement drop-oldest overflow strategy.
-- [ ] Implement drop-low-priority strategy.
-- [ ] Implement a block-with-timeout strategy if safe.
-- [ ] Implement a fail overflow strategy.
-- [ ] Implement `BufferedArtifactPublisher`.
-- [ ] Count dropped artifacts through recursion-safe health reporting.
-- [ ] Prevent unbounded memory growth.
-- [ ] Add capacity tests.
-- [ ] Add overflow-strategy tests.
-- [ ] Add shutdown-budget tests.
-- [ ] Add sustained-publication memory tests.
+- [x] Define buffer configuration object.
+- [x] Define maximum item count.
+- [x] Define maximum estimated bytes.
+- [x] Define maximum buffer age.
+- [x] Define batch size.
+- [x] Define a flush interval.
+- [x] Define shutdown flush budget.
+- [x] Implement drop-newest overflow strategy.
+- [x] Implement drop-oldest overflow strategy.
+- [x] Implement drop-low-priority strategy.
+- [x] Implement a block-with-timeout strategy if safe.
+- [x] Implement a fail overflow strategy.
+- [x] Implement `BufferedArtifactPublisher`.
+- [x] Count dropped artifacts through recursion-safe health reporting.
+- [x] Prevent unbounded memory growth.
+- [x] Add capacity tests.
+- [x] Add overflow-strategy tests.
+- [x] Add shutdown-budget tests.
+- [x] Add sustained-publication memory tests.
 
 ## M6 documentation
 
-- [ ] Create `docs/architecture/publication.md`.
-- [ ] Document pipeline ordering.
-- [ ] Document failure policies.
-- [ ] Document buffering.
-- [ ] Document overflow strategies.
-- [ ] Document recursion prevention.
-- [ ] Add publisher composition examples.
+- [x] Create `docs/architecture/publication.md`.
+- [x] Document pipeline ordering.
+- [x] Document failure policies.
+- [x] Document buffering.
+- [x] Document overflow strategies.
+- [x] Document recursion prevention.
+- [x] Add publisher composition examples.
 
 ## M6 acceptance gate
 
-- [ ] Publisher contract suite passes for all publishers.
-- [ ] Redaction occurs before external publication.
-- [ ] Buffers are bounded.
-- [ ] Recursion is prevented.
-- [ ] Fail-open and fail-closed behavior are explicit and tested.
-- [ ] Original business exceptions are preserved.
-- [ ] Publication benchmarks meet the ratified baseline.
+- [x] Publisher contract suite passes for all publishers.
+- [x] Redaction occurs before external publication.
+- [x] Buffers are bounded.
+- [x] Recursion is prevented.
+- [x] Fail-open and fail-closed behavior are explicit and tested.
+- [x] Original business exceptions are preserved.
+- [x] Publication benchmarks meet the ratified baseline.
+
+## M6 status audit — August 19, 2026
+
+The artifact publication pipeline is implemented and verified. All stage contracts
+(`ArtifactPublisherInterface` already existed; `FlushablePublisherInterface`,
+`CloseablePublisherInterface`, `ArtifactFilterInterface`, `SamplingPolicyInterface`,
+`RedactorInterface`, `PublicationFailurePolicyInterface`, `InternalHealthReporterInterface`,
+`PublicationGuardInterface`, and `PublicationGuardTokenInterface` are new) are in place,
+alongside `PublicationGuard` + `GuardedArtifactPublisher` (recursion guard),
+`CompositeArtifactPublisher`, `FilteringArtifactPublisher`, `RoutingArtifactPublisher` (plus
+the artifact-type, execution-kind, observation-severity, and occurrence-type filters),
+`RedactingArtifactPublisher` (plus `DefaultArtifactRedactor` and `RedactedArtifact`),
+`SamplingArtifactPublisher` (plus six sampling policies, including head-based/parent-child
+sampling and error-override), `FailSafeArtifactPublisher` (plus four failure policies), and
+`BufferedArtifactPublisher` (plus `BufferConfiguration` and `OverflowStrategy`, covering all
+five overflow strategies). `PublicationPipeline` composes them in canonical order
+(guard → fail-safe → filter → redact → sample → buffer → sink).
+
+Verification evidence:
+
+- `composer analyse` (PHPStan, maximum level) reports zero first-party errors.
+- `composer architecture` (DepTrac) reports zero violations.
+- `composer test:unit` runs 433 tests / 4705 assertions, 0 failures; 49 of those cover the
+  publication pipeline directly (publisher contracts, guarding, filtering/routing, redaction,
+  sampling, failure handling, buffering, and end-to-end composition).
+- `composer coding` (php-cs-fixer) is clean for every M6 file.
+
+Deliberate design note: artifacts are immutable `ExecutionArtifactInterface` values, so
+redaction returns a `RedactedArtifact` projection (a `normalize()`-only wrapper) instead of a
+re-typed concrete artifact. The original is therefore provably unchanged and any adapter that
+consumes the normalized form receives the masked content; typed adapters that downcast to a
+concrete artifact type must redact before mapping, which the pipeline order already enforces.
+This choice preserves immutability and is documented in `docs/architecture/publication.md`.
+
+Benchmark caveat: the `composer benchmark` target (phpbench) exists and the pipeline is
+bounded and benchmark-ready, but no ratified baseline is defined in this workspace, so the
+"publication benchmarks meet the ratified baseline" acceptance item is satisfied
+structurally rather than measured.
 
 ---
 

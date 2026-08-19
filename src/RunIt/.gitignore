@@ -32,6 +32,8 @@ Thumbs.db
 /phpstan-errors.txt
 .phpstan/
 
+var/
+
 # symlink
 packages/
 

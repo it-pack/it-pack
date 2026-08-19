@@ -1,0 +1,184 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Application\Publication;
+
+use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Publication\BufferConfiguration;
+use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
+use ItPack\RunIt\Application\Publication\BufferOverflowException;
+use ItPack\RunIt\Application\Publication\OverflowStrategy;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Observation\Observation;
+use ItPack\RunIt\Domain\Observation\ObservationId;
+
+/**
+ * @group application
+ * @group publication
+ */
+final class BufferingTest extends Unit
+{
+    private function artifact(string $severity = 'info', string $id = 'obs'): ExecutionArtifactInterface
+    {
+        $executionId = ExecutionId::fromString('exec-1');
+        $observationId = ObservationId::fromString($id);
+
+        return match ($severity) {
+            'debug' => Observation::debug($observationId, $executionId, 'msg'),
+            'info' => Observation::info($observationId, $executionId, 'msg'),
+            'notice' => Observation::notice($observationId, $executionId, 'msg'),
+            'warning' => Observation::warning($observationId, $executionId, 'msg'),
+            'error' => Observation::error($observationId, $executionId, 'msg'),
+            'critical' => Observation::critical($observationId, $executionId, 'msg'),
+            'alert' => Observation::alert($observationId, $executionId, 'msg'),
+            'emergency' => Observation::emergency($observationId, $executionId, 'msg'),
+            default => Observation::info($observationId, $executionId, 'msg'),
+        };
+    }
+
+    private function config(int $maxItems, OverflowStrategy $overflow, int $batchSize = 1024, int $budget = 4096, int $maxBytes = 10_000_000): BufferConfiguration
+    {
+        return new BufferConfiguration(
+            maxItems: $maxItems,
+            maxEstimatedBytes: $maxBytes,
+            maxAgeSeconds: 60,
+            batchSize: $batchSize,
+            flushIntervalSeconds: 5,
+            shutdownFlushBudget: $budget,
+            overflow: $overflow,
+        );
+    }
+
+    public function testDropNewestBoundsBuffer(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropNewest), $sink);
+
+        $buffer->publish($this->artifact('info', 'a'));
+        $buffer->publish($this->artifact('info', 'b'));
+        $buffer->publish($this->artifact('info', 'c'));
+
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(1, $buffer->droppedCount());
+
+        $buffer->flush();
+        self::assertCount(2, $sink->published());
+    }
+
+    public function testDropOldestBoundsBuffer(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropOldest), $sink);
+
+        $buffer->publish($this->artifact('info', 'a'));
+        $buffer->publish($this->artifact('info', 'b'));
+        $buffer->publish($this->artifact('info', 'c'));
+
+        $buffer->flush();
+        self::assertSame(['b', 'c'], [$sink->published()[0]->normalize()['id'], $sink->published()[1]->normalize()['id']]);
+        self::assertSame(1, $buffer->droppedCount());
+    }
+
+    public function testDropLowPriorityKeepsHighPriority(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropLowPriority), $sink);
+
+        $buffer->publish($this->artifact('info', 'low-1'));
+        $buffer->publish($this->artifact('info', 'low-2'));
+        $buffer->publish($this->artifact('error', 'high-1'));
+
+        $buffer->flush();
+        self::assertSame(['low-2', 'high-1'], [$sink->published()[0]->normalize()['id'], $sink->published()[1]->normalize()['id']]);
+    }
+
+    public function testDropLowPriorityDropsIncomingLow(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::DropLowPriority), $sink);
+
+        $buffer->publish($this->artifact('info', 'low-1'));
+        $buffer->publish($this->artifact('info', 'low-2'));
+
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(1, $buffer->droppedCount());
+    }
+
+    public function testFailStrategyThrows(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::Fail), $sink);
+
+        $buffer->publish($this->artifact('info', 'a'));
+        $thrown = null;
+        try {
+            $buffer->publish($this->artifact('info', 'b'));
+        } catch (BufferOverflowException $error) {
+            $thrown = $error;
+        }
+
+        self::assertNotNull($thrown);
+        self::assertSame(1, $buffer->bufferedCount());
+    }
+
+    public function testFlushRespectsBatchSize(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 2), $sink);
+
+        for ($i = 0; $i < 5; $i++) {
+            $buffer->publish($this->artifact('info', (string) $i));
+        }
+
+        $buffer->flush();
+        self::assertCount(2, $sink->published());
+        self::assertSame(3, $buffer->bufferedCount());
+
+        $buffer->flush();
+        self::assertCount(4, $sink->published());
+    }
+
+    public function testCloseRespectsShutdownBudgetAndDropsRest(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 1024, budget: 1), $sink);
+
+        for ($i = 0; $i < 3; $i++) {
+            $buffer->publish($this->artifact('info', (string) $i));
+        }
+
+        $buffer->close();
+
+        self::assertCount(1, $sink->published());
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(2, $buffer->droppedCount());
+    }
+
+    public function testMemoryStaysBoundedUnderSustainedLoad(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest), $sink);
+
+        for ($i = 0; $i < 1000; $i++) {
+            $buffer->publish($this->artifact('info', (string) $i));
+        }
+
+        self::assertLessThanOrEqual(10, $buffer->bufferedCount());
+        self::assertGreaterThan(0, $buffer->estimatedBytes());
+    }
+
+    public function testDefaultConfigurationBuffersAndFlushes(): void
+    {
+        $config = BufferConfiguration::default();
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($config, $sink);
+
+        $buffer->publish($this->artifact('info', 'a'));
+        $buffer->flush();
+
+        self::assertCount(1, $sink->published());
+    }
+}
