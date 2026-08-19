@@ -1359,91 +1359,143 @@ structurally rather than measured.
 
 ## M7.1 Runtime builder
 
-- [ ] Define `RunItBuilderInterface`.
-- [ ] Implement immutable `RunItBuilder`.
-- [ ] Add clock configuration.
-- [ ] Add monotonic-clock configuration.
-- [ ] Add ID-generator configuration.
-- [ ] Add context-storage configuration.
-- [ ] Add artifact-publisher configuration.
-- [ ] Add throwable-mapper configuration.
-- [ ] Add serializer configuration.
-- [ ] Add redactor configuration.
-- [ ] Add sampling-policy configuration.
-- [ ] Add lifecycle-policy configuration.
-- [ ] Add nested-execution-policy configuration.
-- [ ] Add snapshot-store configuration.
-- [ ] Provide safe defaults.
-- [ ] Validate required dependencies at `build()`.
-- [ ] Return an interface-backed runtime facade.
-- [ ] Add immutable-builder tests.
-- [ ] Add incomplete-configuration tests.
+- [x] Define `RunItBuilderInterface`.
+- [x] Implement immutable `RunItBuilder`.
+- [x] Add clock configuration.
+- [x] Add monotonic-clock configuration.
+- [x] Add ID-generator configuration.
+- [x] Add context-storage configuration.
+- [x] Add artifact-publisher configuration.
+- [x] Add throwable-mapper configuration.
+- [x] Add serializer configuration.
+- [x] Add redactor configuration.
+- [x] Add sampling-policy configuration.
+- [x] Add lifecycle-policy configuration.
+- [x] Add nested-execution-policy configuration.
+- [x] Add snapshot-store configuration.
+- [x] Provide safe defaults.
+- [x] Validate required dependencies at `build()`.
+- [x] Return an interface-backed runtime facade.
+- [x] Add immutable-builder tests.
+- [x] Add incomplete-configuration tests.
 
 ## M7.2 Runtime facade
 
-- [ ] Define `RunItInterface`.
-- [ ] Implement `DefaultRunIt`.
-- [ ] Expose execution runner.
-- [ ] Expose current-execution accessor.
-- [ ] Expose supported decorator factories.
-- [ ] Avoid exposing concrete application services unnecessarily.
-- [ ] Add facade delegation tests.
+- [x] Define `RunItInterface`.
+- [x] Implement `DefaultRunIt`.
+- [x] Expose execution runner.
+- [x] Expose current-execution accessor.
+- [x] Expose supported decorator factories.
+- [x] Avoid exposing concrete application services unnecessarily.
+- [x] Add facade delegation tests.
 
 ## M7.3 Callable decorator
 
-- [ ] Define callable-decorator contract.
-- [ ] Implement execution-wrapped callable.
-- [ ] Preserve callable arguments.
-- [ ] Preserve callable return value.
-- [ ] Preserve original throwable.
-- [ ] Support static execution definition.
-- [ ] Support execution-definition factory based on arguments.
-- [ ] Avoid reflection on the invocation hot path.
-- [ ] Add closure tests.
-- [ ] Add invokable-object tests.
-- [ ] Add callable-array tests.
+- [x] Define callable-decorator contract.
+- [x] Implement execution-wrapped callable.
+- [x] Preserve callable arguments.
+- [x] Preserve callable return value.
+- [x] Preserve original throwable.
+- [x] Support static execution definition.
+- [x] Support execution-definition factory based on arguments.
+- [x] Avoid reflection on the invocation hot path.
+- [x] Add closure tests.
+- [x] Add invokable-object tests.
+- [x] Add callable-array tests.
 
 ## M7.4 Service decorators
 
-- [ ] Add documented decorator pattern.
-- [ ] Add an example instrumented service interface.
-- [ ] Add an example final readonly decorator.
-- [ ] Demonstrate dependency inversion.
-- [ ] Demonstrate preserving the wrapped contract.
-- [ ] Avoid general runtime proxy generation in `1.0.0`.
-- [ ] Document when a generated proxy may be justified later.
+- [x] Add documented decorator pattern.
+- [x] Add an example instrumented service interface.
+- [x] Add an example final readonly decorator.
+- [x] Demonstrate dependency inversion.
+- [x] Demonstrate preserving the wrapped contract.
+- [x] Avoid general runtime proxy generation in `1.0.0`.
+- [x] Document when a generated proxy may be justified later.
 
 ## M7.5 Attribute metadata
 
-- [ ] Define `ExecutedAs` attribute.
-- [ ] Define activity metadata attribute if justified.
-- [ ] Keep attributes immutable.
-- [ ] Ensure attributes contain metadata only.
-- [ ] Add metadata-reader port.
-- [ ] Add an optional reflection-based reader outside the hot path.
-- [ ] Cache parsed metadata safely.
-- [ ] Add attribute-validation tests.
-- [ ] Document that attributes do not instrument code by themselves.
+- [x] Define `ExecutedAs` attribute.
+- [x] Define activity metadata attribute if justified.
+- [x] Keep attributes immutable.
+- [x] Ensure attributes contain metadata only.
+- [x] Add metadata-reader port.
+- [x] Add an optional reflection-based reader outside the hot path.
+- [x] Cache parsed metadata safely.
+- [x] Add attribute-validation tests.
+- [x] Document that attributes do not instrument code by themselves.
 
 ## M7.6 Developer experience
 
-- [ ] Provide minimal null-runtime factory.
-- [ ] Provide an in-memory runtime factory for tests.
-- [ ] Provide the recommended production-builder example.
-- [ ] Ensure simple instrumentation requires no more than a few lines.
-- [ ] Add IDE-friendly PHPDoc generics.
-- [ ] Add examples for result type preservation.
-- [ ] Add examples for nested activities.
-- [ ] Add examples for recording each artifact type.
+- [x] Provide minimal null-runtime factory.
+- [x] Provide an in-memory runtime factory for tests.
+- [x] Provide the recommended production-builder example.
+- [x] Ensure simple instrumentation requires no more than a few lines.
+- [x] Add IDE-friendly PHPDoc generics.
+- [x] Add examples for result type preservation.
+- [x] Add examples for nested activities.
+- [x] Add examples for recording each artifact type.
 
 ## M7 acceptance gate
 
-- [ ] Existing callables can be instrumented without modifying their code.
-- [ ] Existing service interfaces can be instrumented through composition.
-- [ ] No global facade or service locator exists.
-- [ ] SDK delegates to application-layer contracts.
-- [ ] SDK performance overhead is measured.
-- [ ] Quick-start documentation matches executable examples.
+- [x] Existing callables can be instrumented without modifying their code.
+- [x] Existing service interfaces can be instrumented through composition.
+- [x] No global facade or service locator exists.
+- [x] SDK delegates to application-layer contracts.
+- [ ] SDK performance overhead is measured. — pending benchmark (see open gap below).
+- [x] Quick-start documentation matches executable examples.
+
+### M7 status audit — August 19, 2026
+
+The programmatic SDK is implemented in `src/SDK/` and depends only on `Contract`, `Domain`, and
+`Application` (verified by DepTrac); it never imports an adapter or PSR namespace, so the SDK stays
+framework- and vendor-neutral.
+
+Delivered components:
+
+- `RunItBuilderInterface` + immutable `RunItBuilder` configure every M7.1 port: publisher, clock
+  (the single `MonotonicClockInterface` covers both wall-clock and monotonic time), sequence
+  allocator, snapshot serializer, identifier generator, context storage, snapshot store, throwable
+  mapper, redactor, sampling policy, nested-execution policy, and completion policy. Application and
+  domain collaborators receive safe defaults (`StackContextStorage`, `ChildExecutionPolicy`,
+  `AutoFailOpenActivitiesPolicy`, `DefaultThrowableMapper`, `DeterministicHashCalculator`, and the
+  five identifier factories), and redaction/sampling are composed around the configured publisher.
+  `build()` validates the five required ports and throws
+  `MissingBuilderDependencyException` for any missing one.
+- `RunItInterface` + `DefaultRunIt` is the interface-backed facade. It exposes `run()`,
+  `currentExecution()`, `executionRunner()`, and `wrap()`; it delegates to the runner and the
+  ambient `CurrentExecution` accessor and never leaks concrete application services.
+- `ExecutedCallableInterface` + `ExecutedCallable` wrap any callable (closure, invokable object, or
+  callable array) so every invocation runs inside an execution. The wrapper preserves arguments,
+  return value, and the original throwable, supports a static definition or an argument-derived
+  definition factory, and reflects nothing on the hot path.
+- `ExecutedAs` attribute + `ExecutedAsMetadataReaderInterface` + `DefaultExecutedAsMetadataReader`
+  resolve execution metadata from functions, methods, invokable classes, and class-level
+  attributes. Resolution runs only when wrapping and is cached; attributes carry metadata only and
+  never instrument code by themselves.
+- Developer experience: `examples/sdk.php` (quick start, a few lines) and
+  `examples/sdk-service-decorator.php` (composition-based instrumentation, no runtime proxy) are
+  executable, and `Tests\Support\Fixture\RunItFactories` provides `nullRuntime()` and `inMemory()`
+  factories for tests.
+
+Verification:
+
+- `composer analyse` (PHPStan, maximum level) reports zero errors on `src/SDK` and the new tests.
+- `composer architecture` (DepTrac) reports zero violations and zero errors; the SDK layer depends
+  only on `Common`, `Contract`, `Domain`, and `Application`.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Unit tests cover builder immutability and incomplete-configuration errors, facade delegation and
+  ambient current-execution access, callable decoration (closure/invokable/callable-array, argument
+  and result preservation, throwable preservation, definition factory, missing-definition failure),
+  attribute resolution from methods/classes/functions/closures with caching, and the null/in-memory
+  factories. `composer test:unit` passes (464 tests, 4751 assertions).
+
+### Open gap — SDK performance overhead
+
+The M7 acceptance criterion "SDK performance overhead is measured" is not yet closed: no dedicated
+benchmark exists for the `wrap()`/`ExecutedCallable` hot path. The wrapper performs no reflection at
+invocation time and forwards arguments unchanged, so the expected overhead is the runner's per-call
+cost already covered by M4; a `composer benchmark` for the SDK facade remains to be added.
 
 ---
 
