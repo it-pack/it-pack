@@ -4,6 +4,7 @@ parameters:
     paths:
         - ./src
         - ./tests/Acceptance
+        - ./tests/Conformance
         - ./tests/Functional
         - ./tests/Integration
         - ./tests/Support/Fixture

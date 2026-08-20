@@ -2339,27 +2339,33 @@ review, CI action pinning, secret scanning, vulnerability reporting, and release
 
 ## M13.1 Test-framework-agnostic contract suites
 
-- [ ] Define `ArtifactPublisherFixtureInterface`.
-- [ ] Define `ContextStorageFixtureInterface`.
-- [ ] Define `IdGeneratorFixtureInterface`.
-- [ ] Define `SerializerFixtureInterface`.
-- [ ] Define `RedactorFixtureInterface`.
-- [ ] Define `SamplingPolicyFixtureInterface`.
-- [ ] Define `SnapshotStoreFixtureInterface`.
-- [ ] Define `ExecutionEngineFixtureInterface`.
-- [ ] Define conformance-result model.
-- [ ] Define conformance-violation model.
-- [ ] Implement publisher verifier.
-- [ ] Implement context-storage verifier.
-- [ ] Implement ID-generator verifier.
-- [ ] Implement serializer verifier.
-- [ ] Implement redactor verifier.
-- [ ] Implement sampling-policy verifier.
-- [ ] Implement snapshot-store verifier.
-- [ ] Implement execution-engine verifier.
-- [ ] Avoid inheritance from a specific test framework.
-- [ ] Add examples integrating verifiers with the project test runner.
-- [ ] Add examples for third-party test frameworks.
+The conformance tooling lives in `src/Conformance/` and is framework-agnostic: verifiers
+depend only on the port contract and a small result model, and a single
+`PortFixtureInterface` (`src/Conformance/Fixture/`) supplies the material every verifier
+needs. A third-party adapter author reuses the verifiers and supplies their own fixture or
+reuses `RunItPortFixture`. No verifier extends a test-framework base class.
+
+- [x] Define `PortFixtureInterface` (unified fixture for all port verifiers; replaces the
+      per-port `ArtifactPublisherFixtureInterface` / `ContextStorageFixtureInterface` / etc.
+      sketched below).
+- [x] Define conformance-result model (`ConformanceResult`: violations, severity split,
+      `isConformant()`, summary).
+- [x] Define conformance-violation model (`ConformanceViolation` + `ViolationSeverity` enum).
+- [x] Implement artifact-publisher verifier (`ArtifactPublisherVerifier`).
+- [x] Implement context-storage verifier (`ContextStorageVerifier`, LIFO attach/detach/current).
+- [x] Implement ID-generator verifier (`IdentifierGeneratorVerifier`).
+- [x] Implement monotonic-clock verifier (`MonotonicClockVerifier`).
+- [x] Implement serializer verifier (`SerializerVerifier`).
+- [x] Implement redactor verifier (`RedactorVerifier`).
+- [x] Implement sampling-policy verifier (`SamplingPolicyVerifier`).
+- [x] Implement snapshot-store verifier (`SnapshotStoreVerifier`).
+- [x] Implement execution-engine verifier (`ExecutionEngineVerifier`).
+- [x] Avoid inheritance from a specific test framework (plain PHP verifiers).
+- [x] Add examples integrating verifiers with the project test runner
+      (`tests/Conformance/RunItPortConformanceTest.php` and
+      `examples/conformance/run-conformance.php`).
+- [x] Add examples for third-party adapter authors
+      (`examples/conformance/third-party-adapter.php`).
 
 ## M13.2 PHPStan completion
 
