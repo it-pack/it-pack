@@ -11,6 +11,9 @@ use ItPack\DeriveIt\Contract\Resolver\RecursiveClassResolverInterface;
 use ItPack\DeriveIt\Contract\Resolver\RecursiveInterfaceResolverInterface;
 use ItPack\DeriveIt\Contract\Resolver\RecursiveTraitResolverInterface;
 use ItPack\DeriveIt\Reflection\ClassReflection;
+use ItPack\DeriveIt\Resolver\RecursiveClassResolver;
+use ItPack\DeriveIt\Resolver\RecursiveInterfaceResolver;
+use ItPack\DeriveIt\Resolver\RecursiveTraitResolver;
 
 class ClassReflectionTest extends Unit
 {
@@ -90,5 +93,14 @@ class ClassReflectionTest extends Unit
         )->equals(
             self::RECURSIVE_TRAITS
         );
+    }
+
+    protected function tearDown(): void
+    {
+        ClassReflection::setRecursiveClassResolver(RecursiveClassResolver::create());
+        ClassReflection::setRecursiveInterfaceResolver(RecursiveInterfaceResolver::create());
+        ClassReflection::setRecursiveTraitResolver(RecursiveTraitResolver::create());
+
+        parent::tearDown();
     }
 }
