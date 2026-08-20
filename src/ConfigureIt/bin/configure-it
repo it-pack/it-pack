@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use ItPack\ConfigureIt\CLI\ConfigurationCli;
+
+/**
+ * configure-it — configuration inspection CLI (Roadmap Phase 7).
+ *
+ * Subcommands:
+ *   explain <file> [key]   provenance for one key, or a table of all nodes
+ *   diff <file-a> <file-b> semantic diff with provenance
+ *   graph <file> [dot|ascii] render the resolved graph (Graphviz DOT or ASCII)
+ *   help                    list subcommands
+ *
+ * Run from the package root:
+ *   php bin/configure-it explain examples/Support/Provenance/local.json db.host
+ */
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$cli = new ConfigurationCli();
+
+exit($cli->handle($argv));

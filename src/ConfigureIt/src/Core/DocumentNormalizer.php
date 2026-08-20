@@ -69,7 +69,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
                     format: $document->format(),
                     adapter: $document->adapter() ?? 'unknown',
                     priority: $priority,
-                    sourceKind: self::sourceKindOf($document->format()),
+                    sourceKind: self::sourceKindOf($document->format(), $source),
                     at: microtime(true),
                 ),
             );
@@ -78,8 +78,23 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
         return $nodes;
     }
 
-    private static function sourceKindOf(Format $format): string
+    private static function sourceKindOf(Format $format, string $uri): string
     {
+        $enterprise = [
+            'configmap://' => 'configmap',
+            'k8s-secret://' => 'k8s-secret',
+            'docker-secret://' => 'docker-secret',
+            'aws-ssm://' => 'aws-ssm',
+            'azure-appconfig://' => 'azure-appconfig',
+            'gcp-secretmanager://' => 'gcp-secretmanager',
+        ];
+
+        foreach ($enterprise as $scheme => $kind) {
+            if (str_starts_with($uri, $scheme)) {
+                return $kind;
+            }
+        }
+
         return match ($format) {
             Format::ENV, Format::DOTENV => 'env',
             Format::PHP => 'programmatic',

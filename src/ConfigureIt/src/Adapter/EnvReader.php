@@ -50,6 +50,7 @@ final readonly class EnvReader implements ConfigurationReaderInterface
 
     public function supports(ConfigurationResourceInterface $resource): bool
     {
-        return $resource->format() === Format::ENV;
+        return $resource->format() === Format::ENV
+            && str_starts_with($resource->uri(), 'env://');
     }
 }

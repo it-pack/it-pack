@@ -291,6 +291,35 @@ Tests: `ConfigurationInspectorTest`, `GraphVisualizerTest`, `ConfigurationCliTes
 script wiring — incremental, no Core changes now that provenance/diagnostics/diff
 are exposed.
 
+### Phase 8 — Enterprise Sources
+
+Delivered the Roadmap Phase 8 enterprise configuration sources, all offline and
+unit-tested behind the existing reader/loader/normalizer ports:
+
+- `src/Adapter/Enterprise/ConfigMapSource.php`, `KubernetesSecretSource.php`,
+  `DockerSecretsSource.php` — Kubernetes ConfigMap / Secret and Docker secrets
+  (volume mounts); read by `VolumeReader` into a flat `KEY=VALUE` body for `EnvLoader`.
+- `src/Adapter/Enterprise/AwsParameterStoreSource.php`, `AzureAppConfigSource.php`,
+  `GcpSecretManagerSource.php` — cloud parameter stores; fetched through
+  `RemoteJsonReader` + an injectable `RemoteKeyValueClient` adapter
+  (`Client/AwsSsmClient`, `Client/AzureAppConfigClient`, `Client/GcpSecretManagerClient`).
+- `src/Adapter/Enterprise/Contract/` (`HttpClient`, `RemoteKeyValueClient`) plus
+  `Http/CurlHttpClient` (prod), `Http/FakeHttpClient` and `Client/FakeRemoteKeyValueClient`
+  (tests), and `TreeBuilder` (nests flat vendor keys into a config tree).
+- `Core/DocumentNormalizer.php`: enterprise `sourceKind` (`configmap`, `k8s-secret`,
+  `docker-secret`, `aws-ssm`, `azure-appconfig`, `gcp-secretmanager`) derived from the
+  resource URI scheme, so provenance/diagnostics attribute nodes correctly.
+- `Adapter/EnvReader.php`: `supports()` scoped to the `env://` scheme so the composite
+  reader routes enterprise `ENV` resources to `VolumeReader`.
+
+Tests: `VolumeSourceTest`, `RemoteSourceTest` (end-to-end via fakes + each cloud
+client's nesting logic). Suite green: **144 tests / 320 assertions**, PHPStan level 9
+**0 errors**, `php-cs-fixer` **0 files to fix**.
+
+**Deferred:** Aura.Di DI adapter, Vault/Consul/Redis adapters, and live integration
+tests against real cloud endpoints — incremental, no Core changes now that the
+source/reader/client ports exist.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

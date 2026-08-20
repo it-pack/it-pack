@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Phase%207-blue.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%208-blue.svg)](#)
 
 ---
 
@@ -299,12 +299,12 @@ Future capabilities include:
 
 ## Status
 
-**Phase 1 — Core** through **Phase 6 — Graph & Provenance** are implemented, and
-**Phase 7 — Developer Experience** is delivered. The quality gate is green:
+**Phase 1 — Core** through **Phase 7 — Developer Experience** are implemented, and
+**Phase 8 — Enterprise Sources** is delivered. The quality gate is green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **134 tests / 295 assertions** green
+- Codeception unit suite — **144 tests / 320 assertions** green
 
 Delivered:
 
@@ -320,20 +320,26 @@ Delivered:
 - Nette-Schema adapter (`NativeConfigurationSchema`)
 - **Provenance** (`ValueObject\Provenance` on every `ConfigurationNode`): source,
   priority, adapter/loader, `processorTrail`, `overridden` flag, `validatedBy`
+  (now also reports the enterprise `sourceKind`: `configmap`, `k8s-secret`,
+  `docker-secret`, `aws-ssm`, `azure-appconfig`, `gcp-secretmanager`)
 - **Diagnostics** (`ConfigurationDiagnostics` → `DiagnosticsReport`) reusing the
   Execution `Observation` spine (overrides, nodes by source/format, unresolved vars)
 - **Graph diffing** (`ConfigurationDiffer` → `ConfigurationDiff`) for added/removed/
   changed keys with both sides' provenance
 - `ConfigurationSnapshot::provenance(string $path)` exposes per-node provenance to
   consumers
-- **Developer CLI** (`bin/configure-it`): `explain` (per-key provenance / node table),
-  `diff` (provenance-aware semantic diff), `graph` (Graphviz DOT or ASCII tree),
-  `help` — framework-free, built on the `CLI\ConfigurationInspector` /
-  `CLI\GraphVisualizer` / `CLI\ConfigurationCli` services
+- **Developer CLI** (`bin/configure-it`): `explain`, `diff`, `graph`, `help`
+- **Enterprise Sources** (`src/Adapter/Enterprise`): `ConfigMapSource`,
+  `KubernetesSecretSource`, `DockerSecretsSource` (volume mounts read by
+  `VolumeReader`) and remote parameter stores `AwsParameterStoreSource`,
+  `AzureAppConfigSource`, `GcpSecretManagerSource` (fetched through
+  `RemoteJsonReader` + injectable `RemoteKeyValueClient` adapters:
+  `AwsSsmClient`, `AzureAppConfigClient`, `GcpSecretManagerClient`). Ports
+  (`HttpClient`, `RemoteKeyValueClient`) and fakes keep the whole layer unit-testable
+  offline.
 
-Additional adapters (Aura.Di, Vault, Redis, HTTP, S3/cloud) are deferred and will be
-delivered incrementally (see `ROADMAP.md` Phase 5). Semantic-graph visualisation
-(RDF/PlantUML) and IDE plugins remain future tooling (see `ROADMAP.md` Phase 7).
+Semantic-graph visualisation (RDF/PlantUML) and IDE plugins remain future tooling
+(see `ROADMAP.md` Phase 7). Phase 9 (Observability) remains (see `ROADMAP.md`).
 
 ---
 

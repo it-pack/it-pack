@@ -439,9 +439,40 @@ Tests: `ConfigurationInspectorTest`, `GraphVisualizerTest`, `ConfigurationCliTes
 IDE plugins) and wiring the CLI into Composer scripts — incremental, no Core
 changes needed now that provenance/diagnostics/diff are exposed.
 
-### Phase 8 — Enterprise Sources
+### Phase 8 — Enterprise Sources ✅
 
-- Kubernetes ConfigMaps/Secrets, AWS/Azure/GCP parameter stores.
+Delivered (offline, unit-tested, behind the reader/loader/normalizer ports):
+
+- **Volume sources** (`src/Adapter/Enterprise`):
+  - `ConfigMapSource` (Kubernetes ConfigMap projected as a directory of files)
+  - `KubernetesSecretSource` (Kubernetes Secret volume mount)
+  - `DockerSecretsSource` (Docker/Swarm secrets)
+  - all read by `VolumeReader` into a flat `KEY=VALUE` body for `EnvLoader`.
+- **Remote parameter stores** (`src/Adapter/Enterprise`):
+  - `AwsParameterStoreSource` (AWS SSM `GetParametersByPath`)
+  - `AzureAppConfigSource` (Azure App Configuration)
+  - `GcpSecretManagerSource` (GCP Secret Manager)
+  - fetched through `RemoteJsonReader` + an injectable `RemoteKeyValueClient`
+    adapter (`AwsSsmClient`, `AzureAppConfigClient`, `GcpSecretManagerClient`).
+- **Ports & fakes** (adapter layer, no Core dependency):
+  - `Contract\HttpClient` (+ `Http\CurlHttpClient` for prod, `Http\FakeHttpClient`
+    for tests) and `Contract\RemoteKeyValueClient` (+ `Client\FakeRemoteKeyValueClient`).
+  - `TreeBuilder` nests flat vendor keys (`/` `:` `-` delimiters) into a config tree.
+- **Provenance** extended in `Core\DocumentNormalizer`: the enterprise `sourceKind`
+  (`configmap`, `k8s-secret`, `docker-secret`, `aws-ssm`, `azure-appconfig`,
+  `gcp-secretmanager`) is derived from the resource URI scheme, so diagnostics and
+  `Snapshot::provenance()` attribute every node correctly.
+- `Adapter\EnvReader::supports()` is now scoped to the `env://` scheme so the
+  composite reader routes enterprise `ENV` resources to `VolumeReader`.
+
+Tests: `VolumeSourceTest` (ConfigMap/K8sSecret/Docker end-to-end + missing-mount
+failure) and `RemoteSourceTest` (AWS/Azure/GCP end-to-end via fakes + each client's
+nesting logic via `FakeHttpClient`). Suite green: **144 tests / 320 assertions**,
+PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
+
+**Deferred:** Aura.Di DI adapter, Vault/Consul/Redis adapters, and live (non-fake)
+integration tests against real cloud endpoints — incremental, no Core changes now that
+the source/reader/client ports exist.
 
 ### Phase 9 — Observability
 
