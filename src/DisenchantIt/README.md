@@ -74,38 +74,33 @@ The work splits into two independent halves that are composed by the caller.
 
 ## Intended usage (library)
 
-DisenchantIt is meant to be driven programmatically. A minimal composition of the
-current building blocks looks like:
+DisenchantIt is meant to be driven programmatically. Build the orchestrator
+through the composition-root factory and call it on one PHP source string at a
+time:
 
 ```php
-use ItPack\DisenchantIt\Detector;
-use ItPack\DisenchantIt\AutoConstantPlacementStrategy;
-use ItPack\DisenchantIt\LineBasedRewriter;
+use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 
-$detector = new Detector();
-$strategy = new AutoConstantPlacementStrategy();
-$rewriter = new LineBasedRewriter();
+$disenchanter = DisenchanterFactory::create()->build();
 
-// 1. scan + filter every file's string literals
-$candidates = $detector->filterCandidates($detector->scanSource($code));
+$rewritten = $disenchanter->rewrite($code, minOccurrences: 2);
 
-// 2. group by value, promote only values seen enough times
-$placements = [];
-foreach ($detector->groupByValue($candidates) as $value => $occurrences) {
-    if (count($occurrences) < $minOccurrences) {
-        continue;
-    }
-    array_push($placements, ...$strategy->decide($occurrences));
-}
-
-// 3. rewrite the source text (does NOT execute or autoload the file)
-$rewritten = $rewriter->rewrite($code, $placements);
+// Optional SemConv step: produces the rewritten class source AND a shared
+// constant registry source (DisenchantResult).
+$result = $disenchanter->rewriteWithSemConv($code, minOccurrences: 2);
+// $result->code          -> rewritten class source, aliased to SemConv
+// $result->semconvSource -> generated shared registry source
 ```
 
-> The exact public surface above is **subject to change** as the codebase is refactored
-> toward the hexagonal, port/adapter layout described in `docs/REFACTORING_PLAN.md`
-> (detection, filtering, naming, and placement each become injectable ports; a Core
-> service orchestrates them). Treat the *capabilities* as stable, not the *signatures*.
+DisenchantIt works on a **single source string**; you decide how it walks a
+tree, where results are written, and how the shared registry is accumulated.
+For the full pipeline, placement strategies, SemConv configuration, multi-file
+workflows, extension points, and current limitations, see
+[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md).
+
+> The public API is fronted by `DisenchanterInterface` (built via
+> `DisenchanterFactory`) and the `Contract` ports. Treat the *capabilities* as
+> stable; expect signature refinements until a `1.0.0` tag.
 
 ## Architecture (direction of travel)
 
@@ -124,11 +119,14 @@ engine be swapped (e.g. a future Rector-based adapter) without touching callers.
 
 ## Status
 
-Early / maturing. The detection and line-based rewriting halves are functional PoC
-extracts; the API, packaging, and supporting tooling are still settling. Expect breaking
-changes until a stable release is tagged. See `docs/REFACTORING_PLAN.md` for the
-roadmap of planned structural improvements (SOLID/DRY, hexagonal layout, PHP 8.4
-language features, architecture rules via PHPArkitect).
+Maturing. The hexagonal, port/adapter layout is in place: detection, filtering,
+naming, placement, line-based rewriting, and the SemConv collect + alias steps are
+implemented behind `Contract` ports and `Factory` composition roots. The public
+API is fronted by `DisenchanterInterface` (built via `DisenchanterFactory`) and the
+`DisenchantResult` value object. Expect signature refinements until a `1.0.0` tag.
+
+- For capabilities, workflows, and current limitations: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md).
+- For architecture, execution model, and roadmap: `docs/REFACTORING_PLAN.md`.
 
 ## Requirements
 
