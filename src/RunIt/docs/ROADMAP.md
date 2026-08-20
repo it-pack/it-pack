@@ -2486,14 +2486,43 @@ uncovered dependencies.
 
 ## M13.4 Coding standards
 
-- [ ] Finalize PHP-CS-Fixer configuration.
-- [ ] Enforce strict-types declarations.
-- [ ] Enforce import ordering.
-- [ ] Enforce trailing commas where appropriate.
-- [ ] Enforce modern PHP 8.4 syntax consistently.
-- [ ] Review risky rules individually.
-- [ ] Add a check-only CI job.
-- [ ] Document local auto-fix command.
+- [x] Finalize PHP-CS-Fixer configuration.
+- [x] Enforce strict-types declarations.
+- [x] Enforce import ordering.
+- [x] Enforce trailing commas where appropriate.
+- [x] Enforce modern PHP 8.4 syntax consistently.
+- [x] Review risky rules individually.
+- [x] Add a check-only CI job.
+- [x] Document local auto-fix command.
+
+### M13.4 status audit — August 21, 2026
+
+The PHP-CS-Fixer configuration (`.php-cs-fixer.php`, PHP-CS-Fixer 3.95) is
+finalized and covers every checklist item:
+
+- **Finalized configuration** — base sets `@PSR12` + `@PHP84Migration`, plus
+  explicit `declare_strict_types`, `ordered_imports`, `no_leading_import_slash`,
+  `array_syntax` (short), `single_quote`, `strict_comparison`, `strict_param`,
+  `no_unused_imports`, trailing-comma rules, and small cleanliness rules.
+- **Strict types** — `declare_strict_types` enforced (also mirrored by the
+  `no-explicit-strict-types` PHPStan rule).
+- **Import ordering** — `ordered_imports` + `no_leading_import_slash`.
+- **Trailing commas** — `trailing_comma_in_multiline` with
+  `no_trailing_comma_in_singleline`.
+- **Modern PHP 8.4 syntax** — `@PHP84Migration` (e.g. `Type $x = null`).
+- **Risky rules reviewed** — only `strict_comparison`, `strict_param`, and
+  `no_unused_imports` are risky (require `setRiskyAllowed(true)`); each is
+  documented as safe in `docs/QA.md` because every file declares strict types
+  and class-string/phpdoc references are explicit.
+- **Check-only CI job** — `composer cs:check` runs inside the `quality` matrix in
+  `.github/workflows/quality.yml` and as a dedicated `coding-style` job; the
+  workflow never mutates the tree.
+- **Documented auto-fix** — `composer cs:fix` (apply) and `composer cs:check`
+  (report) are documented in `docs/QA.md` and `CONTRIBUTING.md`.
+
+`composer cs:check` reports **0 of 475 files** can be fixed. No `:risky`
+migration set is enabled, so the risky surface is bounded to the three rules
+above.
 
 ## M13.5 Mutation testing
 

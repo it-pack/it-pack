@@ -170,6 +170,49 @@ the adapter layers, and are reviewed and accepted rather than suppressed. The
 approved architecture diagram is `docs/architecture/dependency-graph.md`,
 generated from `deptrac.yaml` via `deptrac analyse --formatter=mermaidjs`.
 
+## Coding style (M13.4)
+
+`composer cs:check` runs `php-cs-fixer fix --dry-run --diff`; `composer cs:fix`
+applies the same ruleset. The configuration (`.php-cs-fixer.php`) is finalized and
+covers every M13.4 checklist item:
+
+- **Base sets** — `@PSR12` (PSR-12 lineage) and `@PHP84Migration` (modern PHP 8.4
+  syntax, e.g. `Type $x = null` instead of `?Type $x = null`).
+- **Strict types** — `declare_strict_types` is enforced (mirrored by the
+  `no-explicit-strict-types` PHPStan rule).
+- **Import ordering** — `ordered_imports` plus `no_leading_import_slash` keep
+  `use` statements sorted and slash-free.
+- **Trailing commas** — `trailing_comma_in_multiline` with
+  `no_trailing_comma_in_singleline` (multiline lists get trailing commas; single
+  lines never do).
+- **Modern literal style** — `array_syntax` (short), `single_quote`,
+  `no_superfluous_elseif`, `no_useless_return`,
+  `multiline_whitespace_before_semicolons` (chained calls on their own line).
+- **Strict operators/calls** — `strict_comparison` and `strict_param`.
+
+### Risky rules, reviewed individually
+
+`setRiskyAllowed(true)` is required because the following rules are flagged risky
+by PHP-CS-Fixer; each is reviewed and deliberately kept:
+
+- `strict_comparison` / `strict_param` — safe because every file declares
+  `declare(strict_types=1)`; strict comparison and strict parameter calling are
+  the intended semantics everywhere, not an incidental coercion change.
+- `no_unused_imports` — safe; class-string references and phpdoc types are
+  explicit, and removing a genuinely unused import cannot alter runtime behavior.
+
+No other risky rules are enabled, and no `:risky` migration set is used, so the
+risky surface is bounded to the three rules above.
+
+### Local commands and CI
+
+- Check only: `composer cs:check`
+- Auto-fix: `composer cs:fix`
+
+CI (`.github/workflows/quality.yml`) runs `composer cs:check` inside the
+`quality` matrix (PHP 8.4/8.5 × locked/lowest) and also as a dedicated
+`coding-style` job. Both are check-only; the workflow never modifies the tree.
+
 ## Extending the rules
 
 The extension lives at `tools/phpstan/runit-rules`:
