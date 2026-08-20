@@ -10,8 +10,9 @@ use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
  * In-memory execution reporter for tests, examples, and disabled emission.
  *
  * It retains every reported entry in insertion order (newest last) so callers
- * can assert on what was emitted. Once the bounded buffer is full, the oldest
- * entry is dropped to keep memory bounded.
+ * can assert on what was emitted. The buffer is bounded by {@see self::$limit};
+ * once full, the {@see OverflowPolicy} decides what happens (drop oldest by
+ * default, drop newest, or refuse with a {@see BufferOverflowException}).
  *
  * @api
  */
@@ -24,6 +25,7 @@ final class CollectingExecutionReporter implements ExecutionReporterInterface
 
     public function __construct(
         private int $limit = 1000,
+        private OverflowPolicy $overflow = OverflowPolicy::DropOldest,
     ) {
     }
 
@@ -68,7 +70,19 @@ final class CollectingExecutionReporter implements ExecutionReporterInterface
      */
     private function record(array $entry): void
     {
+        if ($this->limit <= 0) {
+            return;
+        }
+
         if (\count($this->entries) >= $this->limit) {
+            if ($this->overflow === OverflowPolicy::DropNewest) {
+                return;
+            }
+
+            if ($this->overflow === OverflowPolicy::Throw) {
+                throw BufferOverflowException::forLimit($this->limit);
+            }
+
             \array_shift($this->entries);
         }
 

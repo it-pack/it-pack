@@ -109,5 +109,40 @@ $app->run(); // e.g. `php bin/console cache:clear 5 --force`
 - Execution context is restored in `finally` by the core executor, so the CLI is
   safe across repeated invocations in a persistent worker.
 
+### Reporting decorators (`Adapter/Reporting`)
+
+These wrap any `ExecutionReporterInterface` and stay within the `Adapter` layer.
+
+- `RedactingExecutionReporter` applies a `RedactionPolicyInterface` to every
+  observation/occurrence context before it reaches the delegate. The default
+  `RedactionPolicy` redacts values whose key looks sensitive (`password`, `token`,
+  `authorization`, …), truncates oversized strings, caps array cardinality, and
+  limits nesting depth — so secrets and high-cardinality/oversized data never reach
+  an external sink.
+- `GuardedExecutionReporter` wraps a publication delegate with a **recursion guard**
+  and a **separate health reporter**: if publishing triggers a nested report (a
+  self-observation loop) or throws, the signal is routed to the health reporter
+  instead of re-entering the delegate or bubbling into the business flow. Use it
+  when the reporter publishes through a path that may itself report.
+
+```php
+use ItPack\CommandIt\Adapter\Common\RedactionPolicy;
+use ItPack\CommandIt\Adapter\Reporting\GuardedExecutionReporter;
+use ItPack\CommandIt\Adapter\Reporting\RedactingExecutionReporter;
+
+$reporter = new RedactingExecutionReporter($sink, new RedactionPolicy());
+$reporter = new GuardedExecutionReporter($reporter, $healthReporter);
+```
+
+- `CollectingExecutionReporter` keeps a bounded in-memory buffer. Configure the
+  overflow behavior with `OverflowPolicy` (`DropOldest` default, `DropNewest`, or
+  `Throw` → `BufferOverflowException`).
+
+### Serialization
+
+- `SafeSerializer` (the `SerializerInterface` default) never produces arbitrary
+  object serialization: resources, closures, and objects without `toArray()`/`Stringable`
+  are rejected with a `SerializationException`. Only recursively-primitive data is returned.
+
 See `docs/architecture/MODEL.md` for the domain model and `docs/ROADMAP.md` for the
 milestone plan.

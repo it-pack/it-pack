@@ -305,12 +305,17 @@ composer analyse
 
 ### Tasks
 
-- [ ] **M7.1 `[Security]`** Redaction policy in `CollectingExecutionReporter`/reporter port: never export secrets; redact sensitive input keys; bound attribute size/cardinality. Negative tests for redaction.
-- [ ] **M7.2 `[Security]`** Prohibition of arbitrary-object serialization honored by `SerializerInterface`.
-- [ ] **M7.3 `[Perf]`** Benchmarks (phpbench) for dispatch + handler resolution; lazy resolution verified to skip construction for invalid commands.
-- [ ] **M7.4 `[Self-instrumentation]`** Publication recursion guard + separate health reporter path; bootstrap path uninstrumented.
-- [ ] **M7.5 `[Perf]`** Bounded buffers/queues + defined overflow behavior in `CollectingExecutionReporter`.
-- [ ] **M7.6** Fiber/coroutine isolation tests in persistent-worker simulation (no cross-request context bleed).
+- [x] **M7.1 `[Security]`** `RedactionPolicyInterface` (port) + `RedactingExecutionReporter` decorator: never export secrets, redact sensitive input keys, bound attribute size/cardinality/depth. Negative tests in `RedactionPolicyTest` + `RedactingExecutionReporterTest`.
+- [x] **M7.2 `[Security]`** `SafeSerializer` prohibition of arbitrary-object/resource/closure serialization enforced + negative tests in `SafeSerializerTest`.
+- [x] **M7.3 `[Perf]`** `benchmarks/CommandDispatchBench.php` (phpbench) for dispatch + lazy handler resolution; `LazyHandlerResolutionTest` proves the factory is skipped for invalid commands.
+- [x] **M7.4 `[Self-instrumentation]`** `GuardedExecutionReporter`: publication recursion guard + separate health-reporter path; bootstrap path uninstrumented. Tests prove loop break + failure routing.
+- [x] **M7.5 `[Perf]`** `OverflowPolicy` enum (`DropOldest` default / `DropNewest` / `Throw`) + `BufferOverflowException` in `CollectingExecutionReporter`. Tested in `CollectingExecutionReporterOverflowTest`.
+- [x] **M7.6** `PersistentWorkerIsolationTest` (Functional): 50 sequential dispatches leak no context; concurrent fibers keep isolated contexts (no cross-request bleed).
+
+### Notes
+
+- `phpbench.json` was adjusted to the installed phpbench 1.7 dotted-key format (`runner.path`, `runner.bootstrap`, `runner.iterations`, `runner.revs`) and `composer.json` exposes `benchmarks/` under `Benchmarks\\` for autoloading.
+- `RedactingExecutionReporter` and `GuardedExecutionReporter` live in `Adapter/Reporting` and depend only on `Contract/Port`, so they stay within the `Adapter` layer (verified by DepTrac: 0 violations).
 
 ### DoD
 
