@@ -20,7 +20,8 @@ phase is built so a developer can pick it up cold.
 7. Phase 6 — Architecture & QA Hardening
 8. Phase 7 — Docs, ADRs & Release
 9. Phase 8 — Design Hardening Backlog (post-v1)
-10. Cross-cutting: Timeline, Risks, Definition of Done
+10. Phase 9 — Edge-case & Optimization Hardening
+11. Cross-cutting: Timeline, Risks, Definition of Done
 
 ---
 
@@ -412,6 +413,67 @@ tooling already proven in the sibling `ConfigureIt` package.
 
 ---
 
+## Phase 9 — Edge-case & Optimization Hardening
+
+> Derived from the in-depth feature review (`docs/OPTIMIZATION_PLAN.md`, 2026-08-20).
+> Goal: close real leakage/semantic gaps found in the golden outputs, then add
+> structured-DX, family-depth, performance, and maintainability improvements. Every
+> step must keep all five gates green (per `AGENTS.md`).
+
+**Sequencing principle:** correctness first (A), then structured result + DX (D),
+then surface richness (B), family depth (C), performance (E), maintainability (F).
+
+### Step 9.1 — Substitute `self`/`static`/`parent` (A1, A5)
+- `TypeSubstitutor` (and `MethodSignatureFactory`) rewrite `self`/`static`/`parent`
+  in return/param types to the **derived interface FQCN** of the enclosing class
+  (and its parent for `parent`). Fixes the `withSelf(): <Concrete>` / `static`
+  leakage seen in `SelfStaticParentReturnClass.interface.php`.
+- Gate behind a config flag (default = current behaviour) to avoid surprising
+  callers on a minor release; add golden tests for self/static/parent.
+- Also detect naming collisions (A5): if `FooInterface` already exists in the
+  target namespace, raise a typed `NamingCollisionException` (see 9.2).
+
+### Step 9.2 — Typed result & exceptions (D1, D3, D4)
+- Introduce a `DerivationResult` value object (`interface`, `fqcn`, `shortName`,
+  `methods[]`, `substitutionsApplied[]`, `collisions[]`) returned alongside (or
+  instead of) the bare string by a new `deriveWithResult()` seam; keep `derive()`
+  string API backward-compatible.
+- Add `with*()` withers for **all** `DeriveConfig` flags (parity with
+  `withIncludeStatic`).
+- Replace generic `LogicException` with specific exceptions
+  (`NamingCollisionException`, `EmptyDerivationException`, `LeakageDetectedException`).
+
+### Step 9.3 — Default-value & return wrapping (A2, A3, A6)
+- Rewrite constant references inside default-value expressions via the
+  substitution map (the `SimpleBackedEnum::DEFAULT` leak).
+- `AdapterGenerator::wrapperFor()` wraps **each** segment of union/intersection
+  returns (A3); non-wrappable segments fall back to raw.
+- Add `failOnEmpty` config (A6) so an empty derived surface is signalled, not silent.
+
+### Step 9.4 — Surface richness (B1–B3)
+- `includeConstants` flag lifts public constants into the interface (B1).
+- Opt-in attribute pass-through (owned attributes only) + `throws` capture (B2).
+- `onlyMethods` / `skipMethods` allow/deny lists and a `rename`/alias policy (B3).
+
+### Step 9.5 — Family depth (C1–C4)
+- Transitive type substitution (C1) and an owned-namespace substitution policy
+  (C2, e.g. `App\*` → `App\Port\*`).
+- Auto-discover a family from a root class graph (C3) instead of an explicit list.
+- `deriveFamily()` returns a combined source / structured result (C4).
+
+### Step 9.6 — Performance & maintainability (E1–E4, F1–F4)
+- Memoize derived interfaces by `FQCN + config hash` (E1); in `deriveFamily` derive
+  each base interface once then apply substitution at render (E2); share one Nette
+  `Factory` (E3); cache resolver graph per `ReflectionClass` (E4).
+- Extract a shared `SourceRenderer` (F1) consolidating the three duplicated
+  `PhpNamespace`+`PhpFile` assemblies; make `FamilyDeriver`/`AdapterGenerator`
+  implement `DeriverInterface` (F2); centralize naming helpers in a `Naming`
+  service (F3); reduce `RecursiveTraitResolver` redundant re-walking (F4).
+- Add golden/snapshot tests for enum/trait/abstract targets and an instantiable
+  guard (§3.10 of the plan).
+
+---
+
 ## Cross-cutting: Timeline, Risks, Definition of Done
 
 ### Critical path
@@ -426,6 +488,7 @@ Phase 0
                             └─ Phase 6 (deptrac/mutation/CI)
                                  └─ Phase 7 (docs/ADRs/release)
                                       └─ Phase 8 (design hardening backlog, post-v1)
+                                           └─ Phase 9 (edge-case & optimization hardening)
  ```
 
 ### Minimum viable production release
@@ -465,5 +528,7 @@ Phase 0
 
 ---
 
-*Companion documents: `REVIEW.md` (current status & gaps) and `IMPLEMENTATION_PLAN.md`
-(milestone summary). This roadmap is the detailed execution spec for the latter.*
+*Companion documents: `REVIEW.md` (current status & gaps), `OPTIMIZATION_PLAN.md`
+(in-depth feature review, edge-case analysis & enhancement backlog), and
+`IMPLEMENTATION_PLAN.md` (milestone summary). This roadmap is the detailed execution
+spec for the latter.*

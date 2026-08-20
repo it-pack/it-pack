@@ -134,9 +134,10 @@ Namespace roots (composer.json): `ItPack\DeriveIt\` → `src/`,
 - Don't leave `composer analyse` red. If a `tests/` data-provider is flagged
   `deadMethod`/`method.unused`, configure the Codeception-aware PHPStan extension or
   scope `ignoreErrors` — **never delete a `#[DataProvider]` method** to silence it.
-- Don't introduce global mutable static resolver state beyond what already exists;
-  `ClassReflection`'s static singletons are a known smell (REVIEW §6.3) to be
-  refactored toward instance injection before Phase 6 parallel CI.
+- Don't introduce global mutable static resolver state. `ClassReflection` already
+  uses instance-injected resolvers with an immutable shared default (no static
+  singletons) — keep it that way; inject resolvers via `ClassReflection::create()`
+  rather than reaching for statics.
 
 ---
 
