@@ -411,10 +411,33 @@ Delivered (offline, unit-tested):
 full "Edge Model" (Phase 7+ tooling) — provenance data is captured and serialisable
 now so those build on top without Core changes.
 
-### Phase 7 — Developer Experience
+### Phase 7 — Developer Experience ✅
 
-- Configuration CLI, Inspector, `explain` command, graph visualization,
-  configuration diff tooling.
+Delivered (offline, unit-tested):
+
+- **Inspector** — `CLI\ConfigurationInspector` renders per-key provenance
+  (`explain <key>`: value, source, adapter, format, priority, sourceKind,
+  override, validatedBy, processor trail) and a flat table of every node
+  (`explain` with no key).
+- **CLI** — `bin/configure-it` dispatcher (`CLI\ConfigurationCli`) with thin,
+  framework-free subcommands over the Core services:
+  - `explain <file> [key]` — provenance / node table
+  - `diff <file-a> <file-b>` — semantic diff with provenance (reuses `ConfigurationDiffer`)
+  - `graph <file> [dot|ascii]` — Graphviz DOT or ASCII tree (reuses `GraphVisualizer`)
+  - `help`
+  Single files are loaded through the public reader/loader/normalizer ports
+  (`CLI\GraphFromFile`), so the CLI needs no builder and runs anywhere.
+- **Graph visualisation** — `CLI\GraphVisualizer` (`toDot()` Graphviz source,
+  `toAscii()` nested tree).
+
+Tests: `ConfigurationInspectorTest`, `GraphVisualizerTest`, `ConfigurationCliTest`
+(dispatch + every subcommand via an in-memory `CLI\Output` sink). Suite green:
+**134 tests / 295 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer`
+**0 files to fix**.
+
+**Deferred:** richer visual tooling (HTML/PlantUML exporters, interactive TUI,
+IDE plugins) and wiring the CLI into Composer scripts — incremental, no Core
+changes needed now that provenance/diagnostics/diff are exposed.
 
 ### Phase 8 — Enterprise Sources
 

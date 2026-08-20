@@ -71,10 +71,10 @@ final readonly class ConfigurationDiff
             $lines[] = '  changed:';
             foreach ($this->changed as $entry) {
                 $toSrc = \is_scalar($entry['toProvenance']['resourceUri'] ?? null)
-                    ? (string) $entry['toProvenance']['resourceUri']
+                    ? \basename((string) $entry['toProvenance']['resourceUri'])
                     : '?';
                 $fromSrc = \is_scalar($entry['fromProvenance']['resourceUri'] ?? null)
-                    ? (string) $entry['fromProvenance']['resourceUri']
+                    ? \basename((string) $entry['fromProvenance']['resourceUri'])
                     : '?';
 
                 $lines[] = sprintf(

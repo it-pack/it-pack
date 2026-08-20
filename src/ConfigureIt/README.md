@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Phase%206-blue.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%207-blue.svg)](#)
 
 ---
 
@@ -299,12 +299,12 @@ Future capabilities include:
 
 ## Status
 
-**Phase 1 — Core** through **Phase 5 — Additional Adapters (Dotenv)** are implemented,
-and **Phase 6 — Graph & Provenance** is delivered. The quality gate is green:
+**Phase 1 — Core** through **Phase 6 — Graph & Provenance** are implemented, and
+**Phase 7 — Developer Experience** is delivered. The quality gate is green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **121 tests / 258 assertions** green
+- Codeception unit suite — **134 tests / 295 assertions** green
 
 Delivered:
 
@@ -326,10 +326,14 @@ Delivered:
   changed keys with both sides' provenance
 - `ConfigurationSnapshot::provenance(string $path)` exposes per-node provenance to
   consumers
+- **Developer CLI** (`bin/configure-it`): `explain` (per-key provenance / node table),
+  `diff` (provenance-aware semantic diff), `graph` (Graphviz DOT or ASCII tree),
+  `help` — framework-free, built on the `CLI\ConfigurationInspector` /
+  `CLI\GraphVisualizer` / `CLI\ConfigurationCli` services
 
 Additional adapters (Aura.Di, Vault, Redis, HTTP, S3/cloud) are deferred and will be
-delivered incrementally (see `ROADMAP.md` Phase 5). Semantic-graph visualisation and
-RDF export remain Phase 7+ tooling (see `ROADMAP.md` Phase 6).
+delivered incrementally (see `ROADMAP.md` Phase 5). Semantic-graph visualisation
+(RDF/PlantUML) and IDE plugins remain future tooling (see `ROADMAP.md` Phase 7).
 
 ---
 

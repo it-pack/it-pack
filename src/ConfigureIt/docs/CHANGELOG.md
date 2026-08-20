@@ -265,6 +265,32 @@ Tests: `ProvenanceTest`, `ConfigurationGraphProvenanceTest`,
 remain Phase 7+ tooling; provenance is captured and serialisable so they build on
 top without Core changes.
 
+### Phase 7 — Developer Experience
+
+Delivered the Roadmap Phase 7 developer-experience tooling, all offline and
+unit-tested behind the existing reader/loader/normalizer/diagnostics/diff ports:
+
+- `src/CLI/GraphFromFile.php` — builds a `ConfigurationGraph` from a single file
+  through the public reader/loader/normalizer ports (no builder needed).
+- `src/CLI/ConfigurationInspector.php` — `explain(key)` provenance block and a flat
+  node table; powers the `explain` command and any IDE/debug tooling.
+- `src/CLI/GraphVisualizer.php` — `toDot()` (Graphviz source) and `toAscii()`
+  (nested tree) graph rendering.
+- `src/CLI/CommandInterface.php`, `ExplainCommand`, `DiffCommand`, `GraphCommand`,
+  `HelpCommand`, `ConfigurationCli` — a framework-free CLI dispatcher; `bin/configure-it`
+  exposes `explain`, `diff`, `graph`, `help`.
+- `src/CLI/Output.php` — a stream `Output` sink so commands are unit-testable
+  without spawning a subprocess.
+
+Tests: `ConfigurationInspectorTest`, `GraphVisualizerTest`, `ConfigurationCliTest`
+(dispatch + every subcommand via an in-memory `Output`). Suite green:
+**134 tests / 295 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer`
+**0 files to fix**.
+
+**Deferred:** HTML/PlantUML exporters, interactive TUI, IDE plugins and Composer
+script wiring — incremental, no Core changes now that provenance/diagnostics/diff
+are exposed.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
