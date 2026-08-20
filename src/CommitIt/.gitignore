@@ -40,3 +40,6 @@ packages/
 # deptrac
 /.deptrac.cache
 .deptrac.cache
+
+# KickOff File
+/docs/INITIAL_BRIEFING.md
