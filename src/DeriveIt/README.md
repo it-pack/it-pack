@@ -2,52 +2,209 @@
 
 > Part of the **It-Pack** family.
 
-Derives interfaces and adapters from third-party or legacy PHP classes — without hand-writing reflection code, and without leaking the adaptee's own contracts into your codebase.
+Derives interfaces (and adapters) from third-party or legacy PHP classes — without
+hand-writing reflection code, and without leaking the adaptee's own contracts into
+your codebase.
 
 ## The problem
 
-You want to depend on a port (an interface you own), not on someone else's concrete class or someone else's interface. But hand-deriving a correct interface from a real-world class — with its full inheritance chain, its traits, its already-implemented interfaces, its constructor promotion, its union/intersection types, its enums — is tedious and error-prone to write by hand, and brittle to maintain as the adaptee changes.
+You want to depend on a port (an interface you own), not on someone else's concrete
+class or someone else's interface. But hand-deriving a correct interface from a
+real-world class — with its full inheritance chain, its traits, its
+already-implemented interfaces, its constructor promotion, its union/intersection
+types, its enums — is tedious and error-prone to write by hand, and brittle to
+maintain as the adaptee changes.
 
-`derive-it` automates the derivation. Point it at a class (or a package, or a related family of classes), and it walks the full class/trait/interface graph and produces a clean, self-contained interface — one that never `extends` or references anything from the adaptee's own type hierarchy.
+`derive-it` automates the derivation. Point it at a class (or a package, or a
+related family of classes), and it walks the full class/trait/interface graph and
+produces a clean, self-contained interface — one that never `extends` or references
+anything from the adaptee's own type hierarchy.
 
 ## What it does
 
-- Walks the full inheritance chain (parent classes), trait usage (including nested traits), and already-implemented interfaces of a target class.
-- Flattens everything into method signatures — no leaking of the adaptee's own interfaces or class hierarchy into the derived contract.
-- Filters by visibility (public surface only) and handles static vs. instance methods deliberately.
-- Correctly drops constructors (an interface can't declare one, and you generally don't want callers constructing an adaptee through your port anyway).
-- Optionally derives one interface per trait boundary, instead of one flat interface — Interface Segregation applied to the derivation tool itself.
-- Built on `nette/php-generator` for rendering, and native PHP `Reflection` for graph-walking — each used for what it's actually good at.
+- Walks the full inheritance chain (parent classes), trait usage (including nested
+  traits), and already-implemented interfaces of a target class.
+- Flattens the public method surface into a self-contained interface — no leaking
+  of the adaptee's own interfaces or class hierarchy into the derived contract.
+- Filters by visibility (public surface only, or public + protected), and handles
+  static vs. instance methods deliberately (static dropped by default, opt-in on
+  PHP ≥ 8.4 which permits static interface methods).
+- Correctly drops constructors and destructors (an interface can't declare a
+  constructor, and you generally don't want callers constructing an adaptee
+  through your port anyway).
+- Preserves the real type grammar via `nette/php-generator`'s reflection-to-source
+  round-trip: union/intersection types, nullable types, variadics, by-ref params,
+  readonly, constructor promotion, and enums as parameter/return types.
+- Optionally derives **one interface per trait boundary** instead of one flat
+  interface — Interface Segregation applied to the derivation tool itself.
+- Optionally rewrites cross-referencing types across a **family** of derived
+  classes (e.g. `Node` ⇄ `Tree`) so the derived interfaces reference each other
+  rather than the native types.
+- Optionally generates a **delegating adapter** that implements the derived
+  interface and wraps a concrete adaptee instance, keeping the port free of
+  concrete types.
 
-## Usage sketch
+The leakage invariant is enforced everywhere: a derived interface has an empty
+`getExtends()` in flat mode (or only derived trait interfaces in per-trait mode),
+and emits no `use`/FQCN leaking the adaptee hierarchy.
 
-```php
-use ItPack\DeriveIt\Reflection\ClassReflection;
+## Installation
 
-$reflection = ClassReflection::create(SomeThirdPartyClass::class);
-
-$classes    = $reflection->getClassesRecursively();
-$interfaces = $reflection->getInterfacesRecursively();
-$traits     = $reflection->getTraitsRecursively();
-
-// → feed the resolved graph into the interface/adapter generation step
+```bash
+composer require it-pack/derive-it
 ```
 
-Resolvers are swappable — `ClassReflection` accepts custom implementations of
-`RecursiveClassResolverInterface`, `RecursiveInterfaceResolverInterface`, and
-`RecursiveTraitResolverInterface` if you need non-default traversal behavior.
+## Usage
 
-## Why not just use Reflection directly?
+### Flat interface derivation
 
-You can — and `derive-it` does, internally, for the graph-walking. But hand-rolling the full derivation on top of raw Reflection means re-solving PHP's entire type grammar yourself (union types, intersection types, nullable types, variadics, by-ref params, readonly, constructor promotion, enums as parameter types...). `nette/php-generator` already solves the introspection-to-source round-trip correctly; `derive-it` adds the *derivation* logic — deciding what belongs in the interface, what doesn't, and how it should be shaped — on top.
+```php
+use ItPack\DeriveIt\DeriveIt;
+
+$source = DeriveIt::derive(SomeThirdPartyClass::class);
+
+// $source is a complete, renderable PHP interface in the adaptee's namespace,
+// declaring only the public, non-static, non-magic, non-constructor methods.
+```
+
+If you want the `Nette\PhpGenerator\InterfaceType` object instead of rendered
+source, use `deriveInterface()`:
+
+```php
+/** @var \Nette\PhpGenerator\InterfaceType $interface */
+$interface = DeriveIt::deriveInterface(SomeThirdPartyClass::class);
+
+$interface->hasMethod('doSomething'); // true
+```
+
+### Configuration
+
+Every filtering decision is an explicit `DeriveConfig` flag with a sane default, so
+behaviour is testable and never an accidental opinion.
+
+```php
+use ItPack\DeriveIt\DeriveIt;
+use ItPack\DeriveIt\Generator\DeriveConfig;
+
+$config = new DeriveConfig(
+    visibility: DeriveConfig::VISIBILITY_PUBLIC, // or VISIBILITY_PROTECTED
+    includeStatic: false,  // retain static methods (PHP >= 8.4)
+    includeMagic: false,   // retain __* magic methods
+    dropConstruct: true,   // drop __construct
+    dropDestruct: true,   // drop __destruct
+);
+
+$source = DeriveIt::derive(SomeThirdPartyClass::class, includeStatic: true);
+```
+
+`DeriveIt::derive()` and `deriveInterface()` accept an `$includeStatic` shortcut;
+for the full set of flags, build a `DeriveConfig` and pass it to the adapter
+deriver below, or construct a `InterfaceDeriver` directly.
+
+### Per-trait interfaces
+
+Interface Segregation: one interface per used trait, with the main interface
+extending exactly those derived trait interfaces.
+
+```php
+use ItPack\DeriveIt\DeriveIt;
+
+$mainSource = DeriveIt::derivePerTrait(SomeClassUsingTraits::class);
+
+// Or get the individual trait interfaces as objects, keyed by trait short name:
+/** @var array<string, \Nette\PhpGenerator\InterfaceType> $traitInterfaces */
+$traitInterfaces = DeriveIt::deriveTraitInterfaces(SomeClassUsingTraits::class);
+
+$traitInterfaces['TraitA']->hasMethod('traitAMethod'); // true
+```
+
+When a method name appears in multiple traits, the first trait in the resolved
+order owns it; the others drop it — so no duplicate declaration can occur across
+the extended interfaces. Traits with no public methods are skipped.
+
+### Family derivation (type substitution)
+
+Derive a set of related classes together so that cross-referencing return/parameter
+types are rewritten to the corresponding derived interface.
+
+```php
+use ItPack\DeriveIt\DeriveIt;
+use ItPack\DeriveIt\Generator\DeriveConfig;
+
+$map = [
+    \App\Node::class => \App\NodeInterface::class,
+    \App\Tree::class => \App\TreeInterface::class,
+];
+
+$config = new DeriveConfig(typeSubstitutionMap: $map);
+
+/** @var array<class-string, string> $sources */
+$sources = DeriveIt::deriveFamily([\App\Node::class, \App\Tree::class]);
+
+// NodeInterface::getNext(): ?NodeInterface  (was ?Node)
+// TreeInterface::add(NodeInterface $node): void  (was add(Node $node))
+```
+
+Internally, types are stored as FQCNs (the canonical form) and Nette simplifies
+them to clean short names in the rendered source.
+
+### Adapter generation
+
+Derive the self-contained interface and a delegating adapter that implements it and
+wraps a concrete adaptee instance. The adapter lives in the adaptee's own namespace
+so it is self-contained.
+
+```php
+use ItPack\DeriveIt\DeriveIt;
+
+$source = DeriveIt::deriveAdapter(SomeThirdPartyClass::class);
+
+// $source defines both `SomeThirdPartyClassInterface` and
+// `SomeThirdPartyClassAdapter` in one file. The adapter holds the adaptee via
+// constructor injection and forwards every interface method to it.
+```
+
+When a returned value is itself a derived type, register an adapter class to wrap
+it so the port stays free of concrete types:
+
+```php
+$source = DeriveIt::deriveAdapter(
+    \App\Tree::class,
+    returnWrapperMap: [
+        \App\NodeInterface::class => \App\NodeAdapter::class,
+    ],
+);
+// TreeAdapter::add(NodeInterface $node) { $this->adaptee->add(new NodeAdapter($node)); }
+```
+
+## How it works
+
+- **Graph walking** (`src/Reflection`, `src/Resolver`) — native PHP `Reflection`
+  walks the parent/interface/trait graph recursively. Resolvers are swappable via
+  `RecursiveClassResolverInterface`, `RecursiveInterfaceResolverInterface`, and
+  `RecursiveTraitResolverInterface`.
+- **Generation** (`src/Generator`) — `nette/php-generator` (specifically
+  `Factory::fromMethodReflection()`) is the single source of truth for
+  parameter/return typing. `derive-it` adds the *derivation* logic on top: deciding
+  what belongs in the interface, what doesn't, and how it should be shaped.
 
 ## Status
 
-Early, active. First real target: deriving adapters for the Dagger PHP SDK's generated classes, as part of AExOps. Dogfooding target: deriving an adapter for `nette/php-generator` itself.
+Production-ready through **Phase 6**. All quality gates are green:
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Unit tests | `composer test:unit` | 113 tests, 182 assertions |
+| Coding standard | `composer cs:check` | 0 files |
+| Static analysis | `composer analyse` | no errors |
+| Architecture | `composer architecture` (deptrac) | 0 violations |
+| Mutation testing | `composer infection` | MSI ≥ 80% |
+
+The dogfooding target — deriving an adapter for `nette/php-generator` itself — is
+exercised by the Functional integration test suite.
 
 ## Roadmap
 
-- **Interface-per-trait as a configurable option**, not just one flat interface per class.
-- **Type substitution map** — when a derived method's return/param type is itself something being derived (e.g. deriving the whole `Reflection*` family together), rewrite the signature to point at the corresponding derived interface instead of the native type, and wrap the actual return value at the adapter implementation layer. Batch-scoped auto-detection by declared-type match as the default; explicit caller-supplied overrides for anything ambiguous (untyped/mixed returns).
-- **OTel-assisted shape discovery** — reusing OpenTelemetry extension instrumentation (not for the generated adapters themselves, but for the generation/analysis step) to observe actual runtime argument/return shapes where static signatures are too loose to trust.
-- **LLM-assisted long tail** — deterministic tooling handles the ~90-95% of classes/methods with clean, honest signatures; a narrowly-scoped LLM call handles the specific remaining edge cases a user doesn't want to hand-write themselves.
+- **ADRs** — design decisions documented under `docs/architecture/decisions/`.
+- **Post-v1 (documented only):** OTel-assisted shape discovery; LLM-assisted long-tail
+  edge cases. Out of scope for a production-ready v1.

@@ -1,0 +1,49 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Contract
+      collectors:
+        - type: directory
+          value: src/Contract/.*
+    - name: Resolver
+      collectors:
+        - type: directory
+          value: src/Resolver/.*
+    - name: Reflection
+      collectors:
+        - type: directory
+          value: src/Reflection/.*
+    - name: Generator
+      collectors:
+        - type: directory
+          value: src/Generator/.*
+    - name: Behavior
+      collectors:
+        - type: directory
+          value: src/Behavior/.*
+    - name: Entry
+      collectors:
+        - type: directory
+          value: src/[^/]+\.php
+  ruleset:
+    Contract: ~
+    Behavior: ~
+    Resolver:
+      - Contract
+      - Behavior
+    Reflection:
+      - Contract
+      - Resolver
+      - Behavior
+    Generator:
+      - Contract
+      - Reflection
+      - Resolver
+      - Behavior
+    Entry:
+      - Contract
+      - Reflection
+      - Resolver
+      - Generator
+      - Behavior

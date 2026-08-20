@@ -37,3 +37,7 @@ packages/
 
 # QA tooling output
 var/
+
+# deptrac
+/.deptrac.cache
+.deptrac.cache
