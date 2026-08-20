@@ -37,7 +37,7 @@ final class ExecutionAwareLogger extends AbstractLogger
     ) {
     }
 
-    public function log($level, string|\Stringable $message, array $context = []): void
+    public function log(mixed $level, string|\Stringable $message, array $context = []): void
     {
         $scope = $this->current->get();
 

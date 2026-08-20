@@ -1,3 +1,6 @@
+includes:
+    - tools/phpstan/runit-rules/extension.neon
+
 parameters:
     tmpDir: var/cache/phpstan
     level: max
@@ -9,6 +12,7 @@ parameters:
         - ./tests/Integration
         - ./tests/Support/Fixture
         - ./tests/Unit
+        - ./tools/phpstan/runit-rules/src
     parallel:
         maximumNumberOfProcesses: 1
     reportUnmatchedIgnoredErrors: false

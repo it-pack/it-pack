@@ -2369,20 +2369,46 @@ reuses `RunItPortFixture`. No verifier extends a test-framework base class.
 
 ## M13.2 PHPStan completion
 
-- [ ] Set PHPStan to the highest supported configured level.
-- [ ] Enable strict rules.
-- [ ] Enable uninitialized-property checks.
-- [ ] Enable missing-generic checks.
-- [ ] Enable strict mixed handling.
+Completed in this pass (RunIt-authored static-analysis extension):
+
+- [x] Set PHPStan to the highest supported configured level (`level: max`, passing).
+- [x] Enable strict rules (`phpstan/strict-rules` bundle, auto-registered; passing).
+- [x] Enable strict mixed handling — implicit (undeclared) types are forbidden via the
+      RunIt `forbidden-mixed` rule; explicit `mixed` is retained per AGENTS.md for
+      opaque/polymorphic boundaries (serializers, context/occurrence/snapshot payloads,
+      recorders, middleware, polymorphic validators).
+- [x] Maintain zero first-party baseline entries (`ignoreErrors: []`, no baseline used).
+
+A RunIt-owned PHPStan extension lives at `tools/phpstan/runit-rules` (registered from
+`phpstan.neon`). It implements the milestone's named rules without adding external
+rule packages:
+
+- `forbidden-mixed` — no implicit (undeclared) parameter/return/property types.
+- `forbidden-unsafe-types` — no `resource` type (the only AGENTS.md untyped type that is
+  never acceptable; `array`/`string`/`object`/`callable`/`iterable` remain permitted).
+- `no-var` — properties must declare explicit visibility.
+- `no-explicit-strict-types` — every library file declares `declare(strict_types=1)`.
+- `explicit-foreach` — no by-reference `foreach` binding.
+- `forbid-reflection-on-hot-path` — no `Reflection*` on `Domain`, `Application\Runner`,
+  `Application\Engine`.
+- `no-missing-imports` / `no-unused-imports` are enforced by `php-cs-fixer`
+  (`composer cs:check`), not PHPStan.
+
+See `docs/qa.md` for the full rationale and the explicit-`mixed` decision.
+
+Remaining ROADMAP-native items not yet covered by this pass:
+
+- [ ] Enable uninitialized-property checks (`checkUninitializedProperties`).
+- [ ] Enable missing-generic checks (`checkMissingIterableValueType`,
+      `checkGenericClassInNonGenericObjectType`).
 - [ ] Configure exception checks.
-- [ ] Add custom rule: concrete classes must be final.
-- [ ] Add custom rule: eligible immutable classes should be readonly.
+- [ ] Add custom rule: concrete classes must be final (currently a convention + `php-cs-fixer`).
+- [ ] Add custom rule: eligible immutable classes should be `readonly`.
 - [ ] Add custom rule: concrete classes require interfaces.
-- [ ] Add custom rule: domain cannot import adapters.
+- [ ] Add custom rule: domain cannot import adapters (covered by DepTrac in M13.3).
 - [ ] Add custom rule: prohibit mutable static state.
 - [ ] Add a custom rule: prohibit direct wall-clock access outside adapters.
 - [ ] Add custom rule: prohibit arbitrary object serialization.
-- [ ] Maintain zero first-party baseline entries.
 - [ ] Add a non-blocking bleeding-edge analysis job.
 
 ## M13.3 DepTrac completion

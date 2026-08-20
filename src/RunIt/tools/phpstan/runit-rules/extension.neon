@@ -1,0 +1,27 @@
+services:
+    # forbidden-mixed: no implicit (undeclared) types anywhere in the library.
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenMixedTypeRule, arguments: { nodeType: PhpParser\Node\Stmt\ClassMethod, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenMixedTypeRule, arguments: { nodeType: PhpParser\Node\Stmt\Function_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenMixedTypeRule, arguments: { nodeType: PhpParser\Node\Expr\Closure, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenMixedTypeRule, arguments: { nodeType: PhpParser\Node\Expr\ArrowFunction, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenMixedTypeRule, arguments: { nodeType: PhpParser\Node\Stmt\Property, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # forbidden-unsafe-types: the `resource` type is never acceptable.
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenUnsafeTypeRule, arguments: { nodeType: PhpParser\Node\Stmt\ClassMethod, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenUnsafeTypeRule, arguments: { nodeType: PhpParser\Node\Stmt\Function_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenUnsafeTypeRule, arguments: { nodeType: PhpParser\Node\Expr\Closure, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenUnsafeTypeRule, arguments: { nodeType: PhpParser\Node\Expr\ArrowFunction, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbiddenUnsafeTypeRule, arguments: { nodeType: PhpParser\Node\Stmt\Property, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # no-var: properties must declare explicit visibility.
+    - { class: Tools\PhpStan\RunitRules\Rule\NoVarRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # no-explicit-strict-types: every library file enables strict typing.
+    - { class: Tools\PhpStan\RunitRules\Rule\RequireExplicitStrictTypesRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # explicit-foreach: no by-reference iteration.
+    - { class: Tools\PhpStan\RunitRules\Rule\ExplicitForeachByRefRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # forbid-reflection-on-hot-path: no Reflection API in execution/domain hot paths.
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidReflectionOnHotPathRule, arguments: { hotPathNamespaces: [ItPack\RunIt\Domain, ItPack\RunIt\Application\Runner, ItPack\RunIt\Application\Engine], nodeType: PhpParser\Node\Expr\New_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidReflectionOnHotPathRule, arguments: { hotPathNamespaces: [ItPack\RunIt\Domain, ItPack\RunIt\Application\Runner, ItPack\RunIt\Application\Engine], nodeType: PhpParser\Node\Expr\StaticCall, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }

@@ -49,7 +49,7 @@ final class ObservationRecordingLogger extends AbstractLogger
      * @param string|\Stringable $message
      * @param array<array-key, mixed> $context
      */
-    public function log($level, string|\Stringable $message, array $context = []): void
+    public function log(mixed $level, string|\Stringable $message, array $context = []): void
     {
         if ($this->guard instanceof PublicationGuardInterface && $this->guard->isActive()) {
             return;
