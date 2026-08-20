@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Functional;
 
 use Codeception\Test\Unit;
-use ItPack\CommandIt\Adapter\Lazy\LazyHandlerProxy;
+use ItPack\CommandIt\Application\LazyHandlerProxy;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
@@ -15,7 +15,7 @@ use ItPack\CommandIt\Domain\CommandResult;
 use ItPack\CommandIt\Domain\ValueObject\CommandName;
 
 /**
- * @covers \ItPack\CommandIt\Adapter\Lazy\LazyHandlerProxy
+ * @covers \ItPack\CommandIt\Application\LazyHandlerProxy
  */
 final class LazyHandlerProxyTest extends Unit
 {

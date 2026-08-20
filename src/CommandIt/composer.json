@@ -41,7 +41,8 @@
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "codeception/module-phpbrowser": "^4.1",
-        "codeception/module-asserts": "^3.3"
+        "codeception/module-asserts": "^3.3",
+        "infection/codeception-adapter": "^0.4.7"
     },
     "suggest": {
         "symfony/console": "CLI projection adapter (maps CommandDefinition to Symfony Console commands)",

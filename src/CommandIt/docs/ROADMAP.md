@@ -184,19 +184,19 @@ composer cs:check
 
 ### Tasks
 
-- [ ] **M4.1 `[Contract/Command]`** `CommandHandlerInterface` — `handles(): string`, `handle(CommandInterface): CommandResultInterface`.
-- [ ] **M4.2 `[Contract/Command]`** `CommandBusInterface` — `dispatch(CommandInterface): CommandResultInterface`.
-- [ ] **M4.3 `[Contract/Command]`** `CommandMiddlewareInterface` — `process(CommandInterface, Next): CommandResultInterface`.
-- [ ] **M4.4 `[Contract/Application]`** `HandlerResolverInterface` — resolves (lazily) a handler for a command; throws `HandlerNotFoundException`. Default = `LazyHandlerProxy`.
-- [ ] **M4.5 `[Contract/Application]`** `CommandRegistryInterface` — name/class → definition + handler reference.
-- [ ] **M4.6 `[Contract/Application]`** `CommandExecutorInterface` — the orchestrator interface.
-- [ ] **M4.7 `[Contract/Application]`** `CommandExecutionCoordinatorInterface` — owns the lifecycle state machine (validate → received → executing → terminal) and occurrence emission.
-- [ ] **M4.8 `[Core]`** `CommandRegistry` — register/find definitions; discovery support.
-- [ ] **M4.9 `[Core]`** `HandlerResolver` — uses `LazyHandlerProxy` by default; DI-aware strategy pluggable.
-- [ ] **M4.10 `[Core]`** `MiddlewareChain` — composes middlewares + terminal handler; explicit order.
-- [ ] **M4.11 `[Core]`** `CommandExecutionCoordinator` — enforces transitions, records `CommandReceived`/`CommandHandled`/`CommandFailed`, measures duration (monotonic clock), restores context in `finally`.
-- [ ] **M4.12 `[Core]`** `CommandExecutor` — `final`, implements `CommandExecutorInterface` + `CommandBusInterface`: validate → resolve (lazy) → create `CommandExecution` → run middleware/handler within fiber-bound context → report → produce `CommandResult` → **rethrow original Throwable** on handler failure.
-- [ ] **M4.13 `[Exception]`** `HandlerNotFoundException`, `CommandExecutionException` (marker + concrete).
+- [x] **M4.1 `[Contract/Command]`** `CommandHandlerInterface` — `handles(): string`, `handle(CommandInterface): CommandResultInterface`.
+- [x] **M4.2 `[Contract/Command]`** `CommandBusInterface` — `dispatch(CommandInterface): CommandResultInterface`.
+- [x] **M4.3 `[Contract/Command]`** `CommandMiddlewareInterface` — `process(CommandInterface, Next): CommandResultInterface`.
+- [x] **M4.4 `[Contract/Application]`** `HandlerResolverInterface` — resolves (lazily) a handler for a command; throws `HandlerNotFoundException`. Default = `LazyHandlerProxy`.
+- [x] **M4.5 `[Contract/Application]`** `CommandRegistryInterface` — name/class → definition + handler reference.
+- [x] **M4.6 `[Contract/Application]`** `CommandExecutorInterface` — the orchestrator interface (extends `CommandBusInterface`).
+- [x] **M4.7 `[Contract/Application]`** `CommandExecutionCoordinatorInterface` — owns the lifecycle state machine (validate → received → executing → terminal) and occurrence emission.
+- [x] **M4.8 `[Core]`** `CommandRegistry` — register/find definitions; discovery support.
+- [x] **M4.9 `[Core]`** `HandlerResolver` — uses `LazyHandlerProxy` by default; DI-aware strategy pluggable.
+- [x] **M4.10 `[Core]`** `MiddlewareChain` — composes middlewares + terminal handler; explicit order.
+- [x] **M4.11 `[Core]`** `CommandExecutionCoordinator` — enforces transitions, records `CommandReceived`/`CommandHandled`/`CommandFailed`, measures duration (monotonic clock), restores context in `finally`.
+- [x] **M4.12 `[Core]`** `CommandExecutor` — `final`, implements `CommandExecutorInterface` + `CommandBusInterface`: validate → resolve (lazy) → create `CommandExecution` → run middleware/handler within fiber-bound context → report → produce `CommandResult` → **rethrow original Throwable** on handler failure.
+- [x] **M4.13 `[Exception]`** `HandlerNotFoundException`, `CommandExecutionException` (marker + concrete).
 
 ### DoD
 
@@ -215,6 +215,18 @@ composer architecture
 composer analyse
 composer mutation      # raise MSI; prioritize lifecycle/failure branches
 ```
+
+**Deviations / decisions (2026-08-20):**
+- **`LazyHandlerProxy` lives in `Application`, not `Adapter`.** deptrac forbids `Application → Adapter`, but the default `HandlerResolver` (an Application component) depends on the proxy. Moved from `src/Adapter/Lazy` to `src/Application` so the resolver can use it without violating the architecture. The functional `LazyHandlerProxyTest` was repointed.
+- **`CommandResultInterface::withExecution()` added.** The executor must attach the produced `CommandExecution` to the returned `CommandResult`. Rather than coercing the handler's status, the executor calls `withExecution()` to return a copy carrying the execution. This is the only addition to a public interface this milestone and is justified by a genuine executor need (pre-1.0).
+- **`CommandExecutionCoordinatorInterface` returns `ExecutionArtifactInterface`, not `CommandExecution`.** The Contract layer may not depend on Domain, so the coordinator contract uses the contract-level artifact type; the concrete `CommandExecutionCoordinator` narrows to `CommandExecution` internally.
+- **Coordinator guards reporter calls (best-effort).** `reportOccurrence`/`reportMeasurement` are wrapped so a reporter failure never aborts the business flow or replaces the original business exception (the executor owns the rethrow in a `finally`).
+- **`CommandExecution` docblock `int<0, max>` relaxed to `int`.** The clock→executor→coordinator→domain chain passes plain `int` timestamps; keeping the narrower docblock constraint forced casts through the whole chain. Native types remain `int`; the non-negative guarantee is documented at the `ClockInterface` boundary instead.
+- **`HandlerNotFoundException` is a single marker+concrete class** (`\RuntimeException implements CommandExceptionInterface`), following the `CommandExecutionException` precedent rather than the interface+concrete pair pattern.
+
+**Result:** `composer test` 87 tests / 192 assertions green (78 unit, 7 functional, 2 integration); `composer analyse` 0 errors; `composer architecture` 0 violations; `composer cs:check` clean. Shipped: `CommandBusInterface`, `CommandMiddlewareInterface`, `HandlerResolverInterface`, `CommandRegistryInterface`, `CommandExecutorInterface`, `CommandExecutionCoordinatorInterface`, `HandlerNotFoundException`, and the core `CommandRegistry` / `HandlerResolver` / `MiddlewareChain` / `CommandExecutionCoordinator` / `CommandExecutor`.
+
+**Gate not run — `composer mutation`:** Infection requires PHPUnit and a `phpunit.xml`; this repo is Codeception-only and has no `phpunit.xml`. Additionally `vendor/bin/phpunit` currently fatals with a `PhpParser\NodeVisitor` redeclaration (rector's bundled `nikic/php-parser` conflicts with the root one) — a pre-existing environment issue unrelated to M4. Mutation MSI is therefore not measured yet; follow-up: add a `phpunit.xml.dist` covering `tests/Unit` and resolve the php-parser conflict.
 
 ---
 

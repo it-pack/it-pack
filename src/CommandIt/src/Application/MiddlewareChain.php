@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\CommandIt\Application;
+
+use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
+use ItPack\CommandIt\Contract\Command\CommandInterface;
+use ItPack\CommandIt\Contract\Command\CommandMiddlewareInterface;
+use ItPack\CommandIt\Contract\Command\CommandResultInterface;
+
+/**
+ * Composes zero or more middlewares around the terminal handler in explicit order.
+ *
+ * The first registered middleware is the outermost; the last is closest to the
+ * handler. Each middleware receives the command and a `next` callable that runs
+ * the rest of the chain, ending in the handler.
+ *
+ * @api
+ */
+final class MiddlewareChain
+{
+    /**
+     * @param list<CommandMiddlewareInterface> $middlewares
+     */
+    public function __construct(
+        /** @var list<CommandMiddlewareInterface> */
+        private array $middlewares,
+    ) {
+    }
+
+    public function process(CommandInterface $command, CommandHandlerInterface $handler): CommandResultInterface
+    {
+        $next = function (CommandInterface $command) use ($handler): CommandResultInterface {
+            return $handler->handle($command);
+        };
+
+        foreach (\array_reverse($this->middlewares) as $middleware) {
+            $next = $this->wrap($middleware, $next);
+        }
+
+        return $next($command);
+    }
+
+    /**
+     * @param callable(CommandInterface): CommandResultInterface $next
+     * @return callable(CommandInterface): CommandResultInterface
+     */
+    private function wrap(CommandMiddlewareInterface $middleware, callable $next): callable
+    {
+        return function (CommandInterface $command) use ($middleware, $next): CommandResultInterface {
+            return $middleware->process($command, $next);
+        };
+    }
+}

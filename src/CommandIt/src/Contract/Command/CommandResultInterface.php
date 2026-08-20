@@ -23,4 +23,11 @@ interface CommandResultInterface
     public function payload(): mixed;
 
     public function execution(): ?ExecutionArtifactInterface;
+
+    /**
+     * Returns a copy of this result carrying the given execution artifact.
+     *
+     * The receiver is never mutated.
+     */
+    public function withExecution(ExecutionArtifactInterface $execution): CommandResultInterface;
 }

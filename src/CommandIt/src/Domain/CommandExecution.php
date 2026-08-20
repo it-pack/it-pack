@@ -26,8 +26,8 @@ use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 final readonly class CommandExecution implements ExecutionArtifactInterface
 {
     /**
-     * @param int<0, max> $startedAt
-     * @param int<0, max>|null $endedAt
+     * @param int $startedAt
+     * @param int|null $endedAt
      */
     public function __construct(
         private CommandExecutionIdInterface $id,
@@ -40,7 +40,7 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
     }
 
     /**
-     * @param int<0, max> $startedAt
+     * @param int $startedAt
      */
     public static function define(
         CommandDefinitionInterface $definition,
@@ -66,7 +66,7 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
     }
 
     /**
-     * @return int<0, max>
+     * @return int
      */
     public function startedAt(): int
     {
@@ -74,7 +74,7 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
     }
 
     /**
-     * @return int<0, max>|null
+     * @return int|null
      */
     public function endedAt(): ?int
     {
@@ -119,7 +119,7 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
      *
      * The receiver is never mutated. Throws when already terminal.
      *
-     * @param int<0, max> $endedAt
+     * @param int $endedAt
      *
      * @throws CommandExecutionException
      */

@@ -10,7 +10,8 @@
 - **Milestone 1 (value objects & behaviors)**: shipped.
 - **Milestone 2 (domain model)**: shipped.
 - **Milestone 3 (ports + default adapters)**: shipped — all external-effect contracts and RunIt-agnostic defaults in place (clock, ids, serializer, reporter, context storage, execution storage, runtime detector, lazy handler proxy).
-- Application core, SDK, CLI adapter, cross-cutting, and release hardening follow in later milestones.
+- **Milestone 4 (application core / orchestration)**: shipped — the command bus + executor run the lifecycle (validate → received → executing → terminal), resolve handlers lazily, compose middleware, record occurrences via `CommandExecutionCoordinator`, and rethrow the original business exception on handler failure. `CommandExecutor` implements `CommandBusInterface` + `CommandExecutorInterface`.
+- SDK, CLI adapter, cross-cutting, and release hardening follow in later milestones.
 
 ## Layering (DepTrac)
 
@@ -29,12 +30,14 @@ ports (`src/Contract/Port`) only.
 
 | Execution model | CommandIt artifact |
 |---|---|
-| Execution | `CommandExecution` |
-| Context | `CommandContext` (port-provided) |
+| Command | `Command` (port-dispatched via `CommandBusInterface`) |
+| Handler | `CommandHandlerInterface` (resolved lazily by `HandlerResolver`) |
+| Execution | `CommandExecution` (orchestrated by `CommandExecutor` + `CommandExecutionCoordinator`) |
+| Context | `CommandContext` (port-provided, fiber-bound) |
 | Activity | handler work (future) |
-| Measurement | duration/measurement (future) |
-| Observation | reporter observation (future) |
+| Measurement | `duration_ms` (monotonic clock, reported by coordinator) |
+| Observation | reporter observation |
 | Occurrence | `CommandReceived`, `CommandHandled`, `CommandFailed` |
-| Snapshot | `CommandResult` |
+| Snapshot | `CommandResult` (carries the `CommandExecution`) |
 
 See `docs/EXECUTION.md` for the governing principles.

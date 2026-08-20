@@ -50,4 +50,9 @@ final readonly class CommandResult implements CommandResultInterface
     {
         return $this->execution;
     }
+
+    public function withExecution(ExecutionArtifactInterface $execution): CommandResultInterface
+    {
+        return new self($this->status, $this->payload, $execution);
+    }
 }
