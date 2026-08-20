@@ -34,12 +34,12 @@ deptrac:
           value: src/Contract/Port/.*
     - name: SymfonyConsole
       collectors:
-        - type: className
-          value: ^Symfony\\Console\\
+        - type: classNameRegex
+          value: '/^Symfony\\Console/'
     - name: RunIt
       collectors:
-        - type: className
-          value: ^ItPack\\RunIt\\
+        - type: classNameRegex
+          value: '/^ItPack\\RunIt/'
   ruleset:
     Common: ~
     Contract:

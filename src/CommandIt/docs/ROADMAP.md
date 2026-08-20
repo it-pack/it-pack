@@ -57,18 +57,18 @@ composer security:audit
 
 ### Tasks
 
-- [ ] **M1.1 `[ValueObject]`** `ValidatedString` — extensible validated string with normalization + format validation. Backed by `Behavior/Domain/ValidatedStringValueBehavior`.
-- [ ] **M1.2 `[ValueObject]`** `CommandName`, `ArgumentName`, `OptionName` — each wraps `ValidatedString` via property-hook `set` (normalize/validate) and `get` (canonical form). Use the `ValidatedStringValueBehavior` trait (DRY).
-- [ ] **M1.3 `[Behavior]`** `NamedConstructorBehavior` — shared `from*` named constructors (stateless).
-- [ ] **M1.4 `[Behavior]`** `TimestampedBehavior` — projects a `createdAt`/`startedAt` onto `Countable`/timing (mirror RunIt's trait shape).
-- [ ] **M1.5 `[Behavior]`** `ExecutionOwnedBehavior` — links an artifact to its execution id (stateless, no hidden deps).
-- [ ] **M1.6 `[Behavior]`** `CommandNamedBehavior` — exposes `commandName()` projection.
-- [ ] **M1.7 `[Contract]`** `Exception/CommandExceptionInterface` (marker) + `InvalidCommandException` implementing it.
+- [x] **M1.1 `[ValueObject]`** `ValidatedString` + `Contract/ValueObject/ValidatedStringInterface` — extensible validated string, validated once on construction, stored verbatim. Backed by `Behavior/Domain/ValidatedStringValueBehavior`.
+- [x] **M1.2 `[ValueObject]`** `CommandName`, `ArgumentName`, `OptionName` — `final readonly` classes implementing `ValidatedStringInterface`; each tightens the base rule via the `assertAdditionalRules()` hook (command names allow dot/colon namespaces; argument/option names require identifier format). Base safety rules (non-empty, ≤255, no control chars) always run.
+- [x] **M1.3 `[Behavior]`** Named-constructor discipline is provided by `ValidatedStringValueBehavior::fromString()` plus per-class static factories; no separate `NamedConstructorBehavior` trait was created (it would be a speculative abstraction per `AGENTS.md`). Recorded as a deliberate deviation.
+- [x] **M1.4 `[Behavior]`** `TimestampedBehavior` — projects `timestamp()` onto `Countable` (mirrors RunIt's shape, with `@see` vocab link).
+- [x] **M1.5 `[Behavior]`** `ExecutionOwnedBehavior` — `executionId()` + `belongsTo()` (stateless, no hidden deps).
+- [x] **M1.6 `[Behavior]`** `CommandNamedBehavior` — `commandName()` + `isNamed()` projection.
+- [x] **M1.7 `[Contract]`** `Exception/CommandExceptionInterface` (marker) + `InvalidCommandException` (extends `\InvalidArgumentException`, with `emptyValue`/`valueTooLong`/`controlCharacters`/`malformed` factories).
 
 ### DoD
 
 All value objects are `final readonly`, validated immutably, and covered by unit tests asserting:
-rejection of invalid names, idempotent normalization, no mutation after construction.
+rejection of invalid names, idempotent normalization (verbatim round-trip), type-aware equality, no mutation after construction.
 
 ### QG
 
@@ -77,6 +77,14 @@ composer test:unit
 composer analyse
 composer cs:check
 ```
+
+**Deviations / decisions (2026-08-20):**
+- **No `set` property hooks on names.** `readonly` classes cannot carry a `set` hook, and the ROADMAP's "validate on construction" intent is satisfied by the private-constructor + `fromString` trait pattern (identical to RunIt's `ValidatedStringValueBehavior`). Property hooks are deferred to M2, where they apply to genuinely virtual/coercing properties (`signature`, `CommandInput` coercion).
+- **No `NamedConstructorBehavior` trait** — subsumed by `ValidatedStringValueBehavior::fromString`; a separate trait would be speculative (AGENTS: avoid speculative abstractions).
+- **Foundation-behavior methods** (`count`, `belongsTo`, `isNamed`) are flagged `shipmonk.deadMethod` until M2 consumes them; each carries a targeted `@phpstan-ignore-next-line shipmonk.deadMethod` with a rationale, not a blanket baseline.
+- **deptrac external layers** `SymfonyConsole`/`RunIt` use `type: classNameRegex` with **fully-delimited** patterns (`/^Symfony\\Console/`, `/^ItPack\\RunIt/`) — deptrac 4 calls `preg_match($pattern, '')` with no added delimiters, so the pattern must include its own `/…/`.
+
+**Result:** `composer test:unit` 25 tests / 31 assertions green; `composer analyse` 0 errors; `composer cs:check` clean; `composer architecture` 0 violations.
 
 ---
 
