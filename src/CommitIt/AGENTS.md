@@ -2,11 +2,14 @@
 
 ## Purpose
 
-This file guides AI coding agents working on **RunIt** (`it-pack/run-it`).
+This file guides AI coding agents working on **CommitIt** (`it-pack/commit-it`).
 
-RunIt provides the vendor-neutral execution model and runtime backbone for the ItPack ecosystem.
+CommitIt provides a vendor-neutral API and SDK for common version-control operations,
+shipping first with a **git** implementation built on `czproject/git-php`.
 
-Use these instructions when implementing, reviewing, refactoring, testing, or documenting the project. Keep changes small, explicit, and consistent with the execution model.
+Use these instructions when implementing, reviewing, refactoring, testing, or
+documenting the project. Keep changes small, explicit, and consistent with the
+it-pack execution model and the agreed architecture in `docs/IMPLEMENTATION_PLAN.md`.
 
 ---
 
@@ -29,37 +32,35 @@ Do not silently resolve significant ambiguity. State the issue and request clari
 
 ## Project Mission
 
-RunIt models **execution itself**:
+CommitIt models **version control as a vendor-neutral operation set**:
 
 ```text
-Execution
-├── Context
-├── Activity
-├── Measurement
-├── Observation
-├── Occurrence
-└── Snapshot
+VCS
+├── Repository
+│   ├── WorkingTree
+│   ├── Branch
+│   ├── Tag
+│   ├── Remote
+│   └── Commit
+└── Observer (operation lifecycle)
 ```
 
 The governing principles are:
 
-> Everything happens within an execution.  
-> Execution carries context.  
-> Activities perform work.  
-> Measurements quantify work.  
-> Observations describe work.  
-> Occurrences record work.  
-> Snapshots preserve work.
+> Every operation happens on a repository.
+> Repositories are addressed by validated paths.
+> References (branches, tags) have validated names.
+> Commits are immutable facts.
+> Operations are observable but not coupled to any observer.
+> The git implementation is one adapter, not the definition of the domain.
 
 External technologies implement or transport parts of this model:
 
-- OpenTelemetry is an adapter.
-- CloudEvents is an adapter.
-- PSR-3 is an adapter.
-- PSR-14 is an adapter.
-- Swoole and OpenSwoole are runtime adapters.
+- `czproject/git-php` is the git adapter.
+- RunIt is a *future* observer adapter (via `RepositoryObserver`).
+- PSR-3 is a possible logging observer adapter.
 
-Never redefine RunIt domain semantics in terms of an external standard.
+Never redefine CommitIt domain semantics in terms of an external standard.
 
 ---
 
@@ -67,15 +68,17 @@ Never redefine RunIt domain semantics in terms of an external standard.
 
 Before making architectural changes, read the smallest relevant set of:
 
-1. `EXECUTION.md`
-2. `README.md`
-3. Relevant files under `docs/architecture/`
-4. Relevant Architecture Decision Records under `docs/adr/`
-5. Public contracts under `src/Contract/`
-6. Tests covering the affected behavior
-7. `composer.json`
-8. `deptrac.yaml`
-9. `phpstan.neon.dist`
+1. `docs/INITIAL_BRIEFING.md`
+2. `docs/EXECUTION.md` (shared it-pack execution model)
+3. `docs/IMPLEMENTATION_PLAN.md` (current architecture reasoning)
+4. `README.md`
+5. Relevant files under `docs/architecture/`
+6. Relevant Architecture Decision Records under `docs/adr/`
+7. Public contracts under `src/Contract/`
+8. Tests covering the affected behavior
+9. `composer.json`
+10. `deptrac.yaml`
+11. `phpstan.neon`
 
 If a listed file does not exist, do not invent its contents. Use the available sources and mention the missing artifact when it blocks the task.
 
@@ -93,13 +96,13 @@ Agents with any context-window size should work incrementally.
 2. Inspect the requested area and its immediate dependencies.
 3. Find existing contracts, implementations, tests, and documentation.
 4. Identify whether the change affects:
-    - Domain semantics.
-    - Public API.
-    - Serialization.
-    - Adapter mapping.
-    - Security.
-    - Performance.
-    - Backward compatibility.
+   - Domain semantics.
+   - Public API.
+   - Serialization.
+   - Adapter mapping.
+   - Security.
+   - Performance.
+   - Backward compatibility.
 5. Form a short implementation plan.
 
 Do not load the entire repository unless the task genuinely requires it.
@@ -136,7 +139,7 @@ If context is limited, prioritize correctness in this order:
 
 ## Architectural Boundaries
 
-RunIt uses hexagonal ports-and-adapters architecture.
+CommitIt uses hexagonal ports-and-adapters architecture, enforced by `deptrac.yaml`.
 
 ```text
 SDK / Consumer Adapters
@@ -147,16 +150,18 @@ Application
           ▼
 Domain
 
-Infrastructure Adapters ──► Ports ◄── Application
+Infrastructure Adapters ──► Ports (Contracts) ◄── Application
 ```
 
 Expected dependency direction:
 
 ```text
-Domain       → Contracts
-Application  → Contracts, Domain, Ports
-SDK          → Contracts, Domain, Application, Ports
-Adapters     → Contracts, Domain, Ports, external APIs
+Common       → (nothing internal)
+Contract     → Common, Domain
+Domain       → Common, Contract
+Application  → Common, Contract, Domain
+SDK          → Common, Contract, Domain, Application
+Adapter      → Common, Contract, Domain, czproject/git-php
 ```
 
 ### Domain must not depend on
@@ -164,27 +169,31 @@ Adapters     → Contracts, Domain, Ports, external APIs
 - Application services.
 - SDK conveniences.
 - Infrastructure adapters.
-- OpenTelemetry.
-- CloudEvents.
+- `czproject/git-php`.
+- RunIt or the it-pack execution runtime.
 - PSR interfaces.
 - Frameworks.
-- Swoole or OpenSwoole.
-- Containers.
-- Filesystems.
+- Filesystems or process runners (validation is pure; path resolution may use the
+  filesystem but must stay side-effect free beyond resolution).
 - Network clients.
 
 ### Application must not depend on
 
 - SDK facades.
-- Concrete external adapters.
+- Concrete external adapters (`czproject/git-php`).
 - Framework service providers.
-- Vendor-specific telemetry implementations.
+- Vendor-specific VCS implementations.
 
 ### Adapter rules
 
-Adapters may translate RunIt concepts but must not change their meaning.
+Adapters may translate VCS concepts but must not change their meaning.
 
-Keep mapping logic inside the relevant adapter. Do not add vendor-specific fields to core domain objects solely to satisfy an adapter.
+- Keep all `czproject/git-php` usage inside `src/Adapter/Git/`.
+- Map `GitException` to domain exceptions and preserve the original as `previous`.
+- Do not add adapter-specific fields to core domain objects solely to satisfy git.
+- Prefer composition over subclassing `czproject` classes (e.g. worktrees are
+  invoked through the repository's `execute()` passthrough, not by extending
+  `GitRepository`).
 
 DepTrac rules are architectural requirements, not optional style guidance.
 
@@ -194,94 +203,39 @@ DepTrac rules are architectural requirements, not optional style guidance.
 
 Preserve these invariants unless an accepted ADR explicitly changes them.
 
-### Execution
+### Repository
 
-- An execution represents one logical runtime operation.
-- Every artifact belongs to exactly one execution.
-- An execution has at most one terminal outcome.
-- Terminal executions cannot transition again.
-- Nested executions use explicit parent or link identities.
-- Ownership is represented by identity and relationships, not mandatory in-memory collections.
+- A repository is addressed by exactly one validated `RepositoryPath`.
+- A repository belongs to exactly one VCS backend (git in 1.0.0).
+- Opening a path without a valid repository fails fast, never silently initializing.
+- Terminal/atomic operations (commit, push) either succeed completely or roll back
+  observable state.
 
-### Context
+### Commit
 
-- Execution context is immutable.
-- Changes produce a new context.
-- Context values have explicit classification and propagation policy.
-- Secret values are never exported.
-- Ambient context is convenience infrastructure, not the canonical domain API.
-- Global mutable execution state is prohibited.
+- A commit is an immutable fact.
+- A commit id is a validated, opaque string (git: 40-hex SHA-1).
+- A commit's author/committer metadata is read-only once captured.
 
-### Activity
+### Reference names (Branch / Tag / Remote)
 
-- Activities are bounded units of work.
-- An activity belongs to one execution.
-- A nested activity references its parent activity explicitly.
-- A completed activity cannot be reopened.
-- Open activities must be resolved according to an explicit completion policy.
+- Reference names are validated before use (`RefNameValidator`).
+- Invalid names must be rejected with `InvalidReferenceNameException`, not passed
+  to the backend.
+- Names are extensible validated strings, not closed enums.
 
-### Measurement
+### WorkingTree
 
-- Measurements are quantitative.
-- Each measurement has a name, numeric value, and unit.
-- High-cardinality values must not become metric dimensions by default.
-- Duration uses monotonic time.
+- Working-tree operations target paths resolved relative to the repository root.
+- A worktree path must never escape the repository's parent scope without explicit,
+  validated intent.
+- Adding/removing a worktree must not corrupt the primary checkout.
 
-### Observation
+### Observer
 
-- Observations are qualitative.
-- Prefer stable message templates and structured attributes.
-- Throwable data must be safely normalized.
-- Observations must not become occurrences merely because they are important.
-
-### Occurrence
-
-- Occurrences are immutable facts.
-- Occurrence types are stable, lowercase, and versioned.
-- Occurrence types are independent of PHP class names.
-- CloudEvents is a representation of occurrences, not their domain definition.
-
-### Snapshot
-
-- Snapshots are immutable.
-- Snapshot serialization is explicit and deterministic.
-- Arbitrary PHP object serialization is prohibited.
-- Snapshot persistence is delegated to a port.
-
----
-
-## Execution Lifecycle
-
-Preserve the execution state machine:
-
-```text
-CREATED
-   │
-   ▼
-RUNNING
-   ├──► SUCCEEDED
-   ├──► FAILED
-   ├──► CANCELLED
-   └──► TIMED_OUT
-```
-
-Lifecycle behavior must be:
-
-- Explicit.
-- Validated.
-- Idempotent where documented.
-- Safe during exceptions.
-- Testable without external infrastructure.
-
-When an operation throws:
-
-1. Record failure safely.
-2. Resolve active activities according to policy.
-3. Complete the execution as failed.
-4. Restore prior context in `finally`.
-5. Rethrow the original `Throwable`.
-
-A telemetry or adapter exception must not replace the original business exception.
+- The `RepositoryObserver` is a non-intrusive hook applied via a decorator.
+- The core repository and adapter must not depend on any concrete observer.
+- A failed operation notifies `onFailure` and preserves the original `Throwable`.
 
 ---
 
@@ -302,7 +256,7 @@ declare(strict_types=1);
 - Every concrete class must be `final`.
 - Use `readonly` whenever controlled mutation is unnecessary.
 - Every concrete class must implement an appropriate interface.
-- Exceptions must implement the relevant RunIt exception marker interface.
+- Required exceptions must implement the relevant CommitIt exception marker interface.
 - Prefer composition over inheritance.
 - Keep interfaces small and focused.
 - Do not create interfaces solely to duplicate another interface without semantic value.
@@ -315,7 +269,7 @@ declare(strict_types=1);
 - Avoid implicit `mixed`.
 - Add PHPDoc generics where native PHP cannot express a relationship.
 - Do not use PHPDoc to contradict native types.
-- Use dedicated value objects for identifiers, names, units, and validated concepts.
+- Use dedicated value objects for identifiers, names, paths, and validated concepts.
 - Use `null` for optional values.
 - Use property hooks for value objects and back them with respective contracts.
 - Prefer extensible validated strings over closed enums for user-defined names and kinds.
@@ -330,7 +284,7 @@ declare(strict_types=1);
 - Use `bool` for untyped booleans.
 - Use `resource` for untyped resources.
 - Use `callable` for untyped callables.
-- Use Stringable for untyped stringable objects.
+- Use `Stringable` for untyped stringable objects.
 - Use `iterable` for untyped iterable objects.
 - Use `Traversable` for untyped traversable objects.
 - Use `Generator` for untyped generator objects.
@@ -348,7 +302,6 @@ Use modern features only when they improve clarity:
 - Property hooks for clear validation or computed properties.
 - Virtual properties for intentional projections.
 - Lazy objects for expensive optional infrastructure.
-- Fibers through runtime adapters.
 - `WeakMap` for object-keyed, non-owning runtime associations.
 - `WeakReference` only where correctness does not depend on object lifetime.
 
@@ -358,7 +311,7 @@ Do not use a language feature merely because it is available.
 
 ## API Design
 
-RunIt is a library and SDK for both ItPack and third-party consumers.
+CommitIt is a library and SDK for both ItPack and third-party consumers.
 
 Public APIs must be:
 
@@ -372,15 +325,15 @@ Public APIs must be:
 
 ### Prefer
 
-- Interfaces at architectural boundaries.
-- Immutable definitions and artifacts.
-- Named constructors.
-- Factories for infrastructure assembly.
-- Immutable builders for ergonomic configuration.
-- Decorators for non-intrusive instrumentation.
+- Interfaces at architectural boundaries (`Repository`, `WorkingTree`, `RepositoryFactory`, `RepositoryObserver`).
+- Immutable definitions and artifacts (`Commit`, value objects).
+- Named constructors (`CommitMessage::fromParts()`, `RepositoryPath::from()`).
+- Factories for infrastructure assembly (`GitPhpRepositoryFactory`).
+- Immutable builders for ergonomic configuration (`InitOptions`, `CloneOptions`, `CommitOptions`).
+- Decorators for non-intrusive instrumentation (`ObservedRepository`).
 - Explicit scope arguments.
-- Narrow recorder interfaces.
-- Ports for time, identity, serialization, publication, and storage.
+- Narrow observer interfaces.
+- Ports for process execution, path resolution, and observation.
 
 ### Avoid
 
@@ -389,7 +342,7 @@ Public APIs must be:
 - Hidden container access.
 - Mandatory inheritance.
 - Reflection on hot paths.
-- Generic “manager” or “helper” classes.
+- Generic "manager" or "helper" classes.
 - Large configuration arrays without typed builders.
 - Boolean parameters with unclear meaning.
 - Public APIs coupled to one adapter.
@@ -405,197 +358,121 @@ Use domain terminology consistently:
 
 | Use | Avoid as a synonym |
 |---|---|
-| Execution | Trace, transaction, request |
-| Activity | Span, operation step |
-| Measurement | Metric value |
-| Observation | Log |
-| Occurrence | Event |
-| Snapshot | Serialized result |
-| Context | Baggage, metadata bag |
-
-Adapter documentation may explain mappings, but core APIs must retain RunIt vocabulary.
+| Repository | Repo wrapper, git handle |
+| WorkingTree | Worktree (git slang), checkout |
+| Branch | Ref (when ambiguous) |
+| Commit | Revision, changeset |
+| CommitId | Hash, sha |
+| Reference name | Ref string |
 
 Names should communicate one responsibility:
 
 ```text
-ExecutionRunner
-ActivityRunner
-ArtifactPublisher
-ContextStorage
-SamplingPolicy
-Redactor
-SnapshotStore
+GitPhpRepository
+GitPhpRepositoryFactory
+GitPhpWorkingTree
+RepositoryOpener
+ObservedRepository
+RefNameValidator
+CommitMessageValidator
 ```
 
 Avoid vague names such as:
 
 ```text
-ExecutionManager
-TelemetryHelper
+GitManager
+VcsHelper
 DataProcessor
 CommonService
 Utility
 ```
 
-## Vocabulary Alignment
-
-`vocab/run-it.ttl` is the canonical OWL vocabulary for RunIt domain concepts.
-`vocab/run-it-taxonomy.ttl` is the companion SKOS taxonomy for extensible kinds,
-context keys, occurrence types, and other recommended controlled values.
-
-When adding or materially changing a public domain contract, value object,
-serialized field, standard name, kind, context key, occurrence type, or its
-documentation, reference the corresponding vocabulary resource:
-
-- In implementation code, use a PHPDoc `@see` reference to the canonical term
-  IRI where a corresponding term exists.
-- In public documentation, link to the relevant local vocabulary file and,
-  when useful, its canonical IRI or taxonomy scheme.
-- Keep the reference adjacent to the defining contract or concept; do not add
-  RDF concerns to the runtime model or make the vocabulary a runtime dependency.
-
-If no suitable term exists, add or revise the vocabulary and its documentation
-in the same change before using a new public term. Taxonomy entries are
-recommended and extensible unless the ontology explicitly defines them as a
-closed set.
-
 ---
 
 ## External Adapter Rules
 
-### OpenTelemetry
+### Git (`czproject/git-php`)
 
-- Keep OpenTelemetry dependencies optional.
-- Library code must not configure global providers.
-- Do not select an exporter from core code.
-- Map executions and activities without equating them to traces and spans.
-- Apply redaction and cardinality controls before export.
-- Test mapping with in-memory providers or exporters.
-- Preserve original execution identities where possible.
+- Keep `czproject/git-php` usage inside `src/Adapter/Git/`.
+- Wrap the `Git`/`GitRepository` runner; prefer injecting an `IRunner` so tests can
+  use `MemoryRunner`.
+- Map `GitException` to a domain exception and preserve it as `previous`.
+- Do not subclass `czproject` classes to add features; compose and use the public
+  `execute()`/`run()` passthrough (e.g. for worktrees).
+- Apply path and reference validation before invoking the backend.
 
-### CloudEvents
+### RunIt (future, optional)
 
-- Map occurrences through a dedicated mapper.
-- Preserve unknown extension attributes when reading events.
-- Validate required attributes.
-- Keep event data serialization explicit.
-- Do not export unrestricted execution context.
-- Provide bidirectional mapping tests.
+- CommitIt must not depend on RunIt.
+- A future `it-pack/commit-it-runit` package implements `RepositoryObserver` and
+  maps operations to RunIt activities/occurrences.
+- Keep the observer vocabulary (operation name + structured context) mappable to
+  RunIt's Activity/Observation/Occurrence triad without coupling.
 
-### PSR-3
+### PSR-3 (optional logging observer)
 
-- Map observations to logger messages and context.
-- Keep message templates stable.
-- Put the throwable under the expected exception context key where appropriate.
-- Do not turn every log into an occurrence.
-
-### PSR-14
-
-- Account for synchronous dispatch and listener exceptions.
-- Apply the configured publication failure policy.
-- Do not allow PSR event mutability to mutate immutable RunIt occurrences.
-
-### Swoole, OpenSwoole, and Fibers
-
-- Store context per Fiber or coroutine.
-- Never store request context in process-global mutable state.
-- Restore or clear context in `finally`.
-- Test repeated executions in persistent workers.
-- Keep runtime-specific APIs out of domain and application contracts.
-
----
-
-## Publication and Failure Policy
-
-Artifact publication follows this conceptual pipeline:
-
-```text
-Validation
-→ Enrichment
-→ Classification
-→ Redaction
-→ Sampling
-→ Routing
-→ Adapter publication
-```
-
-Requirements:
-
-- Redact before external publication.
-- Bound buffers and queues.
-- Define overflow behavior.
-- Prevent recursive publication.
-- Preserve the business result.
-- Preserve the original business exception.
-- Make fail-closed behavior explicit.
-
-Default behavior is expected to be fail-open with fallback reporting.
-
-Never catch and silently discard a publication failure without applying the configured policy or recording it through the recursion-safe health path.
+- A logging observer may implement `RepositoryObserver` and map lifecycle events to
+  PSR-3 log calls.
+- Never log full commit-message bodies or file contents by default.
 
 ---
 
 ## Security Requirements
 
-Treat context, observations, occurrences, and snapshots as potential data-exfiltration paths.
+Treat repository paths, reference names, commit messages, and file contents as
+potential injection or data-exfiltration vectors.
 
 Do not:
 
-- Export secrets.
-- Capture all environment variables.
-- Serialize arbitrary objects.
-- Export unlimited stack traces.
-- Create unbounded attributes or payloads.
-- Use user-controlled values as metric names.
-- Use high-cardinality values as metric dimensions by default.
-- Retain execution context between persistent-worker requests.
+- Pass unvalidated user input to git subprocesses unchecked.
+- Allow absolute paths to escape the repository scope for stage/remove.
+- Log secrets embedded in commit messages, paths, or ref names by default.
+- Silently overwrite an existing non-empty directory on clone/init.
+- Expose or corrupt `.git`.
+- Create unbounded buffers of git output in core services.
 
 When adding fields or mappings, consider:
 
 1. Classification.
-2. Redaction.
+2. Injection surface.
 3. Maximum size.
-4. Cardinality.
+4. Path scope / traversal.
 5. Serialization safety.
-6. Tenant isolation.
-7. Propagation boundaries.
+6. Tenant isolation (shared workers cloning untrusted URLs).
 
-Security-sensitive behavior requires negative tests.
+Security-sensitive behavior requires negative tests (injection-shaped inputs,
+malicious paths, escape attempts).
 
 ---
 
 ## Performance Requirements
 
-Assume execution and activity APIs may run on hot paths.
+Assume repository operations may be called repeatedly in loops or workers.
 
 Avoid:
 
-- Network or filesystem operations in core services.
+- Filesystem or process operations in core domain validation beyond path resolution.
 - Reflection during normal execution.
-- Eager serialization.
-- Eager stack-trace generation.
-- Retaining all artifacts by default.
+- Eager serialization of commit metadata.
+- Eager worktree listing.
 - Unbounded recursion, nesting, or buffering.
-- Per-artifact initialization of expensive adapters.
+- Per-operation initialization of expensive adapters.
 
 Prefer:
 
-- Monotonic clocks for durations.
-- Deferred normalization.
-- Streaming publication.
-- Reusable immutable mappers and policies.
-- Bounded buffering.
-- Sampling and filtering before expensive work.
+- Injecting a shared `IRunner` rather than constructing one per call.
+- Lazy objects for expensive optional infrastructure (e.g. observer wiring).
+- Reusable immutable validators and mappers.
+- Deferred metadata loading (load commit details on demand, not on list).
+- Bounded parsing of command output.
 
 Performance changes require benchmarks when they affect:
 
-- Execution start or completion.
-- Activity start or completion.
-- Context storage.
-- Artifact creation.
-- Publication.
-- Serialization.
-- Fiber or coroutine switching.
+- Repository open/init/clone.
+- Commit or stage operations.
+- Worktree listing.
+- Path resolution.
+- Bulk ref enumeration.
 
 Do not claim a performance improvement without measurements.
 
@@ -603,16 +480,16 @@ Do not claim a performance improvement without measurements.
 
 ## Self-Instrumentation
 
-RunIt should use its own model for operational activities, but it must not recursively observe publication.
+CommitIt should support observation of its own operations via `RepositoryObserver`,
+but it must not recursively observe the observer.
 
 Preserve these rules:
 
-- Use a publication recursion guard.
-- Send nested publication failures to a separate health reporter.
-- Do not route health reporting back through the failing publisher.
-- Instrument exporter batches or flushes rather than every internal method.
-- Keep the bootstrap path intentionally uninstrumented.
-- Avoid self-instrumentation that materially changes hot-path behavior.
+- Apply observation through the `ObservedRepository` decorator, not inside the core.
+- Send observer failures to a separate, non-recursive path (the observer itself
+  must not trigger further observed operations).
+- Keep the bootstrap / factory path intentionally uninstrumented.
+- Avoid observation that materially changes hot-path behavior.
 
 ---
 
@@ -623,17 +500,16 @@ Every behavior change requires tests at the narrowest appropriate level.
 ### Test categories
 
 - Domain invariant tests.
-- Lifecycle tests.
-- Application service tests.
-- Port contract tests.
-- Adapter integration tests.
-- Serialization round-trip tests.
-- Failure-injection tests.
-- Property-based tests where useful.
-- Fiber or coroutine isolation tests.
-- Persistent-worker leak tests.
+- Value-object validation tests (`RefNameValidator`, `CommitMessageValidator`, `CommitId`).
+- Port contract tests (reused by the git adapter conformance suite).
+- Adapter unit tests (via `czproject` `MemoryRunner`).
+- Adapter integration tests (real temp repositories in the Functional suite).
+- Serialization / value-object round-trip tests.
+- Failure-injection tests (`GitExceptionMap`, observer `onFailure`).
+- Observer/decorator tests.
+- Property-based tests where useful (ref-name fuzzing).
+- Concurrency isolation tests (repeated operations in persistent workers).
 - Mutation tests for critical branching.
-- Benchmarks for hot-path changes.
 
 ### Test-framework neutrality
 
@@ -653,15 +529,14 @@ Always test relevant combinations of:
 
 - Success.
 - Original operation failure.
-- Adapter failure.
-- Nested execution.
-- Nested activities.
-- Context restoration.
-- Repeated completion.
-- Cancellation or timeout.
-- Redaction.
-- Buffer overflow.
-- Recursive publication.
+- Adapter failure (`GitException`).
+- Invalid reference name.
+- Missing repository path.
+- Dirty working tree blocking an operation.
+- Worktree add/remove/list.
+- Clone into existing non-empty directory.
+- Observer `onStart` / `onSuccess` / `onFailure` dispatch.
+- `NullRepositoryObserver` no-op behavior.
 - Concurrency isolation.
 
 A test should verify observable behavior, not private implementation details.
@@ -674,12 +549,11 @@ Inspect `composer.json` before running commands. Use repository-defined scripts 
 
 Expected tools include:
 
-- PHPStan.
+- PHPStan (configured at `level: max`).
 - DepTrac.
-- PHP-CS-Fixer.
+- PHP-CS-Fixer (`@PHP84Migration`).
 - Infection.
 - Composer validation and audit.
-- Backward compatibility checks.
 - Unit and integration test runners.
 
 Typical checks may include:
@@ -691,16 +565,16 @@ composer analyse
 composer architecture
 composer coding-style
 composer mutation
-composer benchmark
 composer audit
 composer quality
 ```
 
-Do not assume these scripts exist. Verify them first.
+Do not assume these scripts exist. Verify them first. Wire the missing scripts into
+`composer.json` before implementation begins.
 
 ### PHPStan
 
-- Target the highest configured level.
+- Target the highest configured level (`max`).
 - Do not add first-party errors to a baseline.
 - Do not suppress an error without a specific documented reason.
 - Prefer correcting types and design over adding broad ignores.
@@ -715,13 +589,11 @@ Do not assume these scripts exist. Verify them first.
 
 Prioritize mutation coverage for:
 
-- State transitions.
-- Failure policies.
-- Context restoration.
-- Redaction.
-- Sampling.
-- Validators.
-- Adapter mappings.
+- Reference-name validation.
+- Commit-message validation.
+- `GitExceptionMap` error mapping.
+- Observer dispatch branching.
+- Path resolution/scope checks.
 
 ---
 
@@ -731,12 +603,9 @@ Update documentation when changing:
 
 - Public APIs.
 - Domain semantics.
-- Lifecycle behavior.
-- Context fields.
-- Serialization.
-- Occurrence naming.
+- Reference-name or commit-message rules.
 - Adapter mappings.
-- Failure policy.
+- Observer contract.
 - Security defaults.
 - Configuration.
 - Installation requirements.
@@ -747,17 +616,14 @@ Examples must:
 - Include `declare(strict_types=1)`.
 - Be minimal but executable where practical.
 - Avoid imaginary framework setup.
-- Demonstrate RunIt terminology rather than adapter terminology.
+- Demonstrate CommitIt terminology rather than adapter terminology.
 
 Create or update an ADR when a change affects:
 
 - Aggregate boundaries.
 - Dependency direction.
 - Public extension points.
-- Lifecycle semantics.
-- Failure guarantees.
-- Context propagation.
-- Package splitting.
+- Observer / RunIt integration semantics.
 - Security defaults.
 - Serialization compatibility.
 
@@ -771,11 +637,10 @@ After `1.0.0`, treat these as compatibility-sensitive:
 
 - Public interfaces and signatures.
 - Public classes and enums.
-- Artifact normalization fields.
-- Serialized schemas marked stable.
-- Occurrence type conventions.
+- Value-object normalization fields.
 - Adapter extension contracts.
 - Exception types exposed to consumers.
+- The `RepositoryObserver` port.
 
 Do not casually add methods to public interfaces. Adding an interface method breaks third-party implementations.
 
@@ -800,7 +665,7 @@ Prefer introducing a new focused interface and composing it into new APIs.
 
 - Rewrite unrelated code.
 - Add dependencies without justification.
-- introduce a framework requirement.
+- Introduce a framework requirement.
 - Introduce global mutable state.
 - Expose adapter types from domain contracts.
 - Add speculative abstractions.
@@ -817,12 +682,12 @@ Prefer introducing a new focused interface and composing it into new APIs.
 
 Request clarification before proceeding when:
 
-- `EXECUTION.md`, an ADR, and public code disagree materially.
+- `docs/IMPLEMENTATION_PLAN.md`, an ADR, and public code disagree materially.
 - A change would break a stable public contract.
-- Required security or data-classification behavior is unknown.
+- Required security or path-scope behavior is unknown.
 - Delivery guarantees are unclear.
 - A new dependency or package split is required.
-- The task requires choosing between incompatible execution semantics.
+- The task requires choosing between incompatible VCS semantics.
 - Existing tests encode contradictory behavior.
 - The requested change would couple the domain to an external adapter.
 - Required project files or specifications are missing.
@@ -855,17 +720,17 @@ Do not include large code dumps when the changes already exist in the working tr
 
 Before considering a change complete, verify:
 
-- [ ] The change follows the RunIt execution vocabulary.
+- [ ] The change follows the CommitIt VCS vocabulary.
 - [ ] Domain semantics remain vendor-neutral.
-- [ ] Dependency direction is correct.
+- [ ] Dependency direction is correct (per DepTrac).
 - [ ] Concrete classes are `final`.
 - [ ] Eligible classes are `readonly`.
 - [ ] Concrete classes implement appropriate interfaces.
-- [ ] Context and artifacts remain immutable.
-- [ ] Original business exceptions are preserved.
+- [ ] Value objects and commits remain immutable.
+- [ ] Original backend exceptions are preserved as `previous`.
 - [ ] External effects use ports.
-- [ ] Sensitive data is classified and redacted.
-- [ ] Buffers, payloads, and cardinality are bounded.
+- [ ] Sensitive data (paths, messages) is classified and not logged by default.
+- [ ] Buffers, payloads, and path scope are bounded.
 - [ ] Relevant tests were added or updated.
 - [ ] Architecture and static-analysis checks pass where available.
 - [ ] Documentation reflects public behavior.
