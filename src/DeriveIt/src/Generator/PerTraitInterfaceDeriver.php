@@ -72,7 +72,13 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
 
         $main = new InterfaceType($this->deriveName($reflection));
-        $main->setExtends(array_map(static fn (InterfaceType $i): string => $i->getName(), array_values($traitInterfaces)));
+        $namespace = $reflection->getNamespaceName();
+        $main->setExtends(array_map(
+            static fn (InterfaceType $i): string => $namespace === ''
+                ? $i->getName()
+                : $namespace . '\\' . $i->getName(),
+            array_values($traitInterfaces),
+        ));
 
         $traitMethodNames = [];
         foreach ($traitInterfaces as $interface) {
@@ -124,7 +130,10 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
         $expected = array_map(static fn (InterfaceType $i): string => $i->getName(), array_values($traitInterfaces));
         sort($expected);
 
-        $actual = $main->getExtends();
+        $shortName = static fn (string $fqcn): string => ($pos = strrpos($fqcn, '\\')) === false
+            ? $fqcn
+            : substr($fqcn, $pos + 1);
+        $actual = array_map($shortName, $main->getExtends());
         sort($actual);
 
         if ($expected !== $actual) {

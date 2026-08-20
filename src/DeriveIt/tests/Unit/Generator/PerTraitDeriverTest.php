@@ -39,7 +39,9 @@ class PerTraitDeriverTest extends Unit
             ->derive(new ReflectionClass(\_Fixture\Stubs\ClassD::class))
         ;
 
-        verify($main->getExtends())->equals(['TraitEInterface', 'TraitAInterface']);
+        verify($main->getExtends())
+            ->equals(['_Fixture\Stubs\TraitEInterface', '_Fixture\Stubs\TraitAInterface'])
+        ;
         verify($main->getMethods())->equals([]);
     }
 
@@ -79,7 +81,7 @@ class PerTraitDeriverTest extends Unit
         ;
 
         verify($main->getExtends())
-            ->equals(['FirstConflictTraitInterface', 'SecondConflictTraitInterface'])
+            ->equals(['_Fixture\Stubs\FirstConflictTraitInterface', '_Fixture\Stubs\SecondConflictTraitInterface'])
         ;
     }
 

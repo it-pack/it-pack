@@ -12,59 +12,79 @@ use ItPack\DeriveIt\Resolver\RecursiveInterfaceResolver;
 use ItPack\DeriveIt\Resolver\RecursiveTraitResolver;
 use ReflectionClass;
 
+/**
+ * Reflection facade for the derivation pipeline.
+ *
+ * Resolvers are held as **instance** state (optionally injected via the
+ * constructor / {@see self::create()}), falling back to a single shared,
+ * immutable default set. There is deliberately no mutable static setter: the
+ * earlier static-singleton design let tests leak resolver state across cases and
+ * broke mutation-testing runs under shuffled order. Instance state removes that
+ * entire class of failure.
+ */
 final class ClassReflection extends ReflectionClass
 {
-    private static ?RecursiveClassResolverInterface $classResolver = null;
-    private static ?RecursiveInterfaceResolverInterface $interfaceResolver = null;
-    private static ?RecursiveTraitResolverInterface $traitResolver = null;
+    private RecursiveClassResolverInterface $classResolver;
 
-    public static function create(object|string $objectOrClass): self
-    {
-        return new self($objectOrClass);
+    private RecursiveInterfaceResolverInterface $interfaceResolver;
+
+    private RecursiveTraitResolverInterface $traitResolver;
+
+    private static ?RecursiveClassResolverInterface $defaultClassResolver = null;
+
+    private static ?RecursiveInterfaceResolverInterface $defaultInterfaceResolver = null;
+
+    private static ?RecursiveTraitResolverInterface $defaultTraitResolver = null;
+
+    public function __construct(
+        object|string $objectOrClass,
+        ?RecursiveClassResolverInterface $classResolver = null,
+        ?RecursiveInterfaceResolverInterface $interfaceResolver = null,
+        ?RecursiveTraitResolverInterface $traitResolver = null,
+    ) {
+        parent::__construct($objectOrClass);
+
+        $this->classResolver = $classResolver ?? self::defaultClassResolver();
+        $this->interfaceResolver = $interfaceResolver ?? self::defaultInterfaceResolver();
+        $this->traitResolver = $traitResolver ?? self::defaultTraitResolver();
+    }
+
+    public static function create(
+        object|string $objectOrClass,
+        ?RecursiveClassResolverInterface $classResolver = null,
+        ?RecursiveInterfaceResolverInterface $interfaceResolver = null,
+        ?RecursiveTraitResolverInterface $traitResolver = null,
+    ): self {
+        return new self($objectOrClass, $classResolver, $interfaceResolver, $traitResolver);
     }
 
     public function getClassesRecursively(): array
     {
-        return self::getRecursiveClassResolver()->resolve($this);
-    }
-
-    public static function getRecursiveClassResolver(): RecursiveClassResolverInterface
-    {
-        return self::$classResolver ??= RecursiveClassResolver::create();
-    }
-
-    public static function setRecursiveClassResolver(RecursiveClassResolverInterface $resolver): void
-    {
-        self::$classResolver = $resolver;
+        return $this->classResolver->resolve($this);
     }
 
     public function getInterfacesRecursively(): array
     {
-        return self::getRecursiveInterfaceResolver()->resolve($this);
-    }
-
-    public static function getRecursiveInterfaceResolver(): RecursiveInterfaceResolverInterface
-    {
-        return self::$interfaceResolver ??= RecursiveInterfaceResolver::create();
-    }
-
-    public static function setRecursiveInterfaceResolver(RecursiveInterfaceResolverInterface $resolver): void
-    {
-        self::$interfaceResolver = $resolver;
+        return $this->interfaceResolver->resolve($this);
     }
 
     public function getTraitsRecursively(): array
     {
-        return self::getRecursiveTraitResolver()->resolve($this);
+        return $this->traitResolver->resolve($this);
     }
 
-    public static function getRecursiveTraitResolver(): RecursiveTraitResolverInterface
+    private static function defaultClassResolver(): RecursiveClassResolverInterface
     {
-        return self::$traitResolver ??= RecursiveTraitResolver::create();
+        return self::$defaultClassResolver ??= RecursiveClassResolver::create();
     }
 
-    public static function setRecursiveTraitResolver(RecursiveTraitResolverInterface $resolver): void
+    private static function defaultInterfaceResolver(): RecursiveInterfaceResolverInterface
     {
-        self::$traitResolver = $resolver;
+        return self::$defaultInterfaceResolver ??= RecursiveInterfaceResolver::create();
+    }
+
+    private static function defaultTraitResolver(): RecursiveTraitResolverInterface
+    {
+        return self::$defaultTraitResolver ??= RecursiveTraitResolver::create();
     }
 }

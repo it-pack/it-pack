@@ -82,8 +82,7 @@ DeriveIt/
 │   └── Behavior/Utility/LazyCreatable.php    # trait: create() proxy factory
 ├── scripts/
 │   ├── derive.php                            # demo: prints a derived interface
-│   ├── regenerate_goldens.php                # dev helper: rewrites tests/_expected/*
-│   └── create_text_constructs.php            # empty stub (no-op)
+│   └── regenerate_goldens.php                # dev helper: rewrites tests/_expected/*
 ├── fixtures/
 │   ├── Stubs/                                 # ~21 files used by unit tests
 │   └── *.php (60+)                            # type fixtures for golden-file snapshots
@@ -121,9 +120,9 @@ All three use `LazyCreatable::create(): self`.
 
 ### 3.2 The facade
 **`ClassReflection extends ReflectionClass`** adds `create()`, the three
-`get*Recursively()` instance methods (delegating to the resolvers), and the
-corresponding static `get*Resolver()` / `set*Resolver()` accessors that hold
-**static singleton state** (see §6.1-1).
+`get*Recursively()` instance methods (delegating to the resolvers), and optional
+resolver constructor injection (see §6.1-1). Resolvers default to a single shared,
+immutable set — there is **no mutable static state**.
 
 ### 3.3 The generation pipeline
 For each public method of the concrete class (PHP resolves trait/parent conflicts),
@@ -197,11 +196,12 @@ and threw `TypeError`. In the default (non-shuffled) Codeception order,
 and passed; under Infection's `shuffle: true`, `ClassReflectionTest` could run
 first and contaminate the rest of the run.
 
-**Fix:** added `ClassReflectionTest::tearDown()` that restores the real resolvers
-(`Recursive*Resolver::create()`) after every test, eliminating cross-test
-contamination regardless of order. Verified: `test:unit` green (113), `infection`
-green (MSI 85%). This is the canonical remedy; the deeper design fix (instance
-injection of resolvers, §6.1-1) remains recommended for long-term safety.
+**Fix:** the initial remedy was a `ClassReflectionTest::tearDown()` that restored the
+real resolvers after every test (verified `test:unit` green, `infection` green at the
+time). That band-aid was then superseded in **Phase 8** by the proper design fix:
+`ClassReflection` now uses **instance-injected resolvers** with an immutable shared
+default and no mutable static state (§6.1-1), so the leak cannot recur and no
+`tearDown()` reset is needed. Current Infection MSI is **86%**.
 
 ### 5.2 README vs. delivered code (current)
 The README's capability section now accurately reflects implemented behavior. The
@@ -213,29 +213,31 @@ discovery), not as shipped features.
 ## 6. Code-Quality Findings (current)
 
 ### 6.1 Real smells / limitations (not regressions, but worth tracking)
-1. **Global mutable static resolver state** (`src/Reflection/ClassReflection.php:17-19,
-   31-69`). Resolvers are `static` singletons mutated via `set*Resolver()`. This is
-   test-hostile (state leaks across tests) and was the direct cause of the §5.1
-   Infection failure. The `tearDown()` reset contains the symptom, but the proper
-   fix is **constructor/instance injection** of resolvers (or a per-request reset
-   path). Recommended before any parallel/CI matrix run.
+1. **Global mutable static resolver state — ✅ RESOLVED (Phase 8, 2026-08-20).**
+   Was the direct cause of the §5.1 Infection failure. `ClassReflection` no longer
+   holds `static` singletons: the `set*Resolver()` setters and `getRecursive*Resolver()`
+   static accessors were removed, and resolvers are now **instance state** injected via
+   the constructor / `create()` with an immutable shared default
+   (`src/Reflection/ClassReflection.php`). `ClassReflectionTest` passes stub resolvers
+   via the constructor and needs no `tearDown()` reset. Cross-test state leakage is
+   eliminated; Infection baseline is stable under `shuffle: true` without any band-aid.
 2. **`ClassReflection extends ReflectionClass`** (composition-vs-inheritance choice).
    Works and is convenient, but exposes the entire reflection API as "DeriveIt"
    surface, which can confuse consumers. Composition + a private `ReflectionClass`
    would be a cleaner public boundary.
-3. **`LazyCreatable::createLazy()` is dead code.** No production path and no test
-   calls it (verified: zero usages in `src/`/`tests/`). The "lazy" proxy buys
-   nothing. Either wire it into the resolvers or remove it to drop the misleading
-   "Lazy" name.
+3. **`LazyCreatable::createLazy()` — ✅ RESOLVED (Phase 0).** `LazyCreatable` ships
+   only the abstract `create()` method; `createLazy()` does not exist and has zero
+   usages. No action outstanding.
 4. **Redundant recursion in `RecursiveTraitResolver`** (`resolveClassInheritance()`
    calls the full `resolve()` on each parent, then re-merges). Correct, but
    re-walks shared ancestors; fine at current scale, worth noting before hierarchies
    grow.
-5. **Per-trait composed main interface renders `extends \TraitXInterface`** (global
-   name with leading backslash) rather than a clean short name. Cosmetic only — the
-   emitted source is valid PHP and self-contained; left as a known limitation.
-6. **`scripts/create_text_constructs.php`** is an empty no-op stub (imports only).
-   Remove or implement.
+5. **Per-trait composed main interface `extends` form — ✅ RESOLVED (Phase 8,
+   2026-08-20).** `PerTraitInterfaceDeriver::derive()` now sets `extends` to each trait
+   interface's FQCN; Nette/`PhpNamespace` simplifies it to a clean short name when
+   rendering (`interface ClassDInterface extends TraitEInterface, TraitAInterface`).
+6. **`scripts/create_text_constructs.php` — ✅ RESOLVED (Phase 8, 2026-08-20).**
+   The empty no-op stub was deleted; no production/test code referenced it.
 7. **`scripts/generate_reflection_adapter.php`** (the old scratch file) is **retired**
    (removed in Phase 1.7); `scripts/derive.php` is the supported demo.
 8. **`examples/` and `fixtures/` are excluded from `cs:check` / `analyse`.** `examples/`
@@ -254,24 +256,21 @@ discovery), not as shipped features.
 
 ## 7. Recommendations (priority order)
 
-**P0 — none outstanding.** All quality gates are green as of this review.
+**P0 — none outstanding.** All quality gates are green (verified 2026-08-20, post-Phase-8).
 
-**P1 — design hardening (before scaling / parallel CI)**
-- Replace static mutable resolver singletons with **constructor/instance injection**
-  (or a documented reset), removing cross-test state leakage entirely (supersedes
-  the `tearDown()` band-aid from §5.1).
-- Remove or wire `LazyCreatable::createLazy()` (§6.1-3).
+**P1 — design hardening — ✅ COMPLETE.** Resolver instance injection (§6.1-1),
+dead `createLazy()` removal (§6.1-3), clean per-trait `extends` (§6.1-5), and the
+empty stub deletion (§6.1-6) are all done in Phase 8.
 
-**P2 — polish**
-- Remove the empty `scripts/create_text_constructs.php` stub (§6.1-6).
-- Optionally render per-trait `extends` with a clean short name instead of the
-  global backslash form (§6.1-5).
-- Consider composition over `extends ReflectionClass` (§6.1-2).
+**P2 — polish (optional)**
+- Consider composition over `extends ReflectionClass` (§6.1-2) — a cleaner public
+  boundary, but not required.
+- Redundant recursion in `RecursiveTraitResolver` (§6.1-4) — fine at current scale.
 
-**P3 — post-v1**
+**P3 — post-v1 (optional)**
 - OTel / LLM-assisted discovery (documented roadmap, not yet started).
 - Expand the `Functional` suite (currently 2 real-package tests) and start asserting
-  `generated/` output in CI.
+  `generated/` output in CI (Roadmap H5).
 
 ---
 
@@ -286,11 +285,14 @@ adapter modes, configurable via `DeriveIt` + `DeriveConfig`.
 Compared with the 2026-08-14 review (which found red static analysis, missing
 packaging constraints, a non-existent generator, and an over-promising README),
 **every gate is now green**: 113 unit tests, 0 CS fixes, PHPStan clean, deptrac
-clean, and Infection at **85% MSI** (≥ 80%). During this review we identified and
-fixed one real defect — **test pollution from global static resolver state** that
-broke Infection's shuffled baseline — by resetting the resolvers in
-`ClassReflectionTest::tearDown()`.
+clean, and Infection at **86% MSI** (≥ 80%). During the final review we identified
+and fixed one real defect — **test pollution from global static resolver state** that
+broke Infection's shuffled baseline — first via a `tearDown()` reset, then properly
+in Phase 8 by **instance-injecting the resolvers** (no mutable static state remains).
+The remaining Phase 8 hardening items (clean per-trait `extends`, dead-`createLazy()`
+removal, empty-stub deletion) are also complete.
 
-The remaining items are non-blocking design-hardening suggestions (instance
-injection of resolvers, dead `createLazy()`, cosmetic `extends` form). The project
-is ready for its tagged `v0.1.0` release.
+The only non-blocking follow-ups are optional polish (composition over `extends
+ReflectionClass`, redundant trait-resolver recursion) and post-v1 work (OTel/LLM
+discovery, wider Functional suite). The project is ready for its tagged `v0.1.0`
+release.

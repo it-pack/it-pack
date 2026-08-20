@@ -11,9 +11,6 @@ use ItPack\DeriveIt\Contract\Resolver\RecursiveClassResolverInterface;
 use ItPack\DeriveIt\Contract\Resolver\RecursiveInterfaceResolverInterface;
 use ItPack\DeriveIt\Contract\Resolver\RecursiveTraitResolverInterface;
 use ItPack\DeriveIt\Reflection\ClassReflection;
-use ItPack\DeriveIt\Resolver\RecursiveClassResolver;
-use ItPack\DeriveIt\Resolver\RecursiveInterfaceResolver;
-use ItPack\DeriveIt\Resolver\RecursiveTraitResolver;
 
 class ClassReflectionTest extends Unit
 {
@@ -40,67 +37,37 @@ class ClassReflectionTest extends Unit
 
     public function testGetClassesRecursively(): void
     {
-        ClassReflection::setRecursiveClassResolver(
-            Stub::makeEmpty(RecursiveClassResolverInterface::class, [
+        $reflection = new ClassReflection(
+            new class () {},
+            classResolver: Stub::makeEmpty(RecursiveClassResolverInterface::class, [
                 'resolve' => self::RECURSIVE_CLASSES,
-            ])
+            ]),
         );
 
-        $reflection = ClassReflection::create(
-            new class () {}
-        );
-
-        verify(
-            $reflection->getClassesRecursively()
-        )->equals(
-            self::RECURSIVE_CLASSES
-        );
+        verify($reflection->getClassesRecursively())->equals(self::RECURSIVE_CLASSES);
     }
 
     public function testGetInterfacesRecursively(): void
     {
-        ClassReflection::setRecursiveInterfaceResolver(
-            Stub::makeEmpty(RecursiveInterfaceResolverInterface::class, [
+        $reflection = new ClassReflection(
+            new class () {},
+            interfaceResolver: Stub::makeEmpty(RecursiveInterfaceResolverInterface::class, [
                 'resolve' => self::RECURSIVE_INTERFACES,
-            ])
+            ]),
         );
 
-        $reflection = ClassReflection::create(
-            new class () {}
-        );
-
-        verify(
-            $reflection->getInterfacesRecursively()
-        )->equals(
-            self::RECURSIVE_INTERFACES
-        );
+        verify($reflection->getInterfacesRecursively())->equals(self::RECURSIVE_INTERFACES);
     }
 
     public function testGetTraitResolver(): void
     {
-        ClassReflection::setRecursiveTraitResolver(
-            Stub::makeEmpty(RecursiveTraitResolverInterface::class, [
+        $reflection = new ClassReflection(
+            new class () {},
+            traitResolver: Stub::makeEmpty(RecursiveTraitResolverInterface::class, [
                 'resolve' => self::RECURSIVE_TRAITS,
-            ])
+            ]),
         );
 
-        $reflection = ClassReflection::create(
-            new class () {}
-        );
-
-        verify(
-            $reflection->getTraitsRecursively()
-        )->equals(
-            self::RECURSIVE_TRAITS
-        );
-    }
-
-    protected function tearDown(): void
-    {
-        ClassReflection::setRecursiveClassResolver(RecursiveClassResolver::create());
-        ClassReflection::setRecursiveInterfaceResolver(RecursiveInterfaceResolver::create());
-        ClassReflection::setRecursiveTraitResolver(RecursiveTraitResolver::create());
-
-        parent::tearDown();
+        verify($reflection->getTraitsRecursively())->equals(self::RECURSIVE_TRAITS);
     }
 }
