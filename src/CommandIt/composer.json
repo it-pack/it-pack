@@ -1,0 +1,18 @@
+{
+    "name": "it-pack/command-it",
+    "description": "A multi purpose command creation and execution library for PHP",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "ItPack\\CommandIt\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
