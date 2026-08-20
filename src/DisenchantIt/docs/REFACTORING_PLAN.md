@@ -1,48 +1,34 @@
-# DisenchantIt — Refactoring Plan
+# DisenchantIt — Refactoring Plan (revised)
 
-> Companion to `README.md`. This document records concrete refactoring candidates
-> found during a detailed review of the Phase-0 extraction of the `var/lab` PoC into
-> `src/` (PSR-4 autoloadable artifacts), assessed against:
+> Companion to `README.md` and `docs/REVIEW.md`.
 >
-> - **SOLID** (SRP / OCP / LSP / ISP / DIP)
-> - **DRY**
-> - **Ports & Adapters** (hexagonal architecture)
-> - **Dependency Injection via Factories** (no inline `new`; factories are
->   instantiated, expose `build()`, and MAY proxy their constructor through a
->   static `create()`)
-> - **PHP 8.4+ language features**: property hooks, lazy objects, WeakMap /
->   WeakReference, Fibers, readonly classes, backed enums
-> - **Traits** for composition where they reduce duplication
-> - **It_Pack Execution Model** (`docs/EXECUTION.md`): every run is an *Execution*
->   carrying *Context*, *Activities*, *Measurements*, *Observations*, *Occurrences*
->   and a *Snapshot*; external standards (OpenTelemetry, CloudEvents, PSR-3/14) are
->   adapters, not the domain. DisenchantIt must be shaped so a future RunIt-based
->   execution layer drops in as an adapter without touching Core (RunIt is WiP and
->   is the future base execution layer for all it-pack packages).
+> This revision folds the **in-depth engineering review** (`docs/REVIEW.md`) into the
+> original Phase-0 "polish" plan. The original plan (old §1–§17) was written *before*
+> the P1–P4 implementation landed; this document **reconciles that status**, keeps the
+> still-valid structure (factory contract, ADRs, execution model, verification gate),
+> and converts every open finding — both the surviving original items and the new
+> REVIEW findings — into **step-by-step implementation tasks**.
 >
-> Each finding lists: location, principle, severity, current behaviour, proposed
-> refactoring. Severity follows the project convention.
+> Review lenses (unchanged): **SOLID**, **DRY**, **Ports & Adapters**, **DI via
+> Factories** (§0), **PHP 8.4+ features**, **Traits**, **It_Pack Execution Model**.
 >
-> Severity: 🔴 strong candidate (real cohesion / coupling / duplication issue) ·
-> 🟠 worthwhile (clarity / future-proofing / testability) · 🟡 minor / hygiene.
+> Severity convention: 🔴 strong candidate · 🟠 worthwhile · 🟡 minor/hygiene.
 >
-> **Scope note:** this plan is the *polish* pass that precedes the test suite. No
-> test is written against the current shape on purpose — the refactors below are
-> the seams the tests will lock in.
+> Each finding lists: location, principle, severity, current behaviour, and a numbered
+> **implementation procedure** with its own verification step.
 
 ---
 
 ## 0. Canonical Factory contract (applies to every finding below)
 
-The user-specified factory rules, written once so every later finding can rely on
-them:
+The user-specified factory rules, written once so every later finding can rely on them:
 
 1. A factory is **instantiated first**; it never creates product instances through a
    `static` method. No `static function build()` / `static function make()`.
 2. The product is created via an instance method named **`build()`**.
 3. A factory MAY expose a `static function create(...): self` that **proxies its own
-   constructor** — this lets the composition root build a factory *without* the `new`
-   language construct. `create()` returns the factory, never the product.
+   constructor** — lets the composition root build a factory without `new`. `create()`
+   returns the factory, never the product.
 4. Factories are `final readonly class` implementing a `…FactoryInterface` port.
 
 ```php
@@ -104,543 +90,397 @@ final readonly class SameClassConstantStrategy implements ConstantPlacementStrat
 
 ---
 
-## 1. DIP — `Detector` constructs its entire toolchain inline
+## 1. Status reconciliation — what is already done
 
-- **Location:** `src/Detector.php:30` (`__construct` default `new RoleClassifier()`),
-  `src/Detector.php:38-53` (`scanSource` builds `new ParserFactory()` at `:40`,
-  `new NodeTraverser()` at `:48`, `new \PhpParser\NodeVisitor\ParentConnectingVisitor()` at `:51`,
-  `new MagicStringVisitor($this->classifier)` at `:53`)
-- **Principle:** DIP, SRP, testability
-- **Severity:** 🔴
+P1–P4 are implemented. The table maps the **original plan items** to the **current
+state** so the remaining work is unambiguous.
 
-`Detector` is simultaneously the *detection port adapter* and the *composition root*
-for the nikic parser stack. Every collaborator is hard-wired with `new`:
-- the default `RoleClassifier` cannot be replaced by a mock in a unit test;
-- the parser/traverser/visitor are rebuilt on every `scanSource()` call (wasteful);
-- the visitor is **stateful** (accumulates `$found`) yet is constructed inline inside
-  the scan, coupling the one-shot lifecycle to the detector.
+| Original | Topic | State | Note |
+|---|---|---|---|
+| §0 | Factory contract | ✅ Done | `DisenchanterFactory`/`DetectorFactory`/… follow §0. |
+| §1 | `Detector` DI (no inline `new`) | 🟡 Partial | Collaborators injected; parser built lazily + reused. **Namespace move to `Adapter\` not done** (classes still flat). |
+| §2 | Split filter / grouper / namer | ✅ Done | `CandidateFilter`, `CandidateGrouper`, `ConstantNameGenerator` extracted. |
+| §3 | Strategy + `ConstantPlacement` DI | ✅ Done | `ConstantPlacementFactory` injected into both strategies. |
+| §4 | `SemConvConfig` factory | ✅ Done | `SemConvConfigFactory` + injected config. |
+| §5 | Core orchestration | 🟡 Partial | `Disenchanter` Core exists; no CLI / `PhpFileFinder` port yet (library is single-string by design). |
+| §6 | `RoleClassifier` / visitor ports | ✅ Done | `RoleClassifierInterface`, `MagicStringVisitorInterface` exist. |
+| §7 | readonly / property hooks / enums | 🟡 Partial | `LiteralKind` enum done; **`readonly` inconsistent** (F5); property hooks only on ports; roles still bare strings; `SemConvConfig` hooks not done. |
+| §8 | Lazy Objects for parser | 🟡 Partial | **Manual first-use lazy init** chosen over `Lazy`/`GhostObject` (acceptable; revisit optional). |
+| §9 | WeakMap caching | 🟡 Partial | `SourceCode` VO + `ParsedSourceCache` (WeakMap) **implemented but do not fire across `detect`→`rewrite`→`rewriteWithSemConv`** (F1). |
+| §10 | File-discovery DRY | ⬜ Not started | N/A for library until a CLI/finder port lands. |
+| §11 | Constant-rendering DRY | ⬜ Not started | `LineBasedRewriter` & `SemConvCollector` each `sprintf` their own `const` line. |
+| §12 | `use`-insertion trait | ⬜ Not started | `SemConvAliasRewriter::ensureUseImport()` is self-contained. |
+| §13 | Domain exceptions | ⬜ Not started | `SemConvCollector` still throws generic `RuntimeException`. |
+| §14 | OCP strategy registry | ⬜ Not started | `AutoConstantPlacementStrategy` still hard-codes the `<= 1` branch. |
+| §15 | Hygiene (callables / return types) | 🟡 Partial | `match` used; some port return types still PHPDoc-only. |
+| §16 | PHPArkitect + ADRs | 🟡 Partial | `phparkitect.php` present and **green**; **layered rules dormant** (no `Core`/`Adapter` namespaces yet); ADR *documents* not yet written. |
+| §17 | Execution Model | ⬜ Not started | No `ExecutionRecorder` port / immutable Context-Occurrence VOs yet. |
 
-- **Proposed refactoring:**
-  - Introduce the port **`Contract\StringLiteralDetectorInterface`** (`scanSource(): list<StringLiteral>`,
-    `filterCandidates(): list<StringLiteral>`, `groupByValue(): array`) and keep `Detector`
-    as the adapter (`Adapter\NikicStringLiteralDetector`).
-  - Inject collaborators via constructor (no defaults):
-    - `RoleClassifierInterface` (see §6),
-    - a `ParserFactoryInterface` / `TraverserFactoryInterface` (or a single
-      `AstScannerFactoryInterface`) that the composition root wires once,
-    - a `MagicStringVisitorFactoryInterface` whose `build(RoleClassifierInterface): MagicStringVisitor`
-      is called **per scan** (the visitor is one-shot; the factory owns that lifecycle).
-  - `Detector` becomes `final readonly` and holds no `new`.
-
----
-
-## 2. SRP — `Detector` is four responsibilities in one class
-
-- **Location:** `src/Detector.php` — `scanSource()` (parse + traverse),
-  `filterCandidates()` (policy), `groupByValue()` (grouping),
-  `suggestConstantName()` (naming) are all static-ish methods on the detector.
-- **Principle:** SRP, DRY, ISP
-- **Severity:** 🔴
-
-Detection, candidate-eligibility policy, grouping, and constant-name generation are
-four distinct concerns. `suggestConstantName()` is a `static` method (forbidden pattern
-per §0) invoked by two strategy classes — a hidden coupling that also blocks mocking.
-
-- **Proposed refactoring:**
-  - Extract **`Contract\CandidateFilterInterface`** (`filterCandidates(): list<StringLiteral>`)
-    — owns the "is this a magic-value candidate" decision (currently the role exclusions
-    `exception_message` / `format_string` / `enum_backing_value` plus
-    `RoleClassifier::looksIdentifierLike()`).
-  - Extract **`Contract\CandidateGrouperInterface`** (`groupByValue()`).
-  - Extract **`Contract\ConstantNameGeneratorInterface`** with
-    `generate(string $value, ?string $role): string` — the `suggestConstantName` logic,
-    now injectable and mockable. Build it via a `ConstantNameGeneratorFactory`.
-  - `Detector` keeps only `scanSource()` (+ orchestration of the three collaborators).
+The **new REVIEW findings** (below) are the highest-leverage remaining work: F1 and F2
+are the two that actually change behaviour/correctness; F3–F8 are consistency,
+robustness, and honesty-of-docs fixes.
 
 ---
 
-## 3. DIP — `AutoConstantPlacementStrategy` and the strategies build siblings with `new`
+## 2. REVIEW.md findings → implementation tasks
 
-- **Location:** `src/AutoConstantPlacementStrategy.php:16-17`
-  (`= new SameClassConstantStrategy()` / `= new PerClassConstantStrategy()` defaults),
-  `src/SameClassConstantStrategy.php:28` (`new ConstantPlacement(...)`),
-  `src/PerClassConstantStrategy.php:25` (`new ConstantPlacement(...)`)
-- **Principle:** DIP, DRY
-- **Severity:** 🔴
+### F1 — Make parse-once / WeakMap actually fire  ·  🔴  ·  REVIEW #1
 
-Three separate `new` sites, two of which (`SameClass` / `PerClass`) duplicate the exact
-"build a `ConstantPlacement` from occurrences" expression. The default-`new` on the
-auto-strategy also prevents injecting a mock and re-implements strategy selection inline.
+- **Location:** `src/Disenchanter.php:54` (`new SourceCode($code)` on every call),
+  `src/ParsedSourceCache.php:23` (WeakMap keyed by **object identity**),
+  `src/ValueObject/SourceCode.php:19-22` (`identity()` content hash **unused**).
+- **Principle:** Performance, DRY (avoid redundant work), honesty of stated P4 intent.
+- **Current behaviour:** `detect()`, `rewrite()`, and `rewriteWithSemConv()` each
+  construct a **fresh `SourceCode`**, so the WeakMap (keyed by object identity) never
+  hits across them. Identical source is parsed 2× when a caller does
+  `detect($code)` then `rewrite($code)`. The docblock promise of "parse exactly once
+  across detect → rewrite → SemConv" is not delivered.
+- **Fix options:** (A) key the cache by **content hash** — simplest, directly fixes the
+  cross-call case; (B) thread one `SourceCode` instance through the pipeline — keeps
+  WeakMap semantics. **Recommend (A).**
 
-- **Proposed refactoring:**
-  - Inject `ConstantPlacementFactoryInterface` (§0) into both strategies; replace every
-    `new ConstantPlacement(...)` with `$this->placements->build(...)`.
-  - Inject the two sub-strategies into `AutoConstantPlacementStrategy` (no default `new`);
-    construct them at the composition root via `…Factory::create()->build()`.
-  - The `count($classNames) <= 1` dispatch in `AutoConstantPlacementStrategy::decide()`
-    is acceptable, but to satisfy OCP for *future* strategies, inject an
-    `iterable<ConstantPlacementStrategyInterface>` registry and pick by a declared
-    capability (e.g. `supports(int $distinctClassCount): bool`) instead of the hard-coded
-    branch.
+**Implementation steps**
 
----
-
-## 4. DIP — `SemConvCollector` / `SemConvAliasRewriter` default `new SemConvConfig()`
-
-- **Location:** `src/SemConvCollector.php:18` (`private SemConvConfig $config = new SemConvConfig()`),
-  `src/SemConvAliasRewriter.php:32` (same default)
-- **Principle:** DIP, testability
-- **Severity:** 🔴
-
-`SemConvConfig` is a value object that both collectors reach into (interface name,
-namespace, FQCN). Defaulting it with `new` inside two classes means the configuration
-cannot be supplied/mocked from outside, and the "how to build a config" knowledge is
-duplicated in two constructors.
-
-- **Proposed refactoring:**
-  - Introduce **`Contract\SemConvConfigFactoryInterface`** with
-    `build(?string $interfaceName = null, ?string $namespace = null, ?string $outputPath = null): SemConvConfig`.
-  - The composition root calls `SemConvConfigFactory::create()->build(...)` and injects
-    the resulting `SemConvConfig` into both collectors (no default `new`).
-  - Consider promoting `SemConvConfig` to a richer **value object** in
-    `ValueObject/` (see §7) rather than a config carrier.
+1. In `ParsedSourceCache`, replace the `WeakMap` field with
+   `private array $store = [];` (keyed by content hash).
+2. In `get()/put()/has()`, compute `$key = $code->identity();` and use `$key` as the
+   array index. Keep the method signatures (`SourceCodeInterface $code`) unchanged.
+3. Delete `use WeakMap;` if now unused; rewrite the class docblock: *"Memoizes a parsed
+   scan result keyed by the source's content hash (`SourceCode::identity()`); bounded
+   by the number of distinct sources scanned during this Detector's lifetime."*
+4. *(Optional, pairs with B)* Have `Detector::scanSource` accept a `SourceCodeInterface`
+   that the caller reuses; keep the public `Disenchanter` methods creating one `SourceCode`
+   but consider an overload that reuses an instance.
+5. **Verify:** unit test — two *distinct* `SourceCode` instances with equal content hit
+   the cache on the second `scanSource()` (spy the parser so `parse()` is invoked once).
+   Integration test — `detect($code)` followed by `rewrite($code)` triggers exactly one
+   `ParserFactory::build()` per `Detector` lifetime for that content.
 
 ---
 
-## 5. Ports & Adapters — the orchestration lives in a CLI script, not in Core
+### F2 — De-duplicate `nameFor()`  ·  🔴  ·  REVIEW #2
 
-- **Location:** `var/lab/disenchant.php:62-170` (scan → filter → group → decide
-  placements → rewrite), duplicated intent in `var/lab/classes.php`.
-- **Principle:** Ports & Adapters (hexagonal), SRP, OCP
-- **Severity:** 🔴
+- **Location:** `src/Disenchanter.php:72-79`, `src/SameClassConstantStrategy.php:56-65`,
+  `src/PerClassConstantStrategy.php:56-65`.
+- **Principle:** DRY, correctness risk.
+- **Current behaviour:** the *"string → `generator`; number → `numericGenerator`"*
+  branch is implemented **three times**. The `Candidate` value object already carries
+  `constantName`, yet the placement strategies ignore it and recompute from
+  `occurrences[0]`. A future naming-rule change must be made in three places or names
+  silently diverge between detection and placement.
+- **Fix:** one `NameResolver` port composing both generators; all three sites call it.
 
-The entire domain flow (threshold filtering, placement routing, per-file rewriting) is
-embedded in a procedural CLI script that `require`s the lab files. There is no Core
-service, so the logic cannot be unit-tested, reused by an IDE plugin, or swapped for a
-dry-run adapter without copying the script.
+**Implementation steps**
 
-- **Proposed refactoring:**
-  - Extract a **Core** service, e.g. `Core\Disenchanter` (or `DisenchantService`),
-    depending only on ports:
-    `StringLiteralDetectorInterface`, `CandidateFilterInterface`,
-    `CandidateGrouperInterface`, `ConstantPlacementStrategyInterface`,
-    `RewriterInterface`, and a **`Contract\PromotionPolicyInterface`** (`meetsThreshold(int $occurrences): bool`)
-    that replaces the script's `--min-occurrences` literal.
-  - `var/lab/disenchant.php` (and a future `bin/disenchant`) becomes a **thin CLI
-    adapter**: parse argv → build factories → assemble the `Disenchanter` → print report.
-    All domain rules move into Core.
-  - Shape `Disenchanter` as an **Activity within an Execution** (see §17): it receives a
-    `DisenchantContext`, records Occurrences / Observations / Measurements through an
-    optional `ExecutionRecorderInterface` port, and yields a `DisenchantSnapshot`. Core
-    must not depend on RunIt — the recorder port is no-op by default (ADR-0010), so the
-    execution model is an adapter, not a hard dependency.
-  - Introduce **`Contract\PhpFileFinderInterface`** + `Adapter\RecursivePhpFileFinder`
-    (see §10) so file discovery is also a port, not a copy-pasted `getAllPhpFiles()`.
+1. Add `Contract\ConstantNameResolverInterface::resolve(LiteralInterface $lit): string`.
+2. Implement `final readonly class ConstantNameResolver implements
+   ConstantNameResolverInterface` injecting `ConstantNameGeneratorInterface` +
+   `NumericNameGeneratorInterface`; its single method holds the branch
+   (`LiteralKind::String → $generator->generate(...)` else
+   `$numericGenerator->generate($lit, $lit->namingContext) ?? $lit->value`).
+3. Inject `ConstantNameResolverInterface` into `Disenchanter`, `SameClassConstantStrategy`,
+   `PerClassConstantStrategy` (wire via `DisenchanterFactory` / `DetectorFactory`).
+4. Delete the three `nameFor()` methods; replace with `$this->resolver->resolve($lit)`.
+5. **Verify:** unit test `ConstantNameResolver` (string + numeric + null-fallback).
+   Mutation check — flip the branch in the one implementation and confirm all three
+   call sites still produce the original names (snapshot/characterisation test on
+   `examples/12_magic_numbers.php` output).
 
 ---
 
-## 6. ISP / LSP — `RoleClassifier` and `MagicStringVisitor` are concrete, not ports
+### F3 — `ConstantPlacement->type` string coupling  ·  🟠  ·  REVIEW #3
 
-- **Location:** `src/RoleClassifier.php:17`, `src/MagicStringVisitor.php:19`
-- **Principle:** ISP, LSP, DIP
-- **Severity:** 🟠
+- **Location:** `src/ValueObject/ConstantPlacement.php:17`,
+  `src/ValueObject/ConstantPlacementInterface.php:19-24`,
+  `src/SemConvCollector.php:87` (`LiteralKind::from($placement->type)`),
+  `src/LineBasedRewriter.php:120-125` (emits `$placement->type` directly).
+- **Principle:** type safety, DRY (single canonicalisation), correctness.
+- **Current behaviour:** `type` is a `string` whose *value* coincidentally equals the
+  PHP keyword (`int`/`float`/`string` = `LiteralKind` case values). If `LiteralKind`
+  cases were ever renamed, both consumers break with no compile-time signal.
 
-`RoleClassifier` (role classification) and `MagicStringVisitor` (AST collection) are
-concrete classes with no interface. The detector depends on the concrete
-`RoleClassifier`, so classification cannot be swapped (e.g. a regex fallback, or a
-tokenizer that doesn't need nikic) and cannot be mocked.
+**Implementation steps**
 
-- **Proposed refactoring:**
-  - Port **`Contract\RoleClassifierInterface`** (`classify(): string`,
-    `looksIdentifierLike(): bool`); `RoleClassifier` → `Adapter\AstRoleClassifier`.
-  - Port **`Contract\MagicStringVisitorInterface`** extending `NodeVisitor` semantics;
-    the concrete visitor moves to `Adapter\`. The visitor stays **mutable by design**
-    (it accumulates `$found` during a traversal) — document that explicitly and keep it
-    single-use (built per scan via its factory, §1).
-
----
-
-## 7. PHP 8.4 — readonly classes, property hooks, value objects
-
-- **Location:** `src/StringLiteral.php`, `src/ConstantPlacement.php` (`final class`,
-  *not* `readonly`), `src/RoleClassifier.php`, `src/Detector.php`,
-  `src/LineBasedRewriter.php`, `src/SameClassConstantStrategy.php`,
-  `src/PerClassConstantStrategy.php`, `src/AutoConstantPlacementStrategy.php`,
-  `src/SemConvCollector.php`, `src/SemConvAliasRewriter.php`, `src/SemConvConfig.php`
-- **Principle:** immutability, PHP 8.4 features, DRY
-- **Severity:** 🟠
-
-Several classes are already stateless-but-not-`readonly`. `StringLiteral` and
-`ConstantPlacement` are pure DTOs whose properties are `readonly` yet the *class* is not
-marked `readonly` — a missed guarantee. `SemConvConfig::$outputPath` is a property
-assigned in the constructor from `interfaceName`/namespace — a computed value that
-belongs behind a **property hook**, not a stored field.
-
-- **Proposed refactoring:**
-  - Mark `StringLiteral`, `ConstantPlacement`, `RoleClassifier`, `Detector`,
-    `LineBasedRewriter`, the three strategies, `SemConvCollector`, and
-    `SemConvAliasRewriter` as **`final readonly class`** (where they hold no mutable
-    state). `MagicStringVisitor` is intentionally excluded (accumulator, §6). This is
-    also what PHPArkitect's "classes should be final" rule (§16) will enforce once
-    added, so the refactor and the guardrail are one and the same.
-  - **Property hooks (PHP 8.4)** on `SemConvConfig`:
-    - `public string $outputPath { get => $this->outputPathInternal ?? $this->interfaceName . self::DOT . self::PHP_FILE_EXTENSION; }`
-      (virtual/computed property; the constructor only stores the optional override).
-    - Optionally expose `fullyQualifiedName()` as a `get` hook `fullyQualifiedName`
-      (virtual property) so callers read `$config->fullyQualifiedName`.
-  - Promote `SemConvConfig` to `ValueObject/SemConvConfig` and give it value-object
-    equality (`equals()`); promote `ConstantPlacement` / `StringLiteral` semantics into
-    the `ValueObject/` namespace for consistency with sibling packages.
-  - **Backed enum `LiteralRole`** (string-backed) replaces the bare `string $role`
-    magic strings in `StringLiteral` and the role comparisons in `Detector::filterCandidates`
-    and `RoleClassifier::classify()`. Removes a whole class of typo-prone string literals
-    (DRY + type safety). Likewise an enum/`Constants` collection for `RoleClassifier::NOISE_FUNCTIONS`.
+1. Add two pure helpers on `LiteralKind` (or a `ConstantType` VO):
+   `LiteralKind::fromPlacementType(string $t): self` and
+   `LiteralKind::toPhpKeyword(): string` (`Int → 'int'`, `Float → 'float'`,
+   `String → 'string'`).
+2. `LineBasedRewriter`: emit
+   `LiteralKind::from($placement->type)->toPhpKeyword()` instead of the raw string.
+3. `SemConvCollector`: route its `LiteralKind::from($placement->type)` through the same
+   helper so there is exactly one mapping site.
+4. **Verify:** test the mapping for all three kinds; a rename of a `LiteralKind` case now
+   fails a test rather than silently emitting a wrong keyword.
 
 ---
 
-## 8. PHP 8.4 — Lazy Objects for the parser stack
+### F4 — `CandidateGrouper` inline `new`  ·  🟠  ·  REVIEW #4
 
-- **Location:** `src/Detector.php:55-72` (`ParserFactory` / `NodeTraverser` /
-  `ParentConnectingVisitor` constructed inside `scanSource`)
-- **Principle:** performance, Lazy Objects (PHP 8.4)
-- **Severity:** 🟠
+- **Location:** `src/CandidateGrouper.php:20-21` (default `new ByValueGroupingStrategy()`
+  / `new ByValueAndContextGroupingStrategy()`).
+- **Principle:** DIP, DI discipline (AGENTS.md: no inline `new` of collaborators).
+- **Current behaviour:** the grouper constructs its collaborators with default `new`,
+  breaking the project's own factory/DI rule.
 
-The nikic parser and traverser are non-trivial objects rebuilt on every scan. For a
-large scanned tree (many files) this is repeated allocation of essentially static
-tooling.
+**Implementation steps**
 
-- **Proposed refactoring:**
-  - Build the parser/traverser **once** at the composition root and inject them
-    (DIP, §1). Additionally, wrap the heavy `Parser` in a
-    **`LazyObjectInterface` / `ReflectionClass::newLazyGhost()`** so it is only fully
-    initialised on first `parse()` — useful when a `Detector` is constructed but a given
-    run ends early (dry-run, no candidates). The visitor remains one-shot (§1/§6).
-
----
-
-## 9. PHP 8.4 — WeakMap for parse-result and collected-entry caching
-
-- **Location:** `src/Detector.php:38-53` (re-parses the same source on repeated scans,
-  e.g. multi-pass / test runs), `src/SemConvCollector.php:39-83` (`collect()` re-parses
-  an existing SemConv file via `extractExistingEntries()` at `:83` each run)
-- **Principle:** WeakMap / WeakReference, performance
-- **Severity:** 🟡
-
-Repeated scans of the same file (or re-collection against an unchanged SemConv file)
-re-do expensive work. A raw string cannot be a `WeakMap` key, so today there is no
-cheap identity-keyed cache.
-
-- **Proposed refactoring:**
-  - Introduce a **`ValueObject\SourceCode`** immutable wrapper around a file's contents
-    (also clarifies method signatures: `scanSource(SourceCode $code)`).
-  - Cache the parsed AST behind a `WeakMap<SourceCode, array>` inside the detector's
-    injected scanner factory, so GC reclaims the cache when the source object dies —
-    no memory leak, no manual invalidation.
-  - `SemConvCollector` caches `extractExistingEntries()` results in a
-    `WeakMap<SourceCode, array<string,string>>` keyed by the existing-source object.
+1. Change `CandidateGrouper` constructor to require
+   `GroupingStrategyInterface $strings, GroupingStrategyInterface $numbers` (no defaults).
+2. In `DetectorFactory::create()`, pass
+   `new ByValueGroupingStrategy()` / `new ByValueAndContextGroupingStrategy()` from the
+   composition root.
+3. **Verify:** `CandidateGrouper` source contains no `new`; `DetectorFactory` wires both
+   strategies; `composer architecture` still green.
 
 ---
 
-## 10. DRY — file discovery is copy-pasted across three lab scripts
+### F5 — `readonly` consistency  ·  🟡  ·  REVIEW #5
 
-- **Location:** `var/lab/disenchant.php:23-36`, `var/lab/classes.php:8-17`,
-  `var/lab/find-strings.php:10-30` (identical `getAllPhpFiles()`)
-- **Principle:** DRY, Ports & Adapters
-- **Severity:** 🟠
+- **Location:** `src/LineBasedRewriter.php`, `src/RoleClassifier.php`,
+  `src/SameClassConstantStrategy.php`, `src/PerClassConstantStrategy.php` are `final
+  class` but **not** `final readonly class` (despite being stateless).
+- **Principle:** immutability as a compiler-enforced guarantee; consistency.
+- **Current behaviour:** `Detector` (lazy parser state) and `MagicLiteralVisitor`
+  (accumulator) are correctly *not* readonly; the four above are stateless yet omit
+  `readonly`.
 
-The recursive PHP-file walker is triplicated. It also reaches into the filesystem
-directly, which is an adapter concern leaking into scripts.
+**Implementation steps**
 
-- **Proposed refactoring:**
-  - **`Contract\PhpFileFinderInterface`** (`find(string $path): iterable<SplFileInfo>`)
-    + **`Adapter\RecursivePhpFileFinder`** (the single implementation).
-  - Optional **`Trait\PhpFileScanningTrait`** only if a consumer needs the helper without
-    implementing the port (prefer the port).
-
----
-
-## 11. DRY — constant-declaration rendering is duplicated
-
-- **Location:** `src/LineBasedRewriter.php:119`
-  (`sprintf('    private const string %s = %s;', $name, var_export($value, true))`) and
-  `src/SemConvCollector.php:137`
-  (`sprintf('    public const string %s = %s;', $name, var_export($value, true))`)
-- **Principle:** DRY
-- **Severity:** 🟠
-
-Both produce a `const NAME = <encoded value>;` line from a name + value. Different
-visibility is the only delta; the encoding (`var_export` + indentation) is identical.
-
-- **Proposed refactoring:**
-  - A small **`ValueObject\ConstantDeclaration`** (immutable: `name`, `value`,
-    `visibility`) with a `toCodeLine(int $indentLevel = 4): string` method that centralises
-    the `var_export` encoding and indentation. Both `LineBasedRewriter` and
-    `SemConvCollector` (and any future generator) call it.
-  - Companion **`Trait\ConstantRenderingTrait`** if multiple generators want the helper
-    without injecting the value object (prefer the value object).
+1. Mark `LineBasedRewriter`, `RoleClassifier`, `SameClassConstantStrategy`,
+   `PerClassConstantStrategy` as `final readonly class`.
+2. Confirm `Detector` and `MagicLiteralVisitor` stay non-readonly (intentional).
+3. **Verify:** PHPStan + `composer architecture` green; no behavioural change (these hold
+   only injected, never-reassigned deps).
 
 ---
 
-## 12. DRY — `use`-statement insertion logic is a reusable concern
+### F6 — `detect()` return-key semantics  ·  🟡  ·  REVIEW #6
 
-- **Location:** `src/SemConvAliasRewriter.php:82-106` (`ensureUseImport()` + the
-  `NAMESPACE_REGEX` / `USE_STATEMENT_REGEX` anchors at `:26-27`)
-- **Principle:** DRY, composition (traits)
-- **Severity:** 🟡
+- **Location:** `src/Disenchanter.php:50,62`, `src/Contract/DisenchanterInterface.php:23`.
+- **Principle:** API honesty / DX.
+- **Current behaviour:** docblock says "keyed by literal value", but the key is the
+  **grouping key** (`i:5000|signature…` for numbers). For strings it equals the value;
+  for numbers it does not. A consumer relying on the key as "the literal value" is
+  surprised.
 
-Inserting a `use` statement after the last existing `use` / `namespace` is generic
-source-text editing that any future generator (e.g. a `SharedConstantStrategy` adapter)
-will need again.
+**Implementation steps**
 
-- **Proposed refactoring:**
-  - Extract **`Trait\NamespaceUseInserterTrait`** (`insertUseStatement(string $code, string $fqcn): string`)
-    reusable by `SemConvAliasRewriter` and future adapters. Keep the regex anchors
-    (`NAMESPACE_REGEX`, `USE_STATEMENT_REGEX`) inside the trait.
-  - Optionally pair with a **`Trait\LineEditorTrait`** providing `explodeLines()` /
-    `implodeLines()` / `insertAfterLine()` shared by `LineBasedRewriter` and
-    `SemConvAliasRewriter` (both already do line-array surgery).
-
----
-
-## 13. Error handling — generic `RuntimeException` instead of domain exceptions
-
-- **Location:** `src/SemConvCollector.php:127-138` (`throw new RuntimeException(...)` on
-  SemConv name collisions)
-- **Principle:** maintainability, LSP, consistency with sibling packages
-- **Severity:** 🟠
-
-A generic `RuntimeException` is thrown for a domain-specific collision. Sibling packages
-use a marker interface (`RunItExceptionInterface extends Throwable`) so callers can
-catch the package's exceptions by a single type and so the package never leaks vendor /
-SPL types as its public contract.
-
-- **Proposed refactoring:**
-  - Add **`Contract\DisenchantItExceptionInterface extends Throwable`** (marker) plus
-    concrete `SemConvCollisionException`, `ParseFailureException`,
-    `DuplicateConstantException`, all implementing it.
-  - `SemConvCollector` throws `SemConvCollisionException`; the CLI adapter catches
-    `DisenchantItExceptionInterface` and renders a clean message.
+1. Update both docblocks: the array is keyed by the **grouping key**; consumers should
+   read `Candidate::value` / `Candidate::constantName`, not rely on the key.
+2. *(Optional hardening)* return a small `GroupedCandidates` VO (`key`, `value`,
+   `constantName`, `occurrences`) instead of a bare `array<string, CandidateInterface>`
+   to make the key's meaning explicit.
+3. **Verify:** docblock matches behaviour; add a test asserting a numeric group's key
+   contains the naming-context signature.
 
 ---
 
-## 14. OCP — strategy selection hard-codes a branch
+### F7 — `scanSourceStreaming` is nominal  ·  🟡  ·  REVIEW #7
 
-- **Location:** `src/AutoConstantPlacementStrategy.php:125-135`
-  (`$classCount <= 1 ? $this->sameClass->decide(...) : $this->perClass->decide(...)`)
-- **Principle:** OCP, ISP
-- **Severity:** 🟡
+- **Location:** `src/Detector.php:104-107` (`yield from $this->scanSource($code)` after a
+  full in-memory parse).
+- **Principle:** honesty of stated "streaming" capability; future large-file support.
+- **Current behaviour:** the method materialises the entire AST, then yields the array.
+  There is no incremental I/O or parsing, so for a very large single file the whole AST
+  is still built.
 
-Adding a third strategy (the PoC itself names a future `SharedConstantStrategy`) means
-editing this method.
+**Implementation steps**
 
-- **Proposed refactoring:**
-  - Give `ConstantPlacementStrategyInterface` a `supports(int $distinctClassCount): bool`
-    (or a declared `priority`) and let `AutoConstantPlacementStrategy` (renamed
-    `CompositeConstantPlacementStrategy`) iterate an injected
-    `iterable<ConstantPlacementStrategyInterface>` registry, picking the first that
-    `supports()`. New strategies = new adapter + registration, no edit to the composer.
-
----
-
-## 15. Hygiene — first-class callable syntax & precise return types
-
-- **Location:** `src/Detector.php` (`fn (StringLiteral $lit): bool => ...` inside
-  `array_filter` / `array_map`), `src/AutoConstantPlacementStrategy.php`
-- **Principle:** hygiene, PHP 8.4 idioms
-- **Severity:** 🟡
-
-Callbacks can be expressed as first-class callables (`StringLiteral::value(...)`,
-`RoleClassifier::looksIdentifierLike(...)`) for brevity and static analysis clarity.
-Several methods already carry PHPDoc `@return` but no native return type on the port
-methods (e.g. `ConstantPlacementStrategyInterface::decide(): array` can be native).
-
-- **Proposed refactoring:**
-  - Use first-class callable syntax where a method/function reference exists.
-  - Add native return types to all port methods (`RewriterInterface`,
-    `ConstantPlacementStrategyInterface`, new ports) for stronger PHPStan inference.
+1. Keep the method but rewrite its docblock: *"convenience generator over the in-memory
+   result; not incremental I/O."* Remove any "streaming performance" claim from the class
+   docblock (`Detector.php:31-37`).
+2. *(Future, only if a large-file CLI lands)* implement true streaming: a file-handle
+   reader + node-visitor that yields per node, or chunked `token_get_all` + incremental
+   parse. Defer until §5/§10/§17 work introduces multi-file scanning.
+3. **Verify:** behaviour unchanged; docblock accurate.
 
 ---
 
-## 16. Architecture guardrails — introduce PHPArkitect + ADRs
+### F8 — Bound input size (robustness / security)  ·  🟠  ·  REVIEW #8
 
-- **Location:** cross-cutting (new `src/Contract`, `src/Adapter`, `src/Core`,
-  `src/ValueObject`, `src/Domain` layout)
-- **Principle:** Ports & Adapters sustainability
-- **Severity:** 🟠
+- **Location:** `src/Detector.php:81` (unbounded `parse()`), `AGENTS.md` security
+  requirement for bounded payloads.
+- **Principle:** security hardening, denial-of-service resistance.
+- **Current behaviour:** any source — however large — is fully parsed and held as an AST
+  + literal list. No max-size guard.
 
-The current `src/` is flat (single namespace `ItPack\DisenchantIt\`). Introducing
-`Contract/` / `Adapter/` / `Core/` / `ValueObject/` sub-namespaces is allowed by the
-existing PSR-4 prefix (`"ItPack\\DisenchantIt\\": "src/"`) — no composer change needed —
-but without a rule, an adapter will eventually `use` a Core class or a vendor type will
-leak into Core.
+**Implementation steps**
 
-We have moved away from **Deptrac** in favour of **PHPArkitect**
-(<https://github.com/phparkitect/arkitect>): it expresses the same layered
-architecture checks *and* lets us write project-specific rules as plain PHP
-`Expression` classes, which Deptrac's YAML cannot. A working reference config lives at
-`var/lab/phparkitect-from-deptrac.php` (ported from a Deptrac `deptrac.yaml`); it shows
-three rule shapes we will carry over and extend.
-
-- **Proposed refactoring:**
-  - Add a package-root `phparkitect.php` (Arkitect `Config`) that:
-    - builds a `ClassSet::fromDir(__DIR__ . '/src')`, and
-    - declares the layers with `Architecture::withComponents()`
-      (`->component('Contract')->definedBy('ItPack\DisenchantIt\Contract\*')`, and
-      likewise for `Core`, `Adapter`, `ValueObject`), then encodes the dependency
-      allowance via `->where('Contract')->mayDependOnComponents()` (nothing internal),
-      `->where('Core')->mayDependOnComponents('Contract','ValueObject')`,
-      `->where('Adapter')->mayDependOnComponents('Contract')` (never `Core`),
-      `->where('ValueObject')->mayDependOnComponents()` (nothing) — `->rules()` to
-      register them. This is the exact layer discipline from `ConfigureIt` ADR-0002,
-      just expressed in Arkitect instead of Deptrac.
-  - Port the three custom `Expression` rules from the example config, which directly
-    *validate the outcomes of this plan*:
-    - **"interfaces should only depend on interfaces"** — keeps `Contract` pure
-      (only PHP/std + other interfaces), backing §1/§6.
-    - **"classes should be final"** (composition over inheritance) — enforces the
-      `final readonly class` move in §7 and the factory rule in §0.
-    - **"final classes must be backed by interfaces"** (mockability) — enforces that
-      *every* concrete class (adapters, strategies, factories, collectors) implements a
-      port, which is the heart of the hexagonal split in §1/§5/§6.
-  - Add project-specific `Expression` rules as needed (Arkitect's advantage over
-    Deptrac), e.g. a guard that a `Factory` type exposes a `build()` instance method and
-    has no `static` product-creation method (hardening the §0 contract), and that
-    `Core` never references a vendor FQCN such as `PhpParser\*`.
-  - Record the decisions as ADRs: **ADR-0001 Ports & Adapters layout**,
-    **ADR-0002 Factories & DI (the §0 contract)**, **ADR-0003 PHP 8.4 feature usage**,
-    **ADR-0004 Architecture rules enforced via PHPArkitect**.
+1. Add `int $maxSourceBytes` (default e.g. `1_048_576`, or `0`/`null` = unbounded) to
+   `Detector`'s constructor (injected via `DetectorFactory`).
+2. At the top of `scanSource()`, `if ($this->maxSourceBytes > 0 && strlen($code->code) >
+   $this->maxSourceBytes) throw new SourceTooLargeException(...)` (new domain exception,
+   pairs with F13/§13).
+3. **Verify:** unit test that a source exceeding the limit throws; a source under the
+   limit parses normally; default (`0`) leaves behaviour unchanged.
 
 ---
 
-## 17. It_Pack Execution Model — shape Core around Execution/Context/Snapshot
+## 3. Remaining original-plan items (re-scoped to current gaps)
 
-- **Location:** `docs/EXECUTION.md` (copied from the it-pack global docs); cross-cutting
-  with the `Disenchanter` Core (§5), the domain value objects (§7), and the CLI adapter
-  (§5). Reference implementations / vocabulary: `src/RunIt/docs`
-  (`base-contracts.md`, ADR-001/002/004/010/011/015, and the future ADR-013 fiber
-  adapters, ADR-016 bridge-package split).
-- **Principle:** Ports & Adapters, SRP, DIP, future-proofing (RunIt integration)
-- **Severity:** 🟠
+These carry forward from the original plan; status and remaining steps only.
 
-The PoC orchestration (`var/lab/disenchant.php`) tracks work only through `echo` and a
-dry-run diff — there is no notion of an execution, its context, the activities it ran,
-what it measured/observed, or the resulting snapshot. The it-pack family models
-**execution itself** as the root domain (EXECUTION.md): an Execution owns *Context*,
-*Activities*, *Measurements*, *Observations*, *Occurrences* and produces a *Snapshot*;
-OpenTelemetry / CloudEvents / PSR-3/14 are merely adapters. RunIt is the WiP base
-execution layer every it-pack package (including DisenchantIt) will build on — and
-DisenchantIt will even be used to dog-food-clean the other packages' code. So DisenchantIt
-must be *shaped* for that now, without taking a RunIt dependency yet.
+### 3.1 Namespace split + layered enforcement  (old §1/§5/§6/§16, partial)
 
-- **Proposed refactoring (internal, RunIt-free vocabulary that mirrors RunIt):**
+- **Goal:** introduce `src/Core/`, `src/Adapter/` so the dormant PHPArkitect layered
+  rules activate; `Detector`/`LineBasedRewriter`/collectors/visitors move under
+  `Adapter\`; `Disenchanter` under `Core\`; ports stay in `Contract\`.
+- **Steps:**
+  1. Create `src/Core/Disenchanter.php` (move existing class; keep `DisenchanterInterface`
+     in `Contract\`).
+  2. Create `src/Adapter/` and move `Detector`, `LineBasedRewriter`,
+     `SemConvCollector`, `SemConvAliasRewriter`, `RoleClassifier`, `MagicLiteralVisitor`,
+     `NamingContextExtractor`, `ConstantNameGenerator`, `NumericNameGenerator`,
+     `CandidateFilter`, `CandidateGrouper`, the strategies, and the factories there
+     (PSR-4 already covers sub-namespaces).
+  3. Run `composer architecture`; the layered `where(...)->mayDependOnComponents(...)`
+     rules now apply. Fix any violation (Adapter must not depend on `Core`; `Core` only
+     on `Contract`/`ValueObject`).
+  4. **Verify:** `composer architecture` green *with layered rules active*; PHPStan +
+     autoload clean.
 
-  - **`Contract\Execution\` ports** (no internal deps, no RunIt import):
-    - `ExecutionRecorderInterface` — the single seam the Core records into. Methods such
-      as `recordContext(ContextInterface)`, `beginActivity(string $name)`,
-      `recordMeasurement(string $name, int|float $value)`,
-      `recordObservation(ObservationInterface)`, `recordOccurrence(OccurrenceInterface)`,
-      `recordSnapshot(SnapshotInterface)`. Default `NullExecutionRecorder` is a no-op so
-      **Core has no mandatory integration** (RunIt ADR-0010) — this is the key constraint
-      that keeps DisenchantIt usable standalone and makes RunIt a drop-in adapter later.
-    - `ContextInterface`, `OccurrenceInterface`, `ObservationInterface`,
-      `MeasurementInterface`, `SnapshotInterface` — minimal RunIt-shaped markers
-      (`normalize(): array`, `executionId(): string`, `timestamp(): int`) so the artifacts
-      are *Normalizable* and *immutable* (RunIt ADR-002 / base-contracts
-      `NormalizableInterface`, `ExecutionArtifactInterface`), ready to map 1:1 onto RunIt's
-      `ExecutionArtifactInterface` family later.
+### 3.2 Property hooks on `SemConvConfig` + `LiteralRole` enum  (old §7, partial)
 
-  - **Immutable value objects** in `ValueObject\Execution\`:
-    - `DisenchantContext` — the immutable *Context*: source root, `minOccurrences`
-      threshold, `dryRun` flag, correlation id. (RunIt ADR-004: explicit context
-      propagation; for now a plain value object, later adapter-backed.)
-    - `DisenchantOccurrence` — *Occurrences* are **lowercase, stable, versioned domain
-      strings** (RunIt ADR-011), e.g. `disenchant.it.file.scanned.v1`,
-      `disenchant.it.magic_value.detected.v1`, `disenchant.it.constant.promoted.v1`,
-      `disenchant.it.file.rewritten.v1`, `disenchant.it.semconv.collected.v1`. Carries
-      attributes (file, value, constant name, line) as a bounded, recursively-primitive map.
-    - `DisenchantObservation` — qualitative notices: skipped-prose warnings, SemConv name
-      collisions, idempotent no-ops (maps to PSR-3 via a future adapter).
-    - `DisenchantMeasurement` — quantitative: `files_scanned`, `literals_found`,
-      `candidates`, `placements`, `files_rewritten`, `duration_ms`, `memory_bytes`.
-    - `DisenchantSnapshot` — the resulting *Snapshot*: files changed, constants added per
-      file, SemConv entries collected. This is what a caller (or a future `--report`)
-      receives; the CLI adapter renders it.
+- **Steps:**
+  1. `SemConvConfig`: make `outputPath` a **virtual property** via a `get` hook
+     (`get => $this->outputPathOverride ?? $this->interfaceName . self::DOT .
+     self::PHP_FILE_EXTENSION;`), storing only the optional override.
+  2. Optionally expose `fullyQualifiedName` as a virtual `get` property.
+  3. Introduce `LiteralRole` backed enum for the role magic-strings; replace the
+     `string $role` field/comparisons in `StringLiteral`/`NumberLiteral`,
+     `RoleClassifier`, `CandidateFilter` with the enum (removes typo-prone literals).
+  4. **Verify:** PHPStan level 9; a test asserting role enum round-trips through visitor
+     → filter → grouper.
 
-  - **`Core\Disenchanter`** (§5) becomes the orchestrating **Activity** and is structured
-    as explicit, individually-bounded steps so each can be timed/measured and later maps
-    to a RunIt *Activity* (span):
-    - Activity `scan` → per file: detect → filter → group (emit `files_scanned`,
-      `literals_found`, `magic_value.detected` occurrences).
-    - Activity `decide` → run placement strategies (emit `constant.promoted` occurrences).
-    - Activity `rewrite` → `LineBasedRewriter` per file (emit `file.rewritten`).
-    - Activity `collect-semconv` → `SemConvCollector` (emit `semconv.collected`).
-    - Activity `alias-semconv` → `SemConvAliasRewriter`.
-    Each activity is recorded through `ExecutionRecorderInterface`; nothing is `echo`ed
-    from Core (the CLI adapter owns output).
+### 3.3 Parser as Lazy Object  (old §8, partial → optional)
 
-  - **Fibers (RunIt ADR-013):** the per-file `scan` activity is a natural place to use a
-    **Fiber** per file so I/O (`file_get_contents`) overlaps with CPU-bound parsing —
-    cooperative concurrency that a future RunIt fiber/swoole adapter can subsume without
-    restructuring Core.
+- Current code uses **first-use lazy init** (`Detector.php:73-75`), which is vendor-free
+  and clear. Keep it. **Optional enhancement:** wrap the built `Parser` in
+  `ReflectionClass::newLazyGhost()` so it initialises on first `parse()` (useful when a
+  `Detector` is constructed but a run ends early). Low priority; manual init is
+  acceptable given the `Lazy` API churn across PHP 8.4→8.5.
 
-  - **Future RunIt integration = a bridge package, not a Core edit.** Per RunIt ADR-016
-    (bridge package split criteria), a separate `it-pack/run-it-disenchant-it` adapter
-    maps `DisenchantOccurrence`/`Observation`/`Snapshot` onto RunIt's `Execution` aggregate
-    and its `StringIdentifierInterface`-based ids. DisenchantIt Core never imports
-    `ItPack\RunIt\*`. PHPArkitect (§16) can enforce this with a project rule:
-    *`Core` must not depend on `ItPack\RunIt\*`* (the same "Core never imports vendor /
-    external package" discipline).
+### 3.4 DRY — constant-declaration rendering  (old §11, not started)
 
-- **ADR:** **ADR-0005 DisenchantIt follows the It_Pack Execution Model** (mirrors the
-  global EXECUTION.md and RunIt ADR-001/002/004/010/011/015; RunIt itself remains an
-  optional future adapter via a bridge package).
+- **Steps:**
+  1. Add `ValueObject\ConstantDeclaration` (`name`, `value`, `visibility`) with
+     `toCodeLine(int $indent = 4): string` centralising the `var_export` + indentation.
+  2. `LineBasedRewriter` and `SemConvCollector` call it.
+  3. **Verify:** both emit identical lines to today; one test per visibility.
+
+### 3.5 DRY — `use`-statement insertion & file discovery  (old §10/§12, not started)
+
+- **Steps:**
+  1. Extract `NamespaceUseInserterTrait::insertUseStatement(string $code, string $fqcn):
+     string` (regex anchors from `SemConvAliasRewriter`) for reuse by future generators.
+  2. *(Only when a CLI/finder lands)* add `Contract\PhpFileFinderInterface` +
+     `Adapter\RecursivePhpFileFinder`; optional `PhpFileScanningTrait`.
+  3. **Verify:** `SemConvAliasRewriter` behaviour unchanged; finder returns the same
+     file set as the old lab scripts.
+
+### 3.6 Domain exception hierarchy  (old §13, not started) — pairs with F8
+
+- **Steps:**
+  1. Add `Contract\DisenchantItExceptionInterface extends Throwable` (marker) +
+     `SemConvCollisionException`, `SourceTooLargeException` (F8), `ParseFailureException`,
+     `DuplicateConstantException`.
+  2. `SemConvCollector` throws `SemConvCollisionException`; `Detector` throws
+     `SourceTooLargeException`.
+  3. **Verify:** callers can catch `DisenchantItExceptionInterface`; no generic
+     `RuntimeException` remains in the public path.
+
+### 3.7 OCP — strategy registry  (old §14, not started)
+
+- **Steps:**
+  1. Add `ConstantPlacementStrategyInterface::supports(int $distinctClassCount): bool`.
+  2. Rename `AutoConstantPlacementStrategy` → `CompositeConstantPlacementStrategy`, inject
+     `iterable<ConstantPlacementStrategyInterface>`, pick the first `supports()`.
+  3. **Verify:** adding a strategy = new adapter + registration, no edit to the composer.
+
+### 3.8 Hygiene — first-class callables & native return types  (old §15, partial)
+
+- **Steps:** replace closure callbacks with first-class callables
+  (`StringLiteral::value(...)`); add native return types to all port methods. **Verify:**
+  PHPStan level 9, php-cs-fixer clean.
+
+### 3.9 ADR documentation  (old §16, partial)
+
+- **Steps:** write `docs/ADR-0001`…`ADR-0005` (Ports & Adapters; Factories/DI; PHP 8.4
+  features; PHPArkitect enforcement; Execution Model). The `phparkitect.php` rules
+  already exist and pass; this only records the *decisions*.
+
+### 3.10 Execution Model  (old §17, not started)
+
+- **Steps:**
+  1. Add `Contract\Execution\ExecutionRecorderInterface` (no-op `NullExecutionRecorder`
+     default) so Core has no mandatory integration.
+  2. Add immutable VOs `ValueObject\Execution\`:
+     `DisenchantContext`, `DisenchantOccurrence` (lowercase, versioned names),
+     `DisenchantObservation`, `DisenchantMeasurement`, `DisenchantSnapshot`.
+  3. Structure `Core\Disenchanter` as explicit Activities (scan → decide → rewrite →
+     collect-semconv → alias-semconv), each recorded via the port. Occurrence names
+     lowercase + versioned (ADR-0011).
+  4. Future RunIt = a separate bridge package; `Core` never imports `ItPack\RunIt\*`
+     (enforced by PHPArkitect).
+  5. **Verify:** `NullExecutionRecorder` makes runs identical with/without a recorder;
+     artifacts are immutable + `Normalizable`; architecture gate enforces no `RunIt`
+     import.
 
 ---
 
-## Refactoring sequence (recommended order)
+## 4. Consolidated step-by-step roadmap (ordered)
 
-| # | Finding | ADR | Effort | Pays off for |
-|---|---------|-----|--------|--------------|
-| 1 | §0 Factory contract + §3 strategy/`ConstantPlacement` DI | ADR-0002 | S | §2, §5, all factories |
-| 2 | §1 `Detector` → port + inject parser/visitor factories | ADR-0001 | M | testability, §8 |
-| 3 | §2 split `CandidateFilter` / `CandidateGrouper` / `ConstantNameGenerator` | ADR-0001 | M | SRP, testability |
-| 4 | §5 `Disenchanter` Core + `PromotionPolicy` + `PhpFileFinder` | ADR-0001 | M | §10, hexagonal CLI |
-| 5 | §4 `SemConvConfig` factory + `SemConvConfigFactory` | ADR-0002 | S | DIP |
-| 6 | §6 `RoleClassifier` / `MagicStringVisitor` ports | ADR-0001 | M | swap/mock |
-| 7 | §7 readonly + property hooks + `LiteralRole` enum + ValueObjects | ADR-0003 | M | type safety, 8.4 |
-| 8 | §11 `ConstantDeclaration` VO + §12 traits | — | S | DRY |
-| 9 | §13 domain exception hierarchy | — | S | clean contract |
-| 10 | §9 Lazy Objects + §8/§9 WeakMap caching | ADR-0003 | M | performance |
-| 11 | §14 OCP registry for strategies | ADR-0001 | S | future strategies |
-| 12 | §16 PHPArkitect + ADRs | ADR-0004 | M | guardrails |
-| 13 | §17 Execution Model: `ExecutionRecorder` port + immutable Context/Occurrence/Observation/Measurement/Snapshot VOs + `Disenchanter` as Activity | ADR-0005 | M | RunIt-ready, observability |
-| 14 | §15 callable syntax / native return types | — | S | hygiene |
+Each row is independently shippable and keeps the test suite green.
+
+| # | Task | From | Severity | Effort | Verification |
+|---|------|------|----------|--------|--------------|
+| 1 | F1 cache by content hash | REVIEW #1 | 🔴 | S | parser invoked once per distinct source |
+| 2 | F2 `ConstantNameResolver` | REVIEW #2 | 🔴 | M | one branch site; names unchanged |
+| 3 | F3 `LiteralKind` canonicalisation | REVIEW #3 | 🟠 | S | mapping test for all kinds |
+| 4 | F4 inject grouper strategies | REVIEW #4 | 🟠 | S | no `new` in `CandidateGrouper` |
+| 5 | F5 `readonly` on 4 stateless services | REVIEW #5 | 🟡 | S | PHPStan + architecture green |
+| 6 | F6 fix `detect()` key doc | REVIEW #6 | 🟡 | S | doc matches behaviour |
+| 7 | F7 honest streaming docblock | REVIEW #7 | 🟡 | S | doc accurate |
+| 8 | F8 `SourceTooLargeException` + size guard | REVIEW #8 | 🟠 | S | throws over limit; pairs w/ §3.6 |
+| 9 | §3.6 domain exceptions | old §13 | 🟠 | S | catch by marker interface |
+| 10 | §3.4 DRY const rendering VO | old §11 | 🟠 | S | identical output |
+| 11 | §3.1 namespace split + layered rules | old §1/§5/§6/§16 | 🔴 | M | layered architecture green |
+| 12 | §3.2 `SemConvConfig` hooks + `LiteralRole` enum | old §7 | 🟠 | M | enum round-trips |
+| 13 | §3.7 OCP strategy registry | old §14 | 🟡 | S | new strategy w/o edit |
+| 14 | §3.5 `use`-insertion trait + finder | old §10/§12 | 🟡 | M | behaviour unchanged |
+| 15 | §3.3 optional Lazy GhostObject parser | old §8 | 🟡 | S | lazy init preserved |
+| 16 | §3.8 hygiene (callables / return types) | old §15 | 🟡 | S | php-cs-fixer + PHPStan |
+| 17 | §3.9 write ADRs 0001–0005 | old §16 | 🟠 | S | docs present |
+| 18 | §3.10 Execution Model + recorder port | old §17 | 🟠 | M | RunIt-free, no-op recorder |
+
+**Recommended first PRs:** #1 → #2 → #3 → #4 → #5 → #8/#9 (the REVIEW-driven correctness,
+consistency, and robustness cluster), then #11 (the structural split that activates the
+layered gate), then the remaining original items.
 
 ---
 
-## Verification gate for refactors
+## 5. Verification gate (per refactor)
 
-- **PSR-4 / autoload:** `composer dump-autoload` clean; every artifact resolves by
-  class name (one class per file, filename == class name).
-- **PHPStan:** level 9, 0 errors (existing gate from sibling packages).
-- **php-cs-fixer:** 0 files needing fixing.
-- **PHPArkitect:** `vendor/bin/phparkitect check` → 0 violations, covering the §16
-  layered components (`Contract`/`Core`/`Adapter`/`ValueObject` dependency allowances)
-  and the three custom `Expression` rules (interfaces depend only on interfaces; classes
-  are `final`; final classes are backed by interfaces). Optionally the §0 `Factory`
-  `build()` / no-static-product guard.
-- **Unit tests (added after this polish):** each new port gets a mock-based unit test;
-  adapters get fixture-based tests (`Fixture/*` source strings); the `WeakMap`/`LazyObject`
-  behaviour is covered with explicit life-cycle assertions. The test suite must stay
-  green across every step above — each step is independently shippable.
+- **PSR-4 / autoload:** `composer dump-autoload` clean; one class per file, filename ==
+  class name (holds after the §3.1 namespace move).
+- **PHPStan:** level 9, 0 errors (`composer analyze`).
+- **php-cs-fixer:** `composer format:check` → 0 files needing fixing.
+- **PHPArkitect:** `composer architecture` → 0 violations. After §3.1 this must include
+  the **active** layered rules (`Contract`/`Core`/`Adapter`/`ValueObject` dependency
+  allowances) plus the three custom `Expression` rules (interfaces depend only on
+  interfaces; classes are `final`; final classes are backed by interfaces) and the §0
+  factory `build()` / no-static-product guard.
+- **Unit tests (mock-based per port; fixture-based per adapter):** specifically cover
+  the REVIEW fixes — F1 (WeakMap/content cache fires across `detect`→`rewrite`), F2
+  (`ConstantNameResolver` is the single naming site), F3 (`LiteralKind` mapping), F8
+  (size guard throws). The suite stays green across every step; each step is
+  independently shippable.
 - **No adapter imports a Core class; no Core class imports a vendor type or
-  `ItPack\RunIt\*`** (ADR-0001 / ADR-0002 preserved; the `RunIt` exclusion is the
-  execution-model guardrail from §17 / ADR-0005 — RunIt stays an optional future adapter,
-  never a Core dependency).
-- **Execution-model seam:** the Core `Disenchanter` records exclusively through
-  `ExecutionRecorderInterface`, whose default (`NullExecutionRecorder`) is a no-op, so the
-  library runs identically with or without an execution recorder attached (ADR-0010).
-  Domain artifacts (`DisenchantContext` / `DisenchantOccurrence` / `DisenchantObservation` /
-  `DisenchantMeasurement` / `DisenchantSnapshot`) are immutable and `Normalizable`
-  (ADR-0002), and occurrence names are lowercase + versioned (ADR-0011), so a future
+  `ItPack\RunIt\*`** (ADR-0001 / ADR-0002 / ADR-0005 preserved). The `RunIt` exclusion is
+  the execution-model guardrail — RunIt stays an optional future adapter, never a Core
+  dependency.
+- **Execution-model seam (after §3.10):** Core records exclusively through
+  `ExecutionRecorderInterface` (default `NullExecutionRecorder` = no-op), so the library
+  runs identically with or without a recorder. Domain artifacts are immutable and
+  `Normalizable`, and occurrence names are lowercase + versioned, so a future
   `it-pack/run-it-disenchant-it` bridge maps them onto RunIt with no Core change.
