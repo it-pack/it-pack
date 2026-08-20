@@ -1,0 +1,9 @@
+# Codeception Integration Test Suite Configuration
+#
+# Suite for integration tests (adapter wiring, persistence, external seams).
+
+actor: IntegrationTester
+modules:
+    enabled:
+        - Asserts
+step_decorators: ~

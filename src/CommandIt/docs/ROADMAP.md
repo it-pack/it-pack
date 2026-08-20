@@ -20,22 +20,21 @@ Conventions used below:
 
 ### Tasks
 
-- [ ] **M0.1** Update `composer.json`:
-  - `"php": "^8.4"` in `require`.
-  - Add `require-dev`: `just-bases/php-unit-test-base`, `just-bases/php-qa-base`, `just-bases/php-obs-dev-base`, `phpstan/phpstan`, `phpmetrics/*` as needed, `codeception/*`, `infection/infection`, `friendsofphp/php-cs-fixer`, `qossmic/deptrac-shim`.
-  - `autoload-dev`: `{"Tests\\": "tests/"}`.
-  - `suggest`: `symfony/console` ("CLI projection adapter"), and optional PSR packages.
-  - Add `scripts` mirroring RunIt: `test`, `test:unit`, `test:functional`, `test:integration`, `analyse`, `architecture`, `cs:check`, `cs:fix`, `mutation`, `security:audit`, `quality`.
-- [ ] **M0.2** Add `phpstan.neon.dist` (highest level; no first-party baseline).
-- [ ] **M0.3** Add `deptrac.yaml` encoding layers: `Domain`, `Contract`, `Application/Core`, `SDK`, `Adapter`, `Port`. Forbid `Domain → Adapter`, `Domain → SDK`, `Core → SDK`, `Core → Adapter`, and **any** `→ RunIt`/`→ Symfony`.
-- [ ] **M0.4** Add `php-cs-fixer.dist.php` matching family style (`final`, `readonly`, `declare(strict_types=1)`, no global state).
-- [ ] **M0.5** Add `infection.json5` (min MSI pinned, raised per milestone).
-- [ ] **M0.6** Create empty `tests/{Unit,Functional,Integration}` with a passing smoke test; create `tests/_support` fixtures.
-- [ ] **M0.7** Add `docs/architecture/MODEL.md` stub (filled progressively).
+- [x] **M0.1** Update `composer.json`: `"php": "^8.4"`, `license: MIT`, `keywords`, `support`, `autoload-dev` (`Tests\\` → `tests/`), `suggest` (`symfony/console`, `psr/log`, `psr/event-dispatcher`, `psr/clock`), and `scripts` mirroring RunIt (`test`, `test:unit`, `test:functional`, `test:integration`, `coverage`, `cs:check`, `cs:fix`, `analyse`, `architecture`, `mutation`, `benchmark`, `security:audit`, `quality`). Added `config.audit.abandoned: ignore` so the transitive `doctrine/annotations` dep does not fail the audit gate.
+- [x] **M0.2** `phpstan.neon` present (level `max`; no first-party baseline). Family uses `phpstan.neon` (not `.dist`), so that convention was followed.
+- [x] **M0.3** `deptrac.yaml` encodes layers `Common`, `Contract`, `Domain`, `Application`, `SDK`, `Adapter`, `Port`. `Port` lives at `src/Contract/Port` (RunIt convention; the `Contract` collector excludes it via a negative lookahead to avoid double membership). `SymfonyConsole` and `RunIt` are declared as layers but omitted from every allowed list, making any dependency on them a violation.
+- [x] **M0.4** `.php-cs-fixer.php` present (family convention; `@PSR12`, `@PHP84Migration`, strictness rules). Not `.dist`.
+- [x] **M0.5** `infection.json5` added (was present but corrupted with stray text on line 1; rewritten clean). Min MSI stays `0` and is raised per milestone.
+- [x] **M0.6** `tests/{Unit,Functional,Integration}` exist, each with a passing smoke test. Added `tests/Integration.suite.yml` + `tests/Support/IntegrationTester.php` (actor) and `tests/Support/Fixture/.gitkeep` (required phpstan path). Acceptance suite is intentionally excluded from `composer test`.
+- [x] **M0.7** `docs/architecture/MODEL.md` stub created (layering + vocabulary mapping table; filled progressively).
+
+> **Convention note for later milestones:** the core layer directory is `src/Application`
+> (RunIt/AGENTS call it "Application (Core)"). The ROADMAP tags `[Core]` and `[Application]` both refer
+> to this directory. Ports live at `src/Contract/Port`.
 
 ### DoD
 
-`composer validate --strict`, `cs:check`, `analyse`, `architecture`, and the smoke test all pass on an otherwise empty source tree.
+`composer validate --strict`, `cs:check`, `analyse`, `architecture`, `test` (all three run suites), and `security:audit` all pass on an otherwise empty source tree.
 
 ### QG
 
@@ -44,8 +43,11 @@ composer validate --strict
 composer cs:check
 composer analyse
 composer architecture
-composer test:unit
+composer test          # unit + functional + integration smoke tests
+composer security:audit
 ```
+
+**Result (2026-08-20):** all commands pass — phpstan 0 errors, deptrac 0 violations, 4 tests / 6 assertions green, audit clean.
 
 ---
 

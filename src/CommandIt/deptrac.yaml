@@ -9,7 +9,7 @@ deptrac:
     - name: Contract
       collectors:
         - type: directory
-          value: src/Contract/.*
+          value: src/Contract/(?!Port/).*
     - name: Domain
       collectors:
         - type: directory
@@ -28,6 +28,18 @@ deptrac:
       collectors:
         - type: directory
           value: src/Adapter/.*
+    - name: Port
+      collectors:
+        - type: directory
+          value: src/Contract/Port/.*
+    - name: SymfonyConsole
+      collectors:
+        - type: className
+          value: ^Symfony\\Console\\
+    - name: RunIt
+      collectors:
+        - type: className
+          value: ^ItPack\\RunIt\\
   ruleset:
     Common: ~
     Contract:
@@ -35,16 +47,25 @@ deptrac:
     Domain:
       - Common
       - Contract
+    Port:
+      - Common
+      - Contract
     Application:
       - Common
       - Contract
       - Domain
+      - Port
     SDK:
       - Common
       - Contract
       - Domain
       - Application
+      - Port
     Adapter:
       - Common
       - Contract
       - Domain
+      - Port
+    # SymfonyConsole and RunIt are intentionally omitted from every allowed
+    # list below, so any dependency on them from an internal layer is a
+    # violation. CommandIt must remain RunIt-agnostic and Symfony-free in core.

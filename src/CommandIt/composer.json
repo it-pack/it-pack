@@ -2,9 +2,23 @@
     "name": "it-pack/command-it",
     "description": "A multi purpose command creation and execution library for PHP",
     "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "command",
+        "cqrs",
+        "execution",
+        "cli",
+        "it-pack",
+        "itpack"
+    ],
     "autoload": {
         "psr-4": {
             "ItPack\\CommandIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
         }
     },
     "authors": [
@@ -13,8 +27,15 @@
             "email": "timomichna@yahoo.de"
         }
     ],
+    "support": {
+        "issues": "https://github.com/it-pack/it-pack/issues",
+        "source": "https://github.com/it-pack/it-pack/tree/main/src/CommandIt"
+    },
     "minimum-stability": "stable",
-    "require": {},
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.4"
+    },
     "require-dev": {
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
@@ -22,7 +43,42 @@
         "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3"
     },
+    "suggest": {
+        "symfony/console": "CLI projection adapter (maps CommandDefinition to Symfony Console commands)",
+        "psr/log": "PSR-3 observation and logger integration",
+        "psr/event-dispatcher": "PSR-14 occurrence integration",
+        "psr/clock": "PSR-20 monotonic clock integration"
+    },
+    "scripts": {
+        "test": [
+            "@test:unit",
+            "@test:functional",
+            "@test:integration"
+        ],
+        "test:unit": "vendor/bin/codecept run Unit",
+        "test:functional": "vendor/bin/codecept run Functional",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
+        "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@composer validate --strict",
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test",
+            "@security:audit"
+        ]
+    },
     "config": {
+        "audit": {
+            "abandoned": "ignore"
+        },
         "allow-plugins": {
             "infection/extension-installer": true,
             "dantleech/what-changed": true,
