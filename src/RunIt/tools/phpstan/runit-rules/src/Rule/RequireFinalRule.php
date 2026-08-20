@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tools\PhpStan\RunitRules\Rule;
+
+use PhpParser\Node;
+use PHPStan\Analyser\Scope;
+use PHPStan\Rules\Rule;
+use PHPStan\Rules\RuleErrorBuilder;
+use Tools\PhpStan\RunitRules\Support\AbstractSrcRule;
+
+/**
+ * Every concrete class must be `final` (RunIt AGENTS.md, M13.2). Abstract base
+ * classes, anonymous classes, interfaces, traits and enums are exempt because
+ * they cannot be, or are not, concrete.
+ *
+ * @implements Rule<Node\Stmt\Class_>
+ */
+final class RequireFinalRule extends AbstractSrcRule implements Rule
+{
+    public function __construct(string $srcRoot)
+    {
+        parent::__construct($srcRoot);
+    }
+
+    /**
+     * @return class-string<\PhpParser\Node\Stmt\Class_>
+     */
+    public function getNodeType(): string
+    {
+        return Node\Stmt\Class_::class;
+    }
+
+    /**
+     * @return list<\PHPStan\Rules\IdentifierRuleError>
+     */
+    public function processNode(Node $node, Scope $scope): array
+    {
+        if (!$this->isInSrc($scope)) {
+            return [];
+        }
+
+        if ($node->isAnonymous() || $node->isAbstract() || $node->isFinal()) {
+            return [];
+        }
+
+        return [RuleErrorBuilder::message(sprintf(
+            'Concrete class %s must be declared final (RunIt M13.2).',
+            $node->name instanceof Node\Identifier ? $node->name->name : 'anonymous',
+        ))->identifier('runit.requireFinal')->build()];
+    }
+}

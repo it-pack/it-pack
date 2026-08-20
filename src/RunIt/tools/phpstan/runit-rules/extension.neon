@@ -16,7 +16,7 @@ services:
     # no-var: properties must declare explicit visibility.
     - { class: Tools\PhpStan\RunitRules\Rule\NoVarRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
 
-    # no-explicit-strict-types: every library file enables strict typing.
+    # no-explicit-strict-types: every library file declares `declare(strict_types=1)`.
     - { class: Tools\PhpStan\RunitRules\Rule\RequireExplicitStrictTypesRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
 
     # explicit-foreach: no by-reference iteration.
@@ -25,3 +25,64 @@ services:
     # forbid-reflection-on-hot-path: no Reflection API in execution/domain hot paths.
     - { class: Tools\PhpStan\RunitRules\Rule\ForbidReflectionOnHotPathRule, arguments: { hotPathNamespaces: [ItPack\RunIt\Domain, ItPack\RunIt\Application\Runner, ItPack\RunIt\Application\Engine], nodeType: PhpParser\Node\Expr\New_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
     - { class: Tools\PhpStan\RunitRules\Rule\ForbidReflectionOnHotPathRule, arguments: { hotPathNamespaces: [ItPack\RunIt\Domain, ItPack\RunIt\Application\Runner, ItPack\RunIt\Application\Engine], nodeType: PhpParser\Node\Expr\StaticCall, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # M13.2 additions --------------------------------------------------------
+
+    # require-final: every concrete class must be `final`.
+    - { class: Tools\PhpStan\RunitRules\Rule\RequireFinalRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # no-mutable-static (declaration): static properties must be `readonly`.
+    - { class: Tools\PhpStan\RunitRules\Rule\NoMutableStaticPropertyRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # no-mutable-static (assignment): no writes to static properties.
+    - { class: Tools\PhpStan\RunitRules\Rule\NoMutableStaticAssignmentRule, arguments: { nodeType: PhpParser\Node\Expr\Assign, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\NoMutableStaticAssignmentRule, arguments: { nodeType: PhpParser\Node\Expr\AssignRef, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # forbid-arbitrary-object-serialization: no `serialize()` / `unserialize()`.
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidArbitraryObjectSerializationRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # forbid-direct-wall-clock: time must come from the MonotonicClockInterface port.
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDirectWallClockRule, arguments: { nodeType: PhpParser\Node\Expr\FuncCall, srcRoot: %currentWorkingDirectory%/src, allowDirectories: [src/Adapter], allowFiles: [src/Domain/Shared/Instant.php, src/Application/Publication/BufferedArtifactPublisher.php] }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDirectWallClockRule, arguments: { nodeType: PhpParser\Node\Expr\New_, srcRoot: %currentWorkingDirectory%/src, allowDirectories: [src/Adapter], allowFiles: [src/Domain/Shared/Instant.php, src/Application/Publication/BufferedArtifactPublisher.php] }, tags: [phpstan.rules.rule] }
+
+    # forbid-domain-imports-adapters: core layers must not import adapter code.
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDomainImportsAdaptersRule, arguments: { nodeType: PhpParser\Node\Stmt\Use_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDomainImportsAdaptersRule, arguments: { nodeType: PhpParser\Node\Stmt\GroupUse_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # no-empty-catch: swallowing exceptions via empty catch blocks is forbidden.
+    - { class: Tools\PhpStan\RunitRules\Rule\NoEmptyCatchRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # require-initialized-properties: src-scoped uninitialized-property check.
+    - { class: Tools\PhpStan\RunitRules\Rule\RequireInitializedPropertiesRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # require-readonly-artifact: domain artifacts must be `readonly`.
+    - { class: Tools\PhpStan\RunitRules\Rule\RequireReadonlyForArtifactRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # require-interface: every concrete class implements an interface.
+    # Exemptions: test-harness (Conformance), shared behaviour helpers (Behavior),
+    # and a bounded set of value-object / config / adapter-DTO classes whose
+    # semantic interface is a tracked follow-up (see docs/qa.md).
+    - { class: Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule, arguments: { srcRoot: %currentWorkingDirectory%/src, exemptDirectories: [src/Conformance, src/Behavior], exemptFiles: [
+        src/Adapter/CloudEvents/CloudEvent.php,
+        src/Adapter/CloudEvents/CloudEventsBridgeConfig.php,
+        src/Adapter/CloudEvents/CloudEventsBridgeConfigBuilder.php,
+        src/Adapter/CloudEvents/Mapping/CloudEventMappingPolicy.php,
+        src/Adapter/OpenTelemetry/BridgeCapability.php,
+        src/Adapter/OpenTelemetry/BridgeConfig.php,
+        src/Adapter/OpenTelemetry/BridgeConfigBuilder.php,
+        src/Adapter/OpenTelemetry/Metrics/InstrumentCache.php,
+        src/Adapter/OpenTelemetry/Telemetry/AttributeKeys.php,
+        src/Adapter/OpenTelemetry/Telemetry/SeverityMap.php,
+        src/Adapter/OpenTelemetry/Telemetry/SpanKindMap.php,
+        src/Adapter/OpenTelemetry/Telemetry/SpanStatusMap.php,
+        src/Adapter/Psr/Event/OccurrenceEventWrapper.php,
+        src/Adapter/Psr/Log/ExecutionAwareLogger.php,
+        src/Adapter/Psr/Log/ObservationRecordingLogger.php,
+        src/Application/Publication/ArtifactRedactionConfig.php,
+        src/Application/Publication/BufferConfiguration.php,
+        src/Application/Publication/PublicationPipeline.php,
+        src/Application/Publication/PublicationRoute.php,
+        src/Application/Security/SnapshotIntegrityVerifier.php,
+        src/Domain/Shared/SecurityLimits.php,
+        src/SDK/Attribute/ExecutedAs.php,
+    ] }, tags: [phpstan.rules.rule] }

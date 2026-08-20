@@ -2396,20 +2396,36 @@ rule packages:
 
 See `docs/qa.md` for the full rationale and the explicit-`mixed` decision.
 
-Remaining ROADMAP-native items not yet covered by this pass:
+Remaining ROADMAP-native items — completed in this pass:
 
-- [ ] Enable uninitialized-property checks (`checkUninitializedProperties`).
-- [ ] Enable missing-generic checks (`checkMissingIterableValueType`,
-      `checkGenericClassInNonGenericObjectType`).
-- [ ] Configure exception checks.
-- [ ] Add custom rule: concrete classes must be final (currently a convention + `php-cs-fixer`).
-- [ ] Add custom rule: eligible immutable classes should be `readonly`.
-- [ ] Add custom rule: concrete classes require interfaces.
-- [ ] Add custom rule: domain cannot import adapters (covered by DepTrac in M13.3).
-- [ ] Add custom rule: prohibit mutable static state.
-- [ ] Add a custom rule: prohibit direct wall-clock access outside adapters.
-- [ ] Add custom rule: prohibit arbitrary object serialization.
-- [ ] Add a non-blocking bleeding-edge analysis job.
+- [x] Enable uninitialized-property checks — implemented as the src-scoped
+      `require-initialized-properties` rule (a global `checkUninitializedProperties`
+      toggle flags ~29 PHPUnit fixtures whose properties are set in `setUp()`; see
+      `docs/QA.md` for the rationale).
+- [x] Enable missing-generic checks — intentionally **not** enabled: the
+      `checkMissingIterableValueType` / `checkGenericClassInNonGenericObjectType`
+      options were removed in PHPStan 2.x (per `UPGRADING.md`), and the former
+      would also conflict with AGENTS.md's explicit permission to use untyped
+      `array` ("Use `array` for untyped arrays"). Documented in `docs/QA.md`.
+- [x] Configure exception checks — `no-empty-catch` rule forbids swallowing
+      exceptions; broad `catch (\Throwable)` stays permitted in the Application
+      layer per ADR-008 (fail-safe publication, lifecycle).
+- [x] Add custom rule: concrete classes must be final — `require-final`.
+- [x] Add custom rule: eligible immutable classes should be `readonly` —
+      `require-readonly-artifact` requires `readonly` on domain artifacts.
+- [x] Add custom rule: concrete classes require interfaces — `require-interface`
+      (with a documented exemption list for existing value-object/config/adapter
+      classes; interface extraction is a tracked follow-up).
+- [x] Add custom rule: domain cannot import adapters — `forbid-domain-imports-adapters`
+      (also covered by DepTrac in M13.3).
+- [x] Add custom rule: prohibit mutable static state — `no-mutable-static`.
+- [x] Add a custom rule: prohibit direct wall-clock access outside adapters —
+      `forbid-direct-wall-clock` (allows `src/Adapter` plus two allowlisted
+      library clocks).
+- [x] Add custom rule: prohibit arbitrary object serialization —
+      `forbid-arbitrary-object-serialization`.
+- [x] Add a non-blocking bleeding-edge analysis job — `composer analyse:bleeding-edge`
+      (`phpstan-bleeding-edge.neon` includes PHPStan's `bleedingEdge.neon`).
 
 ## M13.3 DepTrac completion
 
