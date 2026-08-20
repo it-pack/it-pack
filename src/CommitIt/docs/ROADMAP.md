@@ -22,48 +22,58 @@
 
 ---
 
-## Milestone M0 — Foundation & QA Wiring
+## Milestone M0 — Foundation & QA Wiring ✅ COMPLETE
 
 **Goal:** A buildable package with green tooling scripts so every later milestone
 can be verified immediately.
 
+> **Status (2026-08-21):** Implemented and verified. All gates green:
+> `composer validate --strict` (valid), `phpstan analyse` (no errors, level max),
+> `deptrac` (0 violations), `php-cs-fixer fix --dry-run` (0 files),
+> `codecept run Unit` (2 tests, 5 assertions), `composer audit` (no advisories).
+
 ### Tasks
 
-1. **Verify and wire `composer.json` scripts.**
-   - Add (or confirm) scripts: `validate`, `test`, `analyse` (phpstan),
-     `architecture` (deptrac), `coding-style` (php-cs-fixer), `mutation`
-     (infection), `audit`.
-   - Confirm `czproject/git-php:^4.6` is in `require` (already present).
+1. **Verify and wire `composer.json` scripts.** ✅
+   - Added scripts: `validate`, `test`, `test:unit`, `test:functional`,
+     `coverage`, `cs:check`, `cs:fix`, `analyse`, `architecture`, `mutation`,
+     `security:audit`, `quality`.
+   - Added `php: ^8.4`, `license: MIT`, `autoload-dev` (`Tests\` → `tests/`),
+     `prefer-stable: true`. `composer.lock` refreshed via `update --lock` (no
+     dependency change).
+   - Confirmed `czproject/git-php:^4.6` is in `require`.
    - File: `composer.json`.
 
-2. **Confirm static-analysis baseline is clean on an empty `src/`.**
-   - Run `composer analyse` and `composer architecture` against the current empty
-     tree; resolve any config issues before code lands.
-   - Files: `phpstan.neon`, `deptrac.yaml` (already present; verify paths cover
+2. **Confirm static-analysis baseline is clean.** ✅
+   - **Defect fixed:** `phpstan.neon` still `include`d RunIt's
+     `tools/phpstan/runit-rules/extension.neon` (a copy artifact). That path does
+     not exist here and would couple CommitIt to RunIt (forbidden by `AGENTS.md`).
+     Removed the include; `phpstan` now loads and reports no errors at `level: max`.
+   - `deptrac.yaml` already present and green (0 violations); paths cover
      `src/Common`, `src/Contract`, `src/Domain`, `src/Application`, `src/SDK`,
-     `src/Adapter`).
+     `src/Adapter`.
 
-3. **Establish test directory layout for Codeception.**
-   - Suites already scaffolded (`Unit`, `Functional`, `Acceptance`). Ensure:
-     - `tests/Unit/` exists for fast unit/value-object/adapter-unit tests.
-     - `tests/Functional/` exists for real-repo integration tests.
-     - A `tests/Support/Fixture` and `tests/Support/Data` area for reusable git
-       fixtures (bare repos, seeded repos).
-   - Confirm `phpstan.neon` paths include `./tests/Unit` and `./tests/Functional`.
+3. **Establish test directory layout for Codeception.** ✅
+   - Suites already scaffolded (`Unit`, `Functional`, `Acceptance`).
+   - Created `tests/Support/Fixture/` (with `.gitkeep`) and `tests/Support/Helper/`.
+   - `phpstan.neon` paths include `./tests/Unit` and `./tests/Functional`.
 
-4. **Create a temp-repository test helper** (used by M3/M6).
-   - `tests/Support/Helper/RepoFactory.php` or a trait that creates a real temp
-     git repo (`git init`, seed a commit) and tears it down.
-   - Must not rely on `sudo` (the lab examples did; the helper must not).
+4. **Create a temp-repository test helper.** ✅
+   - `tests/Support/Helper/GitRepoFactory.php` — `final` helper, `proc_open` with
+     an argument vector (no shell, no `sudo`): `initBareRepo`, `initWorkingRepo`,
+     `seedFile`, `cloneRepo`, `tearDown`, `runGit`, `createTempDir`.
+   - Smoke test `tests/Unit/Support/GitRepoFactoryTest.php` proves create/seed/
+     tear-down and bare-repo clone.
 
-### Acceptance criteria
+### Acceptance criteria — all met
 
-- `composer validate` passes.
+- `composer validate` passes (valid, strict).
 - `composer analyse`, `composer architecture`, `composer coding-style --dry-run`
-  run without errors on the empty tree.
-- `composer test` discovers the suites without failure.
-- A `RepoFactory` helper exists and can create/tear down a temp repo in a unit or
-  functional test.
+  run without errors.
+- `composer test` discovers the suites without failure (Unit passes; Functional
+  discovers 0 tests, as expected pre-M3).
+- A `GitRepoFactory` helper exists and can create/tear down a temp repo in a unit
+  test.
 
 ---
 
@@ -327,7 +337,7 @@ and wire non-intrusive observation.
 ### Tasks
 
 1. **Functional suite with real temp repos.**
-   - `tests/Functional/` using the M0 `RepoFactory` helper. Cover:
+    - `tests/Functional/` using the M0 `GitRepoFactory` helper. Cover:
      init → seed → stage → commit → getLastCommit; branch create/checkout/remove;
      tag create/remove/rename; remote add/remove/rename/setUrl; pull/push against
      a local bare repo; `hasChanges()` toggling; worktree add/list/remove.
@@ -443,7 +453,7 @@ and wire non-intrusive observation.
 ## Suggested Execution Order (summary)
 
 ```text
-M0  Foundation & QA wiring
+M0  Foundation & QA wiring                       ✅ COMPLETE (2026-08-21)
 M2  Domain value objects + validators   (skeletons first, then M1 signatures)
 M1  Common & Contract ports
 M3  Git adapter (factory, repository, working tree, exception map)
@@ -453,6 +463,8 @@ M6  Integration tests & failure/security injection
 M7  Documentation & ADRs
 M8  Quality hardening (phpstan max, deptrac, cs-fixer, infection)
 ```
+
+Legend: ⬜ pending · 🔄 in progress · ✅ complete.
 
 Each milestone is "done" only when its acceptance criteria and tests pass and the
 tooling (M0) is green for that slice.

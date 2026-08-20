@@ -1,10 +1,23 @@
 {
     "name": "it-pack/commit-it",
-    "description": "A multipurpose CVS API and SDK for different VCS systems (starting with git)",
+    "description": "A multipurpose VCS API and SDK for different VCS systems (starting with git)",
     "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "vcs",
+        "git",
+        "version-control",
+        "it-pack",
+        "itpack"
+    ],
     "autoload": {
         "psr-4": {
             "ItPack\\CommitIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
         }
     },
     "authors": [
@@ -13,8 +26,14 @@
             "email": "timomichna@yahoo.de"
         }
     ],
+    "support": {
+        "issues": "https://github.com/it-pack/it-pack/issues",
+        "source": "https://github.com/it-pack/it-pack/tree/main/src/CommitIt"
+    },
     "minimum-stability": "stable",
+    "prefer-stable": true,
     "require": {
+        "php": "^8.4",
         "czproject/git-php": "^4.6"
     },
     "require-dev": {
@@ -23,6 +42,30 @@
         "just-bases/php-obs-dev-base": "^0.1.0",
         "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3"
+    },
+    "scripts": {
+        "validate": "@composer validate --strict",
+        "test": [
+            "@test:unit",
+            "@test:functional"
+        ],
+        "test:unit": "vendor/bin/codecept run Unit",
+        "test:functional": "vendor/bin/codecept run Functional",
+        "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@validate",
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test",
+            "@security:audit"
+        ]
     },
     "config": {
         "allow-plugins": {
