@@ -150,13 +150,16 @@ dependency. `phpstan analyse` remains **0 errors** and `composer test:unit` stay
 **Goal.** Tests boot and pass.
 
 **Steps.**
-1. Update the five test files that import moved interfaces from
-   `Contract\ValueObject\` back to their real location per T1's decision:
-   - `tests/Unit/Adapter/FileSourceTest.php:10` (`ConfigurationResourceInterface`)
-   - `tests/Unit/Core/LoaderFactoryTest.php:8-9` (`ConfigurationDocumentInterface`, `ConfigurationLoaderInterface`)
-   - `tests/Unit/Core/ConfigurationGraphTest.php:8` (`ConfigurationNodeInterface`)
-   - `tests/Unit/Core/ConfigurationBuilderTest.php:11` (`ConfigurationGraphInterface`)
-   - `tests/Unit/Core/ConfigurationPipelineTest.php:8` (`ConfigurationDocumentInterface`)
+1. Confirm the five test files reference the interfaces at their *actual*
+   canonical namespaces (T1 kept `ConfigurationDocumentInterface`,
+   `ConfigurationLoaderInterface`, `ConfigurationNodeInterface`,
+   `ConfigurationGraphInterface` at flat `Contract\`; only
+   `ConfigurationResourceInterface` lives under `Contract\ValueObject\`):
+   - `tests/Unit/Adapter/FileSourceTest.php:10` → `Contract\ValueObject\ConfigurationResourceInterface` ✅
+   - `tests/Unit/Core/LoaderFactoryTest.php:8-9` → `Contract\ConfigurationDocumentInterface`, `Contract\ConfigurationLoaderInterface` ✅
+   - `tests/Unit/Core/ConfigurationGraphTest.php:8` → `Contract\ConfigurationNodeInterface` ✅
+   - `tests/Unit/Core/ConfigurationBuilderTest.php:11` → `Contract\ConfigurationGraphInterface` ✅
+   - `tests/Unit/Core/ConfigurationPipelineTest.php:8` → `Contract\ConfigurationDocumentInterface` ✅
 2. Run the suite; iterate until green.
 
 **Verification**
@@ -166,9 +169,10 @@ vendor/bin/codecept run Unit
 ```
 
 **Status — ✅.** Suite boots and all **61 test methods / 119 assertions** pass
-(`composer test:unit`). The five test files named in T3 already import the
-reconciled `Contract\ValueObject\` symbols, so no test-side import churn was
-needed in this pass.
+(`composer test:unit`). PHPStan analyzes `./tests/Unit` (see `phpstan.neon`) and
+reports **0 errors**, so every test import resolves against the real contract
+tree — no test-side import churn was needed. The five named test files already
+import from the correct (flat `Contract\` / `Contract\ValueObject\`) locations.
 
 ### T4 — Restore static-analysis & coding-standard gates
 
