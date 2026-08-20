@@ -12,6 +12,11 @@ use ReflectionMethod;
  * Defaults reproduce the Phase 1 behaviour: public-only surface, static/magic
  * methods dropped, constructors dropped. Every filtering decision is an explicit
  * flag so behaviour is testable and never an accidental opinion.
+ *
+ * `auditLeakage` (G1) is OFF by default: the deep leakage auditor is stricter
+ * than the shallow `assertSelfContained()` (which only forbids `extends`) and
+ * would flag existing golden fixtures that intentionally keep an unmapped
+ * foreign type; opt in once the derive set / substitution map is complete.
  */
 final class DeriveConfig
 {
@@ -37,6 +42,7 @@ final class DeriveConfig
         public readonly bool $failOnEmpty = false,
         public readonly bool $attributePassThrough = false,
         public readonly bool $throwsCapture = false,
+        public readonly bool $auditLeakage = false,
     ) {
         if (!in_array($visibility, [self::VISIBILITY_PUBLIC, self::VISIBILITY_PROTECTED], true)) {
             throw new \InvalidArgumentException(sprintf('Unsupported visibility "%s".', $visibility));
@@ -69,6 +75,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -88,6 +95,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -107,6 +115,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -126,6 +135,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -145,6 +155,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -164,6 +175,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -183,6 +195,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -202,6 +215,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -224,6 +238,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -246,6 +261,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -265,6 +281,7 @@ final class DeriveConfig
             failOnEmpty: $failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -284,6 +301,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
         );
     }
 
@@ -303,6 +321,27 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $throwsCapture,
+            auditLeakage: $this->auditLeakage,
+        );
+    }
+
+    public function withAuditLeakage(bool $auditLeakage): self
+    {
+        return new self(
+            visibility: $this->visibility,
+            includeStatic: $this->includeStatic,
+            includeMagic: $this->includeMagic,
+            dropConstruct: $this->dropConstruct,
+            dropDestruct: $this->dropDestruct,
+            typeSubstitutionMap: $this->typeSubstitutionMap,
+            substituteSelfStatic: $this->substituteSelfStatic,
+            includeConstants: $this->includeConstants,
+            onlyMethods: $this->onlyMethods,
+            skipMethods: $this->skipMethods,
+            failOnEmpty: $this->failOnEmpty,
+            attributePassThrough: $this->attributePassThrough,
+            throwsCapture: $this->throwsCapture,
+            auditLeakage: $auditLeakage,
         );
     }
 }

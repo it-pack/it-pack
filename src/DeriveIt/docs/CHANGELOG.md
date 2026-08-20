@@ -45,7 +45,24 @@ adheres to [Semantic Versioning](https://semver.org/).
   consolidates interface→source assembly; `Naming` centralizes derived-interface
   naming; `RecursiveTraitResolver` memoizes per-node trait resolution.
 
+- **Phase 10 (correctness-first cluster) — deep leakage & parity:**
+  - **Deep leakage auditor (G1):** new `LeakageAuditor` scans every method
+    return/parameter type after substitution and raises `LeakageDetectedException`
+    for any non-builtin FQCN outside the target namespace / owned allow-list.
+    Off by default via `DeriveConfig::auditLeakage`.
+  - **Per-mode parity (G12):** `Naming::assertNoCollision()` now also checks
+    `enum_exists` and runs in per-trait and family modes; a per-trait
+    same-short-name trait clash now throws instead of silently overwriting.
+  - **Family honors caller config (G2):** `FamilyDeriver::derive*` and
+    `DeriveIt::deriveFamily*` accept and forward a `DeriveConfig` (previously
+    forced to defaults).
+  - **Injectable instance cache (G4):** `FamilyDeriver` replaced its process-global
+    static cache with an instance-scoped cache plus `clearCache()` — removes a
+    Phase-8-principle regression and un-masks Infection mutants.
+
 ### Changed
+- `FamilyDeriver`'s memoization is now instance-scoped (constructor-injected cache
+  + `clearCache()`) rather than a process-global static (Phase 10 / G4).
 - `DeriveIt::deriveAdapter()` — generates a delegating adapter implementing the
   derived interface and wrapping a concrete adaptee (Phase 5).
 - `returnWrapperMap` option for adapter generation: wrap returned derived types in

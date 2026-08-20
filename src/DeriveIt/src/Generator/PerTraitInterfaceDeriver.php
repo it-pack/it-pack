@@ -6,6 +6,7 @@ namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
+use ItPack\DeriveIt\Exception\NamingCollisionException;
 use ItPack\DeriveIt\Reflection\ClassReflection;
 use Nette\PhpGenerator\InterfaceType;
 use ReflectionClass;
@@ -51,8 +52,27 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
 
         $claimed = [];
         $interfaces = [];
+        $shortNameToFqcn = [];
+
+        $allowedNamespaces = LeakageAuditor::allowedNamespaces(
+            $reflection->getNamespaceName(),
+            $this->config->typeSubstitutionMap,
+            [],
+        );
 
         foreach (ClassReflection::create($reflection->getName())->getTraitsRecursively() as $trait) {
+            $shortName = $trait->getShortName() . 'Interface';
+            $fqcn = Naming::derivedInterfaceFqcn($trait);
+
+            // EC19: two traits sharing a short name in different namespaces would
+            // silently overwrite each other — fail loudly instead.
+            if (isset($shortNameToFqcn[$shortName]) && $shortNameToFqcn[$shortName] !== $fqcn) {
+                throw NamingCollisionException::forFqcn($fqcn);
+            }
+            $shortNameToFqcn[$shortName] = $fqcn;
+
+            Naming::assertNoCollision($trait);
+
             $methods = [];
             foreach ($this->extractor->extract($trait) as $method) {
                 $name = $method->getName();
@@ -67,8 +87,16 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
                 continue;
             }
 
-            $interface = new InterfaceType($trait->getShortName() . 'Interface');
+            $interface = new InterfaceType($shortName);
             $interface->setMethods($methods);
+
+            new LeakageAuditor()->audit(
+                $interface,
+                $trait->getNamespaceName(),
+                $allowedNamespaces,
+                $this->config->auditLeakage,
+            );
+
             $interfaces[$trait->getShortName()] = $interface;
         }
 
@@ -78,6 +106,7 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
     public function derive(ReflectionClass|string $class): InterfaceType
     {
         $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+        Naming::assertNoCollision($reflection);
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
 
         $main = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
@@ -112,6 +141,13 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
             $mainMethods[] = $this->signatureFactory->fromMethod($method, $substitutor);
         }
         $main->setMethods($mainMethods);
+
+        new LeakageAuditor()->audit(
+            $main,
+            $reflection->getNamespaceName(),
+            LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->config->typeSubstitutionMap, []),
+            $this->config->auditLeakage,
+        );
 
         self::assertPerTraitSelfContained($main, $traitInterfaces);
 

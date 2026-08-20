@@ -29,8 +29,20 @@ final class FamilyDeriver
 {
     /**
      * @var array<string, InterfaceType> memo cache keyed by class FQCN + config hash.
+     * Instance-scoped (not static) so it cannot leak across unrelated derivations
+     * or mask Infection mutants — see G4 / EC3.
      */
-    private static array $cache = [];
+    private array $cache = [];
+
+    public function __construct(
+        private readonly DeriveConfig $config = new DeriveConfig(),
+    ) {
+    }
+
+    public function clearCache(): void
+    {
+        $this->cache = [];
+    }
 
     /**
      * @param array<int, class-string> $classes
@@ -51,7 +63,7 @@ final class FamilyDeriver
             $fqcn = $reflection->getName();
             $cacheKey = $fqcn . '|' . $configHash;
 
-            $result[$fqcn] = self::$cache[$cacheKey] ??= $this->deriveMember($reflection, $map, $namespacePrefixMap);
+            $result[$fqcn] = $this->cache[$cacheKey] ??= $this->deriveMember($reflection, $map, $namespacePrefixMap);
         }
 
         return $result;
@@ -105,16 +117,22 @@ final class FamilyDeriver
      */
     private function deriveMember(ReflectionClass $reflection, array $map, array $namespacePrefixMap): InterfaceType
     {
+        Naming::assertNoCollision($reflection);
+
         $selfFqcn = Naming::derivedInterfaceFqcn($reflection);
         $parent = $reflection->getParentClass();
         $parentFqcn = $parent !== false ? Naming::derivedInterfaceFqcn($parent) : null;
 
         $substitutor = new TypeSubstitutor($map, $selfFqcn, $parentFqcn, $namespacePrefixMap);
 
+        $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $map, $namespacePrefixMap);
+
+        $memberConfig = $this->config->withTypeSubstitutionMap($map);
+
         return new InterfaceDeriver(
-            signatureFactory: new MethodSignatureFactory(config: new DeriveConfig()),
-            config: new DeriveConfig()->withTypeSubstitutionMap($map),
-        )->deriveWithSubstitutor($reflection, $substitutor);
+            signatureFactory: new MethodSignatureFactory(config: $memberConfig),
+            config: $memberConfig,
+        )->deriveWithSubstitutor($reflection, $substitutor, $allowedNamespaces);
     }
 
     /**
@@ -159,7 +177,7 @@ final class FamilyDeriver
      */
     private function configHash(array $map, array $namespacePrefixMap): string
     {
-        return md5(serialize($map) . '|' . serialize($namespacePrefixMap));
+        return md5(serialize($map) . '|' . serialize($namespacePrefixMap) . '|' . serialize($this->config));
     }
 
     /**

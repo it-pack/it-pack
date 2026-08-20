@@ -48,9 +48,12 @@ final class InterfaceDeriver implements DeriverInterface
      * Derive using a caller-supplied substitutor (used by FamilyDeriver to inject
      * the family map plus owned-namespace prefix rewriting).
      */
-    public function deriveWithSubstitutor(ReflectionClass $reflection, TypeSubstitutor $substitutor): InterfaceType
-    {
-        return $this->build($reflection, $substitutor)->interface;
+    public function deriveWithSubstitutor(
+        ReflectionClass $reflection,
+        TypeSubstitutor $substitutor,
+        array $allowedNamespaces = [],
+    ): InterfaceType {
+        return $this->build($reflection, $substitutor, $allowedNamespaces)->interface;
     }
 
     public function deriveSource(ReflectionClass|string $class): string
@@ -83,7 +86,7 @@ final class InterfaceDeriver implements DeriverInterface
     /**
      * @return object{interface: InterfaceType, methods: list<string>, substitutions: array<string,string>, constants: list<string>}
      */
-    private function build(ReflectionClass $reflection, ?TypeSubstitutor $substitutor = null): object
+    private function build(ReflectionClass $reflection, ?TypeSubstitutor $substitutor = null, array $allowedNamespaces = []): object
     {
         Naming::assertNoCollision($reflection);
 
@@ -107,6 +110,7 @@ final class InterfaceDeriver implements DeriverInterface
             }
 
             $substitutor = new TypeSubstitutor($typeMap, $selfFqcn, $parentFqcn);
+            $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $typeMap, []);
         }
 
         $interface = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
@@ -138,6 +142,13 @@ final class InterfaceDeriver implements DeriverInterface
         }
 
         self::assertSelfContained($interface);
+
+        new LeakageAuditor()->audit(
+            $interface,
+            $reflection->getNamespaceName(),
+            $allowedNamespaces,
+            $this->config->auditLeakage,
+        );
 
         $substitutions = $this->config->typeSubstitutionMap;
         if ($selfFqcn !== null) {

@@ -332,16 +332,17 @@ the rest are enhancements. IDs are stable for cross-referencing with the ROADMAP
 Phase 10 steps.
 
 ### G. Correctness & leakage hardening (core)
-- **G1** Deep leakage auditor — scan every method return/param type after
-  substitution; flag non-builtin, out-of-namespace, non-allowed FQCNs; raise
-  `LeakageDetectedException` (EC1, EC11, EC17). Gate behind a flag initially.
-- **G2** Family honors caller `DeriveConfig` — thread config through
-  `FamilyDeriver::derive()` and the facades (EC2).
+- **G1** ✅ Deep leakage auditor — `LeakageAuditor` scans every method return/param
+  type after substitution; flags non-builtin, out-of-namespace, non-allowed FQCNs;
+  raises `LeakageDetectedException` (EC1, EC11, EC17). Gated behind the
+  `auditLeakage` config flag (default off) so existing golden files are not broken.
+- **G2** ✅ Family honors caller `DeriveConfig` — `FamilyDeriver::derive*` and the
+  `DeriveIt::deriveFamily*` facades accept and forward a `DeriveConfig` (EC2).
 - **G3** Adapter static-method support — emit static delegating methods, or
   hard-error when adapter + `includeStatic` combine (EC4).
-- **G4** Injectable cache instead of static — remove `FamilyDeriver::$cache`
-  static; accept an injectable cache / provide `clearCache()` (EC3). Also un-masks
-  Infection mutants.
+- **G4** ✅ Injectable cache instead of static — `FamilyDeriver` uses an
+  instance-scoped cache (constructor-injected + `clearCache()`), removing the
+  process-global static that masked Infection mutants and leaked across runs (EC3).
 - **G5** Full derivation-target support matrix — `enum_exists` in discovery +
   collision; document supported targets; golden tests for enum/trait/interface/
   abstract/readonly; optional `deriveFromNonInstantiable` guard (EC13).
@@ -350,9 +351,9 @@ Phase 10 steps.
   only constant limitation (EC6, EC7).
 - **G7** Attribute allow-list + builtin skip — pass through only owned attributes;
   always drop `#[Override]` and other builtins (EC8).
-- **G12** Per-trait & family leakage/collision parity — run `assertNoCollision`
-  (with `enum_exists`) and the deep auditor in every mode; fix same-short-name
-  trait clash (EC5, EC11, EC19).
+- **G12** ✅ Per-trait & family leakage/collision parity — `assertNoCollision`
+  (now also `enum_exists`) runs in per-trait and family modes; per-trait same-short-name
+  trait clash throws `NamingCollisionException` instead of silently overwriting (EC5, EC11, EC19).
 - **G16** Re-expose owned interfaces (A4) — opt-in allow-list `extends` for owned
   interfaces (e.g. `Countable`), third-party kept out.
 

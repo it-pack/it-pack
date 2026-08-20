@@ -484,9 +484,13 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ---
 
-## Phase 10 — Correctness, Leakage & DX Deepening (planned)
+## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 📋 Planned (2026-08-20, post-Phase-9 in-depth review).** Not started.
+> **Status: 🟢 Steps 10.1–10.4 complete (2026-08-20).** Deep leakage auditor (G1),
+> per-mode collision/enum parity + per-trait short-name clash (G12), family honors
+> caller `DeriveConfig` (G2), and injectable instance cache replacing the static
+> (G4) are implemented and tested. All five gates green (150 tests, MSI 82%).
+> Steps 10.5–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -501,7 +505,7 @@ config presets, rename policy, family-of-adapters, CLI).
 target robustness (G5, G6, G7), then DX (G8, G9, G10, G11, G14, G17), then the
 opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18).
 
-### Step 10.1 — Deep leakage auditor (G1, EC1/EC11/EC17)
+### Step 10.1 — Deep leakage auditor (G1, EC1/EC11/EC17) ✅ COMPLETE
 - New `LeakageAuditor` that, after substitution, scans every method's return and
   parameter type strings and flags any FQCN that is non-builtin, outside the target
   namespace, and not in an allowed / substitution list → raise
@@ -512,21 +516,21 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
 - Fix the leaking golden fixtures it surfaces or populate an owned-namespace
   allow-list so the family/per-trait outputs stay clean.
 
-### Step 10.2 — Per-mode leakage/collision parity (G12, EC5/EC11/EC19)
+### Step 10.2 — Per-mode leakage/collision parity (G12, EC5/EC11/EC19) ✅ COMPLETE
 - Run `Naming::assertNoCollision()` in per-trait **and** family modes; extend it to
   check `enum_exists` (not just `class_exists`/`trait_exists`).
 - Fix the per-trait same-short-name clash: key the trait-interface map by FQCN
   internally, render short names only at output (`PerTraitInterfaceDeriver.php:72`).
 - Run the deep auditor (10.1) in family mode so unmapped sibling types are caught.
 
-### Step 10.3 — Family honors caller `DeriveConfig` (G2, EC2)
+### Step 10.3 — Family honors caller `DeriveConfig` (G2, EC2) ✅ COMPLETE
 - Add a `DeriveConfig $config` parameter to `FamilyDeriver::derive()` /
   `deriveFromRoot()` / `deriveSource()`; thread it into `deriveMember()` (replacing
   the hard-coded `new DeriveConfig()` at `FamilyDeriver.php:115-116`).
 - Update `DeriveIt::deriveFamily()` / `deriveFamilyFromRoot()` /
   `deriveFamilySource()` to accept and forward the config.
 
-### Step 10.4 — Injectable cache instead of static (G4, EC3)
+### Step 10.4 — Injectable cache instead of static (G4, EC3) ✅ COMPLETE
 - Remove `private static array $cache` from `FamilyDeriver` (`FamilyDeriver.php:33`);
   accept an optional cache (instance array / PSR-16) via the constructor and add
   `clearCache()`. This also un-masks Infection mutants masked by cross-call caching

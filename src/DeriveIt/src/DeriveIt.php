@@ -70,9 +70,9 @@ final class DeriveIt
      * @param array<int, class-string> $classes
      * @return array<class-string, string> keyed by class FQCN -> rendered interface source
      */
-    public static function deriveFamily(array $classes): array
+    public static function deriveFamily(array $classes, DeriveConfig $config = new DeriveConfig()): array
     {
-        $derived = new FamilyDeriver()->derive($classes);
+        $derived = new FamilyDeriver($config)->derive($classes);
 
         $result = [];
         foreach ($classes as $class) {
@@ -126,9 +126,12 @@ final class DeriveIt
      * @param array<int, class-string> $classes
      * @param array<string, string> $namespacePrefixMap Owned-namespace rewrite, e.g. `App\` => `App\Port\`.
      */
-    public static function deriveFamilySource(array $classes, array $namespacePrefixMap = []): string
-    {
-        return new FamilyDeriver()->deriveSource($classes, $namespacePrefixMap);
+    public static function deriveFamilySource(
+        array $classes,
+        array $namespacePrefixMap = [],
+        DeriveConfig $config = new DeriveConfig(),
+    ): string {
+        return new FamilyDeriver($config)->deriveSource($classes, $namespacePrefixMap);
     }
 
     /**
@@ -137,9 +140,12 @@ final class DeriveIt
      * @param array<string, string> $namespacePrefixMap
      * @return array<class-string, string> keyed by class FQCN -> rendered interface source
      */
-    public static function deriveFamilyFromRoot(string $rootClass, array $namespacePrefixMap = []): array
-    {
-        $derived = new FamilyDeriver()->deriveFromRoot($rootClass, $namespacePrefixMap);
+    public static function deriveFamilyFromRoot(
+        string $rootClass,
+        array $namespacePrefixMap = [],
+        DeriveConfig $config = new DeriveConfig(),
+    ): array {
+        $derived = new FamilyDeriver($config)->deriveFromRoot($rootClass, $namespacePrefixMap);
 
         $result = [];
         foreach ($derived as $fqcn => $interface) {
