@@ -15,7 +15,7 @@ use ItPack\DisenchantIt\ValueObject\Candidate;
 use ItPack\DisenchantIt\ValueObject\CandidateInterface;
 use ItPack\DisenchantIt\ValueObject\DisenchantResult;
 use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Detection + placement orchestrator (the "Detect" and "Decide/Rewrite" steps
@@ -53,7 +53,7 @@ final readonly class Disenchanter implements DisenchanterInterface
 
         $detected = [];
         foreach ($groups as $value => $occurrences) {
-            /** @var list<StringLiteralInterface> $occurrences */
+            /** @var list<LiteralInterface> $occurrences */
             $first = $occurrences[0] ?? null;
             $detected[$value] = new Candidate(
                 $value,

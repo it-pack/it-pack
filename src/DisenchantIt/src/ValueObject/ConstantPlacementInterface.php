@@ -16,6 +16,6 @@ interface ConstantPlacementInterface
 
     public string $value { get; }
 
-    /** @var list<StringLiteralInterface> */
+    /** @var list<LiteralInterface> */
     public array $occurrences { get; }
 }

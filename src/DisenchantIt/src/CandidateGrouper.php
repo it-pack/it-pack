@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Default candidate grouper: buckets literals by their value so repetition
@@ -15,8 +15,8 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 final readonly class CandidateGrouper implements CandidateGrouperInterface
 {
     /**
-     * @param list<StringLiteralInterface> $candidates
-     * @return array<string, list<StringLiteralInterface>>
+     * @param list<LiteralInterface> $candidates
+     * @return array<string, list<LiteralInterface>>
      */
     public function groupByValue(array $candidates): array
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Port for grouping candidates by literal value so repetition is visible before
@@ -13,8 +13,8 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 interface CandidateGrouperInterface
 {
     /**
-     * @param list<StringLiteralInterface> $candidates
-     * @return array<string, list<StringLiteralInterface>>
+     * @param list<LiteralInterface> $candidates
+     * @return array<string, list<LiteralInterface>>
      */
     public function groupByValue(array $candidates): array;
 }

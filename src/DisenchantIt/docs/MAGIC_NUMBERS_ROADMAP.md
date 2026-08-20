@@ -20,9 +20,65 @@ Conventions used below:
 
 ---
 
+## Progress
+
+### Phase P1 — ✅ COMPLETE (2026-08-20)
+
+All five P1 steps are implemented, tested, and green-gated. Summary of what
+landed and the decisions taken:
+
+- **Unified literal model.** `LiteralInterface` (in `ValueObject`, see
+  deviation below) is the shared port for strings and numbers; `StringLiteral`
+  and the new `NumberLiteral` both implement it. A `LiteralValueObjectTrait`
+  supplies `needle()` (quoted form for strings, exact raw token for numbers).
+- **Numeric detection with raw fidelity.** `MagicLiteralVisitor` (formerly
+  `MagicStringVisitor`) now captures `LNumber`/`DNumber`, recording the EXACT
+  source token via file-offset slice (`0x1F`, `1_000_000`, `3.14`), and
+  excludes a numeric constant's own declaration value (no self-rewrap).
+- **Pipeline widened to `LiteralInterface`.** `Detector::scanSource()` returns
+  `list<LiteralInterface>`; `CandidateFilter`, `CandidateGrouper`,
+  `ConstantPlacementStrategyInterface`, `Candidate`/`ConstantPlacement` and the
+  three strategies now type against `LiteralInterface`. The filter keeps a
+  `kind === string` guard so numbers are detected but not promoted yet (P2 lands
+  naming).
+- **Tests.** `NumberLiteralTest` + `MagicLiteralVisitorTest` added (6 tests):
+  hex/separator/float raw fidelity, const-value exclusion, and
+  detect-but-don't-promote. Full suite: **30 tests, 66 assertions, OK**.
+
+**Deviations from this roadmap (intentional, documented):**
+1. `LiteralInterface` lives in `src/ValueObject/`, **not** `src/Contract/` —
+   PHPArkitect forbids `ValueObject → Contract` (one-directional rule,
+   `phparkitect.php:41`); the existing `StringLiteralInterface` already sits in
+   `ValueObject`, so the unified port belongs there. `Contract` ports may depend
+   on it. (Updated in Step 1.2 above.)
+2. The `MagicStringVisitor` class was **removed** rather than kept as a thin
+   subclass — it could not extend the now-`final` `MagicLiteralVisitor`, and the
+   only reference (`MagicStringVisitorFactory`) was repointed to build
+   `MagicLiteralVisitor`. `MagicStringVisitorInterface` is retained as a
+   pre-1.0 BC marker subtype of `MagicLiteralVisitorInterface`.
+3. `RoleClassifierInterface::classify()` widened from `String_ $node` to
+   `Node $node`; numbers are classified `'numeric_expression'` (excluded by the
+   filter until P2).
+
+**Gate status:**
+- `composer test:unit` — ✅ 30 tests, 66 assertions.
+- `composer analyze` (src only) — ✅ clean.
+- `composer architecture` — ✅ no violations.
+- `composer format:check` — ✅ clean.
+- `composer analyze` (src **+ tests**) — ⚠️ ~85 errors, **all in
+  `tests/Unit/*`**. Cause: the `phpstan/phpunit` extension is not installed in
+  this environment, so PHPStan cannot resolve PHPUnit assertion methods
+  (`assertStringContainsString`, etc.). This is pre-existing/environmental and
+  unrelated to P1 (it also affects the prior tests). Source-only analysis is
+  clean.
+
+---
+
 ## Phase P1 — Unified literal model + numeric detection
 
 Goal: capture numbers with exact raw tokens; no naming/promotion yet.
+
+> **Status: complete (2026-08-20).** See Progress section above.
 
 ### Step 1.1 — `LiteralKind` enum
 - **Create** `src/ValueObject/LiteralKind.php`:
@@ -38,7 +94,10 @@ Goal: capture numbers with exact raw tokens; no naming/promotion yet.
 - Add a unit test asserting the three cases and their `value`.
 
 ### Step 1.2 — `LiteralInterface` + shared trait
-- **Create** `src/Contract/LiteralInterface.php`:
+- **Create** `src/ValueObject/LiteralInterface.php` (in `ValueObject`, NOT `Contract` —
+  PHPArkitect's one-directional rule forbids `ValueObject → Contract`, and the
+  existing `StringLiteralInterface` already lives in `ValueObject`, so the
+  unified literal port belongs there too; `Contract` ports may depend on it):
   - `public string $kind { get; }`
   - `public string $value { get; }` (parsed scalar as string)
   - `public string $raw { get; }` (EXACT source token)

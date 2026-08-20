@@ -15,7 +15,7 @@ interface CandidateInterface
 
     public string $constantName { get; }
 
-    /** @var list<StringLiteralInterface> */
+    /** @var list<LiteralInterface> */
     public array $occurrences { get; }
 
     public function count(): int;

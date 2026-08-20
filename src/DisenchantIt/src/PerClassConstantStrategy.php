@@ -6,7 +6,7 @@ namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 final class PerClassConstantStrategy implements ConstantPlacementStrategyInterface
 {
@@ -17,7 +17,7 @@ final class PerClassConstantStrategy implements ConstantPlacementStrategyInterfa
     }
 
     /**
-     * @param list<StringLiteralInterface> $occurrences
+     * @param list<LiteralInterface> $occurrences
      */
     public function decide(array $occurrences): array
     {

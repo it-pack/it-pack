@@ -7,7 +7,7 @@ namespace ItPack\DisenchantIt\ValueObject;
 final readonly class ConstantPlacement implements ConstantPlacementInterface
 {
     /**
-     * @param list<StringLiteralInterface> $occurrences the subset of occurrences this
+     * @param list<LiteralInterface> $occurrences the subset of occurrences this
      *        placement's constant should replace.
      */
     public function __construct(

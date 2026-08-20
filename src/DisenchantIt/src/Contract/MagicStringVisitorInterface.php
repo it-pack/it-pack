@@ -4,19 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
-use PhpParser\NodeVisitor;
-
 /**
- * Port for the AST visitor that collects candidate string literals during a
- * scan. The concrete adapter extends nikic's NodeVisitorAbstract; only the
- * domain-facing method is part of this port — the framework lifecycle hooks
- * (enterNode/leaveNode/...) are owned by the visitor base contract, not here.
+ * String-specific visitor port, retained (pre-1.0, BC) as a subtype of
+ * MagicLiteralVisitorInterface. The unified visitor collects both strings and
+ * numbers; callers that only want strings filter by kind.
  */
-interface MagicStringVisitorInterface extends NodeVisitor
+interface MagicStringVisitorInterface extends MagicLiteralVisitorInterface
 {
-    /**
-     * @return list<StringLiteralInterface>
-     */
-    public function getFound(): array;
 }

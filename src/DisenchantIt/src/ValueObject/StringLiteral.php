@@ -6,12 +6,16 @@ namespace ItPack\DisenchantIt\ValueObject;
 
 final readonly class StringLiteral implements StringLiteralInterface
 {
+    use LiteralValueObjectTrait;
+
     public function __construct(
         public string $value,
         public int $line,
         public string $role,
         public string $className,
         public string $methodName,
+        public string $kind = LiteralKind::String->value,
+        public string $raw = '',
     ) {
     }
 }

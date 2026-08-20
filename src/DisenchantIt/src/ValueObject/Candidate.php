@@ -7,7 +7,7 @@ namespace ItPack\DisenchantIt\ValueObject;
 final readonly class Candidate implements CandidateInterface
 {
     /**
-     * @param list<StringLiteralInterface> $occurrences every literal occurrence of $value.
+     * @param list<LiteralInterface> $occurrences every literal occurrence of $value.
      */
     public function __construct(
         public string $value,

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Picks SameClass vs PerClass automatically based on whether a value's
@@ -21,12 +21,12 @@ final readonly class AutoConstantPlacementStrategy implements ConstantPlacementS
     }
 
     /**
-     * @param list<StringLiteralInterface> $occurrences
+     * @param list<LiteralInterface> $occurrences
      */
     public function decide(array $occurrences): array
     {
         $classCount = count(array_unique(array_map(
-            static fn (StringLiteralInterface $lit): string => $lit->className,
+            static fn (LiteralInterface $lit): string => $lit->className,
             $occurrences,
         )));
 

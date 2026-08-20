@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Contract;
 
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Port for building a ConstantPlacement value object. Concrete builders live in
@@ -15,7 +15,7 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 interface ConstantPlacementFactoryInterface
 {
     /**
-     * @param list<StringLiteralInterface> $occurrences the subset of occurrences this
+     * @param list<LiteralInterface> $occurrences the subset of occurrences this
      *        placement's constant should replace.
      */
     public function build(

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
+use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
-use ItPack\DisenchantIt\Contract\MagicStringVisitorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
-use ItPack\DisenchantIt\MagicStringVisitor;
+use ItPack\DisenchantIt\MagicLiteralVisitor;
 
 final readonly class MagicStringVisitorFactory implements MagicStringVisitorFactoryInterface
 {
-    public function build(RoleClassifierInterface $classifier): MagicStringVisitorInterface
+    public function build(RoleClassifierInterface $classifier, string $code): MagicLiteralVisitorInterface
     {
-        return new MagicStringVisitor($classifier);
+        return new MagicLiteralVisitor($classifier, $code);
     }
 
     public static function create(): self

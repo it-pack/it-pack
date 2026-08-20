@@ -9,7 +9,7 @@ use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Sketch / next-PoC-step for DisenchantIt's detection half.
@@ -39,7 +39,7 @@ final readonly class Detector implements StringLiteralDetectorInterface
     }
 
     /**
-     * @return list<StringLiteralInterface> every string literal found, unfiltered —
+     * @return list<LiteralInterface> every literal found, unfiltered —
      *         classification is attached, filtering is the caller's job.
      */
     public function scanSource(string $code): array
@@ -51,7 +51,7 @@ final readonly class Detector implements StringLiteralDetectorInterface
         }
 
         $traverser = $this->traversers->build();
-        $visitor = $this->visitorFactory->build($this->classifier);
+        $visitor = $this->visitorFactory->build($this->classifier, $code);
         $traverser->addVisitor($visitor);
         $traverser->traverse($ast);
 

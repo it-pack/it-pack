@@ -7,6 +7,8 @@ namespace ItPack\DisenchantIt;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use PhpParser\Node;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Scalar\DNumber;
+use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
 
 /**
@@ -19,8 +21,15 @@ final class RoleClassifier implements RoleClassifierInterface
 {
     private const array NOISE_FUNCTIONS = ['sprintf', 'printf', 'vsprintf', 'trigger_error'];
 
-    public function classify(String_ $node, ?Node $parent): string
+    public function classify(Node $node, ?Node $parent): string
     {
+        // Numbers are magic-value candidates only when a naming hint is later
+        // discovered (P2). Their default role is excluded by the filter until
+        // then, so detection can record them without promoting them.
+        if ($node instanceof LNumber || $node instanceof DNumber) {
+            return 'numeric_expression';
+        }
+
         if ($parent instanceof Node\Arg) {
             $call = $parent->getAttribute('parent');
 

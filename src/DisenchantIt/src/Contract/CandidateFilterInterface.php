@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 
 /**
  * Port for deciding whether a detected literal is worth promoting to a constant.
@@ -13,8 +13,8 @@ use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 interface CandidateFilterInterface
 {
     /**
-     * @param list<StringLiteralInterface> $literals
-     * @return list<StringLiteralInterface>
+     * @param list<LiteralInterface> $literals
+     * @return list<LiteralInterface>
      */
     public function filterCandidates(array $literals): array;
 }
