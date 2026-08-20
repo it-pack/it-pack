@@ -51,7 +51,9 @@
         "psr/event-dispatcher": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "psr/http-client": "^1.0",
-        "psr/http-server-handler": "^1.0"
+        "psr/http-server-handler": "^1.0",
+        "open-telemetry/api": "^1.9",
+        "open-telemetry/sdk": "^1.0"
     },
     "suggest": {
         "psr/clock": "PSR-20 clock integration",

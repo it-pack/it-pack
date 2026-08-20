@@ -1,0 +1,129 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\RunIt\Adapter\OpenTelemetry;
+
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
+use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultActivitySpanMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
+use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+
+/**
+ * OpenTelemetry bridge publisher.
+ *
+ * The single entry point that adapts RunIt artifacts to OpenTelemetry signals. It
+ * receives every published artifact and dispatches it to the appropriate mapper,
+ * honoring the capability of the configured providers. A disabled provider (null)
+ * causes the corresponding signal to be skipped without error, so the core remains
+ * usable without OpenTelemetry and the bridge degrades gracefully.
+ *
+ * The publisher never configures global OpenTelemetry providers; every provider is
+ * supplied through {@see BridgeConfig}. Build it with {@see self::fromConfig()}.
+ *
+ * @see https://w3id.org/itpack/runit#OpenTelemetry
+ */
+final class TelemetryPublisher implements ArtifactPublisherInterface
+{
+    public function __construct(
+        public readonly BridgeConfig $config,
+        private readonly ExecutionSpanMapperInterface $executionMapper,
+        private readonly ActivitySpanMapperInterface $activityMapper,
+        private readonly MeasurementInstrumentMapperInterface $measurementMapper,
+        private readonly ObservationLogMapperInterface $observationMapper,
+        private readonly OccurrenceLogMapperInterface $occurrenceMapper,
+    ) {
+    }
+
+    /**
+     * Reports which OpenTelemetry signals this publisher can emit for the bound
+     * configuration. A signal is enabled only when its provider is present.
+     */
+    public function capability(): BridgeCapability
+    {
+        return BridgeCapability::detect($this->config);
+    }
+
+    public static function fromConfig(BridgeConfig $config, ?ExecutionSpanStoreInterface $store = null): self
+    {
+        $store ??= new InMemoryExecutionSpanStore();
+
+        return new self(
+            $config,
+            new DefaultExecutionSpanMapper($config->tracerProvider, $store, new SpanStatusMap(), new SpanKindMap()),
+            new DefaultActivitySpanMapper($config->tracerProvider, $store, new SpanStatusMap(), new SpanKindMap()),
+            new DefaultMeasurementInstrumentMapper(
+                $config->meterProvider,
+                new InstrumentCache($config->maxInstrumentCacheSize),
+                $config->metricAttributeAllowList,
+            ),
+            new DefaultObservationLogMapper(
+                $config->loggerProvider,
+                new SeverityMap(),
+                $config->mapObservationsToSpanEvents,
+            ),
+            new DefaultOccurrenceLogMapper(
+                $config->loggerProvider,
+                $config->snapshotPayloadPolicy,
+                $config->mapOccurrencesToLogs,
+                $config->mapOccurrencesToSpanEvents,
+            ),
+        );
+    }
+
+    public function publish(ExecutionArtifactInterface $artifact): void
+    {
+        if ($artifact instanceof ExecutionInterface) {
+            $this->executionMapper->map($artifact);
+
+            return;
+        }
+
+        if ($artifact instanceof ActivityInterface) {
+            $this->activityMapper->map($artifact);
+
+            return;
+        }
+
+        if ($artifact instanceof MeasurementInterface) {
+            $this->measurementMapper->record($artifact);
+
+            return;
+        }
+
+        if ($artifact instanceof ObservationInterface) {
+            $this->observationMapper->map($artifact);
+
+            return;
+        }
+
+        if ($artifact instanceof OccurrenceInterface) {
+            $this->occurrenceMapper->mapOccurrence($artifact);
+
+            return;
+        }
+
+        if ($artifact instanceof SnapshotInterface) {
+            $this->occurrenceMapper->mapSnapshot($artifact);
+        }
+    }
+}

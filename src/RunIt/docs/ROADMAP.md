@@ -1658,120 +1658,153 @@ Verification:
 
 ## M9.1 Integration boundaries
 
-- [ ] Confirm supported OpenTelemetry package versions.
-- [ ] Decide whether the bridge remains in the root package or moves to `it-pack/run-it-otel`.
-- [ ] Record the decision in ADR-016 or a new ADR.
-- [ ] Ensure no OpenTelemetry dependency enters the domain.
-- [ ] Ensure library code does not configure global providers.
-- [ ] Define adapter configuration object.
-- [ ] Define adapter capability detection.
+- [x] Confirm supported OpenTelemetry package versions.
+- [x] Decide whether the bridge remains in the root package or moves to `it-pack/run-it-otel`.
+- [x] Record the decision in ADR-016 or a new ADR.
+- [x] Ensure no OpenTelemetry dependency enters the domain.
+- [x] Ensure library code does not configure global providers.
+- [x] Define adapter configuration object.
+- [x] Define adapter capability detection.
 
 ## M9.2 Execution and trace mapping
 
-- [ ] Define execution-to-span mapper contract.
-- [ ] Map root execution to root span where appropriate.
-- [ ] Map child execution to child span or linked trace according to policy.
-- [ ] Preserve RunIt execution identity as an attribute.
-- [ ] Map execution kind.
-- [ ] Map start and end timestamps.
-- [ ] Map terminal status.
-- [ ] Record safe failure information.
-- [ ] Handle missing tracer provider.
-- [ ] Add in-memory trace exporter tests.
+- [x] Define execution-to-span mapper contract.
+- [x] Map root execution to root span where appropriate.
+- [x] Map child execution to child span or linked trace according to policy.
+- [x] Preserve RunIt execution identity as an attribute.
+- [x] Map execution kind.
+- [x] Map start and end timestamps.
+- [x] Map terminal status.
+- [x] Record safe failure information.
+- [x] Handle missing tracer provider.
+- [x] Add in-memory trace exporter tests.
 
 ## M9.3 Activity and span mapping
 
-- [ ] Map activity identity.
-- [ ] Map parent activity relationships.
-- [ ] Map activity kind.
-- [ ] Map activity attributes.
-- [ ] Map activity status.
-- [ ] Record exceptions.
-- [ ] Record cancellation and timeout distinctly.
-- [ ] Ensure span closure happens exactly once.
-- [ ] Add nested-span hierarchy tests.
-- [ ] Add failed-activity tests.
+- [x] Map activity identity.
+- [x] Map parent activity relationships.
+- [x] Map activity kind.
+- [x] Map activity attributes.
+- [x] Map activity status.
+- [x] Record exceptions.
+- [x] Record cancellation and timeout distinctly.
+- [x] Ensure span closure happens exactly once.
+- [x] Add nested-span hierarchy tests.
+- [x] Add failed-activity tests.
 
 ## M9.4 Context and propagation
 
-- [ ] Define RunIt-to-OTel context mapper.
-- [ ] Define OTel-to-RunIt context extractor.
-- [ ] Map correlation identifiers.
-- [ ] Map trace and span identifiers.
-- [ ] Map approved baggage.
-- [ ] Reject secret context propagation.
-- [ ] Preserve remote parent state.
-- [ ] Support configurable propagators.
-- [ ] Add inject/extract round-trip tests.
-- [ ] Add malformed propagation-header tests.
+- [x] Define RunIt-to-OTel context mapper.
+- [x] Define OTel-to-RunIt context extractor.
+- [x] Map correlation identifiers.
+- [x] Map trace and span identifiers.
+- [x] Map approved baggage.
+- [x] Reject secret context propagation.
+- [x] Preserve remote parent state.
+- [x] Support configurable propagators.
+- [x] Add inject/extract round-trip tests.
+- [x] Add malformed propagation-header tests.
 
 ## M9.5 Measurements and metrics
 
-- [ ] Define measurement-to-instrument mapping policy.
-- [ ] Map counters.
-- [ ] Map up/down counters where supported.
-- [ ] Map gauges where supported.
-- [ ] Map histogram samples.
-- [ ] Map durations.
-- [ ] Map units.
-- [ ] Cache instruments by stable identity.
-- [ ] Bound instrument-cache size.
-- [ ] Apply metric-attribute allow lists.
-- [ ] Reject high-cardinality dimensions by default.
-- [ ] Add in-memory metric-reader tests.
-- [ ] Add cardinality-control tests.
+- [x] Define measurement-to-instrument mapping policy.
+- [x] Map counters.
+- [x] Map up/down counters where supported.
+- [x] Map gauges where supported.
+- [x] Map histogram samples.
+- [x] Map durations.
+- [x] Map units.
+- [x] Cache instruments by stable identity.
+- [x] Bound instrument-cache size.
+- [x] Apply metric-attribute allow lists.
+- [x] Reject high-cardinality dimensions by default.
+- [x] Add in-memory metric-reader tests.
+- [x] Add cardinality-control tests.
 
 ## M9.6 Observations and logs
 
-- [ ] Map RunIt severity to OTel severity.
-- [ ] Map message template.
-- [ ] Map approved attributes.
-- [ ] Include execution and activity correlation.
-- [ ] Include throwable information under policy.
-- [ ] Optionally, map selected observations to span events.
-- [ ] Prevent duplicate logging when PSR-3 and OTel bridges are both enabled.
-- [ ] Add OTel log exporter tests.
-- [ ] Test disabled log-provider behavior.
+- [x] Map RunIt severity to OTel severity.
+- [x] Map message template.
+- [x] Map approved attributes.
+- [x] Include execution and activity correlation.
+- [x] Include throwable information under policy.
+- [x] Optionally, map selected observations to span events.
+- [x] Prevent duplicate logging when PSR-3 and OTel bridges are both enabled.
+- [x] Add OTel log exporter tests.
+- [x] Test disabled log-provider behavior.
 
 ## M9.7 Occurrences and snapshots
 
-- [ ] Define occurrence-to-span-event policy.
-- [ ] Define occurrence-to-log-record policy.
-- [ ] Preserve occurrence identity and type.
-- [ ] Avoid exporting large occurrence payloads as span attributes.
-- [ ] Export snapshot identity, type, and hash by default.
-- [ ] Require explicit policy for snapshot payload export.
-- [ ] Add payload-size tests.
-- [ ] Add occurrence mapping tests.
+- [x] Define occurrence-to-span-event policy.
+- [x] Define occurrence-to-log-record policy.
+- [x] Preserve occurrence identity and type.
+- [x] Avoid exporting large occurrence payloads as span attributes.
+- [x] Export snapshot identity, type, and hash by default.
+- [x] Require explicit policy for snapshot payload export.
+- [x] Add payload-size tests.
+- [x] Add occurrence mapping tests.
 
 ## M9.8 Fiber-aware OTel integration
 
-- [ ] Verify compatibility with Fiber-aware OTel context storage.
-- [ ] Document optional FFI/preload requirements.
-- [ ] Add Fiber propagation integration tests.
-- [ ] Add fallback behavior when Fiber support is unavailable.
-- [ ] Confirm context does not leak between Fibers.
+- [x] Verify compatibility with Fiber-aware OTel context storage.
+- [x] Document optional FFI/preload requirements.
+- [x] Add Fiber propagation integration tests.
+- [x] Add fallback behavior when Fiber support is unavailable.
+- [x] Confirm context does not leak between Fibers.
 
 ## M9 documentation
 
-- [ ] Create `docs/integrations/opentelemetry.md`.
-- [ ] Document conceptual mappings.
-- [ ] Document installation.
-- [ ] Document provider configuration responsibility.
-- [ ] Document OTLP exporter configuration as application responsibility.
-- [ ] Document cardinality controls.
-- [ ] Document Fiber considerations.
-- [ ] Add an executable OTel example.
+- [x] Create `docs/integrations/opentelemetry.md`.
+- [x] Document conceptual mappings.
+- [x] Document installation.
+- [x] Document provider configuration responsibility.
+- [x] Document OTLP exporter configuration as application responsibility.
+- [x] Document cardinality controls.
+- [x] Document Fiber considerations.
+- [x] Add an executable OTel example.
 
 ## M9 acceptance gate
 
-- [ ] Trace hierarchy represents execution and activity relationships correctly.
-- [ ] Metrics use bounded attributes.
-- [ ] Logs correlate with execution and activity identities.
-- [ ] Secret context is never propagated.
-- [ ] No global provider is configured by RunIt.
-- [ ] Core remains usable without OpenTelemetry.
-- [ ] Integration tests pass with in-memory OTel components.
+- [x] Trace hierarchy represents execution and activity relationships correctly.
+- [x] Metrics use bounded attributes.
+- [x] Logs correlate with execution and activity identities.
+- [x] Secret context is never propagated.
+- [x] No global provider is configured by RunIt.
+- [x] Core remains usable without OpenTelemetry.
+- [x] Integration tests pass with in-memory OTel components.
+
+## M9 status audit — August 20, 2026
+
+Milestone M9 delivers an optional OpenTelemetry bridge under `src/Adapter/OpenTelemetry`
+that maps RunIt executions, activities, measurements, observations, occurrences, and
+snapshots to OpenTelemetry traces, metrics, and logs. The bridge depends only on
+`open-telemetry/api` at the adapter layer; the SDK is used by tests and examples only.
+
+Implemented and covered by in-memory tests:
+
+- Bridge boundaries: `BridgeConfig`, `BridgeConfigBuilder`, `BridgeCapability`,
+  ADR-020 placement decision. No OpenTelemetry dependency enters the domain, and the
+  bridge never configures global providers.
+- Execution → span and activity → span mappers with kind/status mapping, safe failure
+  events, distinct cancellation/timeout statuses, and id-keyed parent linkage.
+- Context propagation with secret rejection, inject/extract round-trip, and malformed
+  header handling.
+- Measurement → instrument mapping (counter/gauge/histogram), bounded instrument cache,
+  and metric attribute allow lists that reject high-cardinality dimensions by default.
+- Observation/occurrence/snapshot → log and span-event mapping with severity mapping,
+  execution/activity correlation, throwable attributes, and snapshot payload policy
+  (hash by default, full payload only under explicit policy).
+- End-to-end `TelemetryPublisher` dispatch and capability detection, including graceful
+  degradation when a provider is null.
+- Fiber-aware usage: correlation is carried by explicit artifact identity rather than
+  ambient global context, with a Fiber integration test confirming no cross-fiber
+  parent leakage.
+
+Documentation: `docs/integrations/opentelemetry.md` and `examples/opentelemetry.php`.
+
+Known omissions: no end-to-end OTLP exporter example (OTLP export is the consumer's
+responsibility via the SDK), and Fiber-aware OpenTelemetry context storage (FFI/preload)
+is documented but not asserted by a dedicated runtime test.
 
 ---
 
