@@ -8,6 +8,7 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__ . '/tests',
     ])
     ->notPath('bootstrap.php')
+    ->notPath('examples')
     ->notName('*.interface.php')
     ->notName('*.adapter.php');
 

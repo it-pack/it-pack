@@ -188,9 +188,18 @@ $source = DeriveIt::deriveAdapter(
   parameter/return typing. `derive-it` adds the *derivation* logic on top: deciding
   what belongs in the interface, what doesn't, and how it should be shaped.
 
+## Documentation
+
+- **User Guide** (`docs/guide/`) — [overview & concepts](docs/guide/index.md),
+  [features](docs/guide/features.md), [architecture](docs/guide/architecture.md),
+  and [usage / API reference](docs/guide/usage.md).
+- **Runnable examples** (`examples/`) — one script per feature; see
+  [`examples/README.md`](examples/README.md).
+- **Design decisions** — ADRs under `docs/architecture/decisions/`.
+
 ## Status
 
-Production-ready through **Phase 6**. All quality gates are green:
+Production-ready through **Phase 7** (docs, ADRs, release). All quality gates are green:
 
 | Gate | Command | Result |
 |------|---------|--------|
