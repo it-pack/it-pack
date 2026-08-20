@@ -136,6 +136,32 @@ Codeception unable to boot — see `docs/REVIEW.md`). Phase 0.5 stabilisation
   merged immutable snapshot).
 - Declared `php` `^8.5` in `composer.json` (the code uses `array_any()`).
 
+### Phase 2 — Additional File Formats
+
+New loaders behind `ConfigurationLoaderInterface` (ADR-0006 registry), each
+translating engine failures into the domain `ParseException` and never importing
+vendor types into Core:
+
+- `src/Adapter/YamlLoader` — YAML via `ext-yaml`.
+- `src/Adapter/TomlLoader` — TOML via `internal/toml`.
+- `src/Adapter/IniLoader` — INI via `parse_ini_string` (typed scanner).
+- `src/Adapter/XmlLoader` — XML via `ext-simplexml` (attributes under
+  `@attributes`; repeated siblings become lists).
+- `src/Adapter/FrontMatterLoader` — Markdown Front Matter via `webuni/front-matter`
+  (metadata becomes the document body; remaining content under `content`).
+- `src/Adapter/ConfigurationLoaders` — `default()` bundles every built-in loader so
+  consumers can opt in via `ConfigurationBuilder::addLoaders(...)`.
+- `src/Adapter/FileSource` — default extension map now discovers `yaml`/`yml`,
+  `toml`, `ini`, `xml`, `md`/`markdown` and `frontmatter`.
+- `src/Core/ConfigurationBuilder::addLoaders(iterable)` — ergonomic bulk loader add.
+
+Unit suite extended to **80 tests / 156 assertions** (new loader tests +
+`ConfigurationLoadersTest` end-to-end multi-format resolve). PHPStan level 9 and
+`php-cs-fixer` remain green.
+
+NEON and CSV/TSV are explicitly **deferred**: NEON needs the `nette/neon` package
+(not installed) and CSV/TSV need new `Format` enum cases.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

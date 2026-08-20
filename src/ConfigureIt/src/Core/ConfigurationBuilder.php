@@ -77,6 +77,18 @@ final class ConfigurationBuilder
         return $this;
     }
 
+    /**
+     * @param iterable<ConfigurationLoaderInterface> $loaders
+     */
+    public function addLoaders(iterable $loaders): self
+    {
+        foreach ($loaders as $loader) {
+            $this->loaders[] = $loader;
+        }
+
+        return $this;
+    }
+
     public function addProcessor(ConfigurationProcessorInterface $processor): self
     {
         $this->processors[] = $processor;

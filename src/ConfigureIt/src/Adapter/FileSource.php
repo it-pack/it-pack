@@ -28,6 +28,14 @@ final readonly class FileSource implements ConfigurationSourceInterface
         private array  $extensions = [
             Format::PHP->value => Format::PHP->value,
             Format::JSON->value => Format::JSON->value,
+            Format::YAML->value => Format::YAML->value,
+            'yml' => Format::YAML->value,
+            Format::TOML->value => Format::TOML->value,
+            Format::INI->value => Format::INI->value,
+            Format::XML->value => Format::XML->value,
+            'md' => Format::FRONTMATTER->value,
+            'markdown' => Format::FRONTMATTER->value,
+            Format::FRONTMATTER->value => Format::FRONTMATTER->value,
         ],
         private ConfigurationResourceFactory $resourceFactory = new ConfigurationResourceFactory(),
     ) {

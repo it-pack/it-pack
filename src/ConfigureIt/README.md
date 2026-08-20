@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Phase%201-blue.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%202-blue.svg)](#)
 
 ---
 
@@ -74,18 +74,20 @@ Examples include:
 
 Supported through optional adapters.
 
-Current roadmap includes:
+Available loaders (behind `ConfigurationLoaderInterface`):
 
-- JSON
-- PHP
-- YAML
-- TOML
-- NEON
-- XML
-- INI
-- Markdown Front Matter
-- CSV
-- Table Schema
+- JSON ✅
+- PHP ✅
+- YAML ✅ (ext-yaml)
+- TOML ✅ (internal/toml)
+- XML ✅ (ext-simplexml)
+- INI ✅
+- Markdown Front Matter ✅ (webuni/front-matter)
+
+Planned (Phase 2+):
+
+- NEON — requires the `nette/neon` package
+- CSV / TSV — requires new `Format` cases (not yet in the enum)
 
 ---
 
@@ -296,19 +298,21 @@ Future capabilities include:
 
 ## Status
 
-**Phase 1 — Core** is implemented and the quality gate is green:
+**Phase 1 — Core** and **Phase 2 — Additional File Formats** are implemented and the quality gate is green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **61 tests / 119 assertions** green
+- Codeception unit suite — **80 tests / 156 assertions** green
 
 Delivered:
 
 - Core contracts, Builder API, Resolution pipeline, immutable `Snapshot`
-- Sources (`FileSource`, `EnvSource`), Loaders (`PhpLoader`, `JsonLoader`)
+- Sources (`FileSource`, `EnvSource`)
+- Loaders: `PhpLoader`, `JsonLoader`, `YamlLoader`, `TomlLoader`, `IniLoader`,
+  `XmlLoader`, `FrontMatterLoader` (bundle via `ConfigurationLoaders::default()`)
 - Nette-Schema adapter (`NativeConfigurationSchema`)
 
-Additional adapters and integrations (Phase 2+) will be delivered incrementally.
+Additional adapters and integrations (Phase 3+) will be delivered incrementally.
 
 ---
 

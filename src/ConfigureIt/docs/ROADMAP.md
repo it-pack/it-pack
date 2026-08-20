@@ -298,13 +298,25 @@ restored by Phase 0.5 above.
 > These remain unstarted. Items the original roadmap marked only as names are
 > expanded here with the concrete first deliverable for each.
 
-### Phase 2 — Additional File Formats
+### Phase 2 — Additional File Formats ✅
 
 Adapters behind `ConfigurationLoaderInterface` (ADR-0006 registry):
-- YAML (ext-yaml / nette/neon), TOML (`internal/toml`), NEON (`nette/neon`),
-  XML, Markdown Front Matter (`webuni/front-matter`), INI, CSV/TSV.
-- Each adapter must translate vendor exceptions to domain `ParseException`
-  (AGENTS.md rule) and never import vendor types into Core.
+- YAML (ext-yaml ✅), TOML (`internal/toml` ✅), XML (`ext-simplexml` ✅),
+  INI (`parse_ini_string` ✅), Markdown Front Matter (`webuni/front-matter` ✅).
+- Each adapter translates vendor exceptions to domain `ParseException`
+  (AGENTS.md rule) and never imports vendor types into Core.
+- Bundled via `Adapter\ConfigurationLoaders::default()`; `FileSource` discovers the
+  new extensions by default.
+
+**Status — ✅.** Implemented `YamlLoader`, `TomlLoader`, `IniLoader`, `XmlLoader`,
+`FrontMatterLoader` + `ConfigurationLoaders` registry helper; `ConfigurationBuilder`
+gained `addLoaders()`. Suite green: **80 tests / 156 assertions**, PHPStan level 9
+**0 errors**, `php-cs-fixer` **0 files to fix**.
+
+**Deferred (not in this pass):**
+- NEON — requires the `nette/neon` package (not installed); no loader shipped.
+- CSV / TSV — require new `Format` enum cases (not yet present); out of scope
+  for "adapters behind the existing interface".
 
 ### Phase 3 — Schema Integrations
 
@@ -358,7 +370,7 @@ Implement the staged pipeline from `README`/`PIPELINE.md` as discrete processors
 | 4 | T4 phpstan + cs-fixer + port mismatch | 0.5 | T1,T3 | 0 errors / 0 dirty |
 | 5 | T5 repair examples | 0.5 | T1 | both examples run |
 | 6 | T6 docs correction | 0.5 | T4,T5 | README/CHANGELOG accurate |
-| 7 | Phase 2 formats | 2 | T1–T6 | new loader adapters + tests |
+| 7 | Phase 2 formats | 2 | T1–T6 | new loader adapters + tests | ✅ |
 | 8 | Phase 3/4 schemas & processors | 3–4 | Phase 2 | pipeline stages tested |
 | 9 | Phase 5–9 | 5–9 | Phase 4 | per-phase acceptance |
 
