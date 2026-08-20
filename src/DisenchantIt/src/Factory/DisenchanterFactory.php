@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\ConstantNameGenerator;
-use ItPack\DisenchantIt\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\LineBasedRewriter;
+use ItPack\DisenchantIt\Adapter\NullExecutionRecorder;
+use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
+use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
+use ItPack\DisenchantIt\Adapter\SemConvCollector;
 use ItPack\DisenchantIt\Contract\DisenchanterFactoryInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
+use ItPack\DisenchantIt\Contract\RewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
-use ItPack\DisenchantIt\Disenchanter;
-use ItPack\DisenchantIt\LineBasedRewriter;
-use ItPack\DisenchantIt\NumericNameGenerator;
-use ItPack\DisenchantIt\RewriterInterface;
-use ItPack\DisenchantIt\SemConvAliasRewriter;
-use ItPack\DisenchantIt\SemConvCollector;
+use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 
 /**
@@ -64,6 +65,7 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
             $this->rewriter,
             $this->semconvCollector,
             $this->semconvAliasRewriter,
+            new NullExecutionRecorder(),
         );
     }
 }

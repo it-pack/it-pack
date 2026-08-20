@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ByValueAndContextGroupingStrategy;
-use ItPack\DisenchantIt\ByValueGroupingStrategy;
-use ItPack\DisenchantIt\CandidateGrouper;
+use ItPack\DisenchantIt\Adapter\ByValueAndContextGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\ByValueGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\CandidateGrouper;
+use ItPack\DisenchantIt\ValueObject\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 
@@ -25,7 +26,7 @@ final class CandidateGrouperTest extends Unit
 
     private function literal(string $value, int $line): StringLiteral
     {
-        return new StringLiteral($value, $line, 'unclassified', 'C', 'm');
+        return new StringLiteral($value, $line, LiteralRole::Unclassified, 'C', 'm');
     }
 
     public function testGroupsByValuePreservingOrder(): void

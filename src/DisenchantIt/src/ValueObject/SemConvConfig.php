@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject;
 
-use ItPack\DisenchantIt\SemConv;
-
 /**
  * Step 2 + Step 3 of the SemConv pattern discussed with Tydal:
  *
@@ -36,16 +34,21 @@ use ItPack\DisenchantIt\SemConv;
  * concept the way backed-enum cases are — and interfaces can hold constants
  * without needing any methods.
  */
-final readonly class SemConvConfig implements SemConvConfigInterface
+final class SemConvConfig implements SemConvConfigInterface
 {
     public const string DEFAULT_INTERFACE_NAME = 'SemConv';
     public const string DEFAULT_NAMESPACE = 'Generated';
     private const string DOT = '.';
     private const string PHP_FILE_EXTENSION = 'php';
 
-    private const string NAMESPACE_SEPARATOR = SemConv::NAMESPACE_SEPARATOR;
+    private const string NAMESPACE_SEPARATOR = '\\';
 
-    public string $outputPath;
+    private readonly ?string $outputPathOverride;
+
+    public string $outputPath {
+        get => $this->outputPathOverride
+            ?? $this->interfaceName . self::DOT . self::PHP_FILE_EXTENSION;
+    }
 
     public function __construct(
         /**
@@ -55,12 +58,11 @@ final readonly class SemConvConfig implements SemConvConfigInterface
          * not mirrored per subdirectory. A caller wanting the mirrored
          * layout can pass a different path/namespace per invocation.
          */
-        public string $interfaceName = self::DEFAULT_INTERFACE_NAME,
-        public ?string $namespace = self::DEFAULT_NAMESPACE,
+        public readonly string $interfaceName = self::DEFAULT_INTERFACE_NAME,
+        public readonly ?string $namespace = self::DEFAULT_NAMESPACE,
         ?string $outputPath = null,
     ) {
-        $this->outputPath = $outputPath
-            ?: $interfaceName . self::DOT . self::PHP_FILE_EXTENSION;
+        $this->outputPathOverride = $outputPath;
     }
 
     public function fullyQualifiedName(): string

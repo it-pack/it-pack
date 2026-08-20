@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\ByValueAndContextGroupingStrategy;
-use ItPack\DisenchantIt\ByValueGroupingStrategy;
-use ItPack\DisenchantIt\CandidateFilter;
-use ItPack\DisenchantIt\CandidateGrouper;
+use ItPack\DisenchantIt\Adapter\ByValueAndContextGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\ByValueGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\CandidateFilter;
+use ItPack\DisenchantIt\Adapter\CandidateGrouper;
+use ItPack\DisenchantIt\Adapter\Detector;
+use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
+use ItPack\DisenchantIt\Adapter\RoleClassifier;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Contract\DetectorFactoryInterface;
@@ -16,9 +19,6 @@ use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
-use ItPack\DisenchantIt\Detector;
-use ItPack\DisenchantIt\ParsedSourceCache;
-use ItPack\DisenchantIt\RoleClassifier;
 
 /**
  * Composition root for the detection half. Builds the nikic/AST scanner and

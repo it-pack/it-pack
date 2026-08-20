@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
+use ItPack\DisenchantIt\Adapter\Detector;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
-use ItPack\DisenchantIt\Detector;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\ValueObject\SourceCode;
 

@@ -13,7 +13,7 @@ final readonly class NumberLiteral implements LiteralInterface
         public string $value,
         public string $raw,
         public int $line,
-        public string $role,
+        public LiteralRole $role,
         public string $className,
         public string $methodName,
         public ?NamingContextInterface $namingContext = null,

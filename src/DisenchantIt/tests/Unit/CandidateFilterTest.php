@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\CandidateFilter;
-use ItPack\DisenchantIt\RoleClassifier;
+use ItPack\DisenchantIt\Adapter\CandidateFilter;
+use ItPack\DisenchantIt\Adapter\RoleClassifier;
+use ItPack\DisenchantIt\ValueObject\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
 
@@ -19,49 +20,49 @@ final class CandidateFilterTest extends Unit
         $this->filter = new CandidateFilter(new RoleClassifier());
     }
 
-    private function literal(string $value, string $role): StringLiteral
+    private function literal(string $value, LiteralRole $role): StringLiteral
     {
         return new StringLiteral($value, 1, $role, 'C', 'm');
     }
 
     public function testKeepsIdentifierShapedUnclassifiedLiteral(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('admin-user', 'unclassified')]);
+        $kept = $this->filter->filterCandidates([$this->literal('admin-user', LiteralRole::Unclassified)]);
 
         $this->assertCount(1, $kept);
     }
 
     public function testDropsExceptionMessage(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('boom', 'exception_message')]);
+        $kept = $this->filter->filterCandidates([$this->literal('boom', LiteralRole::ExceptionMessage)]);
 
         $this->assertCount(0, $kept);
     }
 
     public function testDropsFormatString(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('%s', 'format_string')]);
+        $kept = $this->filter->filterCandidates([$this->literal('%s', LiteralRole::FormatString)]);
 
         $this->assertCount(0, $kept);
     }
 
     public function testDropsEnumBackingValue(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('php', 'enum_backing_value')]);
+        $kept = $this->filter->filterCandidates([$this->literal('php', LiteralRole::EnumBackingValue)]);
 
         $this->assertCount(0, $kept);
     }
 
     public function testDropsClassConstDeclarationValue(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('admin-user', 'class_const_value')]);
+        $kept = $this->filter->filterCandidates([$this->literal('admin-user', LiteralRole::ClassConstValue)]);
 
         $this->assertCount(0, $kept, 'a class constant own declaration value is not a usage site');
     }
 
     public function testDropsSentenceShapedLiteral(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('Configuration key is empty.', 'unclassified')]);
+        $kept = $this->filter->filterCandidates([$this->literal('Configuration key is empty.', LiteralRole::Unclassified)]);
 
         $this->assertCount(0, $kept, 'prose is not identifier-shaped');
     }
@@ -69,9 +70,9 @@ final class CandidateFilterTest extends Unit
     public function testPreservesKeysAndDropsNoiseInOnePass(): void
     {
         $literals = [
-            $this->literal('origin', 'array_key_literal'),
-            $this->literal('boom', 'exception_message'),
-            $this->literal('APP_KEY', 'unclassified'),
+            $this->literal('origin', LiteralRole::ArrayKeyLiteral),
+            $this->literal('boom', LiteralRole::ExceptionMessage),
+            $this->literal('APP_KEY', LiteralRole::Unclassified),
         ];
 
         $kept = $this->filter->filterCandidates($literals);

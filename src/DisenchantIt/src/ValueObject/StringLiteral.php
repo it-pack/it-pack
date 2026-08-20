@@ -11,7 +11,7 @@ final readonly class StringLiteral implements StringLiteralInterface
     public function __construct(
         public string $value,
         public int $line,
-        public string $role,
+        public LiteralRole $role,
         public string $className,
         public string $methodName,
         public string $kind = LiteralKind::String->value,

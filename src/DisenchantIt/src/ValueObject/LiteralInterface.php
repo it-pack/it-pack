@@ -26,7 +26,7 @@ interface LiteralInterface
 
     public int $line { get; }
 
-    public string $role { get; }
+    public LiteralRole $role { get; }
 
     public string $className { get; }
 

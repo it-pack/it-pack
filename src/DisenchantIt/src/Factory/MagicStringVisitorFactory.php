@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
+use ItPack\DisenchantIt\Adapter\MagicLiteralVisitor;
+use ItPack\DisenchantIt\Adapter\NamingContextExtractor;
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
 use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
-use ItPack\DisenchantIt\MagicLiteralVisitor;
-use ItPack\DisenchantIt\NamingContextExtractor;
 
 final readonly class MagicStringVisitorFactory implements MagicStringVisitorFactoryInterface
 {

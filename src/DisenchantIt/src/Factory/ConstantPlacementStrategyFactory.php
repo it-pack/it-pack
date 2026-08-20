@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\AutoConstantPlacementStrategy;
-use ItPack\DisenchantIt\ConstantNameGenerator;
-use ItPack\DisenchantIt\ConstantNameResolver;
-use ItPack\DisenchantIt\ConstantPlacementStrategyInterface;
+use ItPack\DisenchantIt\Adapter\CompositeConstantPlacementStrategy;
+use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
+use ItPack\DisenchantIt\Adapter\PerClassConstantStrategy;
+use ItPack\DisenchantIt\Adapter\SameClassConstantStrategy;
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyFactoryInterface;
+use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyInterface;
 use ItPack\DisenchantIt\Contract\NumericNameGeneratorInterface;
-use ItPack\DisenchantIt\NumericNameGenerator;
-use ItPack\DisenchantIt\PerClassConstantStrategy;
-use ItPack\DisenchantIt\SameClassConstantStrategy;
 
 final readonly class ConstantPlacementStrategyFactory implements ConstantPlacementStrategyFactoryInterface
 {
@@ -52,9 +52,9 @@ final readonly class ConstantPlacementStrategyFactory implements ConstantPlaceme
 
     public function buildAuto(): ConstantPlacementStrategyInterface
     {
-        return new AutoConstantPlacementStrategy(
-            sameClass: $this->buildSameClass(),
-            perClass: $this->buildPerClass(),
-        );
+        return new CompositeConstantPlacementStrategy([
+            $this->buildSameClass(),
+            $this->buildPerClass(),
+        ]);
     }
 }

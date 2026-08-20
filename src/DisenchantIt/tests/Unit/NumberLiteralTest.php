@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
 
 final class NumberLiteralTest extends Unit
@@ -17,7 +18,7 @@ final class NumberLiteralTest extends Unit
             value: '31',
             raw: '0x1F',
             line: 1,
-            role: 'numeric_expression',
+            role: LiteralRole::NumericExpression,
             className: 'C',
             methodName: 'm',
         );
@@ -36,7 +37,7 @@ final class NumberLiteralTest extends Unit
             value: '3.14',
             raw: '3.14',
             line: 2,
-            role: 'numeric_expression',
+            role: LiteralRole::NumericExpression,
             className: 'C',
             methodName: 'm',
         );

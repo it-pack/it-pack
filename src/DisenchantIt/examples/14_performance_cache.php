@@ -17,11 +17,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
-use ItPack\DisenchantIt\Detector;
+use ItPack\DisenchantIt\Adapter\Detector;
 use ItPack\DisenchantIt\Factory\MagicStringVisitorFactory;
 use ItPack\DisenchantIt\Factory\NikicTraverserFactory;
-use ItPack\DisenchantIt\ParsedSourceCache;
-use ItPack\DisenchantIt\RoleClassifier;
+use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
+use ItPack\DisenchantIt\Adapter\RoleClassifier;
 use ItPack\DisenchantIt\ValueObject\SourceCode;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;

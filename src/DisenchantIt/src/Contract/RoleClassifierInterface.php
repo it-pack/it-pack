@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
+use ItPack\DisenchantIt\ValueObject\LiteralRole;
 use PhpParser\Node;
 
 /**
@@ -14,7 +15,7 @@ use PhpParser\Node;
  */
 interface RoleClassifierInterface
 {
-    public function classify(Node $node, ?Node $parent): string;
+    public function classify(Node $node, ?Node $parent): LiteralRole;
 
     public function looksIdentifierLike(string $value): bool;
 }

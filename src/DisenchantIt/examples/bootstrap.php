@@ -12,20 +12,21 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use ItPack\DisenchantIt\ConstantNameGenerator;
-use ItPack\DisenchantIt\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
-use ItPack\DisenchantIt\NumericNameGenerator;
+use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
-use ItPack\DisenchantIt\ConstantPlacementStrategyInterface;
-use ItPack\DisenchantIt\Disenchanter;
+use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyInterface;
+use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
 use ItPack\DisenchantIt\Factory\ConstantPlacementStrategyFactory;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
-use ItPack\DisenchantIt\LineBasedRewriter;
-use ItPack\DisenchantIt\SemConvAliasRewriter;
-use ItPack\DisenchantIt\SemConvCollector;
+use ItPack\DisenchantIt\Adapter\LineBasedRewriter;
+use ItPack\DisenchantIt\Adapter\NullExecutionRecorder;
+use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
+use ItPack\DisenchantIt\Adapter\SemConvCollector;
 use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 
 function hr(string $title): void
@@ -82,5 +83,6 @@ function buildCustom(
         new LineBasedRewriter(),
         new SemConvCollector($config),
         new SemConvAliasRewriter($config),
+        new NullExecutionRecorder(),
     );
 }

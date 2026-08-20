@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Detector;
+use ItPack\DisenchantIt\Adapter\Detector;
+use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
+use ItPack\DisenchantIt\Adapter\RoleClassifier;
 use ItPack\DisenchantIt\Exception\SourceTooLargeException;
 use ItPack\DisenchantIt\Factory\MagicStringVisitorFactory;
 use ItPack\DisenchantIt\Factory\NikicTraverserFactory;
-use ItPack\DisenchantIt\ParsedSourceCache;
-use ItPack\DisenchantIt\RoleClassifier;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\SourceCode;
 

@@ -37,7 +37,7 @@ return static function (Config $config): void {
         ->where('Contract')->mayDependOnComponents('ValueObject')
         ->where('Core')->mayDependOnComponents('Contract', 'ValueObject')
         ->where('Adapter')->mayDependOnComponents('Contract', 'ValueObject', 'Adapter')
-        ->where('Factory')->mayDependOnComponents('Contract', 'ValueObject', 'Factory')
+        ->where('Factory')->mayDependOnComponents('Contract', 'ValueObject', 'Factory', 'Adapter', 'Core')
         ->where('ValueObject')->mayDependOnComponents('ValueObject');
 
     $layeredRules = $architecture->rules();
@@ -58,10 +58,23 @@ return static function (Config $config): void {
                 foreach ($theClass->getDependencies() as $dependency) {
                     $fqcn = $dependency->getFQCN()->toString();
 
-                    // Interfaces may depend on other interfaces AND on external
-                    // library types (e.g., nikic AST node types used as parameter
-                    // types) — only flag dependencies on our OWN concrete classes.
-                    if (interface_exists($fqcn) || !str_starts_with($fqcn, 'ItPack\\DisenchantIt\\')) {
+                    // Interfaces may depend on other interfaces, on our own
+                    // closed value-object enums (e.g., LiteralRole, LiteralKind),
+                    // and on external library types (e.g., nikic AST node types
+                    // used as parameter types) — only flag dependencies on our
+                    // OWN concrete classes.
+                    if (interface_exists($fqcn) || enum_exists($fqcn) || !str_starts_with($fqcn, 'ItPack\\DisenchantIt\\')) {
+                        continue;
+                    }
+
+                    // The analyzer resolves a generic in a PHPDoc (e.g. 'array<string, mixed>') to a class
+                    // in the current namespace. PHP built-in type names are not our classes and must not be flagged.
+                    $short = substr($fqcn, strrpos($fqcn, '\\') + 1);
+                    if (in_array($short, [
+                        'mixed', 'array', 'string', 'int', 'float', 'bool',
+                        'null', 'void', 'object', 'callable', 'iterable',
+                        'self', 'static', 'parent', 'false', 'true', 'never',
+                    ], true)) {
                         continue;
                     }
 

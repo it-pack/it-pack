@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\NumericNameGenerator;
+use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\LiteralRole;
 use ItPack\DisenchantIt\ValueObject\NamingContext;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
 
@@ -26,7 +27,7 @@ final class NumericNameGeneratorTest extends Unit
             value: '30',
             raw: '30',
             line: 1,
-            role: 'numeric_expression',
+            role: LiteralRole::NumericExpression,
             className: 'C',
             methodName: 'm',
             namingContext: $ctx,

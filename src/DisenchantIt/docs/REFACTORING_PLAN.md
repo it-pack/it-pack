@@ -465,16 +465,16 @@ Each row is independently shippable and keeps the test suite green.
 | 6 | ✅ F6 fix `detect()` key doc | REVIEW #6 | 🟡 | S | doc matches behaviour |
 | 7 | ✅ F7 honest streaming docblock | REVIEW #7 | 🟡 | S | doc accurate |
 | 8 | ✅ F8 `SourceTooLargeException` + size guard | REVIEW #8 | 🟠 | S | throws over limit; pairs w/ §3.6 |
-| 9 | §3.6 domain exceptions | old §13 | 🟠 | S | catch by marker interface |
-| 10 | §3.4 DRY const rendering VO | old §11 | 🟠 | S | identical output |
-| 11 | §3.1 namespace split + layered rules | old §1/§5/§6/§16 | 🔴 | M | layered architecture green |
-| 12 | §3.2 `SemConvConfig` hooks + `LiteralRole` enum | old §7 | 🟠 | M | enum round-trips |
-| 13 | §3.7 OCP strategy registry | old §14 | 🟡 | S | new strategy w/o edit |
-| 14 | §3.5 `use`-insertion trait + finder | old §10/§12 | 🟡 | M | behaviour unchanged |
-| 15 | §3.3 optional Lazy GhostObject parser | old §8 | 🟡 | S | lazy init preserved |
-| 16 | §3.8 hygiene (callables / return types) | old §15 | 🟡 | S | php-cs-fixer + PHPStan |
-| 17 | §3.9 write ADRs 0001–0005 | old §16 | 🟠 | S | docs present |
-| 18 | §3.10 Execution Model + recorder port | old §17 | 🟠 | M | RunIt-free, no-op recorder |
+| 9 | ✅ §3.6 domain exceptions | old §13 | 🟠 | S | catch by marker interface |
+| 10 | ✅ §3.4 DRY const rendering VO | old §11 | 🟠 | S | identical output |
+| 11 | ✅ §3.1 namespace split + layered rules | old §1/§5/§6/§16 | 🔴 | M | layered architecture green |
+| 12 | ✅ §3.2 `SemConvConfig` hooks + `LiteralRole` enum | old §7 | 🟠 | M | enum round-trips |
+| 13 | ✅ §3.7 OCP strategy registry | old §14 | 🟡 | S | new strategy w/o edit |
+| 14 | ✅ §3.5 `use`-insertion trait + finder | old §10/§12 | 🟡 | M | behaviour unchanged |
+| 15 | §3.3 optional Lazy GhostObject parser | old §8 | 🟡 | S | lazy init preserved (optional) |
+| 16 | ✅ §3.8 hygiene (callables / return types) | old §15 | 🟡 | S | php-cs-fixer + PHPStan |
+| 17 | ✅ §3.9 write ADRs 0001–0005 (+0011) | old §16 | 🟠 | S | docs present |
+| 18 | ✅ §3.10 Execution Model + recorder port | old §17 | 🟠 | M | RunIt-free, no-op recorder |
 
 **Recommended first PRs:** #1 → #2 → #3 → #4 → #5 → #8/#9 (the REVIEW-driven correctness,
 consistency, and robustness cluster) — **F1–F8 implemented**; then #11 (the structural
