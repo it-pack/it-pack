@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
+use ItPack\DisenchantIt\Adapter\ContentClassifier;
 use ItPack\DisenchantIt\Adapter\MagicLiteralVisitor;
 use ItPack\DisenchantIt\Adapter\NamingContextExtractor;
+use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
 use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
@@ -15,12 +17,13 @@ final readonly class MagicStringVisitorFactory implements MagicStringVisitorFact
 {
     public function __construct(
         private readonly NamingContextExtractorInterface $extractor = new NamingContextExtractor(),
+        private readonly ContentClassifierInterface $contentClassifier = new ContentClassifier(),
     ) {
     }
 
     public function build(RoleClassifierInterface $classifier, string $code): MagicLiteralVisitorInterface
     {
-        return new MagicLiteralVisitor($classifier, $this->extractor, $code);
+        return new MagicLiteralVisitor($classifier, $this->extractor, $code, $this->contentClassifier);
     }
 
     public static function create(): self

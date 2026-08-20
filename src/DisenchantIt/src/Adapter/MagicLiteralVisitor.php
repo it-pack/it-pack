@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Adapter;
 
+use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
@@ -39,6 +40,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         private readonly RoleClassifierInterface $classifier,
         private readonly NamingContextExtractorInterface $extractor,
         string $code,
+        private readonly ContentClassifierInterface $contentClassifier = new ContentClassifier(),
     ) {
         $this->code = $code;
     }
@@ -70,13 +72,23 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
             $typedParent = $parent instanceof Node ? $parent : null;
             $role = $this->classifier->classify($node, $typedParent);
 
-            $this->found[] = new StringLiteral(
+            $proto = new StringLiteral(
                 value: $node->value,
                 line: $node->getStartLine(),
                 role: $role,
                 className: $this->currentClass ?? '(unknown)',
                 methodName: $this->currentMethod ?? '(unknown)',
                 raw: $this->rawOf($node),
+            );
+
+            $this->found[] = new StringLiteral(
+                value: $proto->value,
+                line: $proto->line,
+                role: $proto->role,
+                className: $proto->className,
+                methodName: $proto->methodName,
+                raw: $proto->raw,
+                subkind: $this->contentClassifier->classify($proto),
             );
 
             return null;
@@ -91,7 +103,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
             $typedParent = $parent instanceof Node ? $parent : null;
             $role = $this->classifier->classify($node, $typedParent);
 
-            $this->found[] = new NumberLiteral(
+            $proto = new NumberLiteral(
                 kind: $node instanceof LNumber ? LiteralKind::Int->value : LiteralKind::Float->value,
                 value: (string) $node->value,
                 raw: $this->rawOf($node),
@@ -100,6 +112,18 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $this->currentClass ?? '(unknown)',
                 methodName: $this->currentMethod ?? '(unknown)',
                 namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
+            );
+
+            $this->found[] = new NumberLiteral(
+                kind: $proto->kind,
+                value: $proto->value,
+                raw: $proto->raw,
+                line: $proto->line,
+                role: $proto->role,
+                className: $proto->className,
+                methodName: $proto->methodName,
+                namingContext: $proto->namingContext,
+                subkind: $this->contentClassifier->classify($proto),
             );
 
             return null;

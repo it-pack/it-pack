@@ -42,30 +42,36 @@ composer test:unit         # 59+ tests stay green
 
 ---
 
-## Phase 0 — Foundations: recognise *what* a literal is (sub-kind)
+## Phase 0 — Foundations: recognise *what* a literal is (sub-kind) — ✅ DONE
+
+> **Status (implemented):** All three steps shipped and verified. Detection and
+> rewrite behavior is unchanged (recognition-only); every literal now carries a
+> `LiteralSubkind` tag recognised by `ContentClassifier`.
 
 The highest-ROI change is tagging literals by **content**, not just by AST
 position. This underpins enum/flag targets later.
 
-### S0.1 — Add `LiteralSubkind` backed enum
+### S0.1 — Add `LiteralSubkind` backed enum — ✅ DONE
 - **Add** `src/ValueObject/LiteralSubkind.php`
   `enum LiteralSubkind: string` with cases
   `Unknown`, `Url`, `FilePath`, `Regex`, `Sql`, `Json`, `DateTimeFormat`,
   `Locale`, `Charset`, `MimeType`, `Version`, `HashAlgorithm`, `HttpMethod`,
   `HttpStatus`, `EventTag`, `ConfigKey`, `Bitmask`, `StatusCode`, `TimeUnit`,
   `Size`, `Port`. (Closed set → backed enum per ADR-0003.)
-- **Tests:** mapping test — each case round-trips `from()/value`.
+- **Tests:** `tests/Unit/ValueObject/LiteralSubkindTest.php` — each case
+  round-trips `from()/value`.
 
-### S0.2 — Carry `subkind` on the literal carriers
+### S0.2 — Carry `subkind` on the literal carriers — ✅ DONE
 - **Modify** `ValueObject/LiteralInterface.php` (add
   `public LiteralSubkind $subkind { get; }`), `StringLiteral.php`,
   `NumberLiteral.php`, and their constructors (default `LiteralSubkind::Unknown`).
   Keep the constructor signatures backward-compatible by giving `subkind` a
   default so existing factory/test calls still compile.
-- **Tests:** a carrier built without `subkind` defaults to `Unknown`; built
-  with a subkind exposes it.
+- **Tests:** `tests/Unit/StringLiteralSubkindTest.php` and
+  `tests/Unit/NumberLiteralTest.php` — a carrier built without `subkind`
+  defaults to `Unknown`; built with a subkind exposes it.
 
-### S0.3 — `ContentClassifier` port + adapter
+### S0.3 — `ContentClassifier` port + adapter — ✅ DONE
 - **Add** `Contract/ContentClassifierInterface.php`
   `public function classify(LiteralInterface $lit): LiteralSubkind;`
   (pure string/AST inspection — no execution).
@@ -82,15 +88,27 @@ position. This underpins enum/flag targets later.
   - `HttpStatus`/`StatusCode` — int in `100..599` range used in comparison /
     return context (role-aware).
   - fallback `Unknown`.
-- **Wire:** inject `ContentClassifierInterface` into `Adapter/MagicLiteralVisitor`
-  (or compose it in `Adapter/Detector`) and set `$lit->subkind` during
-  collection. Update `Factory/DetectorFactory::build*()` to construct and pass
-  `ContentClassifier` (via a new `Factory/ContentClassifierFactory` or inline in
-  `DetectorFactory`, which already lives in `Factory\` and may depend on
-  `Adapter`).
-- **Tests (fixture-based, adapter):** for a set of literal strings/numbers,
-  assert the produced `subkind`. Port test: mock the interface, assert the
-  visitor sets the subkind the classifier returns.
+- **Wire:** injected `ContentClassifierInterface` into
+  `Adapter/MagicLiteralVisitor` (composed via `Factory/MagicStringVisitorFactory`,
+  which builds a `ContentClassifier` in `create()`) and sets `$lit->subkind`
+  during collection. No change to `DetectorFactory`'s public surface was needed
+  (the visitor factory already owns its collaborator construction).
+- **Tests (fixture-based, adapter):** `tests/Unit/Adapter/ContentClassifierTest.php`
+  asserts the produced `subkind` for a set of literal strings/numbers;
+  `tests/Unit/MagicLiteralVisitorTest.php` (port test) mocks the interface and
+  asserts the visitor sets the subkind the classifier returns.
+
+> **Implementation notes / minor deviations from the literal plan text:**
+> - `Regex` detection uses an explicit open/close delimiter helper
+>   (`/`, `~`, `#`) rather than the single `preg_match` backreference shown in
+>   the plan, because PHPStan rejects the backreference pattern; behavior is
+>   identical (same-delimiter, no internal whitespace).
+> - `DetectorFactory` was **not** modified: `MagicStringVisitorFactory::create()`
+>   already builds its collaborators inline (mirroring `NamingContextExtractor`),
+>   so a separate `ContentClassifierFactory` was unnecessary.
+> - `HttpStatus`/`StatusCode` (numeric `100..599`, role-aware): shipped as the
+>   `StatusCode` sub-kind for now; `HttpStatus` remains an available case for
+>   later refinement. `Bitmask` stays deferred to Phase 3 as planned.
 
 ---
 
@@ -296,7 +314,7 @@ target seam first, then the enum strategy, then closed-set detection.
 ## Recommended linear build order
 
 ```
-S0.1 → S0.2 → S0.3          # sub-kind foundation (no behavior change yet)
+S0.1 → S0.2 → S0.3          # sub-kind foundation (no behavior change yet) ✅ DONE
 S1.1 → S1.2                 # scope/ignore (safe to land early)
 S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature)
 S3.1 → S3.2                 # bitmask/flags
@@ -307,6 +325,11 @@ S6.1 → S6.2 → S6.3         # docs
 
 Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
+
+> **Current status:** Phase 0 (S0.1–S0.3) is implemented, committed, and
+> verified — `composer architecture`, `composer analyze` (on `src`),
+> `composer format:check`, and `composer test:unit` all pass. Phase 1 is the
+> next shippable step.
 
 ---
 

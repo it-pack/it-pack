@@ -5,10 +5,17 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
+use ItPack\DisenchantIt\Adapter\MagicLiteralVisitor;
+use ItPack\DisenchantIt\Adapter\NamingContextExtractor;
+use ItPack\DisenchantIt\Adapter\RoleClassifier;
+use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
 use ItPack\DisenchantIt\ValueObject\SourceCode;
+use PhpParser\NodeTraverser;
+use PhpParser\ParserFactory;
 
 final class MagicLiteralVisitorTest extends Unit
 {
@@ -79,5 +86,29 @@ final class MagicLiteralVisitorTest extends Unit
         // from promotion until naming lands (P2). So nothing is promotable yet.
         $this->assertNotEmpty($this->numbers($literals));
         $this->assertCount(0, $factory->buildFilter()->filterCandidates($literals));
+    }
+
+    public function testVisitorAttachesSubkindFromContentClassifier(): void
+    {
+        $code = '<?php class C { public function f(): void { $x = "https://example.com"; } }';
+
+        $roleClassifier = new RoleClassifier();
+        $extractor = new NamingContextExtractor();
+        $contentClassifier = $this->createMock(ContentClassifierInterface::class);
+        $contentClassifier->method('classify')->willReturn(LiteralSubkind::Url);
+
+        $visitor = new MagicLiteralVisitor($roleClassifier, $extractor, $code, $contentClassifier);
+        $parser = new ParserFactory()->createForNewestSupportedVersion();
+        $traverser = new NodeTraverser();
+        $traverser->addVisitor($visitor);
+        $traverser->traverse($parser->parse($code));
+
+        $strings = array_values(array_filter(
+            $visitor->getFound(),
+            static fn ($lit): bool => $lit->kind === LiteralKind::String->value,
+        ));
+
+        $this->assertCount(1, $strings);
+        $this->assertSame(LiteralSubkind::Url, $strings[0]->subkind);
     }
 }

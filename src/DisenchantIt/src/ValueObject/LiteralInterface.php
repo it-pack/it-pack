@@ -28,6 +28,13 @@ interface LiteralInterface
 
     public LiteralRole $role { get; }
 
+    /**
+     * Content sub-kind of the literal (URL, regex, SQL, JSON, status code, ...),
+     * recognised by ContentClassifier. Defaults to Unknown until classified; it
+     * is a pure recognition tag and does not change filtering or rewriting.
+     */
+    public LiteralSubkind $subkind { get; }
+
     public string $className { get; }
 
     public string $methodName { get; }
