@@ -44,6 +44,29 @@ final class TypeSubstitutor
     }
 
     /**
+     * Rewrites class FQCNs inside an already-extracted phpdoc comment (the text
+     * returned by {@see MethodSignatureFactory::applyDocblock()}) using the same
+     * substitution map as {@see self::substitute()}, so a `@param Foo $x` /
+     * `@return Foo` annotation points at the derived interface rather than the
+     * concrete adaptee (G8 / EC10). Leading backslashes are preserved.
+     */
+    public function simplifyDocblock(string $comment): string
+    {
+        foreach ($this->map as $from => $to) {
+            $pattern = '/(\\\\?)' . preg_quote($from, '/') . '\b/';
+            $comment = preg_replace_callback(
+                $pattern,
+                static function (array $matches) use ($to): string {
+                    return ($matches[1] !== '' ? '\\' : '') . $to;
+                },
+                $comment,
+            );
+        }
+
+        return $comment;
+    }
+
+    /**
      * Rewrites a constant reference such as `Foo::BAR` when `Foo` is present in the
      * substitution map. Returns the expression unchanged when there is nothing to
      * rewrite (so adaptee-owned constants survive verbatim).

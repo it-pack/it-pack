@@ -486,11 +486,13 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.4 complete (2026-08-20).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.9 complete (2026-08-21).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
-> caller `DeriveConfig` (G2), and injectable instance cache replacing the static
-> (G4) are implemented and tested. All five gates green (150 tests, MSI 82%).
-> Steps 10.5–10.16 remain planned.
+> caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
+> adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
+> (G6), owned-attribute allow-list + builtin skip (G7), and opt-in phpdoc preservation
+> with FQCN simplification (G8) are implemented and tested. All five gates green.
+> Steps 10.10–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -536,7 +538,7 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   `clearCache()`. This also un-masks Infection mutants masked by cross-call caching
   and removes a Phase-8-principle regression.
 
-### Step 10.5 — Adapter static-method support (G3, EC4)
+### Step 10.5 — Adapter static-method support (G3, EC4) ✅ COMPLETE
 - Either emit **static** delegating methods that forward to the adaptee class, or
   hard-error when `deriveAdapter()` is called with a config that produces static
   interface methods. Prefer static-delegation; add a golden test.
@@ -547,17 +549,17 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   readonly). Add golden/snapshot tests for each. Optional `deriveFromNonInstantiable`
   guard for interface/readonly inputs.
 
-### Step 10.7 — Complete default-value constant rewriting (G6, EC6/EC7)
+### Step 10.7 — Complete default-value constant rewriting (G6, EC6/EC7) ✅ COMPLETE
 - Rewrite `self::CONST` references via the derived interface (currently `self::` is
   left verbatim by `TypeSubstitutor::rewriteConstantExpression()`).
 - For unmapped foreign constant refs, either drop the default or keep it behind an
   `ownConstantsOnly` leakage policy. Document the scalar-only constant lifting limit.
 
-### Step 10.8 — Attribute allow-list + builtin skip (G7, EC8)
+### Step 10.8 — Attribute allow-list + builtin skip (G7, EC8) ✅ COMPLETE
 - Add an `ownedAttributes` allow-list; when `attributePassThrough` is on, keep only
   owned attributes and **always** drop `#[Override]` and other builtins.
 
-### Step 10.9 — Robust phpdoc preservation (G8, EC9/EC10)
+### Step 10.9 — Robust phpdoc preservation (G8, EC9/EC10) ✅ COMPLETE
 - Opt-in `preserveDocblocks`: re-emit `@param` / `@return` / `@throws` /
   `@template` / `@deprecated` with FQCN simplification + dedupe; fix the brittle
   `@throws` regex (generics in type, native PHP 8.4 `throws`).

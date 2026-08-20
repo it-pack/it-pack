@@ -44,6 +44,7 @@ final class DeriveConfig
         public readonly bool $throwsCapture = false,
         public readonly bool $auditLeakage = false,
         public readonly array $ownedAttributes = [],
+        public readonly bool $preserveDocblocks = false,
     ) {
         if (!in_array($visibility, [self::VISIBILITY_PUBLIC, self::VISIBILITY_PROTECTED], true)) {
             throw new \InvalidArgumentException(sprintf('Unsupported visibility "%s".', $visibility));
@@ -78,6 +79,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -99,6 +101,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -120,6 +123,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -141,6 +145,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -162,6 +167,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -183,6 +189,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -204,6 +211,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -225,6 +233,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -249,6 +258,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -273,6 +283,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -294,6 +305,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -315,6 +327,7 @@ final class DeriveConfig
             throwsCapture: $this->throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -336,6 +349,7 @@ final class DeriveConfig
             throwsCapture: $throwsCapture,
             ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $this->preserveDocblocks,
         );
     }
 
@@ -356,6 +370,33 @@ final class DeriveConfig
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
             auditLeakage: $auditLeakage,
+        );
+    }
+
+    /**
+     * Opt-in: re-emit the source method's phpdoc (`@param` / `@return` /
+     * `@throws` / `@template` / `@deprecated`) on the derived method, with FQCN
+     * types simplified via the substitution map (G8 / EC9 / EC10). Off by default
+     * to keep derived ports terse.
+     */
+    public function withPreserveDocblocks(bool $preserveDocblocks): self
+    {
+        return new self(
+            visibility: $this->visibility,
+            includeStatic: $this->includeStatic,
+            includeMagic: $this->includeMagic,
+            dropConstruct: $this->dropConstruct,
+            dropDestruct: $this->dropDestruct,
+            typeSubstitutionMap: $this->typeSubstitutionMap,
+            substituteSelfStatic: $this->substituteSelfStatic,
+            includeConstants: $this->includeConstants,
+            onlyMethods: $this->onlyMethods,
+            skipMethods: $this->skipMethods,
+            failOnEmpty: $this->failOnEmpty,
+            attributePassThrough: $this->attributePassThrough,
+            throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
+            preserveDocblocks: $preserveDocblocks,
         );
     }
 

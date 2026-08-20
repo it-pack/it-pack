@@ -338,19 +338,19 @@ Phase 10 steps.
   `auditLeakage` config flag (default off) so existing golden files are not broken.
 - **G2** ✅ Family honors caller `DeriveConfig` — `FamilyDeriver::derive*` and the
   `DeriveIt::deriveFamily*` facades accept and forward a `DeriveConfig` (EC2).
-- **G3** Adapter static-method support — emit static delegating methods, or
-  hard-error when adapter + `includeStatic` combine (EC4).
+- **G3** ✅ Adapter static-method support — emit static delegating methods that
+   forward to the adaptee class (EC4); covered by golden + end-to-end tests.
 - **G4** ✅ Injectable cache instead of static — `FamilyDeriver` uses an
   instance-scoped cache (constructor-injected + `clearCache()`), removing the
   process-global static that masked Infection mutants and leaked across runs (EC3).
 - **G5** Full derivation-target support matrix — `enum_exists` in discovery +
   collision; document supported targets; golden tests for enum/trait/interface/
   abstract/readonly; optional `deriveFromNonInstantiable` guard (EC13).
-- **G6** Complete default-value constant rewriting — `self::CONST` via derived
-  interface; drop/keep policy for unmapped foreign constant refs; document scalar-
-  only constant limitation (EC6, EC7).
-- **G7** Attribute allow-list + builtin skip — pass through only owned attributes;
-  always drop `#[Override]` and other builtins (EC8).
+- **G6** ✅ Complete default-value constant rewriting — `self::CONST` (and
+   `static`/`parent`) rewritten via the derived interface FQCN; documented scalar-
+   only constant limitation (EC6, EC7).
+- **G7** ✅ Attribute allow-list + builtin skip — pass through only owned
+   attributes; always drop `#[Override]` and other builtins (EC8).
 - **G12** ✅ Per-trait & family leakage/collision parity — `assertNoCollision`
   (now also `enum_exists`) runs in per-trait and family modes; per-trait same-short-name
   trait clash throws `NamingCollisionException` instead of silently overwriting (EC5, EC11, EC19).
@@ -358,9 +358,9 @@ Phase 10 steps.
   interfaces (e.g. `Countable`), third-party kept out.
 
 ### H. Developer experience
-- **G8** Robust phpdoc preservation — opt-in `preserveDocblocks`: re-emit
-  `@param`/`@return`/`@throws`/`@template`/`@deprecated` with FQCN simplification +
-  dedupe; handle generics (EC9, EC10).
+- **G8** ✅ Robust phpdoc preservation — opt-in `preserveDocblocks`: re-emit
+   `@param`/`@return`/`@throws`/`@template`/`@deprecated` with FQCN simplification +
+   dedupe; generics-tolerant `@throws` regex (EC9, EC10).
 - **G9** `analyze()` + `deriveMany()` + dry-run diff — `DeriveIt::analyze($class)`
   (no render) returning `DerivationResult`; `deriveMany(iterable, config)`;
   `diff($class, $existingSource)` for "what would change" (EC15, D2, D5).

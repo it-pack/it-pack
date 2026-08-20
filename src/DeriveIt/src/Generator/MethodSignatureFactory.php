@@ -42,6 +42,11 @@ final class MethodSignatureFactory
     {
         $signature = $this->factory->fromMethodReflection($method);
 
+        // `fromMethodReflection()` copies the source docblock; derived ports are
+        // terse by default (G8). `preserveDocblocks` re-emits it (FQCN-simplified)
+        // and `throwsCapture` re-attaches `@throws` — both opt-in.
+        $signature->setComment(null);
+
         $signature->setAbstract(true);
         $signature->setFinal(false);
         $signature->setVisibility(null);
@@ -57,7 +62,12 @@ final class MethodSignatureFactory
                 $parameter->setAttributes($this->filterAttributes($parameter->getAttributes()));
             }
 
-            if ($this->config->throwsCapture) {
+            // When the full phpdoc is preserved it already carries `@throws`
+            // (and is FQCN-simplified), so the dedicated capture must not
+            // duplicate it (G8 / EC9).
+            if ($this->config->preserveDocblocks) {
+                $this->applyDocblock($signature, $method, $substitutor);
+            } elseif ($this->config->throwsCapture) {
                 $this->applyThrows($signature, $method);
             }
         }
@@ -164,6 +174,45 @@ final class MethodSignatureFactory
         return $kept;
     }
 
+    /**
+     * Re-emits the source method's phpdoc on the derived method (G8 / EC9 / EC10),
+     * stripping the `/** … *​/` delimiters so Nette re-wraps it cleanly. When a
+     * substitutor is supplied, class FQCNs inside the comment are simplified to
+     * their derived interface (e.g. `@param Foo $x` → `@param FooInterface $x`).
+     */
+    private function applyDocblock(Method $signature, ReflectionMethod $method, ?TypeSubstitutor $substitutor): void
+    {
+        $doc = $method->getDocComment();
+        if ($doc === false) {
+            return;
+        }
+
+        $comment = $this->normalizeDocComment($doc);
+        if ($substitutor !== null) {
+            $comment = $substitutor->simplifyDocblock($comment);
+        }
+
+        $signature->setComment($comment);
+    }
+
+    /**
+     * Strips the leading `/**`, trailing `*\/` and per-line `* ` prefixes from a
+     * reflection doc-comment, returning the bare inner text Nette expects.
+     */
+    private function normalizeDocComment(string $doc): string
+    {
+        $lines = preg_split('/\n/', $doc);
+        if ($lines === false) {
+            $lines = [];
+        }
+        $normalized = [];
+        foreach ($lines as $line) {
+            $normalized[] = (string) preg_replace('/^\s*\/?\*+\/?\s?/', '', $line);
+        }
+
+        return trim(implode("\n", $normalized), "\n");
+    }
+
     private function applyThrows(Method $signature, ReflectionMethod $method): void
     {
         $doc = $method->getDocComment();
@@ -172,7 +221,7 @@ final class MethodSignatureFactory
         }
 
         $throws = [];
-        if (preg_match_all('/@throws\s+([^\s*]+)(?:\s+(.*?))?(?=\n|\*\/|$)/', $doc, $matches, PREG_SET_ORDER) === 0) {
+        if (preg_match_all('/@throws\s+([^\s*]+(?:<[^>]*>)?)(?:\s+(.*?))?(?=\n|\*\/|$)/', $doc, $matches, PREG_SET_ORDER) === 0) {
             return;
         }
 

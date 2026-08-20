@@ -206,4 +206,72 @@ class Phase10CorrectnessTest extends Unit
         verify($onlyOwned)->stringContainsString('Deprecated');
         verify($onlyOwned)->stringNotContainsString('SensitiveParameter');
     }
+
+    public function testPreserveDocblocksReEmitsAndSimplifies(): void
+    {
+        // G8 / EC9 / EC10: with preserveDocblocks, the source phpdoc is re-emitted
+        // on the derived method and its class FQCNs are simplified via the
+        // substitution map (no duplication of @throws).
+        $config = new DeriveConfig(
+            typeSubstitutionMap: ['_Fixture\Collaborator' => '_Fixture\CollaboratorInterface'],
+            preserveDocblocks: true,
+        );
+
+        $interface = new InterfaceDeriver(config: $config)->derive(\_Fixture\DocBlockRichClass::class);
+        $comment = $interface->getMethod('process')->getComment();
+
+        verify($comment)->stringContainsString('@param \_Fixture\CollaboratorInterface $collaborator');
+        verify($comment)->stringContainsString('@return \_Fixture\CollaboratorInterface the processed collaborator');
+        verify($comment)->stringContainsString('@throws \RuntimeException if processing fails');
+        verify($comment)->stringContainsString('@deprecated since v2.0; use processV2() instead');
+        verify(substr_count($comment, '@throws'))->equals(1);
+    }
+
+    public function testPreserveDocblocksOffStripsDocblocks(): void
+    {
+        // Default behaviour keeps derived ports terse: no phpdoc is emitted.
+        $interface = new InterfaceDeriver(config: new DeriveConfig())->derive(\_Fixture\DocBlockRichClass::class);
+
+        verify($interface->getMethod('process')->getComment())->null();
+    }
+
+    public function testThrowsCaptureAndPreserveDocblocksDoNotDoubleUp(): void
+    {
+        // When both are on, the docblock already carries @throws; capture must not
+        // append a second copy.
+        $config = new DeriveConfig(
+            typeSubstitutionMap: ['_Fixture\Collaborator' => '_Fixture\CollaboratorInterface'],
+            preserveDocblocks: true,
+            throwsCapture: true,
+        );
+
+        $interface = new InterfaceDeriver(config: $config)->derive(\_Fixture\DocBlockRichClass::class);
+        $comment = $interface->getMethod('process')->getComment();
+
+        verify(substr_count($comment, '@throws'))->equals(1);
+        verify($comment)->stringContainsString('@throws \RuntimeException if processing fails');
+    }
+
+    public function testPreserveDocblocksKeepsThrowsGenerics(): void
+    {
+        // The @throws regex tolerates generics in the type (EC9).
+        $interface = new InterfaceDeriver(config: new DeriveConfig(throwsCapture: true))
+            ->derive(\_Fixture\GenericThrowsClass::class)
+        ;
+        $comment = $interface->getMethod('run')->getComment();
+
+        verify($comment)->stringContainsString('@throws \InvalidArgumentException<mixed> when the input is malformed');
+    }
+
+    public function testWithPreserveDocblocksWitherEnablesFeature(): void
+    {
+        // The fluent wither is the public seam for opting in (G8).
+        $config = new DeriveConfig()->withPreserveDocblocks(true);
+
+        $interface = new InterfaceDeriver(config: $config)->derive(\_Fixture\DocBlockRichClass::class);
+        $comment = $interface->getMethod('process')->getComment();
+
+        verify($comment)->stringContainsString('@param \_Fixture\Collaborator $collaborator the collaborator to use');
+        verify($comment)->stringContainsString('@deprecated since v2.0; use processV2() instead');
+    }
 }
