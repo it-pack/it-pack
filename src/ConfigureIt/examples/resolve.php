@@ -2,14 +2,11 @@
 
 declare(strict_types=1);
 
-use ItPack\ConfigureIt\Adapter\EnvReader;
-use ItPack\ConfigureIt\Adapter\EnvSource;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
-use ItPack\ConfigureIt\Core\ConfigurationResolver;
 
 /**
  * End-to-end example: discover config files + environment, parse them through

@@ -209,12 +209,16 @@ reference `Contract\ValueObject\ConfigurationResourceInterface`).
 **Goal.** `resolve.php` and `all.php` run end-to-end and print a merged snapshot.
 
 **Steps.**
-1. `examples/resolve.php:26` / `examples/all.php:34`: call `new ConfigurationBuilder()`
-   (default `ConfigurationFactory`), **not** `new ConfigurationBuilder($reader)`.
-2. Add the appropriate `addReader(...)` for every source used (the resolver wraps
-   readers in a `CompositeReader`; an empty reader set throws at resolution,
-   `src/Adapter/CompositeReader.php:25`).
-3. Remove dead `EnvReader`/`EnvSource` imports in `resolve.php`.
+1. `examples/resolve.php` / `examples/all.php`: call `new ConfigurationBuilder()`
+   (default `ConfigurationFactory`) — already the case; the stale
+   `new ConfigurationBuilder($reader)` form from the ROADMAP draft is not present.
+2. Reader/source pairing is correct: `resolve.php` uses `FileSource` + `FileReader`;
+   `all.php` uses `FileSource` + `EnvSource` behind a `CompositeReader` of
+   `FileReader` + `EnvReader` (the resolver wraps readers in a `CompositeReader`;
+   an empty reader set throws at resolution, `src/Adapter/CompositeReader.php:25`).
+3. Remove dead imports: `EnvReader`/`EnvSource`/`ConfigurationResolver` from
+   `resolve.php` and `ConfigurationResolver` from `all.php` (the latter is the only
+   one still imported but never referenced by name).
 4. Run both; assert output contains merged values.
 
 **Verification**
@@ -222,6 +226,11 @@ reference `Contract\ValueObject\ConfigurationResourceInterface`).
 php examples/resolve.php   # expect: prints database.host / app.debug / has app.name
 php examples/all.php       # expect: prints merged file + env snapshot
 ```
+
+**Status — ✅.** Both examples run end-to-end and print the merged snapshot
+(`database.host = 'localhost'`, `app.debug = true`, `has app.name = true`). Dead
+imports removed; `all.php`'s run-instruction docblock corrected to point at
+`examples/all.php`.
 
 ### T6 — Correct the documentation to match reality
 

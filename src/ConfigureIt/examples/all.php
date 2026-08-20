@@ -12,14 +12,13 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
-use ItPack\ConfigureIt\Core\ConfigurationResolver;
 
 /**
  * End-to-end example: discover config files + environment, parse them through
  * the pipeline and freeze an immutable snapshot.
  *
  * Run from the package root:
- *   php examples/resolve.php
+ *   php examples/all.php
  */
 
 require_once __DIR__ . '/../vendor/autoload.php';
