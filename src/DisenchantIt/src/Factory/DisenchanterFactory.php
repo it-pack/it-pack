@@ -8,10 +8,12 @@ use ItPack\DisenchantIt\ConstantNameGenerator;
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterFactoryInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
+use ItPack\DisenchantIt\Contract\NumericNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Disenchanter;
 use ItPack\DisenchantIt\LineBasedRewriter;
+use ItPack\DisenchantIt\NumericNameGenerator;
 use ItPack\DisenchantIt\RewriterInterface;
 use ItPack\DisenchantIt\SemConvAliasRewriter;
 use ItPack\DisenchantIt\SemConvCollector;
@@ -30,6 +32,7 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
     public function __construct(
         private readonly DetectorFactory $detectors,
         private readonly ConstantNameGeneratorInterface $generator,
+        private readonly NumericNameGeneratorInterface $numericGenerator,
         private readonly ConstantPlacementStrategyFactory $placements,
         private readonly RewriterInterface $rewriter,
         private readonly SemConvCollectorInterface $semconvCollector,
@@ -44,6 +47,7 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
         return new self(
             DetectorFactory::create(),
             ConstantNameGenerator::create(),
+            NumericNameGenerator::create(),
             ConstantPlacementStrategyFactory::create(),
             new LineBasedRewriter(),
             new SemConvCollector($semconvConfig),
@@ -58,6 +62,7 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
             $this->detectors->buildFilter(),
             $this->detectors->buildGrouper(),
             $this->generator,
+            $this->numericGenerator,
             $this->placements->buildAuto(),
             $this->rewriter,
             $this->semconvCollector,

@@ -8,6 +8,7 @@ use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
+use ItPack\DisenchantIt\Contract\NumericNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
@@ -16,6 +17,7 @@ use ItPack\DisenchantIt\ValueObject\CandidateInterface;
 use ItPack\DisenchantIt\ValueObject\DisenchantResult;
 use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralKind;
 
 /**
  * Detection + placement orchestrator (the "Detect" and "Decide/Rewrite" steps
@@ -35,6 +37,7 @@ final readonly class Disenchanter implements DisenchanterInterface
         private readonly CandidateFilterInterface $filter,
         private readonly CandidateGrouperInterface $grouper,
         private readonly ConstantNameGeneratorInterface $generator,
+        private readonly NumericNameGeneratorInterface $numericGenerator,
         private readonly ConstantPlacementStrategyInterface $placement,
         private readonly RewriterInterface $rewriter,
         private readonly SemConvCollectorInterface $collector,
@@ -52,17 +55,26 @@ final readonly class Disenchanter implements DisenchanterInterface
         $groups = $this->grouper->groupByValue($candidates);
 
         $detected = [];
-        foreach ($groups as $value => $occurrences) {
+        foreach ($groups as $groupKey => $occurrences) {
             /** @var list<LiteralInterface> $occurrences */
-            $first = $occurrences[0] ?? null;
-            $detected[$value] = new Candidate(
-                $value,
-                $this->generator->generate($value, $first?->role),
+            $first = $occurrences[0];
+            $detected[$groupKey] = new Candidate(
+                $first->value,
+                $this->nameFor($first),
                 $occurrences,
             );
         }
 
         return $detected;
+    }
+
+    private function nameFor(LiteralInterface $lit): string
+    {
+        if ($lit->kind === LiteralKind::String->value) {
+            return $this->generator->generate($lit->value, $lit->role);
+        }
+
+        return $this->numericGenerator->generate($lit, $lit->namingContext) ?? $lit->value;
     }
 
     public function rewrite(string $code, int $minOccurrences = 1): string

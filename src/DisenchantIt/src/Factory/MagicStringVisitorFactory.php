@@ -6,14 +6,21 @@ namespace ItPack\DisenchantIt\Factory;
 
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
+use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\MagicLiteralVisitor;
+use ItPack\DisenchantIt\NamingContextExtractor;
 
 final readonly class MagicStringVisitorFactory implements MagicStringVisitorFactoryInterface
 {
+    public function __construct(
+        private readonly NamingContextExtractorInterface $extractor = new NamingContextExtractor(),
+    ) {
+    }
+
     public function build(RoleClassifierInterface $classifier, string $code): MagicLiteralVisitorInterface
     {
-        return new MagicLiteralVisitor($classifier, $code);
+        return new MagicLiteralVisitor($classifier, $this->extractor, $code);
     }
 
     public static function create(): self

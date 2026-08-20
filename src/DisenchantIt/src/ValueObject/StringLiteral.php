@@ -16,6 +16,7 @@ final readonly class StringLiteral implements StringLiteralInterface
         public string $methodName,
         public string $kind = LiteralKind::String->value,
         public string $raw = '',
+        public ?NamingContextInterface $namingContext = null,
     ) {
     }
 }

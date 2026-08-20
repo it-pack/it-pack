@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
+use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
@@ -36,6 +37,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
 
     public function __construct(
         private readonly RoleClassifierInterface $classifier,
+        private readonly NamingContextExtractorInterface $extractor,
         string $code,
     ) {
         $this->code = $code;
@@ -97,6 +99,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 role: $role,
                 className: $this->currentClass ?? '(unknown)',
                 methodName: $this->currentMethod ?? '(unknown)',
+                namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
             );
 
             return null;

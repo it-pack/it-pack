@@ -14,6 +14,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 use ItPack\DisenchantIt\ConstantNameGenerator;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
+use ItPack\DisenchantIt\NumericNameGenerator;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
 use ItPack\DisenchantIt\ConstantPlacementStrategyInterface;
 use ItPack\DisenchantIt\Disenchanter;
@@ -73,6 +74,7 @@ function buildCustom(
         $filter ?? $detectors->buildFilter(),
         $detectors->buildGrouper(),
         ConstantNameGenerator::create(),
+        NumericNameGenerator::create(),
         $strategy,
         new LineBasedRewriter(),
         new SemConvCollector($config),

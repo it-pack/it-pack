@@ -65,12 +65,92 @@ landed and the decisions taken:
 - `composer analyze` (src only) — ✅ clean.
 - `composer architecture` — ✅ no violations.
 - `composer format:check` — ✅ clean.
-- `composer analyze` (src **+ tests**) — ⚠️ ~85 errors, **all in
-  `tests/Unit/*`**. Cause: the `phpstan/phpunit` extension is not installed in
-  this environment, so PHPStan cannot resolve PHPUnit assertion methods
-  (`assertStringContainsString`, etc.). This is pre-existing/environmental and
-  unrelated to P1 (it also affects the prior tests). Source-only analysis is
-  clean.
+- `composer analyze` (src **+ tests**) — ⚠️ errors remain, **all in
+  `tests/Unit/*`** (now including the two new P2 test files). Cause: the
+  `phpstan/phpunit` extension is not installed in this environment, so PHPStan
+  cannot resolve PHPUnit/Codeception assertion methods and flags Codeception's
+  `Unit` base as "contains abstract". This is pre-existing/environmental and
+  unrelated to P2. Source-only analysis is clean.
+
+---
+
+### Phase P2 — ✅ COMPLETE (2026-08-20)
+
+Naming, filtering and grouping for numbers are implemented and green-gated.
+Numbers are now promoted only when a naming hint is discovered, and are named
+from that hint.
+
+- **Naming hints (`NamingContext`).** `ValueObject/NamingContext.php` (final,
+  implementing `NamingContextInterface`) carries `variableName`, `comment`,
+  `unit` and a `hasHint()`/`signature()` pair. The context is attached to a
+  `NumberLiteral` at scan time by `NamingContextExtractor`
+  (`src/NamingContextExtractor.php` + `Contract/NamingContextExtractorInterface`)
+  which walks the literal's AST parents (assignment / array-key / property /
+  param) for a name and a unit suffix, and scans the source line(s) above for a
+  `//`/`#` comment. `LiteralInterface` gained a `?NamingContextInterface
+  $namingContext` hook; `StringLiteral`/`NumberLiteral` carry it (null for
+  strings).
+- **Numeric name generation (`NumericNameGenerator`).** `src/NumericNameGenerator.php`
+  + `Contract/NumericNameGeneratorInterface` derive `UPPER_SNAKE_CASE` names by
+  the §4 priority: `unit suffix` (`$timeoutMs` → `TIMEOUT_MS`) → `comment`
+  (`// seconds` above `$t = 30` → `T_SECONDS`) → `variable/array-key name`
+  (`['timeout' => 30]` → `TIMEOUT`) → else `null` (not promoted).
+- **Kind-aware filter.** `CandidateFilter` now branches on `LiteralKind`:
+  strings keep the original rules; numbers are kept only when `hasHint()` is
+  true AND the value is not trivial (`0`, `1`, `0.0`, `1.0`). Bare numbers in
+  comparisons/branches carry no hint and stay un-promoted.
+- **Kind-aware grouping.** New `Contract/GroupingStrategyInterface` with
+  `ByValueGroupingStrategy` (strings by value) and
+  `ByValueAndContextGroupingStrategy` (numbers by `value|ctx-signature`, kind
+  prefixed `i:`/`f:`). `CandidateGrouper` dispatches by kind, so equal values
+  with different hints (e.g. two `100`s named from `$timeoutMs` vs
+  `$durationMs`) stay in separate promotion groups.
+- **End-to-end naming (folded in from P3.4).** `Detector::detect()` and the
+  `SameClass`/`PerClass` placement strategies now dispatch to
+  `NumericNameGenerator` for numbers (wired through `Disenchanter` +
+  `DisenchanterFactory` + `ConstantPlacementStrategyFactory`). P3.4's remaining
+  work is the *typed* constant declaration (`int`/`float`) and SemConv
+  type-awareness — not naming.
+- **Tests.** 13 new tests (6 `NumericNameGeneratorTest`, 7
+  `NumericDetectionTest`): unit-suffix/comment/array-key naming, `hasHint`
+  presence, trivial-value exclusion, `TIMEOUT_MS`/`T_SECONDS` candidates, and
+  two-equal-numbers-separate-groups. Full suite: **43 tests, 91 assertions,
+  OK**.
+
+**Deviations from this roadmap (intentional, documented):**
+1. `NamingContextExtractorInterface::extract()` is `extract(Node $node, int
+   $line, string $code): NamingContextInterface` — not `extract(LiteralInterface
+   $lit, Node $node)`. The visitor has the `Node` + source at scan time; the
+   source line/code are needed for comment extraction (pure AST comment
+   attributes alone were unreliable). Returns the *interface* type so
+   `Contract` never depends on a concrete value object (PHPArkitect).
+2. `NamingContext` is backed by a new `NamingContextInterface` (a final class
+   must implement a port per `phparkitect.php`). `LiteralInterface.namingContext`
+   is typed `?NamingContextInterface` and `NumericNameGeneratorInterface`
+   is typed against `LiteralInterface` + `?NamingContextInterface` (not the
+   concrete `NumberLiteral`/`NamingContext`) for the same architectural reason.
+3. `detect()` keys **numbers** with a kind prefix (`i:`/`f:`) + value + context
+   signature (the roadmap's `'i:3'`, `'f:3.14'`), but **string** keys stay the
+   raw value to preserve the existing `assertArrayHasKey('admin-user')`
+   behavior (no BC break). The `'3'`/`3` collapse can't occur because every
+   group key is already a string.
+4. Numeric naming was wired into `detect()` + placement in P2 rather than
+   deferred to P3.4, so the feature is coherent end-to-end. P3.4 is now scoped
+   to typed const output + SemConv type-awareness only.
+5. `hasHint()` is true for `unit || comment || variableName` (not only
+   unit/comment/config-key). A bare assignment like `$x = 3` therefore *is*
+   promotable (named `X`); only literals with no assignment/array-key/property
+   context (e.g. `if ($x === 3)`) are filtered. This matches the roadmap's
+   "no name ⇒ not promoted" intent.
+
+**Gate status:**
+- `composer test:unit` — ✅ 43 tests, 91 assertions.
+- `composer analyze` (src only) — ✅ clean.
+- `composer architecture` — ✅ no violations.
+- `composer format:check` — ✅ clean.
+- `composer analyze` (src **+ tests**) — ⚠️ same environmental phpstan/phpunit
+  (Codeception `Unit`) limitation as P1; the 2 new P2 test files are subject to
+  it. Source-only analysis is clean.
 
 ---
 
@@ -153,6 +233,8 @@ Goal: capture numbers with exact raw tokens; no naming/promotion yet.
 ## Phase P2 — Naming, filtering, grouping for numbers
 
 Goal: only promote numbers we can name; group by value + naming context.
+
+> **Status: complete (2026-08-20).** See Progress section above.
 
 ### Step 2.1 — `NamingContext` + extractor
 - **Create** `src/ValueObject/NamingContext.php`: `final readonly` with fields

@@ -16,6 +16,7 @@ final readonly class NumberLiteral implements LiteralInterface
         public string $role,
         public string $className,
         public string $methodName,
+        public ?NamingContextInterface $namingContext = null,
     ) {
     }
 }

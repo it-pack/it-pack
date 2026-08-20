@@ -32,5 +32,12 @@ interface LiteralInterface
 
     public string $methodName { get; }
 
+    /**
+     * Naming hints for a numeric literal (unit/comment/variable name), or null
+     * for a string literal (strings are named by slug, not by hint). Numbers
+     * carry a NamingContext only when a hint was discovered during the scan.
+     */
+    public ?NamingContextInterface $namingContext { get; }
+
     public function needle(): string;
 }

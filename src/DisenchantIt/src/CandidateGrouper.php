@@ -5,15 +5,23 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
+use ItPack\DisenchantIt\Contract\GroupingStrategyInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralKind;
 
 /**
- * Default candidate grouper: buckets literals by their value so repetition
- * (the strongest "this is secretly an enum member" signal) is visible before
- * deciding what to name/generate.
+ * Default candidate grouper: dispatches to a per-kind grouping strategy so
+ * strings bucket by value while numbers bucket by value + naming context.
+ * The returned array is keyed by each strategy's group key.
  */
 final readonly class CandidateGrouper implements CandidateGrouperInterface
 {
+    public function __construct(
+        private readonly GroupingStrategyInterface $strings = new ByValueGroupingStrategy(),
+        private readonly GroupingStrategyInterface $numbers = new ByValueAndContextGroupingStrategy(),
+    ) {
+    }
+
     /**
      * @param list<LiteralInterface> $candidates
      * @return array<string, list<LiteralInterface>>
@@ -21,10 +29,17 @@ final readonly class CandidateGrouper implements CandidateGrouperInterface
     public function groupByValue(array $candidates): array
     {
         $groups = [];
-        foreach ($candidates as $literal) {
-            $groups[$literal->value][] = $literal;
+        foreach ($candidates as $lit) {
+            $groups[$this->strategyFor($lit)->groupKey($lit)][] = $lit;
         }
 
         return $groups;
+    }
+
+    private function strategyFor(LiteralInterface $lit): GroupingStrategyInterface
+    {
+        return $lit->kind === LiteralKind::String->value
+            ? $this->strings
+            : $this->numbers;
     }
 }
