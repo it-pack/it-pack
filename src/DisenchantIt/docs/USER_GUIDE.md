@@ -301,6 +301,12 @@ re-promoted, and already-declared / already-aliased lines are skipped (§5.2,
 > itself a candidate, or raise `minOccurrences` so the string key is not
 > promoted (§12.8).
 
+> **Runnable demos.** Copy-pasteable, executed examples of every rule above live
+> in `examples/12_magic_numbers.php` (unit-suffix / preceding-comment /
+> variable-name hints, raw-token preservation, and the guardrails) and
+> `examples/13_magic_numbers_semconv.php` (typed numbers inside the shared
+> registry, plus the raw-token-vs-canonical split).
+
 ---
 
 ## 6. Placement strategies

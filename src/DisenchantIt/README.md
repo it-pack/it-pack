@@ -100,7 +100,9 @@ DisenchantIt works on a **single source string**; you decide how it walks a
 tree, where results are written, and how the shared registry is accumulated.
 For the full pipeline, placement strategies, SemConv configuration, multi-file
 workflows, extension points, and current limitations, see
-[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md).
+[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md). Runnable, copy-pasteable demos —
+including the magic-number examples `examples/12_magic_numbers.php` and
+`examples/13_magic_numbers_semconv.php` — live in [`examples/`](examples).
 
 > The public API is fronted by `DisenchanterInterface` (built via
 > `DisenchanterFactory`) and the `Contract` ports. Treat the *capabilities* as
