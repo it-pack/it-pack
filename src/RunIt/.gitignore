@@ -39,3 +39,4 @@ packages/
 
 # deptrac
 /.deptrac.cache
+.deptrac.cache

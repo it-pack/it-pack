@@ -44,4 +44,9 @@ final class RecordingHttpClient implements ClientInterface
 
         return $headers;
     }
+
+    public function lastBody(): string
+    {
+        return $this->lastRequest?->getBody()->__toString() ?? '';
+    }
 }

@@ -1816,90 +1816,146 @@ is documented but not asserted by a dedicated runtime test.
 
 ## M10.1 Integration boundaries
 
-- [ ] Confirm supported `cloudevents/sdk-php` versions.
-- [ ] Decide root-package versus bridge-package placement.
-- [ ] Record package-placement decision.
-- [ ] Define `CloudEventFactoryInterface`.
-- [ ] Define occurrence-to-CloudEvent mapper contract.
-- [ ] Define CloudEvent-to-occurrence mapper contract.
-- [ ] Define mapping policy configuration.
+- [x] Confirm supported `cloudevents/sdk-php` versions. — decision: no SDK dependency; the bridge implements the CloudEvents 1.0 structured JSON envelope directly (see ADR-021).
+- [x] Decide root-package versus bridge-package placement. — root package, in-tree adapter, mirroring M8/M9.
+- [x] Record package-placement decision. — `docs/adr/ADR-021-cloudevents-bridge-placement.md`.
+- [x] Define `CloudEventFactoryInterface`.
+- [x] Define occurrence-to-CloudEvent mapper contract.
+- [x] Define CloudEvent-to-occurrence mapper contract.
+- [x] Define mapping policy configuration. — `CloudEventMappingPolicy` (spec version, maximum serialized bytes).
 
 ## M10.2 Occurrence to CloudEvent
 
-- [ ] Map occurrence ID to `id`.
-- [ ] Map occurrence type to `type`.
-- [ ] Map source to `source`.
-- [ ] Map subject to `subject`.
-- [ ] Map occurrence time to `time`.
-- [ ] Map content type to `datacontenttype`.
-- [ ] Map data schema to `dataschema`.
-- [ ] Map data to `data`.
-- [ ] Map execution ID extension.
-- [ ] Map activity ID extension.
-- [ ] Map correlation ID extension.
-- [ ] Map sequence extension.
-- [ ] Preserve approved custom extensions.
-- [ ] Validate extension names.
-- [ ] Add complete mapping tests.
+- [x] Map occurrence ID to `id`.
+- [x] Map occurrence type to `type`.
+- [x] Map source to `source`.
+- [x] Map subject to `subject`.
+- [x] Map occurrence time to `time`.
+- [x] Map content type to `datacontenttype`.
+- [x] Map data schema to `dataschema`.
+- [x] Map data to `data`.
+- [x] Map execution ID extension.
+- [x] Map activity ID extension.
+- [x] Map correlation ID extension.
+- [x] Map sequence extension.
+- [x] Preserve approved custom extensions.
+- [x] Validate extension names.
+- [x] Add complete mapping tests.
 
 ## M10.3 CloudEvent to occurrence
 
-- [ ] Validate required CloudEvent fields.
-- [ ] Reject unsupported or malformed fields safely.
-- [ ] Reconstruct occurrence identity.
-- [ ] Reconstruct an occurrence type.
-- [ ] Reconstruct source and subject.
-- [ ] Reconstruct time.
-- [ ] Reconstruct schema and content type.
-- [ ] Reconstruct execution identity from extension.
-- [ ] Reconstruct activity identity from extension.
-- [ ] Preserve unknown extension attributes.
-- [ ] Define behavior when execution identity is missing.
-- [ ] Add reverse-mapping tests.
+- [x] Validate required CloudEvent fields.
+- [x] Reject unsupported or malformed fields safely.
+- [x] Reconstruct occurrence identity.
+- [x] Reconstruct an occurrence type.
+- [x] Reconstruct source and subject.
+- [x] Reconstruct time.
+- [x] Reconstruct schema and content type.
+- [x] Reconstruct execution identity from extension.
+- [x] Reconstruct activity identity from extension.
+- [x] Preserve unknown extension attributes.
+- [x] Define behavior when execution identity is missing. — reject: a RunIt occurrence is always execution-owned, so a missing `executionid` extension is a malformed event.
+- [x] Add reverse-mapping tests.
 
 ## M10.4 Serialization and bindings
 
-- [ ] Implement structured JSON serialization.
-- [ ] Implement structured JSON deserialization.
-- [ ] Preserve data types allowed by the SDK.
-- [ ] Define maximum serialized event size.
-- [ ] Reject oversized events.
-- [ ] Define HTTP binding adapter if included in `1.0.0`.
-- [ ] Add content-type tests.
-- [ ] Add malformed-JSON tests.
-- [ ] Add round-trip tests.
-- [ ] Add official-spec example fixtures where licensing permits.
+- [x] Implement structured JSON serialization.
+- [x] Implement structured JSON deserialization.
+- [x] Preserve data types allowed by the SDK. — recursively-primitive payloads only.
+- [x] Define maximum serialized event size.
+- [x] Reject oversized events.
+- [x] Define HTTP binding adapter if included in `1.0.0`. — `Psr18CloudEventSink` (PSR-18 + PSR-17 factories).
+- [x] Add content-type tests.
+- [x] Add malformed-JSON tests.
+- [x] Add round-trip tests.
+- [ ] Add official-spec example fixtures where licensing permits. — not added; the spec examples are externally licensed and not vendored.
 
 ## M10.5 Delivery adapters
 
-- [ ] Define CloudEvent sink port.
-- [ ] Implement callback sink.
-- [ ] Implement PSR-18 HTTP sink if in scope.
-- [ ] Apply publication timeout policy.
-- [ ] Apply retry policy only at adapter level.
-- [ ] Avoid hidden durable-delivery guarantees.
-- [ ] Document at-most-once default behavior.
-- [ ] Add delivery-failure tests.
+- [x] Define CloudEvent sink port. — `CloudEventSinkInterface`.
+- [x] Implement callback sink. — `CallbackCloudEventSink`.
+- [x] Implement PSR-18 HTTP sink if in scope. — `Psr18CloudEventSink`.
+- [x] Apply publication timeout policy. — delegated to the caller-supplied PSR-18 client.
+- [x] Apply retry policy only at adapter level. — the sink performs a single best-effort `POST`; retry is the consumer's responsibility.
+- [x] Avoid hidden durable-delivery guarantees. — at-most-once by default, documented.
+- [x] Document at-most-once default behavior.
+- [x] Add delivery-failure tests.
 
 ## M10 documentation
 
-- [ ] Create `docs/integrations/cloudevents.md`.
-- [ ] Document mapping table.
-- [ ] Document extension attributes.
-- [ ] Document occurrence naming.
-- [ ] Document event-size limits.
-- [ ] Document delivery guarantees.
-- [ ] Add a structured JSON example.
-- [ ] Add HTTP publication example if supported.
+- [x] Create `docs/integrations/cloudevents.md`.
+- [x] Document mapping table.
+- [x] Document extension attributes.
+- [x] Document occurrence naming.
+- [x] Document event-size limits.
+- [x] Document delivery guarantees.
+- [x] Add a structured JSON example.
+- [x] Add HTTP publication example if supported.
 
 ## M10 acceptance gate
 
-- [ ] Occurrence-to-CloudEvent mapping passes contract tests.
-- [ ] Bidirectional round trips preserve supported semantics.
-- [ ] Unknown extensions are preserved.
-- [ ] Oversized or malformed events fail safely.
-- [ ] Core remains usable without the CloudEvents SDK.
-- [ ] Delivery guarantees are explicitly documented.
+- [x] Occurrence-to-CloudEvent mapping passes contract tests.
+- [x] Bidirectional round trips preserve supported semantics.
+- [x] Unknown extensions are preserved.
+- [x] Oversized or malformed events fail safely.
+- [x] Core remains usable without the CloudEvents SDK.
+- [x] Delivery guarantees are explicitly documented.
+
+## M10 status audit — August 20, 2026
+
+Milestone M10 delivers an optional, SDK-free CloudEvents bridge under
+`src/Adapter/CloudEvents` that maps RunIt occurrences to and from the CloudEvents
+1.0 envelope. The bridge depends only on `Contract`, `Domain`, `Behavior`, and
+`Common`; it never imports `cloudevents/sdk-php` and never configures a global
+CloudEvents provider. The package-placement decision is recorded in ADR-021, which
+follows the in-tree adapter pattern established by M8 (PSR) and M9 (OpenTelemetry).
+
+Implemented and covered by in-memory tests:
+
+- Integration boundaries: `CloudEvent` immutable value object, `CloudEventExtensionKey`
+  (reserved RunIt extension names), `CloudEventMappingPolicy`, ADR-021. No CloudEvents
+  SDK dependency enters the domain, application, or SDK layers.
+- Occurrence → CloudEvent (`DefaultOccurrenceToCloudEventMapper` via
+  `DefaultCloudEventFactory`): maps `id`, `type`, `source`, `subject`, `time`
+  (epoch seconds → RFC 3339 UTC), `datacontenttype`, `dataschema`, `data`, and the
+  RunIt correlation as extension attributes (`executionid`, `activityid`,
+  `correlationid`, `sequence`). Custom occurrence extension attributes with valid
+  CloudEvents extension names are preserved; keys that cannot be represented are
+  dropped.
+- CloudEvent → occurrence (`DefaultCloudEventToOccurrenceMapper`): validates required
+  fields, reconstructs identity/type/source/subject/time/schema/content type, folds
+  known RunIt extensions into their semantic fields, preserves unknown extensions,
+  and rejects events without an `executionid` extension.
+- Serialization (`DefaultCloudEventJsonSerializer`): structured JSON with a
+  configurable maximum size (default 65 536 bytes), rejecting oversized input and
+  malformed JSON; round trips preserve supported semantics.
+- Delivery (`CloudEventSinkInterface`, `CallbackCloudEventSink`, `Psr18CloudEventSink`):
+  a callback sink for in-memory capture and a PSR-18/PSR-17 HTTP sink that posts the
+  serialized event with the `application/cloudevents+json` content type. The sink is
+  best-effort (at-most-once), performs no retry, and propagates delivery failures to
+  the configured publication failure policy.
+- `CloudEventPublisher` composes a mapper and a sink, implements `ArtifactPublisherInterface`,
+  and publishes occurrences while ignoring every other artifact type, so it drops
+  cleanly into the existing publication pipeline.
+
+Verification:
+
+- `composer analyse` (PHPStan, maximum level) reports zero first-party errors on the new
+  adapter and tests.
+- `composer architecture` (DepTrac) reports zero violations; the `Adapter` layer depends
+  only on `Contract`, `Domain`, `Behavior`, and `Common`.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Unit tests cover envelope validation, both mapping directions, round trips, unknown
+  extension preservation, missing-execution-identity rejection, size limits, malformed
+  JSON, callback and PSR-18 sinks, and publisher dispatch. `composer test:unit` passes
+  (580 tests, 5089 assertions).
+- `examples/cloudevents.php` runs and emits a valid structured JSON CloudEvent.
+
+### Open gap — official-spec fixtures
+
+M10.4 lists official CloudEvents spec example fixtures; these were not vendored because
+the upstream examples carry their own licensing that is not cleared for inclusion here.
+The bidirectional round-trip tests cover the same semantics with project-owned fixtures.
 
 ---
 
