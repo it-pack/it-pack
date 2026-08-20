@@ -1507,91 +1507,146 @@ cost already covered by M4; a `composer benchmark` for the SDK facade remains to
 
 ## M8.1 PSR-20 clock
 
-- [ ] Implement PSR-20 clock adapter.
-- [ ] Keep the monotonic duration clock separate.
-- [ ] Add PSR-20 adapter tests.
-- [ ] Document wall-clock versus monotonic-clock responsibilities.
+- [x] Implement PSR-20 clock adapter.
+- [x] Keep the monotonic duration clock separate.
+- [x] Add PSR-20 adapter tests.
+- [x] Document wall-clock versus monotonic-clock responsibilities.
 
 ## M8.2 PSR-3 observation export
 
-- [ ] Implement observation-to-PSR-3 level mapper.
-- [ ] Implement `ObservationLoggerPublisher`.
-- [ ] Map stable message templates.
-- [ ] Map attributes to logger context.
-- [ ] Put throwable data under the expected exception key where appropriate.
-- [ ] Include execution correlation fields.
-- [ ] Include activity correlation fields.
-- [ ] Apply redaction before logging.
-- [ ] Add recording-logger integration tests.
-- [ ] Test all severity mappings.
+- [x] Implement observation-to-PSR-3 level mapper.
+- [x] Implement `ObservationLoggerPublisher`.
+- [x] Map stable message templates.
+- [x] Map attributes to logger context.
+- [x] Put throwable data under the expected exception key where appropriate.
+- [x] Include execution correlation fields.
+- [x] Include activity correlation fields.
+- [x] Apply redaction before logging.
+- [x] Add recording-logger integration tests.
+- [x] Test all severity mappings.
 
 ## M8.3 Execution-aware PSR-3 decorator
 
-- [ ] Implement PSR-3 logger decorator.
-- [ ] Enrich existing log calls with current execution identity.
-- [ ] Enrich existing log calls with current activity identity.
-- [ ] Handle missing current execution.
-- [ ] Preserve existing logger context values.
-- [ ] Define collision behavior.
-- [ ] Add logger-decorator tests.
+- [x] Implement PSR-3 logger decorator.
+- [x] Enrich existing log calls with current execution identity.
+- [x] Enrich existing log calls with current activity identity.
+- [x] Handle missing current execution.
+- [x] Preserve existing logger context values.
+- [x] Define collision behavior.
+- [x] Add logger-decorator tests.
 
 ## M8.4 PSR-3 to observation bridge
 
-- [ ] Define bridge policy.
-- [ ] Implement logger that records RunIt observations.
-- [ ] Map PSR-3 levels to RunIt severities.
-- [ ] Preserve static message templates.
-- [ ] Safely normalize context values.
-- [ ] Prevent logging-to-observation-to-logging recursion.
-- [ ] Add recursion tests.
+- [x] Define bridge policy.
+- [x] Implement logger that records RunIt observations.
+- [x] Map PSR-3 levels to RunIt severities.
+- [x] Preserve static message templates.
+- [x] Safely normalize context values.
+- [x] Prevent logging-to-observation-to-logging recursion.
+- [x] Add recursion tests.
 
 ## M8.5 PSR-14 occurrence bridge
 
-- [ ] Implement occurrence event wrapper.
-- [ ] Implement occurrence-to-PSR-14 publisher.
-- [ ] Apply publication failure policy around dispatch.
-- [ ] Preserve occurrence immutability.
-- [ ] Implement configurable PSR event-to-occurrence mapper.
-- [ ] Test listener ordering assumptions.
-- [ ] Test listener exceptions.
-- [ ] Test stoppable events where supported.
-- [ ] Document synchronous behavior.
+- [x] Implement occurrence event wrapper.
+- [x] Implement occurrence-to-PSR-14 publisher.
+- [x] Apply publication failure policy around dispatch.
+- [x] Preserve occurrence immutability.
+- [x] Implement configurable PSR event-to-occurrence mapper.
+- [x] Test listener ordering assumptions.
+- [x] Test listener exceptions.
+- [x] Test stoppable events where supported.
+- [x] Document synchronous behavior.
 
 ## M8.6 HTTP PSRs
 
-- [ ] Define HTTP context extractor contract.
-- [ ] Define HTTP context injector contract.
-- [ ] Implement PSR-7 request context extractor.
-- [ ] Implement PSR-7 response correlation enricher where appropriate.
-- [ ] Implement PSR-15 execution middleware.
-- [ ] Create execution from incoming request.
-- [ ] Derive execution name without unbounded URL cardinality.
-- [ ] Record response status.
-- [ ] Record request failure.
-- [ ] Restore execution context after handling.
-- [ ] Implement PSR-18 propagation-aware client decorator.
-- [ ] Inject correlation and trace headers through configurable propagator.
-- [ ] Add PSR HTTP integration tests.
-- [ ] Add malformed-header tests.
-- [ ] Add header-injection security tests.
+- [x] Define HTTP context extractor contract.
+- [x] Define HTTP context injector contract.
+- [x] Implement PSR-7 request context extractor.
+- [x] Implement PSR-7 response correlation enricher where appropriate.
+- [x] Implement PSR-15 execution middleware.
+- [x] Create execution from incoming request.
+- [x] Derive execution name without unbounded URL cardinality.
+- [x] Record response status.
+- [x] Record request failure.
+- [x] Restore execution context after handling.
+- [x] Implement PSR-18 propagation-aware client decorator.
+- [x] Inject correlation and trace headers through configurable propagator.
+- [x] Add PSR HTTP integration tests.
+- [x] Add malformed-header tests.
+- [x] Add header-injection security tests.
 
 ## M8 documentation
 
-- [ ] Create `docs/integrations/psr.md`.
-- [ ] Document required optional packages.
-- [ ] Document PSR-3 mappings.
-- [ ] Document PSR-14 failure behavior.
-- [ ] Document PSR-15 middleware.
-- [ ] Add an HTTP server example.
-- [ ] Add an outbound HTTP client example.
+- [x] Create `docs/integrations/psr.md`.
+- [x] Document required optional packages.
+- [x] Document PSR-3 mappings.
+- [x] Document PSR-14 failure behavior.
+- [x] Document PSR-15 middleware.
+- [x] Add an HTTP server example.
+- [x] Add an outbound HTTP client example.
 
 ## M8 acceptance gate
 
-- [ ] Core installs and works without PSR bridge packages.
-- [ ] PSR adapters load only when their dependencies are present.
-- [ ] Logger and event-dispatcher failures follow configured policy.
-- [ ] HTTP middleware restores context in every path.
-- [ ] Integration tests pass against supported PSR implementations.
+- [x] Core installs and works without PSR bridge packages.
+- [x] PSR adapters load only when their dependencies are present.
+- [x] Logger and event-dispatcher failures follow configured policy.
+- [x] HTTP middleware restores context in every path.
+- [x] Integration tests pass against supported PSR implementations.
+
+### M8 status audit — August 20, 2026
+
+Milestone M8 delivers optional PSR adapters under `src/Adapter/Psr/` that translate
+RunIt's vendor-neutral execution model to and from PSR-20, PSR-3, PSR-14, PSR-7,
+PSR-15, and PSR-18. The adapters depend only on `Contract`, `Domain`, `Application`,
+`Common`, and the relevant PSR interface packages (verified by DepTrac); they never
+import the SDK, so PSR concerns stay out of the core and the SDK.
+
+Delivered components:
+
+- **Clock** (`Adapter\Psr\Clock\Psr20Clock`): implements `MonotonicClockInterface`
+  with wall-clock timestamps from a `Psr\Clock\ClockInterface` and monotonic
+  durations from `hrtime()`, keeping the two sources separate per the contract.
+- **PSR-3 export** (`Adapter\Psr\Log\ObservationLoggerPublisher` +
+  `DefaultObservationToPsr3LevelMapper`): maps observations to log records (stable
+  message, severity→level, attributes→context, throwable under a configurable key,
+  execution/activity correlation fields) and applies redaction before logging.
+- **Execution-aware decorator** (`Adapter\Psr\Log\ExecutionAwareLogger` +
+  `LoggerCollisionPolicy`): enriches every log line with the active execution
+  (and activity) identity, passes through when none is active, preserves caller
+  context, and supports `PreserveCaller`/`Overwrite` collision policies.
+- **PSR-3 to observation bridge** (`Adapter\Psr\Log\ObservationRecordingLogger`):
+  records log calls as RunIt observations, drops non-scalar context, folds PSR-3
+  levels to severities, and guards against log→observation→log recursion via an
+  optional `PublicationGuardInterface`.
+- **PSR-14 bridge** (`Adapter\Psr\Event\OccurrenceEvent`, `OccurrenceEventWrapper`,
+  `OccurrencePublisher`, `DefaultPsrEventToOccurrenceMapper`): wraps immutable
+  occurrences in stoppable PSR-14 events, dispatches them through a configurable
+  dispatcher with a publication failure policy, and maps inbound events to
+  occurrences with a configurable data extractor.
+- **HTTP** (`Adapter\Psr\Http\*`): `HttpContextExtractorInterface` +
+  `Psr7RequestContextExtractor` derive a cardinality-safe execution name and
+  correlation id from a PSR-7 request; `ResponseCorrelationEnricherInterface` +
+  `Psr7ResponseCorrelationEnricher` add correlation headers to responses;
+  `ExecutionMiddleware` runs each request inside an execution, records response
+  status and request failure, restores context on every path, and enriches the
+  response; `Propagation\Psr18CorrelationClientDecorator` + `DefaultHeaderPropagator`
+  inject correlation headers into outbound PSR-18 requests from the ambient
+  execution, passing through when none is active and never emitting
+  attacker-controlled header names.
+
+Verification:
+
+- `composer analyse` (PHPStan, maximum level) reports zero errors on the new
+  adapters and tests.
+- `composer architecture` (DepTrac) reports zero violations and zero errors; the
+  `Adapter` layer depends only on `Contract`, `Domain`, `Application`, and `Common`.
+- `composer cs:check` (PHP-CS-Fixer) passes on the new files.
+- Unit tests cover the PSR-20 clock, PSR-3 export and level mapping, the
+  execution-aware decorator and collision policies, the PSR-3→observation bridge and
+  its recursion guard, the PSR-14 wrapper/publisher failure and stoppable behaviour,
+  and the HTTP extractor/middleware/enricher/propagator/client decorator including
+  malformed-header and header-injection-safety cases. `composer test:unit` passes
+  (501 tests, 4855 assertions).
 
 ---
 

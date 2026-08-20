@@ -45,7 +45,13 @@
         "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3",
         "symfony/http-client": "^8.1",
-        "nyholm/psr7": "^1.8"
+        "nyholm/psr7": "^1.8",
+        "psr/clock": "^1.0",
+        "psr/log": "^3.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+        "psr/http-client": "^1.0",
+        "psr/http-server-handler": "^1.0"
     },
     "suggest": {
         "psr/clock": "PSR-20 clock integration",

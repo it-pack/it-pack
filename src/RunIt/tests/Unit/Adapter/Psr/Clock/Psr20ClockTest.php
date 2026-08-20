@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Adapter\Psr\Clock;
+
+use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Psr\Clock\Psr20Clock;
+use Psr\Clock\ClockInterface;
+
+final class Psr20ClockTest extends Unit
+{
+    private function clockAt(int $epochSeconds): ClockInterface
+    {
+        return new class ($epochSeconds) implements ClockInterface {
+            public function __construct(private readonly int $epoch)
+            {
+            }
+
+            public function now(): \DateTimeImmutable
+            {
+                return new \DateTimeImmutable('@' . $this->epoch);
+            }
+        };
+    }
+
+    public function testWallClockComesFromPsr20Clock(): void
+    {
+        $clock = new Psr20Clock($this->clockAt(1_700_000_000));
+
+        self::assertSame(1_700_000_000, $clock->nowSeconds());
+    }
+
+    public function testMonotonicTimeIsIndependentOfWallClock(): void
+    {
+        $clock = new Psr20Clock($this->clockAt(1_700_000_000));
+
+        self::assertNotEquals(1_700_000_000, $clock->monotonicNanoseconds());
+        self::assertGreaterThan(0, $clock->monotonicNanoseconds());
+    }
+
+    public function testMeasureUsesMonotonicReadings(): void
+    {
+        $clock = new Psr20Clock($this->clockAt(1_700_000_000));
+
+        $duration = $clock->measure(0, 1_000_000_000);
+
+        self::assertSame(1, $duration->seconds());
+        self::assertSame(1_000_000_000, $duration->nanoseconds());
+    }
+}
