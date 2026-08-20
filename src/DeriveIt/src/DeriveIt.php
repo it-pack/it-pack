@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt;
 
 use ItPack\DeriveIt\Generator\AdapterGenerator;
+use ItPack\DeriveIt\Generator\DerivationResult;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\FamilyDeriver;
 use ItPack\DeriveIt\Generator\InterfaceDeriver;
 use ItPack\DeriveIt\Generator\PerTraitInterfaceDeriver;
+use ItPack\DeriveIt\Generator\SourceRenderer;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
@@ -101,6 +103,51 @@ final class DeriveIt
         $interface = new InterfaceDeriver(config: $config)->derive($reflection);
 
         return new AdapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
+    }
+
+    /**
+     * Derive and return a structured {@see DerivationResult} (D1) carrying the
+     * interface, FQCN, applied substitutions, and surface.
+     *
+     * @param ReflectionClass|class-string $class
+     */
+    public static function deriveWithResult(
+        ReflectionClass|string $class,
+        DeriveConfig $config = new DeriveConfig(),
+    ): DerivationResult {
+        return new InterfaceDeriver(config: $config)->deriveWithResult($class);
+    }
+
+    /**
+     * Derive a whole family and return a single source string grouping every
+     * derived interface by namespace (C4). Each member is derived once and
+     * cross-references are rewritten to derived interface FQCNs.
+     *
+     * @param array<int, class-string> $classes
+     * @param array<string, string> $namespacePrefixMap Owned-namespace rewrite, e.g. `App\` => `App\Port\`.
+     */
+    public static function deriveFamilySource(array $classes, array $namespacePrefixMap = []): string
+    {
+        return new FamilyDeriver()->deriveSource($classes, $namespacePrefixMap);
+    }
+
+    /**
+     * Auto-discover the family reachable from a root class and derive it (C3).
+     *
+     * @param array<string, string> $namespacePrefixMap
+     * @return array<class-string, string> keyed by class FQCN -> rendered interface source
+     */
+    public static function deriveFamilyFromRoot(string $rootClass, array $namespacePrefixMap = []): array
+    {
+        $derived = new FamilyDeriver()->deriveFromRoot($rootClass, $namespacePrefixMap);
+
+        $result = [];
+        foreach ($derived as $fqcn => $interface) {
+            $reflection = new ReflectionClass($fqcn);
+            $result[$fqcn] = new SourceRenderer()->render($interface, $reflection->getNamespaceName());
+        }
+
+        return $result;
     }
 
     private static function renderInterface(InterfaceType $interface, string $namespace): string

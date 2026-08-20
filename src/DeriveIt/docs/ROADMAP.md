@@ -415,10 +415,19 @@ tooling already proven in the sibling `ConfigureIt` package.
 
 ## Phase 9 — Edge-case & Optimization Hardening
 
-> Derived from the in-depth feature review (`docs/OPTIMIZATION_PLAN.md`, 2026-08-20).
-> Goal: close real leakage/semantic gaps found in the golden outputs, then add
-> structured-DX, family-depth, performance, and maintainability improvements. Every
-> step must keep all five gates green (per `AGENTS.md`).
+> **Status: ✅ Completed (2026-08-20).** Steps 9.1–9.6 delivered: self/static/parent
+> substitution (A1) + naming-collision detection (A5); `DerivationResult` (D1) +
+> `with*()` config parity (D3) + typed exceptions (D4); default-value constant
+> rewrite (A2), union/intersection adapter return wrapping (A3), `failOnEmpty` (A6);
+> `includeConstants` / attribute + `@throws` pass-through / `onlyMethods`+`skipMethods`
+> (B1–B3); transitive substitution, owned-namespace policy, root auto-discovery,
+> combined family source (C1–C4); family + resolver memoization (E1/E2, F4), shared
+> `SourceRenderer` (F1), centralized `Naming` (F3). All five gates green:
+> `test:unit` 141/141, `cs:check` 0, `analyse` 0, deptrac 0, `infection` MSI ≥ 80%.
+> F2 (AdapterGenerator/FamilyDeriver implement `DeriverInterface`) was **deliberately
+> not force-fit** — their outputs are a class and a per-member map respectively, so a
+> single `InterfaceType`-returning seam would be lossy; the shared `derive`/`deriveSource`
+> method names are already present. Every step kept all five gates green (per `AGENTS.md`).
 
 **Sequencing principle:** correctness first (A), then structured result + DX (D),
 then surface richness (B), family depth (C), performance (E), maintainability (F).

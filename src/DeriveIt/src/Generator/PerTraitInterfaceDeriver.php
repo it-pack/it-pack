@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
+use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Reflection\ClassReflection;
 use Nette\PhpGenerator\InterfaceType;
-use Nette\PhpGenerator\PhpFile;
-use Nette\PhpGenerator\PhpNamespace;
 use ReflectionClass;
 
 /**
@@ -25,14 +24,16 @@ use ReflectionClass;
 final class PerTraitInterfaceDeriver implements DeriverInterface
 {
     private readonly MethodExtractor $extractor;
-    private readonly TypeSubstitutor $substitutor;
+    private readonly SourceRenderer $renderer;
+    private readonly MethodSignatureFactory $signatureFactory;
 
     public function __construct(
-        private readonly MethodSignatureFactory $signatureFactory = new MethodSignatureFactory(),
-        DeriveConfig $config = new DeriveConfig(),
+        ?MethodSignatureFactory $signatureFactory = null,
+        private readonly DeriveConfig $config = new DeriveConfig(),
     ) {
         $this->extractor = new MethodExtractor($config);
-        $this->substitutor = new TypeSubstitutor($config->typeSubstitutionMap);
+        $this->renderer = new SourceRenderer();
+        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(config: $config);
     }
 
     /**
@@ -40,6 +41,14 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
      */
     public function deriveTraitInterfaces(ReflectionClass $reflection): array
     {
+        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
+        $parent = $reflection->getParentClass();
+        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
+            ? Naming::derivedInterfaceFqcn($parent)
+            : null;
+
+        $substitutor = new TypeSubstitutor($this->config->typeSubstitutionMap, $selfFqcn, $parentFqcn);
+
         $claimed = [];
         $interfaces = [];
 
@@ -47,11 +56,11 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
             $methods = [];
             foreach ($this->extractor->extract($trait) as $method) {
                 $name = $method->getName();
-                if (isset($claimed[$name])) {
+                if (isset($claimed[$name]) || $this->shouldSkipMethod($name)) {
                     continue;
                 }
                 $claimed[$name] = true;
-                $methods[] = $this->signatureFactory->fromMethod($method, $this->substitutor);
+                $methods[] = $this->signatureFactory->fromMethod($method, $substitutor);
             }
 
             if ($methods === []) {
@@ -71,7 +80,7 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
         $reflection = is_string($class) ? new ReflectionClass($class) : $class;
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
 
-        $main = new InterfaceType($this->deriveName($reflection));
+        $main = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
         $namespace = $reflection->getNamespaceName();
         $main->setExtends(array_map(
             static fn (InterfaceType $i): string => $namespace === ''
@@ -87,12 +96,20 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
             }
         }
 
+        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
+        $parent = $reflection->getParentClass();
+        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
+            ? Naming::derivedInterfaceFqcn($parent)
+            : null;
+        $substitutor = new TypeSubstitutor($this->config->typeSubstitutionMap, $selfFqcn, $parentFqcn);
+
         $mainMethods = [];
         foreach ($this->extractor->extract($reflection) as $method) {
-            if (isset($traitMethodNames[$method->getName()])) {
+            $name = $method->getName();
+            if (isset($traitMethodNames[$name]) || $this->shouldSkipMethod($name)) {
                 continue;
             }
-            $mainMethods[] = $this->signatureFactory->fromMethod($method, $this->substitutor);
+            $mainMethods[] = $this->signatureFactory->fromMethod($method, $substitutor);
         }
         $main->setMethods($mainMethods);
 
@@ -107,16 +124,7 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
         $main = $this->derive($reflection);
 
-        $namespace = new PhpNamespace($reflection->getNamespaceName());
-        foreach ($traitInterfaces as $interface) {
-            $namespace->add($interface);
-        }
-        $namespace->add($main);
-
-        $file = new PhpFile();
-        $file->addNamespace($namespace);
-
-        return (string) $file;
+        return $this->renderer->renderMany([...array_values($traitInterfaces), $main], $reflection->getNamespaceName());
     }
 
     /**
@@ -137,19 +145,23 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
         sort($actual);
 
         if ($expected !== $actual) {
-            throw new \LogicException(sprintf(
+            throw new LeakageDetectedException(sprintf(
                 'Main interface "%s" must extend exactly the derived trait interfaces (adaptee leakage).',
                 $main->getName(),
             ));
         }
     }
 
-    private function deriveName(ReflectionClass $reflection): string
+    private function shouldSkipMethod(string $name): bool
     {
-        $shortName = $reflection->getShortName();
+        if (in_array($name, $this->config->skipMethods, true)) {
+            return true;
+        }
 
-        return str_ends_with($shortName, 'Interface')
-            ? $shortName . 'Derived'
-            : $shortName . 'Interface';
+        if ($this->config->onlyMethods !== [] && !in_array($name, $this->config->onlyMethods, true)) {
+            return true;
+        }
+
+        return false;
     }
 }

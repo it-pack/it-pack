@@ -4,10 +4,10 @@ namespace _Fixture;
 
 interface NodeInterface
 {
-	function getNext(): ?Node;
+	function getNext(): ?NodeInterface;
 
 
-	function addChild(Node $child): void;
+	function addChild(NodeInterface $child): void;
 
 
 	function label(): string;

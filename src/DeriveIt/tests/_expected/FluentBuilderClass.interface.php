@@ -4,10 +4,10 @@ namespace _Fixture;
 
 interface FluentBuilderClassInterface
 {
-	function withName(string $name): static;
+	function withName(string $name): FluentBuilderClassInterface;
 
 
-	function withVersion(int $version): static;
+	function withVersion(int $version): FluentBuilderClassInterface;
 
 
 	function build(): object;

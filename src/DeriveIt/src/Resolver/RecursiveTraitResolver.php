@@ -12,6 +12,15 @@ final class RecursiveTraitResolver implements RecursiveTraitResolverInterface
 {
     use LazyCreatable;
 
+    /**
+     * Per-node resolution cache so a class/trait visited more than once (it is
+     * common for a shared trait to appear under several subclasses) is only
+     * walked once instead of being re-resolved on every path (F4).
+     *
+     * @var array<string, list<ReflectionClass>>
+     */
+    private array $memo = [];
+
     public static function create(): self
     {
         return new self();
@@ -19,18 +28,22 @@ final class RecursiveTraitResolver implements RecursiveTraitResolverInterface
 
     public function resolve(ReflectionClass $reflection): array
     {
-        $traits = $this->resolveClassInheritance($reflection);
+        $key = $reflection->getName();
+        if (isset($this->memo[$key])) {
+            return $this->memo[$key];
+        }
 
-        return $traits === []
+        $traits = $this->resolveClassInheritance($reflection);
+        $resolved = $traits === []
             ? []
             : array_unique(
                 array_merge(
                     $traits,
-                    ...$this->resolveTraitInheritance(
-                        $reflection
-                    )
+                    ...$this->resolveTraitInheritance($reflection)
                 )
             );
+
+        return $this->memo[$key] = $resolved;
     }
 
     private function resolveClassInheritance(ReflectionClass $reflection): array

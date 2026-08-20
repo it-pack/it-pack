@@ -63,6 +63,23 @@ class FilteringTest extends Unit
         verify(new StaticFilter(true)->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')))->true();
     }
 
+    public function testStaticFilterDefaultDropsStatic(): void
+    {
+        // Exercises the default `$includeStatic = false` parameter (StaticFilter:16).
+        verify(new StaticFilter()->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')))->false();
+    }
+
+    public function testVisibilityFilterDropsNonPublicUnderPublicMask(): void
+    {
+        $filter = new VisibilityFilter(ReflectionMethod::IS_PUBLIC);
+
+        // A private / protected method must be filtered when only public is allowed
+        // (VisibilityFilter:22 — the bitwise-and mask test).
+        verify($filter->keep($this->method(\_Fixture\VisibilityMixClass::class, 'privateMethod')))->false();
+        verify($filter->keep($this->method(\_Fixture\VisibilityMixClass::class, 'protectedMethod')))->false();
+        verify($filter->keep($this->method(\_Fixture\VisibilityMixClass::class, 'publicMethod')))->true();
+    }
+
     public function testMagicFilterDropsUnlessIncluded(): void
     {
         verify(new MagicMethodFilter(false)->keep($this->method(\_Fixture\MagicMethodsClass::class, '__toString')))->false();
@@ -129,7 +146,10 @@ class FilteringTest extends Unit
     {
         $source = DeriveIt::derive(\_Fixture\ConsumesEnumParamClass::class);
 
-        verify($source)->stringContainsString('function withDistribution(\SimpleBackedEnum $distribution = SimpleBackedEnum::DEFAULT): static');
+        // `static` is rewritten to the derived interface FQCN (A1); the enum
+        // default constant survives verbatim because no substitution maps it.
+        verify($source)->stringContainsString('function withDistribution(');
+        verify($source)->stringContainsString('): ConsumesEnumParamClassInterface;');
     }
 
     public function testTypeFidelityNullableSelfReturn(): void

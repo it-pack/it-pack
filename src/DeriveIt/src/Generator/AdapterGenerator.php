@@ -138,44 +138,59 @@ final class AdapterGenerator
      */
     private function bodyFor(string $call, ?string $returnType, bool $nullable): string
     {
-        if ($returnType === 'void') {
+        if ($returnType === null || $returnType === 'void') {
             return $call . ';';
         }
 
-        $wrapper = is_string($returnType) ? $this->wrapperFor($returnType) : null;
+        $normalized = str_replace('?', '', $returnType);
+        $isUnion = str_contains($normalized, '|');
+        $isIntersection = str_contains($normalized, '&');
 
-        if ($wrapper === null) {
+        $wrappers = [];
+        $segments = preg_split('/[|&]/', $normalized);
+        foreach ($segments === false ? [] : $segments as $segment) {
+            $wrapper = $this->returnWrapperMap[$segment] ?? null;
+            if ($wrapper !== null) {
+                $wrappers[$segment] = '\\' . ltrim($wrapper, '\\');
+            }
+        }
+
+        // Single (non-compound) return type: keep the established single-wrapper
+        // shape so existing generated output is unchanged.
+        if (!$isUnion && !$isIntersection) {
+            $segment = $normalized;
+            if (!isset($wrappers[$segment])) {
+                return sprintf('return %s;', $call);
+            }
+
+            if ($nullable) {
+                return sprintf(
+                    "\$value = %s;\nreturn \$value === null ? null : new %s(\$value);",
+                    $call,
+                    $wrappers[$segment],
+                );
+            }
+
+            return sprintf('return new %s(%s);', $wrappers[$segment], $call);
+        }
+
+        // Intersection returns are not wrappable; degenerate to a raw delegation.
+        if ($isIntersection || $wrappers === []) {
             return sprintf('return %s;', $call);
         }
 
-        // Absolute FQCN so the instantiation resolves correctly from inside the
-        // adapter's own namespace (a bare/relative name would be doubled).
-        $wrapper = '\\' . ltrim($wrapper, '\\');
-
-        if ($nullable) {
-            return sprintf(
-                "\$value = %s;\nreturn \$value === null ? null : new %s(\$value);",
-                $call,
-                $wrapper,
-            );
+        // Union return: wrap each segment that has a registered adapter, dispatch
+        // on the runtime type. Unmatched segments fall through to the raw value,
+        // which still satisfies the derived interface (the concrete implements it).
+        $branches = '';
+        foreach ($wrappers as $segment => $wrapper) {
+            $branches .= sprintf("\t\t\$value instanceof \\%s => new %s(\$value),\n", $segment, $wrapper);
         }
 
-        return sprintf('return new %s(%s);', $wrapper, $call);
-    }
-
-    /**
-     * Returns the adapter class FQCN for a single (non-union, non-intersection)
-     * return type, or null when no wrapping is configured.
-     */
-    private function wrapperFor(string $returnType): ?string
-    {
-        $normalized = str_replace(['?', '&'], ['', '|'], $returnType);
-        $segments = explode('|', $normalized);
-
-        if (count($segments) !== 1) {
-            return null;
-        }
-
-        return $this->returnWrapperMap[$segments[0]] ?? null;
+        return sprintf(
+            "\$value = %s;\n\t\treturn match (true) {\n%s\t\tdefault => \$value,\n\t};",
+            $call,
+            $branches,
+        );
     }
 }

@@ -4,13 +4,13 @@ namespace _Fixture;
 
 interface SelfStaticParentReturnClassInterface
 {
-	function withSelf(): SelfStaticParentReturnClass;
+	function withSelf(): SelfStaticParentReturnClassInterface;
 
 
-	function withStatic(): static;
+	function withStatic(): SelfStaticParentReturnClassInterface;
 
 
-	function toParent(): ConcreteChildClass;
+	function toParent(): ConcreteChildClassInterface;
 
 
 	function abstractMethod(): string;
