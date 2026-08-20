@@ -18,6 +18,7 @@ enum Format: string
     case JSON = 'json';
     case YAML = 'yaml';
     case ENV = 'env';
+    case DOTENV = 'dotenv';
     case NEON = 'neon';
     case TOML = 'toml';
     case INI = 'ini';

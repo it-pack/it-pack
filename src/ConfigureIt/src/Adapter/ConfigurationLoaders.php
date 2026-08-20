@@ -28,6 +28,7 @@ final class ConfigurationLoaders
             new IniLoader(),
             new XmlLoader(),
             new FrontMatterLoader(),
+            new DotenvLoader(),
         ];
     }
 }

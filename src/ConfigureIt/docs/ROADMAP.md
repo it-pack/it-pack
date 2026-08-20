@@ -360,6 +360,33 @@ is SRP-clean. Covered by `DocumentNormalizerTest`, `VariableProcessorTest`,
   S3/cloud secret stores. All behind ports; async sources via Fibers
   (`REFACTORING_PLAN.md §9`, ADR-0008).
 
+**Status — partially delivered (Dotenv ✅).** Implemented behind the existing
+`ConfigurationSourceInterface` / `ConfigurationReaderInterface` /
+`ConfigurationLoaderInterface` ports, with vendor exceptions translated to the
+domain `ParseException` (AGENTS.md rule — adapters never leak vendor types):
+
+- `Format::DOTENV` added to the `Format` enumeration (`src/ValueObject/Format.php`).
+- `src/Adapter/DotenvLoader` — parses raw `.env` content via `Dotenv::parse()`
+  (the host environment is never mutated); `InvalidFileException` → `ParseException`.
+- `src/Adapter/DotenvSource` — yields a single `.env` file as a `DOTENV` resource
+  (yields nothing when the file is absent); reuses `FileReader` + the loader.
+- `src/Adapter/FileSource` now maps the `.env` extension → `Format::DOTENV`, and
+  `src/Adapter/ConfigurationLoaders::default()` bundles `DotenvLoader`, so `.env`
+  files are picked up transparently inside a directory scan.
+- `examples/dotenv.php` demonstrates the adapter end-to-end.
+
+Suite green: **103 tests / 196 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
+**Deferred (not in this pass):** Aura.Di, Vault, Redis, HTTP and S3/cloud secret
+stores. The `vlucas/phpdotenv` and `aura/di` packages are present in `require-dev`,
+but the remaining four are cloud/SDK-backed sources that need live services (or
+their SDKs, e.g. `aws/aws-sdk-php`, `predis/predis`) and cannot be exercised by the
+offline unit suite — mirroring the Phase 2 NEON/CSV-TSV deferral. Aura.Di is a DI
+container, not a natural pure configuration source; per `AGENTS.md` it is slated for
+a dedicated `configure-it-di` companion package rather than a core adapter. These
+remain the subject of later Phase 5+ work.
+
 ### Phase 6 — Graph & Provenance
 
 - Provenance tracking per node (source/priority/adapter/processor).

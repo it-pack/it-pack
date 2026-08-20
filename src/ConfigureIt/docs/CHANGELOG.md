@@ -202,6 +202,31 @@ Tests added: `DocumentNormalizerTest`, `VariableProcessorTest`, `ValidationProce
 Defaults compose end-to-end). Suite green: **97 tests / 182 assertions**, PHPStan level 9
 **0 errors**, `php-cs-fixer` **0 files to fix**. ADR-0010 status advanced Proposed → Accepted.
 
+### Phase 5 — Additional Adapters (Dotenv)
+
+Delivered the offline-feasible adapter from the Phase 5 list, behind the existing
+source/reader/loader ports (vendor exceptions translated to domain `ParseException`):
+
+- `src/ValueObject/Format.php` — new `Format::DOTENV` enumeration case.
+- `src/Adapter/DotenvLoader` — parses raw `.env` content through
+  `Dotenv::parse()` (the host environment is never mutated); `InvalidFileException`
+  is rethrown as `Exception\ParseException`.
+- `src/Adapter/DotenvSource` — yields a single `.env` file as a `DOTENV` resource
+  (yields nothing when the file is absent); reuses `FileReader` + the loader.
+- `src/Adapter/FileSource` now maps the `.env` extension → `Format::DOTENV`, and
+  `src/Adapter/ConfigurationLoaders::default()` bundles `DotenvLoader`, so `.env`
+  files are discovered inside a directory scan automatically.
+- `examples/dotenv.php` — end-to-end example (including `${VAR}` interpolation).
+
+Tests: `DotenvLoaderTest`, `DotenvSourceTest`, and a `.env` case added to
+`ConfigurationLoadersTest` (default-set coverage + multi-format resolution).
+Suite green: **103 tests / 196 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
+**Deferred:** Aura.Di, Vault, Redis, HTTP, S3/cloud secret stores — cloud/SDK-backed
+sources that cannot run against the offline unit suite; Aura.Di is a DI container
+slated for a dedicated `configure-it-di` companion package (see ROADMAP Phase 5).
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

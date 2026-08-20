@@ -26,7 +26,7 @@ class ConfigurationLoadersTest extends Unit
             }
         }
 
-        foreach ([Format::PHP, Format::JSON, Format::YAML, Format::TOML, Format::INI, Format::XML, Format::FRONTMATTER] as $format) {
+        foreach ([Format::PHP, Format::JSON, Format::YAML, Format::TOML, Format::INI, Format::XML, Format::FRONTMATTER, Format::DOTENV] as $format) {
             verify(isset($supported[$format->name]))->true();
         }
     }
@@ -40,6 +40,7 @@ class ConfigurationLoadersTest extends Unit
             file_put_contents($dir . '/base.yaml', "db:\n  host: yaml-host\napp:\n  name: yaml\n");
             file_put_contents($dir . '/extra.toml', "[feature]\nenabled = true\n");
             file_put_contents($dir . '/meta.md', "---\ntitle: Docs\n---\nBody\n");
+            file_put_contents($dir . '/vars.env', "dotenv_key=from-env-file\n");
 
             $resolver = new ConfigurationBuilder()
                 ->addReader(new FileReader())
@@ -53,6 +54,7 @@ class ConfigurationLoadersTest extends Unit
             verify($snapshot->get('db.host'))->equals('yaml-host');
             verify($snapshot->get('feature.enabled'))->equals(true);
             verify($snapshot->get('title'))->equals('Docs');
+            verify($snapshot->get('dotenv_key'))->equals('from-env-file');
         } finally {
             foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
                 unlink($dir . '/' . $item);

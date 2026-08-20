@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Phase%204-blue.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%205-blue.svg)](#)
 
 ---
 
@@ -83,6 +83,7 @@ Available loaders (behind `ConfigurationLoaderInterface`):
 - XML ✅ (ext-simplexml)
 - INI ✅
 - Markdown Front Matter ✅ (webuni/front-matter)
+- Dotenv ✅ (`vlucas/phpdotenv`, `Format::DOTENV`)
 
 Planned (Phase 2+):
 
@@ -299,26 +300,29 @@ Future capabilities include:
 ## Status
 
 **Phase 1 — Core**, **Phase 2 — Additional File Formats**, **Phase 3 — Schema
-Integrations** and **Phase 4 — Resolution Pipeline Processors** are implemented and the
-quality gate is green:
+Integrations**, **Phase 4 — Resolution Pipeline Processors** and the **Dotenv**
+adapter from **Phase 5 — Additional Adapters** are implemented and the quality gate is
+green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **97 tests / 182 assertions** green
+- Codeception unit suite — **103 tests / 196 assertions** green
 
 Delivered:
 
 - Core contracts, Builder API, Resolution pipeline, immutable `Snapshot`
-- Sources (`FileSource`, `EnvSource`)
+- Sources (`FileSource`, `EnvSource`, `DotenvSource`)
 - Loaders: `PhpLoader`, `JsonLoader`, `YamlLoader`, `TomlLoader`, `IniLoader`,
-  `XmlLoader`, `FrontMatterLoader` (bundle via `ConfigurationLoaders::default()`)
+  `XmlLoader`, `FrontMatterLoader`, `DotenvLoader` (bundle via
+  `ConfigurationLoaders::default()`)
 - Processors: `DefaultsProcessor` (fills missing keys), `CastingProcessor`
   (type coercion), `VariableProcessor` (`${key}` interpolation), `ValidationProcessor`
   (schema-as-stage), `IncludeProcessor` (`@include` file import)
 - `DocumentNormalizer` extracted from the pipeline (ADR-0010, SRP)
 - Nette-Schema adapter (`NativeConfigurationSchema`)
 
-Additional adapters and integrations (Phase 5+) will be delivered incrementally.
+Additional adapters (Aura.Di, Vault, Redis, HTTP, S3/cloud) are deferred and will be
+delivered incrementally (see `ROADMAP.md` Phase 5).
 
 ---
 

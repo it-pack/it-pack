@@ -33,6 +33,7 @@ final readonly class FileSource implements ConfigurationSourceInterface
             Format::TOML->value => Format::TOML->value,
             Format::INI->value => Format::INI->value,
             Format::XML->value => Format::XML->value,
+            'env' => Format::DOTENV->value,
             'md' => Format::FRONTMATTER->value,
             'markdown' => Format::FRONTMATTER->value,
             Format::FRONTMATTER->value => Format::FRONTMATTER->value,
