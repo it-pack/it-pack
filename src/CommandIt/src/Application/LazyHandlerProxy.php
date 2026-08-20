@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\CommandIt\Adapter\Lazy;
+namespace ItPack\CommandIt\Application;
 
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
@@ -16,6 +16,10 @@ use ItPack\CommandIt\Contract\Command\CommandResultInterface;
  * once. This is the lightweight equivalent of `GhostObject::newLazyGhost`
  * (intended by the plan) without adding a runtime dependency; it can be swapped
  * for the ghost-object form when `symfony/lazy-object` is adopted.
+ *
+ * It lives in the Application layer (not Adapter) because the default
+ * `HandlerResolver` — an Application component — depends on it, and the
+ * architecture forbids Application → Adapter.
  *
  * @api
  */

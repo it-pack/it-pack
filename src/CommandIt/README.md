@@ -1,4 +1,68 @@
 # CommandIt
- 
+
 ## A multi purpose command creation and execution library for PHP
 ### Creates commands executable programmatically (e.g., CQRS) or in CLI (via SymfonyConsole, etc. adapters)
+
+CommandIt models command execution itself: a validated intent (the `Command`) is
+dispatched through a bus that runs an explicit lifecycle (`received → executing →
+succeeded|failed`), records immutable artifacts (context, measurements,
+occurrences) via ports, and never leaks context across Fibers or requests. Core
+stays RunIt- and Symfony-free; adapters project it onto specific runtimes.
+
+## Getting started
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use ItPack\CommandIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\CommandIt\Adapter\Common\SystemClock;
+use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
+use ItPack\CommandIt\Adapter\Input\ArrayInputAdapter;
+use ItPack\CommandIt\Adapter\Memory\InMemoryCommandExecutionStorage;
+use ItPack\CommandIt\Adapter\Reporting\CollectingExecutionReporter;
+use ItPack\CommandIt\Domain\Argument;
+use ItPack\CommandIt\Domain\ValueObject\ArgumentName;
+use ItPack\CommandIt\SDK\CommandBuilder;
+use ItPack\CommandIt\SDK\CommandDefinitionBuilder;
+use ItPack\CommandIt\SDK\CommandIt;
+
+$commandIt = new CommandIt(
+    new SystemClock(),
+    new RandomIdentifierGenerator(),
+    new CollectingExecutionReporter(),
+    new AmbientContextStorage(),
+    new InMemoryCommandExecutionStorage(),
+);
+
+$definition = (new CommandDefinitionBuilder())
+    ->name('cache:clear')
+    ->argument(new Argument(ArgumentName::fromString('count'), required: true, type: 'int'))
+    ->handler('cache.clear')
+    ->build();
+
+$commandIt->register($definition, static fn () => new class () implements \ItPack\CommandIt\Contract\Command\CommandHandlerInterface {
+    public function handles(): string
+    {
+        return 'cache:clear';
+    }
+
+    public function handle(\ItPack\CommandIt\Contract\Command\CommandInterface $command): \ItPack\CommandIt\Contract\Command\CommandResultInterface
+    {
+        return \ItPack\CommandIt\Domain\CommandResult::succeed($command->input()->argument('count'));
+    }
+});
+
+$input = (new ArrayInputAdapter())->parse($definition, ['count' => '5']);
+$command = (new CommandBuilder())->definition($definition)->input($input)->build();
+
+$result = $commandIt->dispatch($command); // CommandResult with status "succeeded", payload 5 (int)
+```
+
+- `CommandDefinitionBuilder` is immutable; `build()` returns a validated, `readonly` definition.
+- Input is validated (required args/options) and coerced by declared `type()` (`int`, `float`, `bool`, `string`).
+- On a handler failure the **original** exception is rethrown; the reporter/storage never replace it.
+
+See `docs/architecture/MODEL.md` for the domain model and `docs/ROADMAP.md` for the
+milestone plan.

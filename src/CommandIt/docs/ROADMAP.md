@@ -236,11 +236,11 @@ composer mutation      # raise MSI; prioritize lifecycle/failure branches
 
 ### Tasks
 
-- [ ] **M5.1 `[SDK]`** `CommandDefinitionBuilder` — fluent, immutable: `name()`, `description()`, `argument()`, `option()`, `handler()`, `build(): CommandDefinitionInterface`. Virtual `signature` verified.
-- [ ] **M5.2 `[SDK]`** `CommandBuilder` — fluent construction of a `Command` from a definition + input.
-- [ ] **M5.3 `[SDK]`** `CommandInputParser` (core) + `ArrayInputAdapter` (adapter) — validate required args/options, coerce types via `InputKind`, produce immutable `CommandInput`.
-- [ ] **M5.4 `[SDK]`** `CommandIt` facade — assembles registry + executor + default ports; `register(definition)`, `dispatch(command)`, `bus()`. No hidden global container.
-- [ ] **M5.5 `[SDK]`** Documentation examples in `README.md` and `docs/architecture/MODEL.md` using current public APIs and `declare(strict_types=1)`.
+- [x] **M5.1 `[SDK]`** `CommandDefinitionBuilder` — fluent, immutable: `name()`, `description()`, `argument()`, `option()`, `handler()`, `build(): CommandDefinitionInterface`. Virtual `signature` verified.
+- [x] **M5.2 `[SDK]`** `CommandBuilder` — fluent construction of a `Command` from a definition + input.
+- [x] **M5.3 `[SDK]`** `CommandInputParser` (core) + `ArrayInputAdapter` (adapter) — validate required args/options, coerce types via `InputKind`, produce immutable `CommandInput`.
+- [x] **M5.4 `[SDK]`** `CommandIt` facade — assembles registry + executor + default ports; `register(definition)`, `dispatch(command)`, `bus()`. No hidden global container.
+- [x] **M5.5 `[SDK]`** Documentation examples in `README.md` and `docs/architecture/MODEL.md` using current public APIs and `declare(strict_types=1)`.
 
 ### DoD
 
@@ -255,6 +255,14 @@ composer test:functional
 composer cs:check
 composer analyse
 ```
+
+**Deviations / decisions (2026-08-20):**
+- **Input coercion/validation lives in a shared Domain behavior trait.** deptrac forbids `Adapter → Application`, so `ArrayInputAdapter` (Adapter) cannot depend on `CommandInputParser` (Application). Both use `Behavior/Domain/InputCoercionBehavior` (a stateless trait in the Domain layer, usable by both) so coercion and required/optional/default resolution are identical and implemented once.
+- **`CommandIt` facade does not instantiate adapters.** deptrac forbids `SDK → Adapter`, so the facade accepts the external-effect ports (clock, ids, reporter, context, storage) from the caller and composes the Application core (registry, resolver, coordinator, executor). The caller supplies default adapters; the SDK stays RunIt/Symfony/adapter-free.
+- **`CommandDefinitionBuilder` is immutable.** Each modifier returns a `clone`; the receiver is never mutated, matching the AGENTS "immutable builders" guidance. `CommandBuilder` is a mutable builder that yields an immutable `Command` (its receiver mutates, the product does not).
+- **`ArrayInputAdapter` routes a flat array by consulting the definition's argument/option names** and rejects unknown keys before parsing, so malformed input never reaches a handler.
+
+**Result:** `composer test` 101 tests / 230 assertions green (92 unit, 7 functional, 2 integration); `composer analyse` 0 errors; `composer architecture` 0 violations; `composer cs:check` clean. Shipped: `CommandDefinitionBuilder`, `CommandBuilder`, `CommandInputParser`, `ArrayInputAdapter`, and the `CommandIt` facade. SDK usage examples added to `README.md` and `docs/architecture/MODEL.md`.
 
 ---
 
