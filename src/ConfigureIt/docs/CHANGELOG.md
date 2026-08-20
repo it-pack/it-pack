@@ -162,6 +162,24 @@ Unit suite extended to **80 tests / 156 assertions** (new loader tests +
 NEON and CSV/TSV are explicitly **deferred**: NEON needs the `nette/neon` package
 (not installed) and CSV/TSV need new `Format` enum cases.
 
+### Phase 3 — Schema Integrations
+
+First-class pipeline processors (behind `ConfigurationProcessorInterface`):
+
+- `src/Core/DefaultsProcessor` — fills missing flat dotted keys only (carried over
+  from Phase 1; now a first-class, tested processor).
+- `src/Core/CastingProcessor` — coerces node values to `int` / `float` / `bool` /
+  `string` per a dotted-key → type map, preserving source/priority/metadata.
+  Cast failures raise the new `src/Exception/CastException`.
+- `src/Exception/CastException` — domain exception for failed coercion.
+
+Added tests `CastingProcessorTest` and `ConfigurationPipelineProcessorsTest`
+(defaults + casting compose in the pipeline). Suite green: **86 tests / 167
+assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
+
+The custom schema-providers port (`ConfigurationSchemaInterface`) remains optional
+and is not part of this pass.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

@@ -318,12 +318,20 @@ gained `addLoaders()`. Suite green: **80 tests / 156 assertions**, PHPStan level
 - CSV / TSV — require new `Format` enum cases (not yet present); out of scope
   for "adapters behind the existing interface".
 
-### Phase 3 — Schema Integrations
+### Phase 3 — Schema Integrations ✅
 
 - Nette Schema ✅ (done via `NativeConfigurationSchema`).
-- Add first-class **defaults** and **type coercion** processors (only
-  `DefaultsProcessor` exists today).
+- First-class **defaults** and **type coercion** processors:
+  - `Core\DefaultsProcessor` — fills missing flat dotted keys only (exists since
+    Phase 1; first-class since Phase 3).
+  - `Core\CastingProcessor` — coerces node values to `int`/`float`/`bool`/`string`
+    per a dotted-key → type map, preserving source/priority/metadata; cast
+    failures raise `Exception\CastException`.
 - Optional: custom schema providers port (`ConfigurationSchemaInterface`).
+
+**Status — ✅.** `CastingProcessor` + `CastException` added and covered by
+`CastingProcessorTest` and an end-to-end `ConfigurationPipelineProcessorsTest`
+(defaults + casting compose in the pipeline). Suite green.
 
 ### Phase 4 — Resolution Pipeline Processors
 
@@ -371,7 +379,7 @@ Implement the staged pipeline from `README`/`PIPELINE.md` as discrete processors
 | 5 | T5 repair examples | 0.5 | T1 | both examples run |
 | 6 | T6 docs correction | 0.5 | T4,T5 | README/CHANGELOG accurate |
 | 7 | Phase 2 formats | 2 | T1–T6 | new loader adapters + tests | ✅ |
-| 8 | Phase 3/4 schemas & processors | 3–4 | Phase 2 | pipeline stages tested |
+| 8 | Phase 3/4 schemas & processors | 3–4 | Phase 2 | pipeline stages tested | ✅ (Phase 3) |
 | 9 | Phase 5–9 | 5–9 | Phase 4 | per-phase acceptance |
 
 **Definition of done for Phase 0.5:** `vendor/bin/codecept run Unit`,

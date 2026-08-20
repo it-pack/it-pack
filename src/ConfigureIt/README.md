@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Phase%202-blue.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%203-blue.svg)](#)
 
 ---
 
@@ -298,11 +298,12 @@ Future capabilities include:
 
 ## Status
 
-**Phase 1 — Core** and **Phase 2 — Additional File Formats** are implemented and the quality gate is green:
+**Phase 1 — Core**, **Phase 2 — Additional File Formats** and **Phase 3 — Schema
+Integrations** are implemented and the quality gate is green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **80 tests / 156 assertions** green
+- Codeception unit suite — **86 tests / 167 assertions** green
 
 Delivered:
 
@@ -310,9 +311,11 @@ Delivered:
 - Sources (`FileSource`, `EnvSource`)
 - Loaders: `PhpLoader`, `JsonLoader`, `YamlLoader`, `TomlLoader`, `IniLoader`,
   `XmlLoader`, `FrontMatterLoader` (bundle via `ConfigurationLoaders::default()`)
+- Processors: `DefaultsProcessor` (fills missing keys), `CastingProcessor`
+  (type coercion to int/float/bool/string; raises `CastException` on failure)
 - Nette-Schema adapter (`NativeConfigurationSchema`)
 
-Additional adapters and integrations (Phase 3+) will be delivered incrementally.
+Additional adapters and integrations (Phase 4+) will be delivered incrementally.
 
 ---
 
