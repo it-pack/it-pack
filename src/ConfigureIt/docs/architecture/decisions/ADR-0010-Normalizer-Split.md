@@ -4,7 +4,7 @@ Document Normalizer Separated from Pipeline
 
 Status
 
-Proposed
+Accepted
 
 Context
 

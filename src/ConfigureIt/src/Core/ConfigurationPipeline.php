@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
 
@@ -28,6 +29,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
     public function __construct(
         public array               $processors = [],
         public ?ResolutionReporterInterface $reporter = null,
+        private DocumentNormalizerInterface $normalizer = new DocumentNormalizer(),
     ) {
     }
 
@@ -42,9 +44,8 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
         foreach ($documents as $document) {
             $priority++;
             $origin = $document->origin() ?? 'programmatic';
-            $nodes = $this->flatten($document->toArray(), '', $origin, $priority);
 
-            foreach ($nodes as $node) {
+            foreach ($this->normalizer->normalize($document, $priority, $origin) as $node) {
                 $graph->put($node);
             }
 
@@ -68,36 +69,5 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
         }
 
         return $graph;
-    }
-
-    /**
-     * @param array<mixed> $data
-     * @param string $prefix
-     * @param string $source
-     * @param int $priority
-     * @return list<ConfigurationNode>
-     */
-    private function flatten(array $data, string $prefix, string $source, int $priority): array
-    {
-        $key = $prefix === '' ? null : Key::fromString($prefix);
-        $nodes = [];
-
-        foreach ($data as $segment => $value) {
-            $child = $key === null ? Key::fromString((string) $segment) : $key->child((string) $segment);
-
-            if (is_array($value) && Key::isAssociative($value)) {
-                $nodes = [...$nodes, ...$this->flatten($value, $child->toString(), $source, $priority)];
-            } else {
-                $nodes[] = new ConfigurationNode(
-                    key: $child->toString(),
-                    value: $value,
-                    source: $source,
-                    priority: $priority,
-                    metadata: ['origin' => $source, 'format' => 'document'],
-                );
-            }
-        }
-
-        return $nodes;
     }
 }

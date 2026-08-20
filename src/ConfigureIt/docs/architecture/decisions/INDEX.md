@@ -11,7 +11,7 @@
 | ADR-0007 | Lazy Documents, Caching & Weak References | Proposed |
 | ADR-0008 | Fibers for Asynchronous Sources | Proposed |
 | ADR-0009 | Shared `Key` / `Path` Value Object | Proposed |
-| ADR-0010 | Document Normalizer Separated from Pipeline | Proposed |
+| ADR-0010 | Document Normalizer Separated from Pipeline | Accepted |
 
 Future ADRs should follow:
 

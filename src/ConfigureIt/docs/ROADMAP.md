@@ -333,13 +333,26 @@ gained `addLoaders()`. Suite green: **80 tests / 156 assertions**, PHPStan level
 `CastingProcessorTest` and an end-to-end `ConfigurationPipelineProcessorsTest`
 (defaults + casting compose in the pipeline). Suite green.
 
-### Phase 4 — Resolution Pipeline Processors
+### Phase 4 — Resolution Pipeline Processors ✅
 
 Implement the staged pipeline from `README`/`PIPELINE.md` as discrete processors
 (`ConfigurationProcessorInterface`):
-- Include / Import, Merge (priority), Variables, Validation, Casting, Defaults.
-- Extract `DocumentNormalizer`/`NodeFactory` from `ConfigurationPipeline` per
-  `REFACTORING_PLAN.md §5` (ADR-0010) to fix the SRP split.
+- Merge (priority) — already in `ConfigurationGraph` (last-wins by priority).
+- Casting / Defaults — shipped in Phase 3 (`CastingProcessor`, `DefaultsProcessor`).
+- Include / Import — `Core\IncludeProcessor` (namespaces included nodes under the
+  directive's parent key; single-pass).
+- Variables — `Core\VariableProcessor` (`${dotted.key}` interpolation from the graph).
+- Validation — `Core\ValidationProcessor` (schema check as a stage; raises
+  `ValidationException` on failure).
+- Extracted `DocumentNormalizer` (`Contract\DocumentNormalizerInterface` +
+  `Core\DocumentNormalizer`) from `ConfigurationPipeline::run()` per ADR-0010,
+  fixing the SRP split; `flatten()`/`isAssociative()` now live in the normalizer /
+  `Key`.
+
+**Status — ✅.** All listed stages exist as composable processors and the pipeline
+is SRP-clean. Covered by `DocumentNormalizerTest`, `VariableProcessorTest`,
+`ValidationProcessorTest`, `IncludeProcessorTest` and an end-to-end
+`ConfigurationPipelineStagesTest`. Suite green.
 
 ### Phase 5 — Additional Adapters
 

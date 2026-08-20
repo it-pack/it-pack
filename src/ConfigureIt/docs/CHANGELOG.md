@@ -180,6 +180,28 @@ assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
 The custom schema-providers port (`ConfigurationSchemaInterface`) remains optional
 and is not part of this pass.
 
+### Phase 4 — Resolution Pipeline Processors
+
+Discrete processors implementing the staged pipeline (`ConfigurationProcessorInterface`):
+
+- `src/Contract/DocumentNormalizerInterface` + `src/Core/DocumentNormalizer` —
+  extracted `flatten()` out of `ConfigurationPipeline` (ADR-0010, SRP split);
+  `run()` now normalises → `graph->put` → processors.
+- `src/Core/IncludeProcessor` — `@include <path>` directive imports another file
+  (format from extension) and namespaces its nodes under the directive's parent
+  key; the directive node is dropped (single-pass).
+- `src/Core/VariableProcessor` — resolves `${dotted.key}` placeholders inside string
+  values from the graph; unknown references left verbatim.
+- `src/Core/ValidationProcessor` — wraps a `ConfigurationSchemaInterface` and raises
+  `ValidationException` on failure, making validation a pipeline stage.
+- Merge (priority) already lived in `ConfigurationGraph`; Casting/Defaults shipped
+  in Phase 3.
+
+Tests added: `DocumentNormalizerTest`, `VariableProcessorTest`, `ValidationProcessorTest`,
+`IncludeProcessorTest`, and `ConfigurationPipelineStagesTest` (Include → Variable → Cast →
+Defaults compose end-to-end). Suite green: **97 tests / 182 assertions**, PHPStan level 9
+**0 errors**, `php-cs-fixer` **0 files to fix**. ADR-0010 status advanced Proposed → Accepted.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
