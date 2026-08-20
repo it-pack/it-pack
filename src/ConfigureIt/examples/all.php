@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Dotenv\Dotenv;
 use ItPack\ConfigureIt\Adapter\CompositeReader;
+use ItPack\ConfigureIt\Adapter\EnvLoader;
 use ItPack\ConfigureIt\Adapter\EnvReader;
 use ItPack\ConfigureIt\Adapter\EnvSource;
 use ItPack\ConfigureIt\Adapter\FileReader;
@@ -26,16 +27,16 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__ . '/Support/Data/', 'app.env');
 $dotenv->load();
 
-$reader = new CompositeReader([
-    new EnvReader(),
-    new FileReader(),
-]);
-
-$resolver = new ConfigurationBuilder($reader)
+$resolver = new ConfigurationBuilder()
+    ->addReader(new CompositeReader([
+        new EnvReader(),
+        new FileReader(),
+    ]))
     ->addSource(new FileSource(__DIR__ . '/Support/Data'))
     ->addSource(new EnvSource())
     ->addLoader(new PhpLoader())
     ->addLoader(new JsonLoader())
+    ->addLoader(new EnvLoader())
     ->build();
 
 $snapshot = $resolver->resolve();

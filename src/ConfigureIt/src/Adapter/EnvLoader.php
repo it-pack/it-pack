@@ -41,7 +41,10 @@ final readonly class EnvLoader implements ConfigurationLoaderInterface
     {
         $data = [];
 
-        foreach (preg_split('/\R/', $raw) as $line) {
+        $lines = preg_split('/\R/', $raw);
+        $lines = $lines === false ? [] : $lines;
+
+        foreach ($lines as $line) {
             $line = trim($line);
 
             if ($line === '' || str_starts_with($line, '#')) {

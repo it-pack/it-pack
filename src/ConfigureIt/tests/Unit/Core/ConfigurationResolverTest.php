@@ -39,7 +39,8 @@ class ConfigurationResolverTest extends Unit
     {
         $reporter = new ResolutionReporter();
 
-        $resolver = new ConfigurationBuilder(new FileReader())
+        $resolver = new ConfigurationBuilder()
+            ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
             ->addLoader(new JsonLoader())
@@ -60,7 +61,8 @@ class ConfigurationResolverTest extends Unit
 
     public function testThrowsWhenNoLoaderSupportsFormat(): void
     {
-        $resolver = new ConfigurationBuilder(new FileReader())
+        $resolver = new ConfigurationBuilder()
+            ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
             ->build()
@@ -77,7 +79,8 @@ class ConfigurationResolverTest extends Unit
             'db' => Expect::structure(['host' => Expect::string()]),
         ])->otherItems(Expect::mixed())->castTo('array'));
 
-        $resolver = new ConfigurationBuilder(new FileReader())
+        $resolver = new ConfigurationBuilder()
+            ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
             ->addLoader(new JsonLoader())
@@ -97,7 +100,8 @@ class ConfigurationResolverTest extends Unit
             'db' => Expect::structure(['host' => Expect::int()]),
         ])->otherItems(Expect::mixed())->castTo('array'));
 
-        $resolver = new ConfigurationBuilder(new FileReader())
+        $resolver = new ConfigurationBuilder()
+            ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
             ->addLoader(new JsonLoader())

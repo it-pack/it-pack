@@ -17,7 +17,7 @@ interface ConfigurationSourceInterface
     /**
      * Discover the resources this source is responsible for.
      *
-     * @return iterable<ConfigurationResourceInterface>
+     * @return iterable<ValueObject\ConfigurationResourceInterface>
      */
     public function discover(): iterable;
 }

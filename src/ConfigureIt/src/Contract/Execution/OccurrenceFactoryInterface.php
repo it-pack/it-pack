@@ -6,6 +6,9 @@ namespace ItPack\ConfigureIt\Contract\Execution;
 
 interface OccurrenceFactoryInterface
 {
+    /**
+     * @param array<mixed> $payload
+     */
     public function build(
         string $type,
         float $at,

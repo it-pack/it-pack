@@ -21,13 +21,18 @@ final readonly class ConfigurationFactory implements ConfigurationFactoryInterfa
     ) {
     }
 
+    /**
+     * @param iterable<\ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface> $loaders
+     * @param iterable<\ItPack\ConfigureIt\Contract\ConfigurationSourceInterface> $sources
+     * @param list<\ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface> $processors
+     */
     public function build(
         iterable                     $loaders,
         ConfigurationReaderInterface $reader,
         ?ConfigurationSchemaInterface $schema = null,
         iterable                     $sources = [],
         array                        $processors = [],
-        ?ResolutionReporter $reporter = null
+        ?ResolutionReporterInterface $reporter = null
     ): ConfigurationResolverInterface
     {
         return new ConfigurationResolver(

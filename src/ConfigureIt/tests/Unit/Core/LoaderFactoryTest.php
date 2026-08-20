@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
-use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationDocumentInterface;
-use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationLoaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Core\ConfigurationLoaderFactory;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\ValueObject\Format;

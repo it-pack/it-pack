@@ -16,4 +16,11 @@ interface ContextInterface
 
     /** @return \Closure(): bool */
     public function createChecker(): \Closure;
+
+    /**
+     * Returns the underlying context implementation (adapter-specific).
+     *
+     * @return object
+     */
+    public function getAdaptee(): object;
 }

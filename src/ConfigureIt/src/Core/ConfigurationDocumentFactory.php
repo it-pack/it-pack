@@ -15,6 +15,9 @@ class ConfigurationDocumentFactory implements ConfigurationDocumentFactoryInterf
         return new self();
     }
 
+    /**
+     * @param array<mixed> $data
+     */
     public function build(
         array $data,
         Format $format,

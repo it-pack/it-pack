@@ -9,6 +9,9 @@ use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 
 class CompositeReader implements ConfigurationReaderInterface
 {
+    /**
+     * @param array<ConfigurationReaderInterface> $readers
+     */
     public function __construct(private array $readers)
     {
 

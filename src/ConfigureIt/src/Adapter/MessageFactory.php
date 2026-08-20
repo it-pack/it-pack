@@ -10,13 +10,15 @@ class MessageFactory
 {
     use CreatableBehavior;
 
+    /**
+     * @param list<int|string>    $path
+     * @param array<string, mixed> $variables
+     */
     public function build(
-         string $message,
-         string $code,
-        /** @var list<int|string> */
-         array $path,
-        /** @var array<string, mixed> */
-         array $variables = [],
+        string $message,
+        string $code,
+        array $path,
+        array $variables = [],
     ): Message
     {
         return $this->buildFromNetteMessage(

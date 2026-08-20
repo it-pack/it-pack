@@ -21,9 +21,8 @@ use ItPack\ConfigureIt\Core\ConfigurationResolver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$reader = new FileReader();
-
-$resolver = (new ConfigurationBuilder($reader))
+$resolver = new ConfigurationBuilder()
+    ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Data'))
     ->addLoader(new PhpLoader())
     ->addLoader(new JsonLoader())

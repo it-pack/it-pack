@@ -28,6 +28,9 @@ final readonly class ConfigurationLoaderFactory implements ConfigurationLoaderFa
         private iterable $loaders,
     ) {}
 
+    /**
+     * @param iterable<\ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface> $loaders
+     */
     public static function create(iterable $loaders): self
     {
         return new self($loaders);

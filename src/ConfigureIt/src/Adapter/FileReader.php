@@ -35,9 +35,9 @@ final class FileReader implements ConfigurationReaderInterface
 
     public function supports(ConfigurationResourceInterface $resource): bool
     {
-       try {
-           return stream_get_wrappers() && is_file($resource->uri());
-       } catch (\Throwable) {
+        try {
+            return is_file($resource->uri());
+        } catch (\Throwable) {
            return false;
        }
     }

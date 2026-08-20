@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
-use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationDocumentInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDocument;
 use ItPack\ConfigureIt\Core\ConfigurationPipeline;
 use ItPack\ConfigureIt\Core\DefaultsProcessor;

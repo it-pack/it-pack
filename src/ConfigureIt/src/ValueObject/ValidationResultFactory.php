@@ -11,6 +11,9 @@ class ValidationResultFactory implements ValidationResultFactoryInterface
 {
     use CreatableBehavior;
 
+    /**
+     * @param list<array{path: string, message: string}> $errors
+     */
     public function build(
          bool $valid,
          array $errors = [],

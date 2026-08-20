@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ProcessorInterface;
 use ItPack\ConfigureIt\Contract\SchemaInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultFactoryInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
 use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Processor as NetteProcessor;
@@ -27,13 +28,16 @@ use Nette\Schema\ValidationException;
 final readonly class NativeConfigurationSchema implements ConfigurationSchemaInterface
 {
     public function __construct(
-        private SchemaInterface                  $schema,
+        Ne                                         $schema,
         private ProcessorInterface               $processor = new Processor(),
         private ValidationResultFactoryInterface $resultFactory = new ValidationResultFactory(),
     ) {
+        $this->schema = new Schema($schema);
     }
 
-    public function validate(ConfigurationGraphInterface $graph): ValidationResult
+    private SchemaInterface $schema;
+
+    public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
     {
         try {
             $this->processor->process($this->schema, $graph->toArray());

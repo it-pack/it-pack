@@ -36,4 +36,11 @@ interface SchemaInterface
      * @return mixed
      */
     public function completeDefault(ContextInterface $context): mixed;
+
+    /**
+     * Returns the underlying schema implementation (adapter-specific).
+     *
+     * @return object
+     */
+    public function getAdaptee(): object;
 }

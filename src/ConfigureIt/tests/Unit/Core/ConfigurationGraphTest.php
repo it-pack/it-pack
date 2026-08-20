@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
-use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationNodeInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Exception\ConfigurationException;

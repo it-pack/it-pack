@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
-use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceFactoryInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
@@ -27,7 +27,7 @@ final readonly class EnvSource implements ConfigurationSourceInterface
     ) {}
 
     /**
-     * @return iterable
+     * @return iterable<ConfigurationResourceInterface>
      */
     public function discover(): iterable
     {

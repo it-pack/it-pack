@@ -6,18 +6,19 @@ namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
-use ItPack\ConfigureIt\Contract\SchemaInterface;
+use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\OccurrenceFactory;
-use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
 
 /**
@@ -41,7 +42,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         private ConfigurationLoaderFactoryInterface   $loaders,
         private ConfigurationPipeline                 $pipeline,
         private ?ConfigurationSchemaInterface         $schema = null,
-        private ?ResolutionReporter                   $reporter = null,
+        private ?ResolutionReporterInterface          $reporter = null,
         private iterable                              $sources = [],
         private OccurrenceFactory                     $occurrenceFactory = new OccurrenceFactory(),
         private ConfigurationDocumentFactoryInterface $documentFactory = new ConfigurationDocumentFactory(),
@@ -59,7 +60,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         );
     }
 
-    private function describe(ValidationResult $result): string
+    private function describe(ValidationResultInterface $result): string
     {
         $lines = ['Configuration validation failed:'];
 
@@ -70,12 +71,15 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         return implode("\n", $lines);
     }
 
+    /**
+     * @param array<mixed> $data
+     */
     private function createOccurrence(string $name, array $data = []): Occurrence
     {
         return $this->occurrenceFactory->build($name, microtime(true), $data);
     }
 
-    private function validateGraph(?ConfigurationGraphInterface $graph): void
+    private function validateGraph(ConfigurationGraphInterface $graph): void
     {
         if ($this->schema instanceof ConfigurationSchemaInterface) {
             $result = $this->schema->validate($graph);
@@ -93,6 +97,9 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         }
     }
 
+    /**
+     * @param array<ConfigurationDocumentInterface> $documents
+     */
     private function runPipeline(array $documents): ConfigurationGraphInterface
     {
         $graph = $this->pipeline->run($documents);
@@ -109,6 +116,9 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         return $graph;
     }
 
+    /**
+     * @param array<ConfigurationDocumentInterface> $documents
+     */
     private function createSnapshot(array $documents): ConfigurationSnapshot
     {
         $snapshot = $this->snapshotFactory->buildFromGraph(
@@ -124,7 +134,11 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         return $snapshot;
     }
 
-    private function resolveResources(array $sources): array
+    /**
+     * @param iterable<ConfigurationSourceInterface> $sources
+     * @return array<ConfigurationDocumentInterface>
+     */
+    private function resolveResources(iterable $sources = []): array
     {
         $effectiveSources = $sources === [] ? $this->sources : $sources;
 

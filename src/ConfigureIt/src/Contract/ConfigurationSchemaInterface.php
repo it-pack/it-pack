@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
-use ItPack\ConfigureIt\ValueObject\ValidationResult;
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 
 /**
  * Defines constraints for configuration and validates a graph against them.
@@ -16,5 +16,5 @@ use ItPack\ConfigureIt\ValueObject\ValidationResult;
  */
 interface ConfigurationSchemaInterface
 {
-    public function validate(ConfigurationGraphInterface $graph): ValidationResult;
+    public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface;
 }

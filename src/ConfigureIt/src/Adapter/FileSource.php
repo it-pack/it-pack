@@ -42,29 +42,23 @@ final readonly class FileSource implements ConfigurationSourceInterface
             return;
         }
 
-        $paths = array_map(
-            fn (\SplFileInfo $file) => $file->getPathname(),
-            array_filter(
-                iterator_to_array(
-                    new \RecursiveIteratorIterator(
-                        new \RecursiveDirectoryIterator(
-                            $this->directory,
-                            \FilesystemIterator::SKIP_DOTS,
-                        )
-                    )
-                ),
-                function (\SplFileInfo $file) {
-                    return !(
-                        !$file->isFile() || !array_key_exists(
-                            strtolower(
-                                $file->getExtension()
-                            ),
-                            $this->extensions
-                        )
-                    );
-                }
-            ),
+        /** @var array<int, \SplFileInfo> $files */
+        $files = iterator_to_array(
+            new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator(
+                    $this->directory,
+                    \FilesystemIterator::SKIP_DOTS,
+                )
+            )
         );
+
+        $paths = [];
+
+        foreach ($files as $file) {
+            if ($file->isFile() && array_key_exists(strtolower($file->getExtension()), $this->extensions)) {
+                $paths[] = $file->getPathname();
+            }
+        }
 
         sort($paths);
 

@@ -8,8 +8,8 @@ use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
-use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
 /**
  * The ordered sequence of processors transforming documents into a graph.
@@ -27,7 +27,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
      */
     public function __construct(
         public array               $processors = [],
-        public ?ResolutionReporter $reporter = null,
+        public ?ResolutionReporterInterface $reporter = null,
     ) {
     }
 
@@ -71,7 +71,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
     }
 
     /**
-     * @param array $data
+     * @param array<mixed> $data
      * @param string $prefix
      * @param string $source
      * @param int $priority

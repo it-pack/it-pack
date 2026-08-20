@@ -48,6 +48,15 @@ sub-namespaces (`Contract\ValueObject\`, `Contract\Execution\`) but left
 immutable `Key`/`Snapshot` value objects, the execution/reporter model, the
 `env.php` example, and the full architecture/ADR documentation set.
 
+> **Working-tree status (uncommitted changes, not yet at `HEAD`):** the
+> rename-aftermath defects in T1/T4 are corrected and the **orchestration layer is
+> wired** — `Core\ConfigurationFactory::build()` constructs
+> `Core\ConfigurationResolver` (reader + schema + sources + processors + the
+> `Execution` reporter); `ConfigurationResolver::resolve()` runs the pipeline and
+> returns a validated `Snapshot`. `phpstan analyse` is **0 errors** and
+> `composer test:unit` is **61 tests / 119 assertions green**. `php-cs-fixer` /
+> Pint is the only remaining Phase 0.5 gate not yet re-verified.
+
 ---
 
 ## Phase 0.5 — Stabilization (make `HEAD` green) 🔴 highest priority
@@ -89,6 +98,17 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator("src")) as
 echo "autoload OK\n";'
 # expect: no "Interface ... not found" errors, prints "autoload OK"
 ```
+
+**Status — ✅.** The seven contracts now live under `Contract\ValueObject\` /
+`Contract\Execution\` and the tree autoloads cleanly. The last broken importers
+left by the rename were fixed while wiring the orchestration layer:
+`Core\ConfigurationResolver` (missing `use ConfigurationDocumentInterface`),
+`Core\ConfigurationFactory` (contravariant `list<>` vs `array<>` for
+`$processors`), `Adapter\EnvLoader` (illegal short ternary), `Adapter\EnvSource`
+(`discover()` return type `iterable<ConfigurationResourceInterface>`),
+`Adapter\FileSource` (untyped `iterator_to_array` of `RecursiveIteratorIterator`),
+and the contract docblocks in `ConfigurationDocumentFactoryInterface`,
+`ValidationResultFactoryInterface` and `ConfigurationFactoryInterface`.
 
 ### T2 — Delete or finish the orphaned adapter leftovers
 
@@ -132,6 +152,11 @@ vendor/bin/codecept run Unit
 # expect: all 61 test methods green (or fix any regressions the refactor exposed)
 ```
 
+**Status — ✅.** Suite boots and all **61 test methods / 119 assertions** pass
+(`composer test:unit`). The five test files named in T3 already import the
+reconciled `Contract\ValueObject\` symbols, so no test-side import churn was
+needed in this pass.
+
 ### T4 — Restore static-analysis & coding-standard gates
 
 **Goal.** PHPStan and cs-fixer green at `HEAD`.
@@ -151,6 +176,13 @@ vendor/bin/codecept run Unit
 vendor/bin/phpstan analyse --no-progress   # expect: 0 errors
 vendor/bin/php-cs-fixer fix --dry-run      # expect: no files to fix
 ```
+
+**Status — partial.** `vendor/bin/phpstan analyse --no-progress` reports
+**0 errors** (level 9) after the rename-aftermath fixes from T1. The
+`php-cs-fixer fix --dry-run` / Pint gate has **not** been re-run in this pass and
+is still outstanding. The `ConfigurationSourceInterface` ↔ `ConfigurationReaderInterface`
+canonical-`ConfigurationResourceInterface` mismatch is resolved (both ports
+reference `Contract\ValueObject\ConfigurationResourceInterface`).
 
 ### T5 — Repair the documented examples
 

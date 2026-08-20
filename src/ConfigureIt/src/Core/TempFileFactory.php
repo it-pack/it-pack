@@ -21,17 +21,19 @@ class TempFileFactory implements TempFileFactoryInterface
     public static function create(
         ?string $tempFilePrefix = null,
     ): self {
-        return new self($tempFilePrefix);
+        return new self($tempFilePrefix ?? self::DEFAULT_TEMP_FILE_PREFIX);
     }
 
     public function build(): ?string
     {
-        return tempnam(sys_get_temp_dir(), $this->tempFilePrefix) ?: null;
+        $temp = tempnam(sys_get_temp_dir(), $this->tempFilePrefix);
+
+        return $temp === false ? null : $temp;
     }
 
     public function require(): string
     {
-        if (!$temp = $this->build()) {
+        if (($temp = $this->build()) === null) {
             throw new ParseException('Unable to create a temporary file for PHP configuration.');
         }
 

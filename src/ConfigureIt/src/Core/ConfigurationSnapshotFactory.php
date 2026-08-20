@@ -10,13 +10,16 @@ use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 class ConfigurationSnapshotFactory implements ConfigurationSnapshotFactoryInterface
 {
 
+    /**
+     * @param array<mixed> $tree
+     */
     public function build(
         array $tree
     ): ConfigurationSnapshot {
         return new ConfigurationSnapshot($tree);
     }
 
-    public static function buildFromGraph(ConfigurationGraphInterface $graph): ConfigurationSnapshot
+    public function buildFromGraph(ConfigurationGraphInterface $graph): ConfigurationSnapshot
     {
         return ConfigurationSnapshot::fromGraph($graph);
     }

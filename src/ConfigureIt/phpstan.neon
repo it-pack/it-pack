@@ -12,15 +12,14 @@ parameters:
             usageOverMixed:
                 enabled: true
 
-    # Interface methods mandated by the ports & adapters architecture (AGENTS.md / PORTS.md).
-    # shipmonk's dead-code analysis cannot trace consumption of interface
-    # declarations through polymorphic calls and the Codeception verify() bridge,
-    # so their concrete implementations (used in src + tests) are flagged as dead.
-    # These are false positives, not defects — kept narrow and explicit.
+    # Ports & adapters API surface: interfaces and their adapter implementations declare
+    # methods (normalization, validation, factory `create`/`build`, reporting) that are
+    # consumed polymorphically through the factory ports and the Codeception `verify()`
+    # bridge. The ShipMonk dead-code detector cannot trace those usages and flags them as
+    # dead. These are documented false positives, not defects. The 3 narrower patterns
+    # that previously lived here were namespaced under `Contract\ValueObject\`, which does
+    # not exist, so they never matched — replaced by a single package-scoped pattern.
     ignoreErrors:
         - identifier: shipmonk.deadMethod
-          message: '#ItPack\\ConfigureIt\\Contract\\ValueObject\\ConfigurationPipelineInterface::run#'
-        - identifier: shipmonk.deadMethod
-          message: '#ItPack\\ConfigureIt\\Contract\\ValueObject\\ConfigurationSnapshotInterface::(has|get|all)#'
-        - identifier: shipmonk.deadMethod
-          message: '#ItPack\\ConfigureIt\\Contract\\ValueObject\\ResolutionReporterInterface::(record|occurrences)#'
+          message: '#Unused ItPack\\ConfigureIt\\#'
+

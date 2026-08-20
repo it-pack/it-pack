@@ -13,9 +13,7 @@ class OccurrenceFactory implements OccurrenceFactoryInterface
 
     public static function createLLazy(): self
     {
-        return new \ReflectionClass(self::class)->newLazyProxy(
-
-        );
+        return new \ReflectionClass(self::class)->newLazyProxy(static fn (): self => new self());
     }
 
     public function build(

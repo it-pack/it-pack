@@ -8,6 +8,9 @@ use ItPack\ConfigureIt\ValueObject\Format;
 
 interface ConfigurationDocumentFactoryInterface
 {
+    /**
+     * @param array<mixed> $data
+     */
     public function build(
         array $data,
         Format $format,

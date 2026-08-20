@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Adapter\Contract\ProcessorAdapterInterface;
-use ItPack\ConfigureIt\Adapter\Contract\SchemaAdapterInterface;
 use ItPack\ConfigureIt\Contract\SchemaInterface;
 use Nette\Schema\Processor as NetteProcessor;
+use Nette\Schema\Schema as NetteSchema;
 
 final readonly class Processor implements ProcessorAdapterInterface
 {
@@ -20,20 +20,20 @@ final readonly class Processor implements ProcessorAdapterInterface
         $this->adaptee->skipDefaults($value);
     }
 
-    public function process(SchemaAdapterInterface|SchemaInterface $schema, mixed $data): mixed
+    public function process(SchemaInterface $schema, mixed $data): mixed
     {
-        return $this->adaptee->process(
-            $schema->getAdaptee(),
-            $data
-        );
+        /** @var NetteSchema $adaptee */
+        $adaptee = $schema->getAdaptee();
+
+        return $this->adaptee->process($adaptee, $data);
     }
 
-    public function processMultiple(SchemaAdapterInterface|SchemaInterface $schema, array $dataset): mixed
+    public function processMultiple(SchemaInterface $schema, array $dataset): mixed
     {
-        return $this->adaptee->processMultiple(
-            $schema->getAdaptee(),
-            $dataset
-        );
+        /** @var NetteSchema $adaptee */
+        $adaptee = $schema->getAdaptee();
+
+        return $this->adaptee->processMultiple($adaptee, $dataset);
     }
 
     public function getWarnings(): array

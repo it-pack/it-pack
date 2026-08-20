@@ -8,11 +8,10 @@ use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 
 interface ConfigurationSnapshotFactoryInterface
 {
-    public function build(
-        array $tree
-    ): ConfigurationSnapshot;
+    /**
+     * @param array<mixed> $tree
+     */
+    public function build(array $tree): ConfigurationSnapshot;
 
-    public static function buildFromGraph(
-        ConfigurationGraphInterface $graph
-    ): ConfigurationSnapshot;
+    public function buildFromGraph(ConfigurationGraphInterface $graph): ConfigurationSnapshot;
 }

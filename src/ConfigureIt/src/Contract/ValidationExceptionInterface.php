@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
-interface ValidationExceptionInterface
+interface ValidationExceptionInterface extends \Throwable
 {
     /** @return list<string> */
     public function getMessages(): array;
