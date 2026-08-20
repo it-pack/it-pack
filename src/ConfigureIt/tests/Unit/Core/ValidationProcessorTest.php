@@ -21,7 +21,8 @@ class ValidationProcessorTest extends Unit
 
         $next = new ValidationProcessor($this->schema(true))->process($graph);
 
-        verify($next)->same($graph);
+        verify($next->node('a')->value())->equals(1);
+        verify($next->node('a')->provenance()->validatedBy())->notNull();
     }
 
     public function testThrowsOnInvalidGraph(): void

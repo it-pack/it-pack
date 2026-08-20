@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Core;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 
 /**
@@ -20,11 +21,16 @@ use ItPack\ConfigureIt\Exception\ValidationException;
  *
  * @see docs/architecture/PIPELINE.md "Validation"
  */
-final readonly class ValidationProcessor implements ConfigurationProcessorInterface
+final readonly class ValidationProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
 {
     public function __construct(
         private ConfigurationSchemaInterface $schema,
     ) {
+    }
+
+    public function stageName(): string
+    {
+        return 'ValidationProcessor';
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -32,7 +38,15 @@ final readonly class ValidationProcessor implements ConfigurationProcessorInterf
         $result = $this->schema->validate($graph);
 
         if ($result->valid()) {
-            return $graph;
+            $stage = get_class($this->schema);
+
+            $validated = new ConfigurationGraph();
+
+            foreach ($graph->nodes() as $node) {
+                $validated->put($node->withProvenance($node->provenance()->validated($stage)));
+            }
+
+            return $validated;
         }
 
         $lines = ['Configuration validation failed:'];

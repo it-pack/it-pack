@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Core;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 
 /**
  * Resolves `${dotted.key}` placeholders inside string values against the graph.
@@ -19,9 +20,15 @@ use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
  *
  * @see docs/architecture/PIPELINE.md "Variable Resolution"
  */
-final readonly class VariableProcessor implements ConfigurationProcessorInterface
+final readonly class VariableProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
 {
     private const PATTERN = '/\$\{([a-zA-Z0-9_.]+)\}/';
+
+    public function stageName(): string
+    {
+        return 'VariableProcessor';
+    }
+
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
     {
@@ -65,14 +72,8 @@ final readonly class VariableProcessor implements ConfigurationProcessorInterfac
         );
     }
 
-    private function rewrite(ConfigurationNodeInterface $node, string $value): ConfigurationNode
+    private function rewrite(ConfigurationNodeInterface $node, string $value): ConfigurationNodeInterface
     {
-        return new ConfigurationNode(
-            key: $node->key(),
-            value: $value,
-            source: $node->source(),
-            priority: $node->priority(),
-            metadata: $node->metadata(),
-        );
+        return $node->withValue($value);
     }
 }

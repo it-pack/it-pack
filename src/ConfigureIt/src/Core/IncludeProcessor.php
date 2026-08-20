@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
@@ -28,7 +29,7 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/PIPELINE.md "Include"
  */
-final readonly class IncludeProcessor implements ConfigurationProcessorInterface
+final readonly class IncludeProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
 {
     /**
      * @param string $directive prefix that marks an include directive value.
@@ -41,6 +42,11 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
         private ConfigurationResourceFactory     $resourceFactory = new ConfigurationResourceFactory(),
         private string                           $directive = '@include',
     ) {
+    }
+
+    public function stageName(): string
+    {
+        return 'IncludeProcessor';
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -109,6 +115,7 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
                 source: $node->source(),
                 priority: $node->priority(),
                 metadata: $node->metadata(),
+                provenance: $node->provenance(),
             ),
             $nodes,
         );

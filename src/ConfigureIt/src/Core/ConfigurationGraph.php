@@ -47,6 +47,12 @@ final class ConfigurationGraph implements ConfigurationGraphInterface
             if ($node->priority() < $existing->priority()) {
                 return;
             }
+
+            if ($node->priority() > $existing->priority()) {
+                $node = $node->withProvenance(
+                    $node->provenance()->asOverridden($existing->provenance()->resourceUri()),
+                );
+            }
         }
 
         $this->nodes[$key] = $node;

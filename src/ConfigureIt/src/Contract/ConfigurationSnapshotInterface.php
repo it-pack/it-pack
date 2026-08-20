@@ -25,4 +25,12 @@ interface ConfigurationSnapshotInterface
      * @return array<string, mixed> the entire resolved configuration tree.
      */
     public function all(): array;
+
+    /**
+     * Structural provenance of the resolved node at $path, when available.
+     *
+     * Enables consumers to ask "where did this value come from?" without
+     * reaching back into the resolution graph (Roadmap Phase 6).
+     */
+    public function provenance(string $path): ?\ItPack\ConfigureIt\Contract\ValueObject\ProvenanceInterface;
 }

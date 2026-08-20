@@ -7,15 +7,20 @@ namespace ItPack\ConfigureIt\Core;
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
+use ItPack\ConfigureIt\ValueObject\Format;
+use ItPack\ConfigureIt\ValueObject\Provenance;
 
 /**
  * Default {@see DocumentNormalizerInterface}.
  *
  * Flattens a document's associative array into dotted-key {@see ConfigurationNode}s,
- * preserving source and priority. Moves the `flatten()` concern out of
- * `ConfigurationPipeline` (ADR-0010).
+ * preserving source and priority, and attaches structured {@see Provenance} (the
+ * loading adapter, format, source kind and priority) to every node. Moves the
+ * `flatten()` concern out of {@see ConfigurationPipeline} (ADR-0010) and is the
+ * single place where load-time provenance is minted (Roadmap Phase 6).
  *
  * @see docs/architecture/decisions/ADR-0010-Normalizer-Split.md
+ * @see docs/architecture/GRAPH.md "Provenance"
  */
 final readonly class DocumentNormalizer implements DocumentNormalizerInterface
 {
@@ -24,7 +29,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
      */
     public function normalize(ConfigurationDocumentInterface $document, int $priority, string $origin): array
     {
-        return $this->flatten($document->toArray(), '', $origin, $priority);
+        return $this->flatten($document, $document->toArray(), '', $origin, $priority);
     }
 
     /**
@@ -34,8 +39,13 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
      * @param int $priority
      * @return list<ConfigurationNodeInterface>
      */
-    private function flatten(array $data, string $prefix, string $source, int $priority): array
-    {
+    private function flatten(
+        ConfigurationDocumentInterface $document,
+        array $data,
+        string $prefix,
+        string $source,
+        int $priority,
+    ): array {
         $key = $prefix === '' ? null : Key::fromString($prefix);
         $nodes = [];
 
@@ -43,7 +53,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
             $child = $key === null ? Key::fromString((string) $segment) : $key->child((string) $segment);
 
             if (is_array($value) && Key::isAssociative($value)) {
-                $nodes = [...$nodes, ...$this->flatten($value, $child->toString(), $source, $priority)];
+                $nodes = [...$nodes, ...$this->flatten($document, $value, $child->toString(), $source, $priority)];
 
                 continue;
             }
@@ -53,10 +63,27 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
                 value: $value,
                 source: $source,
                 priority: $priority,
-                metadata: ['origin' => $source, 'format' => 'document'],
+                metadata: [],
+                provenance: new Provenance(
+                    resourceUri: $source,
+                    format: $document->format(),
+                    adapter: $document->adapter() ?? 'unknown',
+                    priority: $priority,
+                    sourceKind: self::sourceKindOf($document->format()),
+                    at: microtime(true),
+                ),
             );
         }
 
         return $nodes;
+    }
+
+    private static function sourceKindOf(Format $format): string
+    {
+        return match ($format) {
+            Format::ENV, Format::DOTENV => 'env',
+            Format::PHP => 'programmatic',
+            default => 'file',
+        };
     }
 }

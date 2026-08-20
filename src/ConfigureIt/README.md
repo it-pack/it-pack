@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Phase%205-blue.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%206-blue.svg)](#)
 
 ---
 
@@ -299,14 +299,12 @@ Future capabilities include:
 
 ## Status
 
-**Phase 1 — Core**, **Phase 2 — Additional File Formats**, **Phase 3 — Schema
-Integrations**, **Phase 4 — Resolution Pipeline Processors** and the **Dotenv**
-adapter from **Phase 5 — Additional Adapters** are implemented and the quality gate is
-green:
+**Phase 1 — Core** through **Phase 5 — Additional Adapters (Dotenv)** are implemented,
+and **Phase 6 — Graph & Provenance** is delivered. The quality gate is green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **103 tests / 196 assertions** green
+- Codeception unit suite — **121 tests / 258 assertions** green
 
 Delivered:
 
@@ -320,9 +318,18 @@ Delivered:
   (schema-as-stage), `IncludeProcessor` (`@include` file import)
 - `DocumentNormalizer` extracted from the pipeline (ADR-0010, SRP)
 - Nette-Schema adapter (`NativeConfigurationSchema`)
+- **Provenance** (`ValueObject\Provenance` on every `ConfigurationNode`): source,
+  priority, adapter/loader, `processorTrail`, `overridden` flag, `validatedBy`
+- **Diagnostics** (`ConfigurationDiagnostics` → `DiagnosticsReport`) reusing the
+  Execution `Observation` spine (overrides, nodes by source/format, unresolved vars)
+- **Graph diffing** (`ConfigurationDiffer` → `ConfigurationDiff`) for added/removed/
+  changed keys with both sides' provenance
+- `ConfigurationSnapshot::provenance(string $path)` exposes per-node provenance to
+  consumers
 
 Additional adapters (Aura.Di, Vault, Redis, HTTP, S3/cloud) are deferred and will be
-delivered incrementally (see `ROADMAP.md` Phase 5).
+delivered incrementally (see `ROADMAP.md` Phase 5). Semantic-graph visualisation and
+RDF export remain Phase 7+ tooling (see `ROADMAP.md` Phase 6).
 
 ---
 

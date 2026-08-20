@@ -1,0 +1,4 @@
+{
+  "app": { "name": "configure-it", "debug": false },
+  "db": { "host": "base-db", "port": 5432 }
+}

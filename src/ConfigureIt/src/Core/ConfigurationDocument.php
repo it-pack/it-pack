@@ -24,6 +24,7 @@ final readonly class ConfigurationDocument implements ConfigurationDocumentInter
         private array $data,
         private Format $format,
         private ?string $origin = null,
+        private ?string $adapter = null,
     ) {
     }
 
@@ -43,5 +44,10 @@ final readonly class ConfigurationDocument implements ConfigurationDocumentInter
     public function format(): Format
     {
         return $this->format;
+    }
+
+    public function adapter(): ?string
+    {
+        return $this->adapter;
     }
 }

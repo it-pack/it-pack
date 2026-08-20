@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\CastException;
 
 /**
@@ -20,7 +21,7 @@ use ItPack\ConfigureIt\Exception\CastException;
  *
  * @see docs/architecture/PIPELINE.md "Casting"
  */
-final readonly class CastingProcessor implements ConfigurationProcessorInterface
+final readonly class CastingProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
 {
     /**
      * @param array<string, string> $casts flat dotted-key → target type.
@@ -28,6 +29,11 @@ final readonly class CastingProcessor implements ConfigurationProcessorInterface
     public function __construct(
         private array $casts,
     ) {
+    }
+
+    public function stageName(): string
+    {
+        return 'CastingProcessor';
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -40,13 +46,7 @@ final readonly class CastingProcessor implements ConfigurationProcessorInterface
             }
 
             $node = $next->node($key);
-            $next->put(new ConfigurationNode(
-                key: $node->key(),
-                value: $this->cast($node->value(), $type, $key),
-                source: $node->source(),
-                priority: $node->priority(),
-                metadata: $node->metadata(),
-            ));
+            $next->put($node->withValue($this->cast($node->value(), $type, $key)));
         }
 
         return $next;

@@ -28,4 +28,12 @@ interface ConfigurationDocumentInterface
      * The format this document was parsed from.
      */
     public function format(): \ItPack\ConfigureIt\ValueObject\Format;
+
+    /**
+     * The adapter (loader class) that produced this document, when known.
+     *
+     * Recorded so downstream provenance can attribute each node to the concrete
+     * loader that parsed it (Roadmap Phase 6).
+     */
+    public function adapter(): ?string;
 }

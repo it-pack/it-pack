@@ -227,6 +227,44 @@ Suite green: **103 tests / 196 assertions**, PHPStan level 9 **0 errors**,
 sources that cannot run against the offline unit suite; Aura.Di is a DI container
 slated for a dedicated `configure-it-di` companion package (see ROADMAP Phase 5).
 
+### Phase 6 — Graph & Provenance
+
+Delivered provenance tracking, diagnostics and graph diffing (Roadmap Phase 6),
+all behind the existing node/graph/execution ports and unit-tested offline:
+
+- `src/ValueObject/Provenance.php` (+ `src/Contract/ValueObject/ProvenanceInterface.php`)
+  — immutable per-node provenance: `resourceUri`, `format`, `adapter`, `priority`,
+  `sourceKind`, `processorTrail`, `overridden`/`overriddenSource`, `validatedBy`, `at`.
+- `src/Core/ConfigurationNode.php` — carries `ProvenanceInterface` via `provenance()`;
+  `withValue()`/`withProvenance()` preserve provenance through processor rewrites.
+- `src/Core/DocumentNormalizer.php` — mints load-time provenance (real `Format` +
+  loader `adapter` + `sourceKind`); `ConfigurationGraph::put` flags overrides.
+- `src/Contract/ConfigurationDocumentInterface.php` / `ConfigurationDocument.php` /
+  `ConfigurationResolver.php` — the resolver records the concrete loader class as the
+  document `adapter` so provenance can attribute each node to its loader.
+- `src/Contract/ProvenanceAwareProcessorInterface.php` + built-in processors
+  (`Variable`, `Casting`, `Include`, `Defaults`, `Validation`) implement `stageName()`;
+  `ConfigurationPipeline` records each processor in the touched node's trail, and
+  `ValidationProcessor` records `validatedBy`.
+- `src/Core/ConfigurationDiagnostics.php` (+ `ValueObject\DiagnosticsReport`) — overrides,
+  nodes-by-source/format, unresolved `${...}` placeholders; emits `Observation`s
+  through `ResolutionReporter` (reuses the Execution spine).
+- `src/Core/ConfigurationDiffer.php` (+ `ValueObject\ConfigurationDiff`) — added/removed/
+  changed keys with both sides' provenance.
+- `src/Core/ConfigurationSnapshot.php` / interface — `provenance(string $path)` exposes
+  per-key provenance to consumers.
+- `examples/provenance.php` — end-to-end example.
+
+Tests: `ProvenanceTest`, `ConfigurationGraphProvenanceTest`,
+`ConfigurationPipelineProvenanceTest`, `ConfigurationDiagnosticsTest`,
+`ConfigurationDifferTest`, `ConfigurationSnapshotProvenanceTest`. Suite green:
+**121 tests / 258 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer`
+**0 files to fix**.
+
+**Deferred:** semantic-graph visualisation, RDF export and the full "Edge Model"
+remain Phase 7+ tooling; provenance is captured and serialisable so they build on
+top without Core changes.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

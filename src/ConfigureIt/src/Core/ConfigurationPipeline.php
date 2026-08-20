@@ -6,10 +6,12 @@ namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
 
 /**
@@ -57,7 +59,9 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
         }
 
         foreach ($this->processors as $index => $processor) {
+            $before = $graph->nodes();
             $graph = $processor->process($graph);
+            $graph = $this->recordStage($graph, $before, $this->stageNameOf($processor));
         }
 
         if ($this->processors !== []) {
@@ -69,5 +73,31 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
         }
 
         return $graph;
+    }
+
+    /**
+     * @param array<string, ConfigurationNodeInterface> $before
+     */
+    /**
+     * @param array<string, ConfigurationNodeInterface> $before
+     */
+    private function recordStage(ConfigurationGraphInterface $graph, array $before, string $stage): ConfigurationGraphInterface
+    {
+        $next = new ConfigurationGraph();
+
+        foreach ($graph->nodes() as $key => $node) {
+            $touched = !isset($before[$key]) || serialize($before[$key]->value()) !== serialize($node->value());
+
+            $next->put($touched ? $node->withProvenance($node->provenance()->withProcessor($stage)) : $node);
+        }
+
+        return $next;
+    }
+
+    private function stageNameOf(ConfigurationProcessorInterface $processor): string
+    {
+        return $processor instanceof ProvenanceAwareProcessorInterface
+            ? $processor->stageName()
+            : get_class($processor);
     }
 }

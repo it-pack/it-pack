@@ -22,11 +22,13 @@ class ConfigurationDocumentFactory implements ConfigurationDocumentFactoryInterf
         array $data,
         Format $format,
         ?string $origin = null,
+        ?string $adapter = null,
     ): ConfigurationDocumentInterface {
         return new ConfigurationDocument(
             $data,
             $format,
             $origin,
+            $adapter,
         );
     }
 }

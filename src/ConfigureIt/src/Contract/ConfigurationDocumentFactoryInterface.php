@@ -15,5 +15,6 @@ interface ConfigurationDocumentFactoryInterface
         array $data,
         Format $format,
         ?string $origin = null,
+        ?string $adapter = null,
     ): ConfigurationDocumentInterface;
 }

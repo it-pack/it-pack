@@ -387,10 +387,29 @@ container, not a natural pure configuration source; per `AGENTS.md` it is slated
 a dedicated `configure-it-di` companion package rather than a core adapter. These
 remain the subject of later Phase 5+ work.
 
-### Phase 6 — Graph & Provenance
+### Phase 6 — Graph & Provenance ✅
 
-- Provenance tracking per node (source/priority/adapter/processor).
-- Diagnostics, semantic graph, graph diffing. Reuse `Execution` occurrences.
+Delivered (offline, unit-tested):
+
+- **Per-node provenance** via `ValueObject\Provenance` (interface `ProvenanceInterface`),
+  attached to every `ConfigurationNode`. Captures `resourceUri`, `format`, `adapter`
+  (loader class), `priority`, `sourceKind`, `processorTrail`, `overridden` +
+  `overriddenSource`, and `validatedBy`. Load-time provenance is minted in
+  `DocumentNormalizer`; `ConfigurationGraph::put` flags overrides; `ValidationProcessor`
+  records `validatedBy`; the pipeline records each processor's `stageName()`
+  (`ProvenanceAwareProcessorInterface`) in the node trail.
+- **Diagnostics** via `Core\ConfigurationDiagnostics` → `ValueObject\DiagnosticsReport`
+  (overrides, nodes by source/format, unresolved `${...}` placeholders), emitting
+  `Observation`s through the `ResolutionReporter` (reuses the Execution spine).
+- **Graph diffing** via `Core\ConfigurationDiffer` → `ValueObject\ConfigurationDiff`
+  (added / removed / changed keys with both sides' provenance) for explainability.
+- **Snapshot exposure**: `ConfigurationSnapshotInterface::provenance(string $path)`
+  surfaces provenance to consumers without reaching back into the graph.
+- Example: `examples/provenance.php`.
+
+**Deferred (later phases):** semantic graph visualisation, RDF export, and the
+full "Edge Model" (Phase 7+ tooling) — provenance data is captured and serialisable
+now so those build on top without Core changes.
 
 ### Phase 7 — Developer Experience
 

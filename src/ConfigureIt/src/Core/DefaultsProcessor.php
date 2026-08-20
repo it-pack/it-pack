@@ -6,6 +6,9 @@ namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
+use ItPack\ConfigureIt\ValueObject\Format;
+use ItPack\ConfigureIt\ValueObject\Provenance;
 
 /**
  * Applies default values for keys absent from the graph.
@@ -15,7 +18,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
  *
  * @see docs/architecture/PIPELINE.md "Defaults"
  */
-final readonly class DefaultsProcessor implements ConfigurationProcessorInterface
+final readonly class DefaultsProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
 {
     /**
      * @param array<string, mixed> $defaults flat dotted-key defaults.
@@ -23,6 +26,11 @@ final readonly class DefaultsProcessor implements ConfigurationProcessorInterfac
     public function __construct(
         private array $defaults,
     ) {
+    }
+
+    public function stageName(): string
+    {
+        return 'DefaultsProcessor';
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -40,6 +48,14 @@ final readonly class DefaultsProcessor implements ConfigurationProcessorInterfac
                 source: 'defaults',
                 priority: 0,
                 metadata: ['origin' => 'defaults'],
+                provenance: new Provenance(
+                    resourceUri: 'defaults',
+                    format: Format::PHP,
+                    adapter: 'DefaultsProcessor',
+                    priority: 0,
+                    sourceKind: 'default',
+                    at: microtime(true),
+                ),
             ));
         }
 

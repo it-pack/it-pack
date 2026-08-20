@@ -105,10 +105,16 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
 
         $this->validateGraph($graph);
 
+        $diagnostics = new ConfigurationDiagnostics($this->reporter)->report($graph);
+
         $this->reporter?->record(
             $this->createOccurrence(
                 'ConfigurationResolved',
-                ['nodes' => count($graph->nodes())],
+                [
+                    'nodes' => count($graph->nodes()),
+                    'overrides' => count($diagnostics->overrides),
+                    'unresolved' => count($diagnostics->unresolved),
+                ],
             )
         );
 
@@ -153,6 +159,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
                     $parsed->toArray(),
                     $resource->format(),
                     $resource->uri(),
+                    get_class($loader),
                 );
             }
         }

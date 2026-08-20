@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ProvenanceInterface;
 
 /**
  * An immutable runtime representation of resolved configuration.
@@ -20,15 +21,23 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
 {
     /**
      * @param array<string, mixed> $tree
+     * @param array<string, ProvenanceInterface> $provenance per-key provenance from the graph.
      */
     public function __construct(
         private array $tree,
+        private array $provenance = [],
     ) {
     }
 
     public static function fromGraph(ConfigurationGraphInterface $graph): self
     {
-        return new self($graph->toArray());
+        $provenance = [];
+
+        foreach ($graph->nodes() as $key => $node) {
+            $provenance[$key] = $node->provenance();
+        }
+
+        return new self($graph->toArray(), $provenance);
     }
 
     public function get(string $path, mixed $default = null): mixed
@@ -47,5 +56,10 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
     public function all(): array
     {
         return $this->tree;
+    }
+
+    public function provenance(string $path): ?ProvenanceInterface
+    {
+        return $this->provenance[$path] ?? null;
     }
 }

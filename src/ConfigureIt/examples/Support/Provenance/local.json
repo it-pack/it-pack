@@ -1,0 +1,4 @@
+{
+  "app": { "debug": true },
+  "db": { "host": "local-db" }
+}
