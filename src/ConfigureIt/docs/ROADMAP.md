@@ -114,23 +114,36 @@ and the contract docblocks in `ConfigurationDocumentFactoryInterface`,
 
 **Goal.** Remove dead, broken refactor artifacts.
 
-- `src/Adapter/Context.php` — broken import, **zero importers**.
-- `src/Adapter/Schema.php` — broken import, **zero importers**.
-- `src/Adapter/Contract/ContextAdapterInterface.php` — broken import, zero importers.
-- `src/Adapter/Contract/SchemaAdapterInterface.php` — broken import, only consumed
-  by `src/Adapter/Processor.php` (which then cannot instantiate).
+- `src/Adapter/Context.php` — **deleted** (broken import, zero importers).
+- `src/Adapter/Contract/ContextAdapterInterface.php` — **deleted** (broken import,
+  zero importers).
+- `src/Adapter/Contract/SchemaAdapterInterface.php` — **deleted** (broken import,
+  only consumed by `src/Adapter/Processor.php`).
+- `src/Adapter/Schema.php` — **retained.** It is *not* orphaned: it is the
+  `SchemaInterface` adapter and is constructed by
+  `NativeConfigurationSchema::__construct()` (`new Schema($schema)`,
+  `src/Adapter/NativeConfigurationSchema.php:35`), which the Core uses for
+  validation. Its imports (`Contract\ContextInterface`,
+  `Contract\SchemaInterface`) resolve correctly at the flat `Contract\` namespace,
+  so there is no broken import. `Processor.php` consumes the surviving
+  `SchemaInterface` port (no `SchemaAdapterInterface|SchemaInterface` union
+  remains).
 
-**Action.** If these are not needed for an imminent feature, **delete** all four.
-If `Processor` genuinely needs a schema-port abstraction, finish
-`SchemaAdapterInterface` against the reconciled namespace (T1) and keep it;
-otherwise drop the `SchemaAdapterInterface|SchemaInterface` union from
-`src/Adapter/Processor.php:23,31`.
+**Action taken.** The three dead files above were deleted; `Schema.php` is kept
+because it is a live dependency of `NativeConfigurationSchema`.
 
 **Verification**
 ```bash
-grep -rn "Adapter\\\\Context\b\|Adapter\\\\Schema\b\|ContextAdapterInterface\|SchemaAdapterInterface" src tests examples
-# expect: no matches (or only the intentional, now-fixed ones)
+grep -rn "Adapter\\\\Context\b\|ContextAdapterInterface\|SchemaAdapterInterface" src tests examples
+# expect: no matches (the three dead leftovers are gone)
+grep -rn "new Schema(\|Adapter\\\\Schema\b" src
+# expect: exactly one match — src/Adapter/NativeConfigurationSchema.php:35
+                (the legitimate, intended use of the SchemaInterface adapter)
 ```
+
+**Status — ✅.** Dead leftovers removed; `Schema.php` retained as a live
+dependency. `phpstan analyse` remains **0 errors** and `composer test:unit` stays
+**61 tests / 119 assertions green**.
 
 ### T3 — Fix test-suite imports and run it green
 
