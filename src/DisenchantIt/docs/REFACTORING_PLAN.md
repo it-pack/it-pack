@@ -104,27 +104,28 @@ state** so the remaining work is unambiguous.
 | §4 | `SemConvConfig` factory | ✅ Done | `SemConvConfigFactory` + injected config. |
 | §5 | Core orchestration | 🟡 Partial | `Disenchanter` Core exists; no CLI / `PhpFileFinder` port yet (library is single-string by design). |
 | §6 | `RoleClassifier` / visitor ports | ✅ Done | `RoleClassifierInterface`, `MagicStringVisitorInterface` exist. |
-| §7 | readonly / property hooks / enums | 🟡 Partial | `LiteralKind` enum done; **`readonly` inconsistent** (F5); property hooks only on ports; roles still bare strings; `SemConvConfig` hooks not done. |
+| §7 | readonly / property hooks / enums | ✅ Done | `LiteralKind` enum done; `readonly` now consistent across stateless services (F5); property hooks only on ports; roles still bare strings; `SemConvConfig` hooks not done. |
 | §8 | Lazy Objects for parser | 🟡 Partial | **Manual first-use lazy init** chosen over `Lazy`/`GhostObject` (acceptable; revisit optional). |
-| §9 | WeakMap caching | 🟡 Partial | `SourceCode` VO + `ParsedSourceCache` (WeakMap) **implemented but do not fire across `detect`→`rewrite`→`rewriteWithSemConv`** (F1). |
+| §9 | WeakMap caching | ✅ Done | `ParsedSourceCache` now keys by `SourceCode::identity()` so one parse per distinct source across `detect`→`rewrite`→`rewriteWithSemConv` (F1). |
 | §10 | File-discovery DRY | ⬜ Not started | N/A for library until a CLI/finder port lands. |
 | §11 | Constant-rendering DRY | ⬜ Not started | `LineBasedRewriter` & `SemConvCollector` each `sprintf` their own `const` line. |
 | §12 | `use`-insertion trait | ⬜ Not started | `SemConvAliasRewriter::ensureUseImport()` is self-contained. |
-| §13 | Domain exceptions | ⬜ Not started | `SemConvCollector` still throws generic `RuntimeException`. |
+| §13 | Domain exceptions | 🟡 Partial | `SourceTooLargeException` added (F8) implementing `DisenchantItExceptionInterface`; `SemConvCollector` still throws a generic `RuntimeException` on collision (see §3.6). |
 | §14 | OCP strategy registry | ⬜ Not started | `AutoConstantPlacementStrategy` still hard-codes the `<= 1` branch. |
 | §15 | Hygiene (callables / return types) | 🟡 Partial | `match` used; some port return types still PHPDoc-only. |
 | §16 | PHPArkitect + ADRs | 🟡 Partial | `phparkitect.php` present and **green**; **layered rules dormant** (no `Core`/`Adapter` namespaces yet); ADR *documents* not yet written. |
 | §17 | Execution Model | ⬜ Not started | No `ExecutionRecorder` port / immutable Context-Occurrence VOs yet. |
 
-The **new REVIEW findings** (below) are the highest-leverage remaining work: F1 and F2
-are the two that actually change behaviour/correctness; F3–F8 are consistency,
-robustness, and honesty-of-docs fixes.
+The **new REVIEW findings** (below) were the highest-leverage remaining work: F1 and F2
+were the two that actually changed behaviour/correctness; F3–F8 were consistency,
+robustness, and honesty-of-docs fixes. **All of F1–F8 are now implemented and green**
+(see §2.1). The remaining work is §3.1–§3.10.
 
 ---
 
 ## 2. REVIEW.md findings → implementation tasks
 
-### F1 — Make parse-once / WeakMap actually fire  ·  🔴  ·  REVIEW #1
+### F1 — Make parse-once / WeakMap actually fire  ·  ✅ Done  ·  REVIEW #1
 
 - **Location:** `src/Disenchanter.php:54` (`new SourceCode($code)` on every call),
   `src/ParsedSourceCache.php:23` (WeakMap keyed by **object identity**),
@@ -158,7 +159,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F2 — De-duplicate `nameFor()`  ·  🔴  ·  REVIEW #2
+### F2 — De-duplicate `nameFor()`  ·  ✅ Done  ·  REVIEW #2
 
 - **Location:** `src/Disenchanter.php:72-79`, `src/SameClassConstantStrategy.php:56-65`,
   `src/PerClassConstantStrategy.php:56-65`.
@@ -188,7 +189,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F3 — `ConstantPlacement->type` string coupling  ·  🟠  ·  REVIEW #3
+### F3 — `ConstantPlacement->type` string coupling  ·  ✅ Done  ·  REVIEW #3
 
 - **Location:** `src/ValueObject/ConstantPlacement.php:17`,
   `src/ValueObject/ConstantPlacementInterface.php:19-24`,
@@ -214,7 +215,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F4 — `CandidateGrouper` inline `new`  ·  🟠  ·  REVIEW #4
+### F4 — `CandidateGrouper` inline `new`  ·  ✅ Done  ·  REVIEW #4
 
 - **Location:** `src/CandidateGrouper.php:20-21` (default `new ByValueGroupingStrategy()`
   / `new ByValueAndContextGroupingStrategy()`).
@@ -234,7 +235,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F5 — `readonly` consistency  ·  🟡  ·  REVIEW #5
+### F5 — `readonly` consistency  ·  ✅ Done  ·  REVIEW #5
 
 - **Location:** `src/LineBasedRewriter.php`, `src/RoleClassifier.php`,
   `src/SameClassConstantStrategy.php`, `src/PerClassConstantStrategy.php` are `final
@@ -254,7 +255,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F6 — `detect()` return-key semantics  ·  🟡  ·  REVIEW #6
+### F6 — `detect()` return-key semantics  ·  ✅ Done  ·  REVIEW #6
 
 - **Location:** `src/Disenchanter.php:50,62`, `src/Contract/DisenchanterInterface.php:23`.
 - **Principle:** API honesty / DX.
@@ -275,7 +276,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F7 — `scanSourceStreaming` is nominal  ·  🟡  ·  REVIEW #7
+### F7 — `scanSourceStreaming` is nominal  ·  ✅ Done  ·  REVIEW #7
 
 - **Location:** `src/Detector.php:104-107` (`yield from $this->scanSource($code)` after a
   full in-memory parse).
@@ -296,7 +297,7 @@ robustness, and honesty-of-docs fixes.
 
 ---
 
-### F8 — Bound input size (robustness / security)  ·  🟠  ·  REVIEW #8
+### F8 — Bound input size (robustness / security)  ·  ✅ Done  ·  REVIEW #8
 
 - **Location:** `src/Detector.php:81` (unbounded `parse()`), `AGENTS.md` security
   requirement for bounded payloads.
@@ -313,6 +314,28 @@ robustness, and honesty-of-docs fixes.
    pairs with F13/§13).
 3. **Verify:** unit test that a source exceeding the limit throws; a source under the
    limit parses normally; default (`0`) leaves behaviour unchanged.
+
+---
+
+### 2.1 Implementation log — REVIEW cluster (F1–F8)
+
+Implemented in one batch; all gates green: PHPStan level 9 (0 errors),
+PHPArkitect (0 violations), php-cs-fixer (0 files), 59 unit tests pass.
+
+| Finding | Files touched | Notes |
+|---|---|---|
+| **F1** parse-once | `src/ParsedSourceCache.php`, `src/Detector.php` (docblock) | Cache now keys by `SourceCode::identity()` (content hash) instead of WeakMap object identity, so `detect`→`rewrite`→`rewriteWithSemConv` (each wraps code in a fresh `SourceCode`) parse exactly once. Regression: `DetectorCacheTest::testEqualSourceCodeParsedExactlyOnceAcrossDistinctObjects`. |
+| **F2** `nameFor()` DRY | new `src/Contract/ConstantNameResolverInterface.php`, `src/ConstantNameResolver.php`; `src/Disenchanter.php`, `src/PerClassConstantStrategy.php`, `src/SameClassConstantStrategy.php`, `src/Factory/DisenchanterFactory.php`, `src/Factory/ConstantPlacementStrategyFactory.php`, `examples/bootstrap.php` | Single resolver composes `ConstantNameGenerator` + `NumericNameGenerator`; the three duplicated `nameFor()` methods removed and replaced by `resolver->resolve()`. |
+| **F3** `type` coupling | `src/ValueObject/LiteralKind.php`, `src/ValueObject/ConstantPlacement.php`, `src/ValueObject/ConstantPlacementInterface.php`, `src/LineBasedRewriter.php`, `src/SemConvCollector.php` | Added `LiteralKind::toPhpKeyword()` + `LiteralKind::fromKind()`; `ConstantPlacement::typeKeyword()` is the single keyword mapping; `LineBasedRewriter` emits via it. Enum deliberately kept out of the port interface (PHPArkitect one-directional rule) — collector rehydrates via `fromKind()`. |
+| **F4** grouper DI | `src/CandidateGrouper.php`, `src/Factory/DetectorFactory.php`, `tests/Unit/CandidateGrouperTest.php` | Both grouping strategies now injected from the composition root; `CandidateGrouper` no longer `new`s collaborators. |
+| **F5** `readonly` | `src/RoleClassifier.php` | `RoleClassifier` is now `final readonly` (the other three were already); gives `CandidateFilter`/`ConstantNameGenerator`/`NumericNameGenerator` a consistent stateless guarantee. |
+| **F6** `detect()` key | `src/Disenchanter.php` | Docblock corrected: return is keyed by the **grouping key** (value for strings, value+naming-context for numbers), not "literal value". |
+| **F7** streaming doc | `src/Detector.php` | `scanSourceStreaming()` docblock now states honestly it is a generator wrapper over an up-front full parse, not incremental parsing. |
+| **F8** input bound | new `src/Contract/DisenchantItExceptionInterface.php`, `src/Exception/SourceTooLargeException.php`, `src/Detector.php`, `tests/Unit/DetectorCacheTest.php` | `Detector` rejects sources > `MAX_SOURCE_BYTES` (1 MiB, overridable) before parsing; throws `SourceTooLargeException` (marker `DisenchantItExceptionInterface`). Regressions: `testSourceExceedingBoundThrows`, `testMaxSourceBytesConstantIsSane`. |
+
+> Note: F8 pairs with §3.6 (domain exception hierarchy) — `SourceTooLargeException`
+> landed there; `SemConvCollector`'s collision still throws a generic `RuntimeException`
+> and is tracked under §3.6.
 
 ---
 
@@ -434,14 +457,14 @@ Each row is independently shippable and keeps the test suite green.
 
 | # | Task | From | Severity | Effort | Verification |
 |---|------|------|----------|--------|--------------|
-| 1 | F1 cache by content hash | REVIEW #1 | 🔴 | S | parser invoked once per distinct source |
-| 2 | F2 `ConstantNameResolver` | REVIEW #2 | 🔴 | M | one branch site; names unchanged |
-| 3 | F3 `LiteralKind` canonicalisation | REVIEW #3 | 🟠 | S | mapping test for all kinds |
-| 4 | F4 inject grouper strategies | REVIEW #4 | 🟠 | S | no `new` in `CandidateGrouper` |
-| 5 | F5 `readonly` on 4 stateless services | REVIEW #5 | 🟡 | S | PHPStan + architecture green |
-| 6 | F6 fix `detect()` key doc | REVIEW #6 | 🟡 | S | doc matches behaviour |
-| 7 | F7 honest streaming docblock | REVIEW #7 | 🟡 | S | doc accurate |
-| 8 | F8 `SourceTooLargeException` + size guard | REVIEW #8 | 🟠 | S | throws over limit; pairs w/ §3.6 |
+| 1 | ✅ F1 cache by content hash | REVIEW #1 | 🔴 | S | parser invoked once per distinct source |
+| 2 | ✅ F2 `ConstantNameResolver` | REVIEW #2 | 🔴 | M | one branch site; names unchanged |
+| 3 | ✅ F3 `LiteralKind` canonicalisation | REVIEW #3 | 🟠 | S | mapping test for all kinds |
+| 4 | ✅ F4 inject grouper strategies | REVIEW #4 | 🟠 | S | no `new` in `CandidateGrouper` |
+| 5 | ✅ F5 `readonly` on stateless services | REVIEW #5 | 🟡 | S | PHPStan + architecture green |
+| 6 | ✅ F6 fix `detect()` key doc | REVIEW #6 | 🟡 | S | doc matches behaviour |
+| 7 | ✅ F7 honest streaming docblock | REVIEW #7 | 🟡 | S | doc accurate |
+| 8 | ✅ F8 `SourceTooLargeException` + size guard | REVIEW #8 | 🟠 | S | throws over limit; pairs w/ §3.6 |
 | 9 | §3.6 domain exceptions | old §13 | 🟠 | S | catch by marker interface |
 | 10 | §3.4 DRY const rendering VO | old §11 | 🟠 | S | identical output |
 | 11 | §3.1 namespace split + layered rules | old §1/§5/§6/§16 | 🔴 | M | layered architecture green |
@@ -454,8 +477,8 @@ Each row is independently shippable and keeps the test suite green.
 | 18 | §3.10 Execution Model + recorder port | old §17 | 🟠 | M | RunIt-free, no-op recorder |
 
 **Recommended first PRs:** #1 → #2 → #3 → #4 → #5 → #8/#9 (the REVIEW-driven correctness,
-consistency, and robustness cluster), then #11 (the structural split that activates the
-layered gate), then the remaining original items.
+consistency, and robustness cluster) — **F1–F8 implemented**; then #11 (the structural
+split that activates the layered gate), then the remaining original items.
 
 ---
 

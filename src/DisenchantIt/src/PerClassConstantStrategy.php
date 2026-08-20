@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt;
 
-use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
+use ItPack\DisenchantIt\Contract\ConstantNameResolverInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
-use ItPack\DisenchantIt\Contract\NumericNameGeneratorInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
 
 final class PerClassConstantStrategy implements ConstantPlacementStrategyInterface
 {
     public function __construct(
         private readonly ConstantPlacementFactoryInterface $placements,
-        private readonly ConstantNameGeneratorInterface $generator,
-        private readonly NumericNameGeneratorInterface $numericGenerator,
+        private readonly ConstantNameResolverInterface $resolver,
     ) {
     }
 
@@ -34,7 +31,7 @@ final class PerClassConstantStrategy implements ConstantPlacementStrategyInterfa
         }
 
         $value = $occurrences[0]->value;
-        $constantName = $this->nameFor($occurrences);
+        $constantName = $this->resolver->resolve($occurrences[0]);
 
         $placements = [];
         foreach ($byClass as $className => $classOccurrences) {
@@ -50,17 +47,4 @@ final class PerClassConstantStrategy implements ConstantPlacementStrategyInterfa
         return $placements;
     }
 
-    /**
-     * @param list<LiteralInterface> $occurrences
-     */
-    private function nameFor(array $occurrences): string
-    {
-        $lit = $occurrences[0];
-
-        if ($lit->kind === LiteralKind::String->value) {
-            return $this->generator->generate($lit->value, $lit->role);
-        }
-
-        return $this->numericGenerator->generate($lit, $lit->namingContext) ?? $lit->value;
-    }
 }

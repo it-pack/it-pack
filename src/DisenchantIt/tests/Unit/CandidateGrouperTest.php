@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
+use ItPack\DisenchantIt\ByValueAndContextGroupingStrategy;
+use ItPack\DisenchantIt\ByValueGroupingStrategy;
 use ItPack\DisenchantIt\CandidateGrouper;
 use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
@@ -15,7 +17,10 @@ final class CandidateGrouperTest extends Unit
 
     protected function setUp(): void
     {
-        $this->grouper = new CandidateGrouper();
+        $this->grouper = new CandidateGrouper(
+            new ByValueGroupingStrategy(),
+            new ByValueAndContextGroupingStrategy(),
+        );
     }
 
     private function literal(string $value, int $line): StringLiteral

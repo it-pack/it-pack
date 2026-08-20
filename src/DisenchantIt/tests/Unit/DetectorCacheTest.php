@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Detector;
+use ItPack\DisenchantIt\Exception\SourceTooLargeException;
 use ItPack\DisenchantIt\Factory\MagicStringVisitorFactory;
 use ItPack\DisenchantIt\Factory\NikicTraverserFactory;
 use ItPack\DisenchantIt\ParsedSourceCache;
@@ -94,5 +95,51 @@ final class DetectorCacheTest extends Unit
 
         $this->assertTrue($cache->has($source));
         $this->assertSame([], $cache->get($source));
+    }
+
+    /**
+     * F1 regression: the cache must key by content identity, not by object
+     * identity. detect → rewrite → rewriteWithSemConv each wrap the source in a
+     * fresh SourceCode object, so the parse must still be reused.
+     */
+    public function testEqualSourceCodeParsedExactlyOnceAcrossDistinctObjects(): void
+    {
+        $detector = $this->detector();
+        $code = '<?php class C { public function f(): int { return 1; } }';
+
+        $first = $detector->scanSource(new SourceCode($code));
+        $second = $detector->scanSource(new SourceCode($code));
+
+        // Cache hit on the second call even though it is a different object:
+        // no additional parser construction.
+        $this->assertSame(1, $this->parsers->builds, 're-scanning equal code in a distinct SourceCode reuses the cached result');
+        $this->assertSame($first, $second, 'cached result is returned by reference-stable identity');
+    }
+
+    /**
+     * F8 regression: a source larger than the configured bound is rejected
+     * before parsing (no parser construction).
+     */
+    public function testSourceExceedingBoundThrows(): void
+    {
+        $parsers = new CountingParserFactory();
+        $detector = new Detector(
+            new RoleClassifier(),
+            $parsers,
+            new NikicTraverserFactory(),
+            new MagicStringVisitorFactory(),
+            new ParsedSourceCache(),
+            maxSourceBytes: 10,
+        );
+
+        $this->expectException(SourceTooLargeException::class);
+        $this->expectExceptionMessageMatches('/exceeding the configured limit of 10 bytes/');
+
+        $detector->scanSource(new SourceCode('<?php class C {}'));
+    }
+
+    public function testMaxSourceBytesConstantIsSane(): void
+    {
+        $this->assertSame(1_000_000, Detector::MAX_SOURCE_BYTES);
     }
 }

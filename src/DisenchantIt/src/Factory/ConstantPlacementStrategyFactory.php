@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Factory;
 
 use ItPack\DisenchantIt\AutoConstantPlacementStrategy;
 use ItPack\DisenchantIt\ConstantNameGenerator;
+use ItPack\DisenchantIt\ConstantNameResolver;
 use ItPack\DisenchantIt\ConstantPlacementStrategyInterface;
 use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
@@ -35,12 +36,18 @@ final readonly class ConstantPlacementStrategyFactory implements ConstantPlaceme
 
     public function buildSameClass(): ConstantPlacementStrategyInterface
     {
-        return new SameClassConstantStrategy($this->placements, $this->generator, $this->numericGenerator);
+        return new SameClassConstantStrategy(
+            $this->placements,
+            new ConstantNameResolver($this->generator, $this->numericGenerator),
+        );
     }
 
     public function buildPerClass(): ConstantPlacementStrategyInterface
     {
-        return new PerClassConstantStrategy($this->placements, $this->generator, $this->numericGenerator);
+        return new PerClassConstantStrategy(
+            $this->placements,
+            new ConstantNameResolver($this->generator, $this->numericGenerator),
+        );
     }
 
     public function buildAuto(): ConstantPlacementStrategyInterface

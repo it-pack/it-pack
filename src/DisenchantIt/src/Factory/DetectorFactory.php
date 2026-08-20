@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
+use ItPack\DisenchantIt\ByValueAndContextGroupingStrategy;
+use ItPack\DisenchantIt\ByValueGroupingStrategy;
 use ItPack\DisenchantIt\CandidateFilter;
 use ItPack\DisenchantIt\CandidateGrouper;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
@@ -45,7 +47,10 @@ final readonly class DetectorFactory implements DetectorFactoryInterface
             NikicTraverserFactory::create(),
             MagicStringVisitorFactory::create(),
             new CandidateFilter($classifier),
-            new CandidateGrouper(),
+            new CandidateGrouper(
+                new ByValueGroupingStrategy(),
+                new ByValueAndContextGroupingStrategy(),
+            ),
         );
     }
 

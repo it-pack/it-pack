@@ -119,7 +119,7 @@ final class LineBasedRewriter implements RewriterInterface
 
                 $declarationLines[] = sprintf(
                     '    private const %s %s = %s;',
-                    $placement->type,
+                    $placement->typeKeyword(),
                     $placement->constantName,
                     $placement->occurrences[0]->raw,
                 );

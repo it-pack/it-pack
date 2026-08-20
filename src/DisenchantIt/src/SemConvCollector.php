@@ -84,7 +84,7 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
      */
     private function canonicalValue(ConstantPlacementInterface $placement): string
     {
-        return match (LiteralKind::from($placement->type)) {
+        return match (LiteralKind::fromKind($placement->type)) {
             LiteralKind::Int => var_export((int) $placement->value, true),
             LiteralKind::Float => var_export((float) $placement->value, true),
             LiteralKind::String => var_export($placement->value, true),

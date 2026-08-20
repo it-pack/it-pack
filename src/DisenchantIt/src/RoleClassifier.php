@@ -17,7 +17,7 @@ use PhpParser\Node\Scalar\String_;
  * No string ever needs to be re-parsed for delimiters; the parser already
  * told us exactly where it starts and ends.
  */
-final class RoleClassifier implements RoleClassifierInterface
+final readonly class RoleClassifier implements RoleClassifierInterface
 {
     private const array NOISE_FUNCTIONS = ['sprintf', 'printf', 'vsprintf', 'trigger_error'];
 

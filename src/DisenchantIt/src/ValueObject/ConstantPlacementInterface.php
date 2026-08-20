@@ -24,6 +24,13 @@ interface ConstantPlacementInterface
      */
     public string $type { get; }
 
+    /**
+     * The PHP type keyword for this placement's declaration (e.g. `int`,
+     * `float`, `string`). Centralized through LiteralKind so emitters never
+     * compare the raw `type` string against keywords directly.
+     */
+    public function typeKeyword(): string;
+
     /** @var list<LiteralInterface> */
     public array $occurrences { get; }
 }

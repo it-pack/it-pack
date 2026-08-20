@@ -18,4 +18,14 @@ final readonly class ConstantPlacement implements ConstantPlacementInterface
         public array $occurrences,
     ) {
     }
+
+    /**
+     * The PHP type keyword for this placement's declaration, e.g. `int`,
+     * `float`, `string`. Centralized through LiteralKind so the emitted keyword
+     * can never drift from the detected kind.
+     */
+    public function typeKeyword(): string
+    {
+        return LiteralKind::from($this->type)->toPhpKeyword();
+    }
 }

@@ -10,6 +10,7 @@ use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
+use ItPack\DisenchantIt\Exception\SourceTooLargeException;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\SourceCodeInterface;
 
@@ -32,9 +33,10 @@ use ItPack\DisenchantIt\ValueObject\SourceCodeInterface;
  * scanSource and reused for every subsequent scan of this Detector's lifetime
  * (the parser is the expensive resource; the traverser+visitor are cheap and
  * rebuilt per scan so visitors never accumulate). The parsed scan result is
- * memoized per SourceCode in a non-owning WeakMap cache, so re-scanning the
- * same SourceCode object — e.g. across detect → rewrite → SemConv — parses the
- * source exactly once.
+ * memoized per SourceCode in a cache keyed by the source *content identity*
+ * (SourceCode::identity()), so re-scanning equal source — e.g. across
+ * detect → rewrite → rewriteWithSemConv, which each wrap the code in a fresh
+ * SourceCode object — parses the source exactly once.
  *
  * Requires: nikic/php-parser ^5.0
  */
@@ -50,12 +52,21 @@ final class Detector implements StringLiteralDetectorInterface
      */
     private ?object $parser = null;
 
+    /**
+     * Maximum accepted source size in bytes. A single source larger than this
+     * is rejected before parsing (see scanSource) to bound memory use of the
+     * parse+traverse step. Overridable via the constructor for callers that know
+     * their inputs are legitimately large.
+     */
+    public const int MAX_SOURCE_BYTES = 1_000_000;
+
     public function __construct(
         private readonly RoleClassifierInterface $classifier,
         private readonly ParserFactoryInterface $parsers,
         private readonly TraverserFactoryInterface $traversers,
         private readonly MagicStringVisitorFactoryInterface $visitorFactory,
         private readonly ParsedSourceCacheInterface $cache,
+        private readonly int $maxSourceBytes = self::MAX_SOURCE_BYTES,
     ) {
     }
 
@@ -65,6 +76,11 @@ final class Detector implements StringLiteralDetectorInterface
      */
     public function scanSource(SourceCodeInterface $code): array
     {
+        $byteLength = strlen($code->code);
+        if ($byteLength > $this->maxSourceBytes) {
+            throw new SourceTooLargeException($byteLength, $this->maxSourceBytes);
+        }
+
         $cached = $this->cache->get($code);
         if ($cached !== null) {
             return $cached;
@@ -99,6 +115,14 @@ final class Detector implements StringLiteralDetectorInterface
     }
 
     /**
+     * Convenience generator wrapper around scanSource.
+     *
+     * Honest about its limits: it does NOT perform true incremental / chunked
+     * parsing. The full source is still parsed and traversed up front (once,
+     * memoized); this method merely yields the resulting literals one at a time
+     * so callers can incrementally consume detections without holding the whole
+     * list. True streaming would require a streaming lexer and is out of scope.
+     *
      * @return \Generator<int, LiteralInterface, void, void>
      */
     public function scanSourceStreaming(SourceCodeInterface $code): \Generator
