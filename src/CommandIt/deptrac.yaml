@@ -27,7 +27,7 @@ deptrac:
     - name: Adapter
       collectors:
         - type: directory
-          value: src/Adapter/.*
+          value: src/Adapter/(?!SymfonyConsole/).*
     - name: Port
       collectors:
         - type: directory
@@ -36,6 +36,8 @@ deptrac:
       collectors:
         - type: classNameRegex
           value: '/^Symfony\\Console/'
+        - type: directory
+          value: src/Adapter/SymfonyConsole/.*
     - name: RunIt
       collectors:
         - type: classNameRegex

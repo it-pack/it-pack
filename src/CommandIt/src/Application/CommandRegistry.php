@@ -51,4 +51,15 @@ final class CommandRegistry implements CommandRegistryInterface
         return $this->entries[$name]['factory']
             ?? throw HandlerNotFoundException::forCommand($name);
     }
+
+    /**
+     * @return list<CommandDefinitionInterface>
+     */
+    public function definitions(): array
+    {
+        return \array_values(\array_map(
+            static fn (array $entry): CommandDefinitionInterface => $entry['definition'],
+            $this->entries,
+        ));
+    }
 }

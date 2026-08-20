@@ -39,4 +39,11 @@ interface CommandRegistryInterface
      * @throws \ItPack\CommandIt\Contract\Exception\HandlerNotFoundException when no command is registered under $name
      */
     public function handlerFactory(string $name): callable;
+
+    /**
+     * Returns every registered definition, for enumeration (e.g. CLI registration).
+     *
+     * @return list<\ItPack\CommandIt\Contract\Command\CommandDefinitionInterface>
+     */
+    public function definitions(): array;
 }

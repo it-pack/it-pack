@@ -64,5 +64,50 @@ $result = $commandIt->dispatch($command); // CommandResult with status "succeede
 - Input is validated (required args/options) and coerced by declared `type()` (`int`, `float`, `bool`, `string`).
 - On a handler failure the **original** exception is rethrown; the reporter/storage never replace it.
 
+## CLI adapter (Symfony Console)
+
+The CLI adapter projects registered definitions onto Symfony Console. `symfony/console`
+is `suggest`-only — core never imports it; only `ItPack\CommandIt\Adapter\CLI` does.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use ItPack\CommandIt\Adapter\CLI\ConsoleCommandRegistry;
+use Symfony\Component\Console\Application;
+
+// $commandIt from the example above, after registering commands.
+$app = new Application();
+$app->setAutoExit(false);
+
+foreach (
+    (new ConsoleCommandRegistry($commandIt->registry(), $commandIt->bus()))
+        ->toConsoleCommands() as $command
+) {
+    $app->addCommand($command);
+}
+
+$app->run(); // e.g. `php bin/console cache:clear 5 --force`
+```
+
+- `ConsoleCommandRegistry` enumerates every registered `CommandDefinitionInterface`
+  into a `ConsoleCommandBridge` (one Symfony `Command` per definition).
+- The bridge mirrors arguments/options into a Symfony `InputDefinition`; `bool`
+  options become flags (`--force`), `int`/`float`/`string` values are coerced by the
+  shared input-coercion behavior, so CLI input agrees exactly with the Array input
+  adapter.
+- `execute()` dispatches through the `CommandBusInterface` and writes the
+  `CommandResult` payload to the output stream (JSON for arrays/objects). Handler
+  failures are reported on the stream with a non-zero exit code; the original
+  exception is preserved by the core executor.
+- `ArgvInputParser` covers the raw `$argv` → `CommandInput` path (validation +
+  coercion) when you build commands without a full Symfony `Application`.
+
+## Security & isolation
+
+- Execution context is restored in `finally` by the core executor, so the CLI is
+  safe across repeated invocations in a persistent worker.
+
 See `docs/architecture/MODEL.md` for the domain model and `docs/ROADMAP.md` for the
 milestone plan.

@@ -87,6 +87,11 @@ final class CommandIt
         return $this->executor;
     }
 
+    public function registry(): CommandRegistryInterface
+    {
+        return $this->registry;
+    }
+
     public function executor(): CommandExecutorInterface
     {
         return $this->executor;

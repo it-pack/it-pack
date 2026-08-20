@@ -272,11 +272,17 @@ composer analyse
 
 ### Tasks
 
-- [ ] **M6.1 `[Adapter/CLI]`** `ArgvInputParser` — `$argv` → `CommandInput` for a definition (validation + coercion).
-- [ ] **M6.2 `[Adapter/SymfonyConsole]`** `ConsoleCommandAdapter` — `CommandDefinition` → Symfony `Command`; `execute()` dispatches via `CommandBus`, writes `CommandResult` to `OutputInterface`. Symfony is `suggest` only.
-- [ ] **M6.3 `[Adapter/SymfonyConsole]`** `ConsoleApplicationBridge` — registers many definitions into a Symfony `Application`; `--list` from `CommandRegistry`.
-- [ ] **M6.4** Ensure `deptrac` forbids `Core/Domain → symfony/console`; adapter layer only.
-- [ ] **M6.5** No execution-context leakage across CLI invocations (persistent-worker safe).
+- [x] **M6.1 `[Adapter/CLI]`** `ArgvInputParser` — `$argv` tokens → `CommandInput` for a definition (validation + coercion, reusing `InputCoercionBehavior`).
+- [x] **M6.2 `[Adapter/CLI]`** `ConsoleCommandBridge` — `CommandDefinition` → Symfony `Command`; `execute()` mirrors args/options into a Symfony `InputDefinition`, dispatches via `CommandBus`, writes `CommandResult` to `OutputInterface`. Symfony is `suggest` only.
+- [x] **M6.3 `[Adapter/CLI]`** `ConsoleCommandRegistry` — enumerates every registered definition (`CommandRegistryInterface::definitions()`) into a `ConsoleCommandBridge`; wires many definitions into a Symfony `Application`.
+- [x] **M6.4** `deptrac` forbids `Core/Domain → symfony/console`; only the `Adapter/CLI` layer references Symfony (verified: 0 violations). `CommandRegistryInterface::definitions()` added to support enumeration without leaking the facade.
+- [x] **M6.5** No execution-context leakage across CLI invocations: each `execute()` builds a fresh `Command`, and the core executor restores context in `finally` (asserted in `ConsoleCommandTest` indirectly via the shared in-memory context).
+
+### Notes
+
+- The adapter lives under `src/Adapter/CLI/` (the deptrac `Adapter` layer), not `Adapter/SymfonyConsole`; `deptrac.yaml` was adjusted so the `SymfonyConsole` layer matches `src/Adapter/SymfonyConsole/.*` only, keeping `CLI` inside `Adapter`.
+- `bool` options are projected as Symfony `VALUE_NONE` flags (`--force`); `int`/`float`/`string` options use `VALUE_REQUIRED`/`VALUE_OPTIONAL` and are coerced by the shared behavior, so CLI input agrees with the Array input adapter.
+- Symfony Console 8 replaced `Application::add()` with `Application::addCommand()`; the consumer wiring uses `addCommand()`.
 
 ### DoD
 
