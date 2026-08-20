@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\RunIt\Adapter\Fiber;
+
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
+
+/**
+ * Token tying an attached scope to the Fiber (or main stack) that owns it.
+ *
+ * @see https://w3id.org/itpack/runit#Execution
+ */
+final class FiberContextToken implements ContextTokenInterface
+{
+    /**
+     * @param object $anchor the Fiber instance, or the main sentinel when outside a Fiber
+     */
+    public function __construct(
+        public readonly object $anchor,
+        public readonly ExecutionScopeInterface $scope,
+    ) {
+    }
+}

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Runner;
 
 use Closure;
+use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
+use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
@@ -86,6 +88,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         private readonly ?Closure $onPublicationFailure = null,
         private readonly ?SnapshotStoreInterface $snapshotStore = null,
         private readonly ?Closure $onSnapshotStoreFailure = null,
+        private readonly ?ExecutionEngineInterface $engine = null,
     ) {
         $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
         $this->safePublisher = new FailSafeArtifactPublisher($this->publisher, new FailOpenPolicy(), $health);
@@ -166,7 +169,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         try {
             $this->safePublish($execution);
 
-            $result = $operation($scope);
+            $result = $this->engine()->run($scope, $operation);
 
             $this->completeSuccess($execution, $scope);
 
@@ -211,6 +214,11 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
 
         $this->safePublish($completed);
         $this->safePublish($snapshot);
+    }
+
+    private function engine(): ExecutionEngineInterface
+    {
+        return $this->engine ?? new SynchronousExecutionEngine();
     }
 
     private function safePublish(ExecutionArtifactInterface $artifact): void

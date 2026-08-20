@@ -15,6 +15,7 @@ use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
+use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -64,12 +65,13 @@ final class RunItBuilder implements RunItBuilderInterface
         private readonly ?ExecutionCompletionPolicyInterface $completionPolicy,
         private readonly ?RedactorInterface $redactor,
         private readonly ?SamplingPolicyInterface $samplingPolicy,
+        private readonly ?ExecutionEngineInterface $engine,
     ) {
     }
 
     public static function create(): RunItBuilderInterface
     {
-        return new self(null, null, null, null, null, null, null, null, null, null, null, null);
+        return new self(null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public function withPublisher(ArtifactPublisherInterface $publisher): RunItBuilderInterface
@@ -87,6 +89,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -105,6 +108,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -128,6 +132,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -146,6 +151,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -164,6 +170,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -182,6 +189,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -200,6 +208,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -218,6 +227,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -236,6 +246,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -254,6 +265,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $policy,
+            $this->engine,
         );
     }
 
@@ -272,6 +284,7 @@ final class RunItBuilder implements RunItBuilderInterface
             $this->completionPolicy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
         );
     }
 
@@ -290,6 +303,26 @@ final class RunItBuilder implements RunItBuilderInterface
             $policy,
             $this->redactor,
             $this->samplingPolicy,
+            $this->engine,
+        );
+    }
+
+    public function withExecutionEngine(ExecutionEngineInterface $engine): RunItBuilderInterface
+    {
+        return new self(
+            $this->publisher,
+            $this->clock,
+            $this->allocator,
+            $this->serializer,
+            $this->generator,
+            $this->contextStorage,
+            $this->snapshotStore,
+            $this->throwableMapper,
+            $this->nestedPolicy,
+            $this->completionPolicy,
+            $this->redactor,
+            $this->samplingPolicy,
+            $engine,
         );
     }
 
@@ -350,6 +383,7 @@ final class RunItBuilder implements RunItBuilderInterface
             null,
             $this->snapshotStore,
             null,
+            $this->engine,
         );
 
         return new DefaultRunIt($runner, $currentExecution);

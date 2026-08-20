@@ -25,6 +25,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -55,7 +56,7 @@ final class RunItTestKit
 
     public DeterministicMonotonicClock $clock;
 
-    public StackContextStorage $storage;
+    public ContextStorageInterface $storage;
 
     public InMemorySequenceAllocator $allocator;
 
@@ -85,18 +86,20 @@ final class RunItTestKit
 
     /**
      * @param Closure(\Throwable): void|null $onPublicationFailure
+     * @param ContextStorageInterface|null $storage overrides the default synchronous stack storage
      */
     public function __construct(
         ?ArtifactPublisherInterface $publisher = null,
         ?Closure $onPublicationFailure = null,
         ?SnapshotStoreInterface $snapshotStore = null,
         ?Closure $onSnapshotStoreFailure = null,
+        ?ContextStorageInterface $storage = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->snapshotStore = $snapshotStore;
         $this->onPublicationFailure = $onPublicationFailure;
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
-        $this->storage = new StackContextStorage();
+        $this->storage = $storage ?? new StackContextStorage();
         $this->allocator = new InMemorySequenceAllocator();
         $this->hashCalculator = new DeterministicHashCalculator();
         $this->throwableMapper = new DefaultThrowableMapper();

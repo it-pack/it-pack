@@ -1,0 +1,152 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Unit\Application\Propagation;
+
+use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Propagation\CompositeContextStorage;
+use ItPack\RunIt\Application\Propagation\CompositeContextToken;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
+use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
+use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use Tests\Support\Fixture\RunItTestKit;
+
+/**
+ * M11.2 — runtime-aware composite context storage.
+ */
+final class CompositeContextStorageTest extends Unit
+{
+    private function definition(): ExecutionDefinitionInterface
+    {
+        return ExecutionDefinition::create(ExecutionName::fromString('test'), ExecutionKind::fromString('composite'));
+    }
+
+    private function scope(): ExecutionScopeInterface
+    {
+        $kit = new RunItTestKit();
+        $captured = null;
+        $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use (&$captured): void {
+            $captured = $scope;
+        });
+
+        self::assertInstanceOf(ExecutionScopeInterface::class, $captured);
+
+        return $captured;
+    }
+
+    /**
+     * @return array{0: FakeStorage, 1: FakeStorage, 2: FakeStorage, 3: CompositeContextStorage}
+     */
+    private function build(RuntimeContextDetectorInterface $detector): array
+    {
+        $sync = new FakeStorage();
+        $fiber = new FakeStorage();
+        $coroutine = new FakeStorage();
+        $composite = new CompositeContextStorage($sync, $fiber, $coroutine, $detector);
+
+        return [$sync, $fiber, $coroutine, $composite];
+    }
+
+    public function testFallsBackToSynchronousStorage(): void
+    {
+        [$sync, , , $composite] = $this->build(new FakeDetector(false, false));
+        $scope = $this->scope();
+
+        $token = $composite->attach($scope);
+
+        self::assertInstanceOf(CompositeContextToken::class, $token);
+        self::assertSame($scope, $sync->current());
+
+        $composite->detach($token);
+        self::assertNull($sync->current());
+    }
+
+    public function testSelectsFiberStorage(): void
+    {
+        [, $fiber, , $composite] = $this->build(new FakeDetector(false, true));
+        $scope = $this->scope();
+
+        $token = $composite->attach($scope);
+
+        self::assertSame($scope, $fiber->current());
+
+        $composite->detach($token);
+        self::assertNull($fiber->current());
+    }
+
+    public function testSelectsCoroutineStorage(): void
+    {
+        [, , $coroutine, $composite] = $this->build(new FakeDetector(true, false));
+        $scope = $this->scope();
+
+        $token = $composite->attach($scope);
+
+        self::assertSame($scope, $coroutine->current());
+
+        $composite->detach($token);
+        self::assertNull($coroutine->current());
+    }
+
+    public function testForeignTokenIsRejected(): void
+    {
+        [, , , $composite] = $this->build(new FakeDetector(false, false));
+
+        $this->expectException(InvalidContextTokenException::class);
+        $composite->detach(new FakeToken());
+    }
+}
+
+final class FakeStorage implements ContextStorageInterface
+{
+    public ?ExecutionScopeInterface $currentScope = null;
+
+    public function current(): ?ExecutionScopeInterface
+    {
+        return $this->currentScope;
+    }
+
+    public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
+    {
+        $this->currentScope = $scope;
+
+        return new FakeToken();
+    }
+
+    public function detach(ContextTokenInterface $token): void
+    {
+        $this->currentScope = null;
+    }
+}
+
+final class FakeToken implements ContextTokenInterface
+{
+    public function __construct()
+    {
+    }
+}
+
+final class FakeDetector implements RuntimeContextDetectorInterface
+{
+    public function __construct(
+        private bool $coroutine = false,
+        private bool $fiber = false,
+    ) {
+    }
+
+    public function inCoroutine(): bool
+    {
+        return $this->coroutine;
+    }
+
+    public function inFiber(): bool
+    {
+        return $this->fiber;
+    }
+}

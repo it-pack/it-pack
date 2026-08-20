@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Builder;
 
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
+use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -67,6 +68,12 @@ interface RunItBuilderInterface
     public function withNestedExecutionPolicy(NestedExecutionPolicyInterface $policy): RunItBuilderInterface;
 
     public function withCompletionPolicy(ExecutionCompletionPolicyInterface $policy): RunItBuilderInterface;
+
+    /**
+     * Runs consumer operations through the supplied engine (for example a Fiber engine) instead of
+     * the default synchronous engine. The runner still owns execution semantics.
+     */
+    public function withExecutionEngine(ExecutionEngineInterface $engine): RunItBuilderInterface;
 
     /**
      * Builds an interface-backed runtime facade, validating required dependencies first.
