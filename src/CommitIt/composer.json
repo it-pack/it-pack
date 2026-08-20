@@ -1,0 +1,18 @@
+{
+    "name": "it-pack/commit-it",
+    "description": "A multipurpose CVS API and SDK for different VCS systems (starting with git)",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "ItPack\\CommitIt\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
