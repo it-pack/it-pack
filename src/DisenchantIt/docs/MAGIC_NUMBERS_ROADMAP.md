@@ -282,9 +282,78 @@ Goal: only promote numbers we can name; group by value + naming context.
 
 ---
 
+### Phase P3 — ✅ COMPLETE (2026-08-20)
+
+Typed, raw-aware constant placement and SemConv type-awareness are implemented
+and green-gated. Numeric literals are now promoted to `const int`/`const float`
+carrying their EXACT source token, and the shared SemConv registry stores
+canonical (parsed) numeric values under the correct type.
+
+- **Typed `ConstantPlacement`.** `ConstantPlacementInterface`
+  (`src/ValueObject/ConstantPlacementInterface.php`) and `ConstantPlacement`
+  gained a `type` field — the literal's kind (`int`/`float`/`string`). It is
+  threaded from the two placement strategies through
+  `ConstantPlacementFactoryInterface`/`ConstantPlacementFactory` into the
+  rewriter and collector.
+- **Raw/typed rewriter (`LineBasedRewriter`).** Declarations now emit
+  `private const {type} NAME = {raw};`, so `0x1F` stays `0x1F`
+  (`private const int MASK = 0x1F;`) and floats keep their token. **Bug fixed
+  along the way:** Step 1 previously searched the occurrence line for
+  `var_export($occurrence->value, true)` — which quotes numbers (`'31'`) and
+  therefore never matched a numeric source token. It now uses
+  `$occurrence->needle()` (the exact raw token, e.g. `0x1F`), so numeric
+  literal occurrences are actually replaced with `self::CONST`. The existing-
+  constant regex already tolerated a leading type, so self-rewrap guards still
+  hold.
+- **Type-aware SemConv (`SemConvCollector`).** `render()` emits
+  `public const {type} NAME = {value};` with the type from `LiteralKind`. Values
+  are canonicalized per type — `var_export((int|float) $value, true)` for
+  numbers (bare `31`, not `'31'`) and `var_export($value, true)` for strings —
+  so `0x1F` and `31` resolve to the same `31` entry (no false collision). The
+  merge-from-existing regex now captures an optional `(int|float|string)` type
+  and re-canonicalizes read values so a prior run's `public const int MASK =
+  31;` equals a fresh `0x1F` placement.
+- **Alias rewriter.** `SemConvAliasRewriter` needed **no change** — its
+  declaration regex already tolerates a leading type keyword, so
+  `private const int MASK = 0x1F;` is found and aliased to `SemConv::MASK`
+  idempotently.
+- **Tests.** 6 new (`TypedNumericRewriteTest`): int/float typed raw
+  declarations, numeric+string coexistence, numeric idempotency (no duplicate
+  const, no self-rewrap), SemConv canonical `int MASK = 31;` + alias, and
+  hex/decimal sharing one SemConv entry. Full suite: **49 tests, 111
+  assertions, OK**.
+
+**Deviations from this roadmap (intentional, documented):**
+1. `ConstantPlacement.type` is typed `string` (the `LiteralKind` value, e.g.
+   `'int'`), **not** the `LiteralKind` enum. PHPArkitect forbids an interface
+   (`ConstantPlacementInterface`, in `ValueObject`) depending on a class (the
+   `LiteralKind` enum), and the same rule applies to
+   `Contract\ConstantPlacementFactoryInterface`. The enum is rehydrated only at
+   internal boundaries via `LiteralKind::from($placement->type)` (in
+   `SemConvCollector::canonicalValue`). This keeps both ports depending solely
+   on interfaces/traits. The concrete `ConstantPlacement` therefore also carries
+   `string $type`.
+2. `LineBasedRewriter` Step 1 now replaces by `$occurrence->needle()` instead of
+   `var_export($occurrence->value, true)`. This is required for numbers (raw
+   token) and is identical for strings, so it is a strict improvement, not a
+   divergence from the roadmap's intent (the roadmap implied raw fidelity).
+
+**Gate status:**
+- `composer test:unit` — ✅ 49 tests, 111 assertions.
+- `composer analyze` (src only) — ✅ clean.
+- `composer architecture` — ✅ no violations.
+- `composer format:check` — ✅ clean.
+- `composer analyze` (src **+ tests**) — ⚠️ same environmental
+  phpstan/phpunit (Codeception `Unit`) limitation as P1/P2; the new P3 test
+  file is subject to it. Source-only analysis is clean.
+
+---
+
 ## Phase P3 — Typed, raw-aware placement / rewrite / SemConv
 
 Goal: emit `const int/float` with the original token; SemConv type-aware.
+
+> **Status: complete (2026-08-20).** See Progress section above.
 
 ### Step 3.1 — Typed `ConstantPlacement`
 - **Modify** `src/ValueObject/ConstantPlacement.php`: add `LiteralKind $type`

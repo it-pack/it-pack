@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt;
 
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
 use RuntimeException;
 
@@ -39,18 +40,23 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
      */
     public function collect(array $placements, ?string $existingSource = null): string
     {
+        /** @var array<string, array{type: string, value: string}> $entries */
         $entries = $this->extractExistingEntries($existingSource);
         $collisions = [];
 
         foreach ($placements as $placement) {
             $name = $placement->constantName;
+            $canonical = $this->canonicalValue($placement);
 
-            if (isset($entries[$name]) && $entries[$name] !== $placement->value) {
+            if (isset($entries[$name]) && $entries[$name]['value'] !== $canonical) {
                 $collisions[$name][] = $placement;
                 continue;
             }
 
-            $entries[$name] = $placement->value;
+            $entries[$name] = [
+                'type' => $placement->type,
+                'value' => $canonical,
+            ];
         }
 
         if ($collisions !== []) {
@@ -72,14 +78,28 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
     }
 
     /**
-     * Parses `public const string NAME = 'value';` lines out of a
-     * previously generated SemConv file so collect() can merge into them
-     * rather than starting from nothing. The deliberately simple regex rather
-     * than a full parse — render() below fully controls this file's shape,
-     * so it's always in the exact form this regex expects,
-     * as long as nobody hand-edits it into a different shape.
+     * Canonicalizes a placement's value to a var_export-style string keyed by
+     * its declared type, so `0x1F` and `31` both become `'31'` and share one
+     * SemConv entry (numeric) while strings stay quoted.
+     */
+    private function canonicalValue(ConstantPlacementInterface $placement): string
+    {
+        return match (LiteralKind::from($placement->type)) {
+            LiteralKind::Int => var_export((int) $placement->value, true),
+            LiteralKind::Float => var_export((float) $placement->value, true),
+            LiteralKind::String => var_export($placement->value, true),
+        };
+    }
+
+    /**
+     * Parses `public const [type] NAME = <value>;` lines out of a previously
+     * generated SemConv file so collect() can merge into them rather than
+     * starting from nothing. The deliberately simple regex rather than a full
+     * parse — render() below fully controls this file's shape, so it's always
+     * in the exact form this regex expects, as long as nobody hand-edits it
+     * into a different shape.
      *
-     * @return array<string, string>
+     * @return array<string, array{type: string, value: string}>
      */
     private function extractExistingEntries(?string $existingSource): array
     {
@@ -89,13 +109,18 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
 
         $entries = [];
         if (preg_match_all(
-            "/public const string ([A-Z_][A-Z0-9_]*) = '((?:[^'\\\\]|\\\\.)*)';/",
+            '/public const (?:(int|float|string)\s+)?([A-Z_][A-Z0-9_]*) = (.+?);/',
             $existingSource,
             $matches,
             PREG_SET_ORDER,
         )) {
             foreach ($matches as $match) {
-                $entries[$match[1]] = stripcslashes($match[2]);
+                $type = $match[1] !== '' ? $match[1] : 'string';
+                $name = $match[2];
+                $entries[$name] = [
+                    'type' => $type,
+                    'value' => $this->canonicalizeExpr($match[3], $type),
+                ];
             }
         }
 
@@ -103,7 +128,23 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
     }
 
     /**
-     * @param array<string, string> $entries
+     * Reduces a previously-rendered value expression to the same canonical
+     * form canonicalValue() produces, so a prior run's `public const int
+     * MASK = 31;` equals a fresh `0x1F` placement (both `'31'`).
+     */
+    private function canonicalizeExpr(string $expr, string $type): string
+    {
+        $expr = trim($expr);
+
+        return match ($type) {
+            'int' => var_export((int) $expr, true),
+            'float' => var_export((float) $expr, true),
+            default => var_export(stripcslashes(trim($expr, "'")), true),
+        };
+    }
+
+    /**
+     * @param array<string, array{type: string, value: string}> $entries
      */
     private function render(array $entries): string
     {
@@ -134,8 +175,8 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
             '{',
         ];
 
-        foreach ($entries as $name => $value) {
-            $lines[] = sprintf('    public const string %s = %s;', $name, var_export($value, true));
+        foreach ($entries as $name => $entry) {
+            $lines[] = sprintf('    public const %s %s = %s;', $entry['type'], $name, $entry['value']);
         }
 
         $lines[] = '}';

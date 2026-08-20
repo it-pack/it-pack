@@ -22,6 +22,7 @@ interface ConstantPlacementFactoryInterface
         string $className,
         string $constantName,
         string $value,
+        string $type,
         array $occurrences,
     ): ConstantPlacementInterface;
 }

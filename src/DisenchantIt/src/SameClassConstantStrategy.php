@@ -45,6 +45,7 @@ final class SameClassConstantStrategy implements ConstantPlacementStrategyInterf
             className: $classNames[0],
             constantName: $this->nameFor($occurrences),
             value: $value,
+            type: $occurrences[0]->kind,
             occurrences: $occurrences,
         )];
     }

@@ -14,6 +14,7 @@ final readonly class ConstantPlacement implements ConstantPlacementInterface
         public string $className,
         public string $constantName,
         public string $value,
+        public string $type,
         public array $occurrences,
     ) {
     }

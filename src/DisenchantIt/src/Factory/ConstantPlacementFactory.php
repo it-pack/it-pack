@@ -14,9 +14,10 @@ final readonly class ConstantPlacementFactory implements ConstantPlacementFactor
         string $className,
         string $constantName,
         string $value,
+        string $type,
         array $occurrences,
     ): ConstantPlacementInterface {
-        return new ConstantPlacement($className, $constantName, $value, $occurrences);
+        return new ConstantPlacement($className, $constantName, $value, $type, $occurrences);
     }
 
     public static function create(): self

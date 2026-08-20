@@ -42,6 +42,7 @@ final class PerClassConstantStrategy implements ConstantPlacementStrategyInterfa
                 className: $className,
                 constantName: $constantName,
                 value: $value,
+                type: $occurrences[0]->kind,
                 occurrences: $classOccurrences,
             );
         }

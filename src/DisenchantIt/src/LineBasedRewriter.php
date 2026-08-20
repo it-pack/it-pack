@@ -52,7 +52,7 @@ final class LineBasedRewriter implements RewriterInterface
                     continue; // defensive: stale line number, skip rather than corrupt an unrelated line
                 }
 
-                $needle = var_export($occurrence->value, true);
+                $needle = $occurrence->needle();
                 $replacement = 'self::' . $placement->constantName;
 
                 $pos = strpos($lines[$index], $needle);
@@ -118,9 +118,10 @@ final class LineBasedRewriter implements RewriterInterface
                 }
 
                 $declarationLines[] = sprintf(
-                    '    private const string %s = %s;',
+                    '    private const %s %s = %s;',
+                    $placement->type,
                     $placement->constantName,
-                    var_export($placement->value, true),
+                    $placement->occurrences[0]->raw,
                 );
             }
 
