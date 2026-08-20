@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Last reviewed: 2026-08-20 (final review) · Status: **Phases 0–7 complete; release-ready** · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-20 (post-Phase-9 review) · Status: **Phases 0–9 complete; release-ready; Phase 10 planned** · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -19,9 +19,10 @@ phase is built so a developer can pick it up cold.
 6. Phase 5 — Adapter Generation (v0.4.0)
 7. Phase 6 — Architecture & QA Hardening
 8. Phase 7 — Docs, ADRs & Release
-9. Phase 8 — Design Hardening Backlog (post-v1)
+ 9. Phase 8 — Design Hardening Backlog (post-v1)
 10. Phase 9 — Edge-case & Optimization Hardening
-11. Cross-cutting: Timeline, Risks, Definition of Done
+11. Phase 10 — Correctness, Leakage & DX Deepening (planned)
+12. Cross-cutting: Timeline, Risks, Definition of Done
 
 ---
 
@@ -483,6 +484,119 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ---
 
+## Phase 10 — Correctness, Leakage & DX Deepening (planned)
+
+> **Status: 📋 Planned (2026-08-20, post-Phase-9 in-depth review).** Not started.
+> Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
+> `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
+> `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
+
+**Goal:** deepen the leakage invariant from "no `extends`" to "no unmapped foreign
+type anywhere in the signatures", fix the two surprising Phase-9 behaviors (family
+ignores caller config; `FamilyDeriver` uses a process-global static cache), and
+raise DX for typed codebases (phpdoc/generics preservation, metadata + diff APIs,
+config presets, rename policy, family-of-adapters, CLI).
+
+**Sequencing principle:** correctness/leakage first (G1, G12, G2, G3, G4), then
+target robustness (G5, G6, G7), then DX (G8, G9, G10, G11, G14, G17), then the
+opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18).
+
+### Step 10.1 — Deep leakage auditor (G1, EC1/EC11/EC17)
+- New `LeakageAuditor` that, after substitution, scans every method's return and
+  parameter type strings and flags any FQCN that is non-builtin, outside the target
+  namespace, and not in an allowed / substitution list → raise
+  `LeakageDetectedException` (new `LeakageDetectedException` variant or reuse).
+- Gate behind a new `auditLeakage` config flag (default **off** initially to avoid
+  surprising existing users / breaking golden files that currently leak);
+  wire into `InterfaceDeriver::build()` and `PerTraitInterfaceDeriver`.
+- Fix the leaking golden fixtures it surfaces or populate an owned-namespace
+  allow-list so the family/per-trait outputs stay clean.
+
+### Step 10.2 — Per-mode leakage/collision parity (G12, EC5/EC11/EC19)
+- Run `Naming::assertNoCollision()` in per-trait **and** family modes; extend it to
+  check `enum_exists` (not just `class_exists`/`trait_exists`).
+- Fix the per-trait same-short-name clash: key the trait-interface map by FQCN
+  internally, render short names only at output (`PerTraitInterfaceDeriver.php:72`).
+- Run the deep auditor (10.1) in family mode so unmapped sibling types are caught.
+
+### Step 10.3 — Family honors caller `DeriveConfig` (G2, EC2)
+- Add a `DeriveConfig $config` parameter to `FamilyDeriver::derive()` /
+  `deriveFromRoot()` / `deriveSource()`; thread it into `deriveMember()` (replacing
+  the hard-coded `new DeriveConfig()` at `FamilyDeriver.php:115-116`).
+- Update `DeriveIt::deriveFamily()` / `deriveFamilyFromRoot()` /
+  `deriveFamilySource()` to accept and forward the config.
+
+### Step 10.4 — Injectable cache instead of static (G4, EC3)
+- Remove `private static array $cache` from `FamilyDeriver` (`FamilyDeriver.php:33`);
+  accept an optional cache (instance array / PSR-16) via the constructor and add
+  `clearCache()`. This also un-masks Infection mutants masked by cross-call caching
+  and removes a Phase-8-principle regression.
+
+### Step 10.5 — Adapter static-method support (G3, EC4)
+- Either emit **static** delegating methods that forward to the adaptee class, or
+  hard-error when `deriveAdapter()` is called with a config that produces static
+  interface methods. Prefer static-delegation; add a golden test.
+
+### Step 10.6 — Full derivation-target support matrix (G5, EC13)
+- Add `enum_exists` to `FamilyDeriver::discover()` (`FamilyDeriver.php:210`) and to
+  collision detection. Document supported targets (class / trait / enum / abstract /
+  readonly). Add golden/snapshot tests for each. Optional `deriveFromNonInstantiable`
+  guard for interface/readonly inputs.
+
+### Step 10.7 — Complete default-value constant rewriting (G6, EC6/EC7)
+- Rewrite `self::CONST` references via the derived interface (currently `self::` is
+  left verbatim by `TypeSubstitutor::rewriteConstantExpression()`).
+- For unmapped foreign constant refs, either drop the default or keep it behind an
+  `ownConstantsOnly` leakage policy. Document the scalar-only constant lifting limit.
+
+### Step 10.8 — Attribute allow-list + builtin skip (G7, EC8)
+- Add an `ownedAttributes` allow-list; when `attributePassThrough` is on, keep only
+  owned attributes and **always** drop `#[Override]` and other builtins.
+
+### Step 10.9 — Robust phpdoc preservation (G8, EC9/EC10)
+- Opt-in `preserveDocblocks`: re-emit `@param` / `@return` / `@throws` /
+  `@template` / `@deprecated` with FQCN simplification + dedupe; fix the brittle
+  `@throws` regex (generics in type, native PHP 8.4 `throws`).
+
+### Step 10.10 — `analyze()` / `deriveMany()` / dry-run diff (G9, EC15, D2/D5)
+- `DeriveIt::analyze($class): DerivationResult` (no rendering) for tooling/IDE use.
+- `DeriveIt::deriveMany(iterable, config)` batch entry point.
+- `DeriveFamily`/`DeriveIt::diff($class, $existingSource)` for CI drift detection.
+
+### Step 10.11 — Config presets + validation + rename (G10/G11, EC14/EC16, B4)
+- Add `DeriveConfig::strict()` / `::forAdapter()` / `::forFamily()` presets and a
+  fluent builder. Validate contradictory flags in the constructor.
+- Add a `methodRenames` map applied uniformly across flat / per-trait / family so
+  clashing method names (e.g. two traits exporting `save()`) can coexist.
+
+### Step 10.12 — Family-of-adapters generation (G14, EC12)
+- `DeriveIt::deriveFamilyAdapter(classes, wrapperMap, config)` emitting a delegating
+  adapter per family member in a single source, reusing `AdapterGenerator`.
+
+### Step 10.13 — Re-expose owned interfaces (G16, A4, §3.3)
+- Opt-in `reExposeOwnedInterfaces` allow-list that adds `extends` for configured
+  owned interfaces (e.g. `Countable`); third-party interfaces stay out. Never
+  automatic — honors the core leakage invariant by default.
+
+### Step 10.14 — Performance: shared `Factory` + de-dup reflection (G13, EC20, E3)
+- Pass a single `Nette\PhpGenerator\Factory` through the derivers instead of
+  `new`-ing one per `MethodSignatureFactory`. Reuse `ReflectionClass` instances
+  produced by `discover()` inside `derive()` (avoid double reflection + repeated
+  `class_exists` checks).
+
+### Step 10.15 — Maintainability: `BuildMeta` + PSR cache (G15/G18, F3-adjacent)
+- Replace the untyped `object{interface, methods, substitutions, constants}` returned
+  by `InterfaceDeriver::build()` with a typed `BuildMeta` value object.
+- Extract a shared deriver base (substitutor seeding + `shouldSkipMethod`) to remove
+  duplication between `InterfaceDeriver` and `PerTraitInterfaceDeriver`.
+- Optional PSR-6/16 reflection cache adapter (E5) so whole-repo scans don't re-reflect.
+
+### Step 10.16 — CLI `bin/derive` (G17, DX)
+- A small command to derive a class/file to stdout or a path for ad-hoc ports and
+  dogfooding; exercises the public API end-to-end.
+
+---
+
 ## Cross-cutting: Timeline, Risks, Definition of Done
 
 ### Critical path
@@ -497,8 +611,9 @@ Phase 0
                             └─ Phase 6 (deptrac/mutation/CI)
                                  └─ Phase 7 (docs/ADRs/release)
                                       └─ Phase 8 (design hardening backlog, post-v1)
-                                           └─ Phase 9 (edge-case & optimization hardening)
- ```
+                                            └─ Phase 9 (edge-case & optimization hardening)
+                                                 └─ Phase 10 (correctness, leakage & DX deepening)
+  ```
 
 ### Minimum viable production release
 - Phase 0 + Phase 1 + Phase 6 (CI/deptrac) + Phase 7 (README/changelog) already yields a
