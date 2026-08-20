@@ -94,26 +94,26 @@ composer cs:check
 
 ### Tasks
 
-- [ ] **M2.1 `[Domain/enum]`** `CommandStatus` (DEFINED, RECEIVED, EXECUTING, SUCCEEDED, FAILED, CANCELLED) — closed internal state.
-- [ ] **M2.2 `[Domain/enum]`** `CommandResultStatus` (SUCCEEDED, FAILED).
-- [ ] **M2.3 `[Domain/enum]`** `InputKind` (ARGUMENT, OPTION) — closed.
-- [ ] **M2.4 `[Contract/Command]`** `CommandInterface` — immutable intent; `name(): CommandName`, `input(): CommandInputInterface`, `payload(): mixed`.
-- [ ] **M2.5 `[Contract/Command]`** `ArgumentInterface`, `OptionInterface` — name, kind, required flag, type coercion contract.
-- [ ] **M2.6 `[Contract/Command]`** `CommandInputInterface` — immutable resolved input (arguments + options), typed getters, no mutation.
-- [ ] **M2.7 `[Contract/Command]`** `CommandResultInterface` — `status(): CommandResultStatus`, `payload(): mixed`, `execution(): ?CommandExecution`.
-- [ ] **M2.8 `[Contract/Command]`** `CommandDefinitionInterface` — metadata: `name()`, `description()`, `arguments()`, `options()`, `handlerKey()`, and a **virtual `signature` property** (property hook) computed from name/args/options.
-- [ ] **M2.9 `[Domain]`** `Argument`, `Option`, `CommandInput` — `final readonly` implementations; `CommandInput` uses `set` hooks for per-value type coercion.
-- [ ] **M2.10 `[Domain]`** `Command` — `final readonly` value object implementing `CommandInterface` (built via SDK later).
-- [ ] **M2.11 `[Domain]`** `CommandResult` — `final readonly`; `succeed()`/`fail()` named constructors.
-- [ ] **M2.12 `[Domain]`** `CommandExecution` — **self-contained, RunIt-shaped** record (id, definition, status, startedAt, endedAt?, result?). `complete()` returns a terminal copy. Implements a local `ExecutionArtifactInterface` (defined in `Contract` so RunIt can align later).
+- [x] **M2.1 `[Domain/enum]`** `CommandStatus` (DEFINED, RECEIVED, EXECUTING, SUCCEEDED, FAILED, CANCELLED) — backed enum in `src/Domain`, implements `Contract/Domain/CommandStatusInterface` (with `label()`/`isTerminal()`).
+- [x] **M2.2 `[Domain/enum]`** `CommandResultStatus` (SUCCEEDED, FAILED) — backed enum implementing `Contract/Domain/CommandResultStatusInterface`.
+- [x] **M2.3 `[Domain/enum]`** `InputKind` (ARGUMENT, OPTION) — backed enum implementing `Contract/Domain/InputKindInterface`.
+- [x] **M2.4 `[Contract/Command]`** `CommandInterface` — `name(): CommandNameInterface`, `input(): CommandInputInterface`, `payload(): mixed`. Concrete `Domain/Command` is `final readonly`.
+- [x] **M2.5 `[Contract/Command]`** `ArgumentInterface`, `OptionInterface` — name (typed name interface), `kind(): InputKindInterface`, `required()`, `defaultValue()`, `description()`, `type()`. Concretes `Domain/Argument`, `Domain/Option` (`final readonly`).
+- [x] **M2.6 `[Contract/Command]`** `CommandInputInterface` — immutable resolved input; `@return array<string,mixed>` accessors, `has*`/`argument()`/`option()` (latter throw on absence). Concrete `Domain/CommandInput` (`final readonly`).
+- [x] **M2.7 `[Contract/Command]`** `CommandResultInterface` — `status(): CommandResultStatusInterface`, `payload(): mixed`, `execution(): ?ExecutionArtifactInterface`. Concrete `Domain/CommandResult` (`final readonly`) with `succeed()`/`fail()` named constructors.
+- [x] **M2.8 `[Contract/Command]`** `CommandDefinitionInterface` — `name()`, `description()`, `arguments()`, `options()`, `handlerKey()`, `signature(): string`. Concrete `Domain/CommandDefinition` (`final readonly`); `signature()` is a **computed method** (see deviation note).
+- [x] **M2.9 `[Domain]`** `Argument`, `Option`, `CommandInput` — `final readonly`. Per-value type coercion is performed by the producer (parser, Milestone 5), not by a `set` hook (see deviation note).
+- [x] **M2.10 `[Domain]`** `Command` — `final readonly` value object implementing `CommandInterface`.
+- [x] **M2.11 `[Domain]`** `CommandResult` — `final readonly`; `succeed()`/`fail()` named constructors.
+- [x] **M2.12 `[Domain]`** `CommandExecution` — self-contained, RunIt-shaped record (id, definition, status, `startedAt`, `endedAt?`, `result?`). `complete()` and `transition()` return terminal/updated copies and throw `CommandExecutionException` when the receiver is already terminal. Implements `Contract/Domain/ExecutionArtifactInterface` (RunIt-alignment seam). Added `Contract/Exception/CommandExecutionException`.
 
 ### DoD
 
 Domain invariants from `AGENTS.md` hold and are asserted by tests:
-- a command is immutable and maps to exactly one execution;
-- terminal `CommandExecution` cannot re-transition;
-- results/input are immutable;
-- names are validated extensible strings, statuses are closed enums.
+- a command is immutable and maps to exactly one execution (`CommandExecution::define()` per definition; `Command` holds one `CommandInput`) — `CommandExecutionTest`, `CommandModelTest`.
+- terminal `CommandExecution` cannot re-transition (`complete()`/`transition()` throw) — `CommandExecutionTest::testTerminalExecutionCannot*`.
+- results/input are immutable (`final readonly`) — enforced by language + tests.
+- names are validated extensible strings (`*NameInterface` + validated concrete), statuses are closed enums (`CommandStatus`/`CommandResultStatus`/`InputKind`) — `CommandStatusTest`, `ClosedEnumsTest`.
 
 ### QG
 
@@ -123,6 +123,14 @@ composer analyse
 composer architecture
 composer cs:check
 ```
+
+**Deviations / decisions (2026-08-20):**
+- **Contract/Domain split (interface-per-artifact).** PHP forbids `Contract → Domain` dependencies (deptrac), so every contract (`*Interface`) lives in `src/Contract` and references only other `Contract` types; the Domain enums/classes implement those interfaces (mirrors RunIt's `ExecutionNameInterface`, `ExecutionStatusInterface`, `ExecutionArtifactInterface`). Added `CommandNameInterface`/`ArgumentNameInterface`/`OptionNameInterface`/`CommandExecutionIdInterface` (all extend `ValidatedStringInterface`) and the three enum interfaces. No RunIt import anywhere.
+- **No property hooks on the model.** Verified that PHP 8.5 rejects hooked properties inside `readonly` classes. Consequently `CommandDefinition::signature()` is a computed **method** (not a `get` hook) and `CommandInput` performs no `set`-hook coercion — values are resolved/coerced by the producer (the input parser, Milestone 5) before construction. This preserves the `final readonly` requirement from `AGENTS.md`.
+- **`ExecutionArtifactInterface` is a minimal marker** for now (RunIt-alignment seam); it can later extend a normalization contract when serialization lands (Milestone 7).
+- **`CommandExecution` guards its own lifecycle**: `complete()`/`transition()` return new copies and throw `CommandExecutionException` if the receiver is already terminal. The executor (Milestone 4) remains the canonical decision point for legal transitions.
+
+**Result:** `composer test:unit` 41 tests / 70 assertions green; `composer analyse` 0 errors; `composer architecture` 0 violations (115 allowed edges); `composer cs:check` clean.
 
 ---
 

@@ -6,7 +6,7 @@ namespace ItPack\CommandIt\Domain\ValueObject;
 
 use ItPack\CommandIt\Behavior\Domain\ValidatedStringValueBehavior;
 use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
-use ItPack\CommandIt\Contract\ValueObject\ValidatedStringInterface;
+use ItPack\CommandIt\Contract\ValueObject\ArgumentNameInterface;
 
 /**
  * The validated name of a command argument.
@@ -16,7 +16,7 @@ use ItPack\CommandIt\Contract\ValueObject\ValidatedStringInterface;
  *
  * @api
  */
-final readonly class ArgumentName implements ValidatedStringInterface
+final readonly class ArgumentName implements ArgumentNameInterface
 {
     use ValidatedStringValueBehavior;
 

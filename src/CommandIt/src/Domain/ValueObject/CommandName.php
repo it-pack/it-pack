@@ -6,7 +6,7 @@ namespace ItPack\CommandIt\Domain\ValueObject;
 
 use ItPack\CommandIt\Behavior\Domain\ValidatedStringValueBehavior;
 use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
-use ItPack\CommandIt\Contract\ValueObject\ValidatedStringInterface;
+use ItPack\CommandIt\Contract\ValueObject\CommandNameInterface;
 
 /**
  * The validated, extensible name of a command, for example `cache:clear`.
@@ -19,7 +19,7 @@ use ItPack\CommandIt\Contract\ValueObject\ValidatedStringInterface;
  *
  * @see https://w3id.org/itpack/runit#commandName
  */
-final readonly class CommandName implements ValidatedStringInterface
+final readonly class CommandName implements CommandNameInterface
 {
     use ValidatedStringValueBehavior;
 
