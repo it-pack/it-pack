@@ -43,6 +43,7 @@ final class DeriveConfig
         public readonly bool $attributePassThrough = false,
         public readonly bool $throwsCapture = false,
         public readonly bool $auditLeakage = false,
+        public readonly array $ownedAttributes = [],
     ) {
         if (!in_array($visibility, [self::VISIBILITY_PUBLIC, self::VISIBILITY_PROTECTED], true)) {
             throw new \InvalidArgumentException(sprintf('Unsupported visibility "%s".', $visibility));
@@ -75,6 +76,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -95,6 +97,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -115,6 +118,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -135,6 +139,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -155,6 +160,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -175,6 +181,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -195,6 +202,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -215,6 +223,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -238,6 +247,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -261,6 +271,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -281,6 +292,7 @@ final class DeriveConfig
             failOnEmpty: $failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -301,6 +313,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $attributePassThrough,
             throwsCapture: $this->throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -321,6 +334,7 @@ final class DeriveConfig
             failOnEmpty: $this->failOnEmpty,
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $throwsCapture,
+            ownedAttributes: $this->ownedAttributes,
             auditLeakage: $this->auditLeakage,
         );
     }
@@ -342,6 +356,33 @@ final class DeriveConfig
             attributePassThrough: $this->attributePassThrough,
             throwsCapture: $this->throwsCapture,
             auditLeakage: $auditLeakage,
+        );
+    }
+
+    /**
+     * @param list<string> $ownedAttributes Attribute class FQCNs permitted when
+     *                                    `attributePassThrough` is on. An empty list
+     *                                    keeps all attributes (current behavior);
+     *                                    a non-empty list keeps only owned attributes.
+     */
+    public function withOwnedAttributes(array $ownedAttributes): self
+    {
+        return new self(
+            visibility: $this->visibility,
+            includeStatic: $this->includeStatic,
+            includeMagic: $this->includeMagic,
+            dropConstruct: $this->dropConstruct,
+            dropDestruct: $this->dropDestruct,
+            typeSubstitutionMap: $this->typeSubstitutionMap,
+            substituteSelfStatic: $this->substituteSelfStatic,
+            includeConstants: $this->includeConstants,
+            onlyMethods: $this->onlyMethods,
+            skipMethods: $this->skipMethods,
+            failOnEmpty: $this->failOnEmpty,
+            attributePassThrough: $this->attributePassThrough,
+            throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
+            ownedAttributes: $ownedAttributes,
         );
     }
 }

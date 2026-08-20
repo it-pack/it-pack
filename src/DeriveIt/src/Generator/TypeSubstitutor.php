@@ -55,6 +55,17 @@ final class TypeSubstitutor
         }
 
         $class = ltrim($m['class'], '\\');
+
+        // `self` / `static` reference the enclosing class and `parent` its parent;
+        // rewrite them to the derived interface FQCN so the port references itself
+        // rather than the concrete adaptee (consistent with A1 / EC6).
+        if (in_array($class, ['self', 'static'], true) && $this->selfFqcn !== null) {
+            return $this->selfFqcn . '::' . $m['const'];
+        }
+        if ($class === 'parent' && $this->parentFqcn !== null) {
+            return $this->parentFqcn . '::' . $m['const'];
+        }
+
         if (isset($this->map[$class])) {
             return $this->map[$class] . '::' . $m['const'];
         }

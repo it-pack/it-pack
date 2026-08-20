@@ -57,10 +57,62 @@ final class AdapterGenerator
         $constructor->addParameter('adaptee')->setType($adapteeFqcn);
 
         foreach ($this->interface->getMethods() as $method) {
-            $this->addDelegatingMethod($class, $method);
+            if ($method->isStatic()) {
+                $this->addStaticDelegatingMethod($class, $method);
+            } else {
+                $this->addDelegatingMethod($class, $method);
+            }
         }
 
         return $class;
+    }
+
+    /**
+     * Emits a static delegating method that forwards to the adaptee *class* (there
+     * is no instance to delegate from for a static interface method). The return
+     * value is wrapped exactly like the instance path (G3 / EC4).
+     */
+    private function addStaticDelegatingMethod(ClassType $class, Method $method): void
+    {
+        $name = $method->getName();
+        $returnType = $method->getReturnType();
+
+        $delegating = $class->addMethod($name)->setStatic(true);
+        if (is_string($returnType) && $returnType !== '') {
+            $delegating->setReturnType($returnType);
+            $delegating->setReturnNullable($method->isReturnNullable());
+        }
+
+        $arguments = [];
+        $parameters = $method->getParameters();
+        $isVariadic = $method->isVariadic();
+
+        foreach ($parameters as $index => $parameter) {
+            $isVariadicParameter = $isVariadic && $index === array_key_last($parameters);
+            $arguments[] = ($isVariadicParameter ? '...' : '') . '$' . $parameter->getName();
+
+            $copied = $delegating->addParameter($parameter->getName())
+                ->setType($parameter->getType())
+                ->setNullable($parameter->isNullable())
+            ;
+
+            if ($parameter->hasDefaultValue()) {
+                $copied->setDefaultValue($parameter->getDefaultValue());
+            }
+
+            if ($parameter->isReference()) {
+                $copied->setReference(true);
+            }
+        }
+
+        if ($isVariadic) {
+            $delegating->setVariadic(true);
+        }
+
+        $argumentList = implode(', ', $arguments);
+        $call = sprintf('\\%s::%s(%s)', $this->adaptee->getName(), $name, $argumentList);
+
+        $delegating->setBody($this->bodyFor($call, $returnType, $method->isReturnNullable()));
     }
 
     /**

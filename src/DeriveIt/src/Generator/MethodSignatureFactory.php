@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
+use Nette\PhpGenerator\Attribute;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\Literal;
 use Nette\PhpGenerator\Method;
@@ -51,8 +52,9 @@ final class MethodSignatureFactory
         }
 
         if ($this->config !== null) {
-            if (!$this->config->attributePassThrough) {
-                $this->stripAttributes($signature);
+            $signature->setAttributes($this->filterAttributes($signature->getAttributes()));
+            foreach ($signature->getParameters() as $parameter) {
+                $parameter->setAttributes($this->filterAttributes($parameter->getAttributes()));
             }
 
             if ($this->config->throwsCapture) {
@@ -129,13 +131,37 @@ final class MethodSignatureFactory
         }
     }
 
-    private function stripAttributes(Method $signature): void
+    /**
+     * Returns the attributes to keep on the derived method/parameter.
+     *
+     * When `attributePassThrough` is off, nothing is kept. When on, attributes are
+     * kept unless an `ownedAttributes` allow-list is configured (then only owned
+     * attributes survive). `#[Override]` (and any global `Override`) is always
+     * dropped — it is meaningless/invalid on an interface method (G7 / EC8).
+     *
+     * @param list<Attribute> $attributes
+     * @return list<Attribute>
+     */
+    private function filterAttributes(array $attributes): array
     {
-        $signature->setAttributes([]);
-
-        foreach ($signature->getParameters() as $parameter) {
-            $parameter->setAttributes([]);
+        if ($this->config === null || !$this->config->attributePassThrough) {
+            return [];
         }
+
+        $allowed = $this->config->ownedAttributes;
+        $kept = [];
+
+        foreach ($attributes as $attribute) {
+            $name = ltrim($attribute->getName(), '\\');
+            if ($name === 'Override') {
+                continue;
+            }
+            if ($allowed === [] || in_array($name, $allowed, true) || in_array('\\' . $name, $allowed, true)) {
+                $kept[] = $attribute;
+            }
+        }
+
+        return $kept;
     }
 
     private function applyThrows(Method $signature, ReflectionMethod $method): void
@@ -158,7 +184,15 @@ final class MethodSignatureFactory
             return;
         }
 
-        $existing = $signature->getComment();
-        $signature->setComment(($existing !== null ? $existing . "\n" : '') . implode("\n", $throws));
+        // `fromMethodReflection()` already copied the method's docblock (including
+        // any `@throws` it contained) into the comment, so strip those before
+        // re-appending the captured set to avoid duplication.
+        $existing = $signature->getComment() ?? '';
+        $existingWithoutThrows = preg_replace('/^[ \t]*\*?[ \t]*@throws\b.*$/m', '', $existing);
+        $existingWithoutThrows = trim((string) $existingWithoutThrows);
+
+        $signature->setComment(
+            ($existingWithoutThrows !== '' ? $existingWithoutThrows . "\n" : '') . implode("\n", $throws),
+        );
     }
 }

@@ -225,7 +225,7 @@ final class FamilyDeriver
                         if (!$this->isUserland($className)) {
                             continue;
                         }
-                        if (class_exists($className) || interface_exists($className) || trait_exists($className)) {
+                        if (class_exists($className) || interface_exists($className) || trait_exists($className) || enum_exists($className)) {
                             $queue[] = new ReflectionClass($className);
                         }
                     }
