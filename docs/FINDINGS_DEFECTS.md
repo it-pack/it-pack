@@ -7,7 +7,7 @@ Anchored to `src/`. Severity: 🔴 must fix · 🟡 minor.
 
 ## 🔴 `Hash` value object is non-functional (HashIt)
 
-`src/HashIt/Hash.php`
+`packages/HashIt/src/Hash.php`
 
 The class declares **property hooks with `get` accessors that read themselves**, and never
 assigns any backing value:
@@ -30,7 +30,7 @@ public int $length {                // line 27
 - Accessing any of `algorithm` / `binary` / `value` **recurses until stack overflow**.
 - `__toString()` (line 38) returns `$this->value`, which is never set → empty/erroring string.
 - The constructor (line 9) is empty; there is no way to populate the object.
-- `HashInterface` (`src/HashIt/HashInterface.php`) declares these as read-only getters, so the
+- `HashInterface` (`packages/HashIt/src/HashInterface.php`) declares these as read-only getters, so the
   contract is **unfulfillable** by this implementation.
 
 **Fix:** make `Hash` an immutable value object:
@@ -56,7 +56,7 @@ source — here the constructor-injected `private` fields.)
 
 ## 🔴 `HashFinalizer` constructor parameter is a no-op (HashIt)
 
-`src/HashIt/HashFinalizer.php`
+`packages/HashIt/src/HashFinalizer.php`
 ```php
 public function __construct(bool $binary = false){}   // line 11 — $binary never read
 public function finalize(HashContext $context): string {
@@ -65,7 +65,7 @@ public function finalize(HashContext $context): string {
 ```
 A caller passing `new HashFinalizer(true)` expects binary output and gets text. This is both a
 **correctness bug** and an **LSP violation** (see SOLID/DRY doc). `BinaryHashFinalizer`
-(`src/HashIt/BinaryHashFinalizer.php`, correct, `hash_final($context, true)`) is the only
+(`packages/HashIt/src/BinaryHashFinalizer.php`, correct, `hash_final($context, true)`) is the only
 working variant.
 
 **Fix:** drop the misleading parameter and rename to `TextHashFinalizer`; or make the single
@@ -83,7 +83,7 @@ final class HashFinalizer implements HashFinalizerInterface {
 
 ## 🟡 `SPLFileInfo` mis-cased import (HashIt)
 
-`src/HashIt/FilepathFileinfo.php:7`
+`packages/HashIt/src/FilepathFileinfo.php:7`
 ```php
 use SPLFileInfo    ;   // should be `use SplFileInfo;`
 ```
@@ -96,7 +96,7 @@ copy-paste smell. Also the stray trailing whitespace after the `;`.
 
 ## 🟠 `ExtendIt\Inspection\ClassInspector::inspect()` is a no-op (ExtendIt)
 
-`src/ExtendIt/src/Inspection/ClassInspector.php:16-19`
+`packages/ExtendIt/src/Inspection/ClassInspector.php:16-19`
 ```php
 public function inspect(ReflectionClass $class): void {
     $methods = $class->getMethods();   // computed then discarded
@@ -113,7 +113,7 @@ so callers fail loudly rather than silently.
 
 ## 🟡 `FileInfo` can be constructed empty with wrong-typed fields (FileIt)
 
-`src/FileIt/ValueObject/FileInfo.php`
+`packages/FileIt/src/ValueObject/FileInfo.php`
 - 9 `public` mutable properties, **no constructor**, no validation.
 - Declares e.g. `public int|false $size;` but a default `new FileInfo()` leaves it `null`
   (not `int|false`), so the typed declaration is a lie until something fills it.
@@ -125,13 +125,13 @@ defaulting the rest; validate types at construction.
 
 ## 🔴 `HashIt` is not installable / has no tests (HashIt)
 
-`src/HashIt/` contains source but **no `composer.json`** (unlike `DeriveIt`, `FileIt`,
+`packages/HashIt/` contains source but **no `composer.json`** (unlike `DeriveIt`, `FileIt`,
 `ExtendIt`). Consequences:
 - No PSR-4 autoload → the package cannot be required or autoloaded standalone.
 - No phpstan/cs-fixer config, **no tests** → the 🔴 bugs above went uncaught.
 - It is unclear whether `Hash`/`HashFinalizer` were ever executed.
 
-**Fix:** add `src/HashIt/composer.json` (`ItPack\HashIt\` → `src/`), plus a minimal smoke test
+**Fix:** add `packages/HashIt/composer.json` (`ItPack\HashIt\` → `src/`), plus a minimal smoke test
 that constructs a `Hash`, builds a context, updates, finalises, and asserts the value — this
 alone would have surfaced both 🔴 defects.
 
@@ -139,9 +139,9 @@ alone would have surfaced both 🔴 defects.
 
 ## 🟡 Orphaned / overlapping types (HashIt)
 
-- `src/HashIt/HashValue.php` (`class HashValue { public function __construct(public string $value){} }`)
+- `packages/HashIt/src/HashValue.php` (`class HashValue { public function __construct(public string $value){} }`)
   overlaps with `Hash::$value` and is never referenced anywhere. Dead duplicate of "a hash value".
-- `src/HashIt/HashAlgorithmEnum.php` duplicates `src/HashIt/HashAlgorithm.php` cases with no added
+- `packages/HashIt/src/HashAlgorithmEnum.php` duplicates `packages/HashIt/src/HashAlgorithm.php` cases with no added
   value (see DRY doc).
 
 **Fix:** delete `HashValue` once `Hash` is repaired; delete `HashAlgorithmEnum` in favour of the

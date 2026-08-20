@@ -435,25 +435,25 @@ Snapshot Created
 # Future Packages
 
 ```
-it-pack/execution
+it-pack/run-it
 ```
 
 Core semantic model.
 
 ```
-it-pack/execution-context
+it-pack/run-it-context
 
-it-pack/execution-otel
+it-pack/run-it-otel
 
-it-pack/execution-cloudevents
+it-pack/run-it-cloudevents
 
-it-pack/execution-psr
+it-pack/run-it-psr
 
-it-pack/execution-logger
+it-pack/run-it-logger
 
-it-pack/execution-metrics
+it-pack/run-it-metrics
 
-it-pack/execution-tracing
+it-pack/run-it-tracing
 ```
 
 Each package implements one concern.

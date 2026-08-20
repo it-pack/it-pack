@@ -10,8 +10,8 @@ composition root.** Dependencies point inward.
 
 ## What is already good
 
-- **`DeriveIt` has a real port/adapter split.** `src/DeriveIt/src/Contract/Resolver/*ResolverInterface.php`
-  are **ports** (interfaces the package owns), and `src/DeriveIt/src/Resolver/*Resolver.php` are
+- **`DeriveIt` has a real port/adapter split.** `packages/DeriveIt/src/Contract/Resolver/*ResolverInterface.php`
+  are **ports** (interfaces the package owns), and `packages/DeriveIt/src/Resolver/*Resolver.php` are
   **adapters** (concrete traversal strategies). The domain (`ClassReflection`) depends on the
   interfaces, not the concretes. This is the right shape and matches the README's "depend on a port
   you own" philosophy.
@@ -30,12 +30,12 @@ backend (e.g. an external KMS, a queue, a mock) is impossible without touching t
 
 | File | Leak |
 |------|------|
-| `src/HashIt/HashFinalizerInterface.php:11` | `finalize(HashContext $context): string` |
-| `src/HashIt/HashFinalizer.php:13` | `hash_final($context, …)` — concrete call in adapter |
-| `src/HashIt/HashUpdater.php:18` | `hash_update($this->context, $data)` — concrete call |
-| `src/HashIt/HashUpdaterInterface.php:9` | port mentions only `update(string)` ✅ but the adapter's `HashContext` is supplied by the port-side `finalize()` signature |
-| `src/HashIt/ContextFactoryInterface.php:11` | `build(): HashContext` — port returns the concrete stdlib type |
-| `src/HashIt/ContextFactory.php:17` | `hash_init($this->algo)` — concrete call |
+| `packages/HashIt/src/HashFinalizerInterface.php:11` | `finalize(HashContext $context): string` |
+| `packages/HashIt/src/HashFinalizer.php:13` | `hash_final($context, …)` — concrete call in adapter |
+| `packages/HashIt/src/HashUpdater.php:18` | `hash_update($this->context, $data)` — concrete call |
+| `packages/HashIt/src/HashUpdaterInterface.php:9` | port mentions only `update(string)` ✅ but the adapter's `HashContext` is supplied by the port-side `finalize()` signature |
+| `packages/HashIt/src/ContextFactoryInterface.php:11` | `build(): HashContext` — port returns the concrete stdlib type |
+| `packages/HashIt/src/ContextFactory.php:17` | `hash_init($this->algo)` — concrete call |
 
 **Suggestion:** the port boundary should speak **only in domain/primitive types**.
 `ContextFactoryInterface::build()` should return an abstraction the package owns (e.g.
@@ -50,14 +50,14 @@ context object, and let the *adapter* hold the `HashContext` internally. That re
 ## 🔴 No composition root — ports are orphaned (HashIt)
 
 There is **no high-level module** that wires `ContextFactory → HashUpdater → HashFinalizer → Hash`.
-- `src/HashIt/Hash.php` (the obvious "result" type) is dead/orphaned — nothing constructs or
+- `packages/HashIt/src/Hash.php` (the obvious "result" type) is dead/orphaned — nothing constructs or
   returns it, and it is non-functional (see Defects).
-- Nothing in `src/HashIt` composes the three adapters into a usable "hash this string/file" use-case.
+- Nothing in `packages/HashIt` composes the three adapters into a usable "hash this string/file" use-case.
 
 Without a composition root, the ports/adapters exist as a diagram, not as running code. DIP is
 *declared* but never *applied*.
 
-**Suggestion:** add a core service, e.g. `Hasher` (in `src/HashIt/`):
+**Suggestion:** add a core service, e.g. `Hasher` (in `packages/HashIt/`):
 ```php
 final class Hasher {
     public function __construct(
@@ -79,7 +79,7 @@ This is the missing inward-facing module and the single place adapters get bound
 
 ## 🟠 The composition root leaks into the domain object (DeriveIt)
 
-`src/DeriveIt/src/Reflection/ClassReflection.php` lines 31–72 bake default adapter bindings into
+`packages/DeriveIt/src/Reflection/ClassReflection.php` lines 31–72 bake default adapter bindings into
 the domain class:
 ```php
 public static function getRecursiveClassResolver(): RecursiveClassResolverInterface {
@@ -100,7 +100,7 @@ that consumes DeriveIt — not inside the core class.
 
 ## 🟡 `FilepathInterface` is a port with a single trivial adapter (HashIt)
 
-`src/HashIt/FilepathInterface.php` + `src/HashIt/FilepathFileinfo.php`. The port (`__toString(): string`)
+`packages/HashIt/src/FilepathInterface.php` + `packages/HashIt/src/FilepathFileinfo.php`. The port (`__toString(): string`)
 and the one adapter (`SplFileInfo` → string) are fine, but:
 - The port is **never consumed** anywhere in the package (no file-hashing path exists yet).
 - `FilepathFileinfo` is `final readonly` while `HashFinalizer` is *not* `final` — inconsistent
@@ -124,11 +124,11 @@ core. Dependency direction is correct; only the *default wiring location* (above
 
 Each package carries its own `vendor/` tree and re-declares dev tooling. This isn't a ports/adapters
 violation per se, but it obscures the boundary between "core" and "edge": vendored frameworks
-(dagger, symfony, roave/better-reflection, webonyx/graphql in `src/ExtendIt/vendor/`) sit **inside**
+(dagger, symfony, roave/better-reflection, webonyx/graphql in `packages/ExtendIt/vendor/`) sit **inside**
 a package that is supposed to be producing adapters — with no clear adapter module separating them from
 the package's own code.
 
-**Suggestion:** make the adapter boundary explicit — e.g. `src/ExtendIt/src/Adapter/Dagger/*` for
+**Suggestion:** make the adapter boundary explicit — e.g. `packages/ExtendIt/src/Adapter/Dagger/*` for
 dagger-derived adapters, keeping the package's own `src/` as the core. And collapse the duplicated
 tooling via a root composer/QA config (see DRY doc).
 
