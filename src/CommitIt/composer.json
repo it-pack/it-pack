@@ -14,5 +14,21 @@
         }
     ],
     "minimum-stability": "stable",
-    "require": {}
+    "require": {},
+    "require-dev": {
+        "just-bases/php-unit-test-base": "^1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "codeception/module-phpbrowser": "^4.1",
+        "codeception/module-asserts": "^3.3"
+    },
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "dantleech/what-changed": true,
+            "tbachert/spi": false,
+            "phpstan/extension-installer": true
+        }
+    }
 }
