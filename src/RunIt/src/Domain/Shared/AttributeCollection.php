@@ -34,28 +34,33 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
      */
     private array $attributes;
 
+    private ?SecurityLimits $limits;
+
     /**
      * @param array<string, mixed> $attributes
      */
     private function __construct(
         array $attributes,
+        ?SecurityLimits $limits = null,
     ) {
         /** @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes */
         $this->attributes = $attributes;
-        new AttributeValidator()->assertValidAttributes($attributes);
+        $this->limits = $limits;
+        new AttributeValidator($limits)->assertValidAttributes($attributes);
     }
 
     /**
      * Creates a collection from a set of attributes, validating each one.
      *
      * @param array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes
+     * @param SecurityLimits|null $limits optional tighter bounds; defaults to built-in rules
      *
      * @throws InvalidAttributeException when a key or value violates a rule, or
      *                                    the attribute count is exceeded
      */
-    public static function fromArray(array $attributes): self
+    public static function fromArray(array $attributes, ?SecurityLimits $limits = null): self
     {
-        return new self($attributes);
+        return new self($attributes, $limits);
     }
 
     /**
@@ -94,7 +99,7 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
         $next = $this->attributes;
         $next[$key] = $value;
 
-        return new self($next);
+        return new self($next, $this->limits);
     }
 
     public function without(string $key): AttributeCollectionInterface
@@ -106,7 +111,7 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
         $next = $this->attributes;
         unset($next[$key]);
 
-        return new self($next);
+        return new self($next, $this->limits);
     }
 
     /**

@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Runner;
 
 use Closure;
 use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
+use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
@@ -41,6 +42,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
 /**
@@ -89,9 +91,11 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         private readonly ?SnapshotStoreInterface $snapshotStore = null,
         private readonly ?Closure $onSnapshotStoreFailure = null,
         private readonly ?ExecutionEngineInterface $engine = null,
+        private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
         $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
-        $this->safePublisher = new FailSafeArtifactPublisher($this->publisher, new FailOpenPolicy(), $health);
+        $bounded = new BoundedArtifactPublisher($this->limits, $this->publisher);
+        $this->safePublisher = new FailSafeArtifactPublisher($bounded, new FailOpenPolicy(), $health);
     }
 
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
@@ -162,6 +166,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
             $this->hashCalculator,
             $this->snapshotStore,
             $this->onSnapshotStoreFailure,
+            $this->limits,
         );
 
         $token = $this->contextStorage->attach($scope);
@@ -179,7 +184,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
 
             throw $throwable;
         } finally {
-            $this->contextStorage->detach($token);
+            $this->detachSafely($token);
         }
     }
 
@@ -187,12 +192,9 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
     {
         $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
 
-        $result = ExecutionSuccess::create();
-        $completed = $this->coordinator->transition($execution, $result, Instant::of($this->clock->nowSeconds()));
-        $snapshot = $this->snapshotFactory->terminal($completed);
+        $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), Instant::of($this->clock->nowSeconds()));
 
-        $this->safePublish($completed);
-        $this->safePublish($snapshot);
+        $this->publishTerminal($completed);
     }
 
     private function completeFailure(ExecutionInterface $execution, ExecutionScope $scope, Throwable $throwable): void
@@ -208,12 +210,52 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
             'execution.failure',
         );
 
-        $result = ExecutionFailure::of(ExecutionStatus::Failed, $description);
-        $completed = $this->coordinator->transition($execution, $result, Instant::of($this->clock->nowSeconds()));
-        $snapshot = $this->snapshotFactory->terminal($completed);
+        $completed = $this->coordinator->transition($execution, ExecutionFailure::of(ExecutionStatus::Failed, $description), Instant::of($this->clock->nowSeconds()));
 
-        $this->safePublish($completed);
-        $this->safePublish($snapshot);
+        $this->publishTerminal($completed);
+    }
+
+    /**
+     * Publishes the completed execution and its terminal snapshot, isolating any
+     * post-completion failure (serialization, hashing, or publication) so it can
+     * never replace the original business result or throwable.
+     */
+    private function publishTerminal(ExecutionInterface $completed): void
+    {
+        try {
+            $snapshot = $this->snapshotFactory->terminal($completed);
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+
+            return;
+        }
+
+        try {
+            $this->safePublish($completed);
+            $this->safePublish($snapshot);
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+        }
+    }
+
+    /**
+     * Detaches the ambient context in a way that can never mask the original
+     * outcome: a detach failure is reported but not rethrown.
+     */
+    private function detachSafely(\ItPack\RunIt\Contract\Port\ContextTokenInterface $token): void
+    {
+        try {
+            $this->contextStorage->detach($token);
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+        }
+    }
+
+    private function reportFailure(Throwable $failure): void
+    {
+        if ($this->onPublicationFailure instanceof Closure) {
+            ($this->onPublicationFailure)($failure);
+        }
     }
 
     private function engine(): ExecutionEngineInterface

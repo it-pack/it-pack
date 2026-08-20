@@ -52,4 +52,18 @@ final class InvalidAttributeException extends InvalidArgumentException implement
             . 'objects and resources are rejected.',
         );
     }
+
+    public static function valueTooLong(int $length, int $maximum): self
+    {
+        return new self(
+            sprintf('Attribute value must not exceed %d bytes, got %d.', $maximum, $length),
+        );
+    }
+
+    public static function valueTooDeep(int $depth, int $maximum): self
+    {
+        return new self(
+            sprintf('Attribute value nesting must not exceed depth %d, got %d.', $maximum, $depth),
+        );
+    }
 }

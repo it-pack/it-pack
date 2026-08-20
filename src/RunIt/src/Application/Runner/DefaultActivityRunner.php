@@ -19,7 +19,9 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
+use ItPack\RunIt\Domain\Exception\ActivityDepthExceededException;
 use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
 /**
@@ -44,11 +46,18 @@ final class DefaultActivityRunner implements ActivityRunnerInterface
         private readonly ThrowableMapperInterface $throwableMapper,
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
         private readonly StringIdentifierFactoryInterface $activityIdFactory,
+        private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 
     public function run(ActivityDefinitionInterface $definition, callable $operation): mixed
     {
+        $depth = count($this->scope->openActivities()) + 1;
+
+        if ($depth > $this->limits->maxActivityDepth) {
+            throw ActivityDepthExceededException::forDepth($depth, $this->limits->maxActivityDepth);
+        }
+
         $activityId = $this->activityIdFactory->build();
         $startedAt = Instant::of($this->clock->nowSeconds());
         $sequence = $this->sequenceAllocator->allocate($this->executionId);

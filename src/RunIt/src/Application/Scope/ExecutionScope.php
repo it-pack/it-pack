@@ -29,6 +29,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * The runtime collaborator handed to a consumer operation during an execution.
@@ -80,6 +81,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly HashCalculatorInterface $hashCalculator,
         private readonly ?SnapshotStoreInterface $snapshotStore = null,
         private readonly ?Closure $onSnapshotStoreFailure = null,
+        private readonly SecurityLimits $limits = new SecurityLimits(),
         ?Closure $currentActivityId = null,
     ) {
         $activityId = $currentActivityId ?? (fn (): ?ActivityIdInterface => $this->currentActivityId);
@@ -88,7 +90,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         $this->observationRecorder = new DefaultObservationRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->observationIdFactory);
         $this->occurrenceRecorder = new DefaultOccurrenceRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->occurrenceIdFactory);
         $this->snapshotRecorder = new DefaultSnapshotRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->serializer, $this->snapshotIdFactory, $this->hashCalculator, $this->snapshotStore, $this->onSnapshotStoreFailure);
-        $this->activityRunner = new DefaultActivityRunner($this, $executionId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->activityIdFactory);
+        $this->activityRunner = new DefaultActivityRunner($this, $executionId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->activityIdFactory, $this->limits);
     }
 
     public function execution(): ExecutionInterface

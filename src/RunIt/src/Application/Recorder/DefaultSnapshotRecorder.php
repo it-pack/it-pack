@@ -62,26 +62,65 @@ final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
         int $schemaVersion = 1,
         ?AttributeCollectionInterface $attributes = null,
     ): SnapshotInterface {
-        $snapshot = ExecutionSnapshot::create(
-            $this->snapshotIdFactory->build(),
-            $this->executionId,
-            $type,
-            $schemaVersion,
-            $this->serializer->normalize($payload),
-            $this->hashCalculator,
-            $this->activityId(),
-            null,
-            $classification ?? SnapshotClassification::Checkpoint,
-            $this->now(),
-            $this->serializer->contentType(),
-            $attributes,
-            $this->sequence(),
-        );
+        $snapshot = $this->build($type, $payload, $classification ?? SnapshotClassification::Checkpoint, $schemaVersion, $attributes);
 
         $this->publisher->publish($snapshot);
         $this->persist($snapshot);
 
         return $snapshot;
+    }
+
+    /**
+     * Normalizes and builds the snapshot, isolating a serializer failure so it can never abort the
+     * calling operation. A failed serialization is reported and a best-effort empty snapshot is
+     * returned so the recording call always completes.
+     */
+    private function build(
+        SnapshotTypeInterface $type,
+        mixed $payload,
+        SnapshotClassificationInterface $classification,
+        int $schemaVersion,
+        ?AttributeCollectionInterface $attributes,
+    ): SnapshotInterface {
+        try {
+            $normalized = $this->serializer->normalize($payload);
+        } catch (Throwable $serializerFailure) {
+            if ($this->onStoreFailure instanceof Closure) {
+                ($this->onStoreFailure)($serializerFailure);
+            }
+
+            return ExecutionSnapshot::create(
+                $this->snapshotIdFactory->build(),
+                $this->executionId,
+                $type,
+                $schemaVersion,
+                [],
+                $this->hashCalculator,
+                $this->activityId(),
+                null,
+                $classification,
+                $this->now(),
+                $this->serializer->contentType(),
+                $attributes,
+                $this->sequence(),
+            );
+        }
+
+        return ExecutionSnapshot::create(
+            $this->snapshotIdFactory->build(),
+            $this->executionId,
+            $type,
+            $schemaVersion,
+            $normalized,
+            $this->hashCalculator,
+            $this->activityId(),
+            null,
+            $classification,
+            $this->now(),
+            $this->serializer->contentType(),
+            $attributes,
+            $this->sequence(),
+        );
     }
 
     private function persist(SnapshotInterface $snapshot): void

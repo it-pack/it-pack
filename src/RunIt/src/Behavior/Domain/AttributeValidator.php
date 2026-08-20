@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Behavior\Domain;
 
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * The default RunIt attribute rules.
@@ -18,7 +19,9 @@ use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
  *
  * The rules are structural: a consumer may supply arbitrary namespaced keys and
  * scalar values. The bounds keep attributes from becoming an unbounded,
- * high-cardinality, or non-serializable data-exfiltration path.
+ * high-cardinality, or non-serializable data-exfiltration path. Limits can be
+ * tightened through a {@see SecurityLimits} instance; when none is supplied the
+ * conservative built-in defaults apply.
  *
  * @api
  *
@@ -36,7 +39,22 @@ final class AttributeValidator
      */
     public const int MAX_ATTRIBUTE_COUNT = 64;
 
+    /**
+     * The maximum accepted scalar attribute value length in bytes.
+     */
+    public const int MAX_VALUE_BYTES = 4096;
+
+    /**
+     * The maximum nesting depth of an attribute collection value.
+     */
+    public const int MAX_DEPTH = 8;
+
     private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
+
+    public function __construct(
+        private readonly ?SecurityLimits $limits = null,
+    ) {
+    }
 
     public function assertValidKey(string $key): void
     {
@@ -44,10 +62,11 @@ final class AttributeValidator
             throw InvalidAttributeException::emptyKey();
         }
 
+        $maxKey = $this->limits === null ? self::MAX_KEY_LENGTH : $this->limits->maxAttributeKeyBytes;
         $length = strlen($key);
 
-        if ($length > self::MAX_KEY_LENGTH) {
-            throw InvalidAttributeException::keyTooLong($length, self::MAX_KEY_LENGTH);
+        if ($length > $maxKey) {
+            throw InvalidAttributeException::keyTooLong($length, $maxKey);
         }
 
         if (preg_match(self::KEY_PATTERN, $key) !== 1) {
@@ -63,31 +82,43 @@ final class AttributeValidator
      */
     public function assertValidAttributes(array $attributes): void
     {
+        $maxCount = $this->limits === null ? self::MAX_ATTRIBUTE_COUNT : $this->limits->maxAttributeCount;
         $count = count($attributes);
 
-        if ($count > self::MAX_ATTRIBUTE_COUNT) {
-            throw InvalidAttributeException::tooManyAttributes($count, self::MAX_ATTRIBUTE_COUNT);
+        if ($count > $maxCount) {
+            throw InvalidAttributeException::tooManyAttributes($count, $maxCount);
         }
+
+        $maxDepth = $this->limits === null ? self::MAX_DEPTH : $this->limits->maxAttributeDepth;
 
         foreach ($attributes as $key => $value) {
             $this->assertValidKey($key);
-            $this->assertSupportedValue($value);
+            $this->assertSupportedValue($value, 1, $maxDepth);
         }
     }
 
     /**
      * @throws InvalidAttributeException when the value is not a scalar, null, or
-     *                                   a list/map of scalars
+     *                                   a bounded list/map of scalars
      */
-    private function assertSupportedValue(mixed $value): void
+    private function assertSupportedValue(mixed $value, int $depth, int $maxDepth): void
     {
         if (is_scalar($value) || $value === null) {
+            $maxValue = $this->limits === null ? self::MAX_VALUE_BYTES : $this->limits->maxAttributeValueBytes;
+            if (is_string($value) && strlen($value) > $maxValue) {
+                throw InvalidAttributeException::valueTooLong(strlen($value), $maxValue);
+            }
+
             return;
         }
 
         if (is_array($value)) {
+            if ($depth >= $maxDepth) {
+                throw InvalidAttributeException::valueTooDeep($depth, $maxDepth);
+            }
+
             foreach ($value as $member) {
-                $this->assertSupportedValue($member);
+                $this->assertSupportedValue($member, $depth + 1, $maxDepth);
             }
 
             return;
