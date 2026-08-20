@@ -6,8 +6,11 @@
 
 ## Status
 
-- **Milestone 0 (skeleton & quality gates)**: in progress.
-- Domain model, ports, core orchestration, SDK, and CLI adapter follow in later milestones.
+- **Milestone 0 (skeleton & quality gates)**: shipped.
+- **Milestone 1 (value objects & behaviors)**: shipped.
+- **Milestone 2 (domain model)**: shipped.
+- **Milestone 3 (ports + default adapters)**: shipped — all external-effect contracts and RunIt-agnostic defaults in place (clock, ids, serializer, reporter, context storage, execution storage, runtime detector, lazy handler proxy).
+- Application core, SDK, CLI adapter, cross-cutting, and release hardening follow in later milestones.
 
 ## Layering (DepTrac)
 

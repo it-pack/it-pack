@@ -9,6 +9,6 @@ namespace ItPack\CommandIt\Contract\Exception;
  *
  * @api
  */
-interface CommandExceptionInterface
+interface CommandExceptionInterface extends \Throwable
 {
 }

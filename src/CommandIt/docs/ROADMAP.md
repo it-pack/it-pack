@@ -140,17 +140,17 @@ composer cs:check
 
 ### Tasks
 
-- [ ] **M3.1 `[Contract/Port]`** `ClockInterface` (monotonic) + `IdentifierGeneratorInterface`.
-- [ ] **M3.2 `[Contract/Port]`** `SerializerInterface` — explicit, deterministic; arbitrary-object serialization prohibited.
-- [ ] **M3.3 `[Contract/Port]`** `ExecutionReporterInterface` — `reportObservation`, `reportOccurrence`, `reportMeasurement`, `beginActivity`, `endActivity`. Occurrence types: `CommandReceived`, `CommandHandled`, `CommandFailed`.
-- [ ] **M3.4 `[Contract/Port]`** `ExecutionContextProviderInterface` — ambient/per-execution `CommandContext`.
-- [ ] **M3.5 `[Contract/Port]`** `CommandExecutionStorageInterface` — retain/persist the execution record (default no-op).
-- [ ] **M3.6 `[Contract/Port]`** `RuntimeContextDetectorInterface` — `currentFiber(): ?Fiber`, `isCoroutineRuntime(): bool`.
-- [ ] **M3.7 `[Adapter/Reporting]`** `NullExecutionReporter` (no-op) and `CollectingExecutionReporter` (in-memory, bounded buffer; for tests/CLI).
-- [ ] **M3.8 `[Adapter/Context]`** `AmbientContextStorage` — request-local default context provider.
-- [ ] **M3.9 `[Adapter/Context]`** `FiberBoundContextStorage` — `WeakMap<Fiber, CommandContext>`; inherits from/backs `AmbientContextStorage`; restores/clear in `finally`; no global mutable state.
-- [ ] **M3.10 `[Adapter/Lazy]`** `LazyHandlerProxy` — wraps a handler **factory** with `GhostObject::newLazyGhost`; instantiates on first `handle()`. Default handler resolver strategy (see M4).
-- [ ] **M3.11 `[Port]`** Default `Clock`/`IdentifierGenerator` implementations (UUID/monotonic) for SDK/tests.
+- [x] **M3.1 `[Contract/Port]`** `ClockInterface` (monotonic) + `IdentifierGeneratorInterface`.
+- [x] **M3.2 `[Contract/Port]`** `SerializerInterface` — explicit, deterministic; arbitrary-object serialization prohibited.
+- [x] **M3.3 `[Contract/Port]`** `ExecutionReporterInterface` — `reportObservation`, `reportOccurrence`, `reportMeasurement`, `beginActivity`, `endActivity`. Occurrence types: `CommandReceived`, `CommandHandled`, `CommandFailed`.
+- [x] **M3.4 `[Contract/Port]`** `ExecutionContextProviderInterface` — ambient/per-execution `CommandContext`.
+- [x] **M3.5 `[Contract/Port]`** `CommandExecutionStorageInterface` — retain/persist the execution record (default no-op).
+- [x] **M3.6 `[Contract/Port]`** `RuntimeContextDetectorInterface` — `currentFiber(): ?Fiber`, `isCoroutineRuntime(): bool`.
+- [x] **M3.7 `[Adapter/Reporting]`** `NullExecutionReporter` (no-op) and `CollectingExecutionReporter` (in-memory, bounded buffer; for tests/CLI).
+- [x] **M3.8 `[Adapter/Context]`** `AmbientContextStorage` — request-local default context provider.
+- [x] **M3.9 `[Adapter/Context]`** `FiberBoundContextStorage` — `WeakMap<Fiber, CommandContext>`; inherits from/backs `AmbientContextStorage`; restores/clear in `finally`; no global mutable state.
+- [x] **M3.10 `[Adapter/Lazy]`** `LazyHandlerProxy` — wraps a handler **factory** with `GhostObject::newLazyGhost`; instantiates on first `handle()`. Default handler resolver strategy (see M4).
+- [x] **M3.11 `[Port]`** Default `Clock`/`IdentifierGenerator` implementations (UUID/monotonic) for SDK/tests.
 
 ### DoD
 
@@ -165,7 +165,16 @@ composer test:unit
 composer test:functional   # lazy + fiber isolation functional checks
 composer architecture
 composer analyse
+composer cs:check
 ```
+
+**Deviations / decisions (2026-08-20):**
+- **`Classification` lives in `Contract/Domain`, not `Domain`.** The enum is referenced directly by `CommandContextInterface::with()`/`classification()`, and deptrac forbids `Contract → Domain`. Placing it under `src/Contract/Domain` keeps the interface dependency-direction-clean. `Domain/CommandContext` imports the contract copy. Tests were repointed from `Domain\Classification` to `Contract\Domain\Classification`.
+- **`CommandExceptionInterface extends \Throwable`.** Every CommandIt exception marker now extends `Throwable` so `@throws SerializationExceptionInterface` (and similar) is a legal phpstan `throws` annotation. No runtime behavior changes — concrete exceptions already extended `\Exception`/`\RuntimeException`.
+- **`Fiber` generic parameters declared.** `RuntimeContextDetectorInterface::currentFiber()` and `FiberRuntimeDetector` declare `\Fiber<mixed, mixed, mixed, mixed>|null` so phpstan's `missingType.generics` is satisfied without leaking a concrete runtime dependency.
+- **`FiberBoundContextStorage` delegates the main stack to `AmbientContextStorage`** via composition (per-Fiber contexts live in a `WeakMap` keyed by the `Fiber` object; the ambient path is used whenever `currentFiber()` returns null). No process-global mutable context is retained.
+
+**Result:** `composer test` 69 tests / 145 assertions green (60 unit, 7 functional, 2 integration); `composer analyse` 0 errors; `composer architecture` 0 violations; `composer cs:check` clean. Default adapters shipped: `SystemClock` + `RandomIdentifierGenerator` (M3.11); `SafeSerializer` (M3.2); `NullExecutionReporter` + `CollectingExecutionReporter` (M3.7); `AmbientContextStorage` + `FiberBoundContextStorage` (M3.8/3.9); `InMemoryCommandExecutionStorage` + `NullCommandExecutionStorage` (M3.5); `FiberRuntimeDetector` (M3.6); `LazyHandlerProxy` (M3.10).
 
 ---
 
