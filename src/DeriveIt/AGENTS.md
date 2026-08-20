@@ -38,15 +38,17 @@ generation and per-trait / type-substitution modes are **not yet built** (Phases
 | `composer coverage` | Unit run with coverage (xml + html) | gate in CI (Phase 6) |
 | `composer cs:check` | PHP-CS-Fixer dry-run diff (PSR-12 + `@PHP84Migration`) | ✅ Always |
 | `composer cs:fix` | Auto-fix coding standard | use to fix, then re-check |
-| `composer analyse` | PHPStan (level 5, paths `src` + `tests/{Acceptance,Functional,Unit}`) | ✅ Green |
+| `composer analyse` | PHPStan (level 5, paths `src` + `tests/{Functional,Unit}`) | ✅ Green |
+| `composer architecture` | deptrac (`vendor/bin/deptrac`) | ✅ Green |
+| `composer infection` | Infection mutation testing (MSI ≥ 80%) | ✅ Green |
 
-**Current status (post-Phase 3):** `test:unit` ✅ (100 tests), `cs:check` ✅,
-`analyse` ✅ (no errors). Phase 0 made the project's own tooling green:
-short-ternary/`empty()` fixes, `LazyCreatable::createLazy()` removed (dead,
-decorative), test data-provider false-positives whitelisted via scoped
-`ignoreErrors` in `phpstan.neon`, PHP platform declared, and deps repackaged.
-Phase 1 added flat interface derivation (`DeriveIt::derive($class)`).
-Do not let any of these gates regress.
+**Current status (post-Phase 6):** `test:unit` ✅ (113 tests, 182 assertions),
+`cs:check` ✅, `analyse` ✅ (no errors), `architecture` ✅ (deptrac 0 violations),
+`infection` ✅ (MSI ≥ 80%). Phases 0–6 are complete: Phase 0 (CI/tooling green),
+Phase 1 (flat `DeriveIt::derive($class)`), Phase 2 (filter pipeline + `DeriveConfig`),
+Phase 3 (per-trait interfaces), Phase 4 (type substitution + family derivation),
+Phase 5 (adapter generation), Phase 6 (deptrac/infection/coverage/CI/real Functional
+suite). Do not let any of these gates regress.
 
 ---
 

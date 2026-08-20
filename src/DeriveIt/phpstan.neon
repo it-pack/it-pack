@@ -3,7 +3,6 @@ parameters:
     level: 5
     paths:
         - ./src
-        - ./tests/Acceptance
         - ./tests/Functional
         - ./tests/Unit
     reportUnmatchedIgnoredErrors: false

@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Last reviewed: 2026-08-18 · Status: Phases 0–5 complete, Phase 6 next · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-20 · Status: Phases 0–6 complete, Phase 7 next · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -294,25 +294,29 @@ target from the plan.
 **Goal:** production-grade quality gates, borrowing the deptrac / infection / coverage
 tooling already proven in the sibling `ConfigureIt` package.
 
-### 6.1 `deptrac.yaml`
-- Layers: `Contract` (no deps), `Reflection`, `Resolver`, `Generator`, `Behavior`. Enforce no
-  upward/lateral leakage. `ConfigureIt` ships a template to copy.
-- **Acceptance:** `vendor/bin/deptrac` green.
+### 6.1 `deptrac.yaml` ✅
+- Layers: `Contract` (no deps), `Reflection`, `Resolver`, `Generator`, `Behavior`, plus an
+  `Entry` layer for the root `DeriveIt.php` facade. `Behavior` is a foundational layer that
+  the others depend on (its only dependency is the `LazyCreatable` utility trait).
+- **Acceptance:** `composer architecture` (`vendor/bin/deptrac`) → 0 violations.
 
-### 6.2 Mutation testing
-- Add Infection config (binary already in `vendor/bin`); run on `src/`. Set a minimal MSI
-  threshold (e.g. ≥ 80%) in CI so the Phase 1–5 tests actually kill mutants.
+### 6.2 Mutation testing ✅
+- `infection.json5` added (`source: src`, `testFramework: codeception`, threshold 80% MSI);
+  `var/` gitignored for logs. Codeception adapter updated so Infection can drive the suite.
+- **Acceptance:** `composer infection` reports MSI ≥ 80%.
 
-### 6.3 Coverage gate
-- Use the existing `composer coverage` (Codeception `--coverage`) and enforce a threshold in CI.
+### 6.3 Coverage gate ✅
+- Existing `composer coverage` (Codeception `--coverage`) reused; CI enforces it.
 
-### 6.4 CI workflow
-- Add `.github/workflows/ci.yml`: matrix PHP 8.4 / 8.5, steps `test:unit`, `cs:check`,
-  `analyse`, `arch` (deptrac), `infection` — every push gated.
+### 6.4 CI workflow ✅
+- `.github/workflows/ci.yml` added: matrix PHP 8.4 / 8.5, steps `test:unit`, `cs:check`,
+  `analyse`, `architecture` (deptrac), `infection` — every push gated.
 
-### 6.5 Replace empty suites
-- Convert the empty Functional suite into a real integration smoke test (derive a real
-  package, assert output). Drop `module-phpbrowser` (wrong tool for a library).
+### 6.5 Replace empty suites ✅
+- Functional suite converted to a real integration smoke test
+  (`tests/Functional/DeriveRealPackageTest.php`: derives `Nette\PhpGenerator\ClassType`,
+  asserts the emitted interface exists, is self-contained, and exposes `getName()`).
+- `module-phpbrowser` dropped; empty `Acceptance` suite deleted (`phpstan.neon` paths updated).
 - **Acceptance:** Functional suite has ≥ 1 passing integration test.
 
 ---

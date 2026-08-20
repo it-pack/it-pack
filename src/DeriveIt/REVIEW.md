@@ -10,18 +10,20 @@
 
 DeriveIt (`it-pack/derive-it`) is the **second package of the "It-Pack" family**, sitting alongside `ConfigureIt`. Its stated goal is to *derive interfaces and adapters from third-party or legacy PHP classes* — walking a class's full parent/trait/interface graph and flattening it into a clean, self-contained port you own.
 
-**Current reality vs. ambition:** What is implemented in `src/` is the **graph-walking layer** — three recursive resolvers plus a thin `ClassReflection` wrapper — **and**, since Phase 1, a **flat interface deriver** (`DeriveIt::derive($class)` → a self-contained Nette `InterfaceType`/source; see `src/Generator/*`). The deriver drops constructors, static methods (opt-in), and magic methods by default, and emits no `extends`/trait `use` leaking the adaptee hierarchy. The actual **adapter generation** and the **per-trait / type-substitution modes** (the rest of the README's value proposition) remain roadmap items (Phases 3–5). README "What it does" over-states those remaining capabilities.
+**Current reality vs. ambition:** Implemented in `src/` is the full derivation pipeline — the three recursive resolvers plus a `ClassReflection` wrapper (graph-walking layer), and on top of it the generators built across Phases 1–5: a **flat interface deriver** (`DeriveIt::derive($class)` → a self-contained Nette `InterfaceType`/source), an **interface-per-trait deriver** (`DeriveIt::derivePerTrait()`/`deriveTraitInterfaces()`), a **type-substitution map** (`TypeSubstitutor` + `DeriveConfig::typeSubstitutionMap`) with **family derivation** (`DeriveIt::deriveFamily()`), and **adapter generation** (`AdapterDeriver`). All derivers drop constructors, static methods (opt-in), and magic methods by default, and emit no `extends`/trait `use` leaking the adaptee hierarchy. The documented capabilities now match delivered functionality.
 
 **Health at a glance:**
 
 | Check | Command | Result |
 |-------|---------|--------|
-| Unit tests | `codecept run Unit` | ✅ 27/27 pass, 27 assertions |
-| Coding standard | `php-cs-fixer fix --dry-run` | ✅ 0 files to fix |
-| Static analysis | `phpstan analyse` (level 5) | ❌ **15 errors** — fails |
-| Declared PHP version | composer.json | ❌ **none** (code needs PHP ≥ 8.4) |
+| Unit tests | `composer test:unit` | ✅ 113 tests, 182 assertions |
+| Coding standard | `composer cs:check` | ✅ 0 files to fix |
+| Static analysis | `composer analyse` (PHPStan level 5) | ✅ No errors |
+| Architecture | `composer architecture` (deptrac) | ✅ 0 violations |
+| Mutation testing | `composer infection` (MSI ≥ 80%) | ✅ Threshold met |
+| Declared PHP version | composer.json | ✅ `php >= 8.4` |
 
-The package is **early and structurally incomplete**, but the existing core is small, coherent, and well-tested. The biggest risk is not code quality — it is the **gap between documented intent and delivered functionality**.
+The package is **production-ready through Phase 6** (all quality gates green). The remaining work is Phase 7 (docs/ADRs/tagged releases) and documented post-v1 stretch items.
 
 ---
 
@@ -41,9 +43,10 @@ DeriveIt/
 │   │   ├── RecursiveInterfaceResolver.php    # walks interfaces (incl. interface inheritance)
 │   │   └── RecursiveTraitResolver.php        # walks traits (incl. nested traits)
 │   ├── Contract/Resolver/                    # 4 interfaces (1 base + 3 typed)
-│   └── Behavior/Utility/LazyCreatable.php    # trait: create() + createLazy() proxy factory
+│   └── Behavior/Utility/LazyCreatable.php    # trait: create() proxy factory (createLazy() removed in Phase 0)
 ├── scripts/
-│   ├── generate_reflection_adapter.php       # scratch generation experiment (broken)
+│   ├── derive.php                            # demo: prints a derived interface
+│   ├── regenerate_goldens.php                # dev helper: rewrites tests/_expected/*
 │   └── create_text_constructs.php            # empty stub (10 lines)
 ├── fixtures/
 │   ├── Stubs/                                 # 21 files — used by unit tests

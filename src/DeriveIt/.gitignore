@@ -34,3 +34,6 @@ Thumbs.db
 
 # symlink
 packages/
+
+# QA tooling output
+var/
