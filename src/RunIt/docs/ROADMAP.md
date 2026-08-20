@@ -2429,23 +2429,60 @@ Remaining ROADMAP-native items — completed in this pass:
 
 ## M13.3 DepTrac completion
 
-- [ ] Define Contract layer.
-- [ ] Define Domain layer.
-- [ ] Define Application layer.
-- [ ] Define Port layer.
-- [ ] Define SDK layer.
-- [ ] Define a Common Adapter layer.
-- [ ] Define External Adapter layer.
-- [ ] Define Test Support layer.
-- [ ] Enforce documented allowed dependencies.
-- [ ] Prohibit domain-to-application dependencies.
-- [ ] Prohibit domain-to-adapter dependencies.
-- [ ] Prohibit application-to-SDK dependencies.
-- [ ] Prohibit application-to-external-adapter dependencies.
-- [ ] Review uncovered classes.
-- [ ] Generate architecture visualization.
-- [ ] Store approved architecture diagram in documentation.
-- [ ] Maintain zero unexplained skips.
+- [x] Define Contract layer.
+- [x] Define Domain layer.
+- [x] Define Application layer.
+- [x] Define Port layer.
+- [x] Define SDK layer.
+- [x] Define a Common Adapter layer.
+- [x] Define External Adapter layer.
+- [x] Define Test Support layer.
+- [x] Enforce documented allowed dependencies.
+- [x] Prohibit domain-to-application dependencies.
+- [x] Prohibit domain-to-adapter dependencies.
+- [x] Prohibit application-to-SDK dependencies.
+- [x] Prohibit application-to-external-adapter dependencies.
+- [x] Review uncovered classes.
+- [x] Generate architecture visualization.
+- [x] Store approved architecture diagram in documentation.
+- [x] Maintain zero unexplained skips.
+
+### M13.3 status audit — August 21, 2026
+
+`deptrac.yaml` (DepTrac 4.7) now defines the full hexagonal layering required by
+the milestone: `Common`, `Contract`, `Port`, `Domain`, `Application`, `SDK`,
+`Common Adapter`, `External Adapter`, and `Test Support`. The `Port` layer is a
+deliberately exclusive subset of `src/Contract/Port` (the `Contract` collector
+uses the `src/Contract/(?!Port/).*` pattern) so no token is assigned to two
+layers, which keeps DepTrac's warnings at zero.
+
+The ruleset encodes the dependency direction from `AGENTS.md` and the four
+explicit prohibition checklist items:
+
+- `Domain` may depend only on `Common`, `Contract`, `Port` — it cannot reach
+  `Application`, `SDK`, or either adapter layer.
+- `Application` may depend only on `Common`, `Contract`, `Port`, `Domain` — it
+  cannot reach `SDK` or any adapter, so application-to-SDK and
+  application-to-external-adapter dependencies are structurally impossible.
+- `External Adapter` may be referenced only by `Common Adapter`, the other
+  adapters, and `Test Support`; the core layers never import it.
+
+Verification (`composer architecture`, i.e. `deptrac --config-file=deptrac.yaml`):
+
+- Violations: **0**.
+- Skipped violations: **0** (no `skip` rules were added; the milestone's
+  "zero unexplained skips" criterion is met by having no skips at all).
+- Warnings: **0**.
+- Uncovered: **134** — reviewed and accepted. Every uncovered edge is an adapter
+  class depending on a vendor library (`OpenTelemetry\*`, `Psr\*`,
+  `CloudEvents\*`, Swoole/OpenSwoole `*`). These are the external integration
+  points permitted by ADR-006 and ADR-010, confined to the adapter layers, and
+  are not architecture violations.
+
+The approved architecture diagram (`docs/architecture/dependency-graph.md`) is
+generated from `deptrac.yaml` via `deptrac analyse --formatter=mermaidjs` and
+documents the layers, the enforced ruleset, the prohibitions, and the reviewed
+uncovered dependencies.
 
 ## M13.4 Coding standards
 

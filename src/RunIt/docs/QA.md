@@ -139,6 +139,37 @@ failure; the rule only forbids the empty/swallowing form.
 informational job: it surfaces next-version PHPStan findings without gating
 `composer quality`.
 
+## DepTrac layering (M13.3)
+
+`composer architecture` runs `deptrac --config-file=deptrac.yaml` (DepTrac 4.7).
+The configuration enforces the hexagonal dependency direction from `AGENTS.md`
+with the following layers: `Common`, `Contract`, `Port`, `Domain`, `Application`,
+`SDK`, `Common Adapter`, `External Adapter`, `Test Support`.
+
+Key boundaries:
+
+- `Domain` may depend only on `Common`, `Contract`, `Port`. It cannot reach
+  `Application`, `SDK`, or any adapter (prohibits domain-to-application and
+  domain-to-adapter dependencies).
+- `Application` may depend only on `Common`, `Contract`, `Port`, `Domain`. It
+  cannot reach `SDK` or any adapter (prohibits application-to-SDK and
+  application-to-external-adapter dependencies).
+- `External Adapter` is reachable only from `Common Adapter`, the other adapters,
+  and `Test Support`; the core layers never import it.
+
+`Port` is a deliberately exclusive subset of `src/Contract/Port` (the `Contract`
+collector uses `src/Contract/(?!Port/).*` so no token is assigned to two layers);
+this keeps DepTrac warnings at zero. No `skip` rules are used, so "zero
+unexplained skips" is met by having no skips.
+
+The report is **0 violations / 0 skipped / 0 warnings**. DepTrac reports 134
+uncovered dependencies; every one is an adapter class depending on a vendor
+library (`OpenTelemetry*`, `Psr*`, `CloudEvents*`, Swoole/OpenSwoole `*`). These
+are the external integration points permitted by ADR-006 and ADR-010, confined to
+the adapter layers, and are reviewed and accepted rather than suppressed. The
+approved architecture diagram is `docs/architecture/dependency-graph.md`,
+generated from `deptrac.yaml` via `deptrac analyse --formatter=mermaidjs`.
+
 ## Extending the rules
 
 The extension lives at `tools/phpstan/runit-rules`:

@@ -9,7 +9,11 @@ deptrac:
     - name: Contract
       collectors:
         - type: directory
-          value: src/Contract/.*
+          value: src/Contract/(?!Port/).*
+    - name: Port
+      collectors:
+        - type: directory
+          value: src/Contract/Port/.*
     - name: Domain
       collectors:
         - type: directory
@@ -24,27 +28,56 @@ deptrac:
       collectors:
         - type: directory
           value: src/SDK/.*
-    - name: Adapter
+    - name: Common Adapter
       collectors:
         - type: directory
-          value: src/Adapter/.*
+          value: src/Adapter/(Null|Memory|Callback|Fiber|Common)/.*
+    - name: External Adapter
+      collectors:
+        - type: directory
+          value: src/Adapter/(OpenTelemetry|CloudEvents|Psr|Swoole)/.*
+    - name: Test Support
+      collectors:
+        - type: directory
+          value: src/Conformance/.*
   ruleset:
     Common: ~
     Contract:
       - Common
+    Port:
+      - Common
+      - Contract
     Domain:
       - Common
       - Contract
+      - Port
     Application:
       - Common
       - Contract
+      - Port
       - Domain
     SDK:
       - Common
       - Contract
+      - Port
       - Domain
       - Application
-    Adapter:
+    Common Adapter:
       - Common
       - Contract
+      - Port
       - Domain
+    External Adapter:
+      - Common
+      - Contract
+      - Port
+      - Domain
+    Test Support:
+      - Common
+      - Contract
+      - Port
+      - Domain
+      - Application
+      - SDK
+      - Common Adapter
+      - External Adapter
