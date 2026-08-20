@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
+
 use ItPack\ConfigureIt\Behavior\CreatableBehavior;
 use Nette\Schema\Message as NetteMessage;
 
@@ -19,8 +20,7 @@ class MessageFactory
         string $code,
         array $path,
         array $variables = [],
-    ): Message
-    {
+    ): Message {
         return $this->buildFromNetteMessage(
             new NetteMessage(
                 $message,

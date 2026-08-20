@@ -12,8 +12,9 @@ use Nette\Schema\Schema as NetteSchema;
 final readonly class Processor implements ProcessorAdapterInterface
 {
     public function __construct(
-        private NetteProcessor $adaptee = new NetteProcessor,
-    ) {}
+        private NetteProcessor $adaptee = new NetteProcessor(),
+    ) {
+    }
 
     public function skipDefaults(bool $value = true): void
     {

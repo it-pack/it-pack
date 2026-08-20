@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
@@ -12,14 +13,12 @@ use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\OccurrenceFactory;
-use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
-use ItPack\ConfigureIt\ValueObject\ValidationResult;
 
 /**
  * Coordinates the entire resolution process and produces the final immutable

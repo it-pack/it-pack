@@ -38,7 +38,7 @@ final class FileReader implements ConfigurationReaderInterface
         try {
             return is_file($resource->uri());
         } catch (\Throwable) {
-           return false;
-       }
+            return false;
+        }
     }
 }

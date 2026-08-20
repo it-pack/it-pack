@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
-use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\ValueObject\Format;
 
@@ -26,7 +26,8 @@ final readonly class ConfigurationLoaderFactory implements ConfigurationLoaderFa
      */
     public function __construct(
         private iterable $loaders,
-    ) {}
+    ) {
+    }
 
     /**
      * @param iterable<\ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface> $loaders

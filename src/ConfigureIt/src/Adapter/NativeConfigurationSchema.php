@@ -12,7 +12,6 @@ use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultFactoryInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
 use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
-use Nette\Schema\Processor as NetteProcessor;
 use Nette\Schema\Schema as Ne;
 use Nette\Schema\ValidationException;
 

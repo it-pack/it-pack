@@ -15,8 +15,8 @@ class ValidationResultFactory implements ValidationResultFactoryInterface
      * @param list<array{path: string, message: string}> $errors
      */
     public function build(
-         bool $valid,
-         array $errors = [],
+        bool $valid,
+        array $errors = [],
     ): ValidationResult {
         return new ValidationResult($valid, $errors);
     }

@@ -9,5 +9,4 @@ use ItPack\ConfigureIt\Contract\ProcessorInterface;
 
 interface ProcessorAdapterInterface extends ProcessorInterface, AdapterInterface
 {
-
 }

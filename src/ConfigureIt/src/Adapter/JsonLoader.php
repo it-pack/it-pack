@@ -21,7 +21,8 @@ final readonly class JsonLoader implements ConfigurationLoaderInterface
 {
     public function __construct(
         private ConfigurationDocumentFactoryInterface $documentFactory = new ConfigurationDocumentFactory(),
-    ){}
+    ) {
+    }
 
     public function supports(Format $format): bool
     {

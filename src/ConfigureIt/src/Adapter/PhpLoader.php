@@ -26,7 +26,8 @@ final class PhpLoader implements ConfigurationLoaderInterface
         private readonly TempFileFactoryInterface $tempFileFactory = new TempFileFactory(
             self::TEMP_FILE_PREFIX,
         )
-    ){}
+    ) {
+    }
 
     public function supports(Format $format): bool
     {

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
-use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;

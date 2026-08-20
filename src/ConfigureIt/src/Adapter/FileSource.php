@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
-use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 

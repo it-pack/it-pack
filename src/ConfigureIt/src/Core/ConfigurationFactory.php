@@ -8,14 +8,11 @@ use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
-use ItPack\ConfigureIt\Contract\SchemaInterface;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
 final readonly class ConfigurationFactory implements ConfigurationFactoryInterface
 {
-
     public function __construct(
         private ?ResolutionReporterInterface $reporter = new ResolutionReporter(),
     ) {
@@ -33,8 +30,7 @@ final readonly class ConfigurationFactory implements ConfigurationFactoryInterfa
         iterable                     $sources = [],
         array                        $processors = [],
         ?ResolutionReporterInterface $reporter = null
-    ): ConfigurationResolverInterface
-    {
+    ): ConfigurationResolverInterface {
         return new ConfigurationResolver(
             reader: $reader,
             loaders:  new ConfigurationLoaderFactory($loaders),

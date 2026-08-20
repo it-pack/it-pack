@@ -194,10 +194,13 @@ vendor/bin/phpstan analyse --no-progress   # expect: 0 errors
 vendor/bin/php-cs-fixer fix --dry-run      # expect: no files to fix
 ```
 
-**Status — partial.** `vendor/bin/phpstan analyse --no-progress` reports
-**0 errors** (level 9) after the rename-aftermath fixes from T1. The
-`php-cs-fixer fix --dry-run` / Pint gate has **not** been re-run in this pass and
-is still outstanding. The `ConfigurationSourceInterface` ↔ `ConfigurationReaderInterface`
+**Status — ✅.** Both gates are green at `HEAD`:
+- `vendor/bin/phpstan analyse --no-progress` → **0 errors** (level 9).
+- `composer cs:check` (`vendor/bin/php-cs-fixer fix --dry-run`) → **0 files to
+  fix** after applying the project's own `.php-cs-fixer.php` rules to the 42 dirty
+  files (`composer cs:fix`).
+- `composer test:unit` stays green (**61 tests / 119 assertions**) after formatting.
+The `ConfigurationSourceInterface` ↔ `ConfigurationReaderInterface`
 canonical-`ConfigurationResourceInterface` mismatch is resolved (both ports
 reference `Contract\ValueObject\ConfigurationResourceInterface`).
 

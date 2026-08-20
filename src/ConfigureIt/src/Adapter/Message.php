@@ -11,7 +11,8 @@ class Message implements MessageInterface
 {
     public function __construct(
         public readonly NetteMessage $adaptee
-    ){}
+    ) {
+    }
 
     public function toString(): string
     {

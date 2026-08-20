@@ -10,13 +10,13 @@ use ItPack\ConfigureIt\Exception\ParseException;
 
 class TempFileFactory implements TempFileFactoryInterface
 {
-
     use CreatableBehavior;
     public const string DEFAULT_TEMP_FILE_PREFIX = 'tmp-file-prefix-it-pack-';
 
     public function __construct(
         public readonly string $tempFilePrefix = self::DEFAULT_TEMP_FILE_PREFIX,
-    ){}
+    ) {
+    }
 
     public static function create(
         ?string $tempFilePrefix = null,

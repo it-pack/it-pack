@@ -30,6 +30,6 @@ class CompositeReader implements ConfigurationReaderInterface
 
     public function supports(ConfigurationResourceInterface $resource): bool
     {
-        return array_any($this->readers, fn($reader) => $reader->supports($resource));
+        return array_any($this->readers, fn ($reader) => $reader->supports($resource));
     }
 }

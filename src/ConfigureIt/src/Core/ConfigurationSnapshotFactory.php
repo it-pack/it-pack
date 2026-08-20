@@ -9,7 +9,6 @@ use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 
 class ConfigurationSnapshotFactory implements ConfigurationSnapshotFactoryInterface
 {
-
     /**
      * @param array<mixed> $tree
      */

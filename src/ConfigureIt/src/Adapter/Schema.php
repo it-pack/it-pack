@@ -13,7 +13,8 @@ final readonly class Schema implements SchemaInterface
 {
     public function __construct(
         public NetteSchema $adaptee,
-    ) {}
+    ) {
+    }
 
     public function normalize(mixed $value, ContextInterface $context): mixed
     {
