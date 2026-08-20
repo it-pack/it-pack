@@ -1,7 +1,7 @@
 # DisenchantIt — User Guide
 
 > Library + SDK for finding and replacing *magic* scalar values in PHP source.
-> Turns repeated string literals into explicit, named `private const`
+> Turns repeated string and numeric literals into explicit, named `private const`
 > declarations — and optionally into a shared, dependency-free `SemConv`
 > registry that every class aliases through.
 
@@ -112,6 +112,48 @@ signal a shared concept:
 $rewritten = $disenchanter->rewrite($code, minOccurrences: 2);
 ```
 
+### Numbers (magic numbers)
+
+Numeric literals are promoted only when a *naming hint* is present, and they
+become **typed** constants that keep their raw token. A unit suffix on the
+assignment target is the strongest hint:
+
+```php
+$code = <<<'PHP'
+<?php
+
+class Session {
+    private int $timeoutMs = 5000;
+
+    public function extend(): void {
+        $this->timeoutMs = 5000;
+    }
+}
+PHP;
+
+$rewritten = $disenchanter->rewrite($code);
+```
+
+`$rewritten` (`$timeoutMs` and the assigned `5000` share the `timeoutMs` hint,
+so both occurrences collapse onto one `TIMEOUT_MS`):
+
+```php
+<?php
+
+class Session {
+    private const int TIMEOUT_MS = 5000;
+    private int $timeoutMs = self::TIMEOUT_MS;
+
+    public function extend(): void {
+        $this->timeoutMs = self::TIMEOUT_MS;
+    }
+}
+```
+
+A comment on the line above the literal also works (`// seconds` above
+`$ttl = 30` → `TTL_SECONDS`); a numeric literal with no hint, or a trivial one
+(`0`, `1`, `0.0`, `1.0`), is left untouched. See §5.4 for the full rules.
+
 ---
 
 ## 4. The pipeline at a glance
@@ -120,7 +162,7 @@ $rewritten = $disenchanter->rewrite($code, minOccurrences: 2);
 Source text (one PHP file)
    │
    ▼  detect()
-Detect    ── AST scan of string literals, classify role, filter candidates,
+Detect    ── AST scan of string and numeric literals, classify role, filter candidates,
    │         group by value, generate a constant name per value
    ▼  rewrite()
 Decide     ── placement strategy decides where each constant lives
@@ -141,9 +183,9 @@ result goes.
 
 ### 5.1 Roles
 
-The scanner walks every string literal and classifies it by its position in
-the AST. Roles are internal hints, but they drive which literals survive
-filtering (§5.2):
+The scanner walks every string literal — and, when a naming hint is present,
+every numeric literal — and classifies it by its position in the AST. Roles are
+internal hints, but they drive which literals survive filtering (§5.2):
 
 | Role | Where the literal sits | Candidate by default? |
 |---|---|---|
@@ -160,6 +202,14 @@ filtering (§5.2):
 | `enum_backing_value` | `case PHP = 'php'` | **no** |
 | `class_const_value` | `private const FOO = 'literal'` (the const's own value) | **no** |
 | `unclassified` | anything else | yes (if identifier-shaped) |
+
+> **Numeric literals share this role vocabulary.** A `LNumber` / `DNumber`
+> (integer or float, including raw forms like `0x1F`, `1_000_000`, `3.14`) is
+> classified into the same roles — `constructor_arg`, `comparison`,
+> `branch_value`, `array_key` / `array_value`, `class_const_value`, … — so the
+> same filtering rules apply. The one extra rule for numbers is the *naming
+> hint* requirement (§5.4); and the `enum_backing_value` exclusion covers
+> backed enums regardless of whether the case value is a string or a number.
 
 ### 5.2 The candidate filter
 
@@ -196,6 +246,61 @@ with `V_`). The mapping is stable across runs:
 > a same-named constant is left untouched), and in the SemConv registry a
 > differing-value collision is a **hard error** (§8.4).
 
+### 5.4 Magic numbers (numeric literals)
+
+Numeric literals are magic values too: a bare `5000`, `0x1F`, or `3.14` repeated
+across methods is just as implicit as a bare string. DisenchantIt promotes them
+when — and only when — a **naming hint** is recoverable, because without one it
+would have to *invent* a name (e.g. `CONST_5000`), which is worse than the
+original magic value.
+
+**Detection.** The scanner reads `LNumber` / `DNumber` nodes and preserves the
+literal's **raw source token** — `0x1F` stays `0x1F`, `1_000_000` stays
+`1_000_000`, `3.14` stays `3.14`. The candidate's reported value is the literal
+exactly as written.
+
+**Naming hint (required).** A numeric literal is promoted only if
+`NamingContextExtractor` can recover a name from its surroundings, in this
+priority order (see `docs/MAGIC_NUMBERS_ROADMAP.md` §4):
+
+1. **Unit suffix** on the assignment target — `$timeoutMs = 5000` → `TIMEOUT_MS`.
+   Recognized suffixes: `ms`, `millis`, `seconds`/`secs`, `minutes`/`mins`,
+   `hours`/`hrs`, `days`, `bytes`/`kb`/`mb`/`gb`/`tb`, `ttl`, `hz`, `bits`,
+   `percent`/`pct`, …
+2. **Comment on the line(s) immediately above** the literal —
+   `// seconds` directly above `$ttl = 30` → `TTL_SECONDS`.
+3. **The variable / property / parameter name or array key** it is assigned to —
+   `private int $maxRetries = 3` → `MAX_RETRIES`; `['limit' => 1000]` → `LIMIT`.
+
+If none of these apply, the name generator returns `null` and the literal is
+left untouched.
+
+**Trivial values are excluded.** `0`, `1`, `0.0`, `1.0` are not promoted by
+default — on their own they carry no distinguishing semantics, and a hint alone
+is not enough to make `1` worth a named constant.
+
+**Typed constant output.** A promoted number becomes a *typed* constant that
+keeps its raw token:
+
+```php
+private const int TIMEOUT_MS = 5000;
+private const int MASK = 0x1F;
+private const float RATE = 3.14;
+```
+
+**Self-rewrap and idempotency.** The same guards that make string rewriting
+idempotent apply to numbers: a constant's own declaration value is never
+re-promoted, and already-declared / already-aliased lines are skipped (§5.2,
+§8.4, §12.7).
+
+> **Caveat — array keys.** A numeric value keyed by an *identifier-shaped* array
+> key, e.g. `['limit' => 1000]`, is named from that key (`LIMIT`) — which can
+> collide with the key string `'limit'` being promoted to its *own* `LIMIT`
+> constant in the same class (two `private const LIMIT` declarations → a PHP
+> redeclaration fatal). Until that overlap is handled, prefer a key that is not
+> itself a candidate, or raise `minOccurrences` so the string key is not
+> promoted (§12.8).
+
 ---
 
 ## 6. Placement strategies
@@ -230,6 +335,10 @@ building your own placement logic. Each `CandidateInterface` exposes:
 - `occurrences` (`list<StringLiteralInterface>`) — every usage site, each with
   `value`, `line`, `role`, `className`, `methodName`.
 - `count(): int` — number of occurrences.
+
+Numeric literals are included as candidates whenever a naming hint is present
+(§5.4); their `value` is the literal's raw token (`'5000'`, `'0x1F'`, …) and
+their `occurrences` carry the same `line` / `role` / `className` fields.
 
 ```php
 foreach ($disenchanter->detect($code) as $value => $candidate) {
@@ -281,7 +390,9 @@ steps on top of the basic rewrite.
 
 ### 8.1 Step 1 — promote locally (already done by `rewrite`)
 
-Each class gets its own `private const string NAME = 'value';`.
+Each class gets its own `private const` — `private const string NAME = 'value';`
+for strings, `private const int NAME = 5000;` / `private const int MASK = 0x1F;`
+for detected numbers (the raw numeric token is preserved).
 
 ### 8.2 Step 2 — collect into one shared interface
 
@@ -304,10 +415,18 @@ interface SemConv
 {
     public const string ADMIN_USER = 'admin-user';
     public const string GUEST_USER = 'guest-user';
+    public const int TIMEOUT_MS = 5000;
 }
 ```
 
 Nothing from Step 1 is removed — the interface is **additive only**.
+
+> Numeric registry entries are typed (`public const int` / `public const float`)
+> and store the **canonical** parsed value — a literal written `0x1F` is
+> collected under `31`. That is deliberate: the registry is the shared
+> vocabulary, so `0x1F` and `31` from different files merge into one `MASK`
+> concept. The *class-local* constant (§8.1 / §8.3) keeps the original raw token
+> (`0x1F`) before it is aliased through to `SemConv`.
 
 ### 8.3 Step 3 — alias each class constant through to the registry
 
@@ -322,6 +441,7 @@ namespace App;
 use Generated\SemConv;
 
 class User {
+    private const int TIMEOUT_MS = SemConv::TIMEOUT_MS;
     private const string ADMIN_USER = SemConv::ADMIN_USER;
     private const string GUEST_USER = SemConv::GUEST_USER;
 
@@ -515,14 +635,22 @@ the exact signatures as maturing until a `1.0.0` tag.
 5. **No enum promotion.** Backed-enum case values are explicitly excluded
    (promoting one to a separate `const` would fatal). Enum promotion is a
    future capability.
-6. **Constant declarations are `private const string`.** The line-based
-   rewriter inserts `private const string NAME = 'value';` immediately after
-   each class's opening brace. Visibility/type are not yet configurable.
+6. **Constant declarations are `private const` with a type.** String literals
+   become `private const string NAME = 'value';`; detected numbers become
+   `private const int NAME = 5000;` / `private const float NAME = 3.14;`,
+   preserving the raw source token (`0x1F` stays `0x1F`). Visibility and the
+   `int`/`float` distinction are not yet configurable.
 7. **Idempotency is guarded, not infinite.** Re-running is safe because a
    constant's own value is excluded from candidacy and already-declared /
    already-aliased lines are skipped. Hand-editing the generated SemConv file
    into a different shape can defeat the merge regex (§8.4) — treat that file
    as generated.
+
+8. **Numeric value keyed by an identifier-shaped array key can collide.** A
+   numeric literal named from its array key (e.g. `['limit' => 1000]` → `LIMIT`)
+   can clash with that key string `'limit'` being promoted to its *own* `LIMIT`
+   constant in the same class — two `private const LIMIT` declarations is a PHP
+   redeclaration fatal. See the caveat in §5.4 for workarounds.
 
 ---
 
@@ -530,8 +658,10 @@ the exact signatures as maturing until a `1.0.0` tag.
 
 | Term | Meaning |
 |---|---|
-| Magic value | A bare scalar literal (usually a string) repeated as a type tag, key, enum-like member, or config token. |
-| Candidate | A detected literal that survives filtering and is worth promoting. |
+| Magic value | A bare scalar literal (string or number) repeated as a type tag, key, timeout, size, status code, enum-like member, or config token. |
+| Candidate | A detected literal (string or numeric) that survives filtering and is worth promoting. |
+| Naming hint | A variable/property/parameter name, an array key, or a preceding unit comment that lets a numeric literal be promoted to a named constant (§5.4). |
+| Magic number | A bare numeric literal promoted to a typed constant only when a naming hint is present (§5.4). |
 | Placement | The decision of *where* a promoted constant lives (class + name + value + occurrences). |
 | Occurrence | One specific usage site of a literal (class, method, line, role). |
 | Role | The AST position of a literal (`method_call_arg`, `comparison`, `branch_value`, …). |

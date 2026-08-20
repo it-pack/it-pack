@@ -8,7 +8,8 @@
 ## Purpose
 
 DisenchantIt helps you turn *magic* scalar values — most often bare string literals
-used as type tags, keys, enum-like members, or configuration tokens — into explicit,
+or numeric literals used as type tags, keys, timeouts, sizes, status codes, enum-like
+members, or configuration tokens — into explicit,
 named constants (and, eventually, backed enums). It targets the exact anti-pattern
 where the same literal is repeated across methods and classes, silently, with no single
 source of truth.
@@ -39,14 +40,16 @@ The work splits into two independent halves that are composed by the caller.
 
 ### 1. Detection (find the candidates)
 
-- An AST-based scan (via `nikic/php-parser`) walks every string literal in a file and
-  records where it sits: class, method, line, and the **role** it plays
-  (constructor arg, method-call arg, array key/value, comparison, branch value,
-  enum backing value, …).
+- An AST-based scan (via `nikic/php-parser`) walks every string literal — and, when a
+  naming hint is present, every numeric literal — in a file and records where it sits:
+  class, method, line, and the **role** it plays (constructor arg, method-call arg,
+  array key/value, comparison, branch value, enum backing value, …).
 - A **candidate filter** drops literals that are clearly *not* magic values worth
   promoting — exception messages, `sprintf`/`printf` format strings, enum backing
   values, and anything that does not look identifier-shaped (prose with spaces or
-  sentence punctuation is excluded).
+  sentence punctuation is excluded). Numeric literals must additionally carry a
+  recoverable naming hint (a variable/property name, an array key, or a trailing unit
+  comment like `// ms`) and are excluded when trivial (`0`, `1`, `0.0`, `1.0`).
 - Surviving candidates are **grouped by value**. Repetition across multiple sites is
   the strongest signal that a literal is "secretly an enum member" and should become a
   shared constant.
@@ -69,8 +72,9 @@ The work splits into two independent halves that are composed by the caller.
 - The **SemConv pattern** (OpenTelemetry-SemConv-inspired) layers on a shared,
   dependency-free `interface` that collects the same constants from across the whole
   scanned tree. Each class's local constant is then *aliased through* to the shared
-  value (`private const string PATH = SemConv::PATH;`) — existing `self::PATH` call
-  sites keep working unchanged; only the declaration line changes.
+  value (`private const string PATH = SemConv::PATH;` for strings,
+  `private const int MASK = SemConv::MASK;` for detected numbers) — existing
+  `self::PATH` call sites keep working unchanged; only the declaration line changes.
 
 ## Intended usage (library)
 
@@ -121,7 +125,10 @@ engine be swapped (e.g. a future Rector-based adapter) without touching callers.
 
 Maturing. The hexagonal, port/adapter layout is in place: detection, filtering,
 naming, placement, line-based rewriting, and the SemConv collect + alias steps are
-implemented behind `Contract` ports and `Factory` composition roots. The public
+implemented behind `Contract` ports and `Factory` composition roots. Magic **numbers**
+(numeric literals) are detected when a naming hint is recoverable and promoted to
+typed constants (`private const int …` / `private const float …`) that preserve the
+literal's raw source token. The public
 API is fronted by `DisenchanterInterface` (built via `DisenchanterFactory`) and the
 `DisenchantResult` value object. Expect signature refinements until a `1.0.0` tag.
 

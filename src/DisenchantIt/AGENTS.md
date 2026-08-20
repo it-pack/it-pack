@@ -5,7 +5,7 @@
 This file guides AI coding agents working on **DisenchantIt** (`it-pack/disenchant-it`).
 
 DisenchantIt is a library and SDK that finds and replaces magic scalar values in PHP
-source — most often repeated string literals used as type tags, keys, enum-like members,
+source — most often repeated string literals or numeric literals used as type tags, keys, enum-like members,
 or configuration tokens — promoting them to explicit `private const` declarations (and,
 eventually, backed enums) without ever executing or autoloading the files it analyses.
 
@@ -40,7 +40,7 @@ DisenchantIt turns magic scalar values into named constants:
 Source text (PHP)
     │
     ▼
-Detect   ── AST scan of string literals, classify role, filter candidates
+Detect   ── AST scan of string and numeric literals, classify role, filter candidates
     │
     ▼
 Group    ── by literal value (repetition = enum-member signal)
@@ -246,6 +246,15 @@ Preserve these invariants unless an accepted ADR explicitly changes them.
 - Exception messages and `sprintf`/`printf` format strings are not candidates by default.
 - Only identifier-shaped literals (no internal spaces / sentence punctuation) are
   candidates by default.
+- Numeric literals (`LNumber` / `DNumber`, including raw tokens such as `0x1F`,
+  `1_000_000`, `3.14`) are candidates **only** when a naming hint is recoverable from
+  the surrounding `NamingContext` — a variable/property name, an array key, or a trailing
+  unit comment like `// ms`.
+- Trivial numeric values (`0`, `1`, `0.0`, `1.0`) are not candidates by default: they
+  carry no distinguishing semantics without a naming hint.
+- A numeric candidate is promoted to a **typed** constant (`private const int …` /
+  `private const float …`) whose value preserves the literal's raw source token
+  (`0x1F` stays `0x1F`, `1_000_000` stays `1_000_000`).
 - A constant is never re-declared in a class that already declares it (idempotent).
 - A literal replacement is scoped to the exact recorded line, so untouched lines stay
   byte-for-byte identical.
@@ -428,8 +437,8 @@ and adds detection/rewrite terms:
 | Occurrence | Event |
 | Snapshot | Serialized result |
 | Context | Baggage, metadata bag |
-| Magic value | Hard-coded string, literal |
-| Candidate | Detected literal worth promoting |
+| Magic value | Hard-coded scalar (string or numeric) literal |
+| Candidate | Detected literal (string or numeric) worth promoting |
 | Placement | Where a constant is declared + what it replaces |
 | SemConv | Shared constant registry |
 
