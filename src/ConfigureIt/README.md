@@ -2,9 +2,9 @@
 
 > **Configuration as Data. Resolution as a Pipeline. Adapters for Everything.**
 
-[![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4.svg)](#)
+[![PHP](https://img.shields.io/badge/PHP-8.5%2B-777BB4.svg)](#)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Status](https://img.shields.io/badge/status-Planning-orange.svg)](#)
+[![Status](https://img.shields.io/badge/status-Phase%201-blue.svg)](#)
 
 ---
 
@@ -166,27 +166,24 @@ Runtime configuration does not.
 ## Example
 
 ```php
-$config = ConfigureIt::builder()
+use ItPack\ConfigureIt\Adapter\FileReader;
+use ItPack\ConfigureIt\Adapter\FileSource;
+use ItPack\ConfigureIt\Adapter\JsonLoader;
+use ItPack\ConfigureIt\Adapter\PhpLoader;
+use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 
-    ->addSource(
-        new FileSource('config')
-    )
+// Discover + load + merge + validate, then freeze an immutable snapshot.
+$resolver = (new ConfigurationBuilder())
+    ->addReader(new FileReader())
+    ->addSource(new FileSource(__DIR__ . '/config'))
+    ->addLoader(new PhpLoader())
+    ->addLoader(new JsonLoader())
+    ->build();
 
-    ->addSource(
-        new EnvironmentSource()
-    )
+$snapshot = $resolver->resolve();
 
-    ->addSource(
-        new CliSource()
-    )
-
-    ->schema(
-        new ApplicationSchema()
-    )
-
-    ->build()
-
-    ->resolve();
+echo $snapshot->get('database.host'); // 'localhost'
+echo $snapshot->has('app.name');      // true
 ```
 
 No matter where configuration originates, consumers use the same API.
@@ -247,31 +244,18 @@ Applications install only the integrations they need.
 
 ```text
 src/
-├── Adapter/
-├── Bridge/
-├── Builder/
-├── Cache/
-├── Context/
-├── Contracts/
-├── Core/
-├── Discovery/
-├── Event/
-├── Exception/
-├── Graph/
-├── Loader/
-├── Pipeline/
-├── Processor/
-├── Resolver/
-├── Schema/
-├── Snapshot/
-├── Source/
-└── Support/
+├── Adapter/      # Ports & Adapters (FileSource, EnvSource, readers, loaders, schema)
+├── Behavior/     # Behavioural policy objects
+├── Contract/     # Port interfaces only (no vendor imports)
+│   ├── ValueObject/   # Value-object ports (ConfigurationResource, ValidationResult)
+│   └── Execution/     # Execution / reporter ports
+├── Core/         # Orchestration (Builder, Resolver, Pipeline, Graph, Snapshot, ...)
+├── Exception/    # Domain exceptions (never vendor-leaked)
+├── Execution/    # Execution model (Occurrence, Observation, ResolutionReporter)
+└── ValueObject/  # Immutable value objects (Key, Snapshot, Format, ...)
 
-docs/
-├── architecture/
-└── decisions/
-
-tests/
+docs/             # Architecture, ADRs, plans, changelog
+tests/Unit/       # Codeception unit suite
 ```
 
 ---
@@ -312,19 +296,19 @@ Future capabilities include:
 
 ## Status
 
-The project is currently in the design and architecture phase.
+**Phase 1 — Core** is implemented and the quality gate is green:
 
-The initial milestone focuses on establishing:
+- PHPStan level 9 — **0 errors**
+- `php-cs-fixer` — **0 files to fix**
+- Codeception unit suite — **61 tests / 119 assertions** green
 
-- Core contracts
-- Builder API
-- Resolution pipeline
-- Source abstractions
-- Loader abstractions
-- Immutable snapshots
-- Basic JSON and PHP support
+Delivered:
 
-Additional adapters and integrations will be delivered incrementally.
+- Core contracts, Builder API, Resolution pipeline, immutable `Snapshot`
+- Sources (`FileSource`, `EnvSource`), Loaders (`PhpLoader`, `JsonLoader`)
+- Nette-Schema adapter (`NativeConfigurationSchema`)
+
+Additional adapters and integrations (Phase 2+) will be delivered incrementally.
 
 ---
 

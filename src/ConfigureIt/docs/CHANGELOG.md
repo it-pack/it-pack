@@ -38,7 +38,7 @@ and `ROADMAP.md`).
     - `ConfigurationSchemaInterface`
     - `ConfigurationResolverInterface`
     - `ResolutionReporterInterface`
-  - `src/Execution/` (docs/EXECUTION.md model, framework-free):
+   - `src/Execution/` (`../../docs/EXECUTION.md` model, framework-free):
     - `ExecutionContext` — resolution scope (environment + attributes).
     - `Occurrence` — immutable "what happened" fact.
     - `Observation` — qualitative "what we noticed" fact.
@@ -77,7 +77,7 @@ and `ROADMAP.md`).
   - `src/Adapter/PhpLoader` — parses a `<?php return [...]` file via a throwaway temp
     file (isolates `require`).
   - `src/Adapter/JsonLoader` — parses JSON via `ext-json` with `JSON_THROW_ON_ERROR`.
-  - `src/Adapter/test-code\NativeConfigurationSchema` — wraps `nette/schema`; translates vendor
+   - `src/Adapter/NativeConfigurationSchema` — wraps `nette/schema`; translates vendor
     `ValidationException` (via `getMessageObjects()`) into domain `ValidationResult`.
     Core never sees Nette types.
 
@@ -96,7 +96,7 @@ and `ROADMAP.md`).
     on both the interface and resolver supports this.
 
 - **Step 6 — Comprehensive Codeception suite**
-  - 47 unit tests / 99 assertions, all green (`vendor/bin/codecept run Unit`).
+   - 61 unit tests / 119 assertions, all green (`vendor/bin/codecept run Unit`).
   - Coverage of every Core class, every adapter, the builder, the schema adapter
     and the execution reporter. Fixtures under `tests/Support/Data/`.
   - Asserts behaviour (priority merge, immutability, exception translation,
@@ -114,8 +114,27 @@ and `ROADMAP.md`).
 - **Step 8 — Coding standards & final gate**
   - `php-cs-fixer` (PSR-12 + PHP84 migration) clean across all 57 files.
   - `examples/resolve.php` runs end-to-end and prints the merged immutable snapshot.
-  - Final gate green: phpstan level 9 (0 errors) + cs-fixer (0) + Codeception (47 tests).
+   - Final gate green at the time of writing: phpstan level 9 (0 errors) + cs-fixer (0) + Codeception (61 tests).
   - `ROADMAP.md` Phase 0 and Phase 1 marked complete (see below).
+
+### Regression / mid-refactor
+
+The Step 8 "Final gate green" claim above was unqualified: an incomplete
+interface-reorg left `HEAD` non-functional (broken imports, PHPStan aborting,
+Codeception unable to boot — see `docs/REVIEW.md`). Phase 0.5 stabilisation
+(`docs/ROADMAP.md` T1–T6) restored the gate:
+
+- Reconciled the contract namespace split and fixed the rename aftermath
+  (missing imports, illegal short ternary, untyped iterables, contravariant
+  `list<>` vs `array<>`).
+- Removed dead adapter leftovers (`Adapter\Context`, `ContextAdapterInterface`,
+  `SchemaAdapterInterface`); retained `Adapter\Schema` (live dependency of
+  `NativeConfigurationSchema`).
+- Fixed the unit-test imports; suite is **61 tests / 119 assertions** green.
+- `php-cs-fixer` clean across all files; PHPStan level 9 **0 errors**.
+- Repaired `examples/resolve.php` / `examples/all.php` (run end-to-end, print the
+  merged immutable snapshot).
+- Declared `php` `^8.5` in `composer.json` (the code uses `array_any()`).
 
 ### Notes
 

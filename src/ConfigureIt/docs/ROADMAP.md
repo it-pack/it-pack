@@ -257,6 +257,23 @@ grep -rn "ConfigureIt::builder\|EnvironmentSource\|CliSource\|ApplicationSchema"
 grep -n "status" README.md   # expect: accurate, non-"Planning" wording
 ```
 
+**Status — ✅.** Documentation now matches reality:
+- `README.md`: status badge `Planning` → `Phase 1`; fictional `ConfigureIt::builder()`
+  / `EnvironmentSource()` / `CliSource()` / `ApplicationSchema()` example replaced
+  with the real `new ConfigurationBuilder()` → `addReader/addSource/addLoader` →
+  `build()` → `resolve()` flow; phantom directory tree replaced with the real
+  `src/` layout (`Adapter/ Behavior/ Contract/ Core/ Exception/ Execution/ ValueObject/`);
+  Status section states the gate is green (PHPStan 0 errors, cs-fixer 0, 61 tests).
+- `docs/CHANGELOG.md`: added a **Regression / mid-refactor** entry qualifying the
+  unqualified "Final gate green" claim; fixed the garbled `test-code\NativeConfigurationSchema`
+  line; corrected test counts (47 → 61 tests / 119 assertions); local `docs/EXECUTION.md`
+  reference changed to `../../docs/EXECUTION.md`.
+- `docs/architecture/decisions/ADR-0007-Lazy-and-Weak.md`: `docs/EXECUTION.md` →
+  `../../docs/EXECUTION.md`.
+- `composer.json`: `require.php` declared as `^8.5` (code uses `array_any()`);
+  README PHP badge updated to 8.5+; `composer validate` passes, lock resynced.
+- `composer validate` clean; gates remain green (PHPStan 0, cs-fixer 0, 61 tests).
+
 ---
 
 ## Phase 0 ✅ (complete — bootstrap)

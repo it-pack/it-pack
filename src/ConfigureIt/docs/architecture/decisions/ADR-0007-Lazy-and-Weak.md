@@ -55,4 +55,4 @@ References
 - src/Execution/ResolutionReporter.php
 - docs/REFACTORING_PLAN.md §7, §8
 - ADR-0003 Immutable Snapshots
-- docs/EXECUTION.md (Observations / Occurrences)
+- ../../docs/EXECUTION.md (Observations / Occurrences)
