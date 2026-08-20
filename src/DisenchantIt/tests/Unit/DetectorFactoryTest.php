@@ -10,6 +10,7 @@ use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Detector;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
+use ItPack\DisenchantIt\ValueObject\SourceCode;
 
 final class DetectorFactoryTest extends Unit
 {
@@ -47,7 +48,7 @@ final class DetectorFactoryTest extends Unit
             }
             PHP;
 
-        $literals = $factory->build()->scanSource($code);
+        $literals = $factory->build()->scanSource(new SourceCode($code));
         $filtered = $factory->buildFilter()->filterCandidates($literals);
         $grouped = $factory->buildGrouper()->groupByValue($filtered);
 

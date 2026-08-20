@@ -8,12 +8,13 @@ use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\SourceCode;
 
 final class NumericDetectionTest extends Unit
 {
     private function scan(string $code): array
     {
-        return DetectorFactory::create()->build()->scanSource($code);
+        return DetectorFactory::create()->build()->scanSource(new SourceCode($code));
     }
 
     /**
@@ -59,7 +60,7 @@ final class NumericDetectionTest extends Unit
         $factory = DetectorFactory::create();
         $code = '<?php class C { public function f(): int { $timeoutMs = 30000; if ($x === 3) { return 0; } return $timeoutMs; } }';
 
-        $kept = $factory->buildFilter()->filterCandidates($factory->build()->scanSource($code));
+        $kept = $factory->buildFilter()->filterCandidates($factory->build()->scanSource(new SourceCode($code)));
         $keptNums = $this->numbers($kept);
 
         // Only the hinted 30000 survives (the '3' is nameless, the '0' trivial).
@@ -72,7 +73,7 @@ final class NumericDetectionTest extends Unit
         $factory = DetectorFactory::create();
         $code = '<?php class C { public function f(): int { $flagTrue = 1; $flagFalse = 0; return $flagTrue + $flagFalse; } }';
 
-        $kept = $factory->buildFilter()->filterCandidates($factory->build()->scanSource($code));
+        $kept = $factory->buildFilter()->filterCandidates($factory->build()->scanSource(new SourceCode($code)));
 
         $this->assertCount(0, $this->numbers($kept), '0 and 1 are trivial and excluded');
     }

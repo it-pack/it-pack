@@ -18,6 +18,7 @@ use ItPack\DisenchantIt\ValueObject\DisenchantResult;
 use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\SourceCode;
 
 /**
  * Detection + placement orchestrator (the "Detect" and "Decide/Rewrite" steps
@@ -50,7 +51,7 @@ final readonly class Disenchanter implements DisenchanterInterface
      */
     public function detect(string $code): array
     {
-        $literals = $this->detector->scanSource($code);
+        $literals = $this->detector->scanSource(new SourceCode($code));
         $candidates = $this->filter->filterCandidates($literals);
         $groups = $this->grouper->groupByValue($candidates);
 

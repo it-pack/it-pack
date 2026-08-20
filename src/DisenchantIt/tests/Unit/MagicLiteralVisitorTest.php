@@ -8,12 +8,13 @@ use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\SourceCode;
 
 final class MagicLiteralVisitorTest extends Unit
 {
     private function scan(string $code): array
     {
-        return DetectorFactory::create()->build()->scanSource($code);
+        return DetectorFactory::create()->build()->scanSource(new SourceCode($code));
     }
 
     private function numbers(array $literals): array
@@ -71,7 +72,7 @@ final class MagicLiteralVisitorTest extends Unit
     {
         $factory = DetectorFactory::create();
         $literals = $factory->build()->scanSource(
-            '<?php class C { public function f(): int { return 1_000_000; } }',
+            new SourceCode('<?php class C { public function f(): int { return 1_000_000; } }'),
         );
 
         // Detection records the number; the filter still excludes non-strings

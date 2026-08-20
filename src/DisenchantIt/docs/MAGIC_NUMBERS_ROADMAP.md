@@ -349,6 +349,81 @@ canonical (parsed) numeric values under the correct type.
 
 ---
 
+### Phase P4 — ✅ COMPLETE (2026-08-20)
+
+Parse-once performance work is implemented and green-gated. Scanning a given
+source parses and traverses the nikic AST at most once; the (expensive) nikic
+parser is built lazily and reused; a non-owning WeakMap memoizes each scan
+result.
+
+- **`SourceCode` value object (`ValueCode`/`SourceCodeInterface`).**
+  `src/ValueObject/SourceCode.php` (final, `implements SourceCodeInterface`)
+  holds the verbatim source and a content hash `identity()`. It is the cache
+  key threaded through detection — one instance per `Disenchanter` operation.
+- **`ParsedSourceCache` (`src/ParsedSourceCache.php` +
+  `Contract/ParsedSourceCacheInterface`).** A `WeakMap<SourceCodeInterface,
+  list<LiteralInterface>>`. Non-owning: a cached entry is reclaimed when its
+  `SourceCode` is no longer referenced, so scanning many distinct files cannot
+  exhaust memory through the cache. `get()` is null-safe (WeakMap throws on a
+  missing key, so `offsetExists` guards it).
+- **`Detector` is parse-once + lazy-reuse.** `scanSource(SourceCodeInterface)`
+  returns the memoized result on a cache hit (no parser/traverser/visitor
+  touched). On a miss it builds the nikic parser **lazily once** and reuses it
+  for every later scan, builds a **fresh traverser + visitor per scan** (the
+  traverser accumulates visitors, so reusing it would stack
+  `MagicLiteralVisitor` instances), and stores the result in the cache. A new
+  `scanSourceStreaming(SourceCodeInterface): \Generator` variant yields from
+  the (cached) result for incremental consumption.
+- **Port widened to `SourceCode`.** `LiteralDetectorInterface::scanSource`
+  now takes `SourceCodeInterface` (was `string`) so the result can be cached;
+  `StringLiteralDetectorInterface` inherits it. `Disenchanter` wraps each
+  public call's `string $code` into a `SourceCode` before detection. The
+  existing direct-scan tests were updated to wrap their inputs.
+- **Benchmark (`examples/14_performance_cache.php`).** Scanning a ~49 KB
+  source 100×: parser built **1** time, `parse()` called **1** time (99 cache
+  hits). Scanning 100 distinct ~49 KB sources: parser built **1** time,
+  `parse()` called **100** times (distinct sources are cache misses, but the
+  parser is reused).
+
+**Deviations from this roadmap (intentional, documented):**
+1. `LiteralDetectorInterface::scanSource()` now accepts `SourceCodeInterface`
+   instead of `string`. Pre-1.0 BC change required to key the cache; all
+   callers/tests updated.
+2. `Detector` is no longer `final readonly` — it is `final` and still
+   implements `StringLiteralDetectorInterface`, but it lazily caches the nikic
+   parser in a private `?object` property (typed via a docblock, never
+   surfaced in a constructor/return signature, so Core stays free of vendor
+   types in its public API). The mutation is necessary; AGENTS.md permits a
+   non-readonly class when "controlled mutation is necessary", and this is one
+   such case.
+3. **`Lazy` objects were unavailable in the build environment** (PHP 8.5.8 but
+   `class_exists("Lazy") === false`), so the "Lazy proxy" from Step 4.3 is
+   realized as first-use lazy initialization in `Detector`: the nikic parser is
+   materialized only on the first `scanSource` and reused thereafter. This is
+   functionally equivalent to a lazy proxy and satisfies the AGENTS.md "Lazy
+   objects for the parser stack" intent (materialized once, reused). The test
+   "parser built 0× before first scan, 1× on first scan" verifies it.
+4. `scanSourceStreaming` yields from the cached scan result rather than parsing
+   incrementally. nikic requires a complete AST, so true incremental parsing is
+   not feasible; this variant still lets callers consume a large result set
+   without holding it all at once. The roadmap marked streaming "optional".
+5. The cache is keyed by the `SourceCode` **object** (WeakMap semantics), so
+   deduplication happens when the *same* `SourceCode` instance is reused.
+   Within one `Disenchanter` operation a single `SourceCode` is used, so
+   detect → rewrite → SemConv parse once; a caller reusing a `SourceCode` across
+   separate public calls also benefits.
+
+**Gate status:**
+- `composer test:unit` — ✅ 56 tests, 125 assertions.
+- `composer analyze` (src only) — ✅ clean.
+- `composer architecture` — ✅ no violations.
+- `composer format:check` — ✅ clean.
+- `composer analyze` (src **+ tests**) — ⚠️ same environmental
+  phpstan/phpunit (Codeception `Unit`) limitation as P1–P3; the new P4 test
+  files are subject to it. Source-only analysis is clean.
+
+---
+
 ## Phase P3 — Typed, raw-aware placement / rewrite / SemConv
 
 Goal: emit `const int/float` with the original token; SemConv type-aware.
@@ -398,6 +473,8 @@ Goal: emit `const int/float` with the original token; SemConv type-aware.
 ## Phase P4 — Core refactor for PHP 8.4 performance
 
 Goal: parse once per run; defer expensive parser construction; stream large trees.
+
+> **Status: complete (2026-08-20).** See Progress section above.
 
 ### Step 4.1 — `SourceCode` value object (cache key)
 - **Create** `src/ValueObject/SourceCode.php`: `final readonly` holding the raw

@@ -15,6 +15,7 @@ use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
 use ItPack\DisenchantIt\Detector;
+use ItPack\DisenchantIt\ParsedSourceCache;
 use ItPack\DisenchantIt\RoleClassifier;
 
 /**
@@ -55,6 +56,7 @@ final readonly class DetectorFactory implements DetectorFactoryInterface
             $this->parsers,
             $this->traversers,
             $this->visitorFactory,
+            new ParsedSourceCache(),
         );
     }
 
