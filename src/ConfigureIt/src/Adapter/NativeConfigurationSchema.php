@@ -6,9 +6,13 @@ namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
+use ItPack\ConfigureIt\Contract\ProcessorInterface;
+use ItPack\ConfigureIt\Contract\SchemaInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultFactoryInterface;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
-use Nette\Schema\Processor;
-use Nette\Schema\Schema;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
+use Nette\Schema\Processor as NetteProcessor;
+use Nette\Schema\Schema as Ne;
 use Nette\Schema\ValidationException;
 
 /**
@@ -23,21 +27,21 @@ use Nette\Schema\ValidationException;
 final readonly class NativeConfigurationSchema implements ConfigurationSchemaInterface
 {
     public function __construct(
-        private Schema $schema,
+        private SchemaInterface                  $schema,
+        private ProcessorInterface               $processor = new Processor(),
+        private ValidationResultFactoryInterface $resultFactory = new ValidationResultFactory(),
     ) {
     }
 
     public function validate(ConfigurationGraphInterface $graph): ValidationResult
     {
-        $processor = new Processor();
-
         try {
-            $processor->process($this->schema, $graph->toArray());
+            $this->processor->process($this->schema, $graph->toArray());
         } catch (ValidationException $e) {
-            return new ValidationResult(false, $this->normalize($e));
+            return $this->resultFactory->build(false, $this->normalize($e));
         }
 
-        return new ValidationResult(true);
+        return $this->resultFactory->build(true);
     }
 
     /**

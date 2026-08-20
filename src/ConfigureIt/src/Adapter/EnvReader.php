@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Exception\ReadException;
+use ItPack\ConfigureIt\ValueObject\Format;
 
 /**
  * Reads environment variables into a raw, newline-delimited "KEY=VALUE" body
@@ -29,16 +30,14 @@ final readonly class EnvReader implements ConfigurationReaderInterface
 
     public function read(ConfigurationResourceInterface $resource): string
     {
-        if ($resource->format() !== \ItPack\ConfigureIt\ValueObject\Format::ENV) {
+        if (!$this->supports($resource)) {
             throw new ReadException(sprintf('EnvReader cannot read format "%s".', $resource->format()->value));
         }
 
         $lines = [];
 
-        /** @var array<string, string> $environment */
-        $environment = $_ENV;
-
-        foreach ($environment as $key => $value) {
+        /** @var array<string, string> $_ENV */
+        foreach ($_ENV as $key => $value) {
             if ($this->only !== null && !in_array($key, $this->only, true)) {
                 continue;
             }
@@ -47,5 +46,10 @@ final readonly class EnvReader implements ConfigurationReaderInterface
         }
 
         return implode("\n", $lines);
+    }
+
+    public function supports(ConfigurationResourceInterface $resource): bool
+    {
+        return $resource->format() === Format::ENV;
     }
 }

@@ -77,7 +77,7 @@ and `ROADMAP.md`).
   - `src/Adapter/PhpLoader` — parses a `<?php return [...]` file via a throwaway temp
     file (isolates `require`).
   - `src/Adapter/JsonLoader` — parses JSON via `ext-json` with `JSON_THROW_ON_ERROR`.
-  - `src/Adapter/NativeConfigurationSchema` — wraps `nette/schema`; translates vendor
+  - `src/Adapter/test-code\NativeConfigurationSchema` — wraps `nette/schema`; translates vendor
     `ValidationException` (via `getMessageObjects()`) into domain `ValidationResult`.
     Core never sees Nette types.
 

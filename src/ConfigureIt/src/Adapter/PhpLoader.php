@@ -6,7 +6,9 @@ namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
+use ItPack\ConfigureIt\Contract\TempFileFactoryInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDocument;
+use ItPack\ConfigureIt\Core\TempFileFactory;
 use ItPack\ConfigureIt\Exception\ParseException;
 use ItPack\ConfigureIt\ValueObject\Format;
 
@@ -18,6 +20,14 @@ use ItPack\ConfigureIt\ValueObject\Format;
  */
 final class PhpLoader implements ConfigurationLoaderInterface
 {
+    public const string TEMP_FILE_PREFIX = 'php-cfg-';
+
+    public function __construct(
+        private readonly TempFileFactoryInterface $tempFileFactory = new TempFileFactory(
+            self::TEMP_FILE_PREFIX,
+        )
+    ){}
+
     public function supports(Format $format): bool
     {
         return $format === Format::PHP;
@@ -25,11 +35,7 @@ final class PhpLoader implements ConfigurationLoaderInterface
 
     public function load(string $raw): ConfigurationDocumentInterface
     {
-        $temp = tempnam(sys_get_temp_dir(), 'cfg');
-
-        if ($temp === false) {
-            throw new ParseException('Unable to create a temporary file for PHP configuration.');
-        }
+        $temp = $this->tempFileFactory->require();
 
         try {
             if (file_put_contents($temp, $raw) === false) {

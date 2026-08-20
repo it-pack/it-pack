@@ -6,7 +6,9 @@ namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceFactoryInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 /**
@@ -21,14 +23,14 @@ final readonly class EnvSource implements ConfigurationSourceInterface
 {
     public function __construct(
         private string $uri = 'env://environment',
-    ) {
-    }
+        private ConfigurationResourceFactoryInterface $resourceFactory = new ConfigurationResourceFactory(),
+    ) {}
 
     /**
-     * @return iterable<ConfigurationResourceInterface>
+     * @return iterable
      */
     public function discover(): iterable
     {
-        yield new ConfigurationResource($this->uri, Format::ENV);
+        yield $this->resourceFactory->build($this->uri, Format::ENV);
     }
 }

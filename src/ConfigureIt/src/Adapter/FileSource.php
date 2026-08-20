@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
-use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
-use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 /**
@@ -26,9 +26,10 @@ final readonly class FileSource implements ConfigurationSourceInterface
     public function __construct(
         private string $directory,
         private array  $extensions = [
-            'php' => Format::PHP->value,
-            'json' => Format::JSON->value,
+            Format::PHP->value => Format::PHP->value,
+            Format::JSON->value => Format::JSON->value,
         ],
+        private ConfigurationResourceFactory $resourceFactory = new ConfigurationResourceFactory(),
     ) {
     }
 
@@ -41,34 +42,46 @@ final readonly class FileSource implements ConfigurationSourceInterface
             return;
         }
 
-        $directory = new \RecursiveDirectoryIterator(
-            $this->directory,
-            \FilesystemIterator::SKIP_DOTS,
+        $paths = array_map(
+            fn (\SplFileInfo $file) => $file->getPathname(),
+            array_filter(
+                iterator_to_array(
+                    new \RecursiveIteratorIterator(
+                        new \RecursiveDirectoryIterator(
+                            $this->directory,
+                            \FilesystemIterator::SKIP_DOTS,
+                        )
+                    )
+                ),
+                function (\SplFileInfo $file) {
+                    return !(
+                        !$file->isFile() || !array_key_exists(
+                            strtolower(
+                                $file->getExtension()
+                            ),
+                            $this->extensions
+                        )
+                    );
+                }
+            ),
         );
-        $iterator = new \RecursiveIteratorIterator($directory);
-
-        $paths = [];
-
-        foreach ($iterator as $file) {
-            /** @var \SplFileInfo $file */
-            if (!$file->isFile()) {
-                continue;
-            }
-
-            $extension = strtolower($file->getExtension());
-
-            if (!array_key_exists($extension, $this->extensions)) {
-                continue;
-            }
-
-            $paths[] = $file->getPathname();
-        }
 
         sort($paths);
 
         foreach ($paths as $path) {
-            $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-            yield new ConfigurationResource($path, Format::fromString($this->extensions[$extension]));
+            yield $this->resourceFactory->build(
+                $path,
+                Format::fromString(
+                    $this->extensions[
+                        strtolower(
+                            pathinfo(
+                                $path,
+                                PATHINFO_EXTENSION
+                            )
+                        )
+                    ]
+                )
+            );
         }
     }
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Exception\ReadException;
 
 /**
@@ -20,18 +20,25 @@ final class FileReader implements ConfigurationReaderInterface
 {
     public function read(ConfigurationResourceInterface $resource): string
     {
-        $uri = $resource->uri();
-
-        if (!is_file($uri)) {
-            throw new ReadException(sprintf('Configuration file "%s" does not exist.', $uri));
+        if (!$this->supports($resource)) {
+            throw new ReadException(sprintf('Configuration file "%s" does not exist.', $resource->uri()));
         }
 
-        $content = file_get_contents($uri);
+        $content = file_get_contents($resource->uri());
 
         if ($content === false) {
-            throw new ReadException(sprintf('Unable to read configuration file "%s".', $uri));
+            throw new ReadException(sprintf('Unable to read configuration file "%s".', $resource->uri()));
         }
 
         return $content;
+    }
+
+    public function supports(ConfigurationResourceInterface $resource): bool
+    {
+       try {
+           return stream_get_wrappers() && is_file($resource->uri());
+       } catch (\Throwable) {
+           return false;
+       }
     }
 }

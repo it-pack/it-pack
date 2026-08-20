@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
+
 /**
  * Outcome of validating a configuration graph against a schema.
  *
@@ -11,7 +13,7 @@ namespace ItPack\ConfigureIt\ValueObject;
  * collected diagnostics (path + human-readable message). Aligned with the
  * execution model's "Observation" concept (see docs/EXECUTION.md).
  */
-final readonly class ValidationResult
+final readonly class ValidationResult implements ValidationResultInterface
 {
     /**
      * @param list<array{path: string, message: string}> $errors

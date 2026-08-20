@@ -9,7 +9,7 @@ Accepted
 Context
 
 Phase 1 resolves configuration by iterating `iterable<ConfigurationLoaderInterface>`
-inside `ConfigurationResolver::loaderFor()` (src/Core/ConfigurationResolver.php:100)
+inside `ConfigurationResolver::build()` (src/Core/ConfigurationResolver.php:100)
 and by hand-rolling `new ConfigurationDocument(...)`. Every new format (YAML, TOML,
 NEON — ROADMAP Phase 2) currently means (a) adding another loader with a repeated
 `supports(Format)` method and (b) the resolver silently gaining another loop
@@ -19,9 +19,9 @@ format→loader dispatch.
 
 Decision
 
-Introduce a `LoaderFactory` port (owned by Core) that owns the `Format → Loader`
+Introduce a `ConfigurationLoaderFactory` port (owned by Core) that owns the `Format → Loader`
 mapping. The factory is constructed from `iterable<ConfigurationLoaderInterface>`
-and exposes `loaderFor(Format): ConfigurationLoaderInterface` (throwing
+and exposes `build(Format): ConfigurationLoaderInterface` (throwing
 `ResolutionException` when no loader supports the format). The resolver depends on
 the factory (Dependency Inversion), not on the raw loader list.
 
@@ -45,7 +45,7 @@ Alternatives
 
 References
 
-- src/Core/ConfigurationResolver.php (loaderFor)
+- src/Core/ConfigurationResolver.php (build)
 - docs/REFACTORING_PLAN.md §1, §4, §10
 - ADR-0002 Ports & Adapters
 - HashIt attribute-driven catalogue (src/HashIt/README.md)

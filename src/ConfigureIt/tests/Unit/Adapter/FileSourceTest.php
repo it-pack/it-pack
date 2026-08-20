@@ -7,7 +7,7 @@ namespace Tests\Unit\Adapter;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
-use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
 

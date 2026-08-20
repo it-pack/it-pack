@@ -20,7 +20,7 @@ Severity: 🔴 strong candidate (real cohesion/coupling or duplication issue) ·
 
 ## 1. SRP / OCP — `ConfigurationResolver` is a god-coordinator
 
-- **Location:** `src/Core/ConfigurationResolver.php:49-98` (`resolve()`), `:100-109` (`loaderFor()`)
+- **Location:** `src/Core/ConfigurationResolver.php:49-98` (`resolve()`), `:100-109` (`build()`)
 - **Principle:** SRP, OCP, DIP
 - **Severity:** 🔴
 
@@ -28,11 +28,11 @@ Severity: 🔴 strong candidate (real cohesion/coupling or duplication issue) ·
 
 1. discovery (`$source->discover()`)
 2. reading (`$this->reader->read()`)
-3. loader selection (`loaderFor()`)
+3. loader selection (`build()`)
 4. document construction (`new ConfigurationDocument(...)` at `:61`)
 5. schema validation + snapshot freezing
 
-`loaderFor()` (`:100-109`) is a hand-rolled strategy loop. Every new format
+`build()` (`:100-109`) is a hand-rolled strategy loop. Every new format
 (YAML, TOML, NEON — Phase 2) currently requires the resolver to iterate loaders;
 this is the classic OCP violation: *extending formats should not mean modifying
 the resolver*. The `new ConfigurationDocument(...)` at `:61` also means the Core
@@ -40,7 +40,7 @@ resolver constructs a Core value object inline, mixing orchestration with
 object construction.
 
 - **Proposed refactoring:**
-  - Extract a `LoaderResolver` / **`LoaderFactory`** port (`Format → Loader`) that
+  - Extract a `LoaderResolver` / **`ConfigurationLoaderFactory`** port (`Format → Loader`) that
     owns the `supports()` loop. The resolver depends on the factory (DIP), not on
     iterating `iterable<LoaderInterface>`. → ratified by **ADR-0006**.
   - Extract a `DocumentFactory` (or `ReaderLoaderChain`) that turns a
@@ -110,8 +110,8 @@ The resolver repeats the loop that scans for a supporting loader. This is the
 textbook "replace explicit conditionals / loops with a registry" refactoring.
 
 - **Proposed refactoring:**
-  - A `LoaderFactory` (port) built from `iterable<LoaderInterface>`, exposing
-    `loaderFor(Format): LoaderInterface` (throws `ResolutionException` when none).
+  - A `ConfigurationLoaderFactory` (port) built from `iterable<LoaderInterface>`, exposing
+    `build(Format): LoaderInterface` (throws `ResolutionException` when none).
   - Optionally an attribute-driven catalogue (`#[Supports(Format::YAML)]`) so the
     registry is assembled by reflection — mirroring the "attribute-driven single
     source of truth" pattern the `HashIt` package uses for its algorithm catalogue
@@ -247,7 +247,7 @@ stall the host runtime.
 
 `Format::fromString()` is a string→enum factory (good). The loader `supports()`
 methods are a parallel manual dispatch. Consolidating both behind a single
-`LoaderFactory` (§1/§4) removes the second dispatch table and gives one place to
+`ConfigurationLoaderFactory` (§1/§4) removes the second dispatch table and gives one place to
 register formats.
 
 - **Proposed refactoring:** see §1 / §4 / **ADR-0006**.
@@ -271,7 +271,7 @@ the graph interface).
 | # | Finding | ADR | Effort | Pays off for |
 |---|---------|-----|--------|--------------|
 | 1 | §3 `Key`/`Path` value object | ADR-0009 | M | §2, §5, Phase 2 array-index keys |
-| 2 | §1 `LoaderFactory` port | ADR-0006 | M | Phase 2 formats, §4, §10 |
+| 2 | §1 `ConfigurationLoaderFactory` port | ADR-0006 | M | Phase 2 formats, §4, §10 |
 | 3 | §5 split `DocumentNormalizer` from `Pipeline` | ADR-0010 | M | SRP, testability |
 | 4 | §2 snapshot shared descent (uses `Key`) | — | S | DRY |
 | 5 | §7 Lazy Objects + memoised `toArray()` | ADR-0007 | L | Live Resolution, big configs |
@@ -287,7 +287,7 @@ Each step keeps the existing 47-test suite green and must keep PHPStan at level 
 - PHPStan level 9: 0 errors (existing gate).
 - `php-cs-fixer`: 0 files (existing gate).
 - Codeception Unit suite: remains green; add/extend tests for the new `Key`,
-  `LoaderFactory`, `DocumentNormalizer` (unit) and `WeakMap`/`LazyObject` behaviour
+  `ConfigurationLoaderFactory`, `DocumentNormalizer` (unit) and `WeakMap`/`LazyObject` behaviour
   (with fixtures + `@covers`).
 - No adapter may import a Core class it shouldn't, and no Core class may import a
   vendor type (ADR-0002 preserved).

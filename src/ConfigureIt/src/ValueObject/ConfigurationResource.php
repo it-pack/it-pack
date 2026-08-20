@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
-use ItPack\ConfigureIt\Contract\ConfigurationResourceInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 
 /**
  * Immutable identity of a single configuration resource discovered by a source.

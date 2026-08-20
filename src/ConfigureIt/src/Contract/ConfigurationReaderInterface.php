@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Exception\ReadException;
 
 /**
@@ -20,4 +21,6 @@ interface ConfigurationReaderInterface
      * @throws ReadException when the resource cannot be read.
      */
     public function read(ConfigurationResourceInterface $resource): string;
+
+    public function supports(ConfigurationResourceInterface $resource): bool;
 }

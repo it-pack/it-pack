@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
-use ItPack\ConfigureIt\Contract\LoaderFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
+use ItPack\ConfigureIt\Contract\SchemaInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Occurrence;
+use ItPack\ConfigureIt\Execution\OccurrenceFactory;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
 
@@ -32,12 +37,15 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
      * @param iterable<ConfigurationSourceInterface> $sources default sources used when resolve() is called without arguments.
      */
     public function __construct(
-        private ConfigurationReaderInterface $reader,
-        private LoaderFactoryInterface       $loaders,
-        private ConfigurationPipeline        $pipeline,
-        private ?ConfigurationSchemaInterface $schema = null,
-        private ?ResolutionReporter          $reporter = null,
-        private iterable                     $sources = [],
+        private ConfigurationReaderInterface          $reader,
+        private ConfigurationLoaderFactoryInterface   $loaders,
+        private ConfigurationPipeline                 $pipeline,
+        private ?ConfigurationSchemaInterface         $schema = null,
+        private ?ResolutionReporter                   $reporter = null,
+        private iterable                              $sources = [],
+        private OccurrenceFactory                     $occurrenceFactory = new OccurrenceFactory(),
+        private ConfigurationDocumentFactoryInterface $documentFactory = new ConfigurationDocumentFactory(),
+        private ConfigurationSnapshotFactoryInterface $snapshotFactory = new ConfigurationSnapshotFactory(),
     ) {
     }
 
@@ -46,53 +54,9 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
      */
     public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
     {
-        $effectiveSources = $sources === [] ? $this->sources : $sources;
-
-        $documents = [];
-
-        foreach ($effectiveSources as $source) {
-            foreach ($source->discover() as $resource) {
-                $raw = $this->reader->read($resource);
-                $loader = $this->loaders->loaderFor($resource->format());
-                $parsed = $loader->load($raw);
-
-                $documents[] = new ConfigurationDocument(
-                    $parsed->toArray(),
-                    $resource->format(),
-                    $resource->uri(),
-                );
-            }
-        }
-
-        $graph = $this->pipeline->run($documents);
-
-        if ($this->schema instanceof ConfigurationSchemaInterface) {
-            $result = $this->schema->validate($graph);
-
-            $this->reporter?->record(new Occurrence(
-                'ConfigurationValidated',
-                microtime(true),
-                ['valid' => $result->valid()],
-            ));
-
-            if (!$result->valid()) {
-                throw new ValidationException($this->describe($result));
-            }
-        }
-
-        $snapshot = ConfigurationSnapshot::fromGraph($graph);
-
-        $this->reporter?->record(new Occurrence(
-            'ConfigurationResolved',
-            microtime(true),
-            ['nodes' => count($graph->nodes())],
-        ));
-        $this->reporter?->record(new Occurrence(
-            'SnapshotCreated',
-            microtime(true),
-        ));
-
-        return $snapshot;
+        return $this->createSnapshot(
+            $this->resolveResources($sources)
+        );
     }
 
     private function describe(ValidationResult $result): string
@@ -104,5 +68,82 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         }
 
         return implode("\n", $lines);
+    }
+
+    private function createOccurrence(string $name, array $data = []): Occurrence
+    {
+        return $this->occurrenceFactory->build($name, microtime(true), $data);
+    }
+
+    private function validateGraph(?ConfigurationGraphInterface $graph): void
+    {
+        if ($this->schema instanceof ConfigurationSchemaInterface) {
+            $result = $this->schema->validate($graph);
+
+            $this->reporter?->record(
+                $this->createOccurrence(
+                    'ConfigurationValidated',
+                    ['valid' => $result->valid()],
+                )
+            );
+
+            if (!$result->valid()) {
+                throw new ValidationException($this->describe($result));
+            }
+        }
+    }
+
+    private function runPipeline(array $documents): ConfigurationGraphInterface
+    {
+        $graph = $this->pipeline->run($documents);
+
+        $this->validateGraph($graph);
+
+        $this->reporter?->record(
+            $this->createOccurrence(
+                'ConfigurationResolved',
+                ['nodes' => count($graph->nodes())],
+            )
+        );
+
+        return $graph;
+    }
+
+    private function createSnapshot(array $documents): ConfigurationSnapshot
+    {
+        $snapshot = $this->snapshotFactory->buildFromGraph(
+            $this->runPipeline($documents)
+        );
+
+        $this->reporter?->record(
+            $this->createOccurrence(
+                'SnapshotCreated',
+            )
+        );
+
+        return $snapshot;
+    }
+
+    private function resolveResources(array $sources): array
+    {
+        $effectiveSources = $sources === [] ? $this->sources : $sources;
+
+        $documents = [];
+
+        foreach ($effectiveSources as $source) {
+            foreach ($source->discover() as $resource) {
+                $raw = $this->reader->read($resource);
+                $loader = $this->loaders->build($resource->format());
+                $parsed = $loader->load($raw);
+
+                $documents[] = $this->documentFactory->build(
+                    $parsed->toArray(),
+                    $resource->format(),
+                    $resource->uri(),
+                );
+            }
+        }
+
+        return $documents;
     }
 }

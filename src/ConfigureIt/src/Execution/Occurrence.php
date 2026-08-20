@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Execution;
 
+use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
+
 /**
  * An immutable fact that happened during configuration resolution.
  *
@@ -11,7 +13,7 @@ namespace ItPack\ConfigureIt\Execution;
  * Resolved, SnapshotCreated). Mirrors docs/EXECUTION.md "Occurrence"; CloudEvents
  * are one possible external representation (an adapter concern).
  */
-final readonly class Occurrence
+final readonly class Occurrence implements OccurrenceInterface
 {
     /**
      * @param array<string, mixed> $payload structured detail about the occurrence.

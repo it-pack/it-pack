@@ -114,7 +114,7 @@ src/ConfigureIt/
 │   │   ├── EnvReader.php
 │   │   ├── PhpLoader.php
 │   │   ├── JsonLoader.php
-│   │   └── NativeConfigurationSchema.php   (wraps nette/schema)
+│   │   └── test-code\NativeConfigurationSchema.php   (wraps nette/schema)
 │   └── Exception/
 │       ├── ConfigurationException.php       (marker, extends \RuntimeException)
 │       ├── LoadException.php
@@ -187,7 +187,7 @@ src/ConfigureIt/
 - `EnvSource` + `EnvReader` (environment variables).
 - `PhpLoader` (`require` of `<?php return [...]` file).
 - `JsonLoader` (`ext-json`).
-- `NativeConfigurationSchema` wrapping `nette/schema` — Core sees only `ConfigurationSchemaInterface`.
+- `test-code\NativeConfigurationSchema` wrapping `nette/schema` — Core sees only `ConfigurationSchemaInterface`.
 - Each adapter implements a Core port; no Core class imports vendor FQCNs.
 
 ### Step 5 — Default wiring & example

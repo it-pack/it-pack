@@ -28,7 +28,7 @@ Adopt PHP 8.4 language features to make resolution lazy and cacheable:
   first access only.
 - **Memoisation** of `ConfigurationGraph::toArray()`, invalidated on `put()`.
 - **WeakMap caching** of parsed `ConfigurationDocumentInterface` keyed by the
-  immutable `ConfigurationResourceInterface`, owned by the LoaderFactory (ADR-0006),
+  immutable `ConfigurationResourceInterface`, owned by the ConfigurationLoaderFactory (ADR-0006),
   so repeated resolution of the same resource reuses the document and lets GC
   reclaim it when the resource is dropped.
 - **WeakMap** keyed by `ConfigurationSourceInterface` inside the reporter, to attach

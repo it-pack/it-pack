@@ -8,7 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
-use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
@@ -24,12 +24,12 @@ class ConfigurationBuilderTest extends Unit
 
         $resolver = $builder->build();
 
-        verify($resolver)->instanceOf(\ItPack\ConfigureIt\Contract\ConfigurationResolverInterface::class);
+        verify($resolver)->instanceOf(\ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResolverInterface::class);
     }
 
     public function testProcessorIsAppliedDuringResolution(): void
     {
-        $suffixer = new class () implements \ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface {
+        $suffixer = new class () implements \ItPack\ConfigureIt\Contract\ValueObject\ConfigurationProcessorInterface {
             public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
             {
                 $next = new ConfigurationGraph();

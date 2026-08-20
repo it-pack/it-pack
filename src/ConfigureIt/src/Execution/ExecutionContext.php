@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Execution;
 
+use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+
 /**
  * The scope in which configuration is resolved.
  *
@@ -13,7 +15,7 @@ namespace ItPack\ConfigureIt\Execution;
  *
  * @see docs/architecture/MODEL.md "Configuration Context"
  */
-final readonly class ExecutionContext
+final readonly class ExecutionContext implements ExecutionContextInterface
 {
     /**
      * @param array<string, string> $attributes arbitrary isolation attributes (tenant, workspace, ...).

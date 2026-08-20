@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Execution;
 
-use ItPack\ConfigureIt\Contract\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 
 /**
  * Default in-memory resolution reporter.

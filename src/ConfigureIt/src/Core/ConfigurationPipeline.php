@@ -26,8 +26,8 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
      * @param list<ConfigurationProcessorInterface> $processors
      */
     public function __construct(
-        private array               $processors = [],
-        private ?ResolutionReporter $reporter = null,
+        public array               $processors = [],
+        public ?ResolutionReporter $reporter = null,
     ) {
     }
 

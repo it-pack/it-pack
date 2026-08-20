@@ -19,8 +19,8 @@ parameters:
     # These are false positives, not defects — kept narrow and explicit.
     ignoreErrors:
         - identifier: shipmonk.deadMethod
-          message: '#ItPack\\ConfigureIt\\Contract\\ConfigurationPipelineInterface::run#'
+          message: '#ItPack\\ConfigureIt\\Contract\\ValueObject\\ConfigurationPipelineInterface::run#'
         - identifier: shipmonk.deadMethod
-          message: '#ItPack\\ConfigureIt\\Contract\\ConfigurationSnapshotInterface::(has|get|all)#'
+          message: '#ItPack\\ConfigureIt\\Contract\\ValueObject\\ConfigurationSnapshotInterface::(has|get|all)#'
         - identifier: shipmonk.deadMethod
-          message: '#ItPack\\ConfigureIt\\Contract\\ResolutionReporterInterface::(record|occurrences)#'
+          message: '#ItPack\\ConfigureIt\\Contract\\ValueObject\\ResolutionReporterInterface::(record|occurrences)#'
