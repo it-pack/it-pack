@@ -65,4 +65,15 @@ final class ArgvInputParserTest extends Unit
 
         new ArgvInputParser()->parse($this->definition(), []);
     }
+
+    /**
+     * argv tokens are always strings (scalars), so the non-scalar rejection path
+     * cannot be reached here; this asserts the scalar coercion still applies.
+     */
+    public function testNonNumericStringTokenCoercesToScalarInt(): void
+    {
+        $input = new ArgvInputParser()->parse($this->definition(), ['abc']);
+
+        self::assertSame(['count' => 0], $input->arguments());
+    }
 }

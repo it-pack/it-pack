@@ -43,6 +43,7 @@ use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Adapter\Input\ArrayInputAdapter;
 use ItPack\CommandIt\Adapter\Memory\InMemoryCommandExecutionStorage;
 use ItPack\CommandIt\Adapter\Reporting\CollectingExecutionReporter;
+use ItPack\CommandIt\Adapter\Reporting\SafeReporterFactory;
 use ItPack\CommandIt\Domain\Argument;
 use ItPack\CommandIt\Domain\ValueObject\ArgumentName;
 use ItPack\CommandIt\SDK\CommandBuilder;
@@ -52,7 +53,9 @@ use ItPack\CommandIt\SDK\CommandIt;
 $commandIt = new CommandIt(
     new SystemClock(),
     new RandomIdentifierGenerator(),
-    new CollectingExecutionReporter(),
+    // Compose the safe-by-default reporter: redaction + publication recursion guard.
+    // A bare reporter is NOT safe for sensitive data (see "Security & isolation").
+    (new SafeReporterFactory())->wrap(new CollectingExecutionReporter()),
     new AmbientContextStorage(),
     new InMemoryCommandExecutionStorage(),
 );
@@ -134,6 +137,12 @@ $app->run(); // e.g. `php bin/console cache:clear 5 --force`
 
 These wrap any `ExecutionReporterInterface` and stay within the `Adapter` layer.
 
+- **`SafeReporterFactory`** composes the two decorators below into a single
+  safe-by-default reporter: `SafeReporterFactory::wrap($sink)` returns a
+  `GuardedExecutionReporter` wrapping a `RedactingExecutionReporter` (with a
+  `NullExecutionReporter` health fallback). **Always use this for sensitive data** —
+  a bare (unwrapped) reporter passed to `CommandIt` applies neither redaction nor the
+  publication recursion guard.
 - `RedactingExecutionReporter` applies a `RedactionPolicyInterface` to every
   observation/occurrence context before it reaches the delegate. The default
   `RedactionPolicy` redacts values whose key looks sensitive (`password`, `token`,

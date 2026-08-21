@@ -371,11 +371,17 @@ composer quality
 
 ### Tasks
 
-- [ ] **M9.1 `[SDK]`** Add a safe-by-default assembly (e.g. `CommandIt::create()` or `CommandItFactory`) that wraps the caller-supplied reporter in `GuardedExecutionReporter` + `RedactingExecutionReporter` (with a `NullExecutionReporter` health fallback) before handing it to the coordinator — without changing the explicit `CommandIt` constructor (`src/SDK/CommandIt.php:45-68`).
-- [ ] **M9.2 `[Adapter/Reporting]`** Ensure a `NullExecutionReporter` exists as the health fallback for the guarded/redacting composition (used by M9.1).
-- [ ] **M9.3 `[Behavior]`** Make `InputCoercionBehavior::coerceInputValue` reject non-scalar input for `int`/`float`/`double`/`string` with `InvalidCommandException`; keep the friendly `bool` aliases (`1/true/yes/on`, `0/false/no/off`) and document the `default` (unknown type) passthrough (`src/Behavior/Domain/InputCoercionBehavior.php:29-38`).
-- [ ] **M9.4 `[Tests]`** Add negative tests for each type in `CommandInputParserTest`, `ArrayInputAdapterTest`, `ArgvInputParserTest` proving malformed input throws (not silent `0`/`''`).
-- [ ] **M9.5 `[Docs]`** Update `README.md` getting-started to lead with the safe `create()` path and state clearly that a bare (unwrapped) reporter is **not** safe for sensitive data.
+- [x] **M9.1 `[Adapter/Reporting]`** Add a safe-by-default reporter assembly `SafeReporterFactory` (`src/Adapter/Reporting/SafeReporterFactory.php`) that wraps the caller-supplied reporter in `GuardedExecutionReporter` + `RedactingExecutionReporter` (with a `NullExecutionReporter` health fallback) before it is handed to the coordinator — **without changing** the explicit `CommandIt` constructor. **Deviation from the literal `CommandIt::create()` wording:** the SDK facade must stay adapter-free (deptrac forbids `SDK → Adapter`, per M5.4), so the composition lives in the `Adapter` layer and is passed into `CommandIt` rather than being a method on the facade. See Notes.
+- [x] **M9.2 `[Adapter/Reporting]`** `NullExecutionReporter` confirmed present as the health fallback for the guarded/redacting composition (shipped in M3.7; reused by `SafeReporterFactory`).
+- [x] **M9.3 `[Behavior]`** `InputCoercionBehavior::coerceInputValue` now rejects non-scalar input for `int`/`float`/`double`/`string` with `InvalidCommandException`; keeps the friendly `bool` aliases (`1/true/yes/on`, `0/false/no/off`, lenient for non-scalar to `false`); unknown declared types pass through verbatim (`src/Behavior/Domain/InputCoercionBehavior.php:29-38`).
+- [x] **M9.4 `[Tests]`** Negative tests added: `CommandInputParserTest`, `ArrayInputAdapterTest` (non-scalar arg/string-arg/string-option throw); `ArgvInputParserTest` documents argv tokens are always scalars (boundary test). New `SafeReporterFactoryTest` proves redaction + recursion-guard composition.
+- [x] **M9.5 `[Docs]`** `README.md` getting-started now composes the safe reporter via `SafeReporterFactory::wrap()` and states a bare (unwrapped) reporter is **not** safe for sensitive data; the Security section leads with `SafeReporterFactory`.
+
+### Notes
+
+- **Architectural deviation (M9.1):** the ROADMAP/REFACTORING_PLAN sketched `CommandIt::create()` as the safe assembly. Implementing it on the SDK facade would require `SDK → Adapter\Reporting`, which DepTrac prohibits (the SDK stays RunIt/Symfony/adapter-free, M5.4; `SDK` layer allows only `Common, Contract, Domain, Application, Port`). The safe composition therefore lives in `Adapter/Reporting/SafeReporterFactory` (deptrac-legal: `Adapter → Contract/Port`), and consumers pass `SafeReporterFactory::wrap($sink)` into `CommandIt`. This preserves the dependency direction while delivering the same safe-by-default behavior. The explicit `CommandIt` constructor is unchanged (BC-safe).
+- **`bool` coercion left lenient** on purpose: a non-scalar `bool` input becomes `false` (matches the prior friendly-alias behavior and the REFACTORING_PLAN "keep the bool aliases" instruction); only `int`/`float`/`double`/`string` now reject non-scalars.
+- 3 pre-existing style violations in the new test file were fixed mechanically via `composer cs:fix` (`(new X())->method()` → `new X()->method()`).
 
 ### DoD
 

@@ -60,4 +60,31 @@ final class CommandInputParserTest extends Unit
 
         new CommandInputParser()->parse($this->definition(), [], []);
     }
+
+    public function testNonScalarArgumentIsRejected(): void
+    {
+        $this->expectException(InvalidCommandException::class);
+
+        new CommandInputParser()->parse($this->definition(), ['count' => ['not', 'scalar']], []);
+    }
+
+    public function testNonScalarStringArgumentIsRejected(): void
+    {
+        $this->expectException(InvalidCommandException::class);
+
+        new CommandInputParser()->parse($this->definition(), ['count' => 1, 'tag' => ['x']], []);
+    }
+
+    public function testNonScalarOptionIsRejected(): void
+    {
+        $definition = new CommandDefinition(
+            CommandName::fromString('demo:run'),
+            options: [new Option(OptionName::fromString('note'), required: false, type: 'string')],
+            handlerKey: 'demo',
+        );
+
+        $this->expectException(InvalidCommandException::class);
+
+        new CommandInputParser()->parse($definition, [], ['note' => ['x']]);
+    }
 }

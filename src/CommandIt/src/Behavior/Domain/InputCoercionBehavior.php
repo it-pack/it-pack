@@ -24,16 +24,47 @@ trait InputCoercionBehavior
     /**
      * Coerces a raw input value to the expected PHP type name.
      *
+     * Scalars are cast; a non-scalar (array, object, resource, null, closure) for
+     * an `int`/`float`/`double`/`string` argument is rejected rather than silently
+     * zeroed/blanked, so malformed or attacker-controlled input cannot slip
+     * through as a plausible-but-wrong value. Boolean keeps its friendly
+     * aliases (`1/true/yes/on`, `0/false/no/off`). Unknown declared types are
+     * passed through verbatim (e.g. `array`).
+     *
      * @return mixed
+     *
+     * @throws InvalidCommandException when a non-scalar is given for a scalar type
      */
     protected function coerceInputValue(mixed $value, string $type): mixed
     {
         return match ($type) {
-            'int' => \is_scalar($value) ? (int) $value : 0,
-            'float', 'double' => \is_scalar($value) ? (float) $value : 0.0,
+            'int', 'float', 'double', 'string' => $this->coerceScalar($value, $type),
             'bool' => $this->coerceBool($value),
-            'string' => \is_scalar($value) ? (string) $value : '',
             default => $value,
+        };
+    }
+
+    /**
+     * Casts a scalar to the requested type, rejecting non-scalars.
+     *
+     * @return int|float|string
+     *
+     * @throws InvalidCommandException
+     */
+    private function coerceScalar(mixed $value, string $type): int|float|string
+    {
+        if (!\is_scalar($value)) {
+            throw InvalidCommandException::malformed(
+                \sprintf('Expected a scalar %s value, got %s.', $type, \get_debug_type($value)),
+            );
+        }
+
+        return match ($type) {
+            'int' => (int) $value,
+            'double' => (float) $value,
+            'float' => (float) $value,
+            'string' => (string) $value,
+            default => throw new \LogicException(\sprintf('Unsupported input type "%s".', $type)),
         };
     }
 

@@ -46,4 +46,24 @@ final class ArrayInputAdapterTest extends Unit
 
         new ArrayInputAdapter()->parse($this->definition(), ['bogus' => 1]);
     }
+
+    public function testNonScalarArgumentIsRejected(): void
+    {
+        $this->expectException(InvalidCommandException::class);
+
+        new ArrayInputAdapter()->parse($this->definition(), ['count' => ['not', 'scalar']]);
+    }
+
+    public function testNonScalarOptionIsRejected(): void
+    {
+        $definition = new CommandDefinition(
+            CommandName::fromString('demo:run'),
+            options: [new Option(OptionName::fromString('note'), required: false, type: 'string')],
+            handlerKey: 'demo',
+        );
+
+        $this->expectException(InvalidCommandException::class);
+
+        new ArrayInputAdapter()->parse($definition, ['count' => 1, 'note' => ['x']]);
+    }
 }
