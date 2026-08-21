@@ -2690,20 +2690,49 @@ acceptance gate, whose provisional mutation targets are met.
 
 ## M14.1 Core documentation
 
-- [ ] Finalize `README.md`.
-- [ ] Finalize `EXECUTION.md`.
-- [ ] Finalize `AGENTS.md`.
-- [ ] Finalize `ROADMAP.md`.
-- [ ] Finalize `CONTRIBUTING.md`.
-- [ ] Finalize `SECURITY.md`.
-- [ ] Finalize `UPGRADING.md`.
-- [ ] Create `docs/concepts/execution.md`.
-- [ ] Create `docs/concepts/activity.md`.
-- [ ] Create `docs/concepts/measurement.md`.
-- [ ] Create `docs/concepts/observation.md`.
-- [ ] Create `docs/concepts/occurrence.md`.
-- [ ] Create `docs/concepts/snapshot.md`.
-- [ ] Create `docs/concepts/context.md`.
+- [x] Finalize `README.md`.
+- [x] Finalize `EXECUTION.md`.
+- [x] Finalize `AGENTS.md`.
+- [x] Finalize `ROADMAP.md`.
+- [x] Finalize `CONTRIBUTING.md`.
+- [x] Finalize `SECURITY.md`.
+- [x] Finalize `UPGRADING.md`.
+- [x] Create `docs/concepts/execution.md`.
+- [x] Create `docs/concepts/activity.md`.
+- [x] Create `docs/concepts/measurement.md`.
+- [x] Create `docs/concepts/observation.md`.
+- [x] Create `docs/concepts/occurrence.md`.
+- [x] Create `docs/concepts/snapshot.md`.
+- [x] Create `docs/concepts/context.md`.
+
+### M14.1 status audit — August 21, 2026
+
+M14.1 (core documentation) is complete. All seven top-level documents are
+finalized and the seven concept pages exist and cross-link to one another.
+
+Verification evidence:
+
+- **Concept pages.** `docs/concepts/` now contains `execution.md`, `activity.md`,
+  `measurement.md`, `observation.md`, `occurrence.md`, `snapshot.md`, and the
+  previously existing `context.md`. Each page documents the artifact's contracts,
+  value objects, lifecycle/ownership, `normalize()` projection, domain invariants,
+  a minimal public-API usage example, and related ADRs, and links to the canonical
+  vocabulary IRI in `vocab/run-it.ttl`.
+- **Top-level docs finalized.** `README.md` and `EXECUTION.md` gained a concept
+  reference that links to the new pages; `CONTRIBUTING.md` was expanded with
+  scope, issue/PR, and quality-gate guidance; `SECURITY.md` was expanded with a
+  supported-versions table, the security model, threat-model/supply-chain
+  references, and reporting guidance; `UPGRADING.md` documents compatibility-sensitive
+  areas, the `composer api:check` workflow, and pre-`1.0.0` breaking-change policy.
+  `AGENTS.md` and `ROADMAP.md` were already maintained and are finalized as-is.
+- **Consistency.** Concept pages align with `docs/concepts/semantic-model.md`,
+  `docs/concepts/base-contracts.md`, `EXECUTION.md`, and the source artifacts
+  (`src/Domain/**`, `src/Contract/Domain/**`): enum labels, `normalize()` field
+  names, and invariant wording match the implementation. No code changes were
+  required.
+- **Not verified by automation.** Documentation is not executed by CI. The README
+  "Core Concepts" links and the `EXECUTION.md` reference were added manually; full
+  example execution is covered by M14.5 (Executable examples), not M14.1.
 
 ## M14.2 Architecture documentation
 

@@ -203,6 +203,8 @@ An execution has:
 - A terminal result or failure.
 - Optional snapshots.
 
+See [`docs/concepts/execution.md`](docs/concepts/execution.md) for the full model.
+
 ### Context
 
 Context answers:
@@ -221,6 +223,8 @@ Examples:
 - Trace ID.
 - Configuration snapshot ID.
 
+See [`docs/concepts/context.md`](docs/concepts/context.md) for classifications, redaction, and the standard vocabulary.
+
 ### Activity
 
 Activities answer:
@@ -238,6 +242,8 @@ Examples:
 
 Activities may be nested.
 
+See [`docs/concepts/activity.md`](docs/concepts/activity.md) for the activity lifecycle and nesting rules.
+
 ### Measurement
 
 Measurements answer:
@@ -253,6 +259,8 @@ Examples:
 - Graph nodes.
 - Validation errors.
 
+See [`docs/concepts/measurement.md`](docs/concepts/measurement.md) for kinds, units, and cardinality rules.
+
 ### Observation
 
 Observations answer:
@@ -266,6 +274,8 @@ Examples:
 - Debug information.
 - Validation failures.
 - Errors.
+
+See [`docs/concepts/observation.md`](docs/concepts/observation.md) for severities and normalization.
 
 ### Occurrence
 
@@ -282,6 +292,8 @@ Examples:
 
 Occurrences are immutable facts and can be represented as CloudEvents.
 
+See [`docs/concepts/occurrence.md`](docs/concepts/occurrence.md) for versioned types and CloudEvents mapping.
+
 ### Snapshot
 
 Snapshots answer:
@@ -294,6 +306,8 @@ Examples:
 - Execution snapshot.
 - Workflow snapshot.
 - Pipeline snapshot.
+
+See [`docs/concepts/snapshot.md`](docs/concepts/snapshot.md) for snapshot integrity and persistence.
 
 ---
 

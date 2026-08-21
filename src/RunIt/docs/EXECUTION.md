@@ -501,3 +501,21 @@ Every packageâ€”from ConfigureIt and ChaosCockpit to AExO, HoppaDB and Spindleâ€
 > **Occurrences record work.**
 >
 > **Snapshots preserve work.**
+
+---
+
+## Concept reference
+
+Each artifact has a dedicated concept page:
+
+- [Execution](docs/concepts/execution.md)
+- [Context](docs/concepts/context.md)
+- [Activity](docs/concepts/activity.md)
+- [Measurement](docs/concepts/measurement.md)
+- [Observation](docs/concepts/observation.md)
+- [Occurrence](docs/concepts/occurrence.md)
+- [Snapshot](docs/concepts/snapshot.md)
+
+Shared base contracts and the semantic model are described in
+[docs/concepts/base-contracts.md](docs/concepts/base-contracts.md) and
+[docs/concepts/semantic-model.md](docs/concepts/semantic-model.md).
