@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\API\Trace\Span;
@@ -134,7 +135,7 @@ final class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::OCCURRENCE_ID => is_string($normalized['id'] ?? null) ? $normalized['id'] : 'redacted',
+            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null) ? $normalized[ArtifactField::ID] : 'redacted',
             AttributeKeys::OCCURRENCE_TYPE => is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
             AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized['source'] ?? null) ? $normalized['source'] : 'runit://redacted',
             AttributeKeys::EXECUTION_ID => is_string($normalized['execution_id'] ?? null) ? $normalized['execution_id'] : '',
@@ -164,7 +165,7 @@ final class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::SNAPSHOT_ID => is_string($normalized['id'] ?? null) ? $normalized['id'] : 'redacted',
+            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null) ? $normalized[ArtifactField::ID] : 'redacted',
             AttributeKeys::SNAPSHOT_TYPE => is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
             AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized['classification'] ?? null) ? $normalized['classification'] : 'unknown',
             AttributeKeys::EXECUTION_ID => is_string($normalized['execution_id'] ?? null) ? $normalized['execution_id'] : '',

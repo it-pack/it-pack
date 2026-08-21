@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -59,7 +60,7 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
         }
 
         if ($artifact instanceof OccurrenceInterface) {
-            $bytes = strlen((string) json_encode($artifact->normalize()['data'] ?? null));
+            $bytes = strlen((string) json_encode($artifact->normalize()[ArtifactField::DATA] ?? null));
             if ($bytes > $this->limits->maxOccurrencePayloadBytes) {
                 $this->drop('occurrence_payload', $artifact);
 

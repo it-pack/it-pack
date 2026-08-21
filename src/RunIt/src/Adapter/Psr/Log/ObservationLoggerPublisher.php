@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -88,11 +89,11 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
 
         $normalized = $artifact->normalize();
 
-        $message = $normalized['message'] ?? null;
+        $message = $normalized[ArtifactField::MESSAGE] ?? null;
         $message = is_string($message) ? $message : (is_string($normalized['kind'] ?? null) ? $normalized['kind'] : 'artifact');
         $level = $normalized['level'] ?? null;
         $level = is_int($level) ? $level : 200;
-        $attributes = $normalized['attributes'] ?? null;
+        $attributes = $normalized[ArtifactField::ATTRIBUTES] ?? null;
         $attributes = is_array($attributes) ? $attributes : [];
 
         return [
@@ -102,13 +103,13 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
             'correlation' => [
                 'execution_id' => $normalized['execution_id'] ?? null,
                 'activity_id' => $normalized['activity_id'] ?? null,
-                'observation_id' => $normalized['id'] ?? null,
+                'observation_id' => $normalized[ArtifactField::ID] ?? null,
                 'diagnostic_code' => $normalized['diagnostic_code'] ?? null,
                 'sequence' => $normalized['sequence'] ?? null,
                 'timestamp' => $normalized['timestamp'] ?? null,
                 'severity' => $normalized['severity'] ?? null,
             ],
-            'throwable' => $normalized['throwable'] ?? null,
+            'throwable' => $normalized[ArtifactField::THROWABLE] ?? null,
         ];
     }
 

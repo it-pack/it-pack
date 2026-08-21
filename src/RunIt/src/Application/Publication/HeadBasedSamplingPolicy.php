@@ -8,6 +8,7 @@ use Closure;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * Sampling policy that decides once per execution and applies it to every artifact.
@@ -43,7 +44,7 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
                 return $artifact->executionId()->toString();
             }
 
-            $id = $artifact->normalize()['id'] ?? '';
+            $id = $artifact->normalize()[ArtifactField::ID] ?? '';
 
             return is_string($id) ? $id : '';
         };
