@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 final class AttributeCollectionTest extends Unit
 {
@@ -127,7 +127,7 @@ final class AttributeCollectionTest extends Unit
     public function testTooManyAttributesAreRejected(): void
     {
         $attributes = [];
-        for ($index = 0; $index <= AttributeValidator::MAX_ATTRIBUTE_COUNT; ++$index) {
+        for ($index = 0; $index <= SecurityLimits::default()->maxAttributeCount; ++$index) {
             $attributes['key-' . $index] = $index;
         }
 

@@ -74,21 +74,82 @@ final readonly class SecurityLimits
     }
 
     /**
-     * Returns a copy with one limit changed.
+     * Returns a copy with the maximum attribute count changed.
      */
-    public function with(string $name, int $value): self
+    public function withMaxAttributeCount(int $maxAttributeCount): self
     {
-        return new self(
-            maxAttributeCount: $name === 'maxAttributeCount' ? $value : $this->maxAttributeCount,
-            maxAttributeKeyBytes: $name === 'maxAttributeKeyBytes' ? $value : $this->maxAttributeKeyBytes,
-            maxAttributeValueBytes: $name === 'maxAttributeValueBytes' ? $value : $this->maxAttributeValueBytes,
-            maxAttributeDepth: $name === 'maxAttributeDepth' ? $value : $this->maxAttributeDepth,
-            maxOccurrencePayloadBytes: $name === 'maxOccurrencePayloadBytes' ? $value : $this->maxOccurrencePayloadBytes,
-            maxSnapshotPayloadBytes: $name === 'maxSnapshotPayloadBytes' ? $value : $this->maxSnapshotPayloadBytes,
-            maxActivityDepth: $name === 'maxActivityDepth' ? $value : $this->maxActivityDepth,
-            maxArtifactsPerExecution: $name === 'maxArtifactsPerExecution' ? $value : $this->maxArtifactsPerExecution,
-            maxSerializationDepth: $name === 'maxSerializationDepth' ? $value : $this->maxSerializationDepth,
-            maxSerializationBytes: $name === 'maxSerializationBytes' ? $value : $this->maxSerializationBytes,
-        );
+        return new self(maxAttributeCount: $maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum attribute key length changed.
+     */
+    public function withMaxAttributeKeyBytes(int $maxAttributeKeyBytes): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum scalar attribute value length changed.
+     */
+    public function withMaxAttributeValueBytes(int $maxAttributeValueBytes): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum attribute nesting depth changed.
+     */
+    public function withMaxAttributeDepth(int $maxAttributeDepth): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum occurrence payload size changed.
+     */
+    public function withMaxOccurrencePayloadBytes(int $maxOccurrencePayloadBytes): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum snapshot payload size changed.
+     */
+    public function withMaxSnapshotPayloadBytes(int $maxSnapshotPayloadBytes): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum nested-activity depth changed.
+     */
+    public function withMaxActivityDepth(int $maxActivityDepth): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum artifacts per execution changed.
+     */
+    public function withMaxArtifactsPerExecution(int $maxArtifactsPerExecution): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum serialization depth changed.
+     */
+    public function withMaxSerializationDepth(int $maxSerializationDepth): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum serialized payload size changed.
+     */
+    public function withMaxSerializationBytes(int $maxSerializationBytes): self
+    {
+        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $maxSerializationBytes);
     }
 }

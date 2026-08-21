@@ -34,14 +34,14 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
      */
     private array $attributes;
 
-    private ?SecurityLimits $limits;
+    private SecurityLimits $limits;
 
     /**
      * @param array<string, mixed> $attributes
      */
     private function __construct(
         array $attributes,
-        ?SecurityLimits $limits = null,
+        SecurityLimits $limits = new SecurityLimits(),
     ) {
         /** @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes */
         $this->attributes = $attributes;
@@ -53,14 +53,14 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
      * Creates a collection from a set of attributes, validating each one.
      *
      * @param array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes
-     * @param SecurityLimits|null $limits optional tighter bounds; defaults to built-in rules
+     * @param SecurityLimits|null $limits optional tighter bounds; defaults to the conservative built-in limits
      *
      * @throws InvalidAttributeException when a key or value violates a rule, or
      *                                    the attribute count is exceeded
      */
     public static function fromArray(array $attributes, ?SecurityLimits $limits = null): self
     {
-        return new self($attributes, $limits);
+        return new self($attributes, $limits ?? new SecurityLimits());
     }
 
     /**

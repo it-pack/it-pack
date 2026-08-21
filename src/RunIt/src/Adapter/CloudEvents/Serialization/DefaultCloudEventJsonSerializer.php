@@ -8,6 +8,7 @@ use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSerializerInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * Structured JSON serializer for CloudEvents.
@@ -39,6 +40,7 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
 
     public function __construct(
         private readonly CloudEventMappingPolicy $policy = new CloudEventMappingPolicy(),
+        private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 
@@ -68,7 +70,9 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
         }
 
         try {
-            $decoded = json_decode($payload, true, 512, JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR);
+            /** @var positive-int $depth */
+            $depth = $this->limits->maxSerializationDepth;
+            $decoded = json_decode($payload, true, $depth, JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             throw InvalidCloudEventException::malformedJson();
         }

@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\Context\Context;
@@ -60,7 +61,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         }
 
         $endedAt = $activity->endedAt() ?? $activity->startedAt();
-        $span->end($endedAt->epochSeconds() * 1_000_000_000);
+        $span->end($endedAt->epochSeconds() * Duration::NANOS_PER_SECOND);
 
         $this->store->recordActivity($activity->id()->toString(), $span->getContext());
     }

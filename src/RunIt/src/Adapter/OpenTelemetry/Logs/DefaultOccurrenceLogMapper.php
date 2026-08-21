@@ -11,6 +11,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\API\Trace\Span;
@@ -65,7 +66,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
             $logger
                 ->logRecordBuilder()
-                ->setTimestamp($occurrence->time()->epochSeconds() * 1_000_000_000)
+                ->setTimestamp($occurrence->time()->epochSeconds() * Duration::NANOS_PER_SECOND)
                 ->setSeverityNumber(Severity::INFO)
                 ->setSeverityText('info')
                 ->setBody($occurrence->type()->toString())
@@ -116,7 +117,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
             $logger
                 ->logRecordBuilder()
-                ->setTimestamp($snapshot->timestamp() * 1_000_000_000)
+                ->setTimestamp($snapshot->timestamp() * Duration::NANOS_PER_SECOND)
                 ->setSeverityNumber(Severity::INFO)
                 ->setSeverityText('info')
                 ->setBody($snapshot->type()->toString())
@@ -190,7 +191,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
      */
     private function emit(string $eventName, string $body, array $attributes, ?int $timeEpochSeconds): void
     {
-        $timeNanos = $timeEpochSeconds !== null ? $timeEpochSeconds * 1_000_000_000 : (int) (microtime(true) * 1_000_000_000);
+        $timeNanos = $timeEpochSeconds !== null ? $timeEpochSeconds * Duration::NANOS_PER_SECOND : (int) (microtime(true) * Duration::NANOS_PER_SECOND);
 
         if ($this->mapOccurrencesToLogs && $this->loggerProvider !== null) {
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);

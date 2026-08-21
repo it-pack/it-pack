@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Fiber;
 
 use Fiber;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -20,6 +21,9 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  */
 final class FiberExecutionEngine implements ExecutionEngineInterface
 {
+    /**
+     * @throws \Throwable
+     */
     public function run(ExecutionScopeInterface $scope, callable $operation): mixed
     {
         $fiber = new Fiber(static function () use ($operation, $scope): void {
@@ -34,6 +38,6 @@ final class FiberExecutionEngine implements ExecutionEngineInterface
 
     public function capability(): EngineCapabilityInterface
     {
-        return new \ItPack\RunIt\Contract\Application\EngineCapability(true, false, false);
+        return new EngineCapability(true, false, false);
     }
 }

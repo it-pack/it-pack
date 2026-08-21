@@ -32,7 +32,7 @@ final class SecurityLimitsTest extends Unit
 
     public function testWithReturnsCopyWithSingleChangedLimit(): void
     {
-        $limits = SecurityLimits::default()->with('maxAttributeCount', 4);
+        $limits = SecurityLimits::default()->withMaxAttributeCount(4);
 
         self::assertSame(4, $limits->maxAttributeCount);
         self::assertSame(SecurityLimits::default()->maxAttributeValueBytes, $limits->maxAttributeValueBytes);

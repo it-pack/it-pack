@@ -29,30 +29,10 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  */
 final class AttributeValidator
 {
-    /**
-     * The maximum accepted attribute key length in bytes.
-     */
-    public const int MAX_KEY_LENGTH = 256;
-
-    /**
-     * The maximum number of attributes in one collection.
-     */
-    public const int MAX_ATTRIBUTE_COUNT = 64;
-
-    /**
-     * The maximum accepted scalar attribute value length in bytes.
-     */
-    public const int MAX_VALUE_BYTES = 4096;
-
-    /**
-     * The maximum nesting depth of an attribute collection value.
-     */
-    public const int MAX_DEPTH = 8;
-
     private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
 
     public function __construct(
-        private readonly ?SecurityLimits $limits = null,
+        private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 
@@ -62,7 +42,7 @@ final class AttributeValidator
             throw InvalidAttributeException::emptyKey();
         }
 
-        $maxKey = $this->limits === null ? self::MAX_KEY_LENGTH : $this->limits->maxAttributeKeyBytes;
+        $maxKey = $this->limits->maxAttributeKeyBytes;
         $length = strlen($key);
 
         if ($length > $maxKey) {
@@ -82,14 +62,14 @@ final class AttributeValidator
      */
     public function assertValidAttributes(array $attributes): void
     {
-        $maxCount = $this->limits === null ? self::MAX_ATTRIBUTE_COUNT : $this->limits->maxAttributeCount;
+        $maxCount = $this->limits->maxAttributeCount;
         $count = count($attributes);
 
         if ($count > $maxCount) {
             throw InvalidAttributeException::tooManyAttributes($count, $maxCount);
         }
 
-        $maxDepth = $this->limits === null ? self::MAX_DEPTH : $this->limits->maxAttributeDepth;
+        $maxDepth = $this->limits->maxAttributeDepth;
 
         foreach ($attributes as $key => $value) {
             $this->assertValidKey($key);
@@ -104,7 +84,7 @@ final class AttributeValidator
     private function assertSupportedValue(mixed $value, int $depth, int $maxDepth): void
     {
         if (is_scalar($value) || $value === null) {
-            $maxValue = $this->limits === null ? self::MAX_VALUE_BYTES : $this->limits->maxAttributeValueBytes;
+            $maxValue = $this->limits->maxAttributeValueBytes;
             if (is_string($value) && strlen($value) > $maxValue) {
                 throw InvalidAttributeException::valueTooLong(strlen($value), $maxValue);
             }

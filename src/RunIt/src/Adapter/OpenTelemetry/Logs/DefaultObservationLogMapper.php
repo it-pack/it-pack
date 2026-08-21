@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Trace\Span;
 
@@ -42,7 +43,7 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
 
         $builder = $logger
             ->logRecordBuilder()
-            ->setTimestamp($observation->timestamp() * 1_000_000_000)
+            ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
             ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
             ->setSeverityText($this->severityMap->toText($observation->severity()))
             ->setBody($observation->message())

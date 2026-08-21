@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 
 /**
  * Artifact publisher that buffers artifacts and flushes them in bounded batches.
@@ -60,7 +61,6 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
     ) {
         $this->nowSeconds = $nowSeconds ?? static fn (): int => time();
         $this->byteEstimator = $estimateBytes ?? static fn (ExecutionArtifactInterface $artifact): int => strlen((string) json_encode($artifact->normalize(), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE));
-        /** @var int $now */
         $now = ($this->nowSeconds)();
         $this->lastFlushEpoch = $now;
     }
@@ -78,7 +78,6 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         $this->buffer[] = $item;
         $this->estimatedBytes += $item['bytes'];
 
-        /** @var int $now */
         $now = ($this->nowSeconds)();
         if ($this->config->flushIntervalSeconds > 0 && $now - $this->lastFlushEpoch >= $this->config->flushIntervalSeconds) {
             $this->flush();
@@ -88,7 +87,6 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
     public function flush(): void
     {
         $start = hrtime(true);
-        /** @var int $now */
         $now = ($this->nowSeconds)();
         $this->lastFlushEpoch = $now;
         $flushed = $this->drain($this->config->batchSize);
@@ -129,9 +127,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function toItem(ExecutionArtifactInterface $artifact): array
     {
-        /** @var int $enqueued */
         $enqueued = ($this->nowSeconds)();
-        /** @var int $bytes */
         $bytes = ($this->byteEstimator)($artifact);
 
         return [
@@ -230,7 +226,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function blockWithTimeoutThenAppend(array $incoming): void
     {
-        $deadline = hrtime(true) + self::BLOCK_BUDGET_MICROSECONDS * 1000;
+        $deadline = hrtime(true) + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
 
         while ($this->isFull() && hrtime(true) < $deadline) {
             usleep(100);
@@ -271,15 +267,13 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function oldestLowPriorityIndex(): ?int
     {
-        foreach ($this->buffer as $index => $item) {
-            if ($item['priority'] === 0) {
-                return $index;
-            }
-        }
+        return array_find_key($this->buffer, fn($item) => $item['priority'] === 0);
 
-        return null;
     }
 
+    /**
+     * @throws \Throwable
+     */
     private function drain(int $limit): int
     {
         $flushed = 0;
@@ -291,7 +285,6 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
             /** @var int $enqueued */
             $enqueued = $item['enqueued'];
-            /** @var int $now */
             $now = ($this->nowSeconds)();
 
             if ($now - $enqueued > $this->config->maxAgeSeconds) {
@@ -313,7 +306,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
             return;
         }
 
-        $durationMicroseconds = max(0, (int) ((hrtime(true) - $startedAtNanoseconds) / 1000));
+        $durationMicroseconds = max(0, (int) ((hrtime(true) - $startedAtNanoseconds) / Duration::NANOS_PER_MICROSECOND));
         $this->observer->onFlush($flushed, $durationMicroseconds, count($this->buffer));
     }
 

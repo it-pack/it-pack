@@ -7,7 +7,6 @@ namespace ItPack\RunIt\Adapter\Psr\Http;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * The RunIt execution inputs derived from an incoming HTTP request.

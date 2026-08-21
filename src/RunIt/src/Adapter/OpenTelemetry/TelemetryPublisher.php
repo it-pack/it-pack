@@ -43,15 +43,15 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#OpenTelemetry
  */
-final class TelemetryPublisher implements ArtifactPublisherInterface
+final readonly class TelemetryPublisher implements ArtifactPublisherInterface
 {
     public function __construct(
-        public readonly BridgeConfig $config,
-        private readonly ExecutionSpanMapperInterface $executionMapper,
-        private readonly ActivitySpanMapperInterface $activityMapper,
-        private readonly MeasurementInstrumentMapperInterface $measurementMapper,
-        private readonly ObservationLogMapperInterface $observationMapper,
-        private readonly OccurrenceLogMapperInterface $occurrenceMapper,
+        public BridgeConfig                          $config,
+        private ExecutionSpanMapperInterface         $executionMapper,
+        private ActivitySpanMapperInterface          $activityMapper,
+        private MeasurementInstrumentMapperInterface $measurementMapper,
+        private ObservationLogMapperInterface        $observationMapper,
+        private OccurrenceLogMapperInterface         $occurrenceMapper,
     ) {
     }
 

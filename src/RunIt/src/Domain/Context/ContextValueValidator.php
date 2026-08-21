@@ -28,15 +28,10 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  */
 final class ContextValueValidator implements ContextValueValidatorInterface
 {
-    public const int MAX_KEY_LENGTH = 256;
-    public const int MAX_VALUE_LENGTH = 4096;
-    public const int MAX_ARRAY_ELEMENTS = 64;
-    public const int MAX_DEPTH = 8;
-
     private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
 
     public function __construct(
-        private readonly ?SecurityLimits $limits = null,
+        private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 
@@ -46,7 +41,7 @@ final class ContextValueValidator implements ContextValueValidatorInterface
             throw InvalidContextValueException::emptyKey();
         }
 
-        $maxKey = $this->limits === null ? self::MAX_KEY_LENGTH : $this->limits->maxAttributeKeyBytes;
+        $maxKey = $this->limits->maxAttributeKeyBytes;
         $length = strlen($key);
 
         if ($length > $maxKey) {
@@ -69,7 +64,7 @@ final class ContextValueValidator implements ContextValueValidatorInterface
      */
     public function assertSupportedValue(mixed $value): void
     {
-        $maxDepth = $this->limits === null ? self::MAX_DEPTH : $this->limits->maxAttributeDepth;
+        $maxDepth = $this->limits->maxAttributeDepth;
 
         $this->assertSupportedValueRecursive($value, 1, $maxDepth);
     }
@@ -86,7 +81,7 @@ final class ContextValueValidator implements ContextValueValidatorInterface
     private function assertSupportedValueRecursive(mixed $value, int $depth, int $maxDepth): void
     {
         if (is_scalar($value) || $value === null) {
-            $maxValue = $this->limits === null ? self::MAX_VALUE_LENGTH : $this->limits->maxAttributeValueBytes;
+            $maxValue = $this->limits->maxAttributeValueBytes;
 
             if (is_string($value) && strlen($value) > $maxValue) {
                 throw InvalidContextValueException::valueTooLarge(strlen($value), $maxValue);
@@ -100,7 +95,7 @@ final class ContextValueValidator implements ContextValueValidatorInterface
                 throw InvalidContextValueException::valueTooDeep($depth, $maxDepth);
             }
 
-            if (count($value) > self::MAX_ARRAY_ELEMENTS) {
+            if (count($value) > $this->limits->maxAttributeCount) {
                 throw InvalidContextValueException::unsupportedValue();
             }
 

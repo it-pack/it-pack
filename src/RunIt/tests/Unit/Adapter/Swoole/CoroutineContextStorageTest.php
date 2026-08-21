@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Swoole;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
 use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
-use ItPack\RunIt\Adapter\Swoole\CoroutineIdProviderInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;

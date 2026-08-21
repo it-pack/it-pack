@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\ContextInterface;
@@ -39,7 +40,7 @@ trait TraceBehavior
         $builder = $tracer
             ->spanBuilder($name)
             ->setSpanKind($this->kindMap->toSpanKind($definition->kind()->toString()))
-            ->setStartTimestamp($artifact->startedAt()->epochSeconds() * 1_000_000_000)
+            ->setStartTimestamp($artifact->startedAt()->epochSeconds() * Duration::NANOS_PER_SECOND)
         ;
 
         $parent = $this->resolveParentContext($artifact);
