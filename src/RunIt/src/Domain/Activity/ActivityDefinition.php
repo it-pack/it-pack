@@ -22,9 +22,9 @@ use ItPack\RunIt\Contract\Domain\ActivityNameInterface;
 final readonly class ActivityDefinition implements ActivityDefinitionInterface
 {
     private function __construct(
-        private readonly ActivityNameInterface $name,
-        private readonly ActivityKindInterface $kind,
-        private readonly ?ActivityIdInterface $parentActivityId,
+        private ActivityNameInterface $name,
+        private ActivityKindInterface $kind,
+        private ?ActivityIdInterface $parentActivityId,
     ) {
     }
 

@@ -29,7 +29,7 @@ use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
  *
  * @see https://w3id.org/itpack/runit#occurrenceType
  */
-final readonly class OccurrenceType implements OccurrenceTypeInterface
+final class OccurrenceType implements OccurrenceTypeInterface
 {
     use ValidatedStringValueBehavior;
 

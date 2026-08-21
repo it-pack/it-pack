@@ -16,10 +16,10 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class SeveritySamplePolicy implements SamplingPolicyInterface
+final readonly class SeveritySamplePolicy implements SamplingPolicyInterface
 {
     public function __construct(
-        private readonly int $minLevel,
+        private int $minLevel,
     ) {
     }
 

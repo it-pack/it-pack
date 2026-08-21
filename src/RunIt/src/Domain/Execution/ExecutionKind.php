@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
  *
  * @see https://w3id.org/itpack/runit#executionKind
  */
-final readonly class ExecutionKind implements ExecutionKindInterface
+final class ExecutionKind implements ExecutionKindInterface
 {
     use ValidatedStringValueBehavior;
 }

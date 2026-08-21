@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\ActivityNameInterface;
  *
  * @see https://w3id.org/itpack/runit#activityName
  */
-final readonly class ActivityName implements ActivityNameInterface
+final class ActivityName implements ActivityNameInterface
 {
     use ValidatedStringValueBehavior;
 }

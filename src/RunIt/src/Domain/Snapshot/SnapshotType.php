@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
  *
  * @see https://w3id.org/itpack/runit#snapshotType
  */
-final readonly class SnapshotType implements SnapshotTypeInterface
+final class SnapshotType implements SnapshotTypeInterface
 {
     use ValidatedStringValueBehavior;
 }

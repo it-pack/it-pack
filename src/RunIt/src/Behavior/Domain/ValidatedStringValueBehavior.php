@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Behavior\Domain;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;
 use ItPack\RunIt\Contract\Domain\StringValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 
 /**
  * Construction behavior shared by every RunIt string value (name or kind).
@@ -24,11 +25,24 @@ trait ValidatedStringValueBehavior
 {
     use StringProviderBehavior;
 
+    /**
+     * The canonical string projection of this value.
+     *
+     * Backed by {@see ValidatedStringValueBehavior::$raw}; exposed as a virtual
+     * property so callers can read `$value->value` as well as `toString()`.
+     */
+    public string $value {
+        get => $this->raw;
+    }
+
+    /**
+     * @throws InvalidValueExceptionInterface
+     */
     private function __construct(
-        private readonly string $value,
+        private readonly string $raw,
         StringValueValidatorInterface $validator = new \ItPack\RunIt\Behavior\Domain\StringValueValidator(),
     ) {
-        $validator->validate($value);
+        $validator->validate($raw);
     }
 
     /**
@@ -44,7 +58,7 @@ trait ValidatedStringValueBehavior
 
     public function toString(): string
     {
-        return $this->value;
+        return $this->raw;
     }
 
     public function equals(StringValueInterface $other): bool

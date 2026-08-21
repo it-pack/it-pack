@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
  *
  * @see https://w3id.org/itpack/runit#snapshotId
  */
-final readonly class SnapshotId implements SnapshotIdInterface
+final class SnapshotId implements SnapshotIdInterface
 {
     use ValidatedStringIdentifierBehavior;
 }

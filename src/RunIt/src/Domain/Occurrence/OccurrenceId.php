@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
  *
  * @see https://w3id.org/itpack/runit#occurrenceId
  */
-final readonly class OccurrenceId implements OccurrenceIdInterface
+final class OccurrenceId implements OccurrenceIdInterface
 {
     use ValidatedStringIdentifierBehavior;
 }

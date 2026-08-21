@@ -22,7 +22,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use ItPack\RunIt\Conformance\Fixture\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\ArtifactPublisherVerifier;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;

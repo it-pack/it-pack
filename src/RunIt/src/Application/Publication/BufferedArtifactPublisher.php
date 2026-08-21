@@ -267,7 +267,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function oldestLowPriorityIndex(): ?int
     {
-        return array_find_key($this->buffer, fn($item) => $item['priority'] === 0);
+        return array_find_key($this->buffer, fn ($item) => $item['priority'] === 0);
 
     }
 

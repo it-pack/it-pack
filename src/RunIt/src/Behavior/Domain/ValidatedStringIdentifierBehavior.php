@@ -24,7 +24,17 @@ trait ValidatedStringIdentifierBehavior
 {
     use StringIdentifierBehavior;
 
-    private function __construct(private readonly string $value)
+    /**
+     * The canonical string projection of this identifier.
+     *
+     * Backed by {@see ValidatedStringIdentifierBehavior::$raw}; exposed as a
+     * virtual property so callers can read `$id->value` as well as `toString()`.
+     */
+    public string $value {
+        get => $this->raw;
+    }
+
+    private function __construct(private readonly string $raw)
     {
     }
 
@@ -44,6 +54,6 @@ trait ValidatedStringIdentifierBehavior
 
     public function toString(): string
     {
-        return $this->value;
+        return $this->raw;
     }
 }

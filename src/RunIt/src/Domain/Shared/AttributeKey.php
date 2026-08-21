@@ -22,14 +22,24 @@ use ItPack\RunIt\Contract\Domain\StringValueInterface;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final readonly class AttributeKey implements AttributeKeyInterface
+final class AttributeKey implements AttributeKeyInterface
 {
     use StringProviderBehavior;
 
+    /**
+     * The canonical string projection of this key.
+     *
+     * Backed by {@see AttributeKey::$raw}; exposed as a virtual property so
+     * callers can read `$key->value` as well as `toString()`.
+     */
+    public string $value {
+        get => $this->raw;
+    }
+
     private function __construct(
-        private readonly string $value,
+        private readonly string $raw,
     ) {
-        new AttributeValidator()->assertValidKey($value);
+        new AttributeValidator()->assertValidKey($raw);
     }
 
     /**
@@ -45,7 +55,7 @@ final readonly class AttributeKey implements AttributeKeyInterface
 
     public function toString(): string
     {
-        return $this->value;
+        return $this->raw;
     }
 
     public function equals(StringValueInterface $other): bool

@@ -80,7 +80,7 @@ final class SerializerVerifier
             return false;
         }
 
-        if (is_array($value) && array_any($value, fn($item) => !$this->isRecursivelyPrimitive($item))) {
+        if (is_array($value) && array_any($value, fn ($item) => !$this->isRecursivelyPrimitive($item))) {
             return false;
         }
 

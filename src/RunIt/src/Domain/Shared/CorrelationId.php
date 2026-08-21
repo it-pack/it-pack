@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\CorrelationIdInterface;
  *
  * @see https://w3id.org/itpack/runit#correlationId
  */
-final readonly class CorrelationId implements CorrelationIdInterface
+final class CorrelationId implements CorrelationIdInterface
 {
     use ValidatedStringIdentifierBehavior;
 }

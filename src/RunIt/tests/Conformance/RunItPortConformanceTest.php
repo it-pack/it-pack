@@ -90,7 +90,7 @@ final class RunItPortConformanceTest extends Unit
 
     public function testMonotonicClockConforms(): void
     {
-        $result = new MonotonicClockVerifier()->verify(new SystemMonotonicClock(), $this->fixture);
+        $result = new MonotonicClockVerifier()->verify(new SystemMonotonicClock());
 
         self::assertTrue($result->isConformant(), $this->describe($result));
     }

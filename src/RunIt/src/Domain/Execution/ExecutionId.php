@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
  *
  * @see https://w3id.org/itpack/runit#executionId
  */
-final readonly class ExecutionId implements ExecutionIdInterface
+final class ExecutionId implements ExecutionIdInterface
 {
     use ValidatedStringIdentifierBehavior;
 }

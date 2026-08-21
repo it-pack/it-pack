@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
  *
  * @see https://w3id.org/itpack/runit#observationId
  */
-final readonly class ObservationId implements ObservationIdInterface
+final class ObservationId implements ObservationIdInterface
 {
     use ValidatedStringIdentifierBehavior;
 }
