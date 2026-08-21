@@ -35,7 +35,8 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
         private CloudEventSinkInterface               $sink,
         private CloudEventMappingPolicy               $policy = new CloudEventMappingPolicy(),
         private CloudEventFactoryInterface            $factory = new DefaultCloudEventFactory(),
-    ) {}
+    ) {
+    }
 
     public static function fromConfig(CloudEventsBridgeConfig $config): self
     {

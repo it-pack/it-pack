@@ -32,8 +32,16 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
      * @var array<string, list<string>>
      */
     private const array ALLOWED = [
-        'created' => ['running', 'cancelled'],
-        'running' => ['succeeded', 'failed', 'cancelled', 'timed_out'],
+        ExecutionStatus::Created->value => [
+            ExecutionStatus::Running->value,
+            ExecutionStatus::Cancelled->value,
+        ],
+        ExecutionStatus::Running->value => [
+            ExecutionStatus::Succeeded->value,
+            ExecutionStatus::Failed->value,
+            ExecutionStatus::Cancelled->value,
+            ExecutionStatus::TimedOut->value,
+        ],
     ];
 
     public function transition(ExecutionInterface $execution, ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface
@@ -49,7 +57,7 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
             throw ConflictingCompletionException::forConflict($from, $to);
         }
 
-        if (!isset(self::ALLOWED[$from->label()]) || !in_array($to->label(), self::ALLOWED[$from->label()], true)) {
+        if (!self::isAllowed($from, $to)) {
             throw InvalidLifecycleTransitionException::forTransition($from, $to);
         }
 

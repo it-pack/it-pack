@@ -70,10 +70,14 @@ Goal: eliminate the six reachable-from-public-API defects. Each task ends with a
 
 Goal: remove magic strings guarding invariants and unify status/severity vocabulary.
 
-### T1.1 — S7: lifecycle matrix from enum values
-- **Files:** `src/Application/Lifecycle/ExecutionLifecycleCoordinator.php:34-37,52,80`.
-- **Steps:** rewrite `ALLOWED` as `ExecutionStatus::Created->value => [ExecutionStatus::Running->value, ExecutionStatus::Cancelled->value], …`; delegate `transition()` → `isAllowed()`.
-- **Verify:** lifecycle tests unchanged; typo in matrix now a compile/static error.
+### T1.1 — S7: lifecycle matrix from enum values — **DONE 2026-08-21**
+- **Files:** `src/Application/Lifecycle/ExecutionLifecycleCoordinator.php`.
+- **What changed:**
+  - `ALLOWED` was keyed on magic strings (`'created'`, `'running'`, …) with the same string literals repeated in the values. A typo such as `'runing'` was a silent, valid-looking but wrong matrix entry — exactly the S7 defect.
+  - `ALLOWED` now derives every key and value from `ExecutionStatus` enum cases: `ExecutionStatus::Created->value => [ExecutionStatus::Running->value, ExecutionStatus::Cancelled->value], …` (and `Running` → `Succeeded`/`Failed`/`Cancelled`/`TimedOut`). A bad case name is now a compile/static error, and the matrix cannot drift from the enum.
+  - `transition()` now delegates its legality check to `isAllowed()` instead of re-implementing the `isset`/`in_array` walk, so the matrix has a single source of truth. (`isAllowed()` is the side-effect-free companion and remains the public query for tooling/tests.)
+- **Verify:** `tests/Unit/Application/Lifecycle/ExecutionLifecycleCoordinatorTest.php` (11 tests, 22 assertions) unchanged/green — including `Transition matrix` and `Illegal transition rejected`. Plus `Domain/Execution` (15/15) and `Application/Runner` (19/19) regression green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
+- **Note:** this eliminated a pre-existing cs defect surfaced by the new `CloudEventPublisher` constructor from T0.6 (empty-constructor brace style) — fixed in the same change so `composer cs:check` stays clean. No public contract change; behavior identical.
 
 ### T1.2 — S9 + S11: unify `label()`/`name()` and stop enum `name()` shadowing
 - **Files:** `ExecutionStatusInterface.php:23`, `ActivityStatusInterface.php:19`; enums `ObservationSeverity`, `MeasurementKind`, `MeasurementUnit`, `ContextClassification`, `SnapshotClassification`, `ActivityStatus`; `Execution.php:133`, `Activity.php`; `DefaultExecutionSpanMapper.php:84/86`, `DefaultActivitySpanMapper.php:86`, `SpanStatusMap.php`, `SeverityMap.php`, `DefaultObservationToPsr3LevelMapper.php`, `ObservationRecordingLogger.php`, `DefaultMeasurementInstrumentMapper.php:76-81`.
