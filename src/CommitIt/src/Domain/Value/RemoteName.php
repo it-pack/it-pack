@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Domain\Value;
 
+use ItPack\CommitIt\Domain\Validation\RefKind;
+use ItPack\CommitIt\Domain\Validation\RefNameValidator;
+
 /**
- * Validated remote name.
- *
- * Skeleton for Milestone M1: stores the name and enforces non-empty. Full
- * ref-name rules are enforced by the dedicated validator in Milestone M2.
+ * Validated remote name. Backed by {@see RefNameValidator} (git ref-format
+ * rules). Immutable and comparable by value.
  *
  * @api
  */
@@ -20,13 +21,9 @@ final class RemoteName
 
     public static function from(string $name): self
     {
-        $trimmed = trim($name);
+        RefNameValidator::assertValid($name, RefKind::Remote);
 
-        if ($trimmed === '') {
-            throw new \InvalidArgumentException('Remote name must not be empty.');
-        }
-
-        return new self($trimmed);
+        return new self($name);
     }
 
     public function equals(self $other): bool

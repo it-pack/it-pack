@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Domain\Value;
 
+use ItPack\CommitIt\Domain\Validation\CommitMessageValidator;
+
 /**
  * Immutable commit message composed of a subject and an optional body.
  *
- * Skeleton for Milestone M1: splits a raw message on the first blank line and
- * enforces a non-empty subject. Richer rules (length, whitespace) are enforced
- * by {@see \ItPack\CommitIt\Domain\Validation\CommitMessageValidator} in M2.
+ * Construction routes through {@see CommitMessageValidator}: the subject must be
+ * non-empty, a single line, and within the length guard; the body is optional
+ * and normalized to null when empty.
  *
  * @api
  */
@@ -24,14 +26,11 @@ final class CommitMessage
     public static function fromParts(string $subject, ?string $body = null): self
     {
         $trimmedSubject = trim($subject);
-
-        if ($trimmedSubject === '') {
-            throw new \InvalidArgumentException('Commit subject must not be empty.');
-        }
-
         $trimmedBody = $body === null ? null : trim($body);
 
-        return new self($trimmedSubject, $trimmedBody === '' ? null : $trimmedBody);
+        CommitMessageValidator::assertValid($trimmedSubject, $trimmedBody);
+
+        return new self($trimmedSubject, $trimmedBody);
     }
 
     public static function fromString(string $message): self

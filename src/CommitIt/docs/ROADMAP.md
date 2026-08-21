@@ -163,10 +163,40 @@ are Milestone M2).
 
 ---
 
-## Milestone M2 — Domain: Value Objects & Validators
+## Milestone M2 — Domain: Value Objects & Validators ✅ COMPLETE
 
 **Goal:** Immutable, validated, framework-free domain primitives. These are the
 highest-value mutation-testing targets.
+
+> **Status (2026-08-21):** Implemented and verified. Gates green: `phpstan
+> analyse` (level max, 0 errors), `deptrac` (0 violations), `php-cs-fixer`
+> (0 files), `composer validate` (valid), `codecept run Unit` (33 tests, 165
+> assertions). Mutation testing is wired in M8 (infection `min-msi=0`); the
+> validator branches are structured for strong MSI.
+
+### What was built
+
+- **`RepositoryPath` hardened** (`src/Domain/Value/RepositoryPath.php`): validates
+  non-empty + control-character-free; adds a deferred `realPath` property hook
+  that resolves the canonical path on first access (cached), keeping
+  construction pure per the roadmap's "resolution may be deferred" note.
+- **Ref-name validation** (`src/Domain/Validation/RefNameValidator.php` +
+  `RefKind` enum): pure, git `check_ref_format`-aligned rules shared by
+  branch/tag/remote names. `BranchName` / `TagName` / `RemoteName` now route
+  through it in `from()`.
+- **Commit-message validation** (`src/Domain/Validation/CommitMessageValidator.php`):
+  non-empty, single-line, bounded subject (`MAX_SUBJECT_LENGTH = 72`, the
+  conventional git soft limit), optional non-empty body. `CommitMessage` routes
+  through it in `fromParts()`.
+- **Domain exception taxonomy** (`src/Domain/Exception/`): concrete throwables for
+  all five M1 contract markers (`VcsOperationException`,
+  `RepositoryNotFoundException`, `DirtyWorkingTreeException`,
+  `InvalidReferenceNameException`, `InvalidCommitMessageException`), each
+  implementing its `Contract\Exception\*` marker and `@api`-tagged as public API.
+- **New contract marker** `Contract\Exception\InvalidCommitMessageException`
+  (extends `VcsOperationException`) — added because commit-message validation
+  needed a marker distinct from reference-name errors, per AGENTS' rule that
+  required exceptions implement the relevant marker.
 
 ### Tasks
 
@@ -218,14 +248,31 @@ highest-value mutation-testing targets.
      they carry domain meaning (e.g. `InvalidReferenceNameException` thrown by the
      validator). They must implement the `Contract\Exception\*` markers.
 
-### Acceptance criteria
+### Acceptance criteria — all met
 
 - Unit tests for each value object: valid construction, rejection of invalid
-  input, immutability (no setters / `readonly`), equality semantics.
-- Validator tests cover valid + invalid branches/tags/remotes and commit messages
-  (property-based fuzzing for ref names is encouraged).
+  input, immutability (`readonly`), equality semantics (`equals()` where
+  applicable). See `tests/Unit/Domain/Value/ValueObjectTest.php`.
+- Validator tests cover valid + invalid branches/tags/remotes and commit messages.
+  See `tests/Unit/Domain/Validation/{RefNameValidatorTest,CommitMessageValidatorTest}.php`.
 - PHPStan max and DepTrac green (`Domain → Common, Contract` only).
-- Mutation testing on validators reaches the project threshold (see M8).
+- Mutation testing on validators is wired in M8; the `reason()`/`assertValid()`
+  split gives clean, high-MSI branches.
+
+### Decisions recorded during M2
+
+- **Branch and tag names share the same ref-format rules** (both permit `/` as a
+  hierarchy separator under git's `check_ref_format` constraints). The roadmap's
+  "tag allows `/`" phrasing is satisfied because *both* allow `/`; the only
+  intended difference is semantic (heads vs. tags), not the character set. Remote
+  names use the same constraints. If a project later needs stricter remote-name
+  rules, `RefNameValidator` is the single place to differentiate by `RefKind`.
+- **Subject length guard = 72** (conventional git soft limit), exposed as
+  `CommitMessageValidator::MAX_SUBJECT_LENGTH` so it can be tuned without touching
+  the rule body.
+- **Empty/whitespace body is rejected** when explicitly provided (the value
+  object no longer silently normalizes a whitespace-only body to "no body"); a
+  `null` body remains valid.
 
 ---
 
@@ -490,9 +537,9 @@ and wire non-intrusive observation.
 ```text
 M0  Foundation & QA wiring                       ✅ COMPLETE (2026-08-21)
 M1  Common & Contract ports                     ✅ COMPLETE (2026-08-21)
-M2  Domain value objects + validators   (skeletons built in M1; M2 adds validation + validators + tests)
+M2  Domain value objects + validators           ✅ COMPLETE (2026-08-21)
 M3  Git adapter (factory, repository, working tree, exception map)
-M4  Application (ObservedRepository, RepositoryOpener; option builders already in Domain/Option)
+M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place)
 M5  SDK facade
 M6  Integration tests & failure/security injection
 M7  Documentation & ADRs

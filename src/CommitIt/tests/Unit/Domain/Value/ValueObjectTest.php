@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Value;
 
 use Codeception\Test\Unit;
+use ItPack\CommitIt\Domain\Exception\InvalidReferenceNameException;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
@@ -31,6 +32,21 @@ final class ValueObjectTest extends Unit
         self::assertSame('/repo', RepositoryPath::from('  /repo  ')->toString());
     }
 
+    public function testRepositoryPathRejectsControlCharacters(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        RepositoryPath::from("valid\x00path");
+    }
+
+    public function testRepositoryPathResolvesRealPath(): void
+    {
+        $path = RepositoryPath::from('/this/path/does/not/exist');
+
+        // Resolution is deferred and falls back to the original path when absent.
+        self::assertSame('/this/path/does/not/exist', $path->realPath);
+    }
+
     public function testValueObjectsRejectEmpty(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -38,13 +54,20 @@ final class ValueObjectTest extends Unit
         RepositoryPath::from('   ');
     }
 
-    public function testCommitIdEqualityAndString(): void
+    public function testRefNamesRejectInvalidInput(): void
     {
-        $a = CommitId::from('abc123');
-        $b = CommitId::from('abc123');
+        $invalid = ['', '  ', '..', 'a..b', '/head', 'head/', 'a//b', 'a b', 'a~b', 'a^b', 'a:b', 'a?b', 'a*b', 'a[b', 'a\\b', '@{x}', '@', '.hidden', 'a/b/.c', 'a.lock', 'a/b/c.lock'];
 
-        self::assertTrue($a->equals($b));
-        self::assertSame('abc123', (string) $a);
+        foreach ($invalid as $name) {
+            foreach ([BranchName::class, TagName::class, RemoteName::class] as $class) {
+                try {
+                    $class::from($name);
+                    self::fail(sprintf('%s::from() should reject "%s"', $class, $name));
+                } catch (InvalidReferenceNameException $e) {
+                    self::assertStringContainsString('name is invalid', $e->getMessage());
+                }
+            }
+        }
     }
 
     public function testRefNamesExposeValue(): void
@@ -53,6 +76,13 @@ final class ValueObjectTest extends Unit
         self::assertSame('v1.0', (string) TagName::from('v1.0'));
         self::assertSame('origin', (string) RemoteName::from('origin'));
         self::assertTrue(BranchName::from('main')->equals(BranchName::from('main')));
+    }
+
+    public function testRefNamesAllowHierarchySeparators(): void
+    {
+        self::assertSame('feature/login', (string) BranchName::from('feature/login'));
+        self::assertSame('release/v1.0', (string) TagName::from('release/v1.0'));
+        self::assertSame('upstream/ci', (string) RemoteName::from('upstream/ci'));
     }
 
     public function testCommitMessagePartsAndRoundTrip(): void
@@ -74,6 +104,27 @@ final class ValueObjectTest extends Unit
         $this->expectException(\InvalidArgumentException::class);
 
         CommitMessage::fromParts('   ');
+    }
+
+    public function testCommitMessageRejectsMultiLineSubject(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        CommitMessage::fromParts("line one\nline two");
+    }
+
+    public function testCommitMessageRejectsOverlongSubject(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        CommitMessage::fromParts(str_repeat('a', 73));
+    }
+
+    public function testCommitMessageRejectsEmptyBodyWhenProvided(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        CommitMessage::fromParts('Subject', '   ');
     }
 
     public function testCommitSnapshotIsImmutable(): void

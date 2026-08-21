@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Domain\Value;
 
+use ItPack\CommitIt\Domain\Validation\RefKind;
+use ItPack\CommitIt\Domain\Validation\RefNameValidator;
+
 /**
- * Validated tag name.
- *
- * Skeleton for Milestone M1: stores the name and enforces non-empty. Full
- * ref-name rules are enforced by the dedicated validator in Milestone M2.
+ * Validated tag name. Backed by {@see RefNameValidator} (git ref-format rules).
+ * Immutable and comparable by value.
  *
  * @api
  */
@@ -20,13 +21,9 @@ final class TagName
 
     public static function from(string $name): self
     {
-        $trimmed = trim($name);
+        RefNameValidator::assertValid($name, RefKind::Tag);
 
-        if ($trimmed === '') {
-            throw new \InvalidArgumentException('Tag name must not be empty.');
-        }
-
-        return new self($trimmed);
+        return new self($name);
     }
 
     public function equals(self $other): bool
