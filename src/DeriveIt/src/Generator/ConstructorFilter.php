@@ -10,11 +10,11 @@ use ReflectionMethod;
 /**
  * Drops __construct / __destruct according to the configured drop flags.
  */
-final class ConstructorFilter implements MethodFilterInterface
+final readonly class ConstructorFilter implements MethodFilterInterface
 {
     public function __construct(
-        private readonly bool $dropConstruct = true,
-        private readonly bool $dropDestruct = true,
+        private bool $dropConstruct = true,
+        private bool $dropDestruct = true,
     ) {
     }
 

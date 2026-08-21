@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Exception\NamingCollisionException;
+use Nette\PhpGenerator\Method;
 use ReflectionClass;
 
 /**
@@ -27,7 +28,7 @@ final class Naming
     }
 
     /**
-     * Fully-qualified name of the interface derived from a class.
+     * Fully qualified name of the interface derived from a class.
      */
     public static function derivedInterfaceFqcn(ReflectionClass $reflection): string
     {
@@ -66,7 +67,7 @@ final class Naming
      * same-named methods and would otherwise silently drop the duplicate
      * (G11 / B4).
      *
-     * @param list<\Nette\PhpGenerator\Method> $methods
+     * @param list<Method> $methods
      */
     public static function assertMethodNamesUnique(string $interfaceName, array $methods): void
     {

@@ -13,7 +13,7 @@ use Nette\PhpGenerator\InterfaceType;
  *
  * Immutable value object: all state is public readonly.
  */
-final class DerivationResult
+final readonly class DerivationResult
 {
     /**
      * @param list<string> $methods Method names in the derived surface.
@@ -23,13 +23,13 @@ final class DerivationResult
      *                            produced by `analyze()` (metadata only, no render).
      */
     public function __construct(
-        public readonly InterfaceType $interface,
-        public readonly string $fqcn,
-        public readonly string $shortName,
-        public readonly ?string $source,
-        public readonly array $methods,
-        public readonly array $substitutions = [],
-        public readonly array $constants = [],
+        public InterfaceType $interface,
+        public string        $fqcn,
+        public string        $shortName,
+        public ?string       $source,
+        public array         $methods,
+        public array         $substitutions = [],
+        public array         $constants = [],
     ) {
     }
 }

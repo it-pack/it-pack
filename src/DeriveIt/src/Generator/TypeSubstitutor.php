@@ -22,7 +22,7 @@ use ReflectionUnionType;
  * {@see self::rewriteConstantExpression()} so an enum/constant from an adaptee
  * class is mapped to its derived interface when present (A2).
  */
-final class TypeSubstitutor
+final readonly class TypeSubstitutor
 {
     /**
      * @param array<string, string> $map Class FQCN => derived interface FQCN.
@@ -31,10 +31,10 @@ final class TypeSubstitutor
      * @param array<string, string> $namespacePrefixMap Owned-namespace rewrite, e.g. `App\` => `App\Port\`.
      */
     public function __construct(
-        private readonly array $map = [],
-        private readonly ?string $selfFqcn = null,
-        private readonly ?string $parentFqcn = null,
-        private readonly array $namespacePrefixMap = [],
+        private array   $map = [],
+        private ?string $selfFqcn = null,
+        private ?string $parentFqcn = null,
+        private array   $namespacePrefixMap = [],
     ) {
     }
 
@@ -130,14 +130,11 @@ final class TypeSubstitutor
             return $name;
         }
 
-        if (in_array($name, ['self', 'static'], true) && $this->selfFqcn !== null) {
-            $resolved = $this->selfFqcn;
-        } elseif ($name === 'parent' && $this->parentFqcn !== null) {
-            $resolved = $this->parentFqcn;
-        } else {
-            $resolved = $this->map[$name] ?? $name;
-            $resolved = $this->applyNamespacePrefix($resolved);
-        }
+        $resolved = match (true) {
+            $this->selfFqcn !== null && in_array($name, ['self', 'static'], true) => $this->selfFqcn,
+            $name === 'parent' && $this->parentFqcn !== null => $this->parentFqcn,
+            default => $this->map[$name] ?? $name,
+        };
 
         return ($type->allowsNull() ? '?' : '') . $resolved;
     }

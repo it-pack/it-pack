@@ -251,10 +251,7 @@ final class FamilyDeriver
             return $named;
         }
 
-        /** @var ReflectionNamedType $namedType */
-        $namedType = $type;
-
-        return [$namedType];
+        return [$type];
     }
 
     private function isUserland(string $className): bool
@@ -263,12 +260,9 @@ final class FamilyDeriver
             return false;
         }
 
-        foreach (['Nette\\', 'PHPUnit\\', 'Codeception\\', 'Symfony\\', 'Composer\\', 'Illuminate\\'] as $vendor) {
-            if (str_starts_with($className, $vendor)) {
-                return false;
-            }
-        }
-
-        return true;
+        return array_all(
+            ['Nette\\', 'PHPUnit\\', 'Codeception\\', 'Symfony\\', 'Composer\\', 'Illuminate\\'],
+            fn($vendor) => !str_starts_with($className, $vendor)
+        );
     }
 }

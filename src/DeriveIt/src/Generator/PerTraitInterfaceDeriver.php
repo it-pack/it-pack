@@ -19,18 +19,18 @@ use ReflectionClass;
  * Leakage invariant (per-trait mode): the main interface must extend ONLY the
  * derived trait interfaces — never the adaptee's own parent/interface hierarchy.
  * When a method name is declared by multiple traits, the first trait in
- * getTraitsRecursively() order owns it; the others drop it, so no duplicate
+ * the getTraitsRecursively () order owns it; the others drop it, so no duplicate
  * method declaration can occur across the extended interfaces.
  */
-final class PerTraitInterfaceDeriver implements DeriverInterface
+final readonly class PerTraitInterfaceDeriver implements DeriverInterface
 {
-    private readonly MethodExtractor $extractor;
-    private readonly SourceRenderer $renderer;
-    private readonly MethodSignatureFactory $signatureFactory;
+    private MethodExtractor $extractor;
+    private SourceRenderer $renderer;
+    private MethodSignatureFactory $signatureFactory;
 
     public function __construct(
         ?MethodSignatureFactory $signatureFactory = null,
-        private readonly DeriveConfig $config = new DeriveConfig(),
+        private DeriveConfig    $config = new DeriveConfig(),
     ) {
         $this->extractor = new MethodExtractor($config);
         $this->renderer = new SourceRenderer();
@@ -42,13 +42,7 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
      */
     public function deriveTraitInterfaces(ReflectionClass $reflection): array
     {
-        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
-        $parent = $reflection->getParentClass();
-        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
-            ? Naming::derivedInterfaceFqcn($parent)
-            : null;
-
-        $substitutor = new TypeSubstitutor($this->config->typeSubstitutionMap, $selfFqcn, $parentFqcn);
+        $substitutor = $this->createTypeSubstitutor($reflection);
 
         $claimed = [];
         $interfaces = [];
@@ -130,12 +124,7 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
             }
         }
 
-        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
-        $parent = $reflection->getParentClass();
-        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
-            ? Naming::derivedInterfaceFqcn($parent)
-            : null;
-        $substitutor = new TypeSubstitutor($this->config->typeSubstitutionMap, $selfFqcn, $parentFqcn);
+        $substitutor = $this->createTypeSubstitutor($reflection);
 
         $mainMethods = [];
         foreach ($this->extractor->extract($reflection) as $method) {
@@ -209,5 +198,20 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
         }
 
         return false;
+    }
+
+    /**
+     * @param ReflectionClass $reflection
+     * @return TypeSubstitutor
+     */
+    private function createTypeSubstitutor(ReflectionClass $reflection): TypeSubstitutor
+    {
+        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
+        $parent = $reflection->getParentClass();
+        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
+            ? Naming::derivedInterfaceFqcn($parent)
+            : null;
+
+        return new TypeSubstitutor($this->config->typeSubstitutionMap, $selfFqcn, $parentFqcn);
     }
 }

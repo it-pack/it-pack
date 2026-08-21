@@ -8,6 +8,7 @@ use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
 use ItPack\DeriveIt\Exception\EmptyDerivationException;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use Nette\PhpGenerator\InterfaceType;
+use Nette\PhpGenerator\Method;
 use ReflectionClass;
 
 /**
@@ -24,15 +25,15 @@ use ReflectionClass;
  * surface can be escalated to an error (A6); and a structured {@see DerivationResult}
  * is available alongside the source string (D1).
  */
-final class InterfaceDeriver implements DeriverInterface
+final readonly class InterfaceDeriver implements DeriverInterface
 {
-    private readonly MethodExtractor $extractor;
-    private readonly SourceRenderer $renderer;
-    private readonly MethodSignatureFactory $signatureFactory;
+    private MethodExtractor $extractor;
+    private SourceRenderer $renderer;
+    private MethodSignatureFactory $signatureFactory;
 
     public function __construct(
         ?MethodSignatureFactory $signatureFactory = null,
-        private readonly DeriveConfig $config = new DeriveConfig(),
+        private DeriveConfig    $config = new DeriveConfig(),
     ) {
         $this->extractor = new MethodExtractor($config);
         $this->renderer = new SourceRenderer();
@@ -150,7 +151,7 @@ final class InterfaceDeriver implements DeriverInterface
             $collected[] = $signature;
         }
 
-        $methodNames = array_map(static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(), $collected);
+        $methodNames = array_map(static fn (Method $m): string => $m->getName(), $collected);
 
         Naming::assertMethodNamesUnique($interface->getName(), $collected);
         $interface->setMethods($collected);

@@ -17,17 +17,16 @@ use ReflectionMethod;
  * resolves parent + trait conflicts, so the result is the effective surface without
  * manual graph walking.
  */
-final class MethodExtractor
+final readonly class MethodExtractor
 {
     /** @var list<MethodFilterInterface> */
-    private readonly array $filters;
+    private array $filters;
 
     /**
-     * @param MethodFilterInterface ...$filters Explicit chain; when empty, the
-     *                                        default chain is derived from $config.
+     * @param MethodFilterInterface ...$filters Explicit chain; when empty, the default chain is derived from $config.
      */
     public function __construct(
-        private readonly DeriveConfig $config = new DeriveConfig(),
+        private DeriveConfig  $config = new DeriveConfig(),
         MethodFilterInterface ...$filters,
     ) {
         $this->filters = $filters;

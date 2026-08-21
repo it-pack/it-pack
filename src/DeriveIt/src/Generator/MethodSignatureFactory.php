@@ -27,13 +27,13 @@ use ReflectionType;
  * by default attributes are stripped so a derived port never leaks a third-party
  * attribute class.
  */
-final class MethodSignatureFactory
+final readonly class MethodSignatureFactory
 {
-    private readonly Factory $factory;
+    private Factory $factory;
 
     public function __construct(
-        ?Factory $factory = null,
-        private readonly ?DeriveConfig $config = null,
+        ?Factory              $factory = null,
+        private ?DeriveConfig $config = null,
     ) {
         $this->factory = $factory ?? new Factory();
     }
@@ -65,11 +65,10 @@ final class MethodSignatureFactory
             // When the full phpdoc is preserved it already carries `@throws`
             // (and is FQCN-simplified), so the dedicated capture must not
             // duplicate it (G8 / EC9).
-            if ($this->config->preserveDocblocks) {
-                $this->applyDocblock($signature, $method, $substitutor);
-            } elseif ($this->config->throwsCapture) {
-                $this->applyThrows($signature, $method);
-            }
+            match (true) {
+                $this->config->preserveDocblocks => $this->applyDocblock($signature, $method, $substitutor),
+                $this->config->throwsCapture => $this->applyThrows($signature, $method),
+            };
         }
 
         return $signature;

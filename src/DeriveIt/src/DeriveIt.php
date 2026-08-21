@@ -16,6 +16,7 @@ use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
 use ReflectionClass;
+use ReflectionException;
 
 /**
  * Public entry point for deriving self-contained interfaces from existing classes.
@@ -93,7 +94,7 @@ final class DeriveIt
      *
      * @param ReflectionClass|class-string $class
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
-     * @throws \ReflectionException
+     * @throws ReflectionException
      */
     public static function deriveAdapter(
         ReflectionClass|string $class,

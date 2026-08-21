@@ -10,10 +10,10 @@ use ReflectionMethod;
 /**
  * Keeps methods whose visibility is within the configured allowed mask.
  */
-final class VisibilityFilter implements MethodFilterInterface
+final readonly class VisibilityFilter implements MethodFilterInterface
 {
     public function __construct(
-        private readonly int $visibilityMask,
+        private int $visibilityMask,
     ) {
     }
 

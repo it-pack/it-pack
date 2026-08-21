@@ -12,10 +12,10 @@ use ReflectionMethod;
  * Constructors/destructors are handled separately by ConstructorFilter so they
  * can be kept when includeMagic is true but dropConstruct/dropDestruct are set.
  */
-final class MagicMethodFilter implements MethodFilterInterface
+final readonly class MagicMethodFilter implements MethodFilterInterface
 {
     public function __construct(
-        private readonly bool $includeMagic = false,
+        private bool $includeMagic = false,
     ) {
     }
 

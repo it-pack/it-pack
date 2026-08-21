@@ -26,7 +26,7 @@ final class LeakageAuditor
     /**
      * @var list<string> PHP builtin type names that are never leakage.
      */
-    private const BUILTINS = [
+    private const array BUILTINS = [
         'int', 'float', 'string', 'bool', 'array', 'callable', 'iterable', 'object',
         'mixed', 'void', 'never', 'null', 'true', 'false', 'self', 'static',
         'parent', 'resource',
@@ -73,7 +73,7 @@ final class LeakageAuditor
     }
 
     /**
-     * Computes the owned-namespace allow-list for a derivation.
+     * Computes the owned-namespace allowlist for a derivation.
      *
      * @param array<string, string> $map Class FQCN => derived interface FQCN.
      * @param array<string, string> $namespacePrefixMap Owned-namespace rewrite.
@@ -126,7 +126,7 @@ final class LeakageAuditor
 
     private function isAllowed(string $segment, string $namespace, array $allowedNamespaces): bool
     {
-        // Global (non-namespaced) class reference — e.g. DateTime — is a concrete leak.
+        // Global (non-namespaced) class reference — e.g., DateTime — is a concrete leak.
         if (!str_contains($segment, '\\')) {
             return false;
         }

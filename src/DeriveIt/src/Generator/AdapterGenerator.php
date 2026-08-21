@@ -9,6 +9,7 @@ use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\Method;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
+use Nette\Utils\Type;
 use ReflectionClass;
 
 /**
@@ -21,21 +22,20 @@ use ReflectionClass;
  * wrapped in that adapter so the port stays free of concrete types (the
  * leakage invariant extended across the adapter boundary).
  *
- * The generated adapter lives in the adaptee's own namespace so the FQCN types
+ * The generated adapter lives in the adaptee's own namespace, so the FQCN types
  * (adaptee + wrapper adapters) simplify to local short names when rendered.
  */
-final class AdapterGenerator
+final readonly class AdapterGenerator
 {
     /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
      */
     public function __construct(
-        private readonly InterfaceType $interface,
-        private readonly ReflectionClass $adaptee,
-        private readonly array $returnWrapperMap = [],
+        private InterfaceType   $interface,
+        private ReflectionClass $adaptee,
+        private array           $returnWrapperMap = [],
     ) {
     }
-
     public function generate(): ClassType
     {
         $adapteeFqcn = $this->adaptee->getName();
@@ -59,9 +59,11 @@ final class AdapterGenerator
         foreach ($this->interface->getMethods() as $method) {
             if ($method->isStatic()) {
                 $this->addStaticDelegatingMethod($class, $method);
-            } else {
-                $this->addDelegatingMethod($class, $method);
+
+                continue;
             }
+
+            $this->addDelegatingMethod($class, $method);
         }
 
         return $class;
@@ -78,38 +80,7 @@ final class AdapterGenerator
         $returnType = $method->getReturnType();
 
         $delegating = $class->addMethod($name)->setStatic(true);
-        if (is_string($returnType) && $returnType !== '') {
-            $delegating->setReturnType($returnType);
-            $delegating->setReturnNullable($method->isReturnNullable());
-        }
-
-        $arguments = [];
-        $parameters = $method->getParameters();
-        $isVariadic = $method->isVariadic();
-
-        foreach ($parameters as $index => $parameter) {
-            $isVariadicParameter = $isVariadic && $index === array_key_last($parameters);
-            $arguments[] = ($isVariadicParameter ? '...' : '') . '$' . $parameter->getName();
-
-            $copied = $delegating->addParameter($parameter->getName())
-                ->setType($parameter->getType())
-                ->setNullable($parameter->isNullable())
-            ;
-
-            if ($parameter->hasDefaultValue()) {
-                $copied->setDefaultValue($parameter->getDefaultValue());
-            }
-
-            if ($parameter->isReference()) {
-                $copied->setReference(true);
-            }
-        }
-
-        if ($isVariadic) {
-            $delegating->setVariadic(true);
-        }
-
-        $argumentList = implode(', ', $arguments);
+        $argumentList = self::buildArgumentList($returnType, $delegating, $method);
         $call = sprintf('\\%s::%s(%s)', $this->adaptee->getName(), $name, $argumentList);
 
         $delegating->setBody($this->bodyFor($call, $returnType, $method->isReturnNullable()));
@@ -148,45 +119,17 @@ final class AdapterGenerator
         $returnType = $method->getReturnType();
 
         $delegating = $class->addMethod($name);
-        if (is_string($returnType) && $returnType !== '') {
-            $delegating->setReturnType($returnType);
-            $delegating->setReturnNullable($method->isReturnNullable());
-        }
-
-        $arguments = [];
-        $parameters = $method->getParameters();
-        $isVariadic = $method->isVariadic();
-
-        foreach ($parameters as $index => $parameter) {
-            $isVariadicParameter = $isVariadic && $index === array_key_last($parameters);
-            $arguments[] = ($isVariadicParameter ? '...' : '') . '$' . $parameter->getName();
-
-            $copied = $delegating->addParameter($parameter->getName())
-                ->setType($parameter->getType())
-                ->setNullable($parameter->isNullable())
-            ;
-
-            if ($parameter->hasDefaultValue()) {
-                $copied->setDefaultValue($parameter->getDefaultValue());
-            }
-
-            if ($parameter->isReference()) {
-                $copied->setReference(true);
-            }
-        }
-
-        if ($isVariadic) {
-            $delegating->setVariadic(true);
-        }
-
-        $argumentList = implode(', ', $arguments);
+        $argumentList = self::buildArgumentList($returnType, $delegating, $method);
         $call = sprintf('$this->adaptee->%s(%s)', $name, $argumentList);
 
         $delegating->setBody($this->bodyFor($call, $returnType, $method->isReturnNullable()));
     }
 
     /**
+     * @param string $call
      * @param string|null $returnType
+     * @param bool $nullable
+     * @return string
      */
     private function bodyFor(string $call, ?string $returnType, bool $nullable): string
     {
@@ -244,5 +187,46 @@ final class AdapterGenerator
             $call,
             $branches,
         );
+    }
+
+    /**
+     * @param string|Type|null $returnType
+     * @param Method $delegating
+     * @param Method $method
+     * @return string
+     */
+    private static function buildArgumentList(string|Type|null $returnType, Method $delegating, Method $method): string
+    {
+        if (is_string($returnType) && $returnType !== '') {
+            $delegating->setReturnType($returnType);
+            $delegating->setReturnNullable($method->isReturnNullable());
+        }
+
+        $arguments = [];
+        $parameters = $method->getParameters();
+        $isVariadic = $method->isVariadic();
+
+        foreach ($parameters as $index => $parameter) {
+            $isVariadicParameter = $isVariadic && $index === array_key_last($parameters);
+            $arguments[] = ($isVariadicParameter ? '...' : '') . '$' . $parameter->getName();
+
+            $copied = $delegating->addParameter($parameter->getName())
+                ->setType($parameter->getType())
+                ->setNullable($parameter->isNullable());
+
+            if ($parameter->hasDefaultValue()) {
+                $copied->setDefaultValue($parameter->getDefaultValue());
+            }
+
+            if ($parameter->isReference()) {
+                $copied->setReference(true);
+            }
+        }
+
+        if ($isVariadic) {
+            $delegating->setVariadic(true);
+        }
+
+        return implode(', ', $arguments);
     }
 }

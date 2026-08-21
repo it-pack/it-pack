@@ -11,13 +11,13 @@ namespace ItPack\DeriveIt\Generator;
  *
  * Immutable value object: all state is public readonly.
  */
-final class DeriveDiff
+final readonly class DeriveDiff
 {
     public function __construct(
-        public readonly bool $drift,
-        public readonly string $generated,
-        public readonly string $existing,
-        public readonly string $diff,
+        public bool   $drift,
+        public string $generated,
+        public string $existing,
+        public string $diff,
     ) {
     }
 
@@ -38,7 +38,7 @@ final class DeriveDiff
     }
 
     /**
-     * Compact unified diff (no external dependency so `src/` stays
+     * Compact unified diff (no external dependency, so `src/` stays
      * production-clean): strip the shared line prefix and suffix, then emit the
      * remaining region as `-` (removed) / `+` (added) lines under a single
      * `@@` hunk header. Correct for CI drift review; not a minimal LCS diff.
