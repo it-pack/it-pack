@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
+use ItPack\RunIt\Domain\Context\DefaultContextRedactionPolicy;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
 
 /**
@@ -28,11 +29,11 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
      * @param list<ExecutionIdInterface> $linkedExecutionIds
      */
     private function __construct(
-        private readonly ExecutionNameInterface $name,
-        private readonly ExecutionKindInterface $kind,
-        private readonly ?ExecutionIdInterface $parentExecutionId,
-        private readonly array $linkedExecutionIds,
-        private readonly ExecutionContextInterface $context,
+        private ExecutionNameInterface    $name,
+        private ExecutionKindInterface    $kind,
+        private ?ExecutionIdInterface     $parentExecutionId,
+        private array                     $linkedExecutionIds,
+        private ExecutionContextInterface $context,
     ) {
     }
 
@@ -46,7 +47,13 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
         array $linkedExecutionIds = [],
         ?ExecutionContextInterface $context = null,
     ): self {
-        return new self($name, $kind, $parentExecutionId, $linkedExecutionIds, $context ?? ExecutionContext::empty());
+        return new self(
+            $name,
+            $kind,
+            $parentExecutionId,
+            $linkedExecutionIds,
+                $context ?? ExecutionContext::empty()
+        );
     }
 
     public function name(): ExecutionNameInterface
@@ -86,8 +93,13 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
             'name' => $this->name->toString(),
             'kind' => $this->kind->toString(),
             'parent_execution_id' => $this->parentExecutionId?->toString(),
-            'linked_execution_ids' => array_map(static fn (ExecutionIdInterface $id): string => $id->toString(), $this->linkedExecutionIds),
-            'context' => $this->context->toArray(),
+            'linked_execution_ids' => array_map(
+                static fn (ExecutionIdInterface $id): string => $id->toString(),
+                $this->linkedExecutionIds
+            ),
+            'context' => $this->context->toArray(
+                new DefaultContextRedactionPolicy()
+            ),
         ];
     }
 }

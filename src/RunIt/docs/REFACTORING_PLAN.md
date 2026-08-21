@@ -10,14 +10,12 @@
 
 Goal: eliminate the six reachable-from-public-API defects. Each task ends with a red/green test.
 
-### T0.1 — S1: wire secret context redaction into normalization
-- **Files:** `src/Domain/Execution/Execution.php`, `src/Domain/Execution/ExecutionDefinition.php`, `src/Domain/Context/DefaultContextRedactionPolicy.php`, `src/Contract/Domain/ContextRedactionPolicyInterface.php`, `src/Application/Publication/*Recorders*`, `src/SDK/DefaultRunIt.php`/`RunItBuilder.php`.
-- **Steps:**
-  1. Add a `ContextRedactionPolicyInterface` dependency to the normalize path. Prefer: `ExecutionContext::toArray(?ContextRedactionPolicyInterface $policy = null)` and apply it; `Execution`/`ExecutionDefinition` call it with the configured policy (injected via the recorder/scope or builder).
-  2. `Execution::normalize()` (`Execution.php:142`) and `ExecutionDefinition::normalize()` must emit the **redacted** context, keyed off `ContextClassification::isSecret()`/`isExportable()`, not key-name lists.
-  3. Keep `DefaultContextRedactionPolicy` as the default deny-secret policy; make it the wired default in the SDK builder.
-- **Verify:** new negative test — a `secret.*` entry is **absent** from Execution-start, Execution-complete, and `ExecutionSnapshot` normalized output under default wiring. Conformance `RedactorVerifier` still green.
-- **Risk/BC:** changes a serialization field's content → flag in release notes (ADR-012). Internal only; no documented contract break.
+### T0.1 — S1: wire secret context redaction into normalization — **DONE 2026-08-21**
+- **Files:** `src/Domain/Execution/Execution.php`, `src/Domain/Execution/ExecutionDefinition.php`, `src/Domain/Context/DefaultContextRedactionPolicy.php`, `src/Contract/Domain/ContextRedactionPolicyInterface.php`, `src/Domain/Context/ExecutionContext.php`, `tests/Unit/Domain/Execution/ExecutionContextRedactionTest.php`.
+- **Chosen approach:** applied the default deny-secret policy at the **domain boundary** rather than only in the SDK builder. `ExecutionContext::toArray()` gained an optional `?ContextRedactionPolicyInterface $policy = null` parameter (added to both the concrete class and `ExecutionContextInterface` so the contract stays in sync). `Execution::normalize()` and `ExecutionDefinition::normalize()` now pass `new DefaultContextRedactionPolicy()`, so secret and non-exportable entries are withheld from any normalized projection. Because `ExecutionSnapshotFactory::terminal()` uses `Execution::normalize()` as the snapshot payload, this also covers the terminal `ExecutionSnapshot` output — all three targets (start, complete, terminal snapshot) in one change.
+- **Why domain boundary, not builder wiring:** `NormalizableInterface` already mandates that normalization "never include secret or restricted values unless an explicit policy allows them." Default-deny at the boundary guarantees no leak under *any* wiring (including direct `normalize()` calls and in-memory stores), which is stronger than relying on a redactor being in the pipeline. The `toArray(?policy)` signature still lets a caller supply an explicit policy for the rare case that requires it.
+- **Verify:** `tests/Unit/Domain/Execution/ExecutionContextRedactionTest.php` (5 tests) — secret entry absent from Execution/ExecutionDefinition/terminal-snapshot normalized output; raw context preserved when no policy is supplied. Plus regression: `Domain/Execution`, `Domain/Context`, `Application/Factory`, `Application/Runner` suites green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
+- **Risk/BC:** changes the content of the `context` field in normalized artifacts (secrets now dropped by default). Internal only; no documented contract break, but flag in release notes (ADR-012).
 
 ### T0.2 — S2: bound serializer recursion for objects
 - **Files:** `src/Adapter/Common/JsonSnapshotSerializer.php:74-109`.

@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Domain\Context\DefaultContextRedactionPolicy;
 use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 
@@ -29,13 +30,13 @@ use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 final readonly class Execution implements ExecutionInterface
 {
     private function __construct(
-        private readonly ExecutionIdInterface $id,
-        private readonly ExecutionDefinitionInterface $definition,
-        private readonly ExecutionStatusInterface $status,
-        private readonly InstantInterface $startedAt,
-        private readonly ?InstantInterface $endedAt,
-        private readonly ?ExecutionResultInterface $result,
-        private readonly ArtifactSequenceInterface $sequence,
+        private ExecutionIdInterface         $id,
+        private ExecutionDefinitionInterface $definition,
+        private ExecutionStatusInterface     $status,
+        private InstantInterface             $startedAt,
+        private ?InstantInterface            $endedAt,
+        private ?ExecutionResultInterface    $result,
+        private ArtifactSequenceInterface    $sequence,
     ) {
     }
 
@@ -45,7 +46,15 @@ final readonly class Execution implements ExecutionInterface
         InstantInterface $startedAt,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $definition, ExecutionStatus::Created, $startedAt, null, null, $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $definition,
+            ExecutionStatus::Created,
+            $startedAt,
+            null,
+            null,
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function start(
@@ -54,7 +63,12 @@ final readonly class Execution implements ExecutionInterface
         InstantInterface $startedAt,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::create($id, $definition, $startedAt, $sequence)->beginRunning();
+        return self::create(
+            $id,
+            $definition,
+            $startedAt,
+            $sequence
+        )->beginRunning();
     }
 
     public function beginRunning(): self
@@ -63,12 +77,28 @@ final readonly class Execution implements ExecutionInterface
             throw InvalidLifecycleTransitionException::forTransition($this->status, ExecutionStatus::Running);
         }
 
-        return new self($this->id, $this->definition, ExecutionStatus::Running, $this->startedAt, null, null, $this->sequence);
+        return new self(
+            $this->id,
+            $this->definition,
+            ExecutionStatus::Running,
+            $this->startedAt,
+            null,
+            null,
+            $this->sequence
+        );
     }
 
     public function complete(ExecutionResultInterface $result, InstantInterface $endedAt): self
     {
-        return new self($this->id, $this->definition, $result->status(), $this->startedAt, $endedAt, $result, $this->sequence);
+        return new self(
+            $this->id,
+            $this->definition,
+            $result->status(),
+            $this->startedAt,
+            $endedAt,
+            $result,
+            $this->sequence
+        );
     }
 
     public function id(): ExecutionIdInterface
@@ -139,7 +169,7 @@ final readonly class Execution implements ExecutionInterface
                 $this->definition->linkedExecutionIds(),
             ),
             'sequence' => $this->sequence->value(),
-            'context' => $this->definition->context()->toArray(),
+            'context' => $this->definition->context()->toArray(new DefaultContextRedactionPolicy()),
             'result' => $this->result === null ? null : [
                 'status' => $this->result->status()->label(),
                 'throwable' => $this->result->throwableDescription()?->toArray(),

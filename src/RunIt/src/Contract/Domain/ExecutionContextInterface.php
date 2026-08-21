@@ -69,7 +69,11 @@ interface ExecutionContextInterface extends \Countable
      * Returns a deterministic, recursively-primitive context map keyed by entry
      * key.
      *
+     * When a redaction policy is supplied, the context is redacted before
+     * projection so secret and non-exportable entries never reach an external
+     * representation.
+     *
      * @return array<string, array<string, mixed>>
      */
-    public function toArray(): array;
+    public function toArray(?ContextRedactionPolicyInterface $policy = null): array;
 }

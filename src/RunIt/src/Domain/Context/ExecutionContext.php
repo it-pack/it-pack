@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Context;
 
+use IteratorAggregate;
 use ItPack\RunIt\Contract\Domain\ContextCollisionPolicy;
 use ItPack\RunIt\Contract\Domain\ContextEntryInterface;
+use ItPack\RunIt\Contract\Domain\ContextRedactionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 
@@ -21,11 +23,11 @@ use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
  *
  * @api
  *
- * @implements \IteratorAggregate<string, ContextEntryInterface>
+ * @implements IteratorAggregate<string, ContextEntryInterface>
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final readonly class ExecutionContext implements ExecutionContextInterface, \IteratorAggregate, \Countable
+final readonly class ExecutionContext implements ExecutionContextInterface, IteratorAggregate
 {
     public const int MAX_ENTRIES = 64;
 
@@ -143,15 +145,23 @@ final readonly class ExecutionContext implements ExecutionContextInterface, \Ite
     }
 
     /**
+     * Projects the context into a recursively primitive map keyed by entry key.
+     *
+     * When a redaction policy is supplied, the context is redacted before
+     * projection so secret and non-exportable entries never reach an external
+     * representation. This is the default behavior for normalized artifacts, which
+     * must never include secret or restricted values unless an explicit policy
+     * allows them.
+     *
      * @return array<string, array<string, mixed>>
      */
-    public function toArray(): array
+    public function toArray(?ContextRedactionPolicyInterface $policy = null): array
     {
-        $out = [];
+        $context = $policy instanceof ContextRedactionPolicyInterface ? $policy->redact($this) : $this;
 
-        foreach ($this->entries as $key => $entry) {
-            $out[$key] = $entry->toArray();
-        }
+        $out = array_map(static function ($entry) {
+            return $entry->toArray();
+        }, $context->entries());
 
         ksort($out);
 
