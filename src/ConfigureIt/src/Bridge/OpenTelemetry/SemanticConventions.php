@@ -31,6 +31,7 @@ final class SemanticConventions
     public const string SPAN_VALIDATE = 'config.validate';
     public const string SPAN_RESOLVE_STAGES = 'config.resolve.stages';
     public const string SPAN_SNAPSHOT = 'config.snapshot';
+    public const string SPAN_DRIFT = 'config.drift';
 
     /**
      * Configuration lifecycle events (CloudEvents-style) emitted on the trace.
@@ -40,6 +41,7 @@ final class SemanticConventions
     public const string EVENT_VALIDATED = 'config.validated';
     public const string EVENT_RESOLVED = 'config.resolved';
     public const string EVENT_SNAPSHOT_CREATED = 'config.snapshot.created';
+    public const string EVENT_DRIFT = 'config.drift';
     public const string EVENT_OBSERVATION = 'config.observation';
 
     /**
@@ -74,6 +76,7 @@ final class SemanticConventions
             'ConfigurationValidated' => self::SPAN_VALIDATE,
             'ConfigurationResolved' => self::SPAN_RESOLVE_STAGES,
             'SnapshotCreated' => self::SPAN_SNAPSHOT,
+            'ConfigurationDrift' => self::SPAN_DRIFT,
             default => null,
         };
     }
@@ -89,6 +92,7 @@ final class SemanticConventions
             'ConfigurationValidated' => self::EVENT_VALIDATED,
             'ConfigurationResolved' => self::EVENT_RESOLVED,
             'SnapshotCreated' => self::EVENT_SNAPSHOT_CREATED,
+            'ConfigurationDrift' => self::EVENT_DRIFT,
             default => null,
         };
     }

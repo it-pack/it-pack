@@ -671,6 +671,38 @@ last-good + observed). Example: `examples/live.php` edits a file and drives one
 Suite green: **228 tests / 516 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M6.E4.2: Live configuration drift detection ✅
+
+Completes E4.2 of Epic E6.1 / M6 (`docs/ADDITIONAL_FEATURES_PLAN.md` §4,
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`). Configuration can now be watched for
+divergence from a pinned baseline at runtime, complementing E4.1's live reload.
+Behaviour is additive and opt-in.
+
+- `src/Contract/ConfigurationDriftDetectorInterface.php` (new) — port: `pin()`,
+  `check()`, `watch()`, `stop()`, `onDrift()`. Drift is reported on *transition*
+  (entering drift, a further change while already in drift, or a return to the
+  baseline) so an interval loop does not re-emit the same divergence every tick.
+- `src/Core/ConfigurationDriftDetector.php` (new) — takes an injectable
+  `callable(): ConfigurationGraphInterface` (the live graph), an optional pinned
+  baseline, an optional reporter, and a `ConfigurationDiffer`. On divergence it
+  records a `ConfigurationDrift` `Occurrence` and a `warning` `Observation`
+  (with a readable `config.diff` summary), invokes `onDrift` listeners, and on
+  return-to-baseline records an `info` `Observation`. Uses content hashing
+  (`md5(serialize(graph->toArray()))`) to detect state changes.
+- `src/Bridge/OpenTelemetry/SemanticConventions.php` — maps the `ConfigurationDrift`
+  occurrence to the OTel `config.drift` span + event, so drift is surfaced as a
+  native OpenTelemetry event through the existing reporter spine.
+- `examples/drift.php` (new) — runnable, offline demo: pins a baseline graph,
+  mutates the live store, and shows the `ConfigurationDrift` occurrence + the
+  warning observation listing the exact changed keys.
+
+Tests: `ConfigurationDriftDetectorTest` (baseline match → no drift and no
+telemetry; divergence detected + reported + listener invoked; drift resolved when
+the live graph returns to baseline; `watch()` loop stops on drift without
+re-emitting) and an `OpenTelemetryReporterTest` asserting the `config.drift`
+event + span. Suite green: **233 tests / 539 assertions**, PHPStan level 9
+**0 errors**, `php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

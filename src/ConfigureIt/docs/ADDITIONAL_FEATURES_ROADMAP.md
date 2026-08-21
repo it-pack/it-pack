@@ -158,21 +158,21 @@ php-cs-fixer clean).
 
 ---
 
-## M6 — Live Configuration  *(Plan §4)*
+## M6 — Live Configuration  *(Plan §4)* ✅ DONE
 
-**Objective:** config that evolves at runtime without restart; drift detection.
+**Objective:** config that evolves at runtime without restart; drift detection. 
 
 ### Epic E4.1 — Watcher + reloadable facade (Core) ✅ DONE
 - [x] **T6.1.1 (M)** `Contract/ConfigurationWatcherInterface`; `FsWatcher` (inotify) + `PollingWatcher` adapters. Emits `ConfigurationChanged` `Occurrence` via the reporter spine. `PollingWatcher` polls a pluggable signature (default `FileModificationProbe`, content-hash based) on an interval; `FsWatcher` opens an `inotify` watch in the constructor and dispatches on modify/attrib/close-write/create/delete.
 - [x] **T6.1.2 (M)** `Core/ReloadableConfiguration` facade: holds the current immutable snapshot, subscribes to change events, re-resolves, and **atomically swaps** the reference via a single property assignment (old snapshots stay valid → ADR-0003 preserved). A failed reload keeps the last-good snapshot and records an `error` `Observation` instead of throwing.
 - [x] **T6.1.3 (M)** Tests: `PollingWatcherTest`, `FsWatcherTest`, `ReloadableConfigurationTest` (change → new snapshot, old captured reference unchanged, watcher-driven reload, failed reload keeps last-good + observed).
 
-### Epic E4.2 — Drift detection (Core, reuses `ConfigurationDiffer`)
-- [ ] **T6.2.1 (M)** `Core/ConfigurationDriftDetector`: compares live graph to a pinned baseline (hash or stored snapshot) on interval.
-- [ ] **T6.2.2 (M)** Emit `Observation` + OTel `config.drift` event (`OpenTelemetryReporter` already forwards observations).
-- [ ] **T6.2.3 (M)** Tests: `DriftDetectorTest` (baseline match, divergence detected + reported).
+### Epic E4.2 — Drift detection (Core, reuses `ConfigurationDiffer`) ✅ DONE
+- [x] **T6.2.1 (M)** `Contract/ConfigurationDriftDetectorInterface` + `Core/ConfigurationDriftDetector`: compares a live graph (injectable provider) to a pinned baseline on demand (`check()`) or on an interval (`watch()`). Reuses `ConfigurationDiffer` to explain the divergence.
+- [x] **T6.2.2 (M)** Emits an `Observation` (warning on drift, info on resolve) and a `ConfigurationDrift` `Occurrence`; `SemanticConventions` maps the occurrence to the OTel `config.drift` span + event, forwarded by the reporter spine.
+- [x] **T6.2.3 (M)** Tests: `ConfigurationDriftDetectorTest` (baseline match → no drift/no telemetry, divergence detected + reported + listener invoked, drift resolved when live returns to baseline, watch loop stops on drift without re-emitting) plus an `OpenTelemetryReporter` test asserting the `config.drift` event/span.
 
-**M6 Exit (E4.1):** live reload swaps atomically (old snapshots stay valid); watcher emits `ConfigurationChanged` + `ConfigurationReloaded` occurrences; a failed reload keeps the last-good snapshot and records an `error` observation. Drift detection (E4.2) remains TODO.
+**M6 Exit:** live reload swaps atomically (E4.1, old snapshots stay valid); watcher emits `ConfigurationChanged` + `ConfigurationReloaded`; a failed reload keeps the last-good snapshot and records an `error` observation. Drift detection (E4.2) compares the live graph to a pinned baseline via `ConfigurationDriftDetector`, emits `config.drift` OTel events/observations on transition, and is reported on a telemetry-friendly (non-spamming) transition basis. All gates green.
 
 ---
 

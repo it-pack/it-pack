@@ -11,9 +11,11 @@ use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\InMemoryTelemetrySink;
+use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\SemanticConventions;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use Nette\Schema\Expect;
 
@@ -161,5 +163,24 @@ class OpenTelemetryReporterTest extends Unit
         );
         $sample = array_values($observationEvents)[0];
         verify($sample['attributes'][SemanticConventions::ATTR_LEVEL] ?? null)->equals('warning');
+    }
+
+    public function testEmitsDriftEventForConfigurationDriftOccurrence(): void
+    {
+        $inner = new ResolutionReporter();
+        $reporter = new OpenTelemetryReporter($inner, $this->sink);
+
+        $reporter->record(new Occurrence('ConfigurationDrift', microtime(true), [
+            'added' => 1,
+            'removed' => 0,
+            'changed' => 1,
+            'summary' => 'Configuration diff: ...',
+        ]));
+
+        $events = $this->eventNames($this->sink->events());
+        verify(in_array(SemanticConventions::EVENT_DRIFT, $events, true))->true();
+
+        $spans = $this->spanNames($this->sink->spans());
+        verify(in_array(SemanticConventions::SPAN_DRIFT, $spans, true))->true();
     }
 }
