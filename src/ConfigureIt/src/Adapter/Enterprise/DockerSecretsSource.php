@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter\Enterprise;
 
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\SecretSourceInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
@@ -18,7 +19,7 @@ use ItPack\ConfigureIt\ValueObject\Format;
  *
  * @see docs/architecture/MODEL.md "Configuration Source"
  */
-final readonly class DockerSecretsSource implements ConfigurationSourceInterface
+final readonly class DockerSecretsSource implements ConfigurationSourceInterface, SecretSourceInterface
 {
     private const SCHEME = 'docker-secret://';
 

@@ -97,6 +97,11 @@ final readonly class TypedSnapshot implements ConfigurationSnapshotInterface
         return $this->inner->provenance($path);
     }
 
+    public function isSensitive(string $path): bool
+    {
+        return $this->inner->isSensitive($path);
+    }
+
     /**
      * The wrapped snapshot, exposed so the compiled-artifact cache can
      * serialize its tree + provenance verbatim (M3 — Epic E7.1).

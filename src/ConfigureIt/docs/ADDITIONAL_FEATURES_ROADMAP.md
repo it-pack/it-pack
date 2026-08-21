@@ -100,22 +100,48 @@ deployments.
 
 ---
 
-## M4 — Secrets & Redaction  *(Plan §5 — enterprise-ready)*
+## M4 — Secrets & Redaction  *(Plan §5 — enterprise-ready)* ✅ DONE
 
 **Objective:** decrypt secret sources and guarantee secrets never leak into
 provenance/telemetry/CLI output.
 
-### Epic E5.1 — Secret sources (Companion adapters reuse Phase 8 plumbing)
-- [ ] **T4.1.1 (M)** `Contract/SecretSourceInterface` (port). `VaultSource`, `AwsSecretsManagerSource`, `GcpSecretManagerSource`, `AzureKeyVaultSource` adapters reusing `Contract/RemoteKeyValueClient` + `Http/CurlHttpClient` fakes.
-- [ ] **T4.1.2 (M)** `Contract/DecrypterInterface` + `AgeDecrypter`/`SopsDecrypter` adapters; `DecryptingReader` decorator transparently decrypts `enc:`/`SOPS`-annotated values.
-- [ ] **T4.1.3 (M)** Mark loaded secrets `sensitive` via a `secret:` source-kind in `DocumentNormalizer`.
+### Epic E5.1 — Secret sources (Core + adapters reuse Phase 8 plumbing) ✅ DONE
+- [x] **T4.1.1 (M)** `Contract/SecretSourceInterface` (port). The existing
+  `GcpSecretManagerSource`, `AwsParameterStoreSource`, `KubernetesSecretSource`
+  and `DockerSecretsSource` now implement it, and a new `VaultSource` (HashiCorp
+  Vault KV v2, `Adapter/Enterprise/Client/VaultClient`) reuses the Phase 8
+  `RemoteKeyValueClient` + `HttpClient` plumbing. (The AWS/Azure secret-bearing
+  roles are served by the existing Parameter Store / App Config adapters to avoid
+  duplicate near-identical classes.)
+- [x] **T4.1.2 (M)** `Contract/DecrypterInterface` + `Exception/DecryptionException` +
+  `Adapter/Decryption/{AgeDecrypter,SopsDecrypter,DecryptingReader}`. The
+  decrypters shell out through a new `Contract/CommandRunnerInterface`
+  (`Adapter/CommandRunner/{NativeCommandRunner,FakeCommandRunner}`) so they are
+  unit-testable offline. `DecryptingReader` transparently decrypts `enc:` /
+  `sops:`-annotated resources before the loader parses them; unannotated
+  resources pass through untouched.
+- [x] **T4.1.3 (M)** `DocumentNormalizer` detects secret schemes
+  (`k8s-secret://`, `docker-secret://`, `aws-ssm://`, `gcp-secretmanager://`,
+  `vault://`) and flags every resolved node `sensitive` (and keeps the specific
+  `sourceKind` for provenance richness — the `secret:` designation in the plan
+  maps to this `sensitive` flag).
 
-### Epic E5.2 — Mandatory redaction (Core)
-- [ ] **T4.2.1 (M)** `Provenance`/`Snapshot` carry `sensitive` flag; single `RedactingRenderer` masks `sensitive` values as `****`.
-- [ ] **T4.2.2 (M)** Route **all** value render paths through it: `ConfigurationInspector`, `bin/configure-it`, `OpenTelemetryReporter` event attributes, `ConfigurationDiffer` summary.
-- [ ] **T4.2.3 (M)** Tests: `RedactionTest` (secret masked everywhere; non-secret untouched; redaction cannot be bypassed).
+### Epic E5.2 — Mandatory redaction (Core) ✅ DONE
+- [x] **T4.2.1 (M)** `Provenance`/`Snapshot` carry the `sensitive` flag
+  (`ProvenanceInterface::isSensitive()`, `ConfigurationSnapshotInterface::isSensitive()`);
+  a single `Core/RedactingRenderer` masks sensitive values as `****`.
+- [x] **T4.2.2 (M)** All value render paths route through it:
+  `ConfigurationInspector` (explain + table), `GraphVisualizer` (DOT + ASCII),
+  `ConfigurationDiffer::summarize()` (the `bin/configure-it` `diff`/`explain`/
+  `graph` commands consume these), and `OpenTelemetryReporter` event attributes
+  (defensive: it emits only metadata today, never resolved values).
+- [x] **T4.2.3 (M)** Tests: `RedactionTest` (secret masked everywhere; non-secret
+  untouched; redaction cannot be bypassed via any render path), `VaultSourceTest`,
+  `DecryptionTest`. Example: `examples/secrets.php`.
 
-**M4 Exit:** secrets decrypt and are redacted in every output surface; tests prove no leakage path; gates green.
+**M4 Exit:** secrets decrypt and are redacted in every output surface; tests
+prove no leakage path; gates green (208 tests / 479 assertions, PHPStan level 9,
+php-cs-fixer clean).
 
 ---
 

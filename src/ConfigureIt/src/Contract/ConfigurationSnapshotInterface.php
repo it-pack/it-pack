@@ -86,4 +86,10 @@ interface ConfigurationSnapshotInterface
      * reaching back into the resolution graph (Roadmap Phase 6).
      */
     public function provenance(string $path): ?\ItPack\ConfigureIt\Contract\ValueObject\ProvenanceInterface;
+
+    /**
+     * Whether the resolved node at $path carries a secret value that must be
+     * masked on every render surface (M4 — Epic E5.2).
+     */
+    public function isSensitive(string $path): bool;
 }

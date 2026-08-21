@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Adapter\CompositeReader;
+use ItPack\ConfigureIt\Adapter\Decryption\DecryptingReader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
@@ -16,6 +17,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
@@ -67,6 +69,8 @@ final class ConfigurationBuilder
     private ?ExecutionContext $executionContext = null;
 
     private ?ConfigurationCacheInterface $cache = null;
+
+    private ?DecrypterInterface $decrypter = null;
 
     public function __construct(
         private readonly ConfigurationFactoryInterface $factory = new ConfigurationFactory(),
@@ -167,6 +171,21 @@ final class ConfigurationBuilder
         return $this;
     }
 
+    /**
+     * Opt in to transparent decryption of `enc:`/`sops:`-annotated resources.
+     *
+     * When a decrypter is set, the reader chain is wrapped in a
+     * {@see DecryptingReader} so any resource whose raw payload carries the
+     * annotation is decrypted before the loader parses it. Resources without the
+     * marker pass through untouched, so this is safe to enable globally.
+     */
+    public function withDecrypter(DecrypterInterface $decrypter): self
+    {
+        $this->decrypter = $decrypter;
+
+        return $this;
+    }
+
     public function build(?ResolutionReporter $reporter = null): ConfigurationResolverInterface
     {
         $reporter ??= new ResolutionReporter();
@@ -195,9 +214,15 @@ final class ConfigurationBuilder
 
         $sources = $this->resolveSources();
 
+        $reader = new CompositeReader($this->readers);
+
+        if ($this->decrypter instanceof DecrypterInterface) {
+            $reader = new DecryptingReader($reader, $this->decrypter);
+        }
+
         $resolver = $this->factory->build(
             loaders: $this->loaders,
-            reader: new CompositeReader($this->readers),
+            reader: $reader,
             schema: $this->schema,
             sources: $sources,
             processors: $processors,

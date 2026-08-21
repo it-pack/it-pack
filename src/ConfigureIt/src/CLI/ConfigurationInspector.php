@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\CLI;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
+use ItPack\ConfigureIt\Core\RedactingRenderer;
 
 /**
  * Renders human-readable explanations of a resolved configuration graph.
@@ -18,6 +19,11 @@ use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
  */
 final readonly class ConfigurationInspector
 {
+    public function __construct(
+        private RedactingRenderer $renderer = new RedactingRenderer(),
+    ) {
+    }
+
     public function explain(ConfigurationGraphInterface $graph, ?string $key = null): string
     {
         if ($key !== null) {
@@ -37,7 +43,7 @@ final readonly class ConfigurationInspector
 
         $lines = [
             $node->key(),
-            '  value       : ' . $this->display($node->value()),
+            '  value       : ' . $this->renderer->render($node->value(), $p->isSensitive()),
             '  source      : ' . $p->resourceUri(),
             '  adapter     : ' . $p->adapter(),
             '  format      : ' . $p->format()->name,
@@ -64,7 +70,7 @@ final readonly class ConfigurationInspector
             $p = $node->provenance();
             $rows[] = [
                 $node->key(),
-                $this->display($node->value()),
+                $this->renderer->render($node->value(), $p->isSensitive()),
                 \basename($p->resourceUri()),
                 $this->shortClass($p->adapter()),
                 $p->layerId() ?? '-',
@@ -121,26 +127,5 @@ final readonly class ConfigurationInspector
         $pos = \strrpos($fqcn, '\\');
 
         return $pos === false ? $fqcn : \substr($fqcn, $pos + 1);
-    }
-
-    private function display(mixed $value): string
-    {
-        if (\is_array($value)) {
-            return (string) \json_encode($value);
-        }
-
-        if (\is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-
-        if ($value === null) {
-            return 'null';
-        }
-
-        if (\is_scalar($value)) {
-            return (string) $value;
-        }
-
-        return (string) \json_encode($value);
     }
 }

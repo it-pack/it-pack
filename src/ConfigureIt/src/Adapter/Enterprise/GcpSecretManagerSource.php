@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter\Enterprise;
 
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\SecretSourceInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
@@ -20,7 +21,7 @@ use ItPack\ConfigureIt\ValueObject\Format;
  * Discovery only — never reads or parses. Implements the `ConfigurationSource`
  * port. See ROADMAP Phase 8.
  */
-final readonly class GcpSecretManagerSource implements ConfigurationSourceInterface
+final readonly class GcpSecretManagerSource implements ConfigurationSourceInterface, SecretSourceInterface
 {
     public function __construct(
         private string                       $project,

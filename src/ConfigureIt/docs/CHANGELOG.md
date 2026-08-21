@@ -546,6 +546,57 @@ served from the artifact.
 Suite green: **192 tests / 446 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M4.E5.1 / E5.2: Secrets & redaction ✅
+
+Completes M4 (Epics E5.1 + E5.2) of `docs/ADDITIONAL_FEATURES_PLAN.md` /
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`: secrets resolve transparently and are
+**never rendered in clear text** on any surface (inspector, diff, graph, CLI,
+telemetry), while `get()` still returns the real value. Behaviour is opt-in and
+unchanged for non-secret configuration.
+
+- `src/Contract/SecretSourceInterface.php` (new port) — marker for secret-bearing
+  sources; `GcpSecretManagerSource`, `AwsParameterStoreSource`,
+  `KubernetesSecretSource`, `DockerSecretsSource` and the new `VaultSource`
+  implement it. `VaultSource` + `src/Adapter/Enterprise/Client/VaultClient.php`
+  (HashiCorp Vault KV v2) reuse the Phase 8 `RemoteKeyValueClient`/`HttpClient`.
+- `src/Core/DocumentNormalizer.php` — detects secret schemes
+  (`k8s-secret://`, `docker-secret://`, `aws-ssm://`, `gcp-secretmanager://`,
+  `vault://`) and flags every resolved node `sensitive`; the specific
+  `sourceKind` is preserved for provenance richness.
+- `src/ValueObject/Provenance.php` + interface — new `isSensitive()` /
+  `asSensitive()`; carried through all immutable copies and `toArray()`/
+  `fromArray()` (so the compiled cache preserves it).
+- `src/Contract/DecrypterInterface.php` + `src/Exception/DecryptionException.php`
+  + `src/Contract/CommandRunnerInterface.php` — decryption ports.
+- `src/Adapter/Decryption/{CommandDecrypter,AgeDecrypter,SopsDecrypter,DecryptingReader}.php`
+  — adapters. `AgeDecrypter`/`SopsDecrypter` shell out via
+  `src/Adapter/CommandRunner/{NativeCommandRunner,FakeCommandRunner}.php`
+  (offline-testable). `DecryptingReader` decrypts `enc:` / `sops:`-annotated
+  resources before the loader parses them; unannotated resources pass through.
+- `src/Core/ConfigurationSnapshot.php` + interface + `src/Core/TypedSnapshot.php`
+  — new `isSensitive(string)` derived from per-key provenance (rebuilt from cache).
+- `src/Core/RedactingRenderer.php` (new) — the single place that masks sensitive
+  values as `****`; non-sensitive values format exactly as before.
+- `src/CLI/ConfigurationInspector.php`, `src/CLI/GraphVisualizer.php` — route
+  value rendering through `RedactingRenderer`.
+- `src/Core/ConfigurationDiffer.php` — new `summarize()` masks sensitive
+  added/removed/changed values (consumed by the `bin/configure-it diff`
+  command); `ConfigurationDiff` carries per-key sensitivity.
+- `src/Bridge/OpenTelemetry/OpenTelemetryReporter.php` — routes emitted scalar
+  values through `RedactingRenderer` (defensive: it emits only metadata today,
+  never resolved secret values).
+- `src/Core/ConfigurationBuilder.php` — new `withDecrypter($decrypter)` (opt-in);
+  wraps the reader chain in `DecryptingReader` when set.
+
+Tests: `RedactionTest` (secret masked on every render surface; non-secret
+untouched; redaction cannot be bypassed), `VaultSourceTest` (Vault KV v2/v1
+unwrapping + sensitive marking), `DecryptionTest` (`DecryptingReader` decrypts
+`enc:`/`sops:` and passes through; `Age`/`Sops` decrypters via command runner;
+failure → `DecryptionException`). Example: `examples/secrets.php` (secret volume
++ transparent decryption, both masked in the inspector).
+Suite green: **208 tests / 479 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

@@ -42,7 +42,7 @@ final readonly class DiffCommand implements CommandInterface
             return 1;
         }
 
-        $output->write($this->differ->diff($base, $other)->summary());
+        $output->write($this->differ->summarize($this->differ->diff($base, $other)));
 
         return 0;
     }

@@ -60,6 +60,8 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
                 continue;
             }
 
+            $sensitive = self::isSecretScheme($source);
+
             $nodes[] = new ConfigurationNode(
                 key: $child->toString(),
                 value: $value,
@@ -74,11 +76,38 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
                     sourceKind: self::sourceKindOf($document->format(), $source),
                     layerId: $layerId,
                     at: microtime(true),
+                    sensitive: $sensitive,
                 ),
             );
         }
 
         return $nodes;
+    }
+
+    /**
+     * Schemes that identify secret-bearing sources. Values resolved from these
+     * are flagged {@see ProvenanceInterface::isSensitive()} so the central
+     * {@see \ItPack\ConfigureIt\Core\RedactingRenderer} can mask them everywhere
+     * (M4 — Epic E5.1). The specific {@see self::sourceKindOf()} is preserved for
+     * provenance richness.
+     */
+    private const SECRET_SCHEMES = [
+        'k8s-secret://',
+        'docker-secret://',
+        'aws-ssm://',
+        'gcp-secretmanager://',
+        'vault://',
+    ];
+
+    private static function isSecretScheme(string $uri): bool
+    {
+        foreach (self::SECRET_SCHEMES as $scheme) {
+            if (str_starts_with($uri, $scheme)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function sourceKindOf(Format $format, string $uri): string
@@ -90,6 +119,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
             'aws-ssm://' => 'aws-ssm',
             'azure-appconfig://' => 'azure-appconfig',
             'gcp-secretmanager://' => 'gcp-secretmanager',
+            'vault://' => 'vault',
         ];
 
         foreach ($enterprise as $scheme => $kind) {

@@ -54,11 +54,23 @@ interface ProvenanceInterface
 
     public function at(): float;
 
+    /**
+     * Whether the underlying value is a secret and must never be rendered in
+     * clear text (CLI output, diffs, telemetry, Grafana, …). Drives the central
+     * {@see \ItPack\ConfigureIt\Core\RedactingRenderer} mask (M4 — Epic E5.1/E5.2).
+     */
+    public function isSensitive(): bool;
+
     public function withProcessor(string $stageName): self;
 
     public function asOverridden(?string $shadowedSource = null): self;
 
     public function validated(string $stageName): self;
+
+    /**
+     * Returns a copy of this provenance flagged as sensitive (immutable).
+     */
+    public function asSensitive(): self;
 
     /**
      * @return array<string, mixed> a plain serialisable view (for diagnostics/diff).

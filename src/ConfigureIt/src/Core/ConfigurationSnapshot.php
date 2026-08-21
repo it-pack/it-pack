@@ -24,10 +24,12 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
     /**
      * @param array<string, mixed> $tree
      * @param array<string, ProvenanceInterface> $provenance per-key provenance from the graph.
+     * @param array<string, bool> $sensitiveKeys dotted keys whose value is secret.
      */
     public function __construct(
         private array $tree,
         private array $provenance = [],
+        private array $sensitiveKeys = [],
     ) {
     }
 
@@ -39,7 +41,24 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
             $provenance[$key] = $node->provenance();
         }
 
-        return new self($graph->toArray(), $provenance);
+        return new self($graph->toArray(), $provenance, self::deriveSensitiveKeys($provenance));
+    }
+
+    /**
+     * @param array<string, ProvenanceInterface> $provenance
+     * @return array<string, bool>
+     */
+    private static function deriveSensitiveKeys(array $provenance): array
+    {
+        $keys = [];
+
+        foreach ($provenance as $key => $prov) {
+            if ($prov->isSensitive()) {
+                $keys[$key] = true;
+            }
+        }
+
+        return $keys;
     }
 
     public function get(string $path, mixed $default = null): mixed
@@ -143,6 +162,11 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
         return $this->provenance[$path] ?? null;
     }
 
+    public function isSensitive(string $path): bool
+    {
+        return $this->sensitiveKeys[$path] ?? false;
+    }
+
     /**
      * Serializable form: the resolved tree plus the per-key provenance map.
      *
@@ -181,6 +205,6 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
 
         $tree = is_array($data['tree'] ?? null) ? $data['tree'] : [];
 
-        return new self($tree, $provenance);
+        return new self($tree, $provenance, self::deriveSensitiveKeys($provenance));
     }
 }

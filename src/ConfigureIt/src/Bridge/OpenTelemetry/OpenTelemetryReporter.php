@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
@@ -41,6 +42,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
         private readonly TelemetrySinkInterface $sink,
         private readonly ?ExecutionContext $context = null,
         private readonly string $serviceName = 'configure-it',
+        private readonly RedactingRenderer $renderer = new RedactingRenderer(),
     ) {
     }
 
@@ -123,7 +125,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
 
         foreach ($observation->context() as $key => $value) {
             if (\is_scalar($value) || $value === null) {
-                $attributes['config.observation.' . $key] = $value;
+                $attributes['config.observation.' . $key] = $this->renderer->render($value, false);
             }
         }
 
@@ -185,13 +187,15 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
                 continue;
             }
 
+            $sensitive = $key === 'value';
+
             $attributes[match ($key) {
                 'origin' => SemanticConventions::ATTR_SOURCE_KIND,
                 'priority' => SemanticConventions::ATTR_DOCUMENT_PRIORITY,
                 'processors' => SemanticConventions::ATTR_STAGE_COUNT,
                 'valid' => SemanticConventions::ATTR_VALID,
                 default => 'config.payload.' . $key,
-            }] = $value;
+            }] = $this->renderer->render($value, $sensitive);
         }
 
         return $attributes;

@@ -33,6 +33,7 @@ final readonly class Provenance implements ProvenanceInterface
         public ?string $validatedBy = null,
         public ?string $layerId = null,
         public float   $at = 0.0,
+        public bool    $sensitive = false,
     ) {
     }
 
@@ -91,6 +92,11 @@ final readonly class Provenance implements ProvenanceInterface
         return $this->at;
     }
 
+    public function isSensitive(): bool
+    {
+        return $this->sensitive;
+    }
+
     public function withProcessor(string $stageName): self
     {
         if (in_array($stageName, $this->processorTrail, true)) {
@@ -109,6 +115,7 @@ final readonly class Provenance implements ProvenanceInterface
             validatedBy: $this->validatedBy,
             layerId: $this->layerId,
             at: $this->at,
+            sensitive: $this->sensitive,
         );
     }
 
@@ -130,6 +137,7 @@ final readonly class Provenance implements ProvenanceInterface
             validatedBy: $this->validatedBy,
             layerId: $this->layerId,
             at: $this->at,
+            sensitive: $this->sensitive,
         );
     }
 
@@ -150,6 +158,29 @@ final readonly class Provenance implements ProvenanceInterface
             overriddenSource: $this->overriddenSource,
             validatedBy: $stageName,
             at: $this->at,
+            sensitive: $this->sensitive,
+        );
+    }
+
+    public function asSensitive(): self
+    {
+        if ($this->sensitive) {
+            return $this;
+        }
+
+        return new self(
+            resourceUri: $this->resourceUri,
+            format: $this->format,
+            adapter: $this->adapter,
+            priority: $this->priority,
+            sourceKind: $this->sourceKind,
+            processorTrail: $this->processorTrail,
+            overridden: $this->overridden,
+            overriddenSource: $this->overriddenSource,
+            validatedBy: $this->validatedBy,
+            layerId: $this->layerId,
+            at: $this->at,
+            sensitive: true,
         );
     }
 
@@ -167,6 +198,7 @@ final readonly class Provenance implements ProvenanceInterface
             'validatedBy'     => $this->validatedBy,
             'layerId'         => $this->layerId,
             'at'              => $this->at,
+            'sensitive'       => $this->sensitive,
         ];
     }
 
@@ -201,6 +233,7 @@ final readonly class Provenance implements ProvenanceInterface
                 : null,
             layerId: isset($data['layerId']) && is_string($data['layerId']) ? $data['layerId'] : null,
             at: $at,
+            sensitive: ($data['sensitive'] ?? false) === true,
         );
     }
 

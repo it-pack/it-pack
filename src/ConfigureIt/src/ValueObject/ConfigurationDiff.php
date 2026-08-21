@@ -19,12 +19,16 @@ final readonly class ConfigurationDiff
     /**
      * @param array<string, mixed> $added
      * @param array<string, mixed> $removed
-     * @param list<array{key:string, from:mixed, to:mixed, fromProvenance:array<string, mixed>, toProvenance:array<string, mixed>}> $changed
+     * @param list<array{key:string, from:mixed, to:mixed, fromProvenance:array<string, mixed>, toProvenance:array<string, mixed>, sensitive:bool}> $changed
+     * @param array<string, bool> $addedSensitive dotted key => is secret
+     * @param array<string, bool> $removedSensitive dotted key => is secret
      */
     public function __construct(
         public array $added,
         public array $removed,
         public array $changed,
+        public array $addedSensitive = [],
+        public array $removedSensitive = [],
     ) {
     }
 
