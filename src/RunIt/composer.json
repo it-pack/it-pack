@@ -55,7 +55,8 @@
         "psr/http-client": "^1.0",
         "psr/http-server-handler": "^1.0",
         "open-telemetry/api": "^1.9",
-        "open-telemetry/sdk": "^1.0"
+        "open-telemetry/sdk": "^1.0",
+        "infection/codeception-adapter": "^0.4"
     },
     "suggest": {
         "psr/clock": "PSR-20 clock integration",
@@ -84,7 +85,8 @@
         "analyse": "vendor/bin/phpstan analyse",
         "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
         "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
-        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
+        "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction",
         "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
         "security:audit": "@composer audit",
         "quality": [

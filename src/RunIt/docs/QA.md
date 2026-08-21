@@ -213,6 +213,64 @@ CI (`.github/workflows/quality.yml`) runs `composer cs:check` inside the
 `quality` matrix (PHP 8.4/8.5 × locked/lowest) and also as a dedicated
 `coding-style` job. Both are check-only; the workflow never modifies the tree.
 
+## Mutation testing (M13.5)
+
+`composer mutation` runs Infection (PHP Mutation Testing Framework 0.33) against
+the Unit suite; `composer mutation:changed` limits the run to git-changed lines.
+The configuration (`infection.json5`) is finalized:
+
+- **Source directories** — `src` (the library; tests are excluded from mutation).
+- **Test framework integration** — `testFramework: codeception` via the
+  `infection/codeception-adapter` dev dependency, scoped to the `Unit` suite
+  (`testFrameworkExtraArgs: "Unit"`).
+- **Per-mutant execution** — the `mutation` / `mutation:changed` scripts pass
+  `--only-covering-test-cases` so each mutant reruns only its covering Unit
+  tests instead of the full suite. This is essential: running the full 661-test
+  Unit suite per mutant exceeded Infection's timeout and produced mass timeouts.
+- **PHPStan integration** — intended as `staticAnalysisTool: phpstan` to kill
+  escaped mutants that PHPStan can prove invalid (e.g. type errors), reducing
+  false escapes without new tests. It is **currently disabled** because the
+  repository's own `composer analyse` is red with 12 pre-existing errors
+  (see the M13.5 status audit in `docs/ROADMAP.md`). Infection aborts whenever
+  PHPStan reports any error, so the integration can only be re-enabled after
+  that debt is cleared. PHPStan still runs as a separate `composer analyse` gate.
+- **Coverage** — Infection auto-detects the `pcov` driver; the Unit suite is run
+  once for initial coverage, then each mutant reruns only its covering tests.
+- **Mutators** — `@default` profile (the standard, non-risky mutator set).
+- **Changed-line testing** — `mutation:changed` uses `--git-diff-lines` so only
+  added/modified lines are mutated (pre-push / pre-merge hygiene).
+- **Logs** — text log to `var/infection.log` and a JSON summary to
+  `var/infection.summary.json`.
+
+### Provisional MSI
+
+`minMsi` and `minCoveredMsi` are set provisionally in `infection.json5`. They are
+ratcheted upward as the suite is hardened (see the per-area runs below). The
+current provisional targets and measured baselines are recorded in the M13.5
+status audit in `docs/ROADMAP.md`.
+
+### Blocker fixed to enable mutation testing
+
+Infection drives Codeception under strict PSR-4 autoloading, which exposed a
+latent PSR-4 violation: `Tests\Support\Fixture\Psr\FakeExecutionRunner` and four
+`Noop*` recorder doubles were declared inside `FakeExecutionScope.php` instead of
+their own files. Codeception's lenient support autoloader masked this, but
+Infection's initial-test run failed with `Class not found`. The five classes were
+extracted into their own PSR-4-compliant files
+(`FakeExecutionRunner.php`, `NoopActivityRunner.php`, `NoopMeasurementRecorder.php`,
+`NoopOccurrenceRecorder.php`, `NoopSnapshotRecorder.php`), which unblocked the
+pipeline. The Unit suite remains green (661 tests).
+
+### Reviewing escaped mutants
+
+When `composer mutation` reports escaped mutants, triage them:
+
+1. **Genuine gap** — add or strengthen a Unit test that asserts the killed
+   behavior; this raises MSI and is the preferred outcome.
+2. ** Equivalent / unreachable** — if the mutant is provably equivalent (e.g. a
+   boundary already covered by construction) or exercises dead code, document it
+   in the M13.5 status audit rather than forcing a test.
+
 ## Extending the rules
 
 The extension lives at `tools/phpstan/runit-rules`:
