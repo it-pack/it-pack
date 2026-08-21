@@ -10,8 +10,11 @@ use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
+use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ResolutionException;
+use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 
@@ -24,12 +27,20 @@ use ItPack\ConfigureIt\ValueObject\Format;
  * document's sibling keys. The directive node itself is dropped. This is the
  * "Include / Import" pipeline stage.
  *
+ * The directive accepts an optional `@if <condition>` suffix for conditional
+ * inclusion, e.g. `"@include db.yaml @if env=prod"`. The supported condition
+ * grammar is `env=<v> | tenant=<v> | profile=<v>`, evaluated against the
+ * {@see ExecutionContextInterface}; when the condition is not met the include is
+ * skipped and the directive node is dropped. Conditions are matched via
+ * {@see ExecutionContextInterface::environment()} / `attribute()`.
+ *
  * Single-pass: nested includes require adding the processor more than once to the
  * pipeline (or composing it after other stages).
  *
  * @see docs/architecture/PIPELINE.md "Include"
+ * @see docs/ADDITIONAL_FEATURES_PLAN.md §3 "Layered Composition & Environments"
  */
-final readonly class IncludeProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
+final readonly class IncludeProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface, ExecutionContextAwareProcessorInterface
 {
     /**
      * @param string $directive prefix that marks an include directive value.
@@ -41,12 +52,26 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
         private string                           $baseDirectory = '.',
         private ConfigurationResourceFactory     $resourceFactory = new ConfigurationResourceFactory(),
         private string                           $directive = '@include',
+        private ExecutionContextInterface       $context = new ExecutionContext(),
     ) {
     }
 
     public function stageName(): string
     {
         return 'IncludeProcessor';
+    }
+
+    public function withExecutionContext(ExecutionContextInterface $context): static
+    {
+        return new self(
+            reader: $this->reader,
+            loaders: $this->loaders,
+            normalizer: $this->normalizer,
+            baseDirectory: $this->baseDirectory,
+            resourceFactory: $this->resourceFactory,
+            directive: $this->directive,
+            context: $context,
+        );
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -58,7 +83,13 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
             $value = $node->value();
 
             if (\is_string($value) && \str_starts_with($value, $this->directive . ' ')) {
-                $included = [...$included, ...$this->include(\trim(\substr($value, \strlen($this->directive) + 1)), $node)];
+                [$path, $condition] = $this->parseDirective($value);
+
+                if ($condition !== null && !$this->conditionMatches($condition)) {
+                    continue;
+                }
+
+                $included = [...$included, ...$this->include($path, $node)];
                 continue;
             }
 
@@ -73,6 +104,45 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
 
         return $next;
     }
+
+    /**
+     * Split a directive value into its path and optional `@if <condition>` suffix.
+     *
+     * @return array{0: string, 1: ?string}
+     */
+    private function parseDirective(string $value): array
+    {
+        $body = \trim(\substr($value, \strlen($this->directive) + 1));
+
+        if (\preg_match('/^(?P<path>\S+)(?:\s+@if\s+(?P<cond>.+))?$/', $body, $m) === 1) {
+            $condition = isset($m['cond']) ? \trim($m['cond']) : null;
+
+            return [$m['path'], $condition];
+        }
+
+        return [$body, null];
+    }
+
+    /**
+     * Evaluate an `@if` condition against the execution context.
+     *
+     * Grammar: `env=<v> | tenant=<v> | profile=<v>` (matched via environment /
+     * attribute). An unrecognized condition is a resolution error.
+     */
+    private function conditionMatches(string $condition): bool
+    {
+        if (\preg_match('/^(env|tenant|profile)=(\S+)$/', $condition, $m) !== 1) {
+            throw new ResolutionException(sprintf('Invalid @include condition "%s".', $condition));
+        }
+
+        [$kind, $expected] = [$m[1], $m[2]];
+
+        return match ($kind) {
+            'env' => $this->context->environment() === $expected,
+            'tenant', 'profile' => $this->context->attribute($kind) === $expected,
+        };
+    }
+
 
     /**
      * @return list<ConfigurationNodeInterface>

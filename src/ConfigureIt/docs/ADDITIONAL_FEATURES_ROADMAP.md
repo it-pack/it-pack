@@ -70,10 +70,10 @@ layering + conditional includes.
 - [x] **T2.1.3 (M)** `ConfigurationBuilder::addLayer()`; resolution orders layers by precedence *before* the pipeline (no layers ⇒ identical to today). When layers are registered, flat `addSource()` sources are replaced by the layer-derived set.
 - [x] **T2.1.4 (M)** Tests: `LayerOrderTest` (precedence regardless of insertion order, env-gated layer skipped when `match` false, env-gated layer applied when `match` true, backward-compat with no layers).
 
-### Epic E3.2 — Conditional includes (Core)
-- [ ] **T2.2.1 (M)** Extend `IncludeProcessor` directive to `@include <path> @if <condition>`; condition grammar = `env=prod | tenant=acme | profile=canary` evaluated against `ExecutionContext`.
-- [ ] **T2.2.2 (M)** Parser for the directive suffix; reuse `ExecutionContext::attribute()` for matching.
-- [ ] **T2.2.3 (M)** Tests: `ConditionalIncludeTest` (included/excluded per context, multi-pass via double-add).
+### Epic E3.2 — Conditional includes (Core) ✅ DONE
+- [x] **T2.2.1 (M)** Extend `IncludeProcessor` directive to `@include <path> @if <condition>`; condition grammar = `env=prod | tenant=acme | profile=canary` evaluated against `ExecutionContext` (`@if` is optional — no suffix keeps today's behaviour).
+- [x] **T2.2.2 (M)** Parser for the directive suffix (`IncludeProcessor::parseDirective`); reuses `ExecutionContext::environment()` / `attribute()` for matching; unrecognized conditions are a `ResolutionException`.
+- [x] **T2.2.3 (M)** Tests: `ConditionalIncludeTest` (included/excluded per context for env/tenant/profile, invalid condition, and multi-pass via double-add); plus a builder integration test verifying the execution context is injected into the processor.
 
 ### Epic E3.3 — Layer attribution in provenance (Core)
 - [ ] **T2.3.1 (M)** Stamp layer id onto nodes during normalization (extend `DocumentNormalizer` to accept a layer context); surface in `Provenance`.

@@ -440,6 +440,31 @@ env-gated layer skipped when `match` is false, env-gated layer applied when `mat
 is true, and backward compatibility with no layers). Suite green: **172 tests /
 395 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
 
+
+### Additional Features — M2.E3.2: Conditional includes ✅
+
+Completes M2 (E3.2) of `docs/ADDITIONAL_FEATURES_PLAN.md` / `docs/ADDITIONAL_FEATURES_ROADMAP.md`:
+the `@include` directive gains an optional `@if <condition>` suffix so imports can
+be gated on the execution context (env / tenant / profile).
+
+- `src/Core/IncludeProcessor.php` — directive now parsed as `@include <path> [@if
+  <condition>]`. The optional condition grammar is `env=<v> | tenant=<v> |
+  profile=<v>`, evaluated via `ExecutionContextInterface::environment()` /
+  `attribute()`; an unmet condition drops the include, a malformed one raises
+  `ResolutionException`. No suffix preserves today's behaviour.
+- `src/Contract/ExecutionContextAwareProcessorInterface.php` — new marker so the
+  builder can bind the active `ExecutionContextInterface` into context-aware
+  processors at `build()` time (keeps processors immutable/stateless).
+- `src/Core/ConfigurationBuilder.php` — at `build()`, any processor implementing
+  `ExecutionContextAwareProcessorInterface` is replaced by a context-bound copy
+  when an execution context is configured.
+
+Tests: `ConditionalIncludeTest` (included/excluded per context for env/tenant/
+profile, invalid condition throws, multi-pass nested includes via double-add, and
+a builder integration test asserting the execution context is injected into the
+include processor). Suite green: **180 tests / 412 assertions**, PHPStan level 9
+**0 errors**, `php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

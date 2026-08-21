@@ -15,6 +15,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
@@ -159,12 +160,26 @@ final class ConfigurationBuilder
             );
         }
 
+        $processors = $this->processors;
+
+        if ($this->executionContext instanceof ExecutionContext) {
+            $context = $this->executionContext;
+
+            $processors = array_map(
+                static fn (ConfigurationProcessorInterface $processor): ConfigurationProcessorInterface
+                    => $processor instanceof ExecutionContextAwareProcessorInterface
+                        ? $processor->withExecutionContext($context)
+                        : $processor,
+                $processors,
+            );
+        }
+
         return $this->factory->build(
             loaders: $this->loaders,
             reader: new CompositeReader($this->readers),
             schema: $this->schema,
             sources: $this->resolveSources(),
-            processors: $this->processors,
+            processors: $processors,
             reporter: $reporter,
         );
     }
