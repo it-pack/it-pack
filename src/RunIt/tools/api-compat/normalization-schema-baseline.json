@@ -1,0 +1,98 @@
+{
+    "schema_version": "1.0",
+    "description": "Stable normalized field sets for RunIt artifacts. Changing these keys is a backward-compatibility-sensitive schema change tracked separately from the PHP API. Field order is not significant; presence is.",
+    "artifacts": {
+        "execution": [
+            "id",
+            "name",
+            "kind",
+            "status",
+            "started_at",
+            "ended_at",
+            "parent_execution_id",
+            "linked_execution_ids",
+            "sequence",
+            "context",
+            "result"
+        ],
+        "execution_definition": [
+            "name",
+            "kind",
+            "parent_execution_id",
+            "linked_execution_ids",
+            "context"
+        ],
+        "activity": [
+            "id",
+            "execution_id",
+            "name",
+            "kind",
+            "status",
+            "started_at",
+            "ended_at",
+            "parent_activity_id",
+            "sequence",
+            "attributes",
+            "throwable"
+        ],
+        "activity_definition": [
+            "name",
+            "kind",
+            "parent_activity_id"
+        ],
+        "measurement": [
+            "name",
+            "kind",
+            "unit",
+            "value",
+            "execution_id",
+            "activity_id",
+            "timestamp",
+            "sequence",
+            "attributes"
+        ],
+        "observation": [
+            "id",
+            "execution_id",
+            "activity_id",
+            "severity",
+            "level",
+            "message",
+            "diagnostic_code",
+            "sequence",
+            "timestamp",
+            "attributes",
+            "throwable"
+        ],
+        "occurrence": [
+            "id",
+            "execution_id",
+            "activity_id",
+            "type",
+            "version",
+            "source",
+            "subject",
+            "time",
+            "data",
+            "data_schema",
+            "content_type",
+            "extension_attributes",
+            "sequence"
+        ],
+        "snapshot": [
+            "id",
+            "execution_id",
+            "activity_id",
+            "type",
+            "classification",
+            "schema_version",
+            "created_at",
+            "content_type",
+            "content_hash",
+            "predecessor_id",
+            "sequence",
+            "payload",
+            "attributes"
+        ]
+    }
+}

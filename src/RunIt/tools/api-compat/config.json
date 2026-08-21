@@ -1,0 +1,19 @@
+{
+    "publicDirs": [
+        "src/Domain",
+        "src/Application",
+        "src/Contract",
+        "src/Adapter",
+        "src/SDK",
+        "src/Common"
+    ],
+    "internalNamespaces": [
+        "ItPack\\RunIt\\Behavior\\",
+        "ItPack\\RunIt\\Conformance\\"
+    ],
+    "baseline": "tools/api-compat/api-baseline.json",
+    "schema": {
+        "path": "docs/normalization-schema.json",
+        "baseline": "tools/api-compat/normalization-schema-baseline.json"
+    }
+}

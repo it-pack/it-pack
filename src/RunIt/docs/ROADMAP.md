@@ -2593,16 +2593,26 @@ covering tests hang, and Infection's default treatment hides them from MSI.
 
 ## M13.6 Backward compatibility
 
-- [ ] Configure public API compatibility checker.
-- [ ] Define public namespace scope.
-- [ ] Exclude documented internal namespaces.
-- [ ] Establish an API baseline at the first release candidate.
-- [ ] Add a pull-request compatibility job after baseline creation.
-- [ ] Detect public interface method additions.
-- [ ] Detect removed or narrowed types.
-- [ ] Detect enum case changes where applicable.
-- [ ] Detect normalization schema changes separately.
-- [ ] Document compatibility review process.
+- [x] Configure public API compatibility checker (`tools/api-compat`, `composer api:check` / `composer api:baseline`).
+- [x] Define public namespace scope (`Domain`, `Application`, `Contract`, `Adapter`, `SDK`, `Common` — see `tools/api-compat/config.json`).
+- [x] Exclude documented internal namespaces (`Behavior`, `Conformance` — leaks fail closed).
+- [x] Establish an API baseline (initial baseline committed; regenerated at each release candidate via `composer api:baseline`).
+- [x] Add a pull-request compatibility job (`api-compat` job in `.github/workflows/quality.yml`, active now that a baseline exists).
+- [x] Detect public interface method additions (breaks third-party implementers).
+- [x] Detect removed or narrowed types (variance-aware: covariant returns, contravariant parameters).
+- [x] Detect enum case changes (removals flagged as breaks).
+- [x] Detect normalization schema changes separately (`docs/normalization-schema.json` diffed independently of the PHP API).
+- [x] Document compatibility review process (`docs/compatibility.md`; PR template records impact).
+
+### Notes (M13.6)
+
+Roave Backward Compatibility Check was evaluated as the checker named in
+`docs/IMPLEMENTATION_PLAN.md` but caps at PHP 8.4 and requires Symfony 7, which
+conflicts with this package's PHP 8.5 / Symfony 8 support matrix. A
+dependency-free, reflection-based checker was implemented instead so it runs on
+every supported PHP version. The checker is not scanned by PHPStan (it lives in
+`tools/`, outside the `phpstan.neon` paths), so its internal strictness does not
+affect `composer analyse`.
 
 ## M13 acceptance gate
 
@@ -2611,7 +2621,7 @@ covering tests hang, and Infection's default treatment hides them from MSI.
 - [ ] DepTrac passes without unexplained skips.
 - [ ] Coding-style checks pass.
 - [ ] Mutation targets are met.
-- [ ] API compatibility tooling is ready for release-candidate baseline.
+- [x] API compatibility tooling is ready for release-candidate baseline.
 - [ ] Third-party adapter authors have documented verification guidance.
 
 ---

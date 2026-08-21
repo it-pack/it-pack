@@ -271,6 +271,26 @@ When `composer mutation` reports escaped mutants, triage them:
    boundary already covered by construction) or exercises dead code, document it
    in the M13.5 status audit rather than forcing a test.
 
+## API compatibility (M13.6)
+
+`composer api:check` runs the reflection-based backward-compatibility checker in
+`tools/api-compat/` against committed baselines (`tools/api-compat/api-baseline.json`
+and `tools/api-compat/normalization-schema-baseline.json`). It detects removed
+or narrowed symbols/methods/types, public interface method additions, enum case
+changes, internal-namespace leaks, and normalization-schema changes (tracked
+separately in `docs/normalization-schema.json`).
+
+- `composer api:baseline` — regenerate the baselines (run at each release
+  candidate).
+- The public namespace scope and excluded internal namespaces are configured in
+  `tools/api-compat/config.json`.
+- The full review process, detection list, and baseline policy are in
+  `docs/compatibility.md`.
+
+The checker is dependency-free (PHP reflection only) so it runs on every PHP
+version in the support matrix; Roave Backward Compatibility Check was evaluated
+but is incompatible with the PHP 8.5 / Symfony 8 matrix.
+
 ## Extending the rules
 
 The extension lives at `tools/phpstan/runit-rules`:

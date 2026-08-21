@@ -1,0 +1,100 @@
+# Backward compatibility
+
+RunIt treats its public API as a compatibility surface. This document defines
+that surface, the automated checker that guards it, and the review process for
+changes.
+
+## Public API scope
+
+The public API is the set of symbols under these source directories:
+
+- `src/Domain` — domain value objects, entities, and contracts.
+- `src/Application` — application services and coordinators.
+- `src/Contract` — all consumer- and adapter-facing contracts.
+- `src/Adapter` — first-party adapters (PSR, OpenTelemetry, CloudEvents, …).
+- `src/SDK` — consumer-facing SDK facades and builders.
+- `src/Common` — shared public contracts (`FactoryInterface`,
+  `StringableInterface`) implemented by public value objects.
+
+The following namespaces are **internal** and are excluded from the
+compatibility guarantee. They must never appear in a public signature
+(parameter type, return type, extended/implemented class):
+
+- `ItPack\RunIt\Behavior\` — reusable behavior traits mixed into value objects.
+- `ItPack\RunIt\Conformance\` — adapter conformance harness and fixtures.
+
+The checker fails closed: if a public symbol references an internal type, it is
+reported as a break.
+
+## Stable normalization schema
+
+Artifact serialization is a separate compatibility surface. The stable,
+normalized field sets are documented in `docs/normalization-schema.json`
+(keyed per artifact type). Removing a field is a backward-compatibility break;
+adding a field is tracked as a change to review. This file is checked
+independently of the PHP API so schema drift is never hidden by code changes.
+
+## The checker
+
+`tools/api-compat/api-compat.php` is a dependency-free, reflection-based
+checker (PHP only, no third-party package). It scans the public directories,
+extracts the API surface, and diffs it against a committed baseline. It also
+diffs `docs/normalization-schema.json` against its baseline.
+
+Configuration lives in `tools/api-compat/config.json` (public directories,
+internal namespaces, baseline paths).
+
+Composer scripts:
+
+- `composer api:baseline` — write the current API surface and normalization
+  schema to the baselines.
+- `composer api:check` — diff the current surface against the baselines and
+  exit `1` on any break. With no baseline present, it prints a notice and exits
+  `0` (so the PR job is a no-op until a baseline exists).
+
+> Roave Backward Compatibility Check was evaluated but caps at PHP 8.4 and pulls
+> Symfony 7, which is incompatible with this package's PHP 8.5 / Symfony 8
+> support matrix. The reflection-based checker is used instead so it runs on
+> every supported PHP version.
+
+## What is detected
+
+- Removed public symbols (classes, interfaces, enums), methods, constants, and
+  enum cases.
+- Added methods to a **public interface** (breaks third-party implementers).
+- Narrowed return types and narrowed parameter types (variance-aware:
+  covariant returns, contravariant parameters).
+- Added required parameters and parameters that became required.
+- Internal types leaking into public signatures.
+- Normalization schema field removals/additions (reported separately from the
+  PHP API).
+
+Added public methods on classes and added enum cases are reported as additive
+notes, not breaks.
+
+## Baseline policy
+
+An initial baseline is committed so `composer api:check` is effective
+immediately. At each **release candidate** the baseline is regenerated with
+`composer api:baseline` and committed, freezing the API surface for that
+release. Before `1.0.0` the baseline may be regenerated more freely; after
+`1.0.0` it is treated as a stability contract.
+
+## CI
+
+`.github/workflows/quality.yml` runs the `api-compat` job (PHP 8.4) on every
+push and pull request. It executes `composer api:check`; until a baseline
+exists this job is a no-op, and once a baseline is committed it fails the build
+on any detected break.
+
+## Review process
+
+For any change touching `src/Domain`, `src/Application`, `src/Contract`,
+`src/Adapter`, `src/SDK`, `src/Common`, or `docs/normalization-schema.json`:
+
+1. Run `composer api:check` locally.
+2. If it reports a break, either adjust the change to preserve compatibility or
+   explicitly accept it and regenerate the baseline (`composer api:baseline`)
+   with a documented reason.
+3. Record the public API or compatibility impact in the pull request
+   description (see `.github/pull_request_template.md`).
