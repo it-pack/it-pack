@@ -77,61 +77,89 @@ can be verified immediately.
 
 ---
 
-## Milestone M1 — Common & Contract (Ports)
+## Milestone M1 — Common & Contract (Ports) ✅ COMPLETE
 
 **Goal:** Define the vendor-neutral surface and the exception taxonomy. No
-behavioral code yet — interfaces, value-object *contracts* where needed, and
-exception types.
+behavioral code — interfaces, value-object skeletons (required by the port
+signatures), and the exception taxonomy.
+
+> **Status (2026-08-21):** Implemented and verified. Gates green: `phpstan
+> analyse` (level max, 0 errors), `deptrac` (0 violations), `php-cs-fixer` (0
+> files), `codecept run Unit` (14 tests, 39 assertions).
 
 ### Tasks
 
-1. **`Common` base exception.**
-   - `src/Common/CommitItException.php` — marker interface (or base `Throwable`)
-     extended by all CommitIt errors. Keep it an interface so domain exceptions
-     can also implement framework markers if needed.
+1. **`Common` base exception.** ✅
+   - `src/Common/CommitItException.php` — marker interface extending `\Throwable`.
 
-2. **Contract exceptions (port-side error taxonomy).**
-   - `src/Contract/Exception/VcsOperationException.php` (marker).
+2. **Contract exception taxonomy (markers).** ✅
+   - `src/Contract/Exception/VcsOperationException.php` (base marker).
    - `src/Contract/Exception/RepositoryNotFoundException.php`.
    - `src/Contract/Exception/InvalidReferenceNameException.php`.
    - `src/Contract/Exception/DirtyWorkingTreeException.php`.
-   - Each implements `CommitItException` and the relevant contract marker.
+   - Each extends `CommitItException`; concrete throwables land in `Domain` (M2)
+     implementing these markers.
 
-3. **Primary port: `Repository`.**
-   - `src/Contract/Repository.php` — method set from the plan:
-     `getPath()`, `hasChanges()`, `stage()`, `stageAll()`, `commit()`,
-     `getLastCommit()`, `getCommit()`, branch/tag/remote ops, `pull/push/fetch`,
-     `getWorkingTree()`, `execute()`.
-   - Parameter and return types reference domain value objects (import from
-     `Domain` is allowed at the contract layer per deptrac `Contract → Domain`).
+3. **Primary port: `Repository`.** ✅
+   - `src/Contract/Repository.php` — `getPath()`, `hasChanges()`, `stage()`,
+     `stageAll()`, `commit()`, `getLastCommit()`, `getCommit()`, branch/tag/remote
+     ops, `fetch/pull/push`, `getWorkingTree()`, `execute()`.
 
-4. **`WorkingTree` port.**
-   - `src/Contract/WorkingTree.php` — `list()`, `add()`, `remove()`.
+4. **`WorkingTree` port.** ✅
+   - `src/Contract/WorkingTree.php` — `listWorktrees()`, `add()`, `remove()`.
+   - Method renamed from `list()` (PHP reserved word).
 
-5. **`RepositoryFactory` port.**
-   - `src/Contract/RepositoryFactory.php` — `open()`, `init()`, `clone()`.
+5. **`RepositoryFactory` port.** ✅
+   - `src/Contract/RepositoryFactory.php` — `open()`, `init()`,
+     `cloneRepository()`.
+   - Method renamed from `clone()` (PHP reserved word).
 
-6. **`RepositoryObserver` port (RunIt-ready).**
+6. **`RepositoryObserver` port (RunIt-ready).** ✅
    - `src/Contract/RepositoryObserver.php` — `onStart()`, `onSuccess()`,
-     `onFailure()`.
-   - `src/Common/NullRepositoryObserver.php` — no-op default (lives in `Common`
-     so it has no dependency on `Contract`? It implements a contract, so place it
-     in `Contract` or `Common` with a `Contract` import; `Common → Contract` is
-     allowed, so `src/Common/NullRepositoryObserver.php` implementing
-     `Contract\RepositoryObserver` is valid).
+     `onFailure()`, with structured `context` arrays so the vocabulary maps to
+     RunIt's Activity/Observation/Occurrence triad without coupling.
+   - `src/Contract/NullRepositoryObserver.php` — no-op default.
+     **Placed in `Contract` (not `Common`):** `Common` depends on nothing
+     (`Common: ~` in deptrac), so a `Common` class cannot implement a `Contract`
+     interface. The no-op observer lives beside the port it satisfies.
 
-### Acceptance criteria
+### Prerequisite value-object & option skeletons (built here so ports compile)
 
-- DepTrac passes: `Contract` depends only on `Common` + `Domain` (value objects
-  not yet built — see note). *Sequencing note:* M1 references domain value
-  objects in signatures; build M2 value objects first if signature typing blocks
-  M1, or use forward declarations by building M2's value objects minimally before
-  finalizing M1 signatures. Recommended order: M2 value objects first, then M1
-  contracts. This roadmap lists M1 before M2 for narrative clarity; in practice
-  create the value-object skeletons in M2 step 1, then return here.
-- PHPStan `level: max` passes on the interface-only tree.
-- Every public interface has a PHPDoc describing its responsibility and any
-  non-portable (`execute()`) caveats.
+The plan's sequencing note anticipated this: M1 ports reference domain value
+objects, so the skeletons were created now (full validation + dedicated validators
+are Milestone M2).
+
+- `src/Domain/Value/`: `RepositoryPath`, `CommitId`, `BranchName`, `TagName`,
+  `RemoteName`, `CommitMessage`, `Commit`, `WorktreeInfo` — `final readonly`
+  holders with named constructors and basic non-empty guards.
+- `src/Domain/Option/`: `InitOptions`, `CloneOptions`, `CommitOptions` — `final
+  readonly` immutable fluent builders (`with*()` returns a new instance).
+
+### Architecture decision recorded during M1
+
+- **deptrac alignment:** the original `deptrac.yaml` only allowed
+  `Contract → Common`, which forbade referencing Domain value objects in the
+  ports. The approved plan/AGENTS layering is `Contract → Common, Domain` (with
+  concrete exceptions in `Domain` implementing `Contract` markers, hence the
+  intended `Contract ↔ Domain` cycle). `deptrac.yaml` was updated to match the
+  documented architecture (allowed edges: Common=0, Contract=Common+Domain,
+  Domain=Common+Contract, Application/SDK/Adapter as planned).
+- **Dead-code detector:** `shipmonk/dead-code-detector` (auto-loaded by
+  `phpstan/extension-installer`) flags any symbol unreferenced in the analyzed
+  paths. Since M1 is a forward-declared public API not yet consumed, the intended
+  public surface is marked `@api` (the detector's documented escape hatch for
+  intentional public API) rather than suppressed. Value objects/ports are thus
+  annotated `@api`; consumers in M3/M4 will reference them directly.
+
+### Acceptance criteria — all met
+
+- DepTrac passes: `Contract` depends on `Common` + `Domain`; `Domain` depends on
+  `Common` + `Contract` (per the plan's approved layering).
+- PHPStan `level: max` passes across `src/` and `tests/`.
+- Every public interface has a PHPDoc describing its responsibility and the
+  non-portable `execute()` caveat.
+- Unit tests cover value-object construction/equality/round-trip, option-builder
+  immutability, and the no-op observer.
 
 ---
 
@@ -141,6 +169,13 @@ exception types.
 highest-value mutation-testing targets.
 
 ### Tasks
+
+> **Note:** The value-object *classes* (`RepositoryPath`, `CommitId`, `BranchName`,
+> `TagName`, `RemoteName`, `CommitMessage`, `Commit`, `WorktreeInfo`) were already
+> created as `final readonly` skeletons in **M1** so the port signatures could
+> compile. M2 hardens them: add full validation (ref-name rules, commit-message
+> rules, commit-id format, path safety) and the dedicated validators below. The
+> `@api` annotations added in M1 can stay (these remain public API).
 
 1. **`RepositoryPath`.**
    - `src/Domain/Value/RepositoryPath.php` — `final readonly`, named constructor
@@ -454,10 +489,10 @@ and wire non-intrusive observation.
 
 ```text
 M0  Foundation & QA wiring                       ✅ COMPLETE (2026-08-21)
-M2  Domain value objects + validators   (skeletons first, then M1 signatures)
-M1  Common & Contract ports
+M1  Common & Contract ports                     ✅ COMPLETE (2026-08-21)
+M2  Domain value objects + validators   (skeletons built in M1; M2 adds validation + validators + tests)
 M3  Git adapter (factory, repository, working tree, exception map)
-M4  Application (option builders, ObservedRepository, RepositoryOpener)
+M4  Application (ObservedRepository, RepositoryOpener; option builders already in Domain/Option)
 M5  SDK facade
 M6  Integration tests & failure/security injection
 M7  Documentation & ADRs

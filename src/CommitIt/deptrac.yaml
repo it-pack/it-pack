@@ -32,6 +32,7 @@ deptrac:
     Common: ~
     Contract:
       - Common
+      - Domain
     Domain:
       - Common
       - Contract
