@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Adapter\CompositeReader;
+use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
+use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
@@ -12,6 +14,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
 /**
@@ -50,6 +53,10 @@ final class ConfigurationBuilder
     private array $processors = [];
 
     private ?ConfigurationSchemaInterface $schema = null;
+
+    private ?TelemetrySinkInterface $telemetrySink = null;
+
+    private ?ExecutionContext $executionContext = null;
 
     public function __construct(
         private readonly ConfigurationFactoryInterface $factory = new ConfigurationFactory(),
@@ -103,8 +110,32 @@ final class ConfigurationBuilder
         return $this;
     }
 
+    public function withTelemetry(TelemetrySinkInterface $sink): self
+    {
+        $this->telemetrySink = $sink;
+
+        return $this;
+    }
+
+    public function withExecutionContext(ExecutionContext $context): self
+    {
+        $this->executionContext = $context;
+
+        return $this;
+    }
+
     public function build(?ResolutionReporter $reporter = null): ConfigurationResolverInterface
     {
+        $reporter ??= new ResolutionReporter();
+
+        if ($this->telemetrySink instanceof TelemetrySinkInterface) {
+            $reporter = new OpenTelemetryReporter(
+                $reporter,
+                $this->telemetrySink,
+                $this->executionContext,
+            );
+        }
+
         return $this->factory->build(
             loaders: $this->loaders,
             reader: new CompositeReader($this->readers),

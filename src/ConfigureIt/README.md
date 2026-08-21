@@ -299,12 +299,12 @@ Future capabilities include:
 
 ## Status
 
-**Phase 1 — Core** through **Phase 7 — Developer Experience** are implemented, and
-**Phase 8 — Enterprise Sources** is delivered. The quality gate is green:
+**Phase 1 — Core** through **Phase 8 — Enterprise Sources** are implemented, and
+**Phase 9 — Observability** is delivered. The quality gate is green:
 
 - PHPStan level 9 — **0 errors**
 - `php-cs-fixer` — **0 files to fix**
-- Codeception unit suite — **144 tests / 320 assertions** green
+- Codeception unit suite — **149 tests / 345 assertions** green
 
 Delivered:
 
@@ -337,9 +337,18 @@ Delivered:
   `AwsSsmClient`, `AzureAppConfigClient`, `GcpSecretManagerClient`). Ports
   (`HttpClient`, `RemoteKeyValueClient`) and fakes keep the whole layer unit-testable
   offline.
+- **Observability** (`src/Bridge/OpenTelemetry`): native OpenTelemetry instrumentation
+  built on the Execution reporter spine (`docs/EXECUTION.md`). `OpenTelemetryReporter`
+  decorates `ResolutionReporterInterface` and translates the resolution `Occurrence`s
+  and `Observation`s into OpenTelemetry-modeled traces, configuration lifecycle events
+  and metrics (per-instrument semantic names in `SemanticConventions`). A vendor-neutral
+  `TelemetrySinkInterface` port ships with `InMemoryTelemetrySink` (recording/no-op, for
+  tests) and `OtelTelemetrySink` (bridges to a real OpenTelemetry SDK through a
+  consumer-supplied `OpenTelemetryBridgeInterface`). Enable via
+  `ConfigurationBuilder::withTelemetry($sink)` (optionally `withExecutionContext($ctx)`).
 
 Semantic-graph visualisation (RDF/PlantUML) and IDE plugins remain future tooling
-(see `ROADMAP.md` Phase 7). Phase 9 (Observability) remains (see `ROADMAP.md`).
+(see `ROADMAP.md` Phase 7).
 
 ---
 

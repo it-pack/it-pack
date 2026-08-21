@@ -474,10 +474,45 @@ PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
 integration tests against real cloud endpoints — incremental, no Core changes now that
 the source/reader/client ports exist.
 
-### Phase 9 — Observability
+### Phase 9 — Observability ✅
 
-- Native OpenTelemetry instrumentation: metrics, tracing, configuration
-  lifecycle events (built on the `Execution` reporter spine).
+Delivered native OpenTelemetry instrumentation, built on the `Execution` reporter
+spine (per `docs/EXECUTION.md`), as a `Bridge` (no Core dependency, no OpenTelemetry
+SDK required):
+
+- **`src/Bridge/OpenTelemetry/SemanticConventions.php`** — OpenTelemetry-aligned span
+  names, lifecycle-event names, metric instrument names and attribute keys
+  (`config.resolve`, `config.load`, `config.merged`, `config.resolution.duration`,
+  `config.occurrences`, `config.nodes`, `config.overrides`, `config.unresolved`,
+  `deployment.environment`, `service.name`, …). Maps each Execution `Occurrence`
+  type (`ConfigurationLoaded`/`Merged`/`Validated`/`Resolved`/`SnapshotCreated`) to a
+  span + lifecycle event.
+- **`OpenTelemetryReporter`** — decorates `ResolutionReporterInterface`; forwards the
+  spine's `Occurrence`s and `Observation`s to a `TelemetrySinkInterface`, emitting one
+  trace per resolution run, a child span + CloudEvents-style lifecycle event per
+  `Occurrence`, a `config.observation` event per `Observation` (warnings/diagnostics),
+  and metrics (resolution duration, per-type occurrence counter, node/override/unresolved
+  gauges). Optionally enriches the trace with an `ExecutionContext` (environment, tenant…).
+- **Ports & implementations**:
+  - `Contract/TelemetrySinkInterface` — vendor-neutral OTel-modeled sink.
+  - `InMemoryTelemetrySink` — recording/no-op sink (tests + default).
+  - `OtelTelemetrySink` — real bridge delegating to a consumer-supplied
+    `Contract/OpenTelemetryBridgeInterface` (the only place that knows the OpenTelemetry
+    SDK; keeps the dependency an adapter concern).
+- **Builder wiring**: `ConfigurationBuilder::withTelemetry($sink)`
+  (and `withExecutionContext($ctx)`) wrap the reporter automatically in
+  `OpenTelemetryReporter`.
+
+Tests: `OpenTelemetryReporterTest` (end-to-end via a real resolver + fakes: trace/
+span/event/metric emission, validation span+event, execution-context attributes,
+`config.observation` diagnostics events) and `OtelTelemetrySinkTest` (delegation to a
+fake `OpenTelemetryBridgeInterface`). Suite green: **149 tests / 345 assertions**,
+PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
+
+**Deferred:** a reference `configure-it-opentelemetry` adapter package implementing
+`OpenTelemetryBridgeInterface` against `open-telemetry/opentelemetry-api`, plus live
+(export-to-collector) integration tests — incremental, no Core changes now that the
+`TelemetrySinkInterface` port and `SemanticConventions` exist.
 
 ---
 

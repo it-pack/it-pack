@@ -320,6 +320,39 @@ client's nesting logic). Suite green: **144 tests / 320 assertions**, PHPStan le
 tests against real cloud endpoints — incremental, no Core changes now that the
 source/reader/client ports exist.
 
+### Phase 9 — Observability
+
+Delivered native OpenTelemetry instrumentation built on the `Execution` reporter
+spine (`docs/EXECUTION.md`), as a `Bridge` with no Core dependency and no required
+OpenTelemetry SDK:
+
+- `src/Bridge/OpenTelemetry/SemanticConventions.php` — OpenTelemetry-aligned span,
+  lifecycle-event, metric and attribute names; maps each `Occurrence` type to a span
+  + lifecycle event.
+- `src/Bridge/OpenTelemetry/OpenTelemetryReporter.php` — decorates
+  `ResolutionReporterInterface`, emitting one trace per resolution run, a child span
+  + CloudEvents-style lifecycle event per `Occurrence`, a `config.observation` event
+  per `Observation`, and metrics (`config.resolution.duration`, `config.occurrences`,
+  `config.nodes`, `config.overrides`, `config.unresolved`). Optionally enriched with an
+  `ExecutionContext`.
+- `src/Bridge/OpenTelemetry/Contract/TelemetrySinkInterface.php` (port) plus
+  `InMemoryTelemetrySink.php` (recording/no-op, tests/default) and `OtelTelemetrySink.php`
+  — the real bridge delegating to a consumer-supplied
+  `Contract/OpenTelemetryBridgeInterface` (the only OpenTelemetry-SDK-aware point).
+- `Core/ConfigurationBuilder.php`: `withTelemetry($sink)` and `withExecutionContext($ctx)`
+  wrap the reporter in `OpenTelemetryReporter` automatically.
+
+Tests: `OpenTelemetryReporterTest`, `OtelTelemetrySinkTest` (fake
+`OpenTelemetryBridgeInterface`; end-to-end trace/span/event/metric emission incl.
+validation span, execution-context attributes, diagnostics observation events). Suite
+green: **149 tests / 345 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer`
+**0 files to fix**.
+
+**Deferred:** a reference `configure-it-opentelemetry` adapter implementing
+`OpenTelemetryBridgeInterface` against `open-telemetry/opentelemetry-api`, and
+live export-to-collector integration tests — incremental, no Core changes now that the
+`TelemetrySinkInterface` port and `SemanticConventions` exist.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
