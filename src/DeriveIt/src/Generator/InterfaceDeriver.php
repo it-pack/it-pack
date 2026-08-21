@@ -137,6 +137,17 @@ final readonly class InterfaceDeriver implements DeriverInterface
 
         $interface = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
 
+        // G16 / A4: re-expose owned interfaces the adaptee implements by carrying
+        // them onto the derived interface via `extends`. Only interfaces explicitly
+        // listed in the allow-list and actually implemented are re-exposed; the core
+        // leakage invariant otherwise keeps `extends` empty.
+        $implemented = $reflection->getInterfaceNames();
+        foreach ($this->config->reExposeOwnedInterfaces as $owned) {
+            if (in_array($owned, $implemented, true)) {
+                $interface->addExtend($owned);
+            }
+        }
+
         $collected = [];
         foreach ($this->extractor->extract($reflection) as $method) {
             $name = $method->getName();
@@ -168,7 +179,7 @@ final readonly class InterfaceDeriver implements DeriverInterface
             ));
         }
 
-        self::assertSelfContained($interface);
+        self::assertSelfContained($interface, $this->config->reExposeOwnedInterfaces);
 
         new LeakageAuditor()->audit(
             $interface,
@@ -255,14 +266,19 @@ final readonly class InterfaceDeriver implements DeriverInterface
     }
 
     /**
-     * Asserts the core leakage invariant (flat mode): no extends, no trait uses.
+     * Asserts the core leakage invariant (flat mode): no extends, no trait uses —
+     * except owned interfaces explicitly re-exposed via the G16 allow-list.
+     *
+     * @param list<string> $allowedExtends Owned interface FQCNs permitted in `extends`.
      */
-    public static function assertSelfContained(InterfaceType $interface): void
+    public static function assertSelfContained(InterfaceType $interface, array $allowedExtends = []): void
     {
-        if ($interface->getExtends() !== []) {
+        $unexpected = array_diff($interface->getExtends(), $allowedExtends);
+        if ($unexpected !== []) {
             throw new LeakageDetectedException(sprintf(
-                'Derived interface "%s" must not extend anything (adaptee leakage).',
+                'Derived interface "%s" must not extend non-owned interface(s): %s (adaptee leakage).',
                 $interface->getName(),
+                implode(', ', $unexpected),
             ));
         }
     }

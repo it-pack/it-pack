@@ -33,6 +33,8 @@ final class DeriveConfig
      * @param list<string> $skipMethods Method names always dropped.
      * @param list<string> $ownedAttributes Attribute class FQCNs permitted when `attributePassThrough` is on.
      * @param array<string, string> $methodRenames Original method name => new name, applied uniformly (G11 / B4).
+ * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends` (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
+ * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends` (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
      */
     public function __construct(
         public readonly string $visibility = self::VISIBILITY_PUBLIC,
@@ -52,6 +54,7 @@ final class DeriveConfig
         public readonly array $ownedAttributes = [],
         public readonly bool $preserveDocblocks = false,
         public readonly array $methodRenames = [],
+        public readonly array $reExposeOwnedInterfaces = [],
     ) {
         if (!in_array($visibility, [self::VISIBILITY_PUBLIC, self::VISIBILITY_PROTECTED], true)) {
             throw new \InvalidArgumentException(sprintf('Unsupported visibility "%s".', $visibility));
@@ -73,6 +76,14 @@ final class DeriveConfig
             }
             if ($to === '') {
                 throw new \InvalidArgumentException(sprintf('DeriveConfig::methodRenames target for "%s" must be a non-empty method name.', $from));
+            }
+        }
+
+        // G16 / A4: a re-exposed owned interface must be named explicitly; an empty
+        // entry would silently drop the `extends` and is almost certainly a mistake.
+        foreach ($reExposeOwnedInterfaces as $owned) {
+            if ($owned === '') {
+                throw new \InvalidArgumentException('DeriveConfig::reExposeOwnedInterfaces must contain non-empty interface FQCNs.');
             }
         }
     }
@@ -134,6 +145,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -157,6 +169,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -180,6 +193,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -203,6 +217,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -226,6 +241,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -249,6 +265,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -272,6 +289,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -295,6 +313,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -321,6 +340,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -347,6 +367,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -370,6 +391,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -393,6 +415,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -416,6 +439,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -439,6 +463,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -468,6 +493,7 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -496,6 +522,7 @@ final class DeriveConfig
             ownedAttributes: $ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
         );
     }
 
@@ -526,6 +553,39 @@ final class DeriveConfig
             ownedAttributes: $this->ownedAttributes,
             preserveDocblocks: $this->preserveDocblocks,
             methodRenames: $methodRenames,
+            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
+        );
+    }
+
+    /**
+     * Re-expose owned interfaces (G16 / A4). Provide the FQCNs of owned interfaces
+     * the adaptee implements and that should be carried onto the derived interface
+     * via `extends`. Third-party interfaces must NOT be listed — the core leakage
+     * invariant holds by default; this opt-in only widens it for interfaces you own.
+     *
+     * @param list<string> $reExposeOwnedInterfaces
+     */
+    public function withReExposeOwnedInterfaces(array $reExposeOwnedInterfaces): self
+    {
+        return new self(
+            visibility: $this->visibility,
+            includeStatic: $this->includeStatic,
+            includeMagic: $this->includeMagic,
+            dropConstruct: $this->dropConstruct,
+            dropDestruct: $this->dropDestruct,
+            typeSubstitutionMap: $this->typeSubstitutionMap,
+            substituteSelfStatic: $this->substituteSelfStatic,
+            includeConstants: $this->includeConstants,
+            onlyMethods: $this->onlyMethods,
+            skipMethods: $this->skipMethods,
+            failOnEmpty: $this->failOnEmpty,
+            attributePassThrough: $this->attributePassThrough,
+            throwsCapture: $this->throwsCapture,
+            auditLeakage: $this->auditLeakage,
+            ownedAttributes: $this->ownedAttributes,
+            preserveDocblocks: $this->preserveDocblocks,
+            methodRenames: $this->methodRenames,
+            reExposeOwnedInterfaces: $reExposeOwnedInterfaces,
         );
     }
 }

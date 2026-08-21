@@ -486,15 +486,16 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.12 complete (2026-08-21).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.13 complete (2026-08-21).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
 > (G6), owned-attribute allow-list + builtin skip (G7), opt-in phpdoc preservation
 > with FQCN simplification (G8), the `analyze()` / `deriveMany()` / `diff()` DX
-> APIs (G9), config presets + validation + uniform method-renames (G10/G11), and
-> family-of-adapters generation (G14 / EC12) are implemented and tested. All five
-> gates green. Steps 10.13–10.16 remain planned.
+> APIs (G9), config presets + validation + uniform method-renames (G10/G11),
+> family-of-adapters generation (G14 / EC12), and re-expose owned interfaces
+> (G16 / A4) are implemented and tested. All five gates green.
+> Steps 10.14–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -595,10 +596,14 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   automatically; the optional `wrapperMap` overrides/extends the wiring. Members
   are de-duplicated and grouped by namespace so the single output is valid.
 
-### Step 10.13 — Re-expose owned interfaces (G16, A4, §3.3)
-- Opt-in `reExposeOwnedInterfaces` allow-list that adds `extends` for configured
-  owned interfaces (e.g. `Countable`); third-party interfaces stay out. Never
-  automatic — honors the core leakage invariant by default.
+### Step 10.13 — Re-expose owned interfaces (G16, A4, §3.3) ✅ COMPLETE
+- `DeriveConfig::reExposeOwnedInterfaces` (opt-in `list<string>` allow-list) adds
+  `extends` for owned interfaces the adaptee implements (e.g. `Countable`).
+  Third-party interfaces stay out; the core leakage invariant holds by default.
+  `InterfaceDeriver::assertSelfContained()` now permits only allow-listed extends;
+  interfaces listed but not actually implemented are skipped (the adaptee could not
+  satisfy them). Applies to flat + family derivation; the per-trait main interface
+  keeps its strict "extends exactly derived trait interfaces" invariant.
 
 ### Step 10.14 — Performance: shared `Factory` + de-dup reflection (G13, EC20, E3)
 - Pass a single `Nette\PhpGenerator\Factory` through the derivers instead of

@@ -354,8 +354,9 @@ Phase 10 steps.
 - **G12** ✅ Per-trait & family leakage/collision parity — `assertNoCollision`
   (now also `enum_exists`) runs in per-trait and family modes; per-trait same-short-name
   trait clash throws `NamingCollisionException` instead of silently overwriting (EC5, EC11, EC19).
-- **G16** Re-expose owned interfaces (A4) — opt-in allow-list `extends` for owned
-  interfaces (e.g. `Countable`), third-party kept out.
+- **G16** ✅ Re-expose owned interfaces (A4) — opt-in allow-list `extends` for owned
+   interfaces (e.g. `Countable`), third-party kept out; `assertSelfContained` permits
+   only allow-listed extends.
 
 ### H. Developer experience
 - **G8** ✅ Robust phpdoc preservation — opt-in `preserveDocblocks`: re-emit
