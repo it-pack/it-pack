@@ -13,7 +13,7 @@ namespace ItPack\CommandIt\Contract\Domain;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#Execution
+ * @see https://w3id.org/itpack/runit#ExecutionStatus
  */
 interface CommandStatusInterface
 {

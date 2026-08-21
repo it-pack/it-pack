@@ -19,12 +19,12 @@ use ItPack\CommandIt\Application\HandlerResolver;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
+use ItPack\CommandIt\Contract\Domain\Classification;
 use ItPack\CommandIt\Domain\Command;
 use ItPack\CommandIt\Domain\CommandContext;
 use ItPack\CommandIt\Domain\CommandDefinition;
 use ItPack\CommandIt\Domain\CommandInput;
 use ItPack\CommandIt\Domain\CommandResult;
-use ItPack\CommandIt\Contract\Domain\Classification;
 use ItPack\CommandIt\Domain\ValueObject\CommandName;
 
 /**
@@ -99,7 +99,7 @@ final class PersistentWorkerIsolationTest extends Unit
 
         // Fiber A ambient context.
         $this->detector->setCurrent($fiberA);
-        $this->storage->enter((new CommandContext())->with('tenant', 'A', Classification::Internal));
+        $this->storage->enter(new CommandContext()->with('tenant', 'A', Classification::Internal));
 
         // Dispatch under A: command context is pushed then popped in finally.
         $this->dispatchCommand('demo:run');
@@ -111,7 +111,7 @@ final class PersistentWorkerIsolationTest extends Unit
 
         // Fiber B sees only its own ambient; A's tenant is invisible.
         $this->detector->setCurrent($fiberB);
-        $this->storage->enter((new CommandContext())->with('tenant', 'B', Classification::Internal));
+        $this->storage->enter(new CommandContext()->with('tenant', 'B', Classification::Internal));
 
         $this->dispatchCommand('demo:run');
 

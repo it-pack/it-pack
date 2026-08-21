@@ -3,6 +3,7 @@
     "source": {
         "directories": ["src"]
     },
+    "testFramework": "codeception",
     "logs": {
         "text": "var/infection.log"
     }

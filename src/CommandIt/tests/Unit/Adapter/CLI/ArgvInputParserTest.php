@@ -37,7 +37,7 @@ final class ArgvInputParserTest extends Unit
 
     public function testParsesPositionalAndOptionsWithCoercion(): void
     {
-        $input = (new ArgvInputParser())->parse($this->definition(), ['5', '--force', '--mode=slow']);
+        $input = new ArgvInputParser()->parse($this->definition(), ['5', '--force', '--mode=slow']);
 
         self::assertSame(['count' => 5], $input->arguments());
         self::assertSame(['force' => true, 'mode' => 'slow'], $input->options());
@@ -45,14 +45,14 @@ final class ArgvInputParserTest extends Unit
 
     public function testSpaceSeparatedOptionValue(): void
     {
-        $input = (new ArgvInputParser())->parse($this->definition(), ['5', '--mode', 'slow']);
+        $input = new ArgvInputParser()->parse($this->definition(), ['5', '--mode', 'slow']);
 
         self::assertSame(['mode' => 'slow'], $input->options());
     }
 
     public function testOptionalArgumentOmittedAndOptionDefaultApplied(): void
     {
-        $input = (new ArgvInputParser())->parse($this->definition(), ['3']);
+        $input = new ArgvInputParser()->parse($this->definition(), ['3']);
 
         self::assertSame(['count' => 3], $input->arguments());
         self::assertSame(['mode' => 'fast'], $input->options());
@@ -63,6 +63,6 @@ final class ArgvInputParserTest extends Unit
     {
         $this->expectException(InvalidCommandException::class);
 
-        (new ArgvInputParser())->parse($this->definition(), []);
+        new ArgvInputParser()->parse($this->definition(), []);
     }
 }

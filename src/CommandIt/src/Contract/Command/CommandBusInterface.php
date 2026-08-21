@@ -13,7 +13,7 @@ namespace ItPack\CommandIt\Contract\Command;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#Command
+ * @see https://w3id.org/itpack/runit#ExecutionDefinition A command is an intent that yields exactly one execution; dispatch runs that execution.
  */
 interface CommandBusInterface
 {

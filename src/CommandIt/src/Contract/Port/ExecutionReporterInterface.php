@@ -22,8 +22,19 @@ namespace ItPack\CommandIt\Contract\Port;
  */
 interface ExecutionReporterInterface
 {
+    /**
+     * @see https://w3id.org/itpack/runit#Occurrence Stable, versioned occurrence type for a received command.
+     */
     public const COMMAND_RECEIVED = 'command.received.v1';
+
+    /**
+     * @see https://w3id.org/itpack/runit#Occurrence Stable, versioned occurrence type for a handled (succeeded) command.
+     */
     public const COMMAND_HANDLED = 'command.handled.v1';
+
+    /**
+     * @see https://w3id.org/itpack/runit#Occurrence Stable, versioned occurrence type for a failed command.
+     */
     public const COMMAND_FAILED = 'command.failed.v1';
 
     /**

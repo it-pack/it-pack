@@ -68,6 +68,7 @@
         "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
         "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
         "security:audit": "@composer audit",
+        "bc-check": "@composer what-changed",
         "quality": [
             "@composer validate --strict",
             "@cs:check",

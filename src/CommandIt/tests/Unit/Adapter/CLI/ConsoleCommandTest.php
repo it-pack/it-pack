@@ -98,7 +98,7 @@ final class ConsoleCommandTest extends Unit
         $app = new Application();
         $app->setAutoExit(false);
 
-        foreach ((new ConsoleCommandRegistry($this->registry, $this->executor))->toConsoleCommands() as $command) {
+        foreach (new ConsoleCommandRegistry($this->registry, $this->executor)->toConsoleCommands() as $command) {
             $app->addCommand($command);
         }
 
@@ -108,7 +108,7 @@ final class ConsoleCommandTest extends Unit
     public function testRegistryEmitsOneConsoleCommandPerDefinition(): void
     {
         $this->register(static fn (): CommandResultInterface => CommandResult::succeed('ok'));
-        $commands = (new ConsoleCommandRegistry($this->registry, $this->executor))->toConsoleCommands();
+        $commands = new ConsoleCommandRegistry($this->registry, $this->executor)->toConsoleCommands();
 
         self::assertCount(1, $commands);
         self::assertInstanceOf(ConsoleCommandBridge::class, $commands[0]);

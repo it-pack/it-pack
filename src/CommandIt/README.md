@@ -9,6 +9,27 @@ succeeded|failed`), records immutable artifacts (context, measurements,
 occurrences) via ports, and never leaks context across Fibers or requests. Core
 stays RunIt- and Symfony-free; adapters project it onto specific runtimes.
 
+## Installation
+
+```bash
+composer require it-pack/command-it
+```
+
+CommandIt targets PHP `>= 8.4` and has **no runtime dependencies**. The following adapters are
+optional and only needed when you project onto a specific runtime or standard — they are declared
+under `suggest` and are never imported by core:
+
+| Package | When you need it |
+|---|---|
+| `symfony/console` | CLI projection (`Adapter\CLI`) — map definitions to Symfony Console commands |
+| `psr/log` | PSR-3 observation/logger integration |
+| `psr/event-dispatcher` | PSR-14 occurrence integration |
+| `psr/clock` | PSR-20 monotonic clock integration |
+
+The in-box adapters (`SystemClock`, `RandomIdentifierGenerator`, `CollectingExecutionReporter`,
+`AmbientContextStorage`, `InMemoryCommandExecutionStorage`, `SafeSerializer`) cover framework-free
+programmatic dispatch, so no `suggest` package is required to run the examples below.
+
 ## Getting started
 
 ```php
@@ -144,5 +165,6 @@ $reporter = new GuardedExecutionReporter($reporter, $healthReporter);
   object serialization: resources, closures, and objects without `toArray()`/`Stringable`
   are rejected with a `SerializationException`. Only recursively-primitive data is returned.
 
-See `docs/architecture/MODEL.md` for the domain model and `docs/ROADMAP.md` for the
-milestone plan.
+See `docs/architecture/MODEL.md` for the domain model, `docs/adr/` for the load-bearing
+decisions (RunIt integration, lazy handler resolution, fiber-bound context), and `docs/ROADMAP.md`
+for the milestone plan.
