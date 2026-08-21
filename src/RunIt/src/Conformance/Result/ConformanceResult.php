@@ -39,13 +39,8 @@ final readonly class ConformanceResult implements IteratorAggregate, Countable
 
     public function isConformant(): bool
     {
-        foreach ($this->violations as $violation) {
-            if ($violation->isError()) {
-                return false;
-            }
-        }
+        return array_all($this->violations, fn($violation) => !$violation->isError());
 
-        return true;
     }
 
     /**

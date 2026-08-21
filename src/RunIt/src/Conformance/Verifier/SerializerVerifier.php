@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Conformance\Verifier;
 
-use ItPack\RunIt\Conformance\Fixture\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
@@ -80,12 +80,8 @@ final class SerializerVerifier
             return false;
         }
 
-        if (is_array($value)) {
-            foreach ($value as $item) {
-                if (!$this->isRecursivelyPrimitive($item)) {
-                    return false;
-                }
-            }
+        if (is_array($value) && array_any($value, fn($item) => !$this->isRecursivelyPrimitive($item))) {
+            return false;
         }
 
         return true;

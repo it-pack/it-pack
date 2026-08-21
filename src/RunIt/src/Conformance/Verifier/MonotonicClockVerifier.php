@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Conformance\Verifier;
 
-use ItPack\RunIt\Conformance\Fixture\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
@@ -23,14 +23,14 @@ use Throwable;
  */
 final class MonotonicClockVerifier
 {
-    private const SAMPLES = 16;
+    private const int SAMPLES = 16;
 
     public function port(): string
     {
         return MonotonicClockInterface::class;
     }
 
-    public function verify(MonotonicClockInterface $clock, PortFixtureInterface $fixture): ConformanceResult
+    public function verify(MonotonicClockInterface $clock): ConformanceResult
     {
         $result = new ConformanceResult($this->port());
 

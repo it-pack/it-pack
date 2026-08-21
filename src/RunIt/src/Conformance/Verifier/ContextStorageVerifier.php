@@ -8,6 +8,7 @@ use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use Throwable;
 
 /**
@@ -63,7 +64,7 @@ final class ContextStorageVerifier
         return $result;
     }
 
-    private function safeAttach(ContextStorageInterface $storage, ExecutionScopeInterface $scope, ConformanceResult $result): ?\ItPack\RunIt\Contract\Port\ContextTokenInterface
+    private function safeAttach(ContextStorageInterface $storage, ExecutionScopeInterface $scope, ConformanceResult $result): ?ContextTokenInterface
     {
         try {
             $token = $storage->attach($scope);
@@ -76,7 +77,7 @@ final class ContextStorageVerifier
         return $token;
     }
 
-    private function safeDetach(ContextStorageInterface $storage, \ItPack\RunIt\Contract\Port\ContextTokenInterface $token, ConformanceResult $result): void
+    private function safeDetach(ContextStorageInterface $storage, ContextTokenInterface $token, ConformanceResult $result): void
     {
         try {
             $storage->detach($token);

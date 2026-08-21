@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Conformance\Fixture;
 
 use Closure;
+use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;

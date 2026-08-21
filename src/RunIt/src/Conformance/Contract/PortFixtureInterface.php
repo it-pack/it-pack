@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Conformance\Fixture;
+namespace ItPack\RunIt\Conformance\Contract;
 
 use Closure;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
