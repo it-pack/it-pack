@@ -276,11 +276,43 @@ highest-value mutation-testing targets.
 
 ---
 
-## Milestone M3 — Git Adapter
+## Milestone M3 — Git Adapter ✅ COMPLETE
 
 **Goal:** A working, testable git implementation of the contracts using
 `czproject/git-php`, including the differentiating worktree support and error
 mapping.
+
+> **Status (2026-08-21):** Implemented and verified. Gates green: `phpstan
+> analyse` (level max, 0 errors), `deptrac` (0 violations, 161 allowed edges),
+> `php-cs-fixer` (0 files), `composer validate` (valid), `codecept run Unit`
+> (60 tests, 214 assertions). Adapter behavior is covered deterministically via
+> `czproject/git-php`'s `MemoryRunner` (no real git binary).
+
+### What was built
+
+- **`GitExceptionMap`** (`src/Adapter/Git/GitExceptionMap.php`): pure, message-driven
+  mapper from `CzProject\GitPhp\GitException` to the CommitIt taxonomy
+  (`RepositoryNotFoundException` / `InvalidReferenceNameException` /
+  `DirtyWorkingTreeException` / `VcsOperationException`). The original
+  `GitException` is always preserved as `previous`.
+- **`GitPhpRepositoryFactory`** (`src/Adapter/Git/GitPhpRepositoryFactory.php`):
+  `final`, implements `Contract\RepositoryFactory`. Injects an optional
+  `IRunner` (for tests). `open()` fails fast (realpath + `rev-parse --git-dir`),
+  `init()` and `clone()` translate the option builders.
+- **`GitPhpRepository`** (`src/Adapter/Git/GitPhpRepository.php`): `final`,
+  implements `Contract\Repository`, wraps `GitRepository`. Every backend call is
+  funnelled through `GitExceptionMap`. Commit options (author/date/allow-empty/
+  amend) are translated; `getLastCommit` returns `null` for an empty repository;
+  `execute()` is a documented git-specific passthrough.
+- **`GitPhpWorkingTree`** (`src/Adapter/Git/GitPhpWorkingTree.php`): `final`,
+  implements `Contract\WorkingTree`. Uses the wrapped repo's `execute('worktree',
+  ...)` passthrough (composition, not subclassing). Parses `git worktree list
+  --porcelain` and guards worktree paths against escaping the repository parent.
+- **Adapter unit tests** (`tests/Unit/Adapter/Git/`): `MemoryRunner`-driven,
+  covering `GitExceptionMap` for every branch, commit → `CommitId` mapping,
+  `getCommit` field mapping, `getLastCommit` empty-repo handling, branch/tag/
+  remote listing and ops, `fetch`/`pull`/`push`, worktree parsing, and the
+  factory's `open`/`init`/`clone`.
 
 ### Tasks
 
@@ -327,14 +359,37 @@ mapping.
      commit message → id mapping, `getCommit` mapping, worktree list parsing,
      and `GitExceptionMap` for each exception branch.
 
-### Acceptance criteria
+### Acceptance criteria — all met
 
 - `GitPhpRepositoryFactory::open()` on a non-repo throws
-  `RepositoryNotFoundException`.
+  `RepositoryNotFoundException` (verified for both a missing path and an existing
+  non-git directory).
 - `GitExceptionMap` unit tests cover every mapped exception type.
 - Adapter unit tests pass deterministically via `MemoryRunner` (no real git).
 - DepTrac green: adapter depends only on `Common`, `Contract`, `Domain`, and
   `czproject/git-php`.
+
+### Decisions recorded during M3
+
+- **`open()` maps a non-repo explicitly, not via the message heuristic.** czproject
+  surfaces a generic `"Command 'git rev-parse --git-dir' failed"` for a missing
+  repository, which the keyword-based map would not classify as
+  `RepositoryNotFoundException`. `open()` therefore catches the `rev-parse` failure
+  and throws `RepositoryNotFoundException` directly, preserving the `GitException`
+  as `previous`.
+- **`listBranches()` uses `getLocalBranches()`** rather than `getBranches()` to
+  avoid the `remotes/...` prefix that `git branch -a` attaches to remote-tracking
+  refs (which are not valid `BranchName` values).
+- **`listRemotes()` parses `git remote -v`** and keeps the `(fetch)` URL, since
+  `czproject/git-php` exposes no remote-listing helper.
+- **`commit()` passes the full message** (`subject` + `"\n\n"` + `body`) as a
+  single `-m`; git splits it into subject/body correctly. Author/date are
+  translated to `--author`/`--date`; `allowEmpty`/`amend` map to their flags.
+- **`execute()` joins output lines with `"\n"`**; it is explicitly a non-portable
+  git passthrough (per the contract's warning).
+- **Worktree paths are scope-guarded** with a realpath check: the worktree's
+  parent directory must be inside the repository's parent directory, preventing
+  escape outside the repo scope (AGENTS security requirement).
 
 ---
 
@@ -538,7 +593,7 @@ and wire non-intrusive observation.
 M0  Foundation & QA wiring                       ✅ COMPLETE (2026-08-21)
 M1  Common & Contract ports                     ✅ COMPLETE (2026-08-21)
 M2  Domain value objects + validators           ✅ COMPLETE (2026-08-21)
-M3  Git adapter (factory, repository, working tree, exception map)
+M3  Git adapter (factory, repository, working tree, exception map) ✅ COMPLETE (2026-08-21)
 M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place)
 M5  SDK facade
 M6  Integration tests & failure/security injection
