@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Behavior\Domain;
+namespace ItPack\RunIt\Domain\Context;
 
+use ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * The default RunIt context value rules.
@@ -24,13 +26,19 @@ use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class ContextValueValidator
+final class ContextValueValidator implements ContextValueValidatorInterface
 {
     public const int MAX_KEY_LENGTH = 256;
     public const int MAX_VALUE_LENGTH = 4096;
     public const int MAX_ARRAY_ELEMENTS = 64;
+    public const int MAX_DEPTH = 8;
 
     private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
+
+    public function __construct(
+        private readonly ?SecurityLimits $limits = null,
+    ) {
+    }
 
     public function assertValidKey(string $key): void
     {
@@ -38,10 +46,11 @@ final class ContextValueValidator
             throw InvalidContextValueException::emptyKey();
         }
 
+        $maxKey = $this->limits === null ? self::MAX_KEY_LENGTH : $this->limits->maxAttributeKeyBytes;
         $length = strlen($key);
 
-        if ($length > self::MAX_KEY_LENGTH) {
-            throw InvalidContextValueException::keyTooLong($length, self::MAX_KEY_LENGTH);
+        if ($length > $maxKey) {
+            throw InvalidContextValueException::keyTooLong($length, $maxKey);
         }
 
         if (preg_match(self::KEY_PATTERN, $key) !== 1) {
@@ -60,21 +69,43 @@ final class ContextValueValidator
      */
     public function assertSupportedValue(mixed $value): void
     {
+        $maxDepth = $this->limits === null ? self::MAX_DEPTH : $this->limits->maxAttributeDepth;
+
+        $this->assertSupportedValueRecursive($value, 1, $maxDepth);
+    }
+
+    /**
+     * Recursively rejects values that are not scalars, null, or bounded lists/maps
+     * of scalars. Nesting depth is bounded so a deeply nested structure cannot
+     * recurse until the stack overflows.
+     *
+     * @throws InvalidContextValueException when the value is not a scalar, null, or
+     *                                   a bounded list/map of scalars, or exceeds the
+     *                                   depth bound
+     */
+    private function assertSupportedValueRecursive(mixed $value, int $depth, int $maxDepth): void
+    {
         if (is_scalar($value) || $value === null) {
-            if (is_string($value) && strlen($value) > self::MAX_VALUE_LENGTH) {
-                throw InvalidContextValueException::valueTooLarge(strlen($value), self::MAX_VALUE_LENGTH);
+            $maxValue = $this->limits === null ? self::MAX_VALUE_LENGTH : $this->limits->maxAttributeValueBytes;
+
+            if (is_string($value) && strlen($value) > $maxValue) {
+                throw InvalidContextValueException::valueTooLarge(strlen($value), $maxValue);
             }
 
             return;
         }
 
         if (is_array($value)) {
+            if ($depth >= $maxDepth) {
+                throw InvalidContextValueException::valueTooDeep($depth, $maxDepth);
+            }
+
             if (count($value) > self::MAX_ARRAY_ELEMENTS) {
                 throw InvalidContextValueException::unsupportedValue();
             }
 
             foreach ($value as $member) {
-                $this->assertSupportedValue($member);
+                $this->assertSupportedValueRecursive($member, $depth + 1, $maxDepth);
             }
 
             return;

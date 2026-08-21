@@ -17,21 +17,24 @@ Goal: eliminate the six reachable-from-public-API defects. Each task ends with a
 - **Verify:** `tests/Unit/Domain/Execution/ExecutionContextRedactionTest.php` (5 tests) — secret entry absent from Execution/ExecutionDefinition/terminal-snapshot normalized output; raw context preserved when no policy is supplied. Plus regression: `Domain/Execution`, `Domain/Context`, `Application/Factory`, `Application/Runner` suites green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
 - **Risk/BC:** changes the content of the `context` field in normalized artifacts (secrets now dropped by default). Internal only; no documented contract break, but flag in release notes (ADR-012).
 
-### T0.2 — S2: bound serializer recursion for objects
-- **Files:** `src/Adapter/Common/JsonSnapshotSerializer.php:74-109`.
-- **Steps:**
-  1. In `assertSafe()`, increment `$depth` for the `is_object()` branch (`JsonSnapshotSerializer.php:89` currently passes `$depth` unchanged).
-  2. Reject cycles (track visited object identities) and reject any non-`JsonSerializable` object.
-  3. Route `json_decode(..., 512, ...)` depth through `SecurityLimits::maxSerializationDepth` (ties to S12).
-- **Verify:** regression test — self-referential `JsonSerializable` throws `SerializationException` (not SIGSEGV); object chain deeper than `maxSerializationDepth` throws.
+### T0.2 — S2: bound serializer recursion for objects — **DONE 2026-08-21**
+- **Files:** `src/Adapter/Common/JsonSnapshotSerializer.php`, `tests/Unit/Adapter/Common/JsonSnapshotSerializerTest.php`.
+- **What changed:**
+  - `assertSafe()` now increments `$depth` for the `JsonSerializable` object branch (previously passed `$depth` unchanged → unbounded recursion → SIGSEGV). The depth bound `SecurityLimits::maxSerializationDepth` is enforced for both objects and arrays.
+  - Cycle detection: an ancestor set (`\WeakMap<object, true>`, the project-preferred non-owning association) tracks objects currently on the recursion stack; a cyclic reference throws `SerializationException` ("cyclic object reference detected") instead of overflowing the stack. The set is released in a `finally` so shared (non-cyclic) object references still serialize normally.
+  - `json_encode`/`json_decode` depth is now routed through `SecurityLimits::maxSerializationDepth` (the previous hardcoded `512` is gone), tying encode/decode depth to the enforced bound (S12 tie-in). The limit is asserted as `positive-int` via an inline `@var` so it satisfies the `json_encode`/`json_decode` `int<1, max>` signature without widening the `SecurityLimits` contract.
+- **Verify:** `tests/Unit/Adapter/Common/JsonSnapshotSerializerTest.php` grew from 7 to 11 tests — new cases for self-referential `JsonSerializable` (throws), object/array payload exceeding depth (throws), and shared (non-cyclic) object reference (serializes correctly). Plus `Adapter/Common`, `Application/Recorder`, `Domain/Snapshot`, `Adapter/CloudEvents` suites green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
+- **Risk/BC:** internal only; no contract change. Tuning `maxSerializationDepth` now also governs encode/decode depth (previously fixed at 512).
 
-### T0.3 — S3: bound context value recursion
-- **Files:** `src/Behavior/Domain/ContextValueValidator.php:61-84`, `src/Behavior/Domain/AttributeValidator.php`, `src/Domain/Context/ContextEntry.php`.
-- **Steps:**
-  1. Add `$depth` param + `?SecurityLimits $limits`; enforce `maxContextDepth` (or reuse `maxAttributeDepth`). Mirror `AttributeValidator`.
-  2. Extract one shared bounded recursive walk used by both validators (fixes D5 too).
-  3. Thread `SecurityLimits` into `ContextEntry` (currently none) so tuning takes effect on context.
-- **Verify:** negative test — deeply nested array (>= depth bound) throws `InvalidContextValueException`, not SIGSEGV; depth 1k/50k both safe.
+### T0.3 — S3: bound context value recursion — **DONE 2026-08-21**
+- **Files:** `src/Domain/Context/ContextValueValidator.php` (moved from `src/Behavior/Domain/`), `src/Contract/Domain/ContextValueValidatorInterface.php` (new), `src/Contract/Exception/InvalidContextValueException.php`, `tests/Unit/Domain/Context/ContextValueValidatorTest.php` (moved).
+- **What changed:**
+  - `ContextValueValidator::assertSupportedValue()` now runs a depth-bounded recursive walk (mirrors `AttributeValidator`): a new `MAX_DEPTH = 8` constant (overridable via `SecurityLimits::maxAttributeDepth`), an optional `?SecurityLimits $limits` constructor, and a private `assertSupportedValueRecursive($value, $depth, $maxDepth)` that throws `InvalidContextValueException::valueTooDeep()` at `depth >= maxDepth`. A deeply nested payload now throws instead of overflowing the stack.
+  - `assertValidKey()` also consults `SecurityLimits::maxAttributeKeyBytes` when supplied.
+  - **Namespace move:** `ContextValueValidator` is a domain service, not a trait, so it was relocated from `ItPack\RunIt\Behavior\Domain` to `ItPack\RunIt\Domain\Context` (alongside `ContextEntry`, `ContextKey`, `DefaultContextRedactionPolicy`). The 5 callers (`ContextEntry`, `ContextKey`, `Occurrence`, `Snapshot`, `CloudEvent`) and the test were repointed.
+  - The move into `src/Domain` triggered the project's `runit.requireInterface` rule, so a `ContextValueValidatorInterface` contract was added and the class implements it (advances I3 for this validator).
+- **Verify:** `tests/Unit/Domain/Context/ContextValueValidatorTest.php` (5 tests) — scalar accepted, object rejected, shallow nesting (depth 7) accepted, deep nesting (depth 64) throws `valueTooDeep` (no SIGSEGV), and `maxAttributeDepth` override honored. Plus `Domain/Context`, `Domain/Occurrence`, `Domain/Snapshot`, `Adapter/CloudEvents`, `Application/Recorder` suites green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
+- **Deferred:** the full shared-walk unification with `AttributeValidator` (D5) and threading `SecurityLimits` into `ContextEntry`'s named constructors (would change their public signatures) remain Phase 2 work; the critical recursion bound is in place via the constant default. `AttributeValidator` (and `StringValueValidator`/`StringIdentifierValidator`) still live in `Behavior/Domain` and could be relocated to a `Domain\Validation` namespace in a follow-up for consistency.
 
 ### T0.4 — S4: validate `ExecutionSnapshot` payload
 - **Files:** `src/Domain/Snapshot/ExecutionSnapshot.php:22-54`, `src/Domain/Snapshot/Snapshot.php`.
@@ -80,7 +83,7 @@ Goal: remove magic strings guarding invariants and unify status/severity vocabul
 - **Verify:** redactor round-trip tests; rename one key → redactor still masks.
 
 ### T1.4 — S8 + S12: type-safe limits & unified constants
-- **Files:** `src/Domain/Shared/SecurityLimits.php`, `AttributeValidator.php`, `ContextValueValidator.php`, `ExecutionContext.php`, `JsonSnapshotSerializer.php:60`, `DefaultCloudEventJsonSerializer.php:68`, `BufferedArtifactPublisher.php:233,316`, OTel adapters (`*_NANOS_*` literals).
+- **Files:** `src/Domain/Shared/SecurityLimits.php`, `src/Behavior/Domain/AttributeValidator.php`, `src/Domain/Context/ContextValueValidator.php`, `src/Domain/Context/ExecutionContext.php`, `src/Adapter/Common/JsonSnapshotSerializer.php:60`, `src/Adapter/CloudEvents/Serialization/DefaultCloudEventJsonSerializer.php:68`, `src/Application/Publication/BufferedArtifactPublisher.php:233,316`, OTel adapters (`*_NANOS_*` literals).
 - **Steps:**
   1. Replace `SecurityLimits::with(string $name, int $value)` with explicit withers (`withMaxAttributeCount(int)`, …) or enum-keyed `with(SecurityLimit, int)`.
   2. Standardize on `SecurityLimits $limits = new SecurityLimits()` default; delete duplicated `const`s; thread `SecurityLimits` into `ContextValueValidator`/`ExecutionContext`.
@@ -117,7 +120,7 @@ Goal: remove magic strings guarding invariants and unify status/severity vocabul
 - **Verify:** factory tests; DepTrac clean.
 
 ### T2.5 — I1–I4: missing interfaces
-- **Files:** `SnapshotIntegrityVerifier.php` (+ new `Contract/Application/Security/SnapshotIntegrityVerifierInterface.php`), `PublicationPipeline.php` (`@internal` or interface), `Behavior/Domain/{ContextValueValidator,AttributeValidator}.php` (+ interfaces), `Conformance/Verifier/*` (+ `VerifierInterface`).
+- **Files:** `SnapshotIntegrityVerifier.php` (+ new `Contract/Application/Security/SnapshotIntegrityVerifierInterface.php`), `PublicationPipeline.php` (`@internal` or interface), `src/Behavior/Domain/AttributeValidator.php` (+ interface; `ContextValueValidator` already moved to `src/Domain/Context` with `ContextValueValidatorInterface` in T0.3), `Conformance/Verifier/*` (+ `VerifierInterface`).
 - **Verify:** DepTrac + PHPStan; interface-everywhere rule satisfied.
 
 ### T2.6 — S13: monotonic clock on the hot path

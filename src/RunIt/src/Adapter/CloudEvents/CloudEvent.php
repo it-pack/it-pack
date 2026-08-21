@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\CloudEvents;
 
-use ItPack\RunIt\Behavior\Domain\ContextValueValidator;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
+use ItPack\RunIt\Domain\Context\ContextValueValidator;
 
 /**
  * An immutable CloudEvent in the structured (JSON) representation.

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Context;
 
-use ItPack\RunIt\Behavior\Domain\ContextValueValidator;
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
 use ItPack\RunIt\Contract\Domain\ContextKeyInterface;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;

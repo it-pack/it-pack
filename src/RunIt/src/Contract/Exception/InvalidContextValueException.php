@@ -53,6 +53,13 @@ final class InvalidContextValueException extends InvalidArgumentException implem
         );
     }
 
+    public static function valueTooDeep(int $depth, int $maximum): self
+    {
+        return new self(
+            sprintf('Context value nesting must not exceed %d levels, got %d.', $maximum, $depth),
+        );
+    }
+
     public static function tooManyEntries(int $count, int $maximum): self
     {
         return new self(
