@@ -21,6 +21,7 @@
         "psr-4": {
             "Tests\\": "tests/",
             "Benchmarks\\": "benchmarks/",
+            "Tools\\ApiCompat\\": "tools/api-compat/",
             "Tools\\Dogfood\\": "tools/dogfood/src/",
             "Tools\\PhpStan\\RunitRules\\": "tools/phpstan/runit-rules/src/"
         }
