@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
@@ -144,6 +145,50 @@ final class RedactingPublisherTest extends Unit
 
         self::assertSame('ok', $payload['state']);
         self::assertSame('[redacted]', $payload['password']);
+    }
+
+    public function testRedactorAndNormalizeShareFieldVocabulary(): void
+    {
+        // Regression for S10: the redactor reaches into normalized keys that must
+        // match the keys emitted by normalize(). Both reference the shared
+        // ArtifactField vocabulary, so renaming a field cannot silently desync
+        // redaction from the normalized projection.
+        $observation = Observation::info(
+            ObservationId::fromString('obs'),
+            ExecutionId::fromString('exec-1'),
+            'm',
+            null,
+            null,
+            AttributeCollection::fromArray(['a' => 'b']),
+        );
+        $obsNormalized = $observation->normalize();
+        self::assertArrayHasKey(ArtifactField::ID, $obsNormalized);
+        self::assertArrayHasKey(ArtifactField::ATTRIBUTES, $obsNormalized);
+        self::assertArrayHasKey(ArtifactField::THROWABLE, $obsNormalized);
+
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'source',
+            Instant::of(1000),
+        );
+        $occNormalized = $occurrence->normalize();
+        self::assertArrayHasKey(ArtifactField::ID, $occNormalized);
+        self::assertArrayHasKey(ArtifactField::DATA, $occNormalized);
+
+        $snapshot = ExecutionSnapshot::create(
+            SnapshotId::fromString('snap'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('test.snapshot'),
+            1,
+            ['state' => 'ok'],
+            new DeterministicHashCalculator(),
+        );
+        $snapNormalized = $snapshot->normalize();
+        self::assertArrayHasKey(ArtifactField::ID, $snapNormalized);
+        self::assertArrayHasKey(ArtifactField::PAYLOAD, $snapNormalized);
+        self::assertArrayHasKey(ArtifactField::ATTRIBUTES, $snapNormalized);
     }
 
     public function testNothingRedactedWhenNoMatch(): void

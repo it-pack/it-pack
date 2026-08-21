@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -60,11 +61,12 @@ final readonly class Observation implements ObservationInterface
             $executionId,
             $activityId,
             ObservationSeverity::Debug,
-            $message, $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $message,
+            $diagnosticCode,
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -86,10 +88,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Info,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -111,10 +113,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Notice,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -136,10 +138,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Warning,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -161,10 +163,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Error,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -186,10 +188,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Critical,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -211,10 +213,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Alert,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -236,10 +238,10 @@ final readonly class Observation implements ObservationInterface
             ObservationSeverity::Emergency,
             $message,
             $diagnosticCode,
-                $attributes ?? AttributeCollection::empty(),
+            $attributes ?? AttributeCollection::empty(),
             $throwableDescription,
-                $instant ?? Instant::now(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -307,7 +309,7 @@ final readonly class Observation implements ObservationInterface
     public function normalize(): array
     {
         return [
-            'id' => $this->id->toString(),
+            ArtifactField::ID => $this->id->toString(),
             'execution_id' => $this->executionId->toString(),
             'activity_id' => $this->activityId?->toString(),
             'severity' => $this->severity->label(),
@@ -316,8 +318,8 @@ final readonly class Observation implements ObservationInterface
             'diagnostic_code' => $this->diagnosticCode,
             'sequence' => $this->sequence->value(),
             'timestamp' => $this->instant->epochSeconds(),
-            'attributes' => $this->attributes->toArray(),
-            'throwable' => $this->throwableDescription?->toArray(),
+            ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
+            ArtifactField::THROWABLE => $this->throwableDescription?->toArray(),
         ];
     }
 }

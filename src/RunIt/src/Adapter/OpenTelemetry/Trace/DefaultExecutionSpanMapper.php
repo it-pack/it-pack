@@ -27,12 +27,11 @@ use OpenTelemetry\Context\ContextInterface;
  */
 final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperInterface
 {
-
     use TraceBehavior;
 
     public function map(ExecutionInterface $execution): void
     {
-        if(($span = $this->startSpan($execution)) === null) {
+        if (($span = $this->startSpan($execution)) === null) {
             return;
         }
 

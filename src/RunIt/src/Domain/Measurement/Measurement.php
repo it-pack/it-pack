@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementKindInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementNameInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -73,9 +74,9 @@ final readonly class Measurement implements MeasurementInterface
             $value,
             $executionId,
             $activityId,
-                $instant ?? Instant::now(),
-                $attributes ?? AttributeCollection::empty(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -98,9 +99,9 @@ final readonly class Measurement implements MeasurementInterface
             $value,
             $executionId,
             $activityId,
-                $instant ?? Instant::now(),
-                $attributes ?? AttributeCollection::empty(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -123,9 +124,9 @@ final readonly class Measurement implements MeasurementInterface
             $value,
             $executionId,
             $activityId,
-                $instant ?? Instant::now(),
-                $attributes ?? AttributeCollection::empty(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -146,9 +147,9 @@ final readonly class Measurement implements MeasurementInterface
             $value,
             $executionId,
             $activityId,
-                $instant ?? Instant::now(),
-                $attributes ?? AttributeCollection::empty(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -171,9 +172,9 @@ final readonly class Measurement implements MeasurementInterface
             $value,
             $executionId,
             $activityId,
-                $instant ?? Instant::now(),
-                $attributes ?? AttributeCollection::empty(),
-                $sequence ?? ArtifactSequence::initial()
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -251,7 +252,7 @@ final readonly class Measurement implements MeasurementInterface
             'activity_id' => $this->activityId?->toString(),
             'timestamp' => $this->instant->epochSeconds(),
             'sequence' => $this->sequence->value(),
-            'attributes' => $this->attributes->toArray(),
+            ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
         ];
     }
 }

@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -206,7 +207,7 @@ readonly class Snapshot implements SnapshotInterface
     public function normalize(): array
     {
         return [
-            'id' => $this->id->toString(),
+            ArtifactField::ID => $this->id->toString(),
             'execution_id' => $this->executionId->toString(),
             'activity_id' => $this->activityId?->toString(),
             'type' => $this->type->toString(),
@@ -217,8 +218,8 @@ readonly class Snapshot implements SnapshotInterface
             'content_hash' => $this->contentHash,
             'predecessor_id' => $this->predecessorId?->toString(),
             'sequence' => $this->sequence->value(),
-            'payload' => $this->payload,
-            'attributes' => $this->attributes->toArray(),
+            ArtifactField::PAYLOAD => $this->payload,
+            ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
         ];
     }
 }

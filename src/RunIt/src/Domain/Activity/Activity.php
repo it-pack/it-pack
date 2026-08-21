@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 
@@ -152,7 +153,7 @@ final readonly class Activity implements ActivityInterface
     public function normalize(): array
     {
         return [
-            'id' => $this->id->toString(),
+            ArtifactField::ID => $this->id->toString(),
             'execution_id' => $this->executionId->toString(),
             'name' => $this->definition->name()->toString(),
             'kind' => $this->definition->kind()->toString(),
@@ -161,8 +162,8 @@ final readonly class Activity implements ActivityInterface
             'ended_at' => $this->endedAt?->epochSeconds(),
             'parent_activity_id' => $this->definition->parentActivityId()?->toString(),
             'sequence' => $this->sequence->value(),
-            'attributes' => $this->attributes->toArray(),
-            'throwable' => $this->throwableDescription?->toArray(),
+            ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
+            ArtifactField::THROWABLE => $this->throwableDescription?->toArray(),
         ];
     }
 }

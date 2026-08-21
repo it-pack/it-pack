@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
 use ItPack\RunIt\Domain\Context\DefaultContextRedactionPolicy;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * The immutable blueprint of an execution.
@@ -97,7 +98,7 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
                 static fn (ExecutionIdInterface $id): string => $id->toString(),
                 $this->linkedExecutionIds
             ),
-            'context' => $this->context->toArray(
+            ArtifactField::CONTEXT => $this->context->toArray(
                 new DefaultContextRedactionPolicy()
             ),
         ];

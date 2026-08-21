@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Domain\Context\DefaultContextRedactionPolicy;
 use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 
 /**
@@ -157,7 +158,7 @@ final readonly class Execution implements ExecutionInterface
     public function normalize(): array
     {
         return [
-            'id' => $this->id->toString(),
+            ArtifactField::ID => $this->id->toString(),
             'name' => $this->definition->name()->toString(),
             'kind' => $this->definition->kind()->toString(),
             'status' => $this->status->label(),
@@ -169,10 +170,10 @@ final readonly class Execution implements ExecutionInterface
                 $this->definition->linkedExecutionIds(),
             ),
             'sequence' => $this->sequence->value(),
-            'context' => $this->definition->context()->toArray(new DefaultContextRedactionPolicy()),
+            ArtifactField::CONTEXT => $this->definition->context()->toArray(new DefaultContextRedactionPolicy()),
             'result' => $this->result === null ? null : [
                 'status' => $this->result->status()->label(),
-                'throwable' => $this->result->throwableDescription()?->toArray(),
+                ArtifactField::THROWABLE => $this->result->throwableDescription()?->toArray(),
             ],
         ];
     }

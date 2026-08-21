@@ -32,7 +32,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
     public function map(ActivityInterface $activity): void
     {
-        if(($span = $this->startSpan($activity)) === null) {
+        if (($span = $this->startSpan($activity)) === null) {
             return;
         }
 

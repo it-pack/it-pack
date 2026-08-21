@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 
@@ -164,7 +165,7 @@ final readonly class Occurrence implements OccurrenceInterface
     public function normalize(): array
     {
         return [
-            'id' => $this->id->toString(),
+            ArtifactField::ID => $this->id->toString(),
             'execution_id' => $this->executionId->toString(),
             'activity_id' => $this->activityId?->toString(),
             'type' => $this->type->toString(),
@@ -172,7 +173,7 @@ final readonly class Occurrence implements OccurrenceInterface
             'source' => $this->source,
             'subject' => $this->subject,
             'time' => $this->time->epochSeconds(),
-            'data' => $this->data,
+            ArtifactField::DATA => $this->data,
             'data_schema' => $this->dataSchema,
             'content_type' => $this->contentType,
             'extension_attributes' => $this->extensionAttributes->toArray(),

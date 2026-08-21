@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * Redactor that masks sensitive values in an artifact's normalized projection.
@@ -39,29 +40,29 @@ final class DefaultArtifactRedactor implements RedactorInterface
 
         $changed = false;
 
-        if ($this->config->sensitiveAttributeKeys !== [] && isset($normalized['attributes']) && is_array($normalized['attributes'])) {
-            [$normalized['attributes'], $masked] = $this->maskKeys($normalized['attributes'], $this->config->sensitiveAttributeKeys);
+        if ($this->config->sensitiveAttributeKeys !== [] && isset($normalized[ArtifactField::ATTRIBUTES]) && is_array($normalized[ArtifactField::ATTRIBUTES])) {
+            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskKeys($normalized[ArtifactField::ATTRIBUTES], $this->config->sensitiveAttributeKeys);
             if ($masked) {
                 $changed = true;
             }
         }
 
-        if ($this->config->redactThrowableMessages && isset($normalized['throwable']) && is_array($normalized['throwable'])) {
-            [$normalized['throwable'], $masked] = $this->maskThrowable($normalized['throwable']);
+        if ($this->config->redactThrowableMessages && isset($normalized[ArtifactField::THROWABLE]) && is_array($normalized[ArtifactField::THROWABLE])) {
+            [$normalized[ArtifactField::THROWABLE], $masked] = $this->maskThrowable($normalized[ArtifactField::THROWABLE]);
             if ($masked) {
                 $changed = true;
             }
         }
 
-        if ($this->config->redactOccurrenceData && $artifact instanceof OccurrenceInterface && isset($normalized['data'])) {
-            [$normalized['data'], $masked] = $this->maskKeysRecursive($normalized['data'], $this->config->sensitiveDataKeys);
+        if ($this->config->redactOccurrenceData && $artifact instanceof OccurrenceInterface && isset($normalized[ArtifactField::DATA])) {
+            [$normalized[ArtifactField::DATA], $masked] = $this->maskKeysRecursive($normalized[ArtifactField::DATA], $this->config->sensitiveDataKeys);
             if ($masked) {
                 $changed = true;
             }
         }
 
-        if ($this->config->redactSnapshotPayloads && $artifact instanceof SnapshotInterface && isset($normalized['payload'])) {
-            [$normalized['payload'], $masked] = $this->maskKeysRecursive($normalized['payload'], $this->config->sensitiveDataKeys);
+        if ($this->config->redactSnapshotPayloads && $artifact instanceof SnapshotInterface && isset($normalized[ArtifactField::PAYLOAD])) {
+            [$normalized[ArtifactField::PAYLOAD], $masked] = $this->maskKeysRecursive($normalized[ArtifactField::PAYLOAD], $this->config->sensitiveDataKeys);
             if ($masked) {
                 $changed = true;
             }
@@ -133,8 +134,8 @@ final class DefaultArtifactRedactor implements RedactorInterface
      */
     private function maskThrowable(array $throwable): array
     {
-        if (array_key_exists('message', $throwable) && is_string($throwable['message'])) {
-            $throwable['message'] = $this->config->marker;
+        if (array_key_exists(ArtifactField::MESSAGE, $throwable) && is_string($throwable[ArtifactField::MESSAGE])) {
+            $throwable[ArtifactField::MESSAGE] = $this->config->marker;
 
             return [$throwable, true];
         }
