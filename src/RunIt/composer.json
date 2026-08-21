@@ -81,6 +81,7 @@
         "test:functional": "vendor/bin/codecept run Functional",
         "test:integration": "vendor/bin/codecept run Integration",
         "test:conformance": "vendor/bin/codecept run Conformance",
+        "examples": "bash scripts/examples.sh",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",

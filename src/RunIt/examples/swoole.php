@@ -29,14 +29,18 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 
-$runIt = RunItBuilder::create()
+$builder = RunItBuilder::create()
     ->withPublisher(new InMemoryArtifactPublisher())
     ->withClock(new SystemMonotonicClock())
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
-    ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->withContextStorage(new CoroutineContextStorage(new SwooleCoroutineIdProvider()))
-    ->build();
+    ->withIdentifierGenerator(new RandomIdentifierGenerator());
+
+if (extension_loaded('swoole') || extension_loaded('openswoole')) {
+    $builder->withContextStorage(new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
+}
+
+$runIt = $builder->build();
 
 $runner = $runIt->executionRunner();
 

@@ -2881,22 +2881,56 @@ Verification evidence:
 
 ## M14.5 Executable examples
 
-- [ ] Add a null-runtime example.
-- [ ] Add an in-memory-runtime example.
-- [ ] Add a successful execution example.
-- [ ] Add a failed execution example.
-- [ ] Add nested activities example.
-- [ ] Add measurements example.
-- [ ] Add observations example.
-- [ ] Add occurrences example.
-- [ ] Add snapshots example.
-- [ ] Add a context classification example.
-- [ ] Add OTel example.
-- [ ] Add CloudEvents example.
-- [ ] Add a Fiber example.
-- [ ] Add a Swoole example where available.
-- [ ] Execute all examples in CI.
-- [ ] Ensure examples use only public APIs.
+- [x] Add a null-runtime example.
+- [x] Add an in-memory-runtime example.
+- [x] Add a successful execution example.
+- [x] Add a failed execution example.
+- [x] Add nested activities example.
+- [x] Add measurements example.
+- [x] Add observations example.
+- [x] Add occurrences example.
+- [x] Add snapshots example.
+- [x] Add a context classification example.
+- [x] Add OTel example.
+- [x] Add CloudEvents example.
+- [x] Add a Fiber example.
+- [x] Add a Swoole example where available.
+- [x] Execute all examples in CI.
+- [x] Ensure examples use only public APIs.
+
+### M14.5 status audit — August 21, 2026
+
+M14.5 (executable examples) is complete. Every planned example exists under
+`examples/`, uses only public APIs, and is executed by CI.
+
+Verification evidence:
+
+- **Examples added.** New: `null-runtime.php` (no-op publisher), `in-memory-runtime.php`
+  (`InMemoryArtifactPublisher` + inspection), `successful-execution.php`,
+  `failed-execution.php` (catches the rethrown original `Throwable` and reports the
+  recorded `failed` status), `nested-activities.php`, `measurements.php`,
+  `observations.php`, `occurrences.php`, `snapshots.php`, `context-classification.php`.
+  Already present and retained: `sdk.php`, `sdk-service-decorator.php`, `clock.php`,
+  `opentelemetry.php` (OTel), `cloudevents.php` (CloudEvents), `fibers.php` (Fiber),
+  and `swoole.php` (Swoole/OpenSwoole, where available).
+- **Execute all examples in CI.** `composer examples` (`bash scripts/examples.sh`)
+  runs every top-level `examples/*.php` (the `conformance/` helpers are excluded by the
+  glob). A dedicated `examples` job was added to `.github/workflows/quality.yml` that
+  installs the locked `require-dev` dependencies and runs `composer examples`. The
+  Swoole example guards coroutine context storage behind `extension_loaded`, so it runs
+  cleanly even when the extension is absent (it degrades to the default stack storage).
+- **Verified execution.** Running `bash scripts/examples.sh` locally executes all 17
+  top-level examples with exit code 0; no fatal, no uncaught exception, no undefined
+  class. The failed-execution example exits 0 by design (it demonstrates the preserved
+  exception and recorded status rather than letting the process fail).
+- **Public APIs only.** Every example imports from `src/Adapter/{Null,Memory,Common}`,
+  `src/Contract`, `src/Domain`, and `src/SDK` — none reach into `Application` internals.
+  The integration examples use the documented adapter entry points
+  (`TelemetryPublisher`, `CloudEventPublisher`, `ExecutionMiddleware`,
+  `CoroutineContextStorage`/`FiberContextStorage`), matching the integration guides.
+- **Not verified by static analysis of examples.** `composer analyse` targets `src/` and
+  `tests/`, not `examples/`; correctness of the examples is established by execution in
+  the `examples` CI job.
 
 ## M14.6 RunIt dogfooding
 
