@@ -33,20 +33,20 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class DefaultObservationRecorder implements ObservationRecorderInterface
+final readonly class DefaultObservationRecorder implements ObservationRecorderInterface
 {
     /**
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
     public function __construct(
-        private readonly ExecutionIdInterface $executionId,
-        private readonly Closure $currentActivityId,
-        private readonly SequenceAllocatorInterface $sequenceAllocator,
-        private readonly MonotonicClockInterface $clock,
-        private readonly ArtifactPublisherInterface $publisher,
-        private readonly ThrowableMapperInterface $throwableMapper,
+        private ExecutionIdInterface             $executionId,
+        private Closure                          $currentActivityId,
+        private SequenceAllocatorInterface       $sequenceAllocator,
+        private MonotonicClockInterface          $clock,
+        private ArtifactPublisherInterface       $publisher,
+        private ThrowableMapperInterface         $throwableMapper,
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ObservationIdInterface> */
-        private readonly StringIdentifierFactoryInterface $observationIdFactory,
+        private StringIdentifierFactoryInterface $observationIdFactory,
     ) {
     }
 
@@ -78,7 +78,6 @@ final class DefaultObservationRecorder implements ObservationRecorderInterface
     ): ObservationInterface {
         return match ($severity) {
             ObservationSeverity::Debug => Observation::debug($id, $this->executionId, $message, $activityId, $diagnosticCode, $attributes, $description, $this->now(), $this->sequence()),
-            ObservationSeverity::Info => Observation::info($id, $this->executionId, $message, $activityId, $diagnosticCode, $attributes, $description, $this->now(), $this->sequence()),
             ObservationSeverity::Notice => Observation::notice($id, $this->executionId, $message, $activityId, $diagnosticCode, $attributes, $description, $this->now(), $this->sequence()),
             ObservationSeverity::Warning => Observation::warning($id, $this->executionId, $message, $activityId, $diagnosticCode, $attributes, $description, $this->now(), $this->sequence()),
             ObservationSeverity::Error => Observation::error($id, $this->executionId, $message, $activityId, $diagnosticCode, $attributes, $description, $this->now(), $this->sequence()),

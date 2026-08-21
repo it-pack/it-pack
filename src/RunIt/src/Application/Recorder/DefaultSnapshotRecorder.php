@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -35,23 +36,23 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
+final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterface
 {
     /**
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
     public function __construct(
-        private readonly ExecutionIdInterface $executionId,
-        private readonly Closure $currentActivityId,
-        private readonly SequenceAllocatorInterface $sequenceAllocator,
-        private readonly MonotonicClockInterface $clock,
-        private readonly ArtifactPublisherInterface $publisher,
-        private readonly SerializerInterface $serializer,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
-        private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
-        private readonly HashCalculatorInterface $hashCalculator,
-        private readonly ?SnapshotStoreInterface $store = null,
-        private readonly ?Closure $onStoreFailure = null,
+        private ExecutionIdInterface             $executionId,
+        private Closure                          $currentActivityId,
+        private SequenceAllocatorInterface       $sequenceAllocator,
+        private MonotonicClockInterface          $clock,
+        private ArtifactPublisherInterface       $publisher,
+        private SerializerInterface              $serializer,
+        /** @var StringIdentifierFactoryInterface<SnapshotIdInterface> */
+        private StringIdentifierFactoryInterface $snapshotIdFactory,
+        private HashCalculatorInterface          $hashCalculator,
+        private ?SnapshotStoreInterface          $store = null,
+        private ?Closure                         $onStoreFailure = null,
     ) {
     }
 
@@ -72,7 +73,7 @@ final class DefaultSnapshotRecorder implements SnapshotRecorderInterface
 
     /**
      * Normalizes and builds the snapshot, isolating a serializer failure so it can never abort the
-     * calling operation. A failed serialization is reported and a best-effort empty snapshot is
+     * calling operation. Failed serialization is reported, and a best-effort empty snapshot is
      * returned so the recording call always completes.
      */
     private function build(

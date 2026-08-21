@@ -31,17 +31,17 @@ use ItPack\RunIt\Domain\Shared\Instant;
  *
  * @see https://w3id.org/itpack/runit#measurement
  */
-final class DefaultMeasurementRecorder implements MeasurementRecorderInterface
+final readonly class DefaultMeasurementRecorder implements MeasurementRecorderInterface
 {
     /**
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
     public function __construct(
-        private readonly ExecutionIdInterface $executionId,
-        private readonly Closure $currentActivityId,
-        private readonly SequenceAllocatorInterface $sequenceAllocator,
-        private readonly MonotonicClockInterface $clock,
-        private readonly ArtifactPublisherInterface $publisher,
+        private ExecutionIdInterface       $executionId,
+        private Closure                    $currentActivityId,
+        private SequenceAllocatorInterface $sequenceAllocator,
+        private MonotonicClockInterface    $clock,
+        private ArtifactPublisherInterface $publisher,
     ) {
     }
 
@@ -90,6 +90,9 @@ final class DefaultMeasurementRecorder implements MeasurementRecorderInterface
         return $this->sequenceAllocator->allocate($this->executionId);
     }
 
+    /**
+     * @throws \Throwable
+     */
     private function publish(MeasurementInterface $measurement): MeasurementInterface
     {
         $this->publisher->publish($measurement);
