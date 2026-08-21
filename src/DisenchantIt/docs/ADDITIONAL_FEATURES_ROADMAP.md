@@ -178,66 +178,86 @@ position. This underpins enum/flag targets later.
 
 ---
 
-## Phase 2 — Backed-enum promotion target
+## Phase 2 — Backed-enum promotion target — ✅ DONE
+
+> **Status (implemented):** All four steps shipped and verified. The per-class
+> placement strategies were replaced by a pluggable `PromotionTargetInterface`
+> seam: `BackedEnumTarget` (closed sets → backed enums) is preferred ahead of
+> `ClassConstantTarget` (the prior `self::CONST` behavior, now isolated behind
+> the seam) inside a `CompositePromotionTarget`. `LineBasedRewriter` consumes a
+> single `PromotionArtifact` shape; a compatibility shim still accepts the legacy
+> `ConstantPlacementInterface` so not-yet-migrated callers keep working.
 
 The README's "eventually backed enums". This is the biggest feature; build the
 target seam first, then the enum strategy, then closed-set detection.
 
-### S2.1 — `PromotionArtifact` carrier + target seam
+### S2.1 — `PromotionArtifact` carrier + target seam — ✅ DONE
 - **Add** `ValueObject/PromotionArtifact.php` `final readonly` implementing
   `ValueObject/PromotionArtifactInterface`, describing an edit set:
-  - `list<string> $insertions` (declaration source to inject),
+  - `list<Insertion> $insertions` (declaration source to inject),
   - `list<Replacement> $replacements` (line + old raw → `self::CONST` / `Enum::Case`),
-  - a `TargetKind` (`Const` | `Enum` | `FlagSet` | `SharedConst`).
-  Keep `ConstantPlacement` as one specialization or migrate it to produce a
-  `PromotionArtifact` (prefer the latter so `LineBasedRewriter` has one shape).
+  - a `TargetKind` (`Const` | `Enum` | `FlagSet` | `SharedConst`),
+  - `list<ConstantPlacementInterface> $placements` (Const targets only; backed
+    enums carry none, so SemConv collect/alias is skipped for enums).
 - **Add** `Contract/PromotionTargetInterface.php`
-  `public function supports(GroupedCandidate $group): bool;`
-  `public function build(GroupedCandidate $group): PromotionArtifact;`
-  (`GroupedCandidate` is the existing grouped literal set; reuse
-  `CandidateInterface` grouping already produced by `CandidateGrouper`.)
+  `public function supports(GroupedCandidateInterface $group): bool;`
+  `public function build(GroupedCandidateInterface $group): PromotionArtifactInterface;`
+  (`GroupedCandidate` wraps the existing `CandidateInterface` grouping produced
+  by `CandidateGrouper`, plus `isClosedSet` / `proposedEnumName` metadata.)
 - **Refactor** `Adapter/LineBasedRewriter` to consume `PromotionArtifact`
   instead of `ConstantPlacementInterface` directly (line-scoped insertion +
-  replacement unchanged in behavior). Keep a compatibility shim so existing
-  `ConstantPlacement` callers still work for one step, then remove it.
+  replacement unchanged in behavior). A compatibility shim
+  (`artifactFromPlacement`) still accepts the legacy `ConstantPlacementInterface`
+  for one transition step.
+- **Add** supporting VOs: `Insertion`/`InsertionInterface` (className + lines +
+  `topLevel` flag for file-level enum insertion), `Replacement`/`ReplacementInterface`,
+  `GroupedCandidate`/`GroupedCandidateInterface`, `TargetKind` (backed enum).
 
-### S2.2 — `ClassConstantTarget` (extract current behavior)
+### S2.2 — `ClassConstantTarget` (extract current behavior) — ✅ DONE
 - **Add** `Adapter/ClassConstantTarget.php` `final readonly` implementing
-  `PromotionTargetInterface`; it emits exactly what `LineBasedRewriter` does
-  today (the `ConstantDeclaration` VO, `self::CONST` replacement). This isolates
-  today's logic behind the new seam; behavior must be **byte-identical** to
-  current output (assert with a fixture diff test).
-- **Wire** `CompositeConstantPlacementStrategy` (or a new
-  `CompositePromotionTarget`) to consult `ClassConstantTarget` by default.
+  `PromotionTargetInterface`; it emits exactly what `LineBasedRewriter` did
+  before (the `ConstantDeclaration` VO, `self::CONST` replacement), one const per
+  distinct class. Behavior is byte-identical to the pre-Phase-2 pipeline
+  (asserted in `ClassConstantTargetTest::testSingleClassProducesByteIdenticalDeclaration`).
+- **Wire** `CompositePromotionTarget` consults `ClassConstantTarget` as the
+  general fallback (after `BackedEnumTarget`).
 
-### S2.3 — Closed-set candidacy pass (feeds enum target)
+### S2.3 — Closed-set candidacy pass (feeds enum target) — ✅ DONE
 - **Add** `Contract/ClosedSetDetectorInterface.php` +
-  `Adapter/ClosedSetDetector.php`: given the grouped candidates, find groups
-  where (a) all members share one `LiteralKind`, (b) they appear in the **same**
-  variable/parameter/array-key context (use `NamingContext` + `LiteralRole`),
-  and (c) the distinct-value count is small and stable → mark the group
-  `isClosedSet = true` with a proposed enum name (derived from the naming
-  context, e.g. `Status`).
-- **Tests:** fixture where `$s` is always `'new'|'active'|'closed'` → flagged
-  closed; a value used in wildly different contexts → not flagged.
+  `Adapter/ClosedSetDetector.php`: groups occurrences by their shared naming
+  context (a single variable / parameter / array-key name), not by literal
+  value. A group qualifies when (a) every member shares one `LiteralKind`,
+  (b) every member shares one variable name (via `NamingContext`), and
+  (c) the distinct-value count is in `[2, 12]` (`MIN_DISTINCT`/`MAX_DISTINCT`).
+  Array-key literals are excluded from set membership so `['status' => 'new', …]`
+  yields cases New/Active/Closed without dragging the `'status'` key in.
+- **Wire:** `Core/Disenchanter::rewrite` / `rewriteWithSemConv` call
+  `closedSetDetector->detect()` on the detected candidates before building
+  artifacts (re-keying closed contexts to `ctx:<variable>`).
+- **Tests:** `ClosedSetDetectorTest` — shared variable + several distinct values
+  → flagged closed (proposed name `status`); single occurrence, single distinct
+  value, different variables, no naming context, and mixed kinds → not flagged.
 
-### S2.4 — `BackedEnumTarget`
+### S2.4 — `BackedEnumTarget` — ✅ DONE
 - **Add** `Adapter/BackedEnumTarget.php` implementing `PromotionTargetInterface`;
   when `supports()` (closed set of same-kind literals), it builds a
   `PromotionArtifact` that:
-  - inserts `enum <Name>: <string|int> { case <Case> = '<raw>'; … }` in the
-    chosen class (or a new file alongside, per scope),
-  - replaces each literal with `<Name>::<Case>` (kebab/`Studly` case from the
-    raw value).
+  - inserts `enum <Name>: <string|int> { case <Case> = '<raw>'; … }` at file top
+    level after the owning class's closing brace (the rewriter tracks brace depth
+    so enums land outside the class),
+  - replaces each literal with `<Name>::<Case>` (PascalCase from the raw value,
+    with numeric-leading and collision-suffixed case names).
 - **Guard:** never promote a value already an enum backing
-  (`LiteralRole::EnumBackingValue` is already excluded by `CandidateFilter`) —
-  add a regression test that an existing `enum X: string { case A = 'a'; }`
-  usage is left untouched.
-- **Wire** `CompositePromotionTarget` to prefer `BackedEnumTarget` for closed
-  sets, else `ClassConstantTarget`.
-- **Tests:** full rewrite fixture (string set → enum + `X::Case` usages),
-  idempotent on a second pass, no self-rewrap of the generated enum's own
-  backing values.
+  (`LiteralRole::EnumBackingValue` is excluded by `CandidateFilter` —
+  `CandidateFilterTest::testDropsEnumBackingValue`); the rewriter's
+  `enumAlreadyExists` check leaves an already-generated enum untouched on a
+  second pass (no self-rewrap of its own backing values).
+- **Wire** `CompositePromotionTarget` prefers `BackedEnumTarget` for closed sets,
+  else `ClassConstantTarget`. Composition root: `Factory/PromotionTargetFactory`.
+- **Tests:** `BackedEnumTargetTest` — full enum + `Status::New`/`Active`/`Closed`
+  references, PascalCase of `role:admin` → `RoleAdmin`, enum inserted top-level
+  with no SemConv placements; idempotency is guaranteed by the rewriter's
+  `enumAlreadyExists` guard and the `EnumBackingValue` filter exclusion.
 
 ---
 
@@ -357,7 +377,7 @@ target seam first, then the enum strategy, then closed-set detection.
 ```
 S0.1 → S0.2 → S0.3          # sub-kind foundation (no behavior change yet) ✅ DONE
 S1.1 → S1.2                 # scope/ignore (safe to land early) ✅ DONE
-S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature)
+S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature) ✅ DONE
 S3.1 → S3.2                 # bitmask/flags
 S4.1 → S4.2                 # string coverage extension
 S5.1 → S5.2 → S5.3 → S5.4 → S5.5   # operational
@@ -367,11 +387,20 @@ S6.1 → S6.2 → S6.3         # docs
 Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
 
-> **Current status:** Phases 0 (S0.1–S0.3) and 1 (S1.1–S1.2) are implemented,
-> committed, and verified — `composer architecture`, `composer analyze` (on
-> `src`), `composer format:check`, and `composer test:unit` all pass. Namespace
-> filtering is intentionally deferred (no namespace source on literal carriers
-> yet). Phase 2 (backed-enum target) is the next shippable step.
+> **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), and 2 (S2.1–S2.4) are
+> implemented, committed, and verified. `composer architecture`, `composer
+> analyze` (on `src`), `composer format:check`, and `composer test:unit` (118
+> tests, 276 assertions) all pass. Namespace filtering is intentionally deferred
+> (no namespace source on literal carriers yet). The next shippable step is
+> Phase 3 (bitmask / flag-set target).
+>
+> **Known analysis caveat:** `composer analyze` runs PHPStan over **both** `src`
+> and `tests`. The `src` tree is clean at level 9; the `tests` tree currently
+> reports PHPStan errors that are **environmental and pre-existing** — PHPStan
+> cannot resolve Codeception's `Codeception\Test\Unit` parent chain (every test
+> class then appears to "contain abstract method count()/run()"), independent of
+> any first-party code. This is unrelated to Phase 2 and affects all tests
+> equally; it predates this work and is tracked as a separate config/tooling fix.
 
 ---
 
