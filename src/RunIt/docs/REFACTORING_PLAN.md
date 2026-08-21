@@ -36,10 +36,12 @@ Goal: eliminate the six reachable-from-public-API defects. Each task ends with a
 - **Verify:** `tests/Unit/Domain/Context/ContextValueValidatorTest.php` (5 tests) — scalar accepted, object rejected, shallow nesting (depth 7) accepted, deep nesting (depth 64) throws `valueTooDeep` (no SIGSEGV), and `maxAttributeDepth` override honored. Plus `Domain/Context`, `Domain/Occurrence`, `Domain/Snapshot`, `Adapter/CloudEvents`, `Application/Recorder` suites green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
 - **Deferred:** the full shared-walk unification with `AttributeValidator` (D5) and threading `SecurityLimits` into `ContextEntry`'s named constructors (would change their public signatures) remain Phase 2 work; the critical recursion bound is in place via the constant default. `AttributeValidator` (and `StringValueValidator`/`StringIdentifierValidator`) still live in `Behavior/Domain` and could be relocated to a `Domain\Validation` namespace in a follow-up for consistency.
 
-### T0.4 — S4: validate `ExecutionSnapshot` payload
-- **Files:** `src/Domain/Snapshot/ExecutionSnapshot.php:22-54`, `src/Domain/Snapshot/Snapshot.php`.
-- **Steps:** `ExecutionSnapshot::create` must run the same recursive-primitive validator `Snapshot::create` uses before `json_encode`.
-- **Verify:** test — `ExecutionSnapshot::create(..., ['obj' => new stdClass()], ...)` throws; primitives still accepted.
+### T0.4 — S4: validate `ExecutionSnapshot` payload — **DONE 2026-08-21**
+- **Files:** `src/Domain/Snapshot/ExecutionSnapshot.php`, `tests/Unit/Domain/Snapshot/SnapshotTest.php` (execution-snapshot cases added).
+- **What changed:**
+  - `ExecutionSnapshot::create()` bypassed `Snapshot::create()` (it calls `self::build()` directly) and so never ran the recursive-primitive validator — a non-serializable payload such as `['obj' => new stdClass()]` fell straight into `json_encode`, silently producing `{}`/lossy content and a non-reproducible hash. Added `new ContextValueValidator()->assertSupportedValue($payload)` before `json_encode`, reusing the same `ContextValueValidator` (and therefore the same depth/length/element bounds and `InvalidContextValueException` family) already enforced by `Snapshot::create`. This closes the second half of S4 and keeps `ExecutionSnapshot` behavior identical to `Snapshot::create`.
+- **Verify:** two new cases in `tests/Unit/Domain/Snapshot/SnapshotTest.php` — `testExecutionSnapshotRejectsNonPrimitivePayload` (`['obj' => new stdClass()]` throws `InvalidContextValueException`) and `testExecutionSnapshotAcceptsPrimitivePayload` (mixed scalar/null payload preserved through `payload()`). Snapshot suite 7/7 green; `SnapshotIntegrityVerifierTest` 6/6 green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
+- **Note:** `Snapshot::create()` already validated (it was the subject of S4's original review); T0.4 only closes the `ExecutionSnapshot` override gap. Both paths now share the exact same validator, so behavior cannot diverge again.
 
 ### T0.5 — S5: `WeakMap` metadata cache
 - **Files:** `src/SDK/Attribute/DefaultExecutedAsMetadataReader.php:27-28,66-94`.
