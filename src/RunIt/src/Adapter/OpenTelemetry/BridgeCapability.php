@@ -14,12 +14,12 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry;
  *
  * @see https://w3id.org/itpack/runit#OpenTelemetry
  */
-final class BridgeCapability
+final readonly class BridgeCapability
 {
     public function __construct(
-        public readonly bool $trace,
-        public readonly bool $metrics,
-        public readonly bool $logs,
+        public bool $trace,
+        public bool $metrics,
+        public bool $logs,
     ) {
     }
 

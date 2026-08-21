@@ -24,7 +24,7 @@ use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
  *
  * @see https://w3id.org/itpack/runit#OpenTelemetry
  */
-final class BridgeConfig
+final readonly class BridgeConfig
 {
     public const string INSTRUMENTATION_SCOPE = 'it-pack/run-it';
 
@@ -34,17 +34,17 @@ final class BridgeConfig
      *                                                        keys (ids, correlation) are never allowed.
      */
     public function __construct(
-        public readonly ?TracerProviderInterface $tracerProvider,
-        public readonly ?MeterProviderInterface $meterProvider,
-        public readonly ?LoggerProviderInterface $loggerProvider,
-        public readonly TextMapPropagatorInterface $propagator,
-        public readonly SnapshotPayloadPolicy $snapshotPayloadPolicy,
-        public readonly bool $mapObservationsToLogs,
-        public readonly bool $mapObservationsToSpanEvents,
-        public readonly bool $mapOccurrencesToLogs,
-        public readonly bool $mapOccurrencesToSpanEvents,
-        public readonly array $metricAttributeAllowList,
-        public readonly int $maxInstrumentCacheSize,
+        public ?TracerProviderInterface $tracerProvider,
+        public ?MeterProviderInterface $meterProvider,
+        public ?LoggerProviderInterface $loggerProvider,
+        public TextMapPropagatorInterface $propagator,
+        public SnapshotPayloadPolicy $snapshotPayloadPolicy,
+        public bool $mapObservationsToLogs,
+        public bool $mapObservationsToSpanEvents,
+        public bool $mapOccurrencesToLogs,
+        public bool $mapOccurrencesToSpanEvents,
+        public array $metricAttributeAllowList,
+        public int $maxInstrumentCacheSize,
     ) {
     }
 

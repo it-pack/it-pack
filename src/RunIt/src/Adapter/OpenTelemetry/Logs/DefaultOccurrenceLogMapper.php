@@ -26,13 +26,13 @@ use OpenTelemetry\API\Trace\Span;
  * @see https://w3id.org/itpack/runit#Occurrence
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
+final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
 {
     public function __construct(
-        private readonly ?LoggerProviderInterface $loggerProvider,
-        private readonly SnapshotPayloadPolicy $snapshotPayloadPolicy,
-        private readonly bool $mapOccurrencesToLogs,
-        private readonly bool $mapOccurrencesToSpanEvents,
+        private ?LoggerProviderInterface $loggerProvider,
+        private SnapshotPayloadPolicy    $snapshotPayloadPolicy,
+        private bool                     $mapOccurrencesToLogs,
+        private bool                     $mapOccurrencesToSpanEvents,
     ) {
     }
 

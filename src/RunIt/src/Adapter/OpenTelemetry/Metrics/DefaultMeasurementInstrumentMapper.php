@@ -27,15 +27,15 @@ use OpenTelemetry\API\Metrics\UpDownCounterInterface;
  *
  * @see https://w3id.org/itpack/runit#measurement
  */
-final class DefaultMeasurementInstrumentMapper implements MeasurementInstrumentMapperInterface
+final readonly class DefaultMeasurementInstrumentMapper implements MeasurementInstrumentMapperInterface
 {
     /**
      * @param list<string> $metricAttributeAllowList measurement attribute keys allowed as dimensions
      */
     public function __construct(
-        private readonly ?MeterProviderInterface $meterProvider,
-        private readonly InstrumentCache $cache,
-        private readonly array $metricAttributeAllowList,
+        private ?MeterProviderInterface $meterProvider,
+        private InstrumentCache         $cache,
+        private array                   $metricAttributeAllowList,
     ) {
     }
 

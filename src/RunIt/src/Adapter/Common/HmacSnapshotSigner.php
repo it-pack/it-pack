@@ -19,11 +19,11 @@ use ItPack\RunIt\Contract\Port\SnapshotSignerInterface;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class HmacSnapshotSigner implements SnapshotSignerInterface
+final readonly class HmacSnapshotSigner implements SnapshotSignerInterface
 {
     public function __construct(
-        private readonly string $key,
-        private readonly string $algorithm = 'sha256',
+        private string $key,
+        private string $algorithm = 'sha256',
     ) {
     }
 

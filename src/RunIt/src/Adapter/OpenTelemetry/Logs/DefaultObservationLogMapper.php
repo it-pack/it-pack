@@ -23,12 +23,12 @@ use OpenTelemetry\API\Trace\Span;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class DefaultObservationLogMapper implements ObservationLogMapperInterface
+final readonly class DefaultObservationLogMapper implements ObservationLogMapperInterface
 {
     public function __construct(
-        private readonly ?LoggerProviderInterface $loggerProvider,
-        private readonly SeverityMap $severityMap,
-        private readonly bool $mapToSpanEvents = false,
+        private ?LoggerProviderInterface $loggerProvider,
+        private SeverityMap              $severityMap,
+        private bool                     $mapToSpanEvents = false,
     ) {
     }
 

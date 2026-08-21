@@ -19,10 +19,10 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class ConfigurableHashCalculator implements HashCalculatorInterface
+final readonly class ConfigurableHashCalculator implements HashCalculatorInterface
 {
     public function __construct(
-        private readonly string $algorithm = 'sha256',
+        private string $algorithm = 'sha256',
     ) {
         if (!in_array($this->algorithm, hash_algos(), true)) {
             throw new InvalidArgumentException(sprintf('Unsupported hash algorithm "%s".', $this->algorithm));

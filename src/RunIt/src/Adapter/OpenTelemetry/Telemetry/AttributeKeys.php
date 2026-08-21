@@ -14,7 +14,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
  *
  * @see https://w3id.org/itpack/runit#OpenTelemetry
  */
-final class AttributeKeys
+interface AttributeKeys
 {
     public const string EXECUTION_ID = 'runit.execution.id';
 

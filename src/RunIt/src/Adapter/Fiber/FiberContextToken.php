@@ -12,14 +12,14 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class FiberContextToken implements ContextTokenInterface
+final readonly class FiberContextToken implements ContextTokenInterface
 {
     /**
      * @param object $anchor the Fiber instance, or the main sentinel when outside a Fiber
      */
     public function __construct(
-        public readonly object $anchor,
-        public readonly ExecutionScopeInterface $scope,
+        public object                  $anchor,
+        public ExecutionScopeInterface $scope,
     ) {
     }
 }

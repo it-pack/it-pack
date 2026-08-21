@@ -10,6 +10,7 @@ use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
 use OpenTelemetry\API\Baggage\Baggage;
+use OpenTelemetry\API\Baggage\Entry;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
@@ -43,7 +44,7 @@ final class DefaultOtelToContextExtractor implements OtelToContextExtractorInter
                 continue;
             }
 
-            /** @var \OpenTelemetry\API\Baggage\Entry $entry */
+            /** @var Entry $entry */
             $value = $entry->getValue();
             if (is_scalar($value) || is_array($value) || $value === null) {
                 /** @var array<int|string, int|float|string|bool|null>|int|float|string|bool|null $safeValue */

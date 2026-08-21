@@ -19,7 +19,8 @@ use OpenTelemetry\API\Trace\SpanKind;
 final class SpanKindMap
 {
     /**
-     * @return 0|1|2|3|4
+     * @param string $kind
+     * @return int 0|1|2|3|4
      */
     public function toSpanKind(string $kind): int
     {

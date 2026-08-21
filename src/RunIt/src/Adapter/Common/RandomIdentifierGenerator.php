@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Common;
 
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
+use Random\RandomException;
 
 /**
  * Default identifier generator producing UUIDv4 strings.
@@ -21,6 +22,9 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
  */
 final class RandomIdentifierGenerator implements IdentifierGeneratorInterface
 {
+    /**
+     * @throws RandomException
+     */
     public function generate(): string
     {
         $bytes = random_bytes(16);
