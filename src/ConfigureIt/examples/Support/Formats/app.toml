@@ -1,0 +1,3 @@
+[queue]
+enabled = true
+broker = "rabbitmq"

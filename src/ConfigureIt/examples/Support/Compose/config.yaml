@@ -1,0 +1,7 @@
+app:
+  name: configure-it
+  env: production
+db:
+  host: localhost
+  dsn: "${app.name}@${db.host}"
+  secret: "@include db-secret.yaml"

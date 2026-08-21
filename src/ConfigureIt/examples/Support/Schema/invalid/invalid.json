@@ -1,0 +1,10 @@
+{
+    "app": {
+        "name": true,
+        "debug": "not-bool"
+    },
+    "database": {
+        "host": 12345,
+        "port": "high"
+    }
+}

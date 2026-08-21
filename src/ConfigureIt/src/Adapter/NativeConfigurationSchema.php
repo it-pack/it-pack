@@ -59,7 +59,7 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
 
             $errors[] = [
                 'path' => $path !== '' ? $path : '(root)',
-                'message' => $message->message,
+                'message' => $message->toString(),
             ];
         }
 
