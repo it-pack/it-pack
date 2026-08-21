@@ -2830,20 +2830,54 @@ Verification evidence:
 
 ## M14.4 Recipes
 
-- [ ] Add basic callable recipe.
-- [ ] Add a nested-activity recipe.
-- [ ] Add HTTP request recipe.
-- [ ] Add CLI command recipe.
-- [ ] Add queue-job recipe.
-- [ ] Add scheduler recipe.
-- [ ] Add background-worker recipe.
-- [ ] Add configuration-resolution recipe.
-- [ ] Add a workflow recipe.
-- [ ] Add OpenTelemetry recipe.
-- [ ] Add CloudEvents recipe.
-- [ ] Add PSR-3 recipe.
-- [ ] Add testing recipe.
-- [ ] Add third-party adapter recipe.
+- [x] Add basic callable recipe.
+- [x] Add a nested-activity recipe.
+- [x] Add HTTP request recipe.
+- [x] Add CLI command recipe.
+- [x] Add queue-job recipe.
+- [x] Add scheduler recipe.
+- [x] Add background-worker recipe.
+- [x] Add configuration-resolution recipe.
+- [x] Add a workflow recipe.
+- [x] Add OpenTelemetry recipe.
+- [x] Add CloudEvents recipe.
+- [x] Add PSR-3 recipe.
+- [x] Add testing recipe.
+- [x] Add third-party adapter recipe.
+
+### M14.4 status audit — August 21, 2026
+
+M14.4 (recipes) is complete. All 14 recipes exist under `docs/recipes/` and use only
+public APIs (`RunItBuilder`, `ExecutionRunnerInterface`, `ExecutionScopeInterface`,
+the recorder interfaces, and the integration adapters).
+
+Verification evidence:
+
+- **Recipes added.** `basic-callable`, `nested-activity`, `http-request`, `cli-command`,
+  `queue-job`, `scheduler`, `background-worker`, `configuration-resolution`, `workflow`,
+  `opentelemetry`, `cloudevents`, `psr-3`, `testing`, and `third-party-adapter`. Each
+  shows a focused, copy-adaptable snippet.
+- **API accuracy.** Snippets were verified against the public surface:
+  `RunItBuilder::create()->with*()->build()`, `RunItInterface::run(ExecutionDefinition,
+  callable)`, `ExecutionScopeInterface::{activities,measurements,observations,occurrences,
+  snapshots}()`, `ActivityRunnerInterface::run(ActivityDefinition, callable)`, recorder
+  methods (`counter/gauge/duration/size/ratio`, `ObservationRecorder::record`,
+  `OccurrenceRecorder::record`, `SnapshotRecorder::record`), and the integration classes
+  (`TelemetryPublisher`/`BridgeConfigBuilder`, `CloudEventPublisher`/`CloudEventsBridgeConfig::builder()`,
+  `ObservationLoggerPublisher`, `ExecutionMiddleware`). The CLI/configuration recipes use
+  the immutable `ExecutionDefinition::create(...)->withContext(...)` and classified
+  `ContextEntry` builders.
+- **Public-API-only.** Every recipe depends only on `src/Contract` and concrete
+  adapters under `src/Adapter/{Common,Memory,OpenTelemetry,CloudEvents,Psr}` plus the
+  SDK builder; none reaches into `Application` internals. The third-party-adapter recipe
+  implements `ArtifactPublisherInterface` (a port) to demonstrate framework-neutral
+  extension.
+- **Cross-links.** Each recipe links to the relevant concept page, architecture page,
+  or integration guide, and the testing/third-party recipes link to `docs/conformance.md`.
+- **Not verified by execution.** Recipes are documentation; they are executed as
+  runnable examples under M14.5 (Executable examples), not M14.4. The builder preamble
+  and recorder calls mirror the existing `examples/sdk.php`, so the patterns are known
+  to run.
 
 ## M14.5 Executable examples
 
