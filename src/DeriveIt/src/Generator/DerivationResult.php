@@ -19,12 +19,14 @@ final class DerivationResult
      * @param list<string> $methods Method names in the derived surface.
      * @param array<string, string> $substitutions Effective type substitutions (FQCN => derived interface FQCN), including self/parent when applied.
      * @param list<string> $constants Constant names lifted into the interface.
+     * @param string|null $source Rendered PHP source. Null when the result was
+     *                            produced by `analyze()` (metadata only, no render).
      */
     public function __construct(
         public readonly InterfaceType $interface,
         public readonly string $fqcn,
         public readonly string $shortName,
-        public readonly string $source,
+        public readonly ?string $source,
         public readonly array $methods,
         public readonly array $substitutions = [],
         public readonly array $constants = [],

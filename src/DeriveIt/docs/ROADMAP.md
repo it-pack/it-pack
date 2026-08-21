@@ -486,13 +486,14 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.9 complete (2026-08-21).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.10 complete (2026-08-21).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
-> (G6), owned-attribute allow-list + builtin skip (G7), and opt-in phpdoc preservation
-> with FQCN simplification (G8) are implemented and tested. All five gates green.
-> Steps 10.10–10.16 remain planned.
+> (G6), owned-attribute allow-list + builtin skip (G7), opt-in phpdoc preservation
+> with FQCN simplification (G8), and the `analyze()` / `deriveMany()` / `diff()`
+> DX APIs (G9) are implemented and tested. All five gates green.
+> Steps 10.11–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -564,10 +565,15 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   `@template` / `@deprecated` with FQCN simplification + dedupe; fix the brittle
   `@throws` regex (generics in type, native PHP 8.4 `throws`).
 
-### Step 10.10 — `analyze()` / `deriveMany()` / dry-run diff (G9, EC15, D2/D5)
-- `DeriveIt::analyze($class): DerivationResult` (no rendering) for tooling/IDE use.
-- `DeriveIt::deriveMany(iterable, config)` batch entry point.
-- `DeriveFamily`/`DeriveIt::diff($class, $existingSource)` for CI drift detection.
+### Step 10.10 — `analyze()` / `deriveMany()` / dry-run diff (G9, EC15, D2/D5) ✅ COMPLETE
+- `DeriveIt::analyze($class, $config): DerivationResult` (no rendering) for
+  tooling/IDE use — `InterfaceDeriver::analyze()` builds the structured result with
+  `source: null` so metadata is cheap; `DerivationResult::$source` is now nullable.
+- `DeriveIt::deriveMany(iterable, $config): array<class-string, DerivationResult>`
+  batch entry point, keyed by FQCN, each result carrying the rendered source.
+- `DeriveIt::diff($class, $existingSource, $config): DeriveDiff` for CI drift
+  detection — `DeriveDiff::compute()` reports `drift` (exact-string equality) plus a
+  self-contained LCS-based unified diff (`DeriveDiff` value object, no dev deps).
 
 ### Step 10.11 — Config presets + validation + rename (G10/G11, EC14/EC16, B4)
 - Add `DeriveConfig::strict()` / `::forAdapter()` / `::forFamily()` presets and a

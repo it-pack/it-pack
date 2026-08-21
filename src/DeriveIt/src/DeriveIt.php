@@ -7,6 +7,7 @@ namespace ItPack\DeriveIt;
 use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DerivationResult;
 use ItPack\DeriveIt\Generator\DeriveConfig;
+use ItPack\DeriveIt\Generator\DeriveDiff;
 use ItPack\DeriveIt\Generator\FamilyDeriver;
 use ItPack\DeriveIt\Generator\InterfaceDeriver;
 use ItPack\DeriveIt\Generator\PerTraitInterfaceDeriver;
@@ -165,5 +166,59 @@ final class DeriveIt
         $file->addNamespace($ns);
 
         return (string) $file;
+    }
+
+    /**
+     * Metadata-only derivation for tooling / IDE use (G9 / D2). Returns a
+     * structured {@see DerivationResult} without rendering the source, so callers
+     * can introspect the derived surface, FQCN, and applied substitutions cheaply.
+     *
+     * @param ReflectionClass|class-string $class
+     */
+    public static function analyze(
+        ReflectionClass|string $class,
+        DeriveConfig $config = new DeriveConfig(),
+    ): DerivationResult {
+        return new InterfaceDeriver(config: $config)->analyze($class);
+    }
+
+    /**
+     * Batch derivation entry point (G9 / D2). Derives every class and returns a
+     * structured {@see DerivationResult} keyed by class FQCN. Each result carries
+     * the rendered source so callers can both introspect and persist.
+     *
+     * @param iterable<class-string|ReflectionClass> $classes
+     * @return array<class-string, DerivationResult>
+     */
+    public static function deriveMany(
+        iterable $classes,
+        DeriveConfig $config = new DeriveConfig(),
+    ): array {
+        $deriver = new InterfaceDeriver(config: $config);
+        $results = [];
+
+        foreach ($classes as $class) {
+            $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+            $results[$reflection->getName()] = $deriver->deriveWithResult($reflection);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Dry-run diff for CI drift detection (G9 / EC15 / D5). Derives $class and
+     * compares the freshly generated source against $existingSource, reporting
+     * whether they diverge and a unified line diff.
+     *
+     * @param ReflectionClass|class-string $class
+     */
+    public static function diff(
+        ReflectionClass|string $class,
+        string $existingSource,
+        DeriveConfig $config = new DeriveConfig(),
+    ): DeriveDiff {
+        $generated = new InterfaceDeriver(config: $config)->deriveSource($class);
+
+        return DeriveDiff::compute($existingSource, $generated);
     }
 }

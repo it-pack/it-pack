@@ -361,9 +361,11 @@ Phase 10 steps.
 - **G8** ✅ Robust phpdoc preservation — opt-in `preserveDocblocks`: re-emit
    `@param`/`@return`/`@throws`/`@template`/`@deprecated` with FQCN simplification +
    dedupe; generics-tolerant `@throws` regex (EC9, EC10).
-- **G9** `analyze()` + `deriveMany()` + dry-run diff — `DeriveIt::analyze($class)`
-  (no render) returning `DerivationResult`; `deriveMany(iterable, config)`;
-  `diff($class, $existingSource)` for "what would change" (EC15, D2, D5).
+- **G9** ✅ `analyze()` + `deriveMany()` + dry-run diff — `DeriveIt::analyze($class)`
+   (no render) returning `DerivationResult` (`source: null`); `deriveMany(iterable,
+   config)` returns `array<class-string, DerivationResult>`; `diff($class,
+   $existingSource)` returns a `DeriveDiff` (drift + LCS unified diff) for CI drift
+   detection (EC15, D2, D5).
 - **G10** Config presets + validation + fluent builder — `DeriveConfig::strict()`
   / `::forAdapter()` / `::forFamily()`; constructor validation of contradictory
   flags (EC16).

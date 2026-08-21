@@ -84,6 +84,27 @@ final class InterfaceDeriver implements DeriverInterface
     }
 
     /**
+     * Metadata-only derivation for tooling / IDE use (G9 / D2): build the same
+     * structured {@see DerivationResult} but skip source rendering, so callers can
+     * introspect the surface, FQCN, and substitutions without paying to render.
+     */
+    public function analyze(ReflectionClass|string $class): DerivationResult
+    {
+        $reflection = $this->reflect($class);
+        $meta = $this->build($reflection);
+
+        return new DerivationResult(
+            interface: $meta->interface,
+            fqcn: Naming::derivedInterfaceFqcn($reflection),
+            shortName: Naming::derivedInterfaceShortName($reflection),
+            source: null,
+            methods: $meta->methods,
+            substitutions: $meta->substitutions,
+            constants: $meta->constants,
+        );
+    }
+
+    /**
      * @return object{interface: InterfaceType, methods: list<string>, substitutions: array<string,string>, constants: list<string>}
      */
     private function build(ReflectionClass $reflection, ?TypeSubstitutor $substitutor = null, array $allowedNamespaces = []): object
