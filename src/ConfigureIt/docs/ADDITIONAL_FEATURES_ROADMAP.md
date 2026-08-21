@@ -49,11 +49,11 @@ thrown `TypeException`, not a silent bug.
 - [x] **T1.2.2 (M)** `ConfigurationFactory`/`ConfigurationResolver` mint `TypedSnapshot` instead of base snapshot **only when** `schema !== null` (opt-in; unchanged behaviour otherwise).
 - [x] **T1.2.3 (M)** Tests: `TypedSnapshotTest` (schema-present enforces types; schema-absent falls back to base behaviour).
 
-### Epic E2.3 — Codegen DTO (Companion: `configure-it-codegen`)
-- [ ] **T1.3.1 (L)** `configure-it-codegen`: read a `Nette\Schema\Expect` definition, emit a readonly `AppConfig` DTO with typed getters + PHPDoc.
-- [ ] **T1.3.2 (M)** Map `Expect::string/int/bool/float/structure/array` → PHP types; nested structures → nested readonly DTOs.
-- [ ] **T1.3.3 (M)** Adapter that hydrates the DTO from a `ConfigurationSnapshotInterface`.
-- [ ] **T1.3.4 (M)** Tests + an example `examples/typed-config.php` showing generated-DTO consumption.
+### Epic E2.3 — Codegen DTO (Companion: `configure-it-codegen`) ✅ DONE ✅ DONE
+- [x] **T1.3.1 (L)** `configure-it-codegen`: read a `Nette\Schema\Expect` definition, emit a readonly `AppConfig` DTO with typed getters + PHPDoc.
+- [x] **T1.3.2 (M)** Map `Expect::string/int/bool/float/structure/array` → PHP types; nested structures → nested readonly DTOs.
+- [x] **T1.3.3 (M)** Adapter that hydrates the DTO from a `ConfigurationSnapshotInterface`.
+- [x] **T1.3.4 (M)** Tests + an example `examples/typed-config.php` showing generated-DTO consumption.
 
 **M1 Exit:** `Snapshot::int('port')` works; schema-backed snapshots enforce types; codegen produces a compilable DTO; gates green.
 

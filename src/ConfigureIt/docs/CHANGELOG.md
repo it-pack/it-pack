@@ -386,6 +386,36 @@ Tests: `ConfigurationSnapshotTypedTest`, `TypedSnapshotTest`,
 Suite green: **165 tests / 380 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+
+### Additional Features — M1.E2.3: Typed DTO Codegen ✅
+
+Completes M1 (E2.3) of `docs/ADDITIONAL_FEATURES_PLAN.md` / `docs/ADDITIONAL_FEATURES_ROADMAP.md`:
+generate strongly-typed, readonly DTOs directly from a Nette Schema definition so
+consumers can hydrate a fully-typed `AppConfig` in one call instead of reading the
+snapshot through `int()`/`string()` accessors.
+
+- `src/Codegen/SchemaModelBuilder.php` — walks a Nette `Expect` definition (via
+  reflection over `Structure`/`Type` internals) into a set of DTO models, capturing
+  nested structures, list/map element types, and scalar read methods.
+- `src/Codegen/PhpRenderer.php` — emits one self-contained PHP file: each DTO is
+  `readonly`, `implements GeneratedConfigDtoInterface`, exposes `fromSnapshot()`
+  (root) / `fromSnapshotAt()` (reads every property relative to a dotted base path,
+  so nested and list/map-of-structure elements reuse the same reader), and `toArray()`.
+  Collection properties are declared `array` with a `@var array<...>` PHPDoc (PHP has
+  no runtime generic `array<T>` syntax).
+- `src/Codegen/ConfigCodegen.php` — orchestrates build + render.
+- `src/Codegen/ConfigDtoHydrator.php` — adapter that invokes the generated
+  `fromSnapshot()` factory (T1.3.3).
+- `src/Codegen/GeneratedConfigDtoInterface.php` — marker so hydrators return a
+  statically-known type.
+- `examples/typed-config.php` — generates an `AppConfig` DTO, hydrates it from a
+  snapshot, and prints typed getters (T1.3.4).
+
+Tests: `ConfigCodegenTest` (class generation, end-to-end hydration of scalars,
+nested structures, lists/maps of scalars, lists/maps of structures, and hydrator
+error handling). Suite green: **168 tests / 389 assertions**, PHPStan level 9
+**0 errors**, `php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
