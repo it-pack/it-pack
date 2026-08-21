@@ -64,11 +64,38 @@ final class ExecutedAsMetadataReaderTest extends TestCase
 
     public function testMetadataIsCachedPerCallable(): void
     {
-        $this->reader->read([new SampleService(), 'run']);
-        $this->reader->read([new SampleService(), 'run']);
+        $first = $this->reader->read([new SampleService(), 'run']);
+        $second = $this->reader->read([new SampleService(), 'run']);
 
-        self::assertArrayHasKey(SampleService::class . '::run', $this->reader->cache());
-        self::assertNotNull($this->reader->cache()[SampleService::class . '::run']);
+        self::assertNotNull($first);
+        self::assertSame($first, $second);
+    }
+
+    public function testFreedClosureDoesNotLeakMetadataToFreshClosure(): void
+    {
+        $attributed = new SampleService();
+
+        $a = Closure::fromCallable([$attributed, 'run']);
+        self::assertNotNull($this->reader->read($a));
+
+        unset($a);
+        gc_collect_cycles();
+
+        $b = static fn (): int => 1;
+        self::assertNull($this->reader->read($b), 'A fresh unattributed closure must not inherit freed closure A metadata.');
+    }
+
+    public function testObjectCacheDoesNotGrowUnboundedAcrossManyCallables(): void
+    {
+        for ($i = 0; $i < 2000; $i++) {
+            $closure = static fn (): int => $i;
+            $this->reader->read($closure);
+        }
+
+        gc_collect_cycles();
+
+        $fresh = static fn (): int => 1;
+        self::assertNull($this->reader->read($fresh), 'Entries for GC-eligible closures must not persist and leak.');
     }
 
     public function testAttributeCanBeConstructedDirectly(): void

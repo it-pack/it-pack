@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\SDK\Attribute;
 
+use Closure;
+
 /**
  * Resolves {@see ExecutedAs} metadata attached to a callable.
  *
@@ -21,5 +23,5 @@ interface ExecutedAsMetadataReaderInterface
     /**
      * Returns the execution metadata declared on the callable, or null when none is present.
      */
-    public function read(callable $operation): ?ExecutedAs;
+    public function read(callable|Closure $operation): ?ExecutedAs;
 }

@@ -9,6 +9,7 @@ use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
+use WeakMap;
 
 /**
  * Reflection-based reader for {@see ExecutedAs} metadata.
@@ -18,52 +19,83 @@ use ReflectionMethod;
  * method, or invokable class a callable refers to; plain closures without a bound method carry
  * no metadata and resolve to null.
  *
+ * Object-based callables (closures and invokable instances) are cached in a {@see WeakMap} keyed
+ * on the callable object itself rather than on a `spl_object_hash` string. Keying on the object
+ * identity means a newly created callable can never reuse a freed object's hash and inherit stale
+ * metadata, and the entry is released automatically once the callable is no longer referenced, so
+ * the cache cannot grow unbounded across many distinct callables. Callable strings and
+ * `[class, method]` arrays keep a small string-keyed cache keyed on their stable, collision-free
+ * name.
+ *
  * @api
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
 final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderInterface
 {
+    /** @var WeakMap<object, ?ExecutedAs> */
+    private WeakMap $objectCache;
+
     /** @var array<string, ?ExecutedAs> */
-    private array $cache = [];
+    private array $literalCache = [];
 
-    public function read(callable $operation): ?ExecutedAs
+    public function __construct()
     {
-        $key = $this->key($operation);
+        $this->objectCache = new WeakMap();
+    }
 
-        if (array_key_exists($key, $this->cache)) {
-            return $this->cache[$key];
+    public function read(callable|Closure $operation): ?ExecutedAs
+    {
+        if (is_object($operation)) {
+            return $this->readObjectKeyed($operation);
         }
 
-        $reflection = $this->reflect($operation);
-        $metadata = null;
+        $key = $this->literalKey($operation);
 
-        if ($reflection !== null) {
-            $attributes = $reflection->getAttributes(ExecutedAs::class);
-
-            if ($attributes === [] && $reflection instanceof ReflectionMethod) {
-                $attributes = $reflection->getDeclaringClass()->getAttributes(ExecutedAs::class);
-            }
-
-            if ($attributes !== []) {
-                $metadata = $attributes[0]->newInstance();
-            }
+        if (array_key_exists($key, $this->literalCache)) {
+            return $this->literalCache[$key];
         }
 
-        $this->cache[$key] = $metadata;
+        $metadata = $this->resolveFromReflection($this->reflectLiteral($operation));
+
+        $this->literalCache[$key] = $metadata;
 
         return $metadata;
     }
 
-    /**
-     * @return array<string, ?ExecutedAs> snapshot of the resolved metadata cache.
-     */
-    public function cache(): array
+    private function readObjectKeyed(object $operation): ?ExecutedAs
     {
-        return $this->cache;
+        if ($this->objectCache->offsetExists($operation)) {
+            return $this->objectCache->offsetGet($operation);
+        }
+
+        $metadata = $this->resolveFromReflection($this->reflectObject($operation));
+
+        $this->objectCache->offsetSet($operation, $metadata);
+
+        return $metadata;
     }
 
-    private function key(callable $operation): string
+    private function resolveFromReflection(?ReflectionFunctionAbstract $reflection): ?ExecutedAs
+    {
+        if ($reflection === null) {
+            return null;
+        }
+
+        $attributes = $reflection->getAttributes(ExecutedAs::class);
+
+        if ($attributes === [] && $reflection instanceof ReflectionMethod) {
+            $attributes = $reflection->getDeclaringClass()->getAttributes(ExecutedAs::class);
+        }
+
+        if ($attributes === []) {
+            return null;
+        }
+
+        return $attributes[0]->newInstance();
+    }
+
+    private function literalKey(callable $operation): string
     {
         if (is_array($operation)) {
             $class = is_object($operation[0]) ? $operation[0]::class : $operation[0];
@@ -75,22 +107,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
             return $operation;
         }
 
-        if ($operation instanceof Closure) {
-            $reflection = new ReflectionFunction($operation);
-            $called = $reflection->getClosureCalledClass();
-
-            if ($called !== null) {
-                return $called->getName() . '::' . $this->calledMethodName($reflection);
-            }
-
-            return 'closure@' . spl_object_hash($operation);
-        }
-
-        if (is_object($operation)) {
-            return $operation::class . '::__invoke';
-        }
-
-        return 'unknown::__invoke';
+        throw new \LogicException('Object callables are resolved through the WeakMap cache.');
     }
 
     private function calledMethodName(ReflectionFunction $reflection): string
@@ -101,7 +118,27 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
         return $position === false ? $name : substr($name, $position + 2);
     }
 
-    private function reflect(callable $operation): ?ReflectionFunctionAbstract
+    private function reflectObject(object $operation): ?ReflectionFunctionAbstract
+    {
+        try {
+            if ($operation instanceof Closure) {
+                $reflection = new ReflectionFunction($operation);
+                $called = $reflection->getClosureCalledClass();
+
+                if ($called !== null) {
+                    return new ReflectionMethod($called->getName(), $this->calledMethodName($reflection));
+                }
+
+                return $reflection;
+            }
+
+            return new ReflectionMethod($operation, '__invoke');
+        } catch (ReflectionException) {
+            return null;
+        }
+    }
+
+    private function reflectLiteral(callable $operation): ?ReflectionFunctionAbstract
     {
         try {
             if (is_array($operation)) {
@@ -116,22 +153,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
                 return new ReflectionFunction($operation);
             }
 
-            if ($operation instanceof Closure) {
-                $reflection = new ReflectionFunction($operation);
-                $called = $reflection->getClosureCalledClass();
-
-                if ($called !== null) {
-                    return new ReflectionMethod($called->getName(), $this->calledMethodName($reflection));
-                }
-
-                return $reflection;
-            }
-
-            if (is_object($operation)) {
-                return new ReflectionMethod($operation, '__invoke');
-            }
-
-            return null;
+            throw new \LogicException('Object callables are resolved through the WeakMap cache.');
         } catch (ReflectionException) {
             return null;
         }

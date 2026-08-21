@@ -43,12 +43,13 @@ Goal: eliminate the six reachable-from-public-API defects. Each task ends with a
 - **Verify:** two new cases in `tests/Unit/Domain/Snapshot/SnapshotTest.php` — `testExecutionSnapshotRejectsNonPrimitivePayload` (`['obj' => new stdClass()]` throws `InvalidContextValueException`) and `testExecutionSnapshotAcceptsPrimitivePayload` (mixed scalar/null payload preserved through `payload()`). Snapshot suite 7/7 green; `SnapshotIntegrityVerifierTest` 6/6 green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
 - **Note:** `Snapshot::create()` already validated (it was the subject of S4's original review); T0.4 only closes the `ExecutionSnapshot` override gap. Both paths now share the exact same validator, so behavior cannot diverge again.
 
-### T0.5 — S5: `WeakMap` metadata cache
-- **Files:** `src/SDK/Attribute/DefaultExecutedAsMetadataReader.php:27-28,66-94`.
-- **Steps:**
-  1. Replace `private array $cache` with `WeakMap` keyed on the callable object (`Closure`/`object` cases). Drop `spl_object_hash` key for objects.
-  2. Remove public `cache()` exposure (or return a snapshot derived from live keys).
-- **Verify:** regression test — read `#[ExecutedAs]` closure A; `unset($a)`; read fresh unattributed closure B → B returns `null`, not A's metadata. Assert cache does not grow unbounded across many distinct closures.
+### T0.5 — S5: `WeakMap` metadata cache — **DONE 2026-08-21**
+- **Files:** `src/SDK/Attribute/DefaultExecutedAsMetadataReader.php`, `tests/Unit/SDK/Attribute/ExecutedAsMetadataReaderTest.php`.
+- **What changed:**
+  - The reader kept one `private array $cache` keyed by a string. For a plain closure it used `'closure@' . spl_object_hash($operation)`. `spl_object_hash` can be reused once the original object is freed and its slot is recycled by a new object, so a fresh unattributed closure B could inherit the freed closure A's resolved `#[ExecutedAs]` metadata — a silent correctness leak.
+  - Replaced the single array cache with two stores: object-based callables (`Closure` and invokable instances) go into a `WeakMap` keyed on the callable **object identity**, and `string` / `[class, method]` array callables keep a small string-keyed array (their keys are stable, collision-free names, not memory addresses). `reflect()` was split into `reflectObject(object)` and `reflectLiteral(callable)` so PHPStan keeps the callable-array shape; `literalKey()`/`reflectLiteral()` now throw `\LogicException` if handed an object callable, documenting that object callables must go through the `WeakMap` path. Object entries are released automatically when the callable is no longer referenced, so the cache cannot grow unbounded across many distinct closures.
+  - The public `cache()` method (not part of `ExecutedAsMetadataReaderInterface`) was removed to stop exposing internal cache state; the existing `testMetadataIsCachedPerCallable` now asserts identity-stable caching via `read()` instead of `cache()`.
+- **Verify:** `tests/Unit/SDK/Attribute/ExecutedAsMetadataReaderTest.php` — `testFreedClosureDoesNotLeakMetadataToFreshClosure` (read attributed A; `unset($a)`; `gc_collect_cycles()`; fresh unattributed B returns `null`), `testObjectCacheDoesNotGrowUnboundedAcrossManyCallables` (2000 distinct closures, then a fresh closure still resolves `null`), plus the existing method/class/free-function/closure-bound cases. Full `tests/Unit/SDK` suite 35/35 green; PHPStan level max OK; DepTrac 0 violations; `composer cs:check` clean.
 
 ### T0.6 — S6: redaction must not silently drop artifacts
 - **Files:** `src/Application/Publication/RedactedArtifact.php`, `RedactingArtifactPublisher.php:33`, `DefaultArtifactRedactor.php`, adapters (`CloudEventPublisher`, OTel mappers).
