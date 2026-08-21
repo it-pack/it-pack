@@ -5,18 +5,31 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Enterprise;
 
 use Codeception\Test\Unit;
+use ItPack\ConfigureIt\Adapter\CachingReader;
 use ItPack\ConfigureIt\Adapter\Enterprise\AwsParameterStoreSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\AzureAppConfigSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\Client\AwsSsmClient;
 use ItPack\ConfigureIt\Adapter\Enterprise\Client\AzureAppConfigClient;
+use ItPack\ConfigureIt\Adapter\Enterprise\Client\ConsulClient;
+use ItPack\ConfigureIt\Adapter\Enterprise\Client\EtcdClient;
 use ItPack\ConfigureIt\Adapter\Enterprise\Client\FakeRemoteKeyValueClient;
 use ItPack\ConfigureIt\Adapter\Enterprise\Client\GcpSecretManagerClient;
+use ItPack\ConfigureIt\Adapter\Enterprise\ConsulSource;
+use ItPack\ConfigureIt\Adapter\Enterprise\EtcdSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\GcpSecretManagerSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\Http\FakeHttpClient;
 use ItPack\ConfigureIt\Adapter\Enterprise\Http\HttpResponse;
+use ItPack\ConfigureIt\Adapter\Enterprise\HttpReader;
+use ItPack\ConfigureIt\Adapter\Enterprise\HttpSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\RemoteJsonReader;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
+use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
+use ItPack\ConfigureIt\Contract\RemoteDocumentCacheInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Exception\ReadException;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
+use ItPack\ConfigureIt\ValueObject\Format;
 
 class RemoteSourceTest extends Unit
 {
@@ -148,5 +161,259 @@ class RemoteSourceTest extends Unit
                 'feature' => ['flag' => 'on'],
             ],
         ]);
+    }
+
+    // --- M5 — Epic E6.1: Remote sources (Consul / etcd / HTTP) + CachingReader ---
+
+    public function testHttpSourceResolvesFromJsonEndpoint(): void
+    {
+        $snapshot = new ConfigurationBuilder()
+            ->addReader(new HttpReader(new FakeHttpClient(['config.acme.test' => new HttpResponse(200, self::NESTED)])))
+            ->addSource(new HttpSource('http://config.acme.test/app'))
+            ->addLoader(new JsonLoader())
+            ->build()
+            ->resolve()
+        ;
+
+        verify($snapshot->get('database.host'))->equals('db.internal');
+        verify($snapshot->get('feature.flag'))->equals('on');
+        verify($snapshot->provenance('database.port')?->sourceKind())->equals('http');
+        verify(str_starts_with($snapshot->provenance('database.port')?->resourceUri() ?? '', 'http://'))->true();
+    }
+
+    public function testConsulClientNestsUnderPrefix(): void
+    {
+        $body = json_encode([
+            ['Key' => 'app/database/host', 'Value' => base64_encode('db.internal')],
+            ['Key' => 'app/database/port', 'Value' => base64_encode('5432')],
+            ['Key' => 'app/feature/flag', 'Value' => base64_encode('on')],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = new ConsulClient(
+            new FakeHttpClient(['/v1/kv/app' => new HttpResponse(200, $body)]),
+        );
+
+        $json = $client->fetch('consul://localhost:8500/app');
+
+        verify(json_decode($json, true))->equals([
+            'database' => ['host' => 'db.internal', 'port' => '5432'],
+            'feature' => ['flag' => 'on'],
+        ]);
+    }
+
+    public function testEtcdClientNestsUnderPrefix(): void
+    {
+        $body = json_encode([
+            'node' => [
+                'key' => '/app',
+                'nodes' => [
+                    [
+                        'key' => '/app/database',
+                        'nodes' => [
+                            ['key' => '/app/database/host', 'value' => 'db.internal'],
+                            ['key' => '/app/database/port', 'value' => '5432'],
+                        ],
+                    ],
+                    [
+                        'key' => '/app/feature',
+                        'nodes' => [
+                            ['key' => '/app/feature/flag', 'value' => 'on'],
+                        ],
+                    ],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = new EtcdClient(
+            new FakeHttpClient(['/v2/keys/app' => new HttpResponse(200, $body)]),
+        );
+
+        $json = $client->fetch('etcd://localhost:2379/app');
+
+        verify(json_decode($json, true))->equals([
+            'database' => ['host' => 'db.internal', 'port' => '5432'],
+            'feature' => ['flag' => 'on'],
+        ]);
+    }
+
+    public function testConsulSourceResolvesWithConsulClient(): void
+    {
+        $body = json_encode([
+            ['Key' => 'app/database/host', 'Value' => base64_encode('db.internal')],
+            ['Key' => 'app/feature/flag', 'Value' => base64_encode('on')],
+        ], JSON_THROW_ON_ERROR);
+
+        $snapshot = new ConfigurationBuilder()
+            ->addReader(new RemoteJsonReader('consul', new ConsulClient(
+                new FakeHttpClient(['/v1/kv/app' => new HttpResponse(200, $body)]),
+            )))
+            ->addSource(new ConsulSource('localhost', 8500, 'app'))
+            ->addLoader(new JsonLoader())
+            ->build()
+            ->resolve()
+        ;
+
+        verify($snapshot->get('database.host'))->equals('db.internal');
+        verify($snapshot->get('feature.flag'))->equals('on');
+        verify($snapshot->provenance('database.host')?->sourceKind())->equals('consul');
+    }
+
+    public function testEtcdSourceResolvesWithEtcdClient(): void
+    {
+        $body = json_encode([
+            'node' => [
+                'key' => '/app',
+                'nodes' => [
+                    ['key' => '/app/feature/flag', 'value' => 'on'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $snapshot = new ConfigurationBuilder()
+            ->addReader(new RemoteJsonReader('etcd', new EtcdClient(
+                new FakeHttpClient(['/v2/keys/app' => new HttpResponse(200, $body)]),
+            )))
+            ->addSource(new EtcdSource('localhost', 2379, 'app'))
+            ->addLoader(new JsonLoader())
+            ->build()
+            ->resolve()
+        ;
+
+        verify($snapshot->get('feature.flag'))->equals('on');
+        verify($snapshot->provenance('feature.flag')?->sourceKind())->equals('etcd');
+    }
+
+    public function testCachingReaderServesCachedAcrossReads(): void
+    {
+        $doc = '{"a":"1"}';
+
+        $inner = new class ($doc) implements ConfigurationReaderInterface {
+            private int $calls = 0;
+
+            public function __construct(private string $doc)
+            {
+            }
+
+            public function read(ConfigurationResourceInterface $resource): string
+            {
+                $this->calls++;
+
+                if ($this->calls > 1) {
+                    throw new ReadException('simulated outage on second fetch');
+                }
+
+                return $this->doc;
+            }
+
+            public function supports(ConfigurationResourceInterface $resource): bool
+            {
+                return true;
+            }
+        };
+
+        $reader = new CachingReader($inner, new InMemoryDocCache(), 60);
+        $resource = new ConfigurationResource('http://x/a', Format::JSON);
+
+        $first = $reader->read($resource);
+        $second = $reader->read($resource);
+
+        verify($first)->equals($doc);
+        verify($second)->equals($doc);
+    }
+
+    public function testCachingReaderFallsBackToLastGoodOnFailure(): void
+    {
+        $doc = '{"a":"1"}';
+
+        $inner = new class () implements ConfigurationReaderInterface {
+            public function read(ConfigurationResourceInterface $resource): string
+            {
+                throw new ReadException('backend is down');
+            }
+
+            public function supports(ConfigurationResourceInterface $resource): bool
+            {
+                return true;
+            }
+        };
+
+        $cache = new InMemoryDocCache();
+        $cache->set('JSON:http://x/a', $doc, 60);
+        $cache->expire('JSON:http://x/a');
+
+        $reader = new CachingReader($inner, $cache, 60);
+        $resource = new ConfigurationResource('http://x/a', Format::JSON);
+
+        verify($reader->read($resource))->equals($doc);
+    }
+
+    public function testCachingReaderPropagatesWhenNoLastGood(): void
+    {
+        $inner = new class () implements ConfigurationReaderInterface {
+            public function read(ConfigurationResourceInterface $resource): string
+            {
+                throw new ReadException('backend is down');
+            }
+
+            public function supports(ConfigurationResourceInterface $resource): bool
+            {
+                return true;
+            }
+        };
+
+        $reader = new CachingReader($inner, new InMemoryDocCache(), 60);
+        $resource = new ConfigurationResource('http://x/a', Format::JSON);
+
+        $this->expectException(ReadException::class);
+
+        $reader->read($resource);
+    }
+}
+
+/**
+ * In-memory {@see RemoteDocumentCacheInterface} for unit tests — stores the raw
+ * document with an optional expiry that the test can force-expiry via
+ * {@see self::expire()}.
+ */
+final class InMemoryDocCache implements RemoteDocumentCacheInterface
+{
+    /**
+     * @var array<string, array{expires: ?int, document: string}>
+     */
+    private array $store = [];
+
+    public function get(string $key): ?string
+    {
+        if (!isset($this->store[$key])) {
+            return null;
+        }
+
+        $expires = $this->store[$key]['expires'];
+
+        if ($expires !== null && $expires < time()) {
+            return null;
+        }
+
+        return $this->store[$key]['document'];
+    }
+
+    public function getLastGood(string $key): ?string
+    {
+        return $this->store[$key]['document'] ?? null;
+    }
+
+    public function set(string $key, string $document, ?int $ttlSeconds = null): void
+    {
+        $this->store[$key] = [
+            'expires' => $ttlSeconds === null ? null : time() + $ttlSeconds,
+            'document' => $document,
+        ];
+    }
+
+    public function expire(string $key): void
+    {
+        if (isset($this->store[$key])) {
+            $this->store[$key]['expires'] = time() - 1;
+        }
     }
 }

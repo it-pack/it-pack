@@ -149,12 +149,12 @@ php-cs-fixer clean).
 
 **Objective:** first-class dynamic backends with resilience.
 
-### Epic E6.1 — Remote sources (Core adapters)
-- [ ] **T5.1.1 (M)** `HttpSource` + `ConsulSource`/`EtcdSource` adapters on `Contract/HttpClient` + `Contract/RemoteKeyValueClient` (fakes exist from Phase 8).
-- [ ] **T5.1.2 (M)** `CachingReader` decorator: hash+TTL cache, serve last-good on fetch failure (fallback). Reuses `ConfigurationCacheInterface` (M3).
-- [ ] **T5.1.3 (M)** Tests: `RemoteSourceTest` (fetch, stale-serve, failure-fallback via `FakeHttpClient`).
+### Epic E6.1 — Remote sources (Core adapters) ✅ DONE
+- [x] **T5.1.1 (M)** `HttpSource` + `ConsulSource`/`EtcdSource` adapters on `Contract/HttpClient` + `Contract/RemoteKeyValueClient` (fakes exist from Phase 8). `HttpReader` performs the GET via `HttpClient`; `ConsulClient`/`EtcdClient` implement `RemoteKeyValueClient` and translate the vendor KV API into nested JSON (re-rooting under the requested prefix, mirroring the AWS/GCP adapters); `RemoteJsonReader` carries the transport, exactly as for the secret sources.
+- [x] **T5.1.2 (M)** `CachingReader` decorator: hash+TTL cache, serve last-good on fetch failure (fallback). Adds a focused `RemoteDocumentCacheInterface` (raw-document, TTL-aware, with a `getLastGood()` for stale fallback) implemented by `FileSystemDocumentCache`, mirroring the M3 `ConfigurationCacheInterface`/`FileSystemCache` storage mechanism — the snapshot cache was not force-fitted because it stores *snapshots*, not raw documents.
+- [x] **T5.1.3 (M)** Tests: `RemoteSourceTest` (HTTP/Consul/etcd fetch + resolution with correct `sourceKind`; `CachingReader` fresh-serve, stale-serve, and failure-fallback via `FakeHttpClient`).
 
-**M5 Exit:** remote sources resolve with caching + fallback; offline tests green.
+**M5 Exit:** remote sources resolve with caching + fallback; offline tests green (216 tests / 494 assertions, PHPStan level 9, php-cs-fixer clean).
 
 ---
 

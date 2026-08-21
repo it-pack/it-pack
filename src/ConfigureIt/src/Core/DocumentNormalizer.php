@@ -120,6 +120,10 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
             'azure-appconfig://' => 'azure-appconfig',
             'gcp-secretmanager://' => 'gcp-secretmanager',
             'vault://' => 'vault',
+            'http://' => 'http',
+            'https://' => 'http',
+            'consul://' => 'consul',
+            'etcd://' => 'etcd',
         ];
 
         foreach ($enterprise as $scheme => $kind) {

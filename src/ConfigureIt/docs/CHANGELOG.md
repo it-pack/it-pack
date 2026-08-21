@@ -597,6 +597,39 @@ failure → `DecryptionException`). Example: `examples/secrets.php` (secret volu
 Suite green: **208 tests / 479 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M5.E6.1: Remote sources + CachingReader ✅
+
+Completes M5 (Epic E6.1) of `docs/ADDITIONAL_FEATURES_PLAN.md` /
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`: first-class dynamic backends
+(Consul/etcd/custom HTTP) with caching and last-good fallback. Behaviour is
+additive and opt-in; non-remote configuration is unchanged.
+
+- `src/Adapter/Enterprise/HttpSource.php` (new) — discovers a single
+  `http(s)://` JSON resource. `src/Adapter/Enterprise/HttpReader.php` (new)
+  performs the GET via `Contract/HttpClient` (`CurlHttpClient` in prod,
+  `FakeHttpClient` in tests) and surfaces failures as `ReadException`.
+- `src/Adapter/Enterprise/ConsulSource.php` + `src/Adapter/Enterprise/Client/ConsulClient.php` (new) — HashiCorp Consul KV. The client implements `Contract/RemoteKeyValueClient`, fetches
+  `GET /v1/kv/{prefix}?recurse`, base64-decodes values and re-roots the tree
+  under the requested prefix; carried by `RemoteJsonReader('consul', …)`.
+- `src/Adapter/Enterprise/EtcdSource.php` + `src/Adapter/Enterprise/Client/EtcdClient.php` (new) — etcd v2 REST. The client implements `Contract/RemoteKeyValueClient`, walks the nested node tree and
+  re-roots it under the requested prefix; carried by `RemoteJsonReader('etcd', …)`.
+- `src/Contract/RemoteDocumentCacheInterface.php` (new) — raw-document, TTL-aware
+  cache with a `getLastGood()` for stale fallback. `src/Cache/FileSystemDocumentCache.php` (new) implements it using the same include/`var_export`
+  mechanism as the M3 `FileSystemCache`. (A dedicated port rather than force-fitting `ConfigurationCacheInterface`, which stores *snapshots*, not raw documents.)
+- `src/Adapter/CachingReader.php` (new) — reader decorator: serves a fresh cached
+  document without touching the network, refreshes the cache on miss/stale, and —
+  crucially — serves the last-good document when the inner fetch throws (resilience against backend outages). Re-throws only when no last-good copy exists.
+- `src/Core/DocumentNormalizer.php` — source kinds `http`/`consul`/`etcd` are now
+  derived from the resource URI scheme for provenance richness.
+
+Tests: `RemoteSourceTest` extended with HTTP/Consul/etcd fetch + resolution
+(asserting values and `sourceKind`), plus `CachingReader` fresh-serve, stale-serve
+and failure-fallback via `FakeHttpClient`. Example: `examples/remote.php` resolves
+an HTTP endpoint and demonstrates the last-good fallback (runs offline via
+`FakeHttpClient`; production wiring with `CurlHttpClient` is shown in comments).
+Suite green: **216 tests / 494 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
