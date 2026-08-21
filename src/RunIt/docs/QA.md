@@ -123,6 +123,20 @@ AGENTS.md warns against creating interfaces "without semantic value"):
 New service/port classes in the un-exempted tree are still required to implement
 an interface.
 
+### Final-class exemptions
+
+`require-final` enforces AGENTS.md's "every concrete class must be `final`". One
+class is exempted because it is the single, deliberately non-`final` base refined
+by exactly one vocabulary-backed subtype:
+
+- `src/Domain/Snapshot/Snapshot.php` — extended only by `ExecutionSnapshot`
+  (`runit:ExecutionSnapshot` is a subclass of `runit:Snapshot` in the vocabulary).
+  No further subtypes are permitted; this is the documented ADR-015 exception for
+  a vocabulary-backed refinement. The exemption is listed in `extension.neon`.
+
+All other concrete classes in `src` are required to be `final`; `readonly` is
+additionally required for domain artifacts by `require-readonly-artifact`.
+
 ### Exception checks
 
 "Configure exception checks" is implemented as `no-empty-catch`: an empty

@@ -19,7 +19,10 @@ use Tools\PhpStan\RunitRules\Support\AbstractSrcRule;
  */
 final class RequireFinalRule extends AbstractSrcRule implements Rule
 {
-    public function __construct(string $srcRoot)
+    /**
+     * @param list<string> $exemptFiles relative file paths (under src/) individually exempt
+     */
+    public function __construct(string $srcRoot, private readonly array $exemptFiles = [])
     {
         parent::__construct($srcRoot);
     }
@@ -38,6 +41,10 @@ final class RequireFinalRule extends AbstractSrcRule implements Rule
     public function processNode(Node $node, Scope $scope): array
     {
         if (!$this->isInSrc($scope)) {
+            return [];
+        }
+
+        if (in_array($this->relativePath($scope), $this->exemptFiles, true)) {
             return [];
         }
 

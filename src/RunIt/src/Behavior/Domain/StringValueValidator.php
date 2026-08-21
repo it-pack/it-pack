@@ -31,7 +31,7 @@ use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
  *
  * @see https://w3id.org/itpack/runit#executionKind
  */
-readonly class StringValueValidator implements StringValueValidatorInterface
+final readonly class StringValueValidator implements StringValueValidatorInterface
 {
     /**
      * The maximum accepted string-value length in bytes.

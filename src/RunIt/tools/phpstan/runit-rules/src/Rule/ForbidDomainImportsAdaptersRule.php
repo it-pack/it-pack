@@ -65,7 +65,7 @@ final class ForbidDomainImportsAdaptersRule extends AbstractSrcRule implements R
             return $errors;
         }
 
-        if ($node instanceof Node\Stmt\GroupUse_) {
+        if ($node instanceof Node\Stmt\GroupUse) {
             $prefix = $node->prefix->toString();
 
             foreach ($node->uses as $use) {

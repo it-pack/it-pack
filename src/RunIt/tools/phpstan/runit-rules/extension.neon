@@ -29,7 +29,9 @@ services:
     # M13.2 additions --------------------------------------------------------
 
     # require-final: every concrete class must be `final`.
-    - { class: Tools\PhpStan\RunitRules\Rule\RequireFinalRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\RequireFinalRule, arguments: { srcRoot: %currentWorkingDirectory%/src, exemptFiles: [
+        src/Domain/Snapshot/Snapshot.php,
+    ] }, tags: [phpstan.rules.rule] }
 
     # no-mutable-static (declaration): static properties must be `readonly`.
     - { class: Tools\PhpStan\RunitRules\Rule\NoMutableStaticPropertyRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
@@ -47,7 +49,7 @@ services:
 
     # forbid-domain-imports-adapters: core layers must not import adapter code.
     - { class: Tools\PhpStan\RunitRules\Rule\ForbidDomainImportsAdaptersRule, arguments: { nodeType: PhpParser\Node\Stmt\Use_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
-    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDomainImportsAdaptersRule, arguments: { nodeType: PhpParser\Node\Stmt\GroupUse_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDomainImportsAdaptersRule, arguments: { nodeType: PhpParser\Node\Stmt\GroupUse, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
 
     # no-empty-catch: swallowing exceptions via empty catch blocks is forbidden.
     - { class: Tools\PhpStan\RunitRules\Rule\NoEmptyCatchRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
@@ -78,6 +80,7 @@ services:
         src/Adapter/Psr/Event/OccurrenceEventWrapper.php,
         src/Adapter/Psr/Log/ExecutionAwareLogger.php,
         src/Adapter/Psr/Log/ObservationRecordingLogger.php,
+        src/Adapter/Psr/Http/HttpContextExtractorInterface.php,
         src/Application/Publication/ArtifactRedactionConfig.php,
         src/Application/Publication/BufferConfiguration.php,
         src/Application/Publication/PublicationPipeline.php,

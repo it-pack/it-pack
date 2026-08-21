@@ -74,11 +74,13 @@
         "test": [
             "@test:unit",
             "@test:functional",
-            "@test:integration"
+            "@test:integration",
+            "@test:conformance"
         ],
         "test:unit": "vendor/bin/codecept run Unit",
         "test:functional": "vendor/bin/codecept run Functional",
         "test:integration": "vendor/bin/codecept run Integration",
+        "test:conformance": "vendor/bin/codecept run Conformance",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
