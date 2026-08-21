@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Http\Propagation;
 
+use ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -23,12 +25,12 @@ use Psr\Http\Message\ResponseInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class Psr18CorrelationClientDecorator implements ClientInterface
+final readonly class Psr18CorrelationClientDecorator implements ClientInterface
 {
     public function __construct(
-        private readonly ClientInterface $inner,
-        private readonly HeaderPropagatorInterface $propagator,
-        private readonly CurrentExecutionInterface $current,
+        private ClientInterface           $inner,
+        private HeaderPropagatorInterface $propagator,
+        private CurrentExecutionInterface $current,
     ) {
     }
 
@@ -50,7 +52,7 @@ final class Psr18CorrelationClientDecorator implements ClientInterface
         return $this->inner->sendRequest($request);
     }
 
-    private function correlationId(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope): ?string
+    private function correlationId(ExecutionScopeInterface $scope): ?string
     {
         $entry = $scope->context()->find('ctx.correlation.id');
 

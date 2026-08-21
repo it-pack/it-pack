@@ -30,9 +30,9 @@ use Psr\Clock\ClockInterface;
  * @see https://w3id.org/itpack/runit#instant
  * @see https://w3id.org/itpack/runit#duration
  */
-final class Psr20Clock implements MonotonicClockInterface
+final readonly class Psr20Clock implements MonotonicClockInterface
 {
-    public function __construct(private readonly ClockInterface $clock)
+    public function __construct(private ClockInterface $clock)
     {
     }
 

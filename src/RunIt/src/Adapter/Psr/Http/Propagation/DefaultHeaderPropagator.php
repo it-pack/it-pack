@@ -4,18 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Http\Propagation;
 
-/**
- * Produces the correlation headers injected into outbound HTTP requests.
- *
- * @api
- */
-interface HeaderPropagatorInterface
-{
-    /**
-     * @return array<string, string> header name => header value
-     */
-    public function headers(string $executionId, ?string $correlationId = null): array;
-}
+use ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface;
 
 /**
  * Default correlation header propagator.
@@ -27,11 +16,11 @@ interface HeaderPropagatorInterface
  *
  * @api
  */
-final class DefaultHeaderPropagator implements HeaderPropagatorInterface
+final readonly class DefaultHeaderPropagator implements HeaderPropagatorInterface
 {
     public function __construct(
-        private readonly string $executionHeader = 'X-Execution-Id',
-        private readonly string $correlationHeader = 'X-Correlation-Id',
+        private string $executionHeader = 'X-Execution-Id',
+        private string $correlationHeader = 'X-Correlation-Id',
     ) {
     }
 

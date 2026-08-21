@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Swoole\Http;
 
+use ItPack\RunIt\Adapter\Swoole\Contract\RequestContextExtractorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ServerExecutionMiddlewareInterface;

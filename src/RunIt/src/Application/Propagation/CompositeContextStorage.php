@@ -20,13 +20,13 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CompositeContextStorage implements ContextStorageInterface
+final readonly class CompositeContextStorage implements ContextStorageInterface
 {
     public function __construct(
-        private readonly ContextStorageInterface $synchronous,
-        private readonly ContextStorageInterface $fiber,
-        private readonly ContextStorageInterface $coroutine,
-        private readonly RuntimeContextDetectorInterface $detector,
+        private ContextStorageInterface         $synchronous,
+        private ContextStorageInterface         $fiber,
+        private ContextStorageInterface         $coroutine,
+        private RuntimeContextDetectorInterface $detector,
     ) {
     }
 

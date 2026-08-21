@@ -18,7 +18,7 @@ use ItPack\RunIt\Domain\Exception\NoActiveExecutionException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CurrentExecution implements CurrentExecutionInterface
+final readonly class CurrentExecution implements CurrentExecutionInterface
 {
     public function __construct(private ContextStorageInterface $storage)
     {

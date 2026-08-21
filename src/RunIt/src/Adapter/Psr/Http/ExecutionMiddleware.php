@@ -8,6 +8,8 @@ use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
@@ -34,12 +36,12 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ExecutionMiddleware implements MiddlewareInterface
+final readonly class ExecutionMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private readonly ExecutionRunnerInterface $runner,
-        private readonly ?HttpContextExtractorInterface $extractor = null,
-        private readonly ?ResponseCorrelationEnricherInterface $enricher = null,
+        private ExecutionRunnerInterface              $runner,
+        private ?HttpContextExtractorInterface        $extractor = null,
+        private ?ResponseCorrelationEnricherInterface $enricher = null,
     ) {
     }
 
@@ -80,8 +82,8 @@ final class ExecutionMiddleware implements MiddlewareInterface
     }
 
     private function definition(
-        \ItPack\RunIt\Contract\Domain\ExecutionNameInterface $name,
-        \ItPack\RunIt\Contract\Domain\ExecutionKindInterface $kind,
+        ExecutionNameInterface $name,
+        ExecutionKindInterface $kind,
         ExecutionContextInterface $context,
     ): ExecutionDefinitionInterface {
         return ExecutionDefinition::create($name, $kind, null, [], $context);

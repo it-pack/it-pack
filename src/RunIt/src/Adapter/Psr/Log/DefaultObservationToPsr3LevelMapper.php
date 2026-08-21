@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Log;
 
+use ItPack\RunIt\Adapter\Psr\Contract\ObservationToPsr3LevelMapperInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
 
 /**

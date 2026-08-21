@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Http;
 
+use ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface;
 use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
@@ -24,12 +25,12 @@ use Psr\Http\Message\ServerRequestInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class Psr7RequestContextExtractor implements HttpContextExtractorInterface
+final readonly class Psr7RequestContextExtractor implements HttpContextExtractorInterface
 {
     public function __construct(
-        private readonly string $kind = 'http.request',
-        private readonly string $correlationHeader = 'X-Correlation-Id',
-        private readonly string $cardinalityPlaceholder = 'id',
+        private string $kind = 'http.request',
+        private string $correlationHeader = 'X-Correlation-Id',
+        private string $cardinalityPlaceholder = 'id',
     ) {
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Engine;
 
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -22,6 +23,6 @@ final class SynchronousExecutionEngine implements ExecutionEngineInterface
 
     public function capability(): EngineCapabilityInterface
     {
-        return new \ItPack\RunIt\Contract\Application\EngineCapability(false, false, false);
+        return new EngineCapability(false, false, false);
     }
 }

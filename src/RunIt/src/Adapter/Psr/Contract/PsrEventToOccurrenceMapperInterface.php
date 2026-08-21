@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Adapter\Psr\Event;
+namespace ItPack\RunIt\Adapter\Psr\Contract;
 
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 

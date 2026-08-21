@@ -28,12 +28,12 @@ use Psr\EventDispatcher\EventDispatcherInterface;
  *
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-final class OccurrencePublisher implements ArtifactPublisherInterface
+final readonly class OccurrencePublisher implements ArtifactPublisherInterface
 {
     public function __construct(
-        private readonly EventDispatcherInterface $dispatcher,
-        private readonly ?PublicationFailurePolicyInterface $failurePolicy = null,
-        private readonly ?OccurrenceEventWrapper $wrapper = null,
+        private EventDispatcherInterface           $dispatcher,
+        private ?PublicationFailurePolicyInterface $failurePolicy = null,
+        private ?OccurrenceEventWrapper            $wrapper = null,
     ) {
     }
 

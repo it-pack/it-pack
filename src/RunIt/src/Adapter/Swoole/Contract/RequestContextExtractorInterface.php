@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Adapter\Swoole\Http;
+namespace ItPack\RunIt\Adapter\Swoole\Contract;
 
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 

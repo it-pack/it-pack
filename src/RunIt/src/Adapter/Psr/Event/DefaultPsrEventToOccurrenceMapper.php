@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Event;
 
+use ItPack\RunIt\Adapter\Psr\Contract\PsrEventToOccurrenceMapperInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
@@ -25,18 +26,18 @@ use ItPack\RunIt\Domain\Shared\Instant;
  *
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-final class DefaultPsrEventToOccurrenceMapper implements PsrEventToOccurrenceMapperInterface
+final readonly class DefaultPsrEventToOccurrenceMapper implements PsrEventToOccurrenceMapperInterface
 {
     /**
      * @param mixed $dataExtractor optional callable(object): mixed that extracts the occurrence payload
      */
     public function __construct(
-        private readonly OccurrenceTypeInterface $defaultType,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly IdentifierGeneratorInterface $idGenerator,
-        private readonly string $source = 'psr.event',
-        private readonly ?Instant $time = null,
-        private readonly mixed $dataExtractor = null,
+        private OccurrenceTypeInterface      $defaultType,
+        private ExecutionIdInterface         $executionId,
+        private IdentifierGeneratorInterface $idGenerator,
+        private string                       $source = 'psr.event',
+        private ?Instant                     $time = null,
+        private mixed                        $dataExtractor = null,
     ) {
     }
 

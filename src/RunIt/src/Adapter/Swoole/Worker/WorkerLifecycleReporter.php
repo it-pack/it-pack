@@ -28,18 +28,18 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class WorkerLifecycleReporter implements WorkerLifecycleInterface
+final readonly class WorkerLifecycleReporter implements WorkerLifecycleInterface
 {
     /**
      * @param Closure(): void|null $resetHook releases worker-local state on reload
      * @param Closure(): void|null $flushHook flushes bounded publishers within the shutdown budget
      */
     public function __construct(
-        private readonly ExecutionRunnerInterface $runner,
-        private readonly ExecutionNameInterface $name,
-        private readonly ExecutionKindInterface $kind,
-        private readonly ?Closure $resetHook = null,
-        private readonly ?Closure $flushHook = null,
+        private ExecutionRunnerInterface $runner,
+        private ExecutionNameInterface   $name,
+        private ExecutionKindInterface   $kind,
+        private ?Closure                 $resetHook = null,
+        private ?Closure                 $flushHook = null,
     ) {
     }
 

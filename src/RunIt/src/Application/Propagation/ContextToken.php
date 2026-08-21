@@ -16,11 +16,11 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ContextToken implements ContextTokenInterface
+final readonly class ContextToken implements ContextTokenInterface
 {
     public function __construct(
-        public readonly int $id,
-        public readonly ExecutionScopeInterface $scope,
+        public int                     $id,
+        public ExecutionScopeInterface $scope,
     ) {
     }
 }

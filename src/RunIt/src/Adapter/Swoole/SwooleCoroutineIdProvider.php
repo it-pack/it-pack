@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Swoole;
 
+use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
+
 /**
  * Reads the coroutine id from Swoole or OpenSwoole.
  *

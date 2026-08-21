@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Adapter\Swoole;
+namespace ItPack\RunIt\Adapter\Swoole\Contract;
 
 /**
  * Supplies the current coroutine identity.

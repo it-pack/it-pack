@@ -9,7 +9,9 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
@@ -26,15 +28,18 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterface
 {
     /**
-     * @param StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> $snapshotIdFactory
+     * @param StringIdentifierFactoryInterface<SnapshotIdInterface> $snapshotIdFactory
      */
     public function __construct(
-        private StringIdentifierFactoryInterface $snapshotIdFactory,
-        private HashCalculatorInterface $hashCalculator,
-        private ?SnapshotTypeInterface $type = null,
+        private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
+        private readonly HashCalculatorInterface          $hashCalculator,
+        private ?SnapshotTypeInterface                    $type = null,
     ) {
     }
 
+    /**
+     * @throws InvalidValueExceptionInterface
+     */
     public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
     {
         $id = $this->snapshotIdFactory->build();

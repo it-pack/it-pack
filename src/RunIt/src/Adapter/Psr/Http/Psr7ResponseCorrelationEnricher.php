@@ -4,17 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Http;
 
+use ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface;
 use Psr\Http\Message\ResponseInterface;
-
-/**
- * Enriches an outgoing PSR-7 response with RunIt correlation headers.
- *
- * @api
- */
-interface ResponseCorrelationEnricherInterface
-{
-    public function enrich(ResponseInterface $response, string $executionId, ?string $correlationId = null): ResponseInterface;
-}
 
 /**
  * Adds execution and correlation identifiers to a response as headers.
@@ -24,11 +15,11 @@ interface ResponseCorrelationEnricherInterface
  *
  * @api
  */
-final class Psr7ResponseCorrelationEnricher implements ResponseCorrelationEnricherInterface
+final readonly class Psr7ResponseCorrelationEnricher implements ResponseCorrelationEnricherInterface
 {
     public function __construct(
-        private readonly string $executionHeader = 'X-Execution-Id',
-        private readonly string $correlationHeader = 'X-Correlation-Id',
+        private string $executionHeader = 'X-Execution-Id',
+        private string $correlationHeader = 'X-Correlation-Id',
     ) {
     }
 
