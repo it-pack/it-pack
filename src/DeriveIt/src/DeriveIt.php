@@ -48,18 +48,18 @@ final class DeriveIt
      *
      * @param ReflectionClass|class-string $class
      */
-    public static function derivePerTrait(ReflectionClass|string $class): string
+    public static function derivePerTrait(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig()): string
     {
-        return new PerTraitInterfaceDeriver()->deriveSource($class);
+        return new PerTraitInterfaceDeriver(config: $config)->deriveSource($class);
     }
 
     /**
      * @param ReflectionClass|class-string $class
      * @return array<string, InterfaceType> keyed by trait short name
      */
-    public static function deriveTraitInterfaces(ReflectionClass|string $class): array
+    public static function deriveTraitInterfaces(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig()): array
     {
-        return new PerTraitInterfaceDeriver()->deriveTraitInterfaces(
+        return new PerTraitInterfaceDeriver(config: $config)->deriveTraitInterfaces(
             is_string($class) ? new ReflectionClass($class) : $class,
         );
     }
@@ -93,6 +93,7 @@ final class DeriveIt
      *
      * @param ReflectionClass|class-string $class
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
+     * @throws \ReflectionException
      */
     public static function deriveAdapter(
         ReflectionClass|string $class,

@@ -486,14 +486,15 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.10 complete (2026-08-21).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.11 complete (2026-08-21).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
 > (G6), owned-attribute allow-list + builtin skip (G7), opt-in phpdoc preservation
-> with FQCN simplification (G8), and the `analyze()` / `deriveMany()` / `diff()`
-> DX APIs (G9) are implemented and tested. All five gates green.
-> Steps 10.11–10.16 remain planned.
+> with FQCN simplification (G8), the `analyze()` / `deriveMany()` / `diff()` DX
+> APIs (G9), and config presets + validation + uniform method-renames (G10/G11)
+> are implemented and tested. All five gates green.
+> Steps 10.12–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -575,11 +576,16 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   detection — `DeriveDiff::compute()` reports `drift` (exact-string equality) plus a
   self-contained LCS-based unified diff (`DeriveDiff` value object, no dev deps).
 
-### Step 10.11 — Config presets + validation + rename (G10/G11, EC14/EC16, B4)
-- Add `DeriveConfig::strict()` / `::forAdapter()` / `::forFamily()` presets and a
-  fluent builder. Validate contradictory flags in the constructor.
-- Add a `methodRenames` map applied uniformly across flat / per-trait / family so
-  clashing method names (e.g. two traits exporting `save()`) can coexist.
+### Step 10.11 — Config presets + validation + rename (G10/G11, EC14/EC16, B4) ✅ COMPLETE
+- `DeriveConfig::strict()` / `::forAdapter()` / `::forFamily()` presets added;
+  the existing immutable withers form the fluent builder. Contradictory
+  `onlyMethods`/`skipMethods` overlap and empty `methodRenames` targets are
+  rejected in the constructor (EC16).
+- `methodRenames` (`array<string,string>`) applied uniformly in flat
+  (`InterfaceDeriver`), per-trait (`PerTraitInterfaceDeriver` trait + main
+  interfaces), and family (`FamilyDeriver` → `InterfaceDeriver`) modes. A rename
+  that would make two methods share a final name throws
+  `NamingCollisionException` (G11 / B4 / EC14).
 
 ### Step 10.12 — Family-of-adapters generation (G14, EC12)
 - `DeriveIt::deriveFamilyAdapter(classes, wrapperMap, config)` emitting a delegating

@@ -19,4 +19,17 @@ final class NamingCollisionException extends LogicException
             $fqcn,
         ));
     }
+
+    /**
+     * Thrown when a `methodRenames` map would make two methods in the same derived
+     * interface share a final name (G11 / B4).
+     */
+    public static function forMethodName(string $interfaceName, string $methodName): self
+    {
+        return new self(sprintf(
+            'Cannot derive interface "%s": method rename collision on "%s" — two methods would share the same name.',
+            $interfaceName,
+            $methodName,
+        ));
+    }
 }

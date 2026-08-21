@@ -58,4 +58,25 @@ final class Naming
             throw NamingCollisionException::forFqcn($fqcn);
         }
     }
+
+    /**
+     * Throws when a derived interface would declare the same method name twice
+     * (e.g. after a `methodRenames` map collides). Must be checked on the
+     * collected method list BEFORE `setMethods()`, because Nette collapses
+     * same-named methods and would otherwise silently drop the duplicate
+     * (G11 / B4).
+     *
+     * @param list<\Nette\PhpGenerator\Method> $methods
+     */
+    public static function assertMethodNamesUnique(string $interfaceName, array $methods): void
+    {
+        $seen = [];
+        foreach ($methods as $method) {
+            $name = $method->getName();
+            if (isset($seen[$name])) {
+                throw NamingCollisionException::forMethodName($interfaceName, $name);
+            }
+            $seen[$name] = true;
+        }
+    }
 }

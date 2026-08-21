@@ -143,11 +143,16 @@ final class InterfaceDeriver implements DeriverInterface
                 continue;
             }
 
-            $collected[] = $this->signatureFactory->fromMethod($method, $substitutor);
+            $signature = $this->signatureFactory->fromMethod($method, $substitutor);
+            if (isset($this->config->methodRenames[$name])) {
+                $signature = $signature->cloneWithName($this->config->methodRenames[$name]);
+            }
+            $collected[] = $signature;
         }
 
         $methodNames = array_map(static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(), $collected);
 
+        Naming::assertMethodNamesUnique($interface->getName(), $collected);
         $interface->setMethods($collected);
 
         $constants = [];

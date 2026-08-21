@@ -80,7 +80,11 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
                     continue;
                 }
                 $claimed[$name] = true;
-                $methods[] = $this->signatureFactory->fromMethod($method, $substitutor);
+                $signature = $this->signatureFactory->fromMethod($method, $substitutor);
+                if (isset($this->config->methodRenames[$name])) {
+                    $signature = $signature->cloneWithName($this->config->methodRenames[$name]);
+                }
+                $methods[] = $signature;
             }
 
             if ($methods === []) {
@@ -88,6 +92,7 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
             }
 
             $interface = new InterfaceType($shortName);
+            Naming::assertMethodNamesUnique($interface->getName(), $methods);
             $interface->setMethods($methods);
 
             new LeakageAuditor()->audit(
@@ -138,8 +143,13 @@ final class PerTraitInterfaceDeriver implements DeriverInterface
             if (isset($traitMethodNames[$name]) || $this->shouldSkipMethod($name)) {
                 continue;
             }
-            $mainMethods[] = $this->signatureFactory->fromMethod($method, $substitutor);
+            $signature = $this->signatureFactory->fromMethod($method, $substitutor);
+            if (isset($this->config->methodRenames[$name])) {
+                $signature = $signature->cloneWithName($this->config->methodRenames[$name]);
+            }
+            $mainMethods[] = $signature;
         }
+        Naming::assertMethodNamesUnique($main->getName(), $mainMethods);
         $main->setMethods($mainMethods);
 
         new LeakageAuditor()->audit(

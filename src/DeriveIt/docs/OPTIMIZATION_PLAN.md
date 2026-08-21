@@ -366,11 +366,13 @@ Phase 10 steps.
    config)` returns `array<class-string, DerivationResult>`; `diff($class,
    $existingSource)` returns a `DeriveDiff` (drift + LCS unified diff) for CI drift
    detection (EC15, D2, D5).
-- **G10** Config presets + validation + fluent builder — `DeriveConfig::strict()`
-  / `::forAdapter()` / `::forFamily()`; constructor validation of contradictory
-  flags (EC16).
-- **G11** Rename / alias policy — `methodRenames` map applied uniformly across
-  flat / per-trait / family (EC14, B4).
+- **G10** ✅ Config presets + validation — `DeriveConfig::strict()` /
+   `::forAdapter()` / `::forFamily()` presets; contradictory `onlyMethods`/
+   `skipMethods` and empty `methodRenames` targets rejected in the constructor
+   (EC16). The immutable withers are the fluent builder.
+- **G11** ✅ Rename / alias policy — `methodRenames` map applied uniformly across
+   flat / per-trait / family; a rename collision throws `NamingCollisionException`
+   (EC14, B4).
 - **G14** Family-of-adapters generation — `deriveFamilyAdapter(classes,
   wrapperMap, config)` (EC12).
 - **G17** CLI `bin/derive` — derive a class/file to stdout or a path for ad-hoc
