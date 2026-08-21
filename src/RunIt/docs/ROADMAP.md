@@ -2783,14 +2783,50 @@ Verification evidence:
 
 ## M14.3 Integration documentation
 
-- [ ] Finalize OpenTelemetry guide.
-- [ ] Finalize CloudEvents guide.
-- [ ] Finalize PSR guide.
-- [ ] Finalize Fiber guide.
-- [ ] Finalize Swoole/OpenSwoole guide.
-- [ ] Document optional dependencies.
-- [ ] Document adapter failure policies.
-- [ ] Document integration compatibility matrix.
+- [x] Finalize OpenTelemetry guide.
+- [x] Finalize CloudEvents guide.
+- [x] Finalize PSR guide.
+- [x] Finalize Fiber guide.
+- [x] Finalize Swoole/OpenSwoole guide.
+- [x] Document optional dependencies.
+- [x] Document adapter failure policies.
+- [x] Document integration compatibility matrix.
+
+### M14.3 status audit — August 21, 2026
+
+M14.3 (integration documentation) is complete. All five integration guides are
+finalized and three cross-cutting pages were added.
+
+Verification evidence:
+
+- **Guides finalized.** `opentelemetry.md`, `cloudevents.md`, `psr.md`, `fibers.md`,
+  and `swoole.md` already existed and were reviewed; each documents conceptual
+  mappings, installation, a runnable example, and integration-specific constraints
+  (cardinality controls, at-most-once delivery, runtime selection). No rewrites were
+  needed; only the cross-cutting pages were added.
+- **Optional dependencies.** `docs/integrations/optional-dependencies.md` consolidates
+  the core `require` (`php ^8.4`, `just-bases/php-obs-base`), the `suggest` packages,
+  and the `require-dev` test/example packages, verified against `composer.json`. It
+  states the lazy-load guarantee and the no-global-provider rule.
+- **Adapter failure policies.** `docs/integrations/adapter-failure-policies.md` ties
+  each adapter's transport failure to the publication pipeline's `FailSafeArtifactPublisher`
+  and the `PublicationFailurePolicyInterface` set (fail-open default, fail-closed,
+  collect-and-continue, report-to-fallback), and documents per-adapter behaviour and
+  recursion prevention.
+- **Compatibility matrix.** `docs/integrations/compatibility-matrix.md` records the
+  required/optional packages and minimum versions for every integration (OpenTelemetry
+  `api ^1.9` / `sdk ^1.0`, CloudEvents SDK-free, PSR interfaces, Fibers core-PHP,
+  Swoole `>= 4.6`, OpenSwoole `>= 4.9`), plus a capability summary and the standing
+  guarantees (no global provider, cardinality-safe, transport-owned delivery).
+- **Index.** `docs/integrations/README.md` links all guides and cross-cutting pages
+  for findability.
+- **Consistency.** Package names, versions, class names (`Psr20Clock`,
+  `FiberContextStorage`, `ServerExecutionMiddleware`, `WorkerLifecycleReporter`,
+  `ObservationRecordingLogger`, `OccurrencePublisher`, `CloudEventMappingPolicy`,
+  `BridgeConfigBuilder`), and ADR references match the implementation and the existing
+  guides. No code changes were required.
+- **Not verified by automation.** Documentation is not executed by CI. The examples
+  referenced in the guides are executed under M14.5 (Executable examples), not M14.3.
 
 ## M14.4 Recipes
 
