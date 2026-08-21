@@ -158,23 +158,25 @@ final class PhpRenderer
             );
         }
 
+        $elementType = $property->elementType ?? 'mixed';
+
         if ($property->kind === 'list') {
             return sprintf(
                 'array_map(static fn (mixed $v): %s => %s, $s->list(%s))',
-                $property->elementType,
-                $this->scalarCast($property->elementType, $property->elementRead),
+                $elementType,
+                $this->scalarCast($elementType, $property->elementRead),
                 $path,
             );
         }
 
         $cast = $property->elementRead === 'get' || $property->elementRead === null
             ? sprintf('$s->get(%s)[$k]', $path)
-            : sprintf('(%s) $s->get(%s)[$k]', $property->elementType, $path);
+            : sprintf('(%s) $s->get(%s)[$k]', $elementType, $path);
 
         return sprintf(
             'array_combine(array_keys($s->get(%s)), array_map(static fn (string $k): %s => %s, array_keys($s->get(%s))))',
             $path,
-            $property->elementType,
+            $elementType,
             $cast,
             $path,
         );

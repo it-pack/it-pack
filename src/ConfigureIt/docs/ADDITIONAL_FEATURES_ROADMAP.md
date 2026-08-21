@@ -64,11 +64,11 @@ thrown `TypeException`, not a silent bug.
 **Objective:** replace implicit "last source wins" with explicit, explainable
 layering + conditional includes.
 
-### Epic E3.1 — Layer port + builder (Core)
-- [ ] **T2.1.1 (M)** `Contract/ConfigurationLayerInterface` (`sources()`, `precedence(): int`, `match(ExecutionContext): bool`).
-- [ ] **T2.1.2 (M)** `Core/ConfigurationLayer` default impl (sources list + precedence + optional match predicate).
-- [ ] **T2.1.3 (M)** `ConfigurationBuilder::addLayer()`; resolution orders layers by precedence *before* the pipeline (no layers ⇒ identical to today).
-- [ ] **T2.1.4 (M)** Tests: `LayerOrderTest` (precedence, env-gated layer skipped when `match` false, backward-compat with no layers).
+### Epic E3.1 — Layer port + builder (Core) ✅ DONE
+- [x] **T2.1.1 (M)** `Contract/ConfigurationLayerInterface` (`sources()`, `precedence(): int`, `match(ExecutionContextInterface): bool`).
+- [x] **T2.1.2 (M)** `Core/ConfigurationLayer` default impl (sources list + precedence + optional `match` predicate; `null` predicate = always match).
+- [x] **T2.1.3 (M)** `ConfigurationBuilder::addLayer()`; resolution orders layers by precedence *before* the pipeline (no layers ⇒ identical to today). When layers are registered, flat `addSource()` sources are replaced by the layer-derived set.
+- [x] **T2.1.4 (M)** Tests: `LayerOrderTest` (precedence regardless of insertion order, env-gated layer skipped when `match` false, env-gated layer applied when `match` true, backward-compat with no layers).
 
 ### Epic E3.2 — Conditional includes (Core)
 - [ ] **T2.2.1 (M)** Extend `IncludeProcessor` directive to `@include <path> @if <condition>`; condition grammar = `env=prod | tenant=acme | profile=canary` evaluated against `ExecutionContext`.

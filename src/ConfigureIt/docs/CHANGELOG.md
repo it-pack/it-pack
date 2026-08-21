@@ -416,6 +416,30 @@ nested structures, lists/maps of scalars, lists/maps of structures, and hydrator
 error handling). Suite green: **168 tests / 389 assertions**, PHPStan level 9
 **0 errors**, `php-cs-fixer` **0 files to fix**.
 
+
+### Additional Features — M2.E3.1: Layer port + builder ✅
+
+Completes M2 (E3.1) of `docs/ADDITIONAL_FEATURES_PLAN.md` / `docs/ADDITIONAL_FEATURES_ROADMAP.md`:
+explicit, explainable layering that replaces implicit "last source wins by
+discovery order" with declarative `base → environment → local → override`
+composition, including env/tenant/profile gating via a match predicate.
+
+- `src/Contract/ConfigurationLayerInterface.php` — the layer port: `sources()`,
+  `precedence(): int` (higher overrides lower), and `match(ExecutionContextInterface): bool`
+  for conditional activation.
+- `src/Core/ConfigurationLayer.php` — default impl holding a source list, a
+  numeric precedence, and an optional `match` predicate (`null` = always match).
+- `src/Core/ConfigurationBuilder.php` — new `addLayer()`; at `build()` time the
+  registered layers are filtered by `match()` against the execution context, then
+  merged in ascending precedence order (so higher precedence wins). With no layers
+  registered the flat `addSource()` list is used unchanged — fully backward
+  compatible.
+
+Tests: `LayerOrderTest` (precedence ordering regardless of insertion order,
+env-gated layer skipped when `match` is false, env-gated layer applied when `match`
+is true, and backward compatibility with no layers). Suite green: **172 tests /
+395 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

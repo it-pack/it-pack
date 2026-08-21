@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Adapter\CompositeReader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLayerInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
@@ -43,6 +44,11 @@ final class ConfigurationBuilder
     private array $sources = [];
 
     /**
+     * @var list<ConfigurationLayerInterface>
+     */
+    private array $layers = [];
+
+    /**
      * @var list<ConfigurationLoaderInterface>
      */
     private array $loaders = [];
@@ -73,6 +79,23 @@ final class ConfigurationBuilder
     public function addSource(ConfigurationSourceInterface $source): self
     {
         $this->sources[] = $source;
+
+        return $this;
+    }
+
+    /**
+     * Register an explicit composition layer.
+     *
+     * When at least one layer is registered, the flat sources added via
+     * {@see self::addSource()} are ignored and the resolved source set is derived
+     * from the layers: each layer is kept only if it {@see ConfigurationLayerInterface::match()es}
+     * the execution context, then the surviving layers are merged in ascending
+     * {@see ConfigurationLayerInterface::precedence()} order (so higher precedence
+     * overrides lower). With no layers, behaviour is identical to before.
+     */
+    public function addLayer(ConfigurationLayerInterface $layer): self
+    {
+        $this->layers[] = $layer;
 
         return $this;
     }
@@ -140,9 +163,49 @@ final class ConfigurationBuilder
             loaders: $this->loaders,
             reader: new CompositeReader($this->readers),
             schema: $this->schema,
-            sources: $this->sources,
+            sources: $this->resolveSources(),
             processors: $this->processors,
             reporter: $reporter,
         );
+    }
+
+    /**
+     * Derive the ordered source list from registered layers.
+     *
+     * Layers are filtered by their match predicate (against the execution
+     * context), then sorted ascending by precedence so that higher precedence
+     * layers — merged later — override lower ones. With no layers the flat
+     * {@see self::$sources} list is returned unchanged (backward compatible).
+     *
+     * @return list<ConfigurationSourceInterface>
+     */
+    private function resolveSources(): array
+    {
+        if ($this->layers === []) {
+            return $this->sources;
+        }
+
+        $context = $this->executionContext ?? new ExecutionContext();
+
+        $active = array_filter(
+            $this->layers,
+            static fn (ConfigurationLayerInterface $layer): bool => $layer->match($context),
+        );
+
+        usort(
+            $active,
+            static fn (ConfigurationLayerInterface $a, ConfigurationLayerInterface $b): int
+                => $a->precedence() <=> $b->precedence(),
+        );
+
+        $sources = [];
+
+        foreach ($active as $layer) {
+            foreach ($layer->sources() as $source) {
+                $sources[] = $source;
+            }
+        }
+
+        return $sources;
     }
 }
