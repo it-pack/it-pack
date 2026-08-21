@@ -630,6 +630,47 @@ an HTTP endpoint and demonstrates the last-good fallback (runs offline via
 Suite green: **216 tests / 494 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M6.E4.1: Live configuration (Watcher + Reloadable facade) ✅
+
+Completes E4.1 of Epic E6.1 / M6 (`docs/ADDITIONAL_FEATURES_PLAN.md` §4,
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`). Configuration can now evolve at runtime
+without restart, while the immutability contract (ADR-0003) is preserved.
+Behaviour is additive and opt-in.
+
+- `src/Contract/ConfigurationWatcherInterface.php` (new) — port: `watch()`,
+  `stop()`, `onChange()`. Emits a `ConfigurationChanged` `Occurrence` through
+  the reporter spine and invokes listeners on detected change.
+- `src/Adapter/PollingWatcher.php` (new) — portable adapter: polls a pluggable
+  signature on an interval (`tick()` / blocking `watch()` loop). Default
+  signature is `FileModificationProbe` (content-hash based, so same-size edits
+  in the same second are still detected). The first tick primes a baseline and
+  never dispatches.
+- `src/Adapter/FileModificationProbe.php` (new) — default signature provider for
+  `PollingWatcher`; inject a different `callable` to watch non-filesystem
+  targets (e.g. an HTTP ETag).
+- `src/Adapter/FsWatcher.php` (new) — kernel-level adapter over `ext-inotify`;
+  opens the watch in the constructor and dispatches on modify/attrib/close-write/
+  create/delete. `watch()` is an interruptible blocking loop; `await()` performs
+  a single bounded wait so it can be driven from a cooperative loop or tests.
+- `src/Core/ReloadableConfiguration.php` (new) — facade: wraps a
+  `ConfigurationBuilder` + `ConfigurationWatcherInterface`, resolves the initial
+  snapshot, and subscribes to change events. On change it re-resolves and
+  **atomically swaps** the snapshot via a single property assignment; any
+  snapshot previously handed out stays valid. A failed reload keeps the
+  last-good snapshot and records an `error` `Observation` (never crashes the
+  host). Exposes `snapshot()` plus `get/has/int/float/bool/string/list/
+  stringList/all` and `watch()/stop()/reload()`.
+
+Tests: `PollingWatcherTest` (baseline/tick dispatch, stability, custom probe,
+default probe), `FsWatcherTest` (dispatch on modify, idle, stop releases
+resources), `ReloadableConfigurationTest` (initial resolve, atomic swap with a
+captured old reference staying valid, watcher-driven reload, failed reload keeps
+last-good + observed). Example: `examples/live.php` edits a file and drives one
+`tick()`, proving the live swap and the last-good invariant (runs offline via
+`PollingWatcher`). Drift detection (E4.2) is not part of this milestone.
+Suite green: **228 tests / 516 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
