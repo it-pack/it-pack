@@ -53,7 +53,7 @@ final readonly class Execution implements ExecutionInterface
             $startedAt,
             null,
             null,
-                $sequence ?? ArtifactSequence::initial()
+            $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -106,7 +106,7 @@ final readonly class Execution implements ExecutionInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
+    public function executionId(): ExecutionIdInterface
     {
         return $this->id;
     }
@@ -165,7 +165,7 @@ final readonly class Execution implements ExecutionInterface
             'ended_at' => $this->endedAt?->epochSeconds(),
             'parent_execution_id' => $this->definition->parentExecutionId()?->toString(),
             'linked_execution_ids' => array_map(
-                static fn (\ItPack\RunIt\Contract\Domain\ExecutionIdInterface $linked): string => $linked->toString(),
+                static fn (ExecutionIdInterface $linked): string => $linked->toString(),
                 $this->definition->linkedExecutionIds(),
             ),
             'sequence' => $this->sequence->value(),

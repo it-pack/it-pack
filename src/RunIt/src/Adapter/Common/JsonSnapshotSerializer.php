@@ -8,6 +8,7 @@ use Closure;
 use ItPack\RunIt\Contract\Exception\SerializationException;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use JsonException;
 
 /**
  * Default JSON serializer used by core snapshot recorders.
@@ -28,10 +29,10 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class JsonSnapshotSerializer implements SerializerInterface
+final readonly class JsonSnapshotSerializer implements SerializerInterface
 {
     public function __construct(
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 
@@ -39,25 +40,44 @@ final class JsonSnapshotSerializer implements SerializerInterface
     {
         $this->assertSafe($data, 1);
 
-        $encoded = json_encode(
-            $data,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION,
-            512,
-        );
+        /** @var positive-int $maxDepth */
+        $maxDepth = $this->limits->maxSerializationDepth;
 
-        if ($encoded === false) {
-            throw new SerializationException('Unable to serialize snapshot payload: ' . json_last_error_msg());
+        try {
+            $encoded = json_encode(
+                $data,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION,
+                $maxDepth
+            );
+        } catch (JsonException $e) {
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: ' . $e->getMessage(),
+                0,
+                $e
+            );
         }
 
         $bytes = strlen($encoded);
 
         if ($bytes > $this->limits->maxSerializationBytes) {
             throw new SerializationException(
-                sprintf('Snapshot payload exceeds maximum size of %d bytes, got %d.', $this->limits->maxSerializationBytes, $bytes),
+                sprintf(
+                    'Unable to serialize snapshot payload: maximum size of %d bytes, got %d.',
+                    $this->limits->maxSerializationBytes,
+                    $bytes
+                ),
             );
         }
 
-        return json_decode($encoded, true, 512, JSON_BIGINT_AS_STRING);
+        try {
+            return json_decode($encoded, true, $maxDepth, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+        } catch (JsonException $e) {
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: ' . $e->getMessage(),
+                0,
+                $e
+            );
+        }
     }
 
     public function contentType(): string
@@ -68,10 +88,18 @@ final class JsonSnapshotSerializer implements SerializerInterface
     /**
      * Recursively rejects values that JSON cannot represent safely.
      *
+     * The depth bound is enforced for both arrays and objects. Objects are
+     * tracked in an ancestor set so a cyclic reference throws instead of
+     * recursing until the stack overflows. Only {@see \JsonSerializable} objects
+     * survive; every other object type is rejected.
+     *
+     * @param \WeakMap<object, true>|null $ancestors ancestor set used to detect cyclic object references
+     *
      * @throws SerializationException when $data contains a resource, closure,
-     *                                non-finite float, or exceeds the depth bound
+     *                                unsupported object, non-finite float, a cycle,
+     *                                or exceeds the depth bound
      */
-    private function assertSafe(mixed $value, int $depth): void
+    private function assertSafe(mixed $value, int $depth, ?\WeakMap $ancestors = null): void
     {
         if (is_resource($value)) {
             throw new SerializationException('Unable to serialize snapshot payload: resource values are not allowed.');
@@ -81,14 +109,32 @@ final class JsonSnapshotSerializer implements SerializerInterface
             throw new SerializationException('Unable to serialize snapshot payload: closures are not allowed.');
         }
 
-        if (is_object($value)) {
-            if (!($value instanceof \JsonSerializable)) {
-                throw new SerializationException('Unable to serialize snapshot payload: unsupported object of type ' . get_debug_type($value) . '.');
+        if ($value instanceof \JsonSerializable) {
+            if ($depth > $this->limits->maxSerializationDepth) {
+                throw new SerializationException(
+                    sprintf('Unable to serialize snapshot payload: maximum depth %d exceeded.', $this->limits->maxSerializationDepth),
+                );
             }
 
-            $this->assertSafe($value->jsonSerialize(), $depth);
+            $ancestors ??= new \WeakMap();
+
+            if (isset($ancestors[$value])) {
+                throw new SerializationException('Unable to serialize snapshot payload: cyclic object reference detected.');
+            }
+
+            $ancestors[$value] = true;
+
+            try {
+                $this->assertSafe($value->jsonSerialize(), $depth + 1, $ancestors);
+            } finally {
+                unset($ancestors[$value]);
+            }
 
             return;
+        }
+
+        if (is_object($value)) {
+            throw new SerializationException('Unable to serialize snapshot payload: unsupported object of type ' . get_debug_type($value) . '.');
         }
 
         if (is_float($value) && !is_finite($value)) {
@@ -103,7 +149,7 @@ final class JsonSnapshotSerializer implements SerializerInterface
             }
 
             foreach ($value as $member) {
-                $this->assertSafe($member, $depth + 1);
+                $this->assertSafe($member, $depth + 1, $ancestors);
             }
         }
     }

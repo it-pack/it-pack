@@ -95,4 +95,58 @@ final class JsonSnapshotSerializerTest extends Unit
 
         self::assertSame(['derived' => true], $serializer->normalize($value));
     }
+
+    public function testSelfReferentialJsonSerializableIsRejected(): void
+    {
+        $serializer = new JsonSnapshotSerializer();
+
+        $value = new class () implements \JsonSerializable {
+            /** @return array<string, object> */
+            public function jsonSerialize(): array
+            {
+                return ['self' => $this];
+            }
+        };
+
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessageMatches('/cyclic/i');
+
+        $serializer->normalize($value);
+    }
+
+    public function testObjectPayloadExceedingDepthIsRejected(): void
+    {
+        $serializer = new JsonSnapshotSerializer(new SecurityLimits(maxSerializationDepth: 2));
+
+        $value = new class () implements \JsonSerializable {
+            /** @return array<string, mixed> */
+            public function jsonSerialize(): array
+            {
+                return ['a' => ['b' => ['c' => 1]]];
+            }
+        };
+
+        $this->expectException(SerializationException::class);
+        $this->expectExceptionMessageMatches('/depth/i');
+
+        $serializer->normalize($value);
+    }
+
+    public function testSharedObjectReferenceIsAllowed(): void
+    {
+        $serializer = new JsonSnapshotSerializer();
+
+        $shared = new class () implements \JsonSerializable {
+            /** @return array<string, int> */
+            public function jsonSerialize(): array
+            {
+                return ['id' => 1];
+            }
+        };
+
+        self::assertSame(
+            ['first' => ['id' => 1], 'second' => ['id' => 1]],
+            $serializer->normalize(['first' => $shared, 'second' => $shared]),
+        );
+    }
 }

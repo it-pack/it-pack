@@ -52,7 +52,7 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
             $kind,
             $parentExecutionId,
             $linkedExecutionIds,
-                $context ?? ExecutionContext::empty()
+            $context ?? ExecutionContext::empty()
         );
     }
 
