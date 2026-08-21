@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\CloudEvents\Contract;
 
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
+use Throwable;
 
 /**
  * Delivery port for CloudEvents.
@@ -23,7 +24,7 @@ interface CloudEventSinkInterface
     /**
      * Delivers a CloudEvent.
      *
-     * @throws \Throwable implementations may throw; callers decide the failure policy
+     * @throws Throwable implementations may throw; callers decide the failure policy
      */
     public function send(CloudEvent $event): void;
 }

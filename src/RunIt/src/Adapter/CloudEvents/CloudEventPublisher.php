@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * RunIt publisher that maps occurrences to CloudEvents and delivers them.
@@ -75,7 +76,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
     {
         $normalized = $artifact->normalize();
 
-        $id = $this->asString($normalized['id'] ?? null, 'redacted');
+        $id = $this->asString($normalized[ArtifactField::ID] ?? null, 'redacted');
         $source = $this->asString($normalized['source'] ?? null, 'runit://redacted');
         $type = $this->asString($normalized['type'] ?? null, 'runit.artifact.redacted');
         $subject = $this->asStringOrNull($normalized['subject'] ?? null);

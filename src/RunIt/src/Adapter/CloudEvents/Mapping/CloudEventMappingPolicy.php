@@ -28,8 +28,8 @@ final readonly class CloudEventMappingPolicy
     public const int DEFAULT_MAX_SERIALIZED_BYTES = 65_536;
 
     public function __construct(
-        public readonly string $specVersion = CloudEvent::SPEC_VERSION_1_0,
-        public readonly int $maxSerializedBytes = self::DEFAULT_MAX_SERIALIZED_BYTES,
+        public string $specVersion = CloudEvent::SPEC_VERSION_1_0,
+        public int $maxSerializedBytes = self::DEFAULT_MAX_SERIALIZED_BYTES,
     ) {
     }
 

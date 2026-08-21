@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\CloudEvents\Contract;
 
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 
 /**
  * Reconstructs a RunIt occurrence from a CloudEvent.
@@ -23,7 +24,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 interface CloudEventToOccurrenceMapperInterface
 {
     /**
-     * @throws \ItPack\RunIt\Contract\Exception\InvalidCloudEventException when a required field is missing or malformed
+     * @throws InvalidCloudEventException when a required field is missing or malformed
      */
     public function map(CloudEvent $event): OccurrenceInterface;
 }

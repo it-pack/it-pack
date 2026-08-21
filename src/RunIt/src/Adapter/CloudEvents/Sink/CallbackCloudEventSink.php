@@ -15,13 +15,13 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
  *
  * @see https://w3id.org/itpack/runit#CloudEvent
  */
-final class CallbackCloudEventSink implements CloudEventSinkInterface
+final readonly class CallbackCloudEventSink implements CloudEventSinkInterface
 {
     /**
      * @param callable(CloudEvent): void $callback
      */
     public function __construct(
-        private readonly mixed $callback,
+        private mixed $callback,
     ) {
     }
 

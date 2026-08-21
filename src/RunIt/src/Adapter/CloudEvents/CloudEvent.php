@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\CloudEvents;
 
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
+use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 
 /**
@@ -32,6 +33,23 @@ final readonly class CloudEvent
     private const string TIME_PATTERN = '/^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/';
 
     private const string EXTENSION_KEY_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
+
+    /**
+     * @param array<string, mixed> $extensions
+     */
+    private function __construct(
+        public string $specVersion,
+        public string $id,
+        public string $source,
+        public string $type,
+        public mixed $data,
+        public ?string $subject,
+        public ?string $time,
+        public ?string $dataContentType,
+        public ?string $dataSchema,
+        public array $extensions,
+    ) {
+    }
 
     /**
      * @param array<string, mixed> $extensions
@@ -82,10 +100,9 @@ final readonly class CloudEvent
 
                 $validator->assertSupportedValue($value);
 
-                /** @var mixed $value */
                 $normalizedExtensions[$key] = $value;
             }
-        } catch (\ItPack\RunIt\Contract\Exception\InvalidContextValueException $e) {
+        } catch (InvalidContextValueException $e) {
             throw new InvalidCloudEventException($e->getMessage(), 0, $e);
         }
 
@@ -101,23 +118,6 @@ final readonly class CloudEvent
             $dataSchema,
             $normalizedExtensions,
         );
-    }
-
-    /**
-     * @param array<string, mixed> $extensions
-     */
-    private function __construct(
-        public readonly string $specVersion,
-        public readonly string $id,
-        public readonly string $source,
-        public readonly string $type,
-        public readonly mixed $data,
-        public readonly ?string $subject,
-        public readonly ?string $time,
-        public readonly ?string $dataContentType,
-        public readonly ?string $dataSchema,
-        public readonly array $extensions,
-    ) {
     }
 
     /**

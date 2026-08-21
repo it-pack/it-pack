@@ -24,15 +24,15 @@ use Psr\Http\Message\StreamFactoryInterface;
  *
  * @see https://w3id.org/itpack/runit#CloudEvent
  */
-final class Psr18CloudEventSink implements CloudEventSinkInterface
+final readonly class Psr18CloudEventSink implements CloudEventSinkInterface
 {
     public function __construct(
-        private readonly ClientInterface $client,
-        private readonly RequestFactoryInterface $requestFactory,
-        private readonly StreamFactoryInterface $streamFactory,
-        private readonly CloudEventSerializerInterface $serializer,
-        private readonly string $targetUri,
-        private readonly string $method = 'POST',
+        private ClientInterface               $client,
+        private RequestFactoryInterface       $requestFactory,
+        private StreamFactoryInterface        $streamFactory,
+        private CloudEventSerializerInterface $serializer,
+        private string                        $targetUri,
+        private string                        $method = 'POST',
     ) {
     }
 

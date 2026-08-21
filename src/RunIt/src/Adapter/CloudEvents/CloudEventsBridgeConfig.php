@@ -19,12 +19,12 @@ use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
  *
  * @see https://w3id.org/itpack/runit#CloudEvent
  */
-final class CloudEventsBridgeConfig
+final readonly class CloudEventsBridgeConfig
 {
     public function __construct(
-        public readonly CloudEventSinkInterface $sink,
-        public readonly CloudEventMappingPolicy $policy = new CloudEventMappingPolicy(),
-        public readonly ?OccurrenceToCloudEventMapperInterface $mapper = null,
+        public CloudEventSinkInterface                $sink,
+        public CloudEventMappingPolicy                $policy = new CloudEventMappingPolicy(),
+        public ?OccurrenceToCloudEventMapperInterface $mapper = null,
     ) {
     }
 

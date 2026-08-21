@@ -42,6 +42,9 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
     ) {
     }
 
+    /**
+     * @throws \JsonException
+     */
     public function serialize(CloudEvent $event): string
     {
         $json = json_encode(

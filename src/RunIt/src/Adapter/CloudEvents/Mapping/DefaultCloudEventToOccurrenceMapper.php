@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
@@ -73,7 +74,6 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
                 continue;
             }
 
-            /** @var mixed $value */
             $attributes[$key] = $value;
         }
 
@@ -82,7 +82,7 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
 
         return Occurrence::create(
             OccurrenceId::fromString($event->id),
-            \ItPack\RunIt\Domain\Execution\ExecutionId::fromString($executionIdValue),
+            ExecutionId::fromString($executionIdValue),
             OccurrenceType::fromString($event->type),
             $event->source,
             $this->parseTime($event->time),
