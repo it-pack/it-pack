@@ -1,219 +1,134 @@
 # ConfigureIt — Code Review & Project State Assessment
 
-> Reviewer date: 2026-08-20
+> Reviewer date: 2026-08-21
 > Scope: full package `it-pack/configure-it` — `src/`, `tests/`, `docs/`, `examples/`, root `composer.json`, QA config.
-> Method: static reading of every `src/` file (78 PHP files, ~2,788 LOC), the test suite (61 test methods across 19 files), the docs set (8 architecture docs, 10 ADRs, CHANGELOG/ROADMAP/plans), and the three runnable examples. Quality gates were executed directly: `phpstan analyse`, `codecept run Unit`, `php-cs-fixer fix --dry-run`, and `php examples/*.php`.
+> Method: static reading of the Phase 9 Observability code (`src/Bridge/OpenTelemetry/**`), the wiring in `src/Core/ConfigurationBuilder.php`, and the new unit tests; re-execution of the full quality gate (`phpstan analyse`, `codecept run Unit`, `php-cs-fixer fix --dry-run`); re-running the runnable examples; and a reconciliation against the prior review (2026-08-20) and the current `ROADMAP.md` / `CHANGELOG.md`.
 
 ---
 
 ## 1. Executive Summary
 
-ConfigureIt is a **richly designed but currently non-functional** package. The architecture documentation (ADRs, `architecture/`, `IMPLEMENTATION_PLAN.md`, `REFACTORING_PLAN.md`) is mature, opinionated and internally consistent — this is by far the strongest part of the project. The source code implements a coherent Phase-0/Phase-1 slice (contracts, sources, loaders, builder, resolver, immutable snapshot, a Nette-Schema adapter, an execution/reporter model).
+ConfigureIt is now a **functional, green-gated package**. The prior review (2026-08-20) reported a package that did not build, aborted PHPStan with internal errors, could not boot its test suite, and had crashing examples. **All of those hard blockers are resolved.** At `HEAD` the suite is green: **149 tests / 345 assertions**, **PHPStan level 9 — 0 errors**, **php-cs-fixer — 0 files to fix**. `composer.json` now pins `php: ^8.5`, resolving the version-consistency finding.
 
-**However, the package does not build, does not pass its own quality gates, and its primary documented examples crash.** The repository is mid-way through an incomplete "refactor core / magic numbers integration" effort (see commits `e464bbf`, `3e62ba4`) that reorganized *some* interfaces under sub-namespaces (`Contract\ValueObject\`, `Contract\Execution\`) but left others behind. Both production code and the test suite now reference the *target* namespace layout, which does not match the *actual* on-disk layout. The result is that four source files fail to autoload, PHPStan aborts with internal errors, the entire test suite cannot even boot, and `php-cs-fixer` reports 44 of 97 files dirty.
+Per `ROADMAP.md` and `CHANGELOG.md`, the project has progressed through **Phases 0–9**, the latest being **Phase 9 — Observability** (delivered in this pass). The architecture documentation (ADRs, `architecture/`, plans) remains the strongest part of the project.
 
-The `docs/CHANGELOG.md` describes a "green final gate" (PHPStan level 9 = 0 errors, cs-fixer clean, 47 Codeception tests green, `examples/resolve.php` running end-to-end). **None of those claims hold at `HEAD` (`64f6581`).** The changelog documents a prior, pre-refactor state that has since regressed; it has not been updated to reflect the broken refactor.
+**Two residual, non-blocking issues remain from the prior review:**
+- **Examples still crash.** `examples/resolve.php` and `examples/all.php` fail at runtime (no loader registered for the `dotenv` format). This is a pre-existing example gap, **not** a Phase 9 regression.
+- **Dangling doc reference.** Code, `ROADMAP.md`, and `CHANGELOG.md` reference `docs/EXECUTION.md`, which still does not exist on disk.
 
-**Verdict:** Pre-alpha. Strong design surface, promising core, but the codebase as committed is not runnable and must not be released or depended upon. The path to green is concrete and well-scoped (see §8).
-
----
-
-## 2. What Works (Strengths)
-
-- **Architecture documentation is excellent.** 8 architecture docs (`MODEL.md`, `PORTS.md`, `PIPELINE.md`, `GRAPH.md`, `ARCHITECTURE.md`, `OBSERVABILITY.md`, `ADAPTERS.md`, `RESOLUTION.md`) and 10 ADRs (`ADR-0001`…`ADR-0010`) give a clear, ratified design vocabulary. The `REFACTORING_PLAN.md` is a genuinely good SOLID/DRY review and even foresaw the `Key` value object that was later added.
-- **Ports & Adapters is honored where it matters.** `src/Adapter/NativeConfigurationSchema.php` cleanly isolates `nette/schema` behind `ConfigurationSchemaInterface`; vendor exceptions are translated into the domain `ValidationResult` (`src/Adapter/NativeConfigurationSchema.php:36-64`). The Core never imports Nette types.
-- **Immutability & strong typing.** `readonly` classes are pervasive; value objects (`Format`, `ConfigurationResource`, `ValidationResult`, `Key`, `Occurrence`, `Observation`) are immutable. `Key` (`src/Core/Key.php`) is a well-documented, validated first-class abstraction for the dotted-key space — directly addressing `REFACTORING_PLAN.md §2/§3`.
-- **Execution model.** `src/Execution/` (`ExecutionContext`, `Occurrence`, `Observation`, `ResolutionReporter`) provides a framework-free provenance/observability spine that the resolver emits into.
-- **One example actually runs.** `examples/env.php` executes successfully and exercises `EnvSource`/`EnvReader` end-to-end.
-- **`CreatableBehavior` trait** (`src/Behavior/CreatableBehavior.php`) reduces factory boilerplate (used by `OccurrenceFactory`, `MessageFactory`, `TempFileFactory`, `ConfigurationResourceFactory`, `ValidationResultFactory`) — a reasonable DRY choice.
+**Verdict:** Post-alpha / early-beta-quality core. The design surface, ports/adapters discipline, and now native OpenTelemetry instrumentation are sound. The remaining work is example-hygiene and doc-reference cleanup, not architectural risk.
 
 ---
 
-## 3. Critical Findings
+## 2. Status Quo vs. Prior Review (2026-08-20)
 
-### C1 — Source code does not compile (broken namespace imports) 🔴
+| Prior finding | Status now |
+|---|---|
+| C1 — source code does not compile (broken namespace imports) 🔴 | ✅ **Resolved.** Namespace split completed; all `src/` imports resolve. |
+| C2 — test suite cannot run 🔴 | ✅ **Resolved.** 149 tests / 345 assertions green. |
+| C3 — PHPStan aborts with internal errors 🔴 | ✅ **Resolved.** PHPStan level 9, 0 errors. |
+| C4 — coding standard not clean (44/97 files) 🔴 | ✅ **Resolved.** `php-cs-fixer` reports 0 files. |
+| C5 — documented examples crash 🔴 | 🟠 **Partially resolved.** Constructor/API mismatch fixed, but `resolve.php`/`all.php` still fail at resolution time (missing `dotenv` loader). `env.php` still runs. |
+| D1 — README stale/contradictory 🟠 | 🟠 **Partially addressed.** Phase 9 section added to README; broader structure/format accuracy not re-audited this pass. |
+| D2 — CHANGELOG describes a non-existent state 🟠 | ✅ **Resolved.** CHANGELOG now tracks each phase with accurate gate numbers. |
+| D3 — dangling `docs/EXECUTION.md` reference 🟡 | 🟡 **Persists.** Referenced by `OpenTelemetryReporter`, `SemanticConventions`, ROADMAP, CHANGELOG. |
+| D4 — no PHP platform constraint / version drift 🟡 | ✅ **Resolved.** `composer.json` declares `php: ^8.5`. |
 
-Four production files reference interfaces that do not exist at the referenced namespace. Autoloading them fails fatally:
-
-```
-LOAD FAIL: src/Adapter/Contract/ContextAdapterInterface.php -> Interface "ItPack\ConfigureIt\Contract\ValueObject\ContextInterface" not found
-LOAD FAIL: src/Adapter/Contract/SchemaAdapterInterface.php  -> Interface "ItPack\ConfigureIt\Contract\ValueObject\SchemaInterface" not found
-LOAD FAIL: src/Adapter/Schema.php                          -> Interface "ItPack\ConfigureIt\Contract\ValueObject\SchemaInterface" not found
-LOAD FAIL: src/Adapter/Context.php                         -> Interface "ItPack\ConfigureIt\Contract\ValueObject\ContextInterface" not found
-```
-
-The offending imports are:
-
-- `src/Adapter/Contract/ContextAdapterInterface.php:7-8` → `Contract\ValueObject\ContextInterface` and `Contract\ValueObject\AdapterInterface` (both live at flat `Contract\`).
-- `src/Adapter/Contract/SchemaAdapterInterface.php:7-8` → `Contract\ValueObject\AdapterInterface` and `Contract\ValueObject\SchemaInterface`.
-- `src/Adapter/Context.php:7` → `Adapter\Contract\ContextAdapterInterface` (pulls in the broken file above).
-- `src/Adapter/Schema.php:6-8` → `Adapter\Contract\ContextAdapterInterface`, `Contract\ValueObject\ContextInterface`, `Contract\ValueObject\SchemaInterface`.
-
-**Root cause:** an incomplete refactor that split interfaces into sub-namespaces. Some were moved (`Contract\ValueObject\ConfigurationResourceInterface`, `ValidationResultInterface`; `Contract\Execution\ExecutionContextInterface`, etc.) but `AdapterInterface`, `ContextInterface`, `SchemaInterface`, `ConfigurationDocumentInterface`, `ConfigurationLoaderInterface`, `ConfigurationNodeInterface`, `ConfigurationGraphInterface` remained at flat `Contract\`. The moved files and the tests were updated to the new layout; these four were not.
-
-**Latent secondary break:** `src/Adapter/Processor.php:8,23,31` uses `SchemaAdapterInterface` in a union parameter type. Because `SchemaAdapterInterface` cannot autoload, instantiating `Processor` (the default in `NativeConfigurationSchema::__construct`, `src/Adapter/NativeConfigurationSchema.php:31`) would fatal at runtime even though the class file itself parses. The otherwise-clean schema adapter is therefore non-instantiable as written.
-
-These four files are also effectively **orphaned**: `ContextAdapterInterface` has zero importers; `Adapter\Context` and `Adapter\Schema` have zero importers; only `SchemaAdapterInterface` is consumed (by `Processor.php`). They are dead, broken refactor leftovers.
-
-**Unifying root cause.** The intended end-state is a *unified sub-namespace layout*: every contract interface lives under `Contract\ValueObject\` (value-object ports) or `Contract\Execution\` (execution ports). The move was applied **only partially**:
-- *Moved correctly:* `ConfigurationResourceInterface`, `ConfigurationResourceFactoryInterface`, `ValidationResultInterface`, `ValidationResultFactoryInterface` → `Contract\ValueObject\`; `ExecutionContextInterface`, `ObservationInterface`, `OccurrenceInterface`, `ResolutionReporterInterface`, `OccurrenceFactoryInterface` → `Contract\Execution\`. Most adapters (`FileSource`, `FileReader`, `EnvReader`, `EnvSource`, `CompositeReader`, `NativeConfigurationSchema`) were updated to the new namespaces.
-- *Not moved (still flat `Contract\`):* `AdapterInterface`, `ContextInterface`, `SchemaInterface`, `ConfigurationDocumentInterface`, `ConfigurationLoaderInterface`, `ConfigurationNodeInterface`, `ConfigurationGraphInterface`. The broken files and the test suite assume these were moved too.
-
-Until the layout is made consistent (finish the move, or revert the moved subset), the package cannot build.
-
-### C1b — Port docblock/namespace mismatch in the source→reader handoff 🟠
-
-`ConfigurationSourceInterface::discover()` documents its return as `iterable<ConfigurationResourceInterface>` using the **non-existent flat** `Contract\ConfigurationResourceInterface` (`src/Contract/ConfigurationSourceInterface.php:20` — phpdoc only, so it does not fatal at load). Meanwhile `ConfigurationReaderInterface::read()` requires the real `Contract\ValueObject\ConfigurationResourceInterface` (`src/Contract/ConfigurationReaderInterface.php:7,23`). At runtime the resolver (`src/Core/ConfigurationResolver.php:134-135`) passes a `ValueObject`-namespaced resource into the reader, which works, but the source port's docblock lies about the type and would raise a PHPStan error once analysis can run. The two port definitions disagree on the canonical namespace of `ConfigurationResourceInterface`.
-
-### C2 — Test suite cannot run 🔴
-
-Running `vendor/bin/codecept run Unit` aborts before any test executes:
-
-```
-PHP Fatal error: Uncaught Error: Interface
-"ItPack\ConfigureIt\Contract\ValueObject\ConfigurationLoaderInterface" not found
-in tests/Unit/Core/LoaderFactoryTest.php:14
-```
-
-The test suite was written against the *target* (post-refactor) namespace layout and imports these interfaces from `Contract\ValueObject\`:
-
-- `tests/Unit/Adapter/FileSourceTest.php:10` → `Contract\ValueObject\ConfigurationResourceInterface`
-- `tests/Unit/Core/LoaderFactoryTest.php:8-9` → `Contract\ValueObject\ConfigurationDocumentInterface`, `Contract\ValueObject\ConfigurationLoaderInterface`
-- `tests/Unit/Core/ConfigurationGraphTest.php:8` → `Contract\ValueObject\ConfigurationNodeInterface`
-- `tests/Unit/Core/ConfigurationBuilderTest.php:11` → `Contract\ValueObject\ConfigurationGraphInterface`
-- `tests/Unit/Core/ConfigurationPipelineTest.php:8` → `Contract\ValueObject\ConfigurationDocumentInterface`
-
-On disk, those interfaces live at flat `Contract\` (e.g. `Contract\ConfigurationLoaderInterface`). Because Codeception includes all test files at boot, a single unresolvable `use` aborts the whole run. **The 61 test methods (19 files) have not been executed successfully at `HEAD`.** The `CHANGELOG.md` claim of "47 unit tests / 99 assertions, all green" describes a prior state, not the current one.
-
-### C3 — PHPStan aborts with internal errors 🔴
-
-```
-[ERROR] Found 2 errors
-Internal error: Interface "ItPack\ConfigureIt\Contract\ValueObject\ContextInterface" not found
-while analysing file .../src/Adapter/Context.php
-... Result is incomplete because of severe errors.
-```
-
-This directly contradicts `CHANGELOG.md` ("Step 7 — PHPStan level 9: **0 errors**") and `ROADMAP.md` ("PHPStan ✅ (level 9, 0 errors)"). The gate is red: PHPStan cannot complete analysis.
-
-### C4 — Coding standard is not clean 🔴
-
-`vendor/bin/php-cs-fixer fix --dry-run --diff` reports **44 of 97 files** need fixing (e.g. missing trailing newline in `src/ValueObject/ConfigurationResourceFactory.php`, and 43 others). This contradicts `CHANGELOG.md` Step 8 ("`php-cs-fixer` … clean across all 57 files"). Note also that the file count in the changelog (57) does not match the current 78 source files, another sign the changelog predates the current tree.
-
-### C5 — Documented examples crash 🔴
-
-- `examples/resolve.php:26` calls `new ConfigurationBuilder($reader)` passing a `FileReader`. But `ConfigurationBuilder::__construct` (`src/Core/ConfigurationBuilder.php:54-57`) expects `ConfigurationFactoryInterface` as argument #1. Result:
-  ```
-  TypeError: ConfigurationBuilder::__construct(): Argument #1 ($factory) must be of type
-  ConfigurationFactoryInterface, ItPack\ConfigureIt\Adapter\FileReader given
-  ```
-  Even after fixing the constructor, `resolve.php` never calls `addReader()`, so the resolver's `CompositeReader` (`src/Core/ConfigurationBuilder.php:98`) is built over an **empty** reader list and would throw `InvalidArgumentException: No reader supports …` at resolution time (`src/Adapter/CompositeReader.php:25`). The example also imports `EnvReader`/`EnvSource` and never uses them.
-- `examples/all.php:34` has the same `ConfigurationBuilder` constructor-type error.
-- `examples/env.php` **does** run correctly — the only working example.
-
-`CHANGELOG.md` Step 5/8 explicitly claims `examples/resolve.php` "runs end-to-end and prints the merged immutable snapshot." It does not.
+Package size at `HEAD`: **131 source files**, **46 test files / 149 test methods**.
 
 ---
 
-## 4. Documentation Accuracy Gaps
+## 3. Phase 9 — Observability Review
 
-### D1 — README is stale and contradictory 🟠
+Phase 9 delivers native OpenTelemetry instrumentation **built on the existing Execution reporter spine** (`ResolutionReporterInterface` → `Occurrence` / `Observation`), implemented as a `Bridge` with **zero OpenTelemetry SDK dependency in Core**.
 
-- **Status mismatch.** Badge reads `status-Planning` and the Status section says "currently in the design and architecture phase" / "initial milestone focuses on establishing Core contracts…". Yet `ROADMAP.md` and `CHANGELOG.md` mark Phase 0 and Phase 1 **complete** with real implementations. The README undersells a shipped (if broken) Phase 1.
-- **Fictional primary example.** The README "Example" (`README.md:168-190`) uses `ConfigureIt::builder()`, `new EnvironmentSource()`, `new CliSource()`, `new ApplicationSchema()`. **None of these exist.** There is no `ConfigureIt` facade class anywhere in `src/` (confirmed by search). The real API is `new ConfigurationBuilder()` → `addSource()` / `addReader()` / `addLoader()` / `withSchema()` → `build()` → `resolve()` (see `src/Core/ConfigurationBuilder.php`, `src/Core/ConfigurationResolver.php`). A new user copying the README example cannot run anything.
-- **Phantom directory tree.** `README.md:248-275` "Project Structure" lists `Bridge/`, `Cache/`, `Context/`, `Discovery/`, `Event/`, `Graph/`, `Loader/`, `Pipeline/`, `Processor/`, `Resolver/`, `Schema/`, `Snapshot/`, `Source/`, `Support/`. **None of these exist in `src/`.** Actual top-level dirs are: `Adapter/`, `Behavior/`, `Contract/`, `Core/`, `Exception/`, `Execution/`, `ValueObject/`.
-- **Feature list overstates reality.** README lists YAML/TOML/NEON/XML/INI/Front-Matter/CSV/Table-Schema as supported/roadmap formats and many adapters (Aura.Di, phpdotenv, front-matter, tableschema) — none are implemented as adapters; only `PhpLoader`, `JsonLoader`, `EnvSource`/`EnvReader`, `FileSource`/`FileReader` exist.
+### Delivered files
+- `src/Bridge/OpenTelemetry/SemanticConventions.php` — all OTel span/event/metric names and attribute keys; maps each `Occurrence` type → span + lifecycle event.
+- `src/Bridge/OpenTelemetry/OpenTelemetryReporter.php` — decorator over `ResolutionReporterInterface` translating occurrences/observations into traces, spans, events, metrics.
+- `src/Bridge/OpenTelemetry/Contract/TelemetrySinkInterface.php` — vendor-neutral OTel-modeled port.
+- `src/Bridge/OpenTelemetry/Contract/OpenTelemetryBridgeInterface.php` — the real SDK transport, injected by the consumer (the only SDK-aware contract).
+- `src/Bridge/OpenTelemetry/InMemoryTelemetrySink.php` — recording/no-op sink for tests and as a default.
+- `src/Bridge/OpenTelemetry/OtelTelemetrySink.php` — forwards every call to a consumer `OpenTelemetryBridgeInterface`.
+- `src/Core/ConfigurationBuilder.php` — `withTelemetry($sink)` / `withExecutionContext($ctx)` wrap the reporter in `OpenTelemetryReporter` automatically (opt-in; no behavior change when unset).
+- `tests/Unit/Bridge/OpenTelemetry/OpenTelemetryReporterTest.php`, `OtelTelemetrySinkTest.php` — offline suites (no SDK, no network).
 
-### D2 — CHANGELOG describes a state that no longer exists 🟠
+### Strengths
+- **Ports & Adapters honored (ADR-0002).** Core never imports the OpenTelemetry SDK. The SDK boundary is a single consumer-injected `OpenTelemetryBridgeInterface`; ConfigureIt owns only the *semantics* (`SemanticConventions`). This is the correct separation and matches the project's "infrastructure is an adapter" rule.
+- **Non-invasive instrumentation.** No new hooks were added to `Core`/`Resolver`/`Pipeline`. The existing `Occurrence`/`Observation` stream is sufficient; `OpenTelemetryReporter` is a pure decorator. Low blast radius, easy to reason about, easy to disable.
+- **Offline-testable by design.** `InMemoryTelemetrySink` records into typed arrays; the full trace/span/event/metric emission is asserted without any SDK or collector. Strong testability story.
+- **Semantic alignment.** Uses real OTel semantic keys (`deployment.environment`, `service.name`) and conventional instrument names (`config.resolve`, `config.resolution.duration`, …), so a backend (Jaeger/Tempo/Prometheus/OTLP) renders ConfigureIt data natively.
+- **Correct trace lifecycle.** One trace per resolution run; spans + CloudEvents-style lifecycle events per `Occurrence`; `config.observation` events per `Observation` (warnings/diagnostics); trace closed on `SnapshotCreated`. Metrics: resolution duration, per-type occurrence counter, node/override/unresolved gauges.
+- **Type-safe.** `readonly` where appropriate, fully typed arrays, `int|float` payloads coerced via a guarded `toFloat()`. Passes PHPStan level 9.
 
-`CHANGELOG.md` is written as a linear success narrative (Steps 0-8, "Final gate green: phpstan level 9 (0 errors) + cs-fixer (0) + Codeception (47 tests)"). At `HEAD` none of these hold (C1-C5). The changelog also contains a garbled line (`src/Adapter/test-code\NativeConfigurationSchema`, `CHANGELOG.md:80`) and an incorrect test count (47 vs. 61 actual methods). It needs either a correction or a new "Regression / mid-refactor" entry.
+### Minor observations (non-blocking)
+1. **Duplicate interface shape.** `OpenTelemetryBridgeInterface` is structurally identical to `TelemetrySinkInterface`. The split is intentional (ConfigureIt's port vs. the consumer's SDK-transport port) and keeps the boundary explicit, but a consumer must implement two near-identical method sets. Acceptable by design; could be collapsed if adapter boilerplate becomes a pain point.
+2. **`InMemoryTelemetrySink::endTrace`** appends a *second* trace record (name `'end'`) rather than mutating the started entry. Fine for a test sink (end attributes are still captured), but it is a recording artifact, not a "close the span" mutation a real backend would do.
+3. **Zero-duration spans.** Each `Occurrence` is emitted as a span with `startedAt == endedAt == at()`. Occurrences are instantaneous in the Execution model, so this is a reasonable simplification, but a trace UI will show zero-duration spans. If the spine later carries durations, the reporter can forward them without API change.
+4. **Silent metric fallback.** `ConfigurationResolved` measures (`nodes`/`overrides`/`unresolved`) read payload keys and fall back to `0.0` via `toFloat` when absent. Defensive, but a future payload-key rename would silently emit zeros instead of failing loudly.
+5. **Unknown occurrence types are dropped.** `SemanticConventions::occurrenceSpan/Event` return `null` for unrecognized types (forward-compatible), so a new `Occurrence` would produce no span/event until the map is extended. Acceptable, but worth a note in the ADR/port doc.
+6. **End-to-end builder wiring not covered by a dedicated test.** Current tests exercise `OpenTelemetryReporter` directly and via the sink; the `ConfigurationBuilder::withTelemetry()` path is verified indirectly. A single test driving a real resolver through the builder would lock the wiring (noted in the CHANGELOG deferral).
 
-### D3 — Dangling doc references 🟡
-
-Code comments and `CHANGELOG.md` reference `docs/EXECUTION.md` (a local ConfigureIt doc) which does not exist. The execution model actually lives at the monorepo root `../../docs/EXECUTION.md` (verified present). `IMPLEMENTATION_PLAN.md:4` and `REFACTORING_PLAN.md` likewise point at `../../docs/EXECUTION.md`. Cross-references should be reconciled.
-
-### D4 — PHP version inconsistency / no platform constraint 🟡
-
-- `composer.json` has **no `require.php`** constraint.
-- `README.md` badge says **PHP 8.4+**; `IMPLEMENTATION_PLAN.md:40` says **PHP 8.5.x**; `REFACTORING_PLAN.md` cites "PHP 8.4+ language features" then lists Lazy Objects/Virtual Properties (8.4) *and* `array_any` (8.5, used in `src/Adapter/CompositeReader.php:30`).
-- With no `require.php`, nothing enforces the actual minimum. Pick a single target and declare it.
-
----
-
-## 5. Architecture & Design Assessment
-
-**Positive / ratified patterns**
-- ADR-0002 (Ports & Adapters) is genuinely followed by the schema adapter and the source/loader separation.
-- ADR-0003 (Immutable Snapshots) and ADR-0009 (`Key` value object) are realized well.
-- The resolver emits Occurrences through a reporter rather than leaking internals — good observability posture for later OTel work (ROADMAP Phase 9).
-
-**Design critiques (not blockers, but worth tracking)**
-- **God-coordinator.** `ConfigurationResolver::resolve()` (`src/Core/ConfigurationResolver.php:55-60,127-148`) still performs discovery, reading, loader selection, document construction, validation and snapshotting inline. `REFACTORING_PLAN.md §1` already calls this out; the `ConfigurationLoaderFactory` port (ADR-0006) was added but the resolver still inlines document construction (`new ConfigurationDocument(...)` at the call site in `resolveResources()`). Partial remediation.
-- **Concrete dependency in Core.** `ConfigurationResolver::__construct` requires the concrete `ConfigurationPipeline` (`src/Core/ConfigurationResolver.php:42`), not `ConfigurationPipelineInterface`. AGENTS.md states Core may depend on Contracts; this is a minor DIP slip.
-- **Generic exception from an adapter.** `CompositeReader::read()` throws `\InvalidArgumentException` (`src/Adapter/CompositeReader.php:25`) instead of the domain `ReadException` that otherwise exists in `src/Exception/`. Inconsistent with the project's own "translate/raise domain exceptions" rule (AGENTS.md, ADR-0002).
-- **No empty-input guards.** A builder with no sources or no loaders produces a resolver that fails late (loader factory throws `ResolutionException` on unknown format; reader throws on empty reader set). Acceptable, but a fail-fast `build()` validation would improve DX.
-- **`CompositeReader` typing/style.** `private array $readers` is untyped (should be `list<ConfigurationReaderInterface>`), the class is non-`readonly`, and the constructor has a stray blank line (`src/Adapter/CompositeReader.php:12-15`). Cosmetic, caught by the cs-fixer drift (C4).
-- **Processor wiring is thin.** Only `DefaultsProcessor` (`src/Core/DefaultsProcessor.php`) exists; the pipeline's `validate`/`merge`/`variable`/`include` stages described across README/ROADMAP/architecture are not implemented. This is expected for Phase 1 but should be reflected honestly in status docs.
+**Phase 9 verdict:** Clean pass. Architecture-correct, well-tested offline, no Core contamination. The observations above are polish, not risk.
 
 ---
 
-## 6. Roadmap Alignment
+## 4. Residual Issues
 
-`ROADMAP.md` correctly marks **Phase 0 (tooling/bootstrap)** and **Phase 1 (Core: contracts, sources, loaders, builder, resolver, snapshot, PHP+JSON)** as ✅. This is *almost* true — the Phase 1 slice is present in code. The discrepancy is that the *implementation quality gate* for Phase 1 (green PHPStan/cs-fixer/tests) has regressed due to the unfinished refactor. Phases 2-9 (YAML/TOML/NEON, schema integrations, pipeline processors, graph diagnostics, CLI, enterprise sources, OTel) remain unstarted, consistent with the roadmap.
+### R1 — Example scripts still crash 🟠 (was C5)
+- `php examples/resolve.php` → `ResolutionException: No loader supports format "dotenv"` (no `EnvLoader`/`dotenv` loader registered by the example). The `ConfigurationBuilder` constructor now matches the real API (the prior `TypeError` is gone), but the example omits loader registration.
+- `php examples/all.php` → same class of failure.
+- `php examples/env.php` → ✅ runs.
+- New examples exist (`dotenv.php`, `provenance.php`) but were not executed in this pass.
 
-Recommendation: do not mark any phase "complete" until its gate is green at `HEAD`.
+### R2 — Dangling `docs/EXECUTION.md` reference 🟡 (was D3)
+Numerous references to `docs/EXECUTION.md` (the "Execution reporter spine" doc) — in `OpenTelemetryReporter`, `SemanticConventions`, `ROADMAP.md`, `CHANGELOG.md` — but the file does not exist on disk. The execution model is real and working; only the documentation pointer is missing. Either create `docs/EXECUTION.md` or repoint references.
 
----
-
-## 7. Testing Reality
-
-- 19 unit test files, **61 test methods**. Cannot be executed at `HEAD` (C2).
-- Coverage intent is good: resolver priority-merge, immutability, exception translation, occurrence ordering, schema success/failure are all targeted by existing tests (per `CHANGELOG.md` Step 6). The tests are valuable *once the namespace drift is fixed*.
-- No mutation testing / infection config observed; `composer.json` allows the `infection/extension-installer` plugin but no `infection.json` is present.
-
----
-
-## 8. Prioritized Recommendations
-
-**P0 — Make it build & green (blocks everything):**
-1. Reconcile the namespace split. Either (a) move the remaining interfaces (`AdapterInterface`, `ContextInterface`, `SchemaInterface`, `ConfigurationDocumentInterface`, `ConfigurationLoaderInterface`, `ConfigurationNodeInterface`, `ConfigurationGraphInterface`) into their target sub-namespaces (`Contract\ValueObject\`, `Contract\Execution\` as appropriate) **and** update all producers/consumers, or (b) revert the four broken adapter files and the test imports back to flat `Contract\`. Option (a) preserves the intended design; option (b) is the smallest fix to restore the previously-green state. (C1, C2)
-2. Delete or finish the orphaned refactor leftovers `src/Adapter/Context.php`, `src/Adapter/Schema.php`, `src/Adapter/Contract/ContextAdapterInterface.php`, `src/Adapter/Contract/SchemaAdapterInterface.php` — they are unreferenced and broken. (C1)
-3. Re-run and pass: `vendor/bin/codecept run Unit`, `vendor/bin/phpstan analyse`, `vendor/bin/php-cs-fixer fix`. (C2, C3, C4)
-
-**P1 — Fix the user-facing surface:**
-4. Repair `examples/resolve.php` and `examples/all.php`: call `new ConfigurationBuilder()` (default factory) and `addReader(...)` for every source type used; remove dead `EnvReader`/`EnvSource` imports. Verify both run end-to-end. (C5)
-5. Rewrite `README.md` "Example" to use the real `ConfigurationBuilder` API, update the "Project Structure" to the actual directories, and correct the status badge/section to reflect that Phase 1 is implemented (with the caveat that the gate is being restored). Remove/relabel unimplemented adapters and formats. (D1)
-
-**P2 — Honesty & consistency:**
-6. Add a `CHANGELOG.md` entry acknowledging the mid-refactor regression; correct the test count and the garbled `test-code\` line; remove claims of a green gate until P0 is done. (D2)
-7. Reconcile `docs/EXECUTION.md` references (local vs. repo-root). (D3)
-8. Declare a single PHP target in `composer.json` `require.php` and align README/plan wording; confirm `array_any` (8.5) vs. Lazy Objects (8.4) intent. (D4)
-
-**P3 — Design hardening (post-green):**
-9. Extract document construction out of `ConfigurationResolver::resolveResources()` into a `DocumentFactory`/reader-loader chain (REFACTORING_PLAN §1).
-10. Depend on `ConfigurationPipelineInterface` in the resolver; throw domain `ReadException` from `CompositeReader`.
-11. Add `build()` fail-fast validation (non-empty sources/loaders) and an `infection.json` + coverage gate.
+### R3 — README broader accuracy not re-audited 🟡 (was D1)
+The Phase 9 status/feature section was added, but the prior review's deeper README critiques (phantom project-structure tree, overstated adapter/format list, fictional facade example) were not re-verified in this pass. They are likely mitigated by later phases but should be confirmed before any public release.
 
 ---
 
-## 9. Appendix — Commands & Observed Output
+## 5. Architecture & Design Assessment (carried forward, historical)
 
-| Check | Command | Result at HEAD |
+The following assessment from the prior review remains directionally valid and was **not contradicted** by the Phase 9 work; items specifically about Core internals were not re-verified in this pass and may have been addressed in intervening phases.
+
+- **ADR-0002 (Ports & Adapters)** is honored where it matters — most clearly now by the OpenTelemetry `Bridge`, which isolates all SDK knowledge behind `OpenTelemetryBridgeInterface`.
+- **ADR-0003 (Immutable Snapshots)** and **ADR-0009 (`Key` value object)** were realized well.
+- The resolver's provenance/observability posture (emitting `Occurrence`s through a reporter) made Phase 9 a low-risk decorator rather than a Core change — a design win.
+- Historical design critiques (god-coordinator in `ConfigurationResolver::resolve()`, concrete `ConfigurationPipeline` dependency, `CompositeReader` throwing `\InvalidArgumentException` instead of a domain exception, untyped `$readers`) should be re-checked against current code before being relied upon.
+
+---
+
+## 6. Recommendations
+
+**P0 — Ship hygiene (small, blocking for a clean public release):**
+1. Fix `examples/resolve.php` and `examples/all.php`: register the appropriate loader(s) (e.g. an `EnvLoader`/dotenv loader) so they run end-to-end. Verify all `examples/*.php` execute.
+2. Create or repoint `docs/EXECUTION.md` (R2). Low effort, removes a confusing dangling reference across many files.
+
+**P1 — Honesty & breadth:**
+3. Re-audit `README.md` (R3) for the phantom structure tree and adapter/format claims; align with what is actually implemented at `HEAD`.
+4. Add a `ConfigurationBuilder::withTelemetry()` end-to-end test (Phase 9 observation #6) to lock the wiring.
+
+**P2 — Design hardening (post-green, optional):**
+5. Consider collapsing `OpenTelemetryBridgeInterface` into `TelemetrySinkInterface` (or a shared base) if the duplicate method set becomes a consumer burden.
+6. Make `OpenTelemetryReporter`'s metric payload keys explicit/guarded (e.g. a small typed DTO) to avoid silent `0.0` fallback on key drift.
+7. Re-verify the historical Core-design critiques (god-coordinator, DIP slip, exception translation) against current code.
+
+---
+
+## 7. Appendix — Current Gate Results
+
+| Check | Command | Result at HEAD (2026-08-21) |
 |---|---|---|
-| Autoload integrity (custom script requiring all `src/*.php`) | `php check.php` | **4 load failures** (Context/Schema adapter files) |
-| Static analysis | `vendor/bin/phpstan analyse` | **2 errors**, aborts with *Internal error: Interface … not found* |
-| Unit tests | `vendor/bin/codecept run Unit` | **Fatal**: `Interface Contract\ValueObject\ConfigurationLoaderInterface not found` (boot abort) |
-| Coding standard | `vendor/bin/php-cs-fixer fix --dry-run` | **44 of 97 files** need fixing |
-| Example: env | `php examples/env.php` | ✅ runs, prints `app.key` |
-| Example: resolve | `php examples/resolve.php` | ❌ `TypeError` on `ConfigurationBuilder` ctor |
-| Example: all | `php examples/all.php` | ❌ `TypeError` on `ConfigurationBuilder` ctor |
+| Static analysis | `vendor/bin/phpstan analyse` | ✅ **0 errors** (level 9) |
+| Unit tests | `vendor/bin/codecept run Unit` | ✅ **149 tests / 345 assertions** |
+| Coding standard | `vendor/bin/php-cs-fixer fix --dry-run` | ✅ **0 files to fix** |
+| Example: env | `php examples/env.php` | ✅ runs |
+| Example: resolve | `php examples/resolve.php` | 🟠 `ResolutionException: No loader supports format "dotenv"` |
+| Example: all | `php examples/all.php` | 🟠 fails at runtime (loader registration) |
+| `docs/EXECUTION.md` | `ls docs/EXECUTION.md` | 🟡 missing (referenced widely) |
+| PHP platform | `composer.json` `require.php` | ✅ `^8.5` |
 
-**Files most responsible for the broken state**
-- `src/Adapter/Contract/ContextAdapterInterface.php`
-- `src/Adapter/Contract/SchemaAdapterInterface.php`
-- `src/Adapter/Context.php`
-- `src/Adapter/Schema.php`
-- `tests/Unit/Core/LoaderFactoryTest.php` (+ 4 other test files importing moved interfaces)
-- `examples/resolve.php`, `examples/all.php`
+**Source / test size:** 131 `src/` files; 46 test files / 149 test methods.
 
-**Bottom line:** The design is sound and worth continuing; the implementation is currently a casualty of an unfinished refactor. Restoring the green gate is a small, well-bounded effort (P0) and should precede any further feature work.
+**Bottom line:** The package is functional and green-gated through Phase 9. The deliverables for Phase 9 (Observability) are architecture-correct, offline-tested, and free of Core SDK contamination. Remaining work is example hygiene (R1) and a missing `docs/EXECUTION.md` (R2) — neither architectural, both small.
