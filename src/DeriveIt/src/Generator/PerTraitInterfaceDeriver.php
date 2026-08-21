@@ -8,6 +8,7 @@ use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Exception\NamingCollisionException;
 use ItPack\DeriveIt\Reflection\ClassReflection;
+use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
 use ReflectionClass;
 
@@ -31,10 +32,11 @@ final readonly class PerTraitInterfaceDeriver implements DeriverInterface
     public function __construct(
         ?MethodSignatureFactory $signatureFactory = null,
         private DeriveConfig    $config = new DeriveConfig(),
+        ?Factory                $factory = null,
     ) {
         $this->extractor = new MethodExtractor($config);
         $this->renderer = new SourceRenderer();
-        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(config: $config);
+        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(factory: $factory, config: $config);
     }
 
     /**

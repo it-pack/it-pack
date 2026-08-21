@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
+use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
@@ -36,6 +37,7 @@ final class FamilyDeriver
 
     public function __construct(
         private readonly DeriveConfig $config = new DeriveConfig(),
+        private readonly ?Factory     $factory = null,
     ) {
     }
 
@@ -51,22 +53,12 @@ final class FamilyDeriver
      */
     public function derive(array $classes, array $namespacePrefixMap = []): array
     {
-        $map = $this->buildMap($classes);
-        $map = $this->transitiveClosure($map);
-        $configHash = $this->configHash($map, $namespacePrefixMap);
-
-        // Each base interface is derived exactly once and memoized per config
-        // (E1 / E2); the owned-namespace prefix is threaded through the substitutor.
-        $result = [];
+        $reflections = [];
         foreach ($classes as $class) {
-            $reflection = new ReflectionClass($class);
-            $fqcn = $reflection->getName();
-            $cacheKey = $fqcn . '|' . $configHash;
-
-            $result[$fqcn] = $this->cache[$cacheKey] ??= $this->deriveMember($reflection, $map, $namespacePrefixMap);
+            $reflections[$class] = new ReflectionClass($class);
         }
 
-        return $result;
+        return $this->deriveReflections($reflections, $namespacePrefixMap);
     }
 
     /**
@@ -77,9 +69,9 @@ final class FamilyDeriver
      */
     public function deriveFromRoot(string $rootClass, array $namespacePrefixMap = []): array
     {
-        $classes = array_keys($this->discover($rootClass));
-
-        return $this->derive($classes, $namespacePrefixMap);
+        // `discover()` already builds a ReflectionClass per family member, so reuse
+        // those instances — don't re-reflect or re-run `class_exists` (EC20 / G13).
+        return $this->deriveReflections($this->discover($rootClass), $namespacePrefixMap);
     }
 
     /**
@@ -91,11 +83,14 @@ final class FamilyDeriver
      */
     public function deriveSource(array $classes, array $namespacePrefixMap = []): string
     {
-        $interfaces = $this->derive($classes, $namespacePrefixMap);
+        $reflections = [];
+        foreach ($classes as $class) {
+            $reflections[$class] = new ReflectionClass($class);
+        }
+        $interfaces = $this->deriveReflections($reflections, $namespacePrefixMap);
 
         $byNamespace = [];
-        foreach ($classes as $class) {
-            $reflection = new ReflectionClass($class);
+        foreach ($reflections as $reflection) {
             $byNamespace[$reflection->getNamespaceName()][] = $interfaces[$reflection->getName()];
         }
 
@@ -115,6 +110,36 @@ final class FamilyDeriver
      * @param array<string, string> $map
      * @param array<string, string> $namespacePrefixMap
      */
+    /**
+     * Core family derivation over already-built ReflectionClass instances so that
+     * discovery / derive never re-reflect the same class or re-run `class_exists`
+     * (EC20 / G13). Each base interface is derived exactly once and memoized per
+     * config (E1 / E2); a single `Factory` is shared across every member.
+     *
+     * @param array<class-string, ReflectionClass> $reflections keyed by class FQCN
+     * @param array<string, string> $namespacePrefixMap
+     * @return array<class-string, InterfaceType> keyed by class FQCN
+     */
+    private function deriveReflections(array $reflections, array $namespacePrefixMap): array
+    {
+        $map = [];
+        foreach ($reflections as $reflection) {
+            $map[$reflection->getName()] = Naming::derivedInterfaceFqcn($reflection);
+        }
+        $map = $this->transitiveClosure($map);
+        $configHash = $this->configHash($map, $namespacePrefixMap);
+
+        $result = [];
+        foreach ($reflections as $reflection) {
+            $fqcn = $reflection->getName();
+            $cacheKey = $fqcn . '|' . $configHash;
+
+            $result[$fqcn] = $this->cache[$cacheKey] ??= $this->deriveMember($reflection, $map, $namespacePrefixMap);
+        }
+
+        return $result;
+    }
+
     private function deriveMember(ReflectionClass $reflection, array $map, array $namespacePrefixMap): InterfaceType
     {
         Naming::assertNoCollision($reflection);
@@ -130,24 +155,9 @@ final class FamilyDeriver
         $memberConfig = $this->config->withTypeSubstitutionMap($map);
 
         return new InterfaceDeriver(
-            signatureFactory: new MethodSignatureFactory(config: $memberConfig),
+            signatureFactory: new MethodSignatureFactory(factory: $this->factory, config: $memberConfig),
             config: $memberConfig,
         )->deriveWithSubstitutor($reflection, $substitutor, $allowedNamespaces);
-    }
-
-    /**
-     * @param array<int, class-string> $classes
-     * @return array<string, string>
-     */
-    private function buildMap(array $classes): array
-    {
-        $map = [];
-        foreach ($classes as $class) {
-            $reflection = new ReflectionClass($class);
-            $map[$reflection->getName()] = Naming::derivedInterfaceFqcn($reflection);
-        }
-
-        return $map;
     }
 
     /**

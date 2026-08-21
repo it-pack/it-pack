@@ -486,16 +486,16 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.13 complete (2026-08-21).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.14 complete (2026-08-22).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
 > (G6), owned-attribute allow-list + builtin skip (G7), opt-in phpdoc preservation
 > with FQCN simplification (G8), the `analyze()` / `deriveMany()` / `diff()` DX
 > APIs (G9), config presets + validation + uniform method-renames (G10/G11),
-> family-of-adapters generation (G14 / EC12), and re-expose owned interfaces
-> (G16 / A4) are implemented and tested. All five gates green.
-> Steps 10.14–10.16 remain planned.
+> family-of-adapters generation (G14 / EC12), re-expose owned interfaces
+> (G16 / A4), and shared `Factory` + de-dup reflection (G13 / EC20) are implemented
+> and tested. All five gates green. Steps 10.15–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -605,11 +605,16 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   satisfy them). Applies to flat + family derivation; the per-trait main interface
   keeps its strict "extends exactly derived trait interfaces" invariant.
 
-### Step 10.14 — Performance: shared `Factory` + de-dup reflection (G13, EC20, E3)
-- Pass a single `Nette\PhpGenerator\Factory` through the derivers instead of
-  `new`-ing one per `MethodSignatureFactory`. Reuse `ReflectionClass` instances
-  produced by `discover()` inside `derive()` (avoid double reflection + repeated
-  `class_exists` checks).
+### Step 10.14 — Performance: shared `Factory` + de-dup reflection (G13, EC20, E3) ✅ COMPLETE
+- `FamilyDeriver` now accepts an optional `?Factory` and threads a single instance
+  through every member's `MethodSignatureFactory` (was `new`-ing one per member).
+  `InterfaceDeriver` / `PerTraitInterfaceDeriver` also accept an optional `?Factory`
+  so a caller can share one instance end-to-end. `Factory` is `final`/stateless, so
+  this is a structural object-churn reduction, not a behavior change.
+- `deriveFromRoot()` and `deriveSource()` now reuse the `ReflectionClass` instances
+  produced by `discover()` (via a new `deriveReflections()` core) instead of
+  re-reflecting each class and re-running `class_exists` — eliminating the EC20
+  double-reflection path in family scans.
 
 ### Step 10.15 — Maintainability: `BuildMeta` + PSR cache (G15/G18, F3-adjacent)
 - Replace the untyped `object{interface, methods, substitutions, constants}` returned

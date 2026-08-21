@@ -288,14 +288,15 @@ to a feature in §6).
   interface.
 - **Recommended:** key by FQCN internally; render short names only at output (G12).
 
-### EC20 — Double reflection in family discover / derive
+### EC20 — Double reflection in family discover / derive ✅ RESOLVED (G13)
 - **Evidence:** `FamilyDeriver::discover()` and `derive()` each `new
   ReflectionClass` for the same classes, and `discover()` calls `class_exists` on
   every discovered type (FamilyDeriver.php:170-219).
 - **Why it matters:** minor perf cost repeated per family; noticeable on large
   graphs.
-- **Recommended:** reuse `ReflectionClass` instances from discovery in derive;
-  share one Nette `Factory` (G13).
+- **Resolved:** `deriveFromRoot()`/`deriveSource()` now reuse the discovered
+  `ReflectionClass` instances through a shared `deriveReflections()` core; a single
+  injectable `Factory` is threaded through every member (G13 / 10.14).
 
 ---
 
@@ -382,8 +383,10 @@ Phase 10 steps.
   ports and dogfooding.
 
 ### I. Performance & maintainability
-- **G13** Shared Nette `Factory` + de-dup reflection — pass one `Factory` through;
-  reuse `ReflectionClass` instances from discovery in derive (EC20, E3).
+- **G13** ✅ Shared Nette `Factory` + de-dup reflection — `FamilyDeriver` threads one
+   injectable `Factory` through every member (`InterfaceDeriver`/`PerTraitInterfaceDeriver`
+   also accept one); `deriveFromRoot`/`deriveSource` reuse the `ReflectionClass`
+   instances from `discover()` via a shared `deriveReflections()` core (EC20, E3).
 - **G15** `BuildMeta` value object — replace the untyped `object{interface,
   methods, substitutions, constants}` returned by `InterfaceDeriver::build()` with
   a typed `BuildMeta`; extract a shared deriver base (seeding the substitutor +

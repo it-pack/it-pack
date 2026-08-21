@@ -7,6 +7,7 @@ namespace ItPack\DeriveIt\Generator;
 use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
 use ItPack\DeriveIt\Exception\EmptyDerivationException;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
+use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\Method;
 use ReflectionClass;
@@ -34,10 +35,11 @@ final readonly class InterfaceDeriver implements DeriverInterface
     public function __construct(
         ?MethodSignatureFactory $signatureFactory = null,
         private DeriveConfig    $config = new DeriveConfig(),
+        ?Factory                $factory = null,
     ) {
         $this->extractor = new MethodExtractor($config);
         $this->renderer = new SourceRenderer();
-        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(config: $config);
+        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(factory: $factory, config: $config);
     }
 
     public function derive(ReflectionClass|string $class): InterfaceType
