@@ -88,6 +88,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $proto->className,
                 methodName: $proto->methodName,
                 raw: $proto->raw,
+                namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
                 subkind: $this->contentClassifier->classify($proto),
             );
 

@@ -6,29 +6,34 @@ namespace ItPack\DisenchantIt\Core;
 
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
+use ItPack\DisenchantIt\Contract\ClosedSetDetectorInterface;
 use ItPack\DisenchantIt\Contract\ConstantNameResolverInterface;
-use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
 use ItPack\DisenchantIt\Contract\ExecutionRecorderInterface;
+use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
 use ItPack\DisenchantIt\Contract\RewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\ValueObject\Candidate;
 use ItPack\DisenchantIt\ValueObject\CandidateInterface;
+use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
 use ItPack\DisenchantIt\ValueObject\DisenchantResult;
 use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
 use ItPack\DisenchantIt\ValueObject\Execution\DisenchantOccurrence;
+use ItPack\DisenchantIt\ValueObject\GroupedCandidateInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
+use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
 use ItPack\DisenchantIt\ValueObject\SourceCode;
 
 /**
  * Detection and placement orchestrator (the "Detect" and "Decide/Rewrite" steps
  * of the DisenchantIt pipeline) for one PHP source string.
  *
- * Composes the scanner, candidate filter, grouper, name generator, placement
- * strategy, and rewriter behind one seam. `detect()` exposes the grouped, named
- * candidates; `rewrite()` runs the full pipeline and returns rewritten source.
+ * Composes the scanner, candidate filter, grouper, name resolver, the promotion
+ * target seam, the rewriter, and the SemConv collect/alias steps behind one seam.
+ * `detect()` exposes the grouped, named candidates; `rewrite()` runs the full
+ * pipeline and returns rewritten source.
  *
  * Hard rule preserved: this is pure source-text-in, data-structure-out. No file
  * is ever required, included, autoloaded, or executed.
@@ -36,15 +41,16 @@ use ItPack\DisenchantIt\ValueObject\SourceCode;
 final readonly class Disenchanter implements DisenchanterInterface
 {
     public function __construct(
-        private StringLiteralDetectorInterface     $detector,
-        private CandidateFilterInterface           $filter,
-        private CandidateGrouperInterface          $grouper,
-        private ConstantNameResolverInterface      $resolver,
-        private ConstantPlacementStrategyInterface $placement,
-        private RewriterInterface                  $rewriter,
-        private SemConvCollectorInterface          $collector,
-        private SemConvAliasRewriterInterface      $aliasRewriter,
-        private ExecutionRecorderInterface         $recorder,
+        private StringLiteralDetectorInterface $detector,
+        private CandidateFilterInterface $filter,
+        private CandidateGrouperInterface $grouper,
+        private ConstantNameResolverInterface $resolver,
+        private PromotionTargetInterface $promotion,
+        private RewriterInterface $rewriter,
+        private SemConvCollectorInterface $collector,
+        private SemConvAliasRewriterInterface $aliasRewriter,
+        private ExecutionRecorderInterface $recorder,
+        private ClosedSetDetectorInterface $closedSetDetector,
     ) {
     }
 
@@ -65,9 +71,9 @@ final readonly class Disenchanter implements DisenchanterInterface
      * @return array<string, CandidateInterface> keyed by the grouping key.
      *         For strings the key is the literal value; for numbers it is the
      *         value combined with the naming-context signature (see
-     *         CandidateGrouper / the grouping strategies). The same key space
-     *         is used by `rewrite()` and `rewriteWithSemConv()`, which both
-     *         re-run `detect()` internally.
+     *         CandidateGrouper / the grouping strategies). The same key space is
+     *         used by `rewrite()` and `rewriteWithSemConv()`, which both re-run
+     *         `detect()` internally.
      */
     public function detect(string $code, ?string $relativePath = null): array
     {
@@ -94,21 +100,13 @@ final readonly class Disenchanter implements DisenchanterInterface
     public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null): string
     {
         $candidates = $this->detect($code, $relativePath);
+        $groups = $this->closedSetDetector->detect($candidates);
 
-        $placements = [];
-        foreach ($candidates as $candidate) {
-            if ($candidate->count() < $minOccurrences) {
-                continue;
-            }
+        $artifacts = $this->buildArtifacts($groups, $minOccurrences);
 
-            foreach ($this->placement->decide($candidate->occurrences) as $placement) {
-                $placements[] = $placement;
-            }
-        }
+        $this->record('disenchant.it.rewrite.v1', ['count' => count($artifacts)]);
 
-        $this->record('disenchant.it.rewrite.v1', ['count' => count($placements)]);
-
-        return $this->rewriter->rewrite($code, $placements);
+        return $this->rewriter->rewrite($code, $artifacts);
     }
 
     public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null, ?string $relativePath = null): DisenchantResultInterface
@@ -116,20 +114,16 @@ final readonly class Disenchanter implements DisenchanterInterface
         $candidates = $this->detect($code, $relativePath);
         $this->record('disenchant.it.scan.v1', ['count' => count($candidates)]);
 
-        $placements = [];
-        foreach ($candidates as $candidate) {
-            if ($candidate->count() < $minOccurrences) {
-                continue;
-            }
+        $groups = $this->closedSetDetector->detect($candidates);
 
-            foreach ($this->placement->decide($candidate->occurrences) as $placement) {
-                $placements[] = $placement;
-            }
-        }
+        $artifacts = $this->buildArtifacts($groups, $minOccurrences);
 
-        // Step 1-3: promote literals to local constants.
-        $rewritten = $this->rewriter->rewrite($code, $placements);
-        $this->record('disenchant.it.rewrite.v1', ['count' => count($placements)]);
+        // Step 1-3: promote literals to constants / enums.
+        $rewritten = $this->rewriter->rewrite($code, $artifacts);
+        $this->record('disenchant.it.rewrite.v1', ['count' => count($artifacts)]);
+
+        // SemConv only applies to Const-target placements; enum targets carry none.
+        $placements = $this->placementsFromArtifacts($artifacts);
 
         // Step 4: merge placements into the shared SemConv registry.
         $semconvSource = $this->collector->collect($placements, $existingSemConvSource);
@@ -145,5 +139,44 @@ final readonly class Disenchanter implements DisenchanterInterface
         ]);
 
         return new DisenchantResult($aliased, $semconvSource);
+    }
+
+    /**
+     * @param array<string, GroupedCandidateInterface> $groups
+     * @param int $minOccurrences
+     * @return list<PromotionArtifactInterface>
+     */
+    private function buildArtifacts(array $groups, int $minOccurrences): array
+    {
+        $artifacts = [];
+        foreach ($groups as $group) {
+            if ($group->candidate->count() < $minOccurrences) {
+                continue;
+            }
+
+            if (!$this->promotion->supports($group)) {
+                continue;
+            }
+
+            $artifacts[] = $this->promotion->build($group);
+        }
+
+        return $artifacts;
+    }
+
+    /**
+     * @param list<PromotionArtifactInterface> $artifacts
+     * @return list<ConstantPlacementInterface>
+     */
+    private function placementsFromArtifacts(array $artifacts): array
+    {
+        $placements = [];
+        foreach ($artifacts as $artifact) {
+            foreach ($artifact->placements as $placement) {
+                $placements[] = $placement;
+            }
+        }
+
+        return $placements;
     }
 }

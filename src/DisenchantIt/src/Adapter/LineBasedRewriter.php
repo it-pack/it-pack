@@ -7,72 +7,78 @@ namespace ItPack\DisenchantIt\Adapter;
 use ItPack\DisenchantIt\Contract\RewriterInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantDeclaration;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+use ItPack\DisenchantIt\ValueObject\Insertion;
+use ItPack\DisenchantIt\ValueObject\InsertionInterface;
+use ItPack\DisenchantIt\ValueObject\PromotionArtifact;
+use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
+use ItPack\DisenchantIt\ValueObject\Replacement;
+use ItPack\DisenchantIt\ValueObject\TargetKind;
 
 /**
  * Line-based implementation of RewriterInterface: no AST reprinting, no
  * nette/php-generator Printer, no full-file regeneration. Every line NOT
- * touched by a placement is left byte-for-byte identical.
+ * touched by an artifact is left byte-for-byte identical.
+ *
+ * Consumes a list of PromotionArtifacts (the single shape every promotion target
+ * emits). A thin shim still accepts the legacy ConstantPlacementInterface so any
+ * not-yet-migrated caller keeps working for one transition step (see
+ * docs/ADDITIONAL_FEATURES_ROADMAP.md, Phase 2).
  *
  * Two operations, always in this order:
  *
- *   1. Literal-to-constant-reference replacement, one exact line at a time,
- *      using each occurrence's recorded line number from the detector.
- *      Done FIRST, before the constant declarations are inserted — doing it
- *      in the other order would let a blanket-style replacement clobber the
- *      constant's own declaration line (the bug found against the
- *      nette/php-generator-based approach). Operating strictly per-recorded-
- *      line rather than file-wide also means this is naturally immune to
- *      that failure mode even without the ordering rule — but the ordering
- *      is kept anyway as defense in depth.
- *
- *   2. Constant declaration insertion, one class at a time, positioned right
- *      after that class's opening brace. Insertions are applied in a single
- *      pass from the BOTTOM of the file upward (highest line number first),
- *      so inserting a line never shifts the line numbers of insertion
- *      points still queued above it.
+ *   1. Literal-to-reference replacement, one exact line at a time, using each
+ *      occurrence's recorded line number from the detector.
+ *   2. Declaration insertion — consts inside the class body (after the opening
+ *      brace), enums at file top level (after the class's closing brace) — from
+ *      the BOTTOM of the file upward so earlier insertions don't shift the line
+ *      numbers of insertions still pending.
  */
 final class LineBasedRewriter implements RewriterInterface
 {
     /**
-     * @param list<ConstantPlacementInterface> $placements
+     * @param list<PromotionArtifactInterface|ConstantPlacementInterface> $items
      */
-    public function rewrite(string $code, array $placements): string
+    public function rewrite(string $code, array $items): string
     {
-        if ($placements === []) {
+        $artifacts = [];
+        foreach ($items as $item) {
+            if ($item instanceof PromotionArtifactInterface) {
+                $artifacts[] = $item;
+            } elseif ($item instanceof ConstantPlacementInterface) {
+                $artifacts[] = $this->artifactFromPlacement($item);
+            }
+        }
+
+        if ($artifacts === []) {
             return $code;
         }
 
         $lines = explode("\n", $code);
 
-        // --- Step 1: literal -> self::CONST, one recorded line at a time ---
+        // --- Step 1: literal -> reference, one recorded line at a time ---
 
-        foreach ($placements as $placement) {
-            foreach ($placement->occurrences as $occurrence) {
-                $index = $occurrence->line - 1; // token lines are 1-based
+        foreach ($artifacts as $artifact) {
+            foreach ($artifact->replacements as $replacement) {
+                $index = $replacement->line - 1; // token lines are 1-based
 
                 if (!isset($lines[$index])) {
                     continue; // defensive: stale line number, skip rather than corrupt an unrelated line
                 }
 
-                $needle = $occurrence->needle();
-                $replacement = 'self::' . $placement->constantName;
-
-                $pos = strpos($lines[$index], $needle);
+                $pos = strpos($lines[$index], $replacement->needle);
                 if ($pos !== false) {
-                    $lines[$index] = substr_replace($lines[$index], $replacement, $pos, strlen($needle));
+                    $lines[$index] = substr_replace($lines[$index], $replacement->replacement, $pos, strlen($replacement->needle));
                 }
             }
         }
 
-        // --- Step 2: insert constant declarations, bottom-of-file first ---
+        // --- Step 2: insert declarations, bottom-of-file first ---
 
-        $insertionsByLine = $this->planInsertions($lines, $placements);
+        $insertionPoints = $this->planInsertions($lines, $artifacts);
 
-        // Sort insertion points descending so earlier insertions don't shift
-        // the line numbers of insertions still pending.
-        krsort($insertionsByLine);
+        krsort($insertionPoints);
 
-        foreach ($insertionsByLine as $afterLineIndex => $declarationLines) {
+        foreach ($insertionPoints as $afterLineIndex => $declarationLines) {
             array_splice($lines, $afterLineIndex + 1, 0, $declarationLines);
         }
 
@@ -80,64 +86,143 @@ final class LineBasedRewriter implements RewriterInterface
     }
 
     /**
-     * Finds, for each class that needs a new constant, the line index of
-     * that class's opening brace, and builds the declaration text to insert
-     * right after it. One class may need several constants (several
-     * placements) — all are batched into one insertion at that class's
-     * brace so we don't compute stale offsets across multiple passes.
-     *
-     * @param list<string> $lines
-     * @param list<ConstantPlacementInterface> $placements
-     * @return array<int, list<string>> line-index => lines to insert after it
+     * Temporary compatibility shim: rebuilds the artifact a ConstantPlacement
+     * would have produced under the old pipeline. REMOVE once all callers emit
+     * PromotionArtifacts directly.
      */
-    private function planInsertions(array $lines, array $placements): array
+    private function artifactFromPlacement(ConstantPlacementInterface $placement): PromotionArtifactInterface
     {
-        $placementsByClass = [];
-        foreach ($placements as $placement) {
-            $placementsByClass[$placement->className][] = $placement;
+        $insertions = [];
+        $replacements = [];
+
+        if ($placement->occurrences !== []) {
+            $declarationLine = new ConstantDeclaration(
+                name: $placement->constantName,
+                valueExpression: $placement->occurrences[0]->raw,
+                typeKeyword: $placement->typeKeyword(),
+                visibility: 'private',
+            )->toCodeLine();
+
+            $insertions[] = new Insertion($placement->className, [$declarationLine], false);
+
+            foreach ($placement->occurrences as $lit) {
+                $replacements[] = new Replacement($lit->line, $lit->needle(), 'self::' . $placement->constantName);
+            }
         }
 
-        $insertions = [];
+        return new PromotionArtifact($insertions, $replacements, TargetKind::Const, [$placement]);
+    }
 
-        foreach ($placementsByClass as $className => $classPlacements) {
-            $braceLineIndex = $this->findClassOpeningBraceLine($lines, $className);
-            if ($braceLineIndex === null) {
-                continue; // class not found in this file — not this file's placement to apply
+    /**
+     * @param list<string> $lines
+     * @param list<PromotionArtifactInterface> $artifacts
+     * @return array<int, list<string>> line-index => lines to insert after it
+     */
+    private function planInsertions(array $lines, array $artifacts): array
+    {
+        /** @var array<string, list<InsertionInterface>> $insertionsByClass */
+        $insertionsByClass = [];
+        foreach ($artifacts as $artifact) {
+            foreach ($artifact->insertions as $insertion) {
+                $insertionsByClass[$insertion->className][] = $insertion;
             }
+        }
 
-            $existingConstantNames = $this->findExistingConstantNames($lines, $braceLineIndex);
+        $insertionPoints = [];
 
-            $declarationLines = [];
-            foreach ($classPlacements as $placement) {
-                if (in_array($placement->constantName, $existingConstantNames, true)) {
-                    // Already declared — either a prior disenchant.php run
-                    // already added it, or two placements in this run
-                    // resolved to the same name. Never re-declare: PHP
-                    // rejects duplicate const declarations outright, and
-                    // silently overwriting could corrupt an existing
-                    // constant's value.
+        foreach ($insertionsByClass as $className => $classInsertions) {
+            if ($classInsertions[0]->topLevel) {
+                $anchorIndex = $this->findClassClosingBraceLine($lines, $className);
+                if ($anchorIndex === null) {
+                    continue; // class not found in this file — not this file's insertion to apply
+                }
+
+                // Idempotency: a previously-generated enum of the same name is
+                // left untouched, so a second pass adds nothing.
+                if ($this->enumAlreadyExists($lines, $classInsertions)) {
                     continue;
                 }
 
-                $declarationLines[] = new ConstantDeclaration(
-                    name: $placement->constantName,
-                    valueExpression: $placement->occurrences[0]->raw,
-                    typeKeyword: $placement->typeKeyword(),
-                    visibility: 'private',
-                )->toCodeLine();
-            }
+                $declarationLines = $this->flattenLines($classInsertions);
+                if ($declarationLines === []) {
+                    continue;
+                }
 
-            if ($declarationLines === []) {
-                continue;
-            }
+                $insertionPoints[$anchorIndex] = array_merge($insertionPoints[$anchorIndex] ?? [], $declarationLines);
+            } else {
+                $braceLineIndex = $this->findClassOpeningBraceLine($lines, $className);
+                if ($braceLineIndex === null) {
+                    continue;
+                }
 
-            $insertions[$braceLineIndex] = array_merge(
-                $insertions[$braceLineIndex] ?? [],
-                $declarationLines,
-            );
+                $existingConstantNames = $this->findExistingConstantNames($lines, $braceLineIndex);
+
+                $declarationLines = [];
+                foreach ($classInsertions as $insertion) {
+                    foreach ($insertion->lines as $lineText) {
+                        if (preg_match('/\bconst\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)?([A-Z_][A-Z0-9_]*)\s*=/', $lineText, $m) === 1
+                            && in_array($m[1], $existingConstantNames, true)) {
+                            // Already declared — never re-declare.
+                            continue;
+                        }
+                        $declarationLines[] = $lineText;
+                    }
+                }
+
+                if ($declarationLines === []) {
+                    continue;
+                }
+
+                $insertionPoints[$braceLineIndex] = array_merge($insertionPoints[$braceLineIndex] ?? [], $declarationLines);
+            }
         }
 
-        return $insertions;
+        return $insertionPoints;
+    }
+
+    /**
+     * @param list<InsertionInterface> $insertions
+     * @return list<string>
+     */
+    private function flattenLines(array $insertions): array
+    {
+        $lines = [];
+        foreach ($insertions as $insertion) {
+            foreach ($insertion->lines as $lineText) {
+                $lines[] = $lineText;
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param list<string> $lines
+     * @param list<InsertionInterface> $insertions
+     */
+    private function enumAlreadyExists(array $lines, array $insertions): bool
+    {
+        $name = null;
+        foreach ($insertions as $insertion) {
+            foreach ($insertion->lines as $lineText) {
+                if (preg_match('/\benum\s+([A-Za-z_][A-Za-z0-9_]*)/', $lineText, $m) === 1) {
+                    $name = $m[1];
+                    break 2;
+                }
+            }
+        }
+
+        if ($name === null) {
+            return false;
+        }
+
+        foreach ($lines as $line) {
+            if (preg_match('/\benum\s+' . preg_quote($name, '/') . '\b/', $line) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -171,13 +256,41 @@ final class LineBasedRewriter implements RewriterInterface
     }
 
     /**
-     * Finds the line index of the `{` that opens the given class/enum body.
-     * Deliberately simple (regex over the class-declaration line, then the
-     * next line containing a bare `{`) rather than re-parsing with an AST —
-     * this only needs to find ONE brace per class, and the detector has
-     * already told us the class exists in this file.
+     * Finds the line index of the `}` that closes the given class/enum body,
+     * tracking brace depth from the declaration. Used to insert a top-level enum
+     * after the class (enums cannot be nested inside a class).
+     *
+     * @param list<string> $lines
      */
+    private function findClassClosingBraceLine(array $lines, string $className): ?int
+    {
+        $declarationPattern = sprintf(
+            '/\b(?:class|enum|interface|trait)\s+%s\b/',
+            preg_quote($className, '/'),
+        );
+
+        foreach ($lines as $index => $line) {
+            if (preg_match($declarationPattern, $line) !== 1) {
+                continue;
+            }
+
+            $depth = 0;
+            for ($i = $index, $iMax = count($lines); $i < $iMax; $i++) {
+                $depth += substr_count($lines[$i], '{');
+                $depth -= substr_count($lines[$i], '}');
+
+                if ($depth <= 0 && $i > $index) {
+                    return $i;
+                }
+            }
+        }
+
+        return null;
+    }
+
     /**
+     * Finds the line index of the `{` that opens the given class/enum body.
+     *
      * @param list<string> $lines
      */
     private function findClassOpeningBraceLine(array $lines, string $className): ?int
@@ -192,9 +305,6 @@ final class LineBasedRewriter implements RewriterInterface
                 continue;
             }
 
-            // Brace may be on this same line ("class Foo {") or one of the
-            // next few lines ("class Foo\n{" or after an implements/extends
-            // clause spanning multiple lines).
             for ($i = $index, $iMax = count($lines); $i < $iMax; $i++) {
                 if (str_contains($lines[$i], '{')) {
                     return $i;

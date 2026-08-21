@@ -58,7 +58,7 @@ final readonly class ScopeFilter implements ScopeFilterInterface
      */
     private function matchesAny(array $patterns, string $filePath): bool
     {
-        return array_any($patterns, fn($pattern) => fnmatch($pattern, $filePath));
+        return array_any($patterns, fn ($pattern) => fnmatch($pattern, $filePath));
 
     }
 }

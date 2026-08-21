@@ -12,17 +12,19 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use ItPack\DisenchantIt\Adapter\ClosedSetDetector;
 use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
 use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
+use ItPack\DisenchantIt\Contract\ClosedSetDetectorInterface;
 use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
-use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyInterface;
+use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
 use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
-use ItPack\DisenchantIt\Factory\ConstantPlacementStrategyFactory;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
+use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
 use ItPack\DisenchantIt\Adapter\LineBasedRewriter;
 use ItPack\DisenchantIt\Adapter\NullExecutionRecorder;
 use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
@@ -59,16 +61,16 @@ function build(): DisenchanterInterface
 
 /**
  * Build an orchestrator with custom collaborators, used by the examples that
- * showcase a specific placement strategy, a custom filter, or a configured
- * SemConv registry. Any argument left null falls back to the default.
+ * showcase a specific promotion target, a custom filter, or a configured SemConv
+ * registry. Any argument left null falls back to the default.
  */
 function buildCustom(
-    ?ConstantPlacementStrategyInterface $placement = null,
+    ?PromotionTargetInterface $promotion = null,
     ?CandidateFilterInterface $filter = null,
     ?SemConvConfigInterface $semconv = null,
 ): DisenchanterInterface {
     $detectors = DetectorFactory::create();
-    $strategy = $placement ?? ConstantPlacementStrategyFactory::create()->buildAuto();
+    $target = $promotion ?? PromotionTargetFactory::create()->build();
     $config = $semconv ?? new SemConvConfig();
 
     return new Disenchanter(
@@ -79,10 +81,11 @@ function buildCustom(
             ConstantNameGenerator::create(),
             NumericNameGenerator::create(),
         ),
-        $strategy,
+        $target,
         new LineBasedRewriter(),
         new SemConvCollector($config),
         new SemConvAliasRewriter($config),
         new NullExecutionRecorder(),
+        new ClosedSetDetector(),
     );
 }
