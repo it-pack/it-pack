@@ -85,7 +85,7 @@ final class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
         $attributes = [
             AttributeKeys::SNAPSHOT_ID => $snapshot->id()->toString(),
             AttributeKeys::SNAPSHOT_TYPE => $snapshot->type()->toString(),
-            AttributeKeys::SNAPSHOT_CLASSIFICATION => $snapshot->classification()->name(),
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => $snapshot->classification()->label(),
             AttributeKeys::EXECUTION_ID => $snapshot->executionId()->toString(),
             'runit.snapshot.schema_version' => $snapshot->schemaVersion(),
             'runit.snapshot.content_type' => $snapshot->contentType(),

@@ -21,7 +21,7 @@ enum SnapshotClassification: string implements SnapshotClassificationInterface
     case Checkpoint = 'checkpoint';
     case Terminal = 'terminal';
 
-    public function name(): string
+    public function label(): string
     {
         return $this->value;
     }

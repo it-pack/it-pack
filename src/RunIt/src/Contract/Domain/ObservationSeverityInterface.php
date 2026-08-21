@@ -20,7 +20,7 @@ interface ObservationSeverityInterface
     /**
      * Returns the stable, lower-case severity name.
      */
-    public function name(): string;
+    public function label(): string;
 
     /**
      * Returns the PSR-3 numeric level (higher means more severe).

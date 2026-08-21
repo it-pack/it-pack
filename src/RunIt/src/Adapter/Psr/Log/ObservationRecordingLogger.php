@@ -7,9 +7,11 @@ namespace ItPack\RunIt\Adapter\Psr\Log;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Application\Publication\PublicationGuardInterface;
 use ItPack\RunIt\Contract\Application\Publication\PublicationGuardTokenInterface;
+use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use Psr\Log\AbstractLogger;
+use Stringable;
 use Throwable;
 
 /**
@@ -46,10 +48,11 @@ final class ObservationRecordingLogger extends AbstractLogger
 
     /**
      * @param mixed $level
-     * @param string|\Stringable $message
+     * @param string|Stringable $message
      * @param array<array-key, mixed> $context
+     * @throws RunItExceptionInterface
      */
-    public function log(mixed $level, string|\Stringable $message, array $context = []): void
+    public function log(mixed $level, string|Stringable $message, array $context = []): void
     {
         if ($this->guard instanceof PublicationGuardInterface && $this->guard->isActive()) {
             return;
@@ -102,12 +105,8 @@ final class ObservationRecordingLogger extends AbstractLogger
             return false;
         }
 
-        if (is_array($value)) {
-            foreach ($value as $item) {
-                if (is_object($item) || is_resource($item)) {
-                    return false;
-                }
-            }
+        if (is_array($value) && array_any($value, static fn ($item) => is_object($item) || is_resource($item))) {
+            return false;
         }
 
         return true;
@@ -128,15 +127,6 @@ final class ObservationRecordingLogger extends AbstractLogger
 
     private function severityForLevel(string $level): ObservationSeverity
     {
-        return match (strtolower($level)) {
-            'emergency' => ObservationSeverity::Emergency,
-            'alert' => ObservationSeverity::Alert,
-            'critical' => ObservationSeverity::Critical,
-            'error' => ObservationSeverity::Error,
-            'warning' => ObservationSeverity::Warning,
-            'notice' => ObservationSeverity::Notice,
-            'info' => ObservationSeverity::Info,
-            default => ObservationSeverity::Debug,
-        };
+        return ObservationSeverity::tryFrom(strtolower($level)) ?? ObservationSeverity::Debug;
     }
 }

@@ -36,5 +36,9 @@ interface ActivityInterface extends ExecutionArtifactInterface, ExecutionOwnedIn
      * The receiver is never mutated. The activity runner is the canonical place to decide
      * whether completion is legal before calling this method.
      */
-    public function complete(ActivityStatusInterface $status, ?ThrowableDescriptionInterface $throwableDescription, InstantInterface $endedAt): ActivityInterface;
+    public function complete(
+        ActivityStatusInterface $status,
+        ?ThrowableDescriptionInterface $throwableDescription,
+        InstantInterface $endedAt
+    ): ActivityInterface;
 }

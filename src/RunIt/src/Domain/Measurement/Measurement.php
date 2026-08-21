@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementKindInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementNameInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -32,18 +33,26 @@ use ItPack\RunIt\Domain\Shared\Instant;
 final readonly class Measurement implements MeasurementInterface
 {
     /**
+     * @param MeasurementNameInterface $name
+     * @param MeasurementKindInterface $kind
+     * @param MeasurementUnitInterface $unit
      * @param int|float $value
+     * @param ExecutionIdInterface $executionId
+     * @param ActivityIdInterface|null $activityId
+     * @param InstantInterface $instant
+     * @param AttributeCollectionInterface $attributes
+     * @param ArtifactSequenceInterface $sequence
      */
     private function __construct(
-        private readonly MeasurementNameInterface $name,
-        private readonly MeasurementKindInterface $kind,
-        private readonly MeasurementUnitInterface $unit,
-        private readonly int|float $value,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly ?ActivityIdInterface $activityId,
-        private readonly InstantInterface $instant,
-        private readonly AttributeCollectionInterface $attributes,
-        private readonly ArtifactSequenceInterface $sequence,
+        private MeasurementNameInterface $name,
+        private MeasurementKindInterface $kind,
+        private MeasurementUnitInterface $unit,
+        private int|float $value,
+        private ExecutionIdInterface $executionId,
+        private ?ActivityIdInterface $activityId,
+        private InstantInterface $instant,
+        private AttributeCollectionInterface $attributes,
+        private ArtifactSequenceInterface $sequence,
     ) {
     }
 
@@ -57,7 +66,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Count,
     ): self {
-        return new self($name, MeasurementKind::Counter, $unit, $value, $executionId, $activityId, $instant ?? Instant::now(), $attributes ?? AttributeCollection::empty(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $name,
+            MeasurementKind::Counter,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+                $instant ?? Instant::now(),
+                $attributes ?? AttributeCollection::empty(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function gauge(
@@ -72,7 +91,17 @@ final readonly class Measurement implements MeasurementInterface
     ): self {
         self::assertFinite($value);
 
-        return new self($name, MeasurementKind::Gauge, $unit, $value, $executionId, $activityId, $instant ?? Instant::now(), $attributes ?? AttributeCollection::empty(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $name,
+            MeasurementKind::Gauge,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+                $instant ?? Instant::now(),
+                $attributes ?? AttributeCollection::empty(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function duration(
@@ -87,7 +116,17 @@ final readonly class Measurement implements MeasurementInterface
     ): self {
         self::assertFinite($value);
 
-        return new self($name, MeasurementKind::Duration, $unit, $value, $executionId, $activityId, $instant ?? Instant::now(), $attributes ?? AttributeCollection::empty(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $name,
+            MeasurementKind::Duration,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+                $instant ?? Instant::now(),
+                $attributes ?? AttributeCollection::empty(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function size(
@@ -100,7 +139,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Bytes,
     ): self {
-        return new self($name, MeasurementKind::Size, $unit, $value, $executionId, $activityId, $instant ?? Instant::now(), $attributes ?? AttributeCollection::empty(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $name,
+            MeasurementKind::Size,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+                $instant ?? Instant::now(),
+                $attributes ?? AttributeCollection::empty(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function ratio(
@@ -115,7 +164,17 @@ final readonly class Measurement implements MeasurementInterface
     ): self {
         self::assertFinite($value);
 
-        return new self($name, MeasurementKind::Ratio, $unit, $value, $executionId, $activityId, $instant ?? Instant::now(), $attributes ?? AttributeCollection::empty(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $name,
+            MeasurementKind::Ratio,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+                $instant ?? Instant::now(),
+                $attributes ?? AttributeCollection::empty(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     private static function assertFinite(float $value): void
@@ -145,12 +204,12 @@ final readonly class Measurement implements MeasurementInterface
         return $this->value;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
+    public function executionId(): ExecutionIdInterface
     {
         return $this->executionId;
     }
 
-    public function activityId(): ?\ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function activityId(): ?StringIdentifierInterface
     {
         return $this->activityId;
     }
@@ -185,8 +244,8 @@ final readonly class Measurement implements MeasurementInterface
     {
         return [
             'name' => $this->name->toString(),
-            'kind' => $this->kind->name(),
-            'unit' => $this->unit->name(),
+            'kind' => $this->kind->label(),
+            'unit' => $this->unit->label(),
             'value' => $this->value,
             'execution_id' => $this->executionId->toString(),
             'activity_id' => $this->activityId?->toString(),

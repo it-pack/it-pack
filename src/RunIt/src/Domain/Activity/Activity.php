@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
@@ -31,15 +32,15 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 final readonly class Activity implements ActivityInterface
 {
     private function __construct(
-        private readonly ActivityIdInterface $id,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly ActivityDefinitionInterface $definition,
-        private readonly ActivityStatusInterface $status,
-        private readonly InstantInterface $startedAt,
-        private readonly ?InstantInterface $endedAt,
-        private readonly AttributeCollectionInterface $attributes,
-        private readonly ?ThrowableDescriptionInterface $throwableDescription,
-        private readonly ArtifactSequenceInterface $sequence,
+        private ActivityIdInterface                     $id,
+        private ExecutionIdInterface                    $executionId,
+        private ActivityDefinitionInterface    $definition,
+        private ActivityStatusInterface        $status,
+        private InstantInterface               $startedAt,
+        private ?InstantInterface              $endedAt,
+        private AttributeCollectionInterface   $attributes,
+        private ?ThrowableDescriptionInterface $throwableDescription,
+        private ArtifactSequenceInterface      $sequence,
     ) {
     }
 
@@ -55,7 +56,7 @@ final readonly class Activity implements ActivityInterface
             $id,
             $executionId,
             $definition,
-            \ItPack\RunIt\Domain\Activity\ActivityStatus::Running,
+            ActivityStatus::Running,
             $startedAt,
             null,
             $attributes ?? AttributeCollection::empty(),
@@ -87,12 +88,12 @@ final readonly class Activity implements ActivityInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
+    public function executionId(): ExecutionIdInterface
     {
         return $this->executionId;
     }
 
-    public function activityId(): \ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function activityId(): StringIdentifierInterface
     {
         return $this->id;
     }
@@ -155,7 +156,7 @@ final readonly class Activity implements ActivityInterface
             'execution_id' => $this->executionId->toString(),
             'name' => $this->definition->name()->toString(),
             'kind' => $this->definition->kind()->toString(),
-            'status' => $this->status->name(),
+            'status' => $this->status->label(),
             'started_at' => $this->startedAt->epochSeconds(),
             'ended_at' => $this->endedAt?->epochSeconds(),
             'parent_activity_id' => $this->definition->parentActivityId()?->toString(),

@@ -17,7 +17,7 @@ namespace ItPack\RunIt\Contract\Domain;
  */
 interface MeasurementUnitInterface
 {
-    public function name(): string;
+    public function label(): string;
 
     /**
      * Returns the display symbol for the unit (for example `ms`, `%`, `B`).

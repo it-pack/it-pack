@@ -35,7 +35,7 @@ final class DefaultContextRedactionPolicy implements ContextRedactionPolicyInter
 
         foreach ($context->entries() as $entry) {
             $classification = $entry->classification();
-            $name = $classification->name();
+            $name = $classification->label();
 
             if ($name === ContextClassification::Secret->value) {
                 continue;

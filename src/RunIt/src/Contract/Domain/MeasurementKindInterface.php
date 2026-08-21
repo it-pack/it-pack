@@ -17,5 +17,5 @@ namespace ItPack\RunIt\Contract\Domain;
  */
 interface MeasurementKindInterface
 {
-    public function name(): string;
+    public function label(): string;
 }

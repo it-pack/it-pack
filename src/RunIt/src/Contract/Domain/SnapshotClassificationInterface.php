@@ -16,7 +16,7 @@ namespace ItPack\RunIt\Contract\Domain;
  */
 interface SnapshotClassificationInterface
 {
-    public function name(): string;
+    public function label(): string;
 
     public function isTerminal(): bool;
 }

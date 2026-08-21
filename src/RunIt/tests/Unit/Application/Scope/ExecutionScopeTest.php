@@ -169,7 +169,7 @@ final class ExecutionScopeTest extends Unit
             $this->ofType($kit, ActivityInterface::class),
             static fn (ActivityInterface $activity): bool => $activity->status()->isTerminal(),
         ));
-        self::assertSame('failed', $activities[0]->status()->name());
+        self::assertSame('failed', $activities[0]->status()->label());
     }
 
     /**

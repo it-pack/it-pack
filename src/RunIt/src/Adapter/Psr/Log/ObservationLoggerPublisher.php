@@ -30,13 +30,13 @@ use Psr\Log\LoggerInterface;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class ObservationLoggerPublisher implements ArtifactPublisherInterface
+final readonly class ObservationLoggerPublisher implements ArtifactPublisherInterface
 {
     public function __construct(
-        private readonly LoggerInterface $logger,
-        private readonly ?RedactorInterface $redactor = null,
-        private readonly ?ObservationToPsr3LevelMapperInterface $levelMapper = null,
-        private readonly string $exceptionKey = 'exception',
+        private LoggerInterface                        $logger,
+        private ?RedactorInterface                     $redactor = null,
+        private ?ObservationToPsr3LevelMapperInterface $levelMapper = null,
+        private string                                 $exceptionKey = 'exception',
     ) {
     }
 
@@ -80,7 +80,7 @@ final class ObservationLoggerPublisher implements ArtifactPublisherInterface
                     'diagnostic_code' => $artifact->diagnosticCode(),
                     'sequence' => $artifact->sequence(),
                     'timestamp' => $artifact->timestamp(),
-                    'severity' => $artifact->severity()->name(),
+                    'severity' => $artifact->severity()->label(),
                 ],
                 'throwable' => $artifact->throwableDescription()?->toArray(),
             ];

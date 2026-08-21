@@ -15,15 +15,15 @@ final class ObservationToPsr3LevelMapperTest extends Unit
         $mapper = new DefaultObservationToPsr3LevelMapper();
 
         $expected = [
-            ObservationSeverity::Trace->name() => 'debug',
-            ObservationSeverity::Debug->name() => 'debug',
-            ObservationSeverity::Info->name() => 'info',
-            ObservationSeverity::Notice->name() => 'notice',
-            ObservationSeverity::Warning->name() => 'warning',
-            ObservationSeverity::Error->name() => 'error',
-            ObservationSeverity::Critical->name() => 'critical',
-            ObservationSeverity::Alert->name() => 'alert',
-            ObservationSeverity::Emergency->name() => 'emergency',
+            ObservationSeverity::Trace->label() => 'debug',
+            ObservationSeverity::Debug->label() => 'debug',
+            ObservationSeverity::Info->label() => 'info',
+            ObservationSeverity::Notice->label() => 'notice',
+            ObservationSeverity::Warning->label() => 'warning',
+            ObservationSeverity::Error->label() => 'error',
+            ObservationSeverity::Critical->label() => 'critical',
+            ObservationSeverity::Alert->label() => 'alert',
+            ObservationSeverity::Emergency->label() => 'emergency',
         ];
 
         foreach ($expected as $name => $level) {

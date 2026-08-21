@@ -25,7 +25,7 @@ enum ActivityStatus: string implements ActivityStatusInterface
     case Cancelled = 'cancelled';
     case TimedOut = 'timed_out';
 
-    public function name(): string
+    public function label(): string
     {
         return $this->value;
     }

@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Metrics;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use OpenTelemetry\API\Metrics\CounterInterface;
 use OpenTelemetry\API\Metrics\GaugeInterface;
 use OpenTelemetry\API\Metrics\HistogramInterface;
@@ -54,8 +55,8 @@ final class DefaultMeasurementInstrumentMapper implements MeasurementInstrumentM
     private function resolveInstrument(MeterInterface $meter, MeasurementInterface $measurement): object
     {
         $key = $measurement->name()->toString()
-            . '|' . $measurement->unit()->name()
-            . '|' . $measurement->kind()->name();
+            . '|' . $measurement->unit()->label()
+            . '|' . $measurement->kind()->label();
 
         $cached = $this->cache->get($key);
         if ($cached !== null) {
@@ -71,13 +72,13 @@ final class DefaultMeasurementInstrumentMapper implements MeasurementInstrumentM
     private function createInstrument(MeterInterface $meter, MeasurementInterface $measurement): object
     {
         $name = $measurement->name()->toString();
-        $unit = $measurement->unit()->name();
+        $unit = $measurement->unit()->label();
+        $kind = MeasurementKind::from($measurement->kind()->label());
 
-        return match ($measurement->kind()->name()) {
-            'counter', 'size' => $meter->createCounter($name, $unit),
-            'gauge' => $meter->createGauge($name, $unit),
-            'duration', 'ratio' => $meter->createHistogram($name, $unit),
-            default => $meter->createCounter($name, $unit),
+        return match ($kind) {
+            MeasurementKind::Counter, MeasurementKind::Size => $meter->createCounter($name, $unit),
+            MeasurementKind::Gauge => $meter->createGauge($name, $unit),
+            MeasurementKind::Duration, MeasurementKind::Ratio => $meter->createHistogram($name, $unit),
         };
     }
 

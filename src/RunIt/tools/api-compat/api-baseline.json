@@ -176,6 +176,11 @@
                         "name": "policy",
                         "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\Mapping\\CloudEventMappingPolicy",
                         "optional": true
+                    },
+                    {
+                        "name": "factory",
+                        "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\Contract\\CloudEventFactoryInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -1658,6 +1663,28 @@
                         "optional": false
                     }
                 ]
+            },
+            "mapRedactedOccurrence": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedSnapshot": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -1862,6 +1889,28 @@
                     {
                         "name": "snapshot",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedOccurrence": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedSnapshot": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
                         "optional": false
                     }
                 ]
@@ -2294,8 +2343,8 @@
                 "return": "array",
                 "params": [
                     {
-                        "name": "statusLabel",
-                        "type": "string",
+                        "name": "status",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface|ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
                         "optional": false
                     }
                 ]
@@ -4641,6 +4690,11 @@
                         "name": "estimateBytes",
                         "type": "null|Closure",
                         "optional": true
+                    },
+                    {
+                        "name": "observer",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -5664,6 +5718,64 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Publication\\RecordingBatchFlushObserver": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface"
+        },
+        "constants": [],
+        "methods": {
+            "onFlush": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "flushedCount",
+                        "type": "int",
+                        "optional": false
+                    },
+                    {
+                        "name": "durationMicroseconds",
+                        "type": "int",
+                        "optional": false
+                    },
+                    {
+                        "name": "remainingBuffered",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "flushCount": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "totalFlushed": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "maxBatch": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "lastFlushMicroseconds": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "lastRemainingBuffered": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Publication\\RecursivePublicationException": {
         "kind": "class",
         "final": true,
@@ -5750,6 +5862,7 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
             "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
         },
         "constants": [],
@@ -7920,6 +8033,37 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "onFlush": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "flushedCount",
+                        "type": "int",
+                        "optional": false
+                    },
+                    {
+                        "name": "durationMicroseconds",
+                        "type": "int",
+                        "optional": false
+                    },
+                    {
+                        "name": "remainingBuffered",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface": {
         "kind": "interface",
         "final": false,
@@ -8450,7 +8594,7 @@
         "implements": [],
         "constants": [],
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -8642,7 +8786,7 @@
         "implements": [],
         "constants": [],
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -8887,6 +9031,38 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertSupportedValue": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Domain\\CorrelationIdInterface": {
         "kind": "interface",
         "final": false,
@@ -9052,7 +9228,13 @@
             "toArray": {
                 "static": false,
                 "return": "array",
-                "params": []
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ContextRedactionPolicyInterface",
+                        "optional": true
+                    }
+                ]
             },
             "count": {
                 "static": false,
@@ -9595,7 +9777,7 @@
         "implements": [],
         "constants": [],
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -9646,7 +9828,7 @@
         "implements": [],
         "constants": [],
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -9795,7 +9977,7 @@
         "implements": [],
         "constants": [],
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -9982,6 +10164,24 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
+        },
+        "constants": [],
+        "methods": {
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Domain\\SequenceAllocatorInterface": {
         "kind": "interface",
         "final": false,
@@ -10032,7 +10232,7 @@
         "implements": [],
         "constants": [],
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -10827,6 +11027,22 @@
                 "params": [
                     {
                         "name": "length",
+                        "type": "int",
+                        "optional": false
+                    },
+                    {
+                        "name": "maximum",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "valueTooDeep": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Contract\\Exception\\InvalidContextValueException",
+                "params": [
+                    {
+                        "name": "depth",
                         "type": "int",
                         "optional": false
                     },
@@ -12026,7 +12242,7 @@
             "TimedOut": "public"
         },
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -12090,7 +12306,7 @@
             "Secret": "public"
         },
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -12424,6 +12640,56 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Domain\\Context\\ContextValueValidator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface"
+        },
+        "constants": {
+            "MAX_KEY_LENGTH": "public",
+            "MAX_VALUE_LENGTH": "public",
+            "MAX_ARRAY_ELEMENTS": "public",
+            "MAX_DEPTH": "public"
+        },
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    }
+                ]
+            },
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertSupportedValue": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "value",
+                        "type": "mixed",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Context\\DefaultContextPropagationPolicy": {
         "kind": "class",
         "final": true,
@@ -12603,7 +12869,13 @@
             "toArray": {
                 "static": false,
                 "return": "array",
-                "params": []
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ContextRedactionPolicyInterface",
+                        "optional": true
+                    }
+                ]
             }
         },
         "cases": []
@@ -14252,7 +14524,7 @@
             "Ratio": "public"
         },
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -14363,7 +14635,7 @@
             "Celsius": "public"
         },
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -14970,7 +15242,7 @@
             "Emergency": "public"
         },
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -16034,6 +16306,11 @@
                         "name": "sequence",
                         "type": "null|ItPack\\RunIt\\Contract\\Domain\\ArtifactSequenceInterface",
                         "optional": true
+                    },
+                    {
+                        "name": "validator",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -16578,7 +16855,7 @@
             "Terminal": "public"
         },
         "methods": {
-            "name": {
+            "label": {
                 "static": false,
                 "return": "string",
                 "params": []
@@ -16725,21 +17002,21 @@
         },
         "constants": [],
         "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
             "read": {
                 "static": false,
                 "return": "null|ItPack\\RunIt\\SDK\\Attribute\\ExecutedAs",
                 "params": [
                     {
                         "name": "operation",
-                        "type": "callable",
+                        "type": "Closure|callable",
                         "optional": false
                     }
                 ]
-            },
-            "cache": {
-                "static": false,
-                "return": "array",
-                "params": []
             }
         },
         "cases": []
@@ -16783,7 +17060,7 @@
                 "params": [
                     {
                         "name": "operation",
-                        "type": "callable",
+                        "type": "Closure|callable",
                         "optional": false
                     }
                 ]

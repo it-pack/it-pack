@@ -210,7 +210,7 @@ readonly class Snapshot implements SnapshotInterface
             'execution_id' => $this->executionId->toString(),
             'activity_id' => $this->activityId?->toString(),
             'type' => $this->type->toString(),
-            'classification' => $this->classification->name(),
+            'classification' => $this->classification->label(),
             'schema_version' => $this->schemaVersion,
             'created_at' => $this->createdAt->epochSeconds(),
             'content_type' => $this->contentType,

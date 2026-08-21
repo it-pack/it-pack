@@ -70,7 +70,7 @@ final class RecordingObservationRecorder implements ObservationRecorderInterface
         $description = $throwable instanceof Throwable ? $this->describe($throwable) : null;
         $arguments = [$id, $executionId, $message, null, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $description, Instant::now(), ArtifactSequence::initial()];
 
-        return match ($severity->name()) {
+        return match ($severity->label()) {
             'trace', 'debug' => Observation::debug(...$arguments),
             'info' => Observation::info(...$arguments),
             'notice' => Observation::notice(...$arguments),

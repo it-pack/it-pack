@@ -20,10 +20,9 @@ final class SeverityMap
 {
     public function toSeverity(ObservationSeverityInterface $severity): Severity
     {
-        return match ($severity->name()) {
+        return match ($severity->label()) {
             'trace' => Severity::TRACE,
             'debug' => Severity::DEBUG,
-            'info' => Severity::INFO,
             'notice' => Severity::INFO2,
             'warning' => Severity::WARN,
             'error' => Severity::ERROR,
@@ -41,6 +40,6 @@ final class SeverityMap
 
     public function toText(ObservationSeverityInterface $severity): string
     {
-        return $severity->name();
+        return $severity->label();
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
 
+use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use OpenTelemetry\API\Trace\StatusCode;
 
 /**
@@ -21,9 +23,9 @@ final class SpanStatusMap
     /**
      * @return array{code: 'Unset'|'Ok'|'Error', description: string}
      */
-    public function map(string $statusLabel): array
+    public function map(ExecutionStatusInterface|ActivityStatusInterface $status): array
     {
-        return match ($statusLabel) {
+        return match ($status->label()) {
             'succeeded' => ['code' => StatusCode::STATUS_OK, 'description' => ''],
             'failed' => ['code' => StatusCode::STATUS_ERROR, 'description' => 'failed'],
             'cancelled' => ['code' => StatusCode::STATUS_ERROR, 'description' => 'cancelled'],

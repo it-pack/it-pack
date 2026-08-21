@@ -32,12 +32,12 @@ final readonly class ContextEntry implements ContextEntryInterface
      * @param int|float|string|bool|null|array<int|string, int|float|string|bool|null> $value
      */
     private function __construct(
-        private readonly ContextKeyInterface $key,
+        private ContextKeyInterface $key,
         /** @var int|float|string|bool|null|array<int|string, int|float|string|bool|null> */
-        private readonly int|float|string|bool|null|array $value,
-        private readonly ContextClassificationInterface $classification,
-        private readonly ?InstantInterface $expiresAt,
-        private readonly ?ContextSourceInterface $source,
+        private int|float|string|bool|null|array $value,
+        private ContextClassificationInterface $classification,
+        private ?InstantInterface $expiresAt,
+        private ?ContextSourceInterface $source,
     ) {
         new ContextValueValidator()->assertSupportedValue($value);
     }
@@ -141,7 +141,7 @@ final readonly class ContextEntry implements ContextEntryInterface
         return [
             'key' => $this->key->toString(),
             'value' => $this->value,
-            'classification' => $this->classification->name(),
+            'classification' => $this->classification->label(),
             'expires_at' => $this->expiresAt?->epochSeconds(),
             'source' => $this->source?->toString(),
         ];

@@ -36,7 +36,7 @@ final class DefaultContextRedactionPolicyTest extends Unit
             DefaultContextRedactionPolicy::REDACTED,
             $redacted->get('token')->value(),
         );
-        self::assertSame('restricted', $redacted->get('token')->classification()->name());
+        self::assertSame('restricted', $redacted->get('token')->classification()->label());
     }
 
     public function testOriginalContextIsNotMutated(): void

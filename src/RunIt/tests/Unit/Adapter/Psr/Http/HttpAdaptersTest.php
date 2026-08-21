@@ -144,7 +144,7 @@ final class HttpAdaptersTest extends Unit
 
         $recorded = $runner->lastObservations()?->recorded() ?? [];
         self::assertSame('http.response.server_error', $recorded[0]['message']);
-        self::assertSame(ObservationSeverity::Error->name(), $recorded[0]['severity']?->name());
+        self::assertSame(ObservationSeverity::Error->label(), $recorded[0]['severity']?->label());
     }
 
     public function testMiddlewareRecordsClientErrorObservation(): void
@@ -156,7 +156,7 @@ final class HttpAdaptersTest extends Unit
 
         $recorded = $runner->lastObservations()?->recorded() ?? [];
         self::assertSame('http.response.client_error', $recorded[0]['message']);
-        self::assertSame(ObservationSeverity::Warning->name(), $recorded[0]['severity']?->name());
+        self::assertSame(ObservationSeverity::Warning->label(), $recorded[0]['severity']?->label());
     }
 
     public function testMiddlewareRecordsRequestFailureAndRethrows(): void
@@ -171,7 +171,7 @@ final class HttpAdaptersTest extends Unit
         } finally {
             $recorded = $runner->lastObservations()?->recorded() ?? [];
             self::assertSame('http.request.failed', $recorded[0]['message'] ?? null);
-            self::assertSame(ObservationSeverity::Error->name(), $recorded[0]['severity']?->name());
+            self::assertSame(ObservationSeverity::Error->label(), $recorded[0]['severity']?->label());
         }
     }
 

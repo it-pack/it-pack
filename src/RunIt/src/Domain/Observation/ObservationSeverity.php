@@ -29,7 +29,7 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
     case Alert = 'alert';
     case Emergency = 'emergency';
 
-    public function name(): string
+    public function label(): string
     {
         return $this->value;
     }

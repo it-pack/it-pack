@@ -37,7 +37,7 @@ enum ContextClassification: string implements ContextClassificationInterface
     case Restricted = 'restricted';
     case Secret = 'secret';
 
-    public function name(): string
+    public function label(): string
     {
         return $this->value;
     }

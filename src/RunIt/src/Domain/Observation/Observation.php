@@ -31,16 +31,16 @@ use ItPack\RunIt\Domain\Shared\Instant;
 final readonly class Observation implements ObservationInterface
 {
     private function __construct(
-        private readonly ObservationIdInterface $id,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly ?ActivityIdInterface $activityId,
-        private readonly ObservationSeverityInterface $severity,
-        private readonly string $message,
-        private readonly ?string $diagnosticCode,
-        private readonly AttributeCollectionInterface $attributes,
-        private readonly ?ThrowableDescriptionInterface $throwableDescription,
-        private readonly InstantInterface $instant,
-        private readonly ArtifactSequenceInterface $sequence,
+        private ObservationIdInterface $id,
+        private ExecutionIdInterface $executionId,
+        private ?ActivityIdInterface $activityId,
+        private ObservationSeverityInterface $severity,
+        private string $message,
+        private ?string $diagnosticCode,
+        private AttributeCollectionInterface $attributes,
+        private ?ThrowableDescriptionInterface $throwableDescription,
+        private InstantInterface $instant,
+        private ArtifactSequenceInterface $sequence,
     ) {
     }
 
@@ -55,7 +55,17 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Debug, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Debug,
+            $message, $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function info(
@@ -69,7 +79,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Info, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Info,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function notice(
@@ -83,7 +104,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Notice, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Notice,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function warning(
@@ -97,7 +129,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Warning, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Warning,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function error(
@@ -111,7 +154,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Error, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Error,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function critical(
@@ -125,7 +179,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Critical, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Critical,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function alert(
@@ -139,7 +204,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Alert, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Alert,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public static function emergency(
@@ -153,7 +229,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self($id, $executionId, $activityId, ObservationSeverity::Emergency, $message, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $throwableDescription, $instant ?? Instant::now(), $sequence ?? ArtifactSequence::initial());
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            ObservationSeverity::Emergency,
+            $message,
+            $diagnosticCode,
+                $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+                $instant ?? Instant::now(),
+                $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public function id(): ObservationIdInterface
@@ -223,7 +310,7 @@ final readonly class Observation implements ObservationInterface
             'id' => $this->id->toString(),
             'execution_id' => $this->executionId->toString(),
             'activity_id' => $this->activityId?->toString(),
-            'severity' => $this->severity->name(),
+            'severity' => $this->severity->label(),
             'level' => $this->severity->level(),
             'message' => $this->message,
             'diagnostic_code' => $this->diagnosticCode,

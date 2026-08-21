@@ -12,7 +12,7 @@ final class ContextClassificationTest extends Unit
 {
     public function testPublicIsExportablePropagatableAndSerializable(): void
     {
-        self::assertSame('public', ContextClassification::Public->name());
+        self::assertSame('public', ContextClassification::Public->label());
         self::assertTrue(ContextClassification::Public->isExportable());
         self::assertTrue(ContextClassification::Public->isPropagatable());
         self::assertTrue(ContextClassification::Public->isSerializable());

@@ -24,7 +24,7 @@ final class ObservationRecordingLoggerTest extends Unit
         self::assertSame(1, $recorder->count());
         $recorded = $recorder->recorded()[0];
         self::assertSame('boom', $recorded['message']);
-        self::assertSame('error', $recorded['severity']?->name());
+        self::assertSame('error', $recorded['severity']?->label());
         self::assertSame(1, $recorded['attributes']?->get('order'));
     }
 
@@ -41,9 +41,9 @@ final class ObservationRecordingLoggerTest extends Unit
         $logger->info('i');
         $logger->debug('d');
 
-        $names = array_map(static fn ($r) => $r['severity']?->name(), $recorder->recorded());
+        $names = array_map(static fn ($r) => $r['severity']?->label(), $recorder->recorded());
         self::assertSame(
-            [ObservationSeverity::Emergency->name(), ObservationSeverity::Alert->name(), ObservationSeverity::Critical->name(), ObservationSeverity::Warning->name(), ObservationSeverity::Notice->name(), ObservationSeverity::Info->name(), ObservationSeverity::Debug->name()],
+            [ObservationSeverity::Emergency->label(), ObservationSeverity::Alert->label(), ObservationSeverity::Critical->label(), ObservationSeverity::Warning->label(), ObservationSeverity::Notice->label(), ObservationSeverity::Info->label(), ObservationSeverity::Debug->label()],
             $names,
         );
     }

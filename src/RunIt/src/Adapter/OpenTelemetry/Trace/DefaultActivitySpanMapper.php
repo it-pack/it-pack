@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
-use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
+use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
-use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanInterface;
-use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
 
@@ -29,47 +26,22 @@ use OpenTelemetry\Context\ContextInterface;
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
-final class DefaultActivitySpanMapper implements ActivitySpanMapperInterface
+final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInterface
 {
-    public function __construct(
-        private readonly ?TracerProviderInterface $tracerProvider,
-        private readonly ExecutionSpanStoreInterface $store,
-        private readonly SpanStatusMap $statusMap,
-        private readonly SpanKindMap $kindMap,
-    ) {
-    }
+    use TraceBehavior;
 
     public function map(ActivityInterface $activity): void
     {
-        if ($this->tracerProvider === null) {
+        if(($span = $this->startSpan($activity)) === null) {
             return;
         }
-
-        $tracer = $this->tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
-        $definition = $activity->definition();
-
-        $name = $definition->name()->toString();
-        \assert($name !== '');
-
-        $builder = $tracer
-            ->spanBuilder($name)
-            ->setSpanKind($this->kindMap->toSpanKind($definition->kind()->toString()))
-            ->setStartTimestamp($activity->startedAt()->epochSeconds() * 1_000_000_000)
-        ;
-
-        $parent = $this->resolveParentContext($activity);
-        if ($parent !== null) {
-            $builder->setParent($parent);
-        }
-
-        $span = $builder->startSpan();
 
         $attributes = [
             AttributeKeys::ACTIVITY_ID => $activity->id()->toString(),
             AttributeKeys::ACTIVITY_NAME => $definition->name()->toString(),
             AttributeKeys::ACTIVITY_KIND => $definition->kind()->toString(),
             AttributeKeys::EXECUTION_ID => $activity->executionId()->toString(),
-            AttributeKeys::ACTIVITY_STATUS => $activity->status()->name(),
+            AttributeKeys::ACTIVITY_STATUS => $activity->status()->label(),
         ];
 
         $parentActivityId = $definition->parentActivityId();
@@ -79,11 +51,11 @@ final class DefaultActivitySpanMapper implements ActivitySpanMapperInterface
 
         $span->setAttributes($attributes);
 
-        $status = $this->statusMap->map($activity->status()->name());
+        $status = $this->statusMap->map($activity->status());
         $span->setStatus($status['code'], $status['description']);
 
         $throwable = $activity->throwableDescription();
-        if ($throwable !== null && $activity->status()->name() === 'failed') {
+        if ($throwable !== null && $activity->status()->label() === 'failed') {
             $this->recordThrowable($span, $throwable);
         }
 
@@ -93,7 +65,7 @@ final class DefaultActivitySpanMapper implements ActivitySpanMapperInterface
         $this->store->recordActivity($activity->id()->toString(), $span->getContext());
     }
 
-    private function resolveParentContext(ActivityInterface $activity): ?ContextInterface
+    private function resolveParentContext(ActivityInterface|ExecutionInterface $activity): ?ContextInterface
     {
         $parentActivityId = $activity->definition()->parentActivityId();
         if ($parentActivityId !== null) {

@@ -27,7 +27,7 @@ final class DefaultContextToOtelMapper implements ContextToOtelMapperInterface
         $builder = Baggage::getBuilder();
 
         foreach ($context->entries() as $entry) {
-            if ($entry->classification()->name() === 'secret') {
+            if ($entry->classification()->label() === 'secret') {
                 continue;
             }
 

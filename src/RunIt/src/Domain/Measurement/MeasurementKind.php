@@ -24,7 +24,7 @@ enum MeasurementKind: string implements MeasurementKindInterface
     case Size = 'size';
     case Ratio = 'ratio';
 
-    public function name(): string
+    public function label(): string
     {
         return $this->value;
     }

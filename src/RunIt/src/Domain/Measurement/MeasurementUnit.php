@@ -29,7 +29,7 @@ enum MeasurementUnit: string implements MeasurementUnitInterface
     case Ratio = 'ratio';
     case Celsius = 'celsius';
 
-    public function name(): string
+    public function label(): string
     {
         return $this->value;
     }

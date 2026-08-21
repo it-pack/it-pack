@@ -20,7 +20,7 @@ interface ContextClassificationInterface
     /**
      * Returns the stable, lower-case classification name (for example `public`).
      */
-    public function name(): string;
+    public function label(): string;
 
     /**
      * Returns whether a value with this classification may leave the process

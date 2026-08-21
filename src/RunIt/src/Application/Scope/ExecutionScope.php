@@ -23,7 +23,10 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
@@ -59,7 +62,23 @@ final class ExecutionScope implements ExecutionScopeInterface
     private ActivityRunnerInterface $activityRunner;
 
     /**
-     * @param Closure(): ?ActivityIdInterface $currentActivityId
+     * @param ExecutionInterface $execution
+     * @param ExecutionIdInterface $executionId
+     * @param ExecutionContextInterface $context
+     * @param SequenceAllocatorInterface $sequenceAllocator
+     * @param MonotonicClockInterface $clock
+     * @param ArtifactPublisherInterface $publisher
+     * @param SerializerInterface $serializer
+     * @param ThrowableMapperInterface $throwableMapper
+     * @param StringIdentifierFactoryInterface $observationIdFactory
+     * @param StringIdentifierFactoryInterface $occurrenceIdFactory
+     * @param StringIdentifierFactoryInterface $snapshotIdFactory
+     * @param StringIdentifierFactoryInterface $activityIdFactory
+     * @param HashCalculatorInterface $hashCalculator
+     * @param SnapshotStoreInterface|null $snapshotStore
+     * @param Closure|null $onSnapshotStoreFailure
+     * @param SecurityLimits $limits
+     * @param Closure|null $currentActivityId
      */
     public function __construct(
         private readonly ExecutionInterface $execution,
@@ -70,13 +89,13 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly ArtifactPublisherInterface $publisher,
         private readonly SerializerInterface $serializer,
         private readonly ThrowableMapperInterface $throwableMapper,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ObservationIdInterface> */
+        /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
         private readonly StringIdentifierFactoryInterface $observationIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\OccurrenceIdInterface> */
+        /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
         private readonly StringIdentifierFactoryInterface $occurrenceIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
+        /** @var StringIdentifierFactoryInterface<SnapshotIdInterface> */
         private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
+        /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
         private readonly StringIdentifierFactoryInterface $activityIdFactory,
         private readonly HashCalculatorInterface $hashCalculator,
         private readonly ?SnapshotStoreInterface $snapshotStore = null,
