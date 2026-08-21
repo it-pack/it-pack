@@ -9,6 +9,9 @@ use ItPack\RunIt\Adapter\OpenTelemetry\BridgeCapability;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
@@ -86,6 +89,35 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['ok' => true]));
 
         self::assertCount(3, $this->kit->logs());
+    }
+
+    public function testRedactedOccurrenceProducesVisibleSuppressedLog(): void
+    {
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['password'],
+            redactOccurrenceData: true,
+        ));
+
+        $occurrence = RunItArtifactFactory::occurrence('occ-red', 'exec-1', 'execution.started.v1', ['password' => 'hunter2']);
+        $redacted = $redactor->redact($occurrence);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted, 'A redacted artifact is marked as suppressed.');
+
+        $publisher = $this->publisher();
+        $publisher->publish($redacted);
+
+        self::assertGreaterThanOrEqual(1, $this->kit->logs()->count(), 'A redacted occurrence is still delivered, not silently dropped.');
+
+        $redactedLogged = false;
+        foreach ($this->kit->logs() as $record) {
+            foreach ($record->getAttributes() as $name => $value) {
+                if ($name === 'runit.redacted' && $value === true) {
+                    $redactedLogged = true;
+                }
+            }
+        }
+
+        self::assertTrue($redactedLogged, 'The suppressed delivery is marked runit.redacted.');
     }
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void

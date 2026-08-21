@@ -129,4 +129,84 @@ final class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
             Span::getCurrent()->addEvent('runit.snapshot', $attributes);
         }
     }
+
+    public function mapRedactedOccurrence(array $normalized): void
+    {
+        /** @var array<string, mixed> $attributes */
+        $attributes = [
+            AttributeKeys::OCCURRENCE_ID => is_string($normalized['id'] ?? null) ? $normalized['id'] : 'redacted',
+            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
+            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized['source'] ?? null) ? $normalized['source'] : 'runit://redacted',
+            AttributeKeys::EXECUTION_ID => is_string($normalized['execution_id'] ?? null) ? $normalized['execution_id'] : '',
+            'runit.redacted' => true,
+        ];
+
+        $subject = $normalized['subject'] ?? null;
+        if (is_string($subject)) {
+            $attributes[AttributeKeys::OCCURRENCE_SUBJECT] = $subject;
+        }
+
+        $activityId = $normalized['activity_id'] ?? null;
+        if (is_string($activityId)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
+        }
+
+        /** @var array<string, mixed> $extensions */
+        $extensions = is_array($normalized['extension_attributes'] ?? null) ? $normalized['extension_attributes'] : [];
+        foreach ($extensions as $key => $value) {
+            $attributes[$key] = $value;
+        }
+
+        $this->emit('runit.occurrence', is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized['time'] ?? null) ? $normalized['time'] : null);
+    }
+
+    public function mapRedactedSnapshot(array $normalized): void
+    {
+        /** @var array<string, mixed> $attributes */
+        $attributes = [
+            AttributeKeys::SNAPSHOT_ID => is_string($normalized['id'] ?? null) ? $normalized['id'] : 'redacted',
+            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized['classification'] ?? null) ? $normalized['classification'] : 'unknown',
+            AttributeKeys::EXECUTION_ID => is_string($normalized['execution_id'] ?? null) ? $normalized['execution_id'] : '',
+            'runit.redacted' => true,
+        ];
+
+        $activityId = $normalized['activity_id'] ?? null;
+        if (is_string($activityId)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
+        }
+
+        $hash = $normalized['content_hash'] ?? null;
+        if (is_string($hash)) {
+            $attributes[AttributeKeys::SNAPSHOT_HASH] = $hash;
+        }
+
+        $this->emit('runit.snapshot', is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized['time'] ?? null) ? $normalized['time'] : null);
+    }
+
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    private function emit(string $eventName, string $body, array $attributes, ?int $timeEpochSeconds): void
+    {
+        $timeNanos = $timeEpochSeconds !== null ? $timeEpochSeconds * 1_000_000_000 : (int) (microtime(true) * 1_000_000_000);
+
+        if ($this->mapOccurrencesToLogs && $this->loggerProvider !== null) {
+            $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
+            $logger
+                ->logRecordBuilder()
+                ->setTimestamp($timeNanos)
+                ->setSeverityNumber(Severity::INFO)
+                ->setSeverityText('info')
+                ->setBody($body)
+                ->setEventName($eventName)
+                ->setAttributes($attributes)
+                ->emit()
+            ;
+        }
+
+        if ($this->mapOccurrencesToSpanEvents) {
+            Span::getCurrent()->addEvent($eventName, $attributes);
+        }
+    }
 }

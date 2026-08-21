@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\CloudEvents;
 
+use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventFactoryInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
+use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventFactory;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 
 /**
@@ -25,14 +28,14 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  * @see https://w3id.org/itpack/runit#CloudEvent
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-final class CloudEventPublisher implements ArtifactPublisherInterface
+final readonly class CloudEventPublisher implements ArtifactPublisherInterface
 {
     public function __construct(
-        private readonly OccurrenceToCloudEventMapperInterface $mapper,
-        private readonly CloudEventSinkInterface $sink,
-        private readonly CloudEventMappingPolicy $policy = new CloudEventMappingPolicy(),
-    ) {
-    }
+        private OccurrenceToCloudEventMapperInterface $mapper,
+        private CloudEventSinkInterface               $sink,
+        private CloudEventMappingPolicy               $policy = new CloudEventMappingPolicy(),
+        private CloudEventFactoryInterface            $factory = new DefaultCloudEventFactory(),
+    ) {}
 
     public static function fromConfig(CloudEventsBridgeConfig $config): self
     {
@@ -45,10 +48,80 @@ final class CloudEventPublisher implements ArtifactPublisherInterface
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        if (!$artifact instanceof OccurrenceInterface) {
+        if ($artifact instanceof OccurrenceInterface) {
+            $this->sink->send($this->mapper->map($artifact, $this->policy));
+
             return;
         }
 
-        $this->sink->send($this->mapper->map($artifact, $this->policy));
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $this->sink->send($this->mapRedacted($artifact));
+
+            return;
+        }
+    }
+
+    /**
+     * Emits a visible, non-sensitive "suppressed" CloudEvent for a redacted artifact.
+     *
+     * A redacted artifact has lost its concrete domain identity, so it can no longer be
+     * mapped as an occurrence. Rather than silently dropping it, this builds a CloudEvent
+     * that preserves only safe identity (id, type, source, subject, execution, sequence)
+     * and declares `redacted=true`, so the delivery is observable without exposing any
+     * sensitive data.
+     */
+    private function mapRedacted(RedactedArtifactInterface $artifact): CloudEvent
+    {
+        $normalized = $artifact->normalize();
+
+        $id = $this->asString($normalized['id'] ?? null, 'redacted');
+        $source = $this->asString($normalized['source'] ?? null, 'runit://redacted');
+        $type = $this->asString($normalized['type'] ?? null, 'runit.artifact.redacted');
+        $subject = $this->asStringOrNull($normalized['subject'] ?? null);
+        $time = $this->asIntOrNull($normalized['time'] ?? null);
+
+        $extensions = [
+            CloudEventExtensionKey::ExecutionId->value => $this->asString($normalized['execution_id'] ?? null, ''),
+            CloudEventExtensionKey::Sequence->value => $this->asInt($normalized['sequence'] ?? null),
+            'redacted' => true,
+        ];
+
+        $activityId = $this->asStringOrNull($normalized['activity_id'] ?? null);
+        if ($activityId !== null) {
+            $extensions[CloudEventExtensionKey::ActivityId->value] = $activityId;
+        }
+
+        return $this->factory->create(
+            $id,
+            $source,
+            $type,
+            [],
+            $subject,
+            $time !== null ? gmdate('Y-m-d\TH:i:s\Z', $time) : null,
+            'application/json',
+            null,
+            $extensions,
+            $this->policy->specVersion,
+        );
+    }
+
+    private function asString(mixed $value, string $fallback): string
+    {
+        return is_string($value) || is_int($value) || is_float($value) ? (string) $value : $fallback;
+    }
+
+    private function asStringOrNull(mixed $value): ?string
+    {
+        return is_string($value) ? $value : null;
+    }
+
+    private function asInt(mixed $value): int
+    {
+        return is_int($value) ? $value : 0;
+    }
+
+    private function asIntOrNull(mixed $value): ?int
+    {
+        return is_int($value) ? $value : null;
     }
 }

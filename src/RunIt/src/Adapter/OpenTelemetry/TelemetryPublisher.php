@@ -25,6 +25,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 
@@ -124,6 +125,22 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
 
         if ($artifact instanceof SnapshotInterface) {
             $this->occurrenceMapper->mapSnapshot($artifact);
+
+            return;
+        }
+
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $normalized = $artifact->normalize();
+
+            if (isset($normalized['source'])) {
+                $this->occurrenceMapper->mapRedactedOccurrence($normalized);
+
+                return;
+            }
+
+            if (array_key_exists('classification', $normalized)) {
+                $this->occurrenceMapper->mapRedactedSnapshot($normalized);
+            }
         }
     }
 }
