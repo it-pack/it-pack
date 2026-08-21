@@ -14,6 +14,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\DeclaresScalarTypesInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
@@ -124,7 +125,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
     /**
      * @param array<ConfigurationDocumentInterface> $documents
      */
-    private function createSnapshot(array $documents): ConfigurationSnapshot
+    private function createSnapshot(array $documents): ConfigurationSnapshotInterface
     {
         $snapshot = $this->snapshotFactory->buildFromGraph(
             $this->runPipeline($documents)
@@ -135,6 +136,24 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
                 'SnapshotCreated',
             )
         );
+
+        return $this->freezeTyped($snapshot);
+    }
+
+    /**
+     * When the schema can enumerate expected scalar types, wrap the snapshot in a
+     * {@see TypedSnapshot} so mis-typed leaves fail fast at freeze time. The
+     * behaviour is unchanged when no schema, or no type information, is present.
+     */
+    private function freezeTyped(ConfigurationSnapshot $snapshot): ConfigurationSnapshotInterface
+    {
+        if ($this->schema instanceof DeclaresScalarTypesInterface) {
+            $types = $this->schema->scalarTypes();
+
+            if ($types !== []) {
+                return new TypedSnapshot($snapshot, $types);
+            }
+        }
 
         return $snapshot;
     }

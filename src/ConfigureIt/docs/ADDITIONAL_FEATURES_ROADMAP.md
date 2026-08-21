@@ -28,21 +28,26 @@ ROADMAP/ADDITIONAL_FEATURES_PLAN cross-references updated.
 
 ---
 
-## M1 — Typed Consumption  *(Plan §2 — highest leverage)*
+## M1 — Typed Consumption  *(Plan §2 — highest leverage)* ✅ DONE
+
+**Status:** implemented 2026-08-21. `TypeException`, `ScalarCaster`, typed accessors
+on `ConfigurationSnapshotInterface`/`ConfigurationSnapshot`, `TypedSnapshot` freeze-time
+validator, `DeclaresScalarTypesInterface`, and `NativeConfigurationSchema` walker.
+Suite green: 165 tests / 380 assertions, PHPStan level 9, php-cs-fixer clean.
 
 **Objective:** eliminate `mixed` at the consumption edge; make mis-typed config a
 thrown `TypeException`, not a silent bug.
 
-### Epic E2.1 — Typed accessors (Core, additive)
-- [ ] **T1.1.1 (S)** Add `TypeException` (`src/Exception/TypeException.php`); translate failures, never leak vendor types.
-- [ ] **T1.1.2 (M)** Extend `ConfigurationSnapshotInterface` with `int/bool/string/float/array(string)` + `exists(string)`. Default impl throws `TypeException` on mismatch or missing key.
-- [ ] **T1.1.3 (M)** Implement accessors in the concrete `ConfigurationSnapshot` (wrap `get()` + `is_scalar`/`is_array` coercion guards).
-- [ ] **T1.1.4 (M)** Tests: `TypedAccessorTest` (success paths + each failure mode + missing key).
+### Epic E2.1 — Typed accessors (Core, additive) ✅ DONE
+- [x] **T1.1.1 (S)** Add `TypeException` (`src/Exception/TypeException.php`); translate failures, never leak vendor types.
+- [x] **T1.1.2 (M)** Extend `ConfigurationSnapshotInterface` with `int/bool/string/float/array(string)` + `exists(string)`. Default impl throws `TypeException` on mismatch or missing key.
+- [x] **T1.1.3 (M)** Implement accessors in the concrete `ConfigurationSnapshot` (wrap `get()` + `is_scalar`/`is_array` coercion guards).
+- [x] **T1.1.4 (M)** Tests: `TypedAccessorTest` (success paths + each failure mode + missing key).
 
-### Epic E2.2 — Schema-bound TypedSnapshot (Core, additive)
-- [ ] **T1.2.1 (M)** Add `TypedSnapshot` decorator implementing `ConfigurationSnapshotInterface`, constructed by the resolver when a `ConfigurationSchemaInterface` was supplied; validates reads against schema-expected scalar types at freeze time (one pass).
-- [ ] **T1.2.2 (M)** `ConfigurationFactory`/`ConfigurationResolver` mint `TypedSnapshot` instead of base snapshot **only when** `schema !== null` (opt-in; unchanged behaviour otherwise).
-- [ ] **T1.2.3 (M)** Tests: `TypedSnapshotTest` (schema-present enforces types; schema-absent falls back to base behaviour).
+### Epic E2.2 — Schema-bound TypedSnapshot (Core, additive) ✅ DONE
+- [x] **T1.2.1 (M)** Add `TypedSnapshot` decorator implementing `ConfigurationSnapshotInterface`, constructed by the resolver when a `ConfigurationSchemaInterface` was supplied; validates reads against schema-expected scalar types at freeze time (one pass).
+- [x] **T1.2.2 (M)** `ConfigurationFactory`/`ConfigurationResolver` mint `TypedSnapshot` instead of base snapshot **only when** `schema !== null` (opt-in; unchanged behaviour otherwise).
+- [x] **T1.2.3 (M)** Tests: `TypedSnapshotTest` (schema-present enforces types; schema-absent falls back to base behaviour).
 
 ### Epic E2.3 — Codegen DTO (Companion: `configure-it-codegen`)
 - [ ] **T1.3.1 (L)** `configure-it-codegen`: read a `Nette\Schema\Expect` definition, emit a readonly `AppConfig` DTO with typed getters + PHPDoc.

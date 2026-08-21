@@ -353,6 +353,39 @@ green: **149 tests / 345 assertions**, PHPStan level 9 **0 errors**, `php-cs-fix
 live export-to-collector integration tests — incremental, no Core changes now that the
 `TelemetrySinkInterface` port and `SemanticConventions` exist.
 
+### Additional Features — M1: Typed Consumption ✅
+
+First milestone of `docs/ADDITIONAL_FEATURES_PLAN.md` / `docs/ADDITIONAL_FEATURES_ROADMAP.md`.
+Eliminates `mixed` at the consumption edge; misconfigured types fail fast instead of
+flowing into application code. Fully additive — behaviour is unchanged when no schema
+(and therefore no scalar-type map) is supplied.
+
+- `src/Exception/TypeException.php` — domain exception for missing keys and
+  type mismatches at read time (counterpart to `CastException`).
+- `src/Core/ScalarCaster.php` — shared coercion rules (numeric strings → int/float,
+  truthy strings → bool, scalar → string); mirrors `CastingProcessor` leniency so
+  environment-sourced values read cleanly through typed accessors.
+- `src/Contract/ConfigurationSnapshotInterface` — new typed accessors `int()`,
+  `float()`, `bool()`, `string()`, `list()`, `stringList()` and `exists()`, all
+  throwing `TypeException` on a missing required key or incompatible value.
+- `src/Core/ConfigurationSnapshot.php` — implements the typed accessors (opt-in
+  coercion, default fallback).
+- `src/Core/TypedSnapshot.php` — decorator that performs a single freeze-time
+  validation pass over a declared scalar-type map (`path => int|float|bool|string|
+  list|map`); mis-typed leaves raise `TypeException` before any consumer reads.
+- `src/Contract/DeclaresScalarTypesInterface.php` — optional schema capability that
+  enumerates expected scalar types per key.
+- `src/Adapter/NativeConfigurationSchema.php` — implements
+  `DeclaresScalarTypesInterface` by introspecting the Nette definition (reflection
+  over `Structure`/`Type` elements); the resolver mints a `TypedSnapshot` whenever a
+  schema declares scalar types, so schema-backed resolutions are automatically
+  type-checked at freeze.
+
+Tests: `ConfigurationSnapshotTypedTest`, `TypedSnapshotTest`,
+`NativeConfigurationSchemaTypedTest` (walker + end-to-end resolver minting).
+Suite green: **165 tests / 380 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
