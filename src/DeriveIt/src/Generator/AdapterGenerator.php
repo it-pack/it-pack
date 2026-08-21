@@ -151,7 +151,7 @@ final readonly class AdapterGenerator
         }
 
         // Single (non-compound) return type: keep the established single-wrapper
-        // shape so existing generated output is unchanged.
+        // shape so the existing generated output is unchanged.
         if (!$isUnion && !$isIntersection) {
             $segment = $normalized;
             if (!isset($wrappers[$segment])) {
@@ -212,7 +212,8 @@ final readonly class AdapterGenerator
 
             $copied = $delegating->addParameter($parameter->getName())
                 ->setType($parameter->getType())
-                ->setNullable($parameter->isNullable());
+                ->setNullable($parameter->isNullable())
+            ;
 
             if ($parameter->hasDefaultValue()) {
                 $copied->setDefaultValue($parameter->getDefaultValue());

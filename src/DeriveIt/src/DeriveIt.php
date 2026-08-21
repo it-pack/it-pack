@@ -159,6 +159,66 @@ final class DeriveIt
         return $result;
     }
 
+    /**
+     * Family-of-adapters generation (G14 / EC12): derive the whole family of
+     * interfaces and emit a delegating adapter per member in a single source,
+     * reusing {@see AdapterGenerator}. A member whose method returns another
+     * member's derived interface is wired to that member's adapter automatically,
+     * so the port stays free of concrete adaptee types; the optional
+     * $returnWrapperMap overrides or extends that wiring (e.g., for external
+     * third-party wrappers).
+     *
+     * @param array<int, class-string> $classes
+     * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
+     */
+    public static function deriveFamilyAdapter(
+        array $classes,
+        array $returnWrapperMap = [],
+        DeriveConfig $config = new DeriveConfig(),
+    ): string {
+        $interfaces = new FamilyDeriver($config)->derive($classes);
+
+        // Deduplicate input classes so each member is derived and emitted once.
+        $reflections = [];
+        foreach ($classes as $class) {
+            $reflection = new ReflectionClass($class);
+            $reflections[$reflection->getName()] = $reflection;
+        }
+
+        // Auto-wire each member's derived interface to its own generated adapter
+        // (the FQCN used as a wrapper-map key matches the substituted return type
+        // rendered onto the interface methods).
+        $autoWrapperMap = [];
+        foreach ($reflections as $reflection) {
+            $interface = $interfaces[$reflection->getName()];
+            $namespace = $reflection->getNamespaceName();
+            $interfaceFqcn = ($namespace === '' ? '' : $namespace . '\\') . $interface->getName();
+            $adapterFqcn = ($namespace === '' ? '' : $namespace . '\\') . $reflection->getShortName() . 'Adapter';
+            $autoWrapperMap[$interfaceFqcn] = $adapterFqcn;
+        }
+
+        $wrapperMap = [...$autoWrapperMap, ...$returnWrapperMap];
+
+        $byNamespace = [];
+        foreach ($reflections as $reflection) {
+            $namespace = $reflection->getNamespaceName();
+            $adapter = new AdapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)->generate();
+            $byNamespace[$namespace][] = [$interfaces[$reflection->getName()], $adapter];
+        }
+
+        $file = new PhpFile();
+        foreach ($byNamespace as $namespace => $members) {
+            $ns = new PhpNamespace($namespace);
+            foreach ($members as [$interface, $adapter]) {
+                $ns->add($interface);
+                $ns->add($adapter);
+            }
+            $file->addNamespace($ns);
+        }
+
+        return (string) $file;
+    }
+
     private static function renderInterface(InterfaceType $interface, string $namespace): string
     {
         $ns = new PhpNamespace($namespace);

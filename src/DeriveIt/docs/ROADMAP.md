@@ -486,15 +486,15 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.11 complete (2026-08-21).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.12 complete (2026-08-21).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
 > (G6), owned-attribute allow-list + builtin skip (G7), opt-in phpdoc preservation
 > with FQCN simplification (G8), the `analyze()` / `deriveMany()` / `diff()` DX
-> APIs (G9), and config presets + validation + uniform method-renames (G10/G11)
-> are implemented and tested. All five gates green.
-> Steps 10.12–10.16 remain planned.
+> APIs (G9), config presets + validation + uniform method-renames (G10/G11), and
+> family-of-adapters generation (G14 / EC12) are implemented and tested. All five
+> gates green. Steps 10.13–10.16 remain planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -587,9 +587,13 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   that would make two methods share a final name throws
   `NamingCollisionException` (G11 / B4 / EC14).
 
-### Step 10.12 — Family-of-adapters generation (G14, EC12)
-- `DeriveIt::deriveFamilyAdapter(classes, wrapperMap, config)` emitting a delegating
-  adapter per family member in a single source, reusing `AdapterGenerator`.
+### Step 10.12 — Family-of-adapters generation (G14, EC12) ✅ COMPLETE
+- `DeriveIt::deriveFamilyAdapter(classes, wrapperMap, config)` derives the whole
+  family of interfaces (via `FamilyDeriver`) and emits a delegating adapter per
+  member in a single source (reusing `AdapterGenerator`). Members that return
+  another member's derived interface are wired to that member's adapter
+  automatically; the optional `wrapperMap` overrides/extends the wiring. Members
+  are de-duplicated and grouped by namespace so the single output is valid.
 
 ### Step 10.13 — Re-expose owned interfaces (G16, A4, §3.3)
 - Opt-in `reExposeOwnedInterfaces` allow-list that adds `extends` for configured

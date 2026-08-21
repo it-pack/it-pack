@@ -136,6 +136,11 @@ final readonly class TypeSubstitutor
             default => $this->map[$name] ?? $name,
         };
 
+        // Owned-namespace prefix rewriting (C2) applies to the resolved class
+        // reference so a family member rendered into a port namespace still points
+        // at the port rather than the concrete owned type.
+        $resolved = $this->applyNamespacePrefix($resolved);
+
         return ($type->allowsNull() ? '?' : '') . $resolved;
     }
 

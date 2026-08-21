@@ -9,6 +9,7 @@ use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\Literal;
 use Nette\PhpGenerator\Method;
 use Nette\PhpGenerator\Parameter;
+use ReflectionException;
 use ReflectionMethod;
 use ReflectionParameter;
 use ReflectionType;
@@ -64,10 +65,12 @@ final readonly class MethodSignatureFactory
 
             // When the full phpdoc is preserved it already carries `@throws`
             // (and is FQCN-simplified), so the dedicated capture must not
-            // duplicate it (G8 / EC9).
+            // duplicate it (G8 / EC9). When neither flag is set the signature is
+            // left terse (the default Phase 1 behavior).
             match (true) {
                 $this->config->preserveDocblocks => $this->applyDocblock($signature, $method, $substitutor),
                 $this->config->throwsCapture => $this->applyThrows($signature, $method),
+                default => null,
             };
         }
 
@@ -117,6 +120,7 @@ final readonly class MethodSignatureFactory
     /**
      * Rewrites constant default-value expressions (e.g. `Enum::DEFAULT`) when the
      * constant's class is present in the substitution map (A2).
+     * @throws ReflectionException
      */
     private function rewriteDefaultValues(Method $signature, ReflectionMethod $method, TypeSubstitutor $substitutor): void
     {
@@ -200,12 +204,8 @@ final readonly class MethodSignatureFactory
      */
     private function normalizeDocComment(string $doc): string
     {
-        $lines = preg_split('/\n/', $doc);
-        if ($lines === false) {
-            $lines = [];
-        }
         $normalized = [];
-        foreach ($lines as $line) {
+        foreach (explode("\n", $doc) as $line) {
             $normalized[] = (string) preg_replace('/^\s*\/?\*+\/?\s?/', '', $line);
         }
 

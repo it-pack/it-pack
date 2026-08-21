@@ -184,6 +184,7 @@ final class FamilyDeriver
      * Walks the type graph reachable from a root class to discover the family.
      *
      * @return array<class-string, ReflectionClass>
+     * @throws \ReflectionException
      */
     private function discover(string $rootClass): array
     {
@@ -251,6 +252,8 @@ final class FamilyDeriver
             return $named;
         }
 
+        assert($type instanceof ReflectionNamedType);
+
         return [$type];
     }
 
@@ -262,7 +265,7 @@ final class FamilyDeriver
 
         return array_all(
             ['Nette\\', 'PHPUnit\\', 'Codeception\\', 'Symfony\\', 'Composer\\', 'Illuminate\\'],
-            fn($vendor) => !str_starts_with($className, $vendor)
+            fn ($vendor) => !str_starts_with($className, $vendor)
         );
     }
 }

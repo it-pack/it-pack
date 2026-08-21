@@ -373,8 +373,10 @@ Phase 10 steps.
 - **G11** ✅ Rename / alias policy — `methodRenames` map applied uniformly across
    flat / per-trait / family; a rename collision throws `NamingCollisionException`
    (EC14, B4).
-- **G14** Family-of-adapters generation — `deriveFamilyAdapter(classes,
-  wrapperMap, config)` (EC12).
+- **G14** ✅ Family-of-adapters generation — `deriveFamilyAdapter(classes,
+   wrapperMap, config)` derives the family of interfaces and emits a delegating
+   adapter per member in a single source, auto-wiring cross-member returns
+   (EC12).
 - **G17** CLI `bin/derive` — derive a class/file to stdout or a path for ad-hoc
   ports and dogfooding.
 
