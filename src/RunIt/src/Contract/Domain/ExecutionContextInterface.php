@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+
 /**
  * Contract for an immutable, bounded execution context.
  *
@@ -26,7 +28,7 @@ interface ExecutionContextInterface extends \Countable
     /**
      * Returns the entry for the key.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\InvalidContextValueException when the key is absent
+     * @throws InvalidContextValueException when the key is absent
      */
     public function get(string $key): ContextEntryInterface;
 
@@ -46,7 +48,7 @@ interface ExecutionContextInterface extends \Countable
      * Returns a new context with the entry added or replaced, leaving this one
      * unchanged.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\InvalidContextValueException when the context capacity is exceeded
+     * @throws InvalidContextValueException when the context capacity is exceeded
      */
     public function with(ContextEntryInterface $entry): self;
 

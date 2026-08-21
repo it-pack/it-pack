@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Contract\Application;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 
 /**
  * Contract for enforcing the execution lifecycle state machine.
@@ -29,7 +30,7 @@ interface ExecutionLifecycleCoordinatorInterface
      * same status is returned unchanged (idempotent), while a different terminal
      * status raises a conflicting-completion error.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface when the
+     * @throws LifecycleExceptionInterface when the
      *        transition is illegal, or when a terminal execution is completed again
      *        with a different terminal status
      */
@@ -38,7 +39,7 @@ interface ExecutionLifecycleCoordinatorInterface
     /**
      * Moves a created execution into the running state, returning the new record.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface when the
+     * @throws LifecycleExceptionInterface when the
      *        execution is not in the created state
      */
     public function start(ExecutionInterface $execution): ExecutionInterface;

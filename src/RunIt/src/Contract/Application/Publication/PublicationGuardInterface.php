@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Application\Publication;
 
+use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+
 /**
  * Contract for a guard that prevents recursive publication on one execution path.
  *
@@ -29,7 +31,7 @@ interface PublicationGuardInterface
     /**
      * Enters the guard, returning a scope token.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\RunItExceptionInterface when publication
+     * @throws RunItExceptionInterface when publication
      *        is already active (recursive publication detected)
      */
     public function enter(): PublicationGuardTokenInterface;
