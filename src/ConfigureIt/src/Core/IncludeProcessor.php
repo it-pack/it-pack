@@ -166,7 +166,11 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
         $raw = $this->reader->read($resource);
         $document = $this->loaders->build($format)->load($raw);
 
-        $nodes = $this->normalizer->normalize($document, $directive->priority() + 1, 'include:' . $relative, $document->layerId());
+        // Included nodes inherit the layer of the directive that pulled them in,
+        // so layer attribution stays accurate across conditional includes (E3.3).
+        $layerId = $document->layerId() ?? $directive->provenance()->layerId();
+
+        $nodes = $this->normalizer->normalize($document, $directive->priority() + 1, 'include:' . $relative, $layerId);
 
         $parent = $directive->key();
 

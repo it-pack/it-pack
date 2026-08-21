@@ -80,7 +80,7 @@ layering + conditional includes.
 - [x] **T2.3.2 (M)** Inspector/CLI (`explain`) shows the winning layer (added a `layer` line to `explainKey` and a `LAYER` column to the `renderTable` of `ConfigurationInspector`).
 - [x] **T2.3.3 (M)** Tests: `LayerProvenanceTest` (layer id stamped onto node provenance, no layer id when no layers registered, winning layer visible in inspector).
 
-**M2 Exit:** `addLayer()` ordering + `@if` includes work and are visible in provenance/inspector; no behaviour change when unused.
+**M2 Exit:** `addLayer()` ordering + `@if` includes work and are visible in provenance/inspector; no behaviour change when unused. Verified end-to-end by `tests/Unit/Core/M2ExitTest.php` (ordering + conditional include + layer attribution compose; included nodes inherit the directive's layer id; behaviour unchanged without layers).
 
 ---
 
