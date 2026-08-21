@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Core;
 use ItPack\ConfigureIt\Adapter\CompositeReader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
+use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLayerInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
@@ -64,6 +65,8 @@ final class ConfigurationBuilder
     private ?TelemetrySinkInterface $telemetrySink = null;
 
     private ?ExecutionContext $executionContext = null;
+
+    private ?ConfigurationCacheInterface $cache = null;
 
     public function __construct(
         private readonly ConfigurationFactoryInterface $factory = new ConfigurationFactory(),
@@ -148,6 +151,22 @@ final class ConfigurationBuilder
         return $this;
     }
 
+    /**
+     * Opt in to compiled-artifact caching for this builder.
+     *
+     * When a cache is set, the resolver produced by {@see self::build()} serves
+     * an immutable snapshot from the cache whenever the composite resolution
+     * hash is unchanged, and re-resolves + rewrites the artifact on any change
+     * (source edit, schema change, context change). The behaviour is otherwise
+     * identical; callers see the same snapshot and the same failure modes.
+     */
+    public function withCache(ConfigurationCacheInterface $cache): self
+    {
+        $this->cache = $cache;
+
+        return $this;
+    }
+
     public function build(?ResolutionReporter $reporter = null): ConfigurationResolverInterface
     {
         $reporter ??= new ResolutionReporter();
@@ -174,14 +193,32 @@ final class ConfigurationBuilder
             );
         }
 
-        return $this->factory->build(
+        $sources = $this->resolveSources();
+
+        $resolver = $this->factory->build(
             loaders: $this->loaders,
             reader: new CompositeReader($this->readers),
             schema: $this->schema,
-            sources: $this->resolveSources(),
+            sources: $sources,
             processors: $processors,
             reporter: $reporter,
         );
+
+        if ($this->cache instanceof ConfigurationCacheInterface) {
+            return new CachingResolver(
+                inner: $resolver,
+                cache: $this->cache,
+                compiler: new ConfigurationCompiler(),
+                defaultSources: $sources,
+                schema: $this->schema,
+                processors: $processors,
+                readers: $this->readers,
+                loaders: $this->loaders,
+                executionContext: $this->executionContext,
+            );
+        }
+
+        return $resolver;
     }
 
     /**

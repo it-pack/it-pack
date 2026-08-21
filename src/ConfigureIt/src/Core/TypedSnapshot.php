@@ -30,8 +30,8 @@ final readonly class TypedSnapshot implements ConfigurationSnapshotInterface
      * @param array<string, string> $types dotted path => scalar type name.
      */
     public function __construct(
-        private ConfigurationSnapshotInterface $inner,
-        private array                           $types,
+        private ConfigurationSnapshot $inner,
+        private array                 $types,
     ) {
         $this->validate();
     }
@@ -95,6 +95,23 @@ final readonly class TypedSnapshot implements ConfigurationSnapshotInterface
     public function provenance(string $path): ?ProvenanceInterface
     {
         return $this->inner->provenance($path);
+    }
+
+    /**
+     * The wrapped snapshot, exposed so the compiled-artifact cache can
+     * serialize its tree + provenance verbatim (M3 — Epic E7.1).
+     */
+    public function innerSnapshot(): ConfigurationSnapshot
+    {
+        return $this->inner;
+    }
+
+    /**
+     * @return array<string, string> dotted path => scalar type name.
+     */
+    public function scalarTypes(): array
+    {
+        return $this->types;
     }
 
     /**

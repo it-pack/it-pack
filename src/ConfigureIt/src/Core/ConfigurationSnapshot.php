@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ProvenanceInterface;
 use ItPack\ConfigureIt\Exception\TypeException;
+use ItPack\ConfigureIt\ValueObject\Provenance;
 
 /**
  * An immutable runtime representation of resolved configuration.
@@ -140,5 +141,46 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
     public function provenance(string $path): ?ProvenanceInterface
     {
         return $this->provenance[$path] ?? null;
+    }
+
+    /**
+     * Serializable form: the resolved tree plus the per-key provenance map.
+     *
+     * Powers the compiled-artifact cache, which rebuilds an equal immutable
+     * snapshot from this representation via {@see self::fromArray()} (M3).
+     *
+     * @return array{tree: array<string, mixed>, provenance: array<string, array<string, mixed>>}
+     */
+    public function toArray(): array
+    {
+        return [
+            'tree'       => $this->tree,
+            'provenance' => array_map(
+                static fn (ProvenanceInterface $provenance): array => $provenance->toArray(),
+                $this->provenance,
+            ),
+        ];
+    }
+
+    /**
+     * Rebuild an immutable snapshot from {@see self::toArray()}.
+     *
+     * @param array<array-key, mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        $provenance = [];
+
+        $entries = is_array($data['provenance'] ?? null) ? $data['provenance'] : [];
+
+        foreach ($entries as $key => $entry) {
+            if (is_array($entry)) {
+                $provenance[$key] = Provenance::fromArray($entry);
+            }
+        }
+
+        $tree = is_array($data['tree'] ?? null) ? $data['tree'] : [];
+
+        return new self($tree, $provenance);
     }
 }

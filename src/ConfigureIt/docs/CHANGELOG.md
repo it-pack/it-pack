@@ -499,6 +499,53 @@ nodes inherit the directive's layer id; behaviour unchanged without layers).
 Suite green: **187 tests / 434 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M3.E7.1: Compiled / cached artifacts ✅
+
+Completes M3 (Epic E7.1) of `docs/ADDITIONAL_FEATURES_PLAN.md` /
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`: stable configuration now resolves once
+and is served from an opcache-friendly compiled artifact, opt-in via the
+builder. Behaviour is identical to a live resolution — same snapshot, same
+failure modes — and any change to sources, schema, context or pipeline yields a
+fresh resolve + rewrite.
+
+- `src/Contract/ConfigurationCacheInterface.php` (new port) — `get(string): ?Snapshot`
+  / `set(string, Snapshot)`; a miss (or corrupt/unreadable artifact) returns
+  null so the caller falls back to live resolution.
+- `src/Cache/FileSystemCache.php` (new adapter) — writes/reads a single PHP
+  artifact (`return [...];`) under a caller-supplied directory. The payload
+  carries the tree + provenance plus typed-snapshot metadata, so a
+  schema-backed entry is reconstructed as a `TypedSnapshot` that still validates
+  at freeze time. Reads `include` the file; writes are best-effort and never
+  interrupt resolution.
+- `src/Core/ConfigurationCompiler.php` (new) — computes a deterministic
+  composite hash from discovered source resources (path + **content hash**, so
+  any edit invalidates), the schema identity + declared scalar types, the
+  execution context (environment + attributes), and the class of every
+  processor / reader / loader. Equal inputs → equal key; any meaningful change →
+  a new key.
+- `src/Core/ConfigurationSnapshot.php` + `src/ValueObject/Provenance.php` —
+  added `toArray()` / `fromArray()` so an immutable snapshot (and its provenance)
+  can be serialized to and reconstructed from a cache artifact verbatim.
+- `src/Core/ConfigurationSnapshotFactory.php` + interface — `buildFromArray()`
+  rebuilds the immutable snapshot from the serialized form (T3.1.4 guard).
+- `src/Core/TypedSnapshot.php` — exposes `innerSnapshot()` / `scalarTypes()` so
+  the cache can serialize a typed snapshot and reconstruct the exact wrapper.
+- `src/Core/CachingResolver.php` (new decorator) — wraps the resolver produced by
+  the builder; on each `resolve()` it derives the hash, serves a cache hit when
+  present, otherwise resolves live, stores the artifact, and swallows any
+  write failure so resolution always succeeds.
+- `src/Core/ConfigurationBuilder.php` — new `withCache($cache)` (opt-in); when
+  set, `build()` returns a `CachingResolver`. Unused ⇒ identical to today.
+
+Tests: `CompilerCacheTest` (cache hit serves equal snapshot + writes an
+artifact; content edit invalidates the cache; a throwing write falls back to
+live resolve; a corrupt/missing artifact yields a safe miss; a typed snapshot
+reconstructed from cache still validates and throws `TypeException` on a bad
+value). Example: `examples/cached.php` resolves twice — the second boot is
+served from the artifact.
+Suite green: **192 tests / 446 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

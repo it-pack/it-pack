@@ -84,19 +84,19 @@ layering + conditional includes.
 
 ---
 
-## M3 — Compiled / Cached Artifacts  *(Plan §7 — cheap, high value)*
+## M3 — Compiled / Cached Artifacts  *(Plan §7 — cheap, high value)* ✅ DONE
 
 **Objective:** skip re-resolution for stable config; deterministic, opcache-friendly
 deployments.
 
-### Epic E7.1 — Compiler + cache (Core, opt-in)
-- [ ] **T3.1.1 (M)** `Core/ConfigurationCompiler`: compute composite hash (source paths + mtimes + schema hash + builder fingerprint).
-- [ ] **T3.1.2 (M)** `Contract/ConfigurationCacheInterface` + `FileSystemCache` adapter writing/reading a frozen PHP artifact (under `Cache/`).
-- [ ] **T3.1.3 (M)** `ConfigurationBuilder::withCache($cache)`: on resolve, hit cache by hash; miss/stale ⇒ resolve normally, then write artifact.
-- [ ] **T3.1.4 (M)** Guard: artifact load must reconstruct an immutable snapshot (reuse `ConfigurationSnapshotFactory`).
-- [ ] **T3.1.5 (M)** Tests: `CompilerCacheTest` (cache hit serves equal snapshot, hash change invalidates, failure falls back to live resolve).
+### Epic E7.1 — Compiler + cache (Core, opt-in) ✅ DONE
+- [x] **T3.1.1 (M)** `Core/ConfigurationCompiler`: compute composite hash (source paths + content hashes + schema hash + context + pipeline fingerprint).
+- [x] **T3.1.2 (M)** `Contract/ConfigurationCacheInterface` + `FileSystemCache` adapter writing/reading a frozen PHP artifact (under `Cache/`).
+- [x] **T3.1.3 (M)** `ConfigurationBuilder::withCache($cache)`: on resolve, hit cache by hash; miss/stale ⇒ resolve normally, then write artifact (via `Core/CachingResolver`).
+- [x] **T3.1.4 (M)** Guard: artifact load reconstructs an immutable snapshot (reuse `ConfigurationSnapshotFactory::buildFromArray`, with `TypedSnapshot` preserved).
+- [x] **T3.1.5 (M)** Tests: `CompilerCacheTest` (cache hit serves equal snapshot, content edit invalidates, corrupt/missing artifact + throwing write fall back to live resolve, typed snapshot still validates from cache).
 
-**M3 Exit:** stable config resolves once and is served from cache; gates green; example `examples/cached.php`.
+**M3 Exit:** stable config resolves once and is served from cache; gates green (192 tests / 446 assertions, PHPStan level 9, php-cs-fixer clean); example `examples/cached.php`.
 
 ---
 

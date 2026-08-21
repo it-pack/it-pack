@@ -22,4 +22,16 @@ class ConfigurationSnapshotFactory implements ConfigurationSnapshotFactoryInterf
     {
         return ConfigurationSnapshot::fromGraph($graph);
     }
+
+    /**
+     * Rebuild an immutable snapshot from the serialized form produced by
+     * {@see ConfigurationSnapshot::toArray()} — used by the compiled-artifact
+     * cache (M3 — Epic E7.1).
+     *
+     * @param array<array-key, mixed> $data
+     */
+    public function buildFromArray(array $data): ConfigurationSnapshot
+    {
+        return ConfigurationSnapshot::fromArray($data);
+    }
 }
