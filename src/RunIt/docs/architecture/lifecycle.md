@@ -18,6 +18,25 @@ RUNNING
    └──► TIMED_OUT
 ```
 
+```mermaid
+stateDiagram-v2
+    [*] --> CREATED
+    CREATED --> RUNNING: start()
+    CREATED --> CANCELLED: cancelled before run
+    RUNNING --> SUCCEEDED: success
+    RUNNING --> FAILED: business exception
+    RUNNING --> CANCELLED: cancellation observed
+    RUNNING --> TIMED_OUT: timeout observed
+    SUCCEEDED --> [*]
+    FAILED --> [*]
+    CANCELLED --> [*]
+    TIMED_OUT --> [*]
+```
+
+A terminal state cannot transition again. Repeating the same terminal completion
+is idempotent; a *different* terminal completion raises
+`ConflictingCompletionException`.
+
 - `created → running` is performed by the runner through
   `ExecutionLifecycleCoordinator::start()` immediately before the consumer
   operation is invoked. `Execution::create()` produces the `created` record; the
@@ -66,6 +85,25 @@ Nested calls to the runner are resolved into exactly one
 `ChildExecutionPolicy`, which links the nested execution to its parent. See
 `NestedExecutionPolicyInterface` and the policy implementations in
 `Application\Policy`.
+
+## Activity nesting
+
+Activities form an explicit parent/child tree expressed by identity
+(`parentActivityId()`), not an in-memory collection. Each nested activity inherits
+the active context and reports through the same recorders; open activities are
+resolved by the completion policy when the execution finishes. Depth is bounded by
+the configured activity-depth limit.
+
+```mermaid
+flowchart TD;
+    E["Execution"] --> A1["Activity: resolve-config"];
+    A1 --> A2["Activity: load-yaml"];
+    A1 --> A3["Activity: validate-schema"];
+    A2 --> A4["Activity: read-resource"];
+    A3 --> M["Measurement / Observation / Occurrence"];
+    A2 --> M;
+    A4 --> M;
+```
 
 ## Exception preservation
 

@@ -43,6 +43,54 @@ The active activity identity changes as activities start and complete; open
 activities are tracked so the completion policy can resolve them when the
 execution finishes.
 
+## Propagation diagrams
+
+The same immutable context and the same `CurrentExecution` accessor behave
+differently per runtime. The diagrams below show how the active execution and its
+context are stored and restored in each model.
+
+### Synchronous
+
+A single call stack uses the synchronous `StackContextStorage`. Attaching a scope
+pushes a `ContextToken`; detaching pops it and restores the previous nested scope.
+
+```mermaid
+flowchart TD;
+    Caller["Caller"] --> Push["StackContextStorage.attach(token)"];
+    Push --> Op["Consumer operation<br/>(ExecutionScope active)"];
+    Op --> Nested["Nested call attaches child token"];
+    Nested --> Pop2["detach → restore parent scope"];
+    Pop2 --> Pop1["detach → restore prior scope"];
+```
+
+### Fiber
+
+Each Fiber keeps its own context slot. The runtime adapter suspends the current
+Fiber's context and restores the target Fiber's on switch, so no Fiber sees
+another's execution state.
+
+```mermaid
+flowchart TD;
+    Sched["Fiber scheduler"] --> F1["Fiber A → ContextStorage.suspend()"];
+    Sched --> F2["Fiber B → ContextStorage.restore()"];
+    F1 --> Slot["per-Fiber context slot"];
+    F2 --> Slot;
+```
+
+### Coroutine (Swoole / OpenSwoole)
+
+In a persistent worker, the `RuntimeContextDetectorInterface` resolves the active
+coroutine and the adapter stores the current execution per coroutine. Context is
+cleared or restored in `finally` so it never leaks between requests.
+
+```mermaid
+flowchart TD;
+    Worker["Swoole / OpenSwoole worker"] --> C1["Coroutine 1 → RuntimeContextDetector"];
+    Worker --> C2["Coroutine 2 → RuntimeContextDetector"];
+    C1 --> Slot["coroutine-local current execution"];
+    C2 --> Slot;
+```
+
 ## Security posture
 
 Propagation must not leak secrets or high-cardinality values. Context,

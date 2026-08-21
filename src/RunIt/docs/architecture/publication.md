@@ -19,6 +19,19 @@ A publish call flows through the stages outside-in:
 guard → fail-safe → filter → redact → sample → buffer → sink
 ```
 
+```mermaid
+flowchart TD;
+    Recorder["Recorder"] --> Guard["PublicationGuard<br/>(recursion guard)"];
+    Guard --> FailSafe["FailSafeArtifactPublisher<br/>(failure policy)"];
+    FailSafe --> Filter["FilteringArtifactPublisher<br/>(ArtifactFilter)"];
+    Filter --> Redact["RedactingArtifactPublisher<br/>(Redactor)"];
+    Redact --> Sample["SamplingArtifactPublisher<br/>(SamplingPolicy)"];
+    Sample --> Buffer["BufferedArtifactPublisher<br/>(BufferConfiguration)"];
+    Buffer --> Sink["Sink adapter<br/>(OTel / CloudEvents / Memory / Log)"];
+    FailSafe -. "on failure" .-> Health["InternalHealthReporter<br/>(no recursion)"];
+    Buffer -. "dropped / expired" .-> Health;
+```
+
 | Stage        | Contract / class                                   | Responsibility                                                      |
 |--------------|----------------------------------------------------|--------------------------------------------------------------------|
 | Guard        | `PublicationGuard`, `GuardedArtifactPublisher`      | Prevents recursive publication on one execution path.               |

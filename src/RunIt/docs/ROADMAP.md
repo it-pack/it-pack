@@ -2736,18 +2736,50 @@ Verification evidence:
 
 ## M14.2 Architecture documentation
 
-- [ ] Create `docs/architecture/hexagonal-architecture.md`.
-- [ ] Create `docs/architecture/lifecycle.md`.
-- [ ] Create `docs/architecture/context-propagation.md`.
-- [ ] Create `docs/architecture/publication.md`.
-- [ ] Create `docs/architecture/security.md`.
-- [ ] Create `docs/architecture/performance.md`.
-- [ ] Create `docs/architecture/self-instrumentation.md`.
-- [ ] Add an architecture dependency diagram.
-- [ ] Add execution lifecycle diagram.
-- [ ] Add activity nesting diagram.
-- [ ] Add an artifact publication diagram.
-- [ ] Add context propagation diagrams for synchronous, Fiber, and coroutine runtimes.
+- [x] Create `docs/architecture/hexagonal-architecture.md`.
+- [x] Create `docs/architecture/lifecycle.md`.
+- [x] Create `docs/architecture/context-propagation.md`.
+- [x] Create `docs/architecture/publication.md`.
+- [x] Create `docs/architecture/security.md`.
+- [x] Create `docs/architecture/performance.md`.
+- [x] Create `docs/architecture/self-instrumentation.md`.
+- [x] Add an architecture dependency diagram.
+- [x] Add execution lifecycle diagram.
+- [x] Add activity nesting diagram.
+- [x] Add an artifact publication diagram.
+- [x] Add context propagation diagrams for synchronous, Fiber, and coroutine runtimes.
+
+### M14.2 status audit — August 21, 2026
+
+M14.2 (architecture documentation) is complete. The architecture set now documents
+the hexagonal boundary, the execution lifecycle, context propagation, publication,
+security, performance, and self-instrumentation, with diagrams for each.
+
+Verification evidence:
+
+- **New pages.** `docs/architecture/hexagonal-architecture.md` describes the
+  ports-and-adapters layering, the inward dependency direction, the ports, the
+  adapter tiers, and consumer/SDK boundaries, and embeds a layered Mermaid diagram.
+  `docs/architecture/security.md`, `docs/architecture/performance.md`, and
+  `docs/architecture/self-instrumentation.md` are new and align with the Security,
+  Performance, and Self-Instrumentation sections of `AGENTS.md`.
+- **Pre-existing pages verified.** `lifecycle.md`, `context-propagation.md`, and
+  `publication.md` already existed and were extended with Mermaid diagrams rather
+  than rewritten: `lifecycle.md` gained a `stateDiagram-v2` lifecycle and an
+  activity-nesting `flowchart`; `context-propagation.md` gained synchronous, Fiber,
+  and coroutine propagation diagrams; `publication.md` gained a pipeline `flowchart`.
+- **Diagrams.** The architecture dependency diagram is the DepTrac-generated
+  `flowchart` in `dependency-graph.md` (referenced from the new hexagonal page); all
+  other diagrams are inline Mermaid. Mermaid is already rendered elsewhere in the
+  repo (`dependency-graph.md`, `QA.md`, `ROADMAP.md`).
+- **Consistency.** Class and contract names (`PublicationGuard`,
+  `GuardedArtifactPublisher`, `InternalHealthReporterInterface`,
+  `BufferedArtifactPublisher`, `MonotonicClockInterface`, `SecurityLimits`,
+  `ContextStorageInterface`, `RuntimeContextDetectorInterface`, the lifecycle status
+  set, and the `NestedExecutionMode` values) match the implementation and the
+  existing architecture docs. No code changes were required.
+- **Not verified by automation.** Documentation and diagrams are not executed by CI;
+  Mermaid is rendered by the documentation host, not by the test suite.
 
 ## M14.3 Integration documentation
 
