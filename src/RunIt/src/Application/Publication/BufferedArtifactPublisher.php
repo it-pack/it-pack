@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
+use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
@@ -55,6 +56,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         private readonly ?InternalHealthReporterInterface $health = null,
         ?Closure $nowSeconds = null,
         ?Closure $estimateBytes = null,
+        private readonly ?BatchFlushObserverInterface $observer = null,
     ) {
         $this->nowSeconds = $nowSeconds ?? static fn (): int => time();
         $this->byteEstimator = $estimateBytes ?? static fn (ExecutionArtifactInterface $artifact): int => strlen((string) json_encode($artifact->normalize(), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE));
@@ -85,15 +87,18 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
     public function flush(): void
     {
+        $start = hrtime(true);
         /** @var int $now */
         $now = ($this->nowSeconds)();
         $this->lastFlushEpoch = $now;
-        $this->drain($this->config->batchSize);
+        $flushed = $this->drain($this->config->batchSize);
+        $this->observe($flushed, $start);
     }
 
     public function close(): void
     {
-        $this->drain($this->config->shutdownFlushBudget);
+        $start = hrtime(true);
+        $flushed = $this->drain($this->config->shutdownFlushBudget);
 
         while ($this->buffer !== []) {
             array_shift($this->buffer);
@@ -101,6 +106,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         }
 
         $this->estimatedBytes = 0;
+        $this->observe($flushed, $start);
     }
 
     public function bufferedCount(): int
@@ -274,7 +280,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         return null;
     }
 
-    private function drain(int $limit): void
+    private function drain(int $limit): int
     {
         $flushed = 0;
 
@@ -297,6 +303,18 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
             $this->inner->publish($item['artifact']);
             $flushed++;
         }
+
+        return $flushed;
+    }
+
+    private function observe(int $flushed, int $startedAtNanoseconds): void
+    {
+        if ($this->observer === null) {
+            return;
+        }
+
+        $durationMicroseconds = max(0, (int) ((hrtime(true) - $startedAtNanoseconds) / 1000));
+        $this->observer->onFlush($flushed, $durationMicroseconds, count($this->buffer));
     }
 
     private function reportDrop(ExecutionArtifactInterface $artifact): void

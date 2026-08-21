@@ -2934,16 +2934,86 @@ Verification evidence:
 
 ## M14.6 RunIt dogfooding
 
-- [ ] Represent RunIt test execution as an execution.
-- [ ] Represent static analysis as an execution.
-- [ ] Represent architecture analysis as an execution.
-- [ ] Represent mutation testing as an execution.
-- [ ] Represent benchmark execution as an execution.
-- [ ] Represent release validation as an execution.
-- [ ] Instrument adapter batch flushes.
-- [ ] Verify dogfooding does not recurse.
-- [ ] Verify dogfooding does not distort benchmark results.
-- [ ] Document the intentionally uninstrumented bootstrap path.
+- [x] Represent RunIt test execution as an execution.
+- [x] Represent static analysis as an execution.
+- [x] Represent architecture analysis as an execution.
+- [x] Represent mutation testing as an execution.
+- [x] Represent benchmark execution as an execution.
+- [x] Represent release validation as an execution.
+- [x] Instrument adapter batch flushes.
+- [x] Verify dogfooding does not recurse.
+- [x] Verify dogfooding does not distort benchmark results.
+- [x] Document the intentionally uninstrumented bootstrap path.
+
+### M14.6 status audit — August 21, 2026
+
+M14.6 (RunIt dogfooding) is complete. RunIt now represents its own dev-tooling runs
+as executions, instruments its own buffered publisher flushes, and does so without
+recursing or distorting benchmarks.
+
+What was added:
+
+- **Dogfooding module** (`tools/dogfood/`, dev-only, `Tools\Dogfood\`): a `DevTool`
+  descriptor and `PredefinedTools` mapping the six tooling runs to composer scripts
+  (test, static analysis, architecture, mutation, benchmark, and release validation
+  via `composer quality`). `DogfoodRunner` opens an execution through the SDK per tool,
+  runs it as a subprocess (`ShellProcessRunner`), and records a duration and exit-code
+  measurement, a warning observation on non-zero exit, a completion/failure occurrence,
+  and a terminal summary snapshot. A non-zero exit marks the dogfood execution failed
+  (`ToolFailedException`) and makes the report exit non-zero.
+- **Adapter batch-flush instrumentation.** New `BatchFlushObserverInterface`
+  (`src/Contract/Application/Publication`) — the single sanctioned self-instrumentation
+  seam — plus `RecordingBatchFlushObserver` (`src/Application/Publication`), which keeps
+  counters only. `BufferedArtifactPublisher` now accepts the observer and calls
+  `onFlush(flushedCount, durationMicroseconds, remainingBuffered)` on every flush and on
+  close. Because the observer never re-publishes, it cannot recurse through the guarded
+  pipeline.
+- **Entry point.** `tools/dogfood/run-dogfood.php` builds a `RunIt` instance with a
+  buffered publisher over an in-memory recorder and the flush observer (no external
+  adapter attached), runs all predefined tools, prints a plain-text report plus the
+  flush self-instrumentation totals, and exits with the report's code. Wired as
+  `composer dogfood`.
+- **Tests.**
+  - `tests/Unit/Tools/Dogfood/DogfoodRunnerTest.php` — runs the six representations with a
+    fake process runner and asserts artifact counts scale linearly with the number of
+    tools and stay bounded per tool (no recursion); a non-zero exit yields a failed
+    occurrence and failing outcome; `PredefinedTools::all()` returns six tools with valid
+    names, kinds, and occurrence types.
+  - `tests/Unit/Application/Publication/BufferedArtifactPublisherFlushObserverTest.php` —
+    the buffered publisher notifies the observer on flush and close, and the observer is
+    optional.
+  - `tests/Integration/Tools/Dogfood/BenchmarkBootstrapUninstrumentedTest.php` — benchmarks
+    and `phpbench.json` do not import `Tools\Dogfood`, and the dogfood entry does not
+    bootstrap the benchmark suite (no benchmark distortion).
+
+Verification evidence:
+
+- `vendor/bin/codecept run Unit tests/Unit/Tools/Dogfood/DogfoodRunnerTest.php` — OK (3 tests).
+- `vendor/bin/codecept run Unit tests/Unit/Application/Publication/BufferedArtifactPublisherFlushObserverTest.php` — OK (3 tests).
+- `vendor/bin/codecept run Integration tests/Integration/Tools/Dogfood/BenchmarkBootstrapUninstrumentedTest.php` — OK (3 tests).
+- `vendor/bin/phpstan analyse` — OK (level max; new `src` files in scope).
+- `vendor/bin/deptrac --config-file=deptrac.yaml` — 0 violations.
+- `composer cs:check` — clean for the changed files.
+
+Not verified by execution in this session:
+
+- `composer dogfood` was **not** run end-to-end. It invokes the full project quality gate
+  (including `composer mutation`, which needs a coverage driver, and `composer benchmark`),
+  so a green run depends on the environment as much as on dogfooding. The dogfooding
+  pipeline itself is validated by the unit tests and a debug harness that builds the same
+  `RunIt`/`BufferedArtifactPublisher`/`DogfoodRunner` chain; the subprocess invocation is a
+  thin `proc_open` wrapper. End-to-end execution is intended for local/CI use.
+- `composer dogfood` is intentionally **not** part of the default `quality` script, so the
+  release gate does not observe itself.
+
+Architecture notes:
+
+- The dogfooding module uses only public APIs plus the `Application\Publication` batch-flush
+  seam (`BufferedArtifactPublisher`, `BufferConfiguration`, `RecordingBatchFlushObserver`),
+  which is the one internal contract introduced for self-instrumentation. `tools/dogfood/`
+  is outside DepTrac's `paths` (`./src`), so it does not couple the domain to tooling.
+- No global telemetry provider, hook, or process-wide state is installed by the SDK builder,
+  so constructing a `RunIt` instance does not alter the behavior of any other process.
 
 ## M14.7 ConfigureIt adoption
 

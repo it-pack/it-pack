@@ -21,6 +21,7 @@
         "psr-4": {
             "Tests\\": "tests/",
             "Benchmarks\\": "benchmarks/",
+            "Tools\\Dogfood\\": "tools/dogfood/src/",
             "Tools\\PhpStan\\RunitRules\\": "tools/phpstan/runit-rules/src/"
         }
     },
@@ -82,6 +83,7 @@
         "test:integration": "vendor/bin/codecept run Integration",
         "test:conformance": "vendor/bin/codecept run Conformance",
         "examples": "bash scripts/examples.sh",
+        "dogfood": "php tools/dogfood/run-dogfood.php",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
