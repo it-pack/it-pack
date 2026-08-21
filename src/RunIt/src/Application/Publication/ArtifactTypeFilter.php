@@ -12,13 +12,13 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ArtifactTypeFilter implements ArtifactFilterInterface
+final readonly class ArtifactTypeFilter implements ArtifactFilterInterface
 {
     /**
      * @param list<class-string<ExecutionArtifactInterface>> $types
      */
     public function __construct(
-        private readonly array $types,
+        private array $types,
     ) {
     }
 

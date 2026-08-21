@@ -27,10 +27,10 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class DefaultArtifactRedactor implements RedactorInterface
+final readonly class DefaultArtifactRedactor implements RedactorInterface
 {
     public function __construct(
-        private readonly ArtifactRedactionConfig $config = new ArtifactRedactionConfig(),
+        private ArtifactRedactionConfig $config = new ArtifactRedactionConfig(),
     ) {
     }
 
@@ -76,9 +76,9 @@ final class DefaultArtifactRedactor implements RedactorInterface
     }
 
     /**
-     * @param  array<mixed, mixed> $data
+     * @param array $data
      * @param  list<string>        $keys
-     * @return array{0: array<mixed, mixed>, 1: bool}
+     * @return array{0: array, 1: bool}
      */
     private function maskKeys(array $data, array $keys): array
     {
@@ -129,8 +129,8 @@ final class DefaultArtifactRedactor implements RedactorInterface
     }
 
     /**
-     * @param  array<mixed, mixed> $throwable
-     * @return array{0: array<mixed, mixed>, 1: bool}
+     * @param array $throwable
+     * @return array{0: array, 1: bool}
      */
     private function maskThrowable(array $throwable): array
     {

@@ -17,13 +17,13 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
-final class CollectAndContinuePolicy implements PublicationFailurePolicyInterface
+final readonly class CollectAndContinuePolicy implements PublicationFailurePolicyInterface
 {
     /**
      * @param Closure(\Throwable, ExecutionArtifactInterface): void $collector
      */
     public function __construct(
-        private readonly Closure $collector,
+        private Closure $collector,
     ) {
     }
 

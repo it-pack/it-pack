@@ -18,15 +18,15 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CallbackArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final readonly class CallbackArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
     /**
      * @param Closure(ExecutionArtifactInterface): void $callback
      */
     public function __construct(
-        private readonly Closure $callback,
-        private readonly ?Closure $onFlush = null,
-        private readonly ?Closure $onClose = null,
+        private Closure  $callback,
+        private ?Closure $onFlush = null,
+        private ?Closure $onClose = null,
     ) {
     }
 

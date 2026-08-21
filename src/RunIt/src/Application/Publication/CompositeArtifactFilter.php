@@ -17,14 +17,14 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CompositeArtifactFilter implements ArtifactFilterInterface
+final readonly class CompositeArtifactFilter implements ArtifactFilterInterface
 {
     /**
      * @param list<ArtifactFilterInterface> $filters
      */
     public function __construct(
-        private readonly array $filters,
-        private readonly bool $requireAll = true,
+        private array $filters,
+        private bool  $requireAll = true,
     ) {
     }
 

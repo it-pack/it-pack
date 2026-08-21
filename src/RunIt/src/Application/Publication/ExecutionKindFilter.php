@@ -20,15 +20,15 @@ use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ExecutionKindFilter implements ArtifactFilterInterface
+final readonly class ExecutionKindFilter implements ArtifactFilterInterface
 {
     /**
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param list<string>                                           $allowedKinds
      */
     public function __construct(
-        private readonly Closure $resolver,
-        private readonly array $allowedKinds,
+        private Closure $resolver,
+        private array   $allowedKinds,
     ) {
     }
 

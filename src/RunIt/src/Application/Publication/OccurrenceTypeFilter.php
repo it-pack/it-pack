@@ -16,13 +16,13 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
  *
  * @see https://w3id.org/itpack/runit#occurrenceType
  */
-final class OccurrenceTypeFilter implements ArtifactFilterInterface
+final readonly class OccurrenceTypeFilter implements ArtifactFilterInterface
 {
     /**
      * @param list<string> $types
      */
     public function __construct(
-        private readonly array $types,
+        private array $types,
     ) {
     }
 

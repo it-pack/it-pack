@@ -18,16 +18,16 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class RatioSamplePolicy implements SamplingPolicyInterface
+final readonly class RatioSamplePolicy implements SamplingPolicyInterface
 {
-    private readonly Closure $source;
+    private Closure $source;
 
     /**
      * @param Closure(): float|null $source returns a float in [0, 1); defaults to a real random source
      */
     public function __construct(
-        private readonly float $ratio,
-        ?Closure $source = null,
+        private float $ratio,
+        ?Closure      $source = null,
     ) {
         $this->source = $source ?? static fn (): float => \lcg_value();
     }

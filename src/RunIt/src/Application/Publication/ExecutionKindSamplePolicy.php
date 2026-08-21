@@ -20,15 +20,15 @@ use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
  *
  * @see https://w3id.org/itpack/runit#executionKind
  */
-final class ExecutionKindSamplePolicy implements SamplingPolicyInterface
+final readonly class ExecutionKindSamplePolicy implements SamplingPolicyInterface
 {
     /**
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param array<string, bool>                                     $decisions kind name => keep?
      */
     public function __construct(
-        private readonly Closure $resolver,
-        private readonly array $decisions,
+        private Closure $resolver,
+        private array   $decisions,
     ) {
     }
 

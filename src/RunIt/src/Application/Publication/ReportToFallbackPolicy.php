@@ -19,11 +19,11 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#PublicationFailurePolicy
  */
-final class ReportToFallbackPolicy implements PublicationFailurePolicyInterface
+final readonly class ReportToFallbackPolicy implements PublicationFailurePolicyInterface
 {
     public function __construct(
-        private readonly ArtifactPublisherInterface $fallback,
-        private readonly ?InternalHealthReporterInterface $health = null,
+        private ArtifactPublisherInterface       $fallback,
+        private ?InternalHealthReporterInterface $health = null,
     ) {
     }
 

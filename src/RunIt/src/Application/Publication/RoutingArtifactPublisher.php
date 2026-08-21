@@ -19,15 +19,15 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class RoutingArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final readonly class RoutingArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
     /**
      * @param list<PublicationRoute>          $routes
      * @param ?ArtifactPublisherInterface     $fallback
      */
     public function __construct(
-        private readonly array $routes,
-        private readonly ?ArtifactPublisherInterface $fallback = null,
+        private array                       $routes,
+        private ?ArtifactPublisherInterface $fallback = null,
     ) {
     }
 

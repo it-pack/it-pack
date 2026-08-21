@@ -25,12 +25,12 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class GuardedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final readonly class GuardedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
     public function __construct(
-        private readonly PublicationGuardInterface $guard,
-        private readonly ArtifactPublisherInterface $inner,
-        private readonly ?InternalHealthReporterInterface $health = null,
+        private PublicationGuardInterface        $guard,
+        private ArtifactPublisherInterface       $inner,
+        private ?InternalHealthReporterInterface $health = null,
     ) {
     }
 

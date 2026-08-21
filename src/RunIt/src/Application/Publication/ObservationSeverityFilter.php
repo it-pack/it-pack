@@ -16,10 +16,10 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class ObservationSeverityFilter implements ArtifactFilterInterface
+final readonly class ObservationSeverityFilter implements ArtifactFilterInterface
 {
     public function __construct(
-        private readonly int $minLevel,
+        private int $minLevel,
     ) {
     }
 

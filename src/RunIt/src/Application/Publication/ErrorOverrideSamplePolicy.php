@@ -18,10 +18,10 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class ErrorOverrideSamplePolicy implements SamplingPolicyInterface
+final readonly class ErrorOverrideSamplePolicy implements SamplingPolicyInterface
 {
     public function __construct(
-        private readonly SamplingPolicyInterface $inner,
+        private SamplingPolicyInterface $inner,
     ) {
     }
 

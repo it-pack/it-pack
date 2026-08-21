@@ -15,13 +15,13 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CallbackHealthReporter implements InternalHealthReporterInterface
+final readonly class CallbackHealthReporter implements InternalHealthReporterInterface
 {
     /**
      * @param \Closure $callback
      */
     public function __construct(
-        private readonly \Closure $callback,
+        private \Closure $callback,
     ) {
     }
 
