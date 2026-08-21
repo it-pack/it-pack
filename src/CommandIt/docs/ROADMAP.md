@@ -365,6 +365,102 @@ composer quality
 
 ---
 
+## Milestone 9 — Safety & correctness (P0 from REFACTORING_PLAN)
+
+**Goal:** Close the two material gaps from `docs/REVIEW.md` §5: the safe composition is opt-in, and input coercion silently zeroed bad data. Source: `docs/REFACTORING_PLAN.md` R1, R2.
+
+### Tasks
+
+- [ ] **M9.1 `[SDK]`** Add a safe-by-default assembly (e.g. `CommandIt::create()` or `CommandItFactory`) that wraps the caller-supplied reporter in `GuardedExecutionReporter` + `RedactingExecutionReporter` (with a `NullExecutionReporter` health fallback) before handing it to the coordinator — without changing the explicit `CommandIt` constructor (`src/SDK/CommandIt.php:45-68`).
+- [ ] **M9.2 `[Adapter/Reporting]`** Ensure a `NullExecutionReporter` exists as the health fallback for the guarded/redacting composition (used by M9.1).
+- [ ] **M9.3 `[Behavior]`** Make `InputCoercionBehavior::coerceInputValue` reject non-scalar input for `int`/`float`/`double`/`string` with `InvalidCommandException`; keep the friendly `bool` aliases (`1/true/yes/on`, `0/false/no/off`) and document the `default` (unknown type) passthrough (`src/Behavior/Domain/InputCoercionBehavior.php:29-38`).
+- [ ] **M9.4 `[Tests]`** Add negative tests for each type in `CommandInputParserTest`, `ArrayInputAdapterTest`, `ArgvInputParserTest` proving malformed input throws (not silent `0`/`''`).
+- [ ] **M9.5 `[Docs]`** Update `README.md` getting-started to lead with the safe `create()` path and state clearly that a bare (unwrapped) reporter is **not** safe for sensitive data.
+
+### DoD
+
+Default `CommandIt::create(...)` dispatch with a secret-keyed observation context is redacted before reaching the sink; a reporter that re-reports through the same path is routed to health (no loop). Non-scalar input to a typed arg/option throws. Existing `new CommandIt(...)` callers untouched (additive).
+
+### QG
+
+```bash
+composer quality
+```
+
+---
+
+## Milestone 10 — Clean surface (P1 from REFACTORING_PLAN)
+
+**Goal:** Remove dead/aspirational surface and fix doc mismatches. Source: `docs/REFACTORING_PLAN.md` R3, R4, R5, R6.
+
+### Tasks
+
+- [ ] **M10.1 `[Contract/Command]`** Resolve the dead `handlerKey`: remove `handlerKey()` from `CommandDefinitionInterface` + `CommandDefinition` and `handler()` from `CommandDefinitionBuilder` (recommended), OR wire a `HandlerLocatorInterface` keyed by `handlerKey` (only if a consumer needs it). Pick one (`src/Domain/CommandDefinition.php:57`, `src/SDK/CommandDefinitionBuilder.php:36,73-92`, `src/Application/CommandRegistry.php:27-53`).
+- [ ] **M10.2 `[Core/Port]`** Wire `SerializerInterface` into the storage path: normalize `result->payload()` via a `SerializerInterface` (default `SafeSerializer`) before `store()` in `CommandExecutor`; keep `record()` best-effort so serialization failure never replaces the business result (`src/Application/CommandExecutor.php:69,81,88`). Document as consumer-only instead if storage-as-object is intentional.
+- [ ] **M10.3 `[SDK]`** Fix `CommandIt::has()` docblock — remove the false `@throws HandlerNotFoundException` (body returns `bool`) (`src/SDK/CommandIt.php:100-106`).
+- [ ] **M10.4 `[Composer/Docs]`** Reconcile PSR `suggest`: ship minimal `Adapter/Psr` adapters (`Psr3ExecutionReporter`, `Psr14ExecutionReporter`, `Psr20Clock`) OR reword `composer.json` `suggest` to "bring-your-own adapter" (`composer.json:48-53`).
+- [ ] **M10.5 `[Tests]`** Adjust/extend tests for the `handlerKey` decision and the serializer wiring; confirm `grep -rn handlerKey src` is empty (option a) or a real read path exists (option b).
+
+### DoD
+
+No dead fields; serializer either exercised by the core or explicitly documented as consumer-only; `CommandIt::has()` docblock matches behavior; `suggest` text matches shipped adapters.
+
+### QG
+
+```bash
+composer quality
+```
+
+---
+
+## Milestone 11 — Architecture & DX (P2 from REFACTORING_PLAN)
+
+**Goal:** Decouple adapters, add seams, lower onboarding friction, document reserved status. Source: `docs/REFACTORING_PLAN.md` R7, R8, R9, R10, R12.
+
+### Tasks
+
+- [ ] **M11.1 `[Adapter/Context]`** Decouple `FiberBoundContextStorage` from concrete `AmbientContextStorage`: accept `ExecutionContextProviderInterface` for the sync fallback and route through the public `enter`/`leave`/`current` contract (or make `AmbientContextStorage::stack()` private, not `@internal`-shared) (`src/Adapter/Context/FiberBoundContextStorage.php:32-35`, `src/Adapter/Context/AmbientContextStorage.php:45-48`).
+- [ ] **M11.2 `[Contract/Application]`** Add `MiddlewareChainInterface` and `CommandInputParserInterface`; update the two concrete classes and call sites (`src/Application/MiddlewareChain.php`, `src/Application/CommandInputParser.php`).
+- [ ] **M11.3 `[SDK]`** Add a convenience factory (`CommandIt::create()` or `CommandItFactory::minimal()`) supplying in-box defaults (clock, ids, guarded+redacting reporter over `CollectingExecutionReporter`, ambient or fiber-bound context, null/in-memory storage) while allowing overrides; update `README.md` to show it first (`src/SDK/CommandIt.php`, `README.md`).
+- [ ] **M11.4 `[Core]`** Add a context-enrichment hook so middleware/handler can attach classified/secret context that flows to reporters (copy-on-write, restored in `finally`); keep `Classification`/redaction usable on the dispatch path (`src/Contract/Command/CommandMiddlewareInterface.php`, `src/Application/MiddlewareChain.php`, `src/Application/CommandExecutor.php:96-102`).
+- [ ] **M11.5 `[Docs]`** Document `CommandStatus::Cancelled` as a reserved, not-yet-wired status (pending a `CancellationPort`) in `docs/architecture/MODEL.md` and `README.md` (`src/Domain/CommandStatus.php:23`).
+
+### DoD
+
+`FiberBoundContextStorage` depends only on interfaces/ports; `MiddlewareChain`/`CommandInputParser` have interfaces; getting-started collapses to one factory call; a middleware-attached `Secret` entry is redacted by the default reporter; `CANCELLED` is documented as reserved.
+
+### QG
+
+```bash
+composer quality
+```
+
+---
+
+## Milestone 12 — Confidence tooling (P2 from REFACTORING_PLAN)
+
+**Goal:** Make mutation testing and benchmarks runnable/CI-tracked. Source: `docs/REFACTORING_PLAN.md` R11.
+
+### Tasks
+
+- [ ] **M12.1 `[Tooling]`** Make `composer mutation` runnable: restrict the infection runner to the `Unit` suite (e.g. add `phpunit.xml.dist` covering `tests/Unit`, or configure the Codeception adapter to target only `Unit`) so the empty default `Acceptance` suite no longer aborts coverage (exit 143) (`infection.json5`, `codeception.yml`).
+- [ ] **M12.2 `[Tooling]`** Set a realistic `--min-msi` floor once `composer mutation` executes; prioritize lifecycle/failure branches per M4 intent.
+- [ ] **M12.3 `[CI]`** Add `composer benchmark` as a CI job (not part of `composer quality`) using `benchmarks/CommandDispatchBench.php` + `phpbench.json`, capturing a baseline.
+
+### DoD
+
+`composer mutation` executes and reports MSI against the `Unit` suite with a set floor; benchmark runs in CI with a recorded baseline.
+
+### QG
+
+```bash
+composer mutation
+composer benchmark
+composer quality
+```
+
+---
+
 ## Cross-cutting rules enforced every milestone
 
 - No `Domain → Adapter/SDK/Symfony/RunIt` dependency (DepTrac gate per milestone).
@@ -383,7 +479,11 @@ M0 (scaffold)
       → M3 (ports + defaults) → M4 (core orchestration)
           → M5 (SDK) → M6 (CLI adapter)
               → M7 (security/perf/self-instrument) → M8 (docs/ADR/release)
+                  → M9 (safety & correctness) → M10 (clean surface)
+                      → M11 (architecture & DX) → M12 (confidence tooling)
 ```
 
 Each arrow is a hard prerequisite: later milestones depend only on completed earlier interfaces, so any
-milestone can be shipped and tested in isolation.
+milestone can be shipped and tested in isolation. M9–M12 operationalize `docs/REVIEW.md` (final review)
+via `docs/REFACTORING_PLAN.md`; M9/M10 are the P0/P1 correctness+maintainability fixes, M11/M12 the P2
+architecture/DX and tooling improvements.
