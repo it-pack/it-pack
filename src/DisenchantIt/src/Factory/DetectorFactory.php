@@ -11,6 +11,7 @@ use ItPack\DisenchantIt\Adapter\CandidateGrouper;
 use ItPack\DisenchantIt\Adapter\Detector;
 use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
 use ItPack\DisenchantIt\Adapter\RoleClassifier;
+use ItPack\DisenchantIt\Adapter\ScopeFilter;
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Contract\DetectorFactoryInterface;
@@ -19,6 +20,7 @@ use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
+use ItPack\DisenchantIt\ValueObject\DisenchantScope;
 
 /**
  * Composition root for the detection half. Builds the nikic/AST scanner and
@@ -46,7 +48,7 @@ final readonly class DetectorFactory implements DetectorFactoryInterface
             NikicParserFactory::create(),
             NikicTraverserFactory::create(),
             MagicStringVisitorFactory::create(),
-            new CandidateFilter($classifier),
+            new CandidateFilter($classifier, new ScopeFilter(DisenchantScope::default())),
             new CandidateGrouper(
                 new ByValueGroupingStrategy(),
                 new ByValueAndContextGroupingStrategy(),

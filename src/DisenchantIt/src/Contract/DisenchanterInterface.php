@@ -18,18 +18,22 @@ use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
 interface DisenchanterInterface
 {
     /**
-     * Detect, group and name the magic-value candidates in $code.
+     * Detect, group, and name the magic-value candidates in $code.
+     *
+     * @param string|null $relativePath optional relative path of the source's
+     *        file; when supplied, the scope filter (configured on the
+     *        candidate filter) can apply file-level include/exclude rules.
      *
      * @return array<string, CandidateInterface> keyed by literal value.
      */
-    public function detect(string $code): array;
+    public function detect(string $code, ?string $relativePath = null): array;
 
     /**
      * Full pipeline for one source string: detect -> decide placements for
      * every candidate whose occurrence count meets $minOccurrences -> apply
      * those placements and return the rewritten source.
      */
-    public function rewrite(string $code, int $minOccurrences = 1): string;
+    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null): string;
 
     /**
      * Full pipeline including the SemConv collect + alias steps: detect ->
@@ -39,7 +43,11 @@ interface DisenchanterInterface
      * $existingSemConvSource when supplied, so re-runs accumulate rather than
      * overwrite).
      *
+     * @param string $code
+     * @param int $minOccurrences
+     * @param string|null $existingSemConvSource
+     * @param string|null $relativePath
      * @return DisenchantResultInterface
      */
-    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null): DisenchantResultInterface;
+    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null, ?string $relativePath = null): DisenchantResultInterface;
 }

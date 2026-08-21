@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Adapter;
 
 use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
+use ItPack\DisenchantIt\Contract\ScopeFilterInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\LiteralRole;
@@ -23,7 +24,8 @@ final readonly class CandidateFilter implements CandidateFilterInterface
     private const array TRIVIAL_NUMERIC_VALUES = ['0', '1', '0.0', '1.0'];
 
     public function __construct(
-        private readonly RoleClassifierInterface $classifier,
+        private RoleClassifierInterface $classifier,
+        private ScopeFilterInterface    $scopeFilter,
     ) {
     }
 
@@ -31,17 +33,24 @@ final readonly class CandidateFilter implements CandidateFilterInterface
      * @param list<LiteralInterface> $literals
      * @return list<LiteralInterface>
      */
-    public function filterCandidates(array $literals): array
+    public function filterCandidates(array $literals, ?string $relativePath = null): array
     {
+        $path = $relativePath ?? '';
+
         return array_values(array_filter(
             $literals,
             fn (LiteralInterface $lit): bool =>
-                match ($lit->kind) {
-                    LiteralKind::String->value => $this->keepString($lit),
-                    LiteralKind::Int->value, LiteralKind::Float->value => $this->keepNumber($lit),
-                    default => false,
-                },
+                $this->passesRoleAndKind($lit) && $this->scopeFilter->isAllowed($lit, $path),
         ));
+    }
+
+    private function passesRoleAndKind(LiteralInterface $lit): bool
+    {
+        return match ($lit->kind) {
+            LiteralKind::String->value => $this->keepString($lit),
+            LiteralKind::Int->value, LiteralKind::Float->value => $this->keepNumber($lit),
+            default => false,
+        };
     }
 
     private function keepString(LiteralInterface $lit): bool

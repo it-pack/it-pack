@@ -23,28 +23,28 @@ use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\SourceCode;
 
 /**
- * Detection + placement orchestrator (the "Detect" and "Decide/Rewrite" steps
+ * Detection and placement orchestrator (the "Detect" and "Decide/Rewrite" steps
  * of the DisenchantIt pipeline) for one PHP source string.
  *
  * Composes the scanner, candidate filter, grouper, name generator, placement
- * strategy and rewriter behind one seam. `detect()` exposes the grouped, named
+ * strategy, and rewriter behind one seam. `detect()` exposes the grouped, named
  * candidates; `rewrite()` runs the full pipeline and returns rewritten source.
  *
  * Hard rule preserved: this is pure source-text-in, data-structure-out. No file
- * is ever required, included, autoloaded or executed.
+ * is ever required, included, autoloaded, or executed.
  */
 final readonly class Disenchanter implements DisenchanterInterface
 {
     public function __construct(
-        private readonly StringLiteralDetectorInterface $detector,
-        private readonly CandidateFilterInterface $filter,
-        private readonly CandidateGrouperInterface $grouper,
-        private readonly ConstantNameResolverInterface $resolver,
-        private readonly ConstantPlacementStrategyInterface $placement,
-        private readonly RewriterInterface $rewriter,
-        private readonly SemConvCollectorInterface $collector,
-        private readonly SemConvAliasRewriterInterface $aliasRewriter,
-        private readonly ExecutionRecorderInterface $recorder,
+        private StringLiteralDetectorInterface     $detector,
+        private CandidateFilterInterface           $filter,
+        private CandidateGrouperInterface          $grouper,
+        private ConstantNameResolverInterface      $resolver,
+        private ConstantPlacementStrategyInterface $placement,
+        private RewriterInterface                  $rewriter,
+        private SemConvCollectorInterface          $collector,
+        private SemConvAliasRewriterInterface      $aliasRewriter,
+        private ExecutionRecorderInterface         $recorder,
     ) {
     }
 
@@ -69,10 +69,10 @@ final readonly class Disenchanter implements DisenchanterInterface
      *         is used by `rewrite()` and `rewriteWithSemConv()`, which both
      *         re-run `detect()` internally.
      */
-    public function detect(string $code): array
+    public function detect(string $code, ?string $relativePath = null): array
     {
         $literals = $this->detector->scanSource(new SourceCode($code));
-        $candidates = $this->filter->filterCandidates($literals);
+        $candidates = $this->filter->filterCandidates($literals, $relativePath);
         $groups = $this->grouper->groupByValue($candidates);
 
         $detected = [];
@@ -91,9 +91,9 @@ final readonly class Disenchanter implements DisenchanterInterface
         return $detected;
     }
 
-    public function rewrite(string $code, int $minOccurrences = 1): string
+    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null): string
     {
-        $candidates = $this->detect($code);
+        $candidates = $this->detect($code, $relativePath);
 
         $placements = [];
         foreach ($candidates as $candidate) {
@@ -111,10 +111,9 @@ final readonly class Disenchanter implements DisenchanterInterface
         return $this->rewriter->rewrite($code, $placements);
     }
 
-    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null): DisenchantResultInterface
+    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null, ?string $relativePath = null): DisenchantResultInterface
     {
-        $candidates = $this->detect($code);
-        $candidates = $this->detect($code);
+        $candidates = $this->detect($code, $relativePath);
         $this->record('disenchant.it.scan.v1', ['count' => count($candidates)]);
 
         $placements = [];

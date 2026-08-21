@@ -1,0 +1,120 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\DisenchantIt\ValueObject;
+
+/**
+ * Immutable configuration describing which files and literals should be opted
+ * out of detection.
+ *
+ * Matching is delegated to the {@see \ItPack\DisenchantIt\Contract\ScopeFilterInterface}
+ * adapter; this object is a pure carrier (replace, never mutate).
+ *
+ * Directory conventions rejected by `ignoreTests`: `tests/`, `fixtures/`,
+ * `var/`. Namespace filtering (`includeNamespaces` / `excludeNamespaces`) is
+ * accepted as configuration but intentionally *not yet enforced* — the literal
+ * carriers do not currently expose a namespace, only a short `className`, so a
+ * namespace source must be threaded through detection before that rule can be
+ * applied (deferred; see the roadmap Phase 1 notes).
+ */
+final readonly class DisenchantScope implements DisenchantScopeInterface
+{
+    /**
+     * @param list<string> $includePaths     glob allow-list; non-empty ⇒ only matching files are analysed
+     * @param list<string> $excludePaths     glob deny-list; a match rejects the file
+     * @param list<string> $includeNamespaces namespace allow-list (deferred — not yet enforced)
+     * @param list<string> $excludeNamespaces namespace deny-list (deferred — not yet enforced)
+     * @param list<string> $excludeLiteralValues literal scalar values always rejected
+     */
+    public function __construct(
+        public array $includePaths = [],
+        public array $excludePaths = [],
+        public array $includeNamespaces = [],
+        public array $excludeNamespaces = [],
+        public array $excludeLiteralValues = [],
+        public bool $ignoreTests = false,
+    ) {
+    }
+
+    /**
+     * Build a scope from a flat config array (keys optional, all defaulting to
+     * empty / false except where noted).
+     *
+     * @param array<string, mixed> $config
+     */
+    public static function fromConfig(array $config = []): self
+    {
+        return new self(
+            includePaths: self::stringList($config, 'includePaths'),
+            excludePaths: self::stringList($config, 'excludePaths'),
+            includeNamespaces: self::stringList($config, 'includeNamespaces'),
+            excludeNamespaces: self::stringList($config, 'excludeNamespaces'),
+            excludeLiteralValues: self::stringList($config, 'excludeLiteralValues'),
+            ignoreTests: (bool) ($config['ignoreTests'] ?? false),
+        );
+    }
+
+    /**
+     * Default scope used by the composition root: opt out of test/fixture/var
+     * directories.
+     */
+    public static function default(): self
+    {
+        return new self(ignoreTests: true);
+    }
+
+    /** @return list<string> */
+    public function getIncludePaths(): array
+    {
+        return $this->includePaths;
+    }
+
+    /** @return list<string> */
+    public function getExcludePaths(): array
+    {
+        return $this->excludePaths;
+    }
+
+    /** @return list<string> */
+    public function getIncludeNamespaces(): array
+    {
+        return $this->includeNamespaces;
+    }
+
+    /** @return list<string> */
+    public function getExcludeNamespaces(): array
+    {
+        return $this->excludeNamespaces;
+    }
+
+    /** @return list<string> */
+    public function getExcludeLiteralValues(): array
+    {
+        return $this->excludeLiteralValues;
+    }
+
+    public function isIgnoreTests(): bool
+    {
+        return $this->ignoreTests;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     * @return list<string>
+     */
+    private static function stringList(array $config, string $key): array
+    {
+        $value = $config[$key] ?? [];
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($value as $entry) {
+            $out[] = is_scalar($entry) ? (string) $entry : '';
+        }
+
+        return $out;
+    }
+}

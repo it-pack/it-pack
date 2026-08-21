@@ -112,28 +112,69 @@ position. This underpins enum/flag targets later.
 
 ---
 
-## Phase 1 — Scope & ignore controls (prerequisite for noisier kinds)
+## Phase 1 — Scope & ignore controls (prerequisite for noisier kinds) — ✅ DONE
 
-### S1.1 — `DisenchantScope` value object
-- **Add** `ValueObject/DisenchantScope.php` `final readonly` implementing
-  `ValueObject/DisenchantScopeInterface`, holding:
+> **Status (implemented):** Both steps shipped and verified. Scope filtering is
+> applied per-literal inside `CandidateFilter` (after the existing role/kind
+> checks), exactly as the plan directs. The relative file path reaches the
+> filter via the new optional `?string $relativePath` parameter threaded from
+> `Disenchanter::detect/rewrite/rewriteWithSemConv` into
+> `CandidateFilter::filterCandidates`. The scope itself is a **construction-time
+> configuration** (built from `DisenchantScope::fromConfig()` / `default()`);
+> there is intentionally **no per-call scope override** — the plan's
+> `isAllowed(LiteralInterface, filePath)` signature carries no scope, so the
+> scope lives on the configured `ScopeFilter` (built by the factory).
+
+### S1.1 — `DisenchantScope` value object — ✅ DONE
+- **Add** `src/ValueObject/DisenchantScope.php` `final readonly` implementing
+  `src/ValueObject/DisenchantScopeInterface`, holding:
   - `list<string> $includePaths`, `list<string> $excludePaths` (glob),
   - `list<string> $includeNamespaces`, `list<string> $excludeNamespaces`,
   - `list<string> $excludeLiteralValues`,
-  - `bool $ignoreTests = true` (drops `tests/`, `fixtures/`, `var/`).
-  Provide a `fromConfig()` builder / default scope (exclude tests).
+  - `bool $ignoreTests = false` (default scope flips it to `true`).
+  - `public static function fromConfig(array $config = []): self` maps the six
+    keys (non-array values coerced to `string`; missing keys default empty /
+    false).
+  - `public static function default(): self` returns `new self(ignoreTests: true)`
+    — this is the scope the composition root (`DetectorFactory`) injects, so
+    `tests/`, `fixtures/`, `var/` are opted out by default.
+- **Tests:** `tests/Unit/ValueObject/DisenchantScopeTest.php` — empty config
+  opts nothing out; `default()` ignores tests; `fromConfig()` maps every key;
+  interface getters mirror the properties.
 
-### S1.2 — `ScopeFilter` port + adapter
-- **Add** `Contract/ScopeFilterInterface.php`
+### S1.2 — `ScopeFilter` port + adapter — ✅ DONE
+- **Add** `src/Contract/ScopeFilterInterface.php`
   `public function isAllowed(LiteralInterface $lit, string $filePath): bool;`
-- **Add** `Adapter/ScopeFilter.php` `final readonly` implementing it (glob/
-  namespace/literal matching, pure string ops).
-- **Modify** `Adapter/CandidateFilter.php` to depend on
-  `ScopeFilterInterface` and drop literals the scope rejects (after the existing
-  role/kind checks).
-- **Wire** via `Factory/DetectorFactory` (build `ScopeFilter` and pass into
-  `CandidateFilter`).
-- **Tests:** allow-list / deny-list / ignore-tests cases; idempotent.
+  (depends only on `LiteralInterface` + `DisenchantScopeInterface`, both
+  interfaces — keeps `Contract` clean per phparkitect).
+- **Add** `src/Adapter/ScopeFilter.php` `final readonly` implementing it.
+  Order of checks (first deny wins, then allow-list): (1) `ignoreTests` ⇒ reject
+  `tests/**`, `fixtures/**`, `var/**`; (2) `excludeLiteralValues` contains the
+  literal value ⇒ reject; (3) `excludePaths` glob match ⇒ reject; (4)
+  `includePaths` non-empty and no match ⇒ reject. Pure `fnmatch`/equality, no
+  file execution (preserves the hard rule).
+- **Modify** `src/Adapter/CandidateFilter.php` to depend on
+  `ScopeFilterInterface` and drop literals the scope rejects **after** the
+  existing role/kind checks (`filterCandidates(array, ?string $relativePath)`).
+- **Wire** via `src/Factory/DetectorFactory::create()` — builds
+  `new CandidateFilter($classifier, new ScopeFilter(DisenchantScope::default()))`
+  and returns it from `buildFilter()`.
+- **Tests:** `tests/Unit/Adapter/ScopeFilterTest.php` (ignore-tests dirs,
+  disable-ignoreTests, exclude-literal-value, exclude-path glob, include-path
+  allow-list); `tests/Unit/CandidateFilterTest.php` gains two scope cases
+  (excluded literal value, excluded path); `tests/Unit/DisenchanterScopeTest.php`
+  asserts the composition-root default drops a `tests/...` file end-to-end
+  (detect → `[]`, rewrite → unchanged).
+
+> **Implementation note — namespaces deferred:** `DisenchantScope` accepts
+> `includeNamespaces` / `excludeNamespaces`, but the literal carriers currently
+> expose only a short `className` (no namespace), so the `ScopeFilter` adapter
+> intentionally does **not** enforce them yet. This matches the chosen approach
+> ("Re-do to rich spec, defer namespaces"); namespace filtering is a follow-up
+> that first needs a namespace source threaded through detection.
+> **Note on path type:** the codebase has no dedicated path value object, so
+> `filePath` is a plain relative-path string (same boundary representation the
+> SDK consumer already holds).
 
 ---
 
@@ -315,7 +356,7 @@ target seam first, then the enum strategy, then closed-set detection.
 
 ```
 S0.1 → S0.2 → S0.3          # sub-kind foundation (no behavior change yet) ✅ DONE
-S1.1 → S1.2                 # scope/ignore (safe to land early)
+S1.1 → S1.2                 # scope/ignore (safe to land early) ✅ DONE
 S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature)
 S3.1 → S3.2                 # bitmask/flags
 S4.1 → S4.2                 # string coverage extension
@@ -326,10 +367,11 @@ S6.1 → S6.2 → S6.3         # docs
 Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
 
-> **Current status:** Phase 0 (S0.1–S0.3) is implemented, committed, and
-> verified — `composer architecture`, `composer analyze` (on `src`),
-> `composer format:check`, and `composer test:unit` all pass. Phase 1 is the
-> next shippable step.
+> **Current status:** Phases 0 (S0.1–S0.3) and 1 (S1.1–S1.2) are implemented,
+> committed, and verified — `composer architecture`, `composer analyze` (on
+> `src`), `composer format:check`, and `composer test:unit` all pass. Namespace
+> filtering is intentionally deferred (no namespace source on literal carriers
+> yet). Phase 2 (backed-enum target) is the next shippable step.
 
 ---
 
