@@ -35,18 +35,18 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
-final class DefaultActivityRunner implements ActivityRunnerInterface
+final readonly class DefaultActivityRunner implements ActivityRunnerInterface
 {
     public function __construct(
-        private readonly ExecutionScope $scope,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly SequenceAllocatorInterface $sequenceAllocator,
-        private readonly MonotonicClockInterface $clock,
-        private readonly ArtifactPublisherInterface $publisher,
-        private readonly ThrowableMapperInterface $throwableMapper,
+        private ExecutionScope                   $scope,
+        private ExecutionIdInterface             $executionId,
+        private SequenceAllocatorInterface       $sequenceAllocator,
+        private MonotonicClockInterface          $clock,
+        private ArtifactPublisherInterface       $publisher,
+        private ThrowableMapperInterface         $throwableMapper,
         /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
-        private readonly StringIdentifierFactoryInterface $activityIdFactory,
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private StringIdentifierFactoryInterface $activityIdFactory,
+        private SecurityLimits                   $limits = new SecurityLimits(),
     ) {
     }
 

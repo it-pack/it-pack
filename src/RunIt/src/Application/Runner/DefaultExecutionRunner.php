@@ -21,15 +21,22 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
@@ -57,41 +64,41 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class DefaultExecutionRunner implements ExecutionRunnerInterface
+final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 {
     /**
      * @param Closure(\Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
      */
-    private readonly FailSafeArtifactPublisher $safePublisher;
+    private FailSafeArtifactPublisher $safePublisher;
     public function __construct(
-        private readonly CurrentExecutionInterface $currentExecution,
-        private readonly ContextStorageInterface $contextStorage,
-        private readonly ArtifactPublisherInterface $publisher,
-        private readonly SerializerInterface $serializer,
-        private readonly ExecutionFactoryInterface $executionFactory,
-        private readonly ExecutionLifecycleCoordinatorInterface $coordinator,
-        private readonly ExecutionSnapshotFactoryInterface $snapshotFactory,
-        private readonly NestedExecutionPolicyInterface $nestedPolicy,
-        private readonly ExecutionCompletionPolicyInterface $completionPolicy,
-        private readonly MonotonicClockInterface $clock,
-        private readonly SequenceAllocatorInterface $sequenceAllocator,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ExecutionIdInterface> */
-        private readonly StringIdentifierFactoryInterface $executionIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
-        private readonly StringIdentifierFactoryInterface $activityIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ObservationIdInterface> */
-        private readonly StringIdentifierFactoryInterface $observationIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\OccurrenceIdInterface> */
-        private readonly StringIdentifierFactoryInterface $occurrenceIdFactory,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
-        private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
-        private readonly HashCalculatorInterface $hashCalculator,
-        private readonly ThrowableMapperInterface $throwableMapper,
-        private readonly ?Closure $onPublicationFailure = null,
-        private readonly ?SnapshotStoreInterface $snapshotStore = null,
-        private readonly ?Closure $onSnapshotStoreFailure = null,
-        private readonly ?ExecutionEngineInterface $engine = null,
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private CurrentExecutionInterface              $currentExecution,
+        private ContextStorageInterface                $contextStorage,
+        private ArtifactPublisherInterface             $publisher,
+        private SerializerInterface                    $serializer,
+        private ExecutionFactoryInterface              $executionFactory,
+        private ExecutionLifecycleCoordinatorInterface $coordinator,
+        private ExecutionSnapshotFactoryInterface      $snapshotFactory,
+        private NestedExecutionPolicyInterface         $nestedPolicy,
+        private ExecutionCompletionPolicyInterface     $completionPolicy,
+        private MonotonicClockInterface                $clock,
+        private SequenceAllocatorInterface             $sequenceAllocator,
+        /** @var StringIdentifierFactoryInterface<ExecutionIdInterface> */
+        private StringIdentifierFactoryInterface       $executionIdFactory,
+        /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
+        private StringIdentifierFactoryInterface       $activityIdFactory,
+        /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
+        private StringIdentifierFactoryInterface       $observationIdFactory,
+        /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
+        private StringIdentifierFactoryInterface       $occurrenceIdFactory,
+        /** @var StringIdentifierFactoryInterface<SnapshotIdInterface> */
+        private StringIdentifierFactoryInterface       $snapshotIdFactory,
+        private HashCalculatorInterface                $hashCalculator,
+        private ThrowableMapperInterface               $throwableMapper,
+        private ?Closure                               $onPublicationFailure = null,
+        private ?SnapshotStoreInterface                $snapshotStore = null,
+        private ?Closure                               $onSnapshotStoreFailure = null,
+        private ?ExecutionEngineInterface              $engine = null,
+        private SecurityLimits                         $limits = new SecurityLimits(),
     ) {
         $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
         $bounded = new BoundedArtifactPublisher($this->limits, $this->publisher);
@@ -188,6 +195,9 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
     }
 
+    /**
+     * @throws LifecycleExceptionInterface
+     */
     private function completeSuccess(ExecutionInterface $execution, ExecutionScope $scope): void
     {
         $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
@@ -197,6 +207,9 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         $this->publishTerminal($completed);
     }
 
+    /**
+     * @throws LifecycleExceptionInterface
+     */
     private function completeFailure(ExecutionInterface $execution, ExecutionScope $scope, Throwable $throwable): void
     {
         $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
@@ -242,7 +255,7 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
      * Detaches the ambient context in a way that can never mask the original
      * outcome: a detach failure is reported but not rethrown.
      */
-    private function detachSafely(\ItPack\RunIt\Contract\Port\ContextTokenInterface $token): void
+    private function detachSafely(ContextTokenInterface $token): void
     {
         try {
             $this->contextStorage->detach($token);
@@ -263,6 +276,9 @@ final class DefaultExecutionRunner implements ExecutionRunnerInterface
         return $this->engine ?? new SynchronousExecutionEngine();
     }
 
+    /**
+     * @throws Throwable
+     */
     private function safePublish(ExecutionArtifactInterface $artifact): void
     {
         $this->safePublisher->publish($artifact);

@@ -24,11 +24,11 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
-final class ActivityScope implements ActivityScopeInterface
+final readonly class ActivityScope implements ActivityScopeInterface
 {
     public function __construct(
-        private readonly ExecutionScopeInterface $parentScope,
-        private readonly ActivityInterface $activity,
+        private ExecutionScopeInterface $parentScope,
+        private ActivityInterface       $activity,
     ) {
     }
 
