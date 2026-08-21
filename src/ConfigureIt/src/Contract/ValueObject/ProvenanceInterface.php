@@ -30,6 +30,12 @@ interface ProvenanceInterface
     public function sourceKind(): string;
 
     /**
+     * The id of the layer this node originated from, when layered composition
+     * is in use. Null when no layers were involved (backward compatible).
+     */
+    public function layerId(): ?string;
+
+    /**
      * @return list<string> ordered names of processors that rewrote this node.
      */
     public function processorTrail(): array;

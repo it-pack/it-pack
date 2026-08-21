@@ -465,6 +465,35 @@ a builder integration test asserting the execution context is injected into the
 include processor). Suite green: **180 tests / 412 assertions**, PHPStan level 9
 **0 errors**, `php-cs-fixer` **0 files to fix**.
 
+
+### Additional Features — M2.E3.3: Layer attribution in provenance ✅
+
+Completes M2 (E3.1 + E3.2 + E3.3) of `docs/ADDITIONAL_FEATURES_PLAN.md` /
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`: layered composition is now explainable —
+the winning layer for every value is recorded in provenance and visible in the
+inspector. With no layers registered, behaviour (and provenance) is unchanged.
+
+- `src/ValueObject/Provenance.php` + `src/Contract/ValueObject/ProvenanceInterface.php` —
+  new `layerId(): ?string` (null when not layered); carried through the immutable
+  copies (`withProcessor` / `asOverridden` / `validated`) and `toArray()`.
+- `src/Core/ConfigurationDocument.php` + interfaces — carry `layerId(): ?string`
+  from source to normalizer.
+- `src/Core/DocumentNormalizer.php` + `src/Contract/DocumentNormalizerInterface.php`
+  — `normalize()` accepts an optional layer id and stamps it onto each node's
+  `Provenance`.
+- `src/Contract/LayerAwareSourceInterface.php` (new) + `src/Core/LayeredSource.php`
+  (new) — the builder wraps each layer's sources in `LayeredSource` carrying the
+  layer id; `src/Core/ConfigurationResolver.php` reads it while building documents.
+- `src/Core/ConfigurationLayer.php` — layers now expose a stable `id()` (defaults to
+  `layer-<precedence>` when unnamed).
+- `src/CLI/ConfigurationInspector.php` — `explain` now shows the winning layer
+  (a `layer` line per key and a `LAYER` column in the table).
+
+Tests: `LayerProvenanceTest` (layer id stamped onto node provenance, no layer id
+when no layers registered, winning layer visible in inspector). Suite green:
+**183 tests / 421 assertions**, PHPStan level 9 **0 errors**, `php-cs-fixer`
+**0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

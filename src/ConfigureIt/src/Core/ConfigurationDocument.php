@@ -25,6 +25,7 @@ final readonly class ConfigurationDocument implements ConfigurationDocumentInter
         private Format $format,
         private ?string $origin = null,
         private ?string $adapter = null,
+        private ?string $layerId = null,
     ) {
     }
 
@@ -49,5 +50,10 @@ final readonly class ConfigurationDocument implements ConfigurationDocumentInter
     public function adapter(): ?string
     {
         return $this->adapter;
+    }
+
+    public function layerId(): ?string
+    {
+        return $this->layerId;
     }
 }

@@ -59,7 +59,7 @@ thrown `TypeException`, not a silent bug.
 
 ---
 
-## M2 — Layered Composition & Environments  *(Plan §3)*
+## M2 — Layered Composition & Environments  *(Plan §3)* ✅ DONE
 
 **Objective:** replace implicit "last source wins" with explicit, explainable
 layering + conditional includes.
@@ -75,10 +75,10 @@ layering + conditional includes.
 - [x] **T2.2.2 (M)** Parser for the directive suffix (`IncludeProcessor::parseDirective`); reuses `ExecutionContext::environment()` / `attribute()` for matching; unrecognized conditions are a `ResolutionException`.
 - [x] **T2.2.3 (M)** Tests: `ConditionalIncludeTest` (included/excluded per context for env/tenant/profile, invalid condition, and multi-pass via double-add); plus a builder integration test verifying the execution context is injected into the processor.
 
-### Epic E3.3 — Layer attribution in provenance (Core)
-- [ ] **T2.3.1 (M)** Stamp layer id onto nodes during normalization (extend `DocumentNormalizer` to accept a layer context); surface in `Provenance`.
-- [ ] **T2.3.2 (M)** Inspector/CLI (`explain`) shows the winning layer (reuse `ConfigurationInspector`).
-- [ ] **T2.3.3 (M)** Tests: `LayerProvenanceTest`.
+### Epic E3.3 — Layer attribution in provenance (Core) ✅ DONE
+- [x] **T2.3.1 (M)** Stamp layer id onto nodes during normalization (extended `DocumentNormalizer` to accept a layer id; `Provenance` and `ConfigurationDocument` carry `layerId`; the builder wraps each layer's sources in `LayeredSource` so the resolver can stamp it).
+- [x] **T2.3.2 (M)** Inspector/CLI (`explain`) shows the winning layer (added a `layer` line to `explainKey` and a `LAYER` column to the `renderTable` of `ConfigurationInspector`).
+- [x] **T2.3.3 (M)** Tests: `LayerProvenanceTest` (layer id stamped onto node provenance, no layer id when no layers registered, winning layer visible in inspector).
 
 **M2 Exit:** `addLayer()` ordering + `@if` includes work and are visible in provenance/inspector; no behaviour change when unused.
 

@@ -18,5 +18,5 @@ interface DocumentNormalizerInterface
     /**
      * @return list<ConfigurationNodeInterface>
      */
-    public function normalize(ConfigurationDocumentInterface $document, int $priority, string $origin): array;
+    public function normalize(ConfigurationDocumentInterface $document, int $priority, string $origin, ?string $layerId = null): array;
 }

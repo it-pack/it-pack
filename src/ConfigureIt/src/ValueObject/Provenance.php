@@ -31,6 +31,7 @@ final readonly class Provenance implements ProvenanceInterface
         public bool    $overridden = false,
         public ?string $overriddenSource = null,
         public ?string $validatedBy = null,
+        public ?string $layerId = null,
         public float   $at = 0.0,
     ) {
     }
@@ -58,6 +59,11 @@ final readonly class Provenance implements ProvenanceInterface
     public function sourceKind(): string
     {
         return $this->sourceKind;
+    }
+
+    public function layerId(): ?string
+    {
+        return $this->layerId;
     }
 
     public function processorTrail(): array
@@ -101,6 +107,7 @@ final readonly class Provenance implements ProvenanceInterface
             overridden: $this->overridden,
             overriddenSource: $this->overriddenSource,
             validatedBy: $this->validatedBy,
+            layerId: $this->layerId,
             at: $this->at,
         );
     }
@@ -121,6 +128,7 @@ final readonly class Provenance implements ProvenanceInterface
             overridden: true,
             overriddenSource: $shadowedSource,
             validatedBy: $this->validatedBy,
+            layerId: $this->layerId,
             at: $this->at,
         );
     }
@@ -157,6 +165,7 @@ final readonly class Provenance implements ProvenanceInterface
             'overridden'      => $this->overridden,
             'overriddenSource' => $this->overriddenSource,
             'validatedBy'     => $this->validatedBy,
+            'layerId'         => $this->layerId,
             'at'              => $this->at,
         ];
     }

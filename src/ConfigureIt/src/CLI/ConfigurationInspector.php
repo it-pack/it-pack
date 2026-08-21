@@ -43,6 +43,7 @@ final readonly class ConfigurationInspector
             '  format      : ' . $p->format()->name,
             '  priority    : ' . $p->priority(),
             '  sourceKind  : ' . $p->sourceKind(),
+            '  layer       : ' . ($p->layerId() ?? '-'),
             '  overridden  : ' . ($p->overridden() ? 'yes (overrode ' . ($p->overriddenSource() ?? 'unknown') . ')' : 'no'),
             '  validatedBy : ' . ($p->validatedBy() ?? '-'),
             '  trail       : ' . ($p->processorTrail() === [] ? '-' : implode(' -> ', $p->processorTrail())),
@@ -66,12 +67,13 @@ final readonly class ConfigurationInspector
                 $this->display($node->value()),
                 \basename($p->resourceUri()),
                 $this->shortClass($p->adapter()),
+                $p->layerId() ?? '-',
                 $p->overridden() ? 'yes' : 'no',
             ];
         }
 
         return $this->table(
-            ['KEY', 'VALUE', 'SOURCE', 'ADAPTER', 'OVERRIDDEN'],
+            ['KEY', 'VALUE', 'SOURCE', 'ADAPTER', 'LAYER', 'OVERRIDDEN'],
             $rows,
         );
     }

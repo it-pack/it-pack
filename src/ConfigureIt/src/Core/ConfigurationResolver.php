@@ -16,6 +16,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DeclaresScalarTypesInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Contract\LayerAwareSourceInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Occurrence;
@@ -174,11 +175,16 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
                 $loader = $this->loaders->build($resource->format());
                 $parsed = $loader->load($raw);
 
+                $layerId = $source instanceof LayerAwareSourceInterface
+                    ? $source->layerId()
+                    : null;
+
                 $documents[] = $this->documentFactory->build(
                     $parsed->toArray(),
                     $resource->format(),
                     $resource->uri(),
                     get_class($loader),
+                    $layerId,
                 );
             }
         }

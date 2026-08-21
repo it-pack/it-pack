@@ -216,8 +216,10 @@ final class ConfigurationBuilder
         $sources = [];
 
         foreach ($active as $layer) {
+            $layerId = $layer->id();
+
             foreach ($layer->sources() as $source) {
-                $sources[] = $source;
+                $sources[] = new LayeredSource($source, $layerId);
             }
         }
 

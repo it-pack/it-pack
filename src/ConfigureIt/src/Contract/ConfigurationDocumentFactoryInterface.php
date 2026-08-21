@@ -16,5 +16,6 @@ interface ConfigurationDocumentFactoryInterface
         Format $format,
         ?string $origin = null,
         ?string $adapter = null,
+        ?string $layerId = null,
     ): ConfigurationDocumentInterface;
 }

@@ -27,9 +27,9 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
     /**
      * @return list<ConfigurationNodeInterface>
      */
-    public function normalize(ConfigurationDocumentInterface $document, int $priority, string $origin): array
+    public function normalize(ConfigurationDocumentInterface $document, int $priority, string $origin, ?string $layerId = null): array
     {
-        return $this->flatten($document, $document->toArray(), '', $origin, $priority);
+        return $this->flatten($document, $document->toArray(), '', $origin, $priority, $layerId);
     }
 
     /**
@@ -37,6 +37,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
      * @param string $prefix
      * @param string $source
      * @param int $priority
+     * @param string|null $layerId
      * @return list<ConfigurationNodeInterface>
      */
     private function flatten(
@@ -45,6 +46,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
         string $prefix,
         string $source,
         int $priority,
+        ?string $layerId = null,
     ): array {
         $key = $prefix === '' ? null : Key::fromString($prefix);
         $nodes = [];
@@ -53,7 +55,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
             $child = $key === null ? Key::fromString((string) $segment) : $key->child((string) $segment);
 
             if (is_array($value) && Key::isAssociative($value)) {
-                $nodes = [...$nodes, ...$this->flatten($document, $value, $child->toString(), $source, $priority)];
+                $nodes = [...$nodes, ...$this->flatten($document, $value, $child->toString(), $source, $priority, $layerId)];
 
                 continue;
             }
@@ -70,6 +72,7 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
                     adapter: $document->adapter() ?? 'unknown',
                     priority: $priority,
                     sourceKind: self::sourceKindOf($document->format(), $source),
+                    layerId: $layerId,
                     at: microtime(true),
                 ),
             );

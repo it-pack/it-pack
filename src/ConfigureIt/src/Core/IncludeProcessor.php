@@ -166,7 +166,7 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
         $raw = $this->reader->read($resource);
         $document = $this->loaders->build($format)->load($raw);
 
-        $nodes = $this->normalizer->normalize($document, $directive->priority() + 1, 'include:' . $relative);
+        $nodes = $this->normalizer->normalize($document, $directive->priority() + 1, 'include:' . $relative, $document->layerId());
 
         $parent = $directive->key();
 

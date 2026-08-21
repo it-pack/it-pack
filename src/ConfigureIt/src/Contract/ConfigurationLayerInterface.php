@@ -34,6 +34,12 @@ interface ConfigurationLayerInterface
     public function precedence(): int;
 
     /**
+     * Stable identifier of this layer, surfaced in node provenance and the
+     * inspector/CLI (`explain`).
+     */
+    public function id(): string;
+
+    /**
      * Whether this layer participates in the current resolution.
      *
      * Used for env/tenant/profile gating; a layer that does not match is skipped

@@ -36,4 +36,10 @@ interface ConfigurationDocumentInterface
      * loader that parsed it (Roadmap Phase 6).
      */
     public function adapter(): ?string;
+
+    /**
+     * The id of the layer this document originated from, when layered
+     * composition is in use, otherwise null.
+     */
+    public function layerId(): ?string;
 }

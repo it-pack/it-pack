@@ -22,11 +22,13 @@ final readonly class ConfigurationLayer implements ConfigurationLayerInterface
     /**
      * @param list<ConfigurationSourceInterface> $sources
      * @param Closure(ExecutionContextInterface): bool|null $match optional gating predicate; null = always match.
+     * @param string $id layer identifier; empty defaults to `layer-<precedence>`.
      */
     public function __construct(
         private array  $sources,
         private int    $precedence = 0,
         private ?Closure $match = null,
+        private string $id = '',
     ) {
     }
 
@@ -38,6 +40,11 @@ final readonly class ConfigurationLayer implements ConfigurationLayerInterface
     public function precedence(): int
     {
         return $this->precedence;
+    }
+
+    public function id(): string
+    {
+        return $this->id === '' ? sprintf('layer-%d', $this->precedence) : $this->id;
     }
 
     public function match(ExecutionContextInterface $context): bool

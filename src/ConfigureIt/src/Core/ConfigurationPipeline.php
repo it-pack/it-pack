@@ -47,7 +47,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
             $priority++;
             $origin = $document->origin() ?? 'programmatic';
 
-            foreach ($this->normalizer->normalize($document, $priority, $origin) as $node) {
+            foreach ($this->normalizer->normalize($document, $priority, $origin, $document->layerId()) as $node) {
                 $graph->put($node);
             }
 
