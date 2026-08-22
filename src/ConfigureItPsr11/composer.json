@@ -1,0 +1,43 @@
+{
+    "name": "it-pack/configure-it-psr11",
+    "description": "PSR-11 container integration for ConfigureIt — exposes the resolved configuration snapshot through any PSR-11 compliant container.",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.5",
+        "psr/container": "^2.0",
+        "it-pack/configure-it": "*@dev"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "phpstan/phpstan": "^2.0",
+        "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ItPack\\ConfigureItPsr11\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ItPack\\ConfigureItPsr11\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true
+        }
+    },
+    "scripts": {
+        "test:unit": "vendor/bin/phpunit",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../ConfigureIt"
+        }
+    ]
+}

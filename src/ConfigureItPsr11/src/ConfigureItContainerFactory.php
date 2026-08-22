@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\ConfigureItPsr11;
+
+use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
+use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+
+/**
+ * Ergonomic factories for {@see ConfigureItContainer}.
+ *
+ * Two construction styles are supported:
+ *
+ *  - {@see fromSnapshot()} when you already hold a resolved snapshot (the common
+ *    case once a {@see ConfigurationBuilder} has run elsewhere, e.g. in a
+ *    framework boot sequence).
+ *  - {@see fromBuilder()} when the container should own the final resolve step.
+ */
+final class ConfigureItContainerFactory
+{
+    public static function fromSnapshot(
+        ConfigurationSnapshotInterface $snapshot,
+        string $entryId = ConfigurationSnapshotInterface::class,
+    ): ConfigureItContainer {
+        return new ConfigureItContainer($snapshot, $entryId);
+    }
+
+    public static function fromBuilder(
+        ConfigurationBuilder $builder,
+        string $entryId = ConfigurationSnapshotInterface::class,
+    ): ConfigureItContainer {
+        return new ConfigureItContainer($builder->build()->resolve(), $entryId);
+    }
+}
