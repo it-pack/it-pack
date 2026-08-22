@@ -1,0 +1,45 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\ConfigureItSchemaDocs\Bin;
+
+use ItPack\ConfigureItSchemaDocs\SchemaDocGenerator;
+use Nette\Schema\Schema;
+
+require __DIR__ . '/../vendor/autoload.php';
+
+/** @var array<string, string|false> $options */
+$options = getopt('', ['file:', 'format::', 'title::']) ?: [];
+
+$file = $options['file'] ?? null;
+
+if ($file === null || is_bool($file)) {
+    fwrite(STDERR, "Usage: configure-it-schema-docs --file=<php-file-returning-Expect> "
+        . "[--format=markdown|json-schema] [--title=\"My Config\"]\n");
+    exit(1);
+}
+
+if (!is_file($file)) {
+    fwrite(STDERR, sprintf("File not found: %s\n", $file));
+    exit(1);
+}
+
+$definition = require $file;
+
+if (!$definition instanceof Schema) {
+    fwrite(STDERR, "The file must return a Nette\\Schema\\Schema instance "
+        . "(e.g. `return Expect::structure([...]);`).\n");
+    exit(1);
+}
+
+$format = is_string($options['format'] ?? null) ? $options['format'] : 'markdown';
+$title = is_string($options['title'] ?? null) ? $options['title'] : 'Configuration';
+
+$generator = SchemaDocGenerator::fromExpect($definition, $title);
+
+echo match ($format) {
+    'json', 'json-schema' => $generator->toJsonSchemaJson() . "\n",
+    default => $generator->toMarkdown(),
+};
