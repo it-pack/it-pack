@@ -11,6 +11,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DeclaresScalarTypesInterface;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use JsonException;
 
 /**
  * Computes a deterministic composite hash that identifies a resolution result.
@@ -28,11 +29,14 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
  */
 final class ConfigurationCompiler
 {
+    private const string HASH_ALGO = 'sha256';
+
     /**
      * @param iterable<ConfigurationSourceInterface> $sources
-     * @param list<ConfigurationProcessorInterface>  $processors
-     * @param list<ConfigurationReaderInterface>     $readers
-     * @param list<ConfigurationLoaderInterface>     $loaders
+     * @param list<ConfigurationProcessorInterface> $processors
+     * @param list<ConfigurationReaderInterface> $readers
+     * @param list<ConfigurationLoaderInterface> $loaders
+     * @throws JsonException
      */
     public function hash(
         iterable                      $sources,
@@ -48,11 +52,20 @@ final class ConfigurationCompiler
             foreach ($source->discover() as $resource) {
                 $uri = $resource->uri();
 
-                // Files are versioned by content hash so any edit invalidates
-                // the cache deterministically (mtime alone is sub-second coarse);
-                // non-file sources fall back to their uri as the version token.
-                $hash = hash_file('sha256', $uri);
-                $version = $hash !== false ? $hash : $uri;
+                // Files are versioned by content hash so any edit invalidates the
+                // cache deterministically (mtime alone is sub-second coarse).
+                // Non-file resources (https://, s3://, vault://, …) must NOT be
+                // opened here: hash_file() would transparently fetch them through
+                // a stream wrapper. Fall back to the uri as the version token.
+                $version = $uri;
+
+                if (is_file($uri)) {
+                    $hashed = hash_file(self::HASH_ALGO, $uri);
+
+                    if ($hashed !== false) {
+                        $version = $hashed;
+                    }
+                }
 
                 $descriptors[] = $uri . '#' . $version;
             }
@@ -69,7 +82,7 @@ final class ConfigurationCompiler
             'loaders'    => implode(',', array_map('get_class', $loaders)),
         ];
 
-        return hash('sha256', serialize($parts));
+        return hash(self::HASH_ALGO, serialize($parts));
     }
 
     private function schemaFingerprint(?ConfigurationSchemaInterface $schema): string

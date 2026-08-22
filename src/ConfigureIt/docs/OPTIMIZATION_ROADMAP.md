@@ -97,6 +97,23 @@ $version = $hash !== false ? $hash : $uri;
 **Risk:** Low. Logic is additive (`is_file` guard). If a path is a stream-wrapper "file"
 that should be hashed, it still is — `is_file()` returns true for local wrappers.
 
+**Status: DONE (2026-08-22).** `src/Core/ConfigurationCompiler.php` now declares
+`private const HASH_ALGO = 'sha256'` and gates the content hash behind `is_file()`:
+non-file URIs no longer reach `hash_file()` (which would fetch them through a stream
+wrapper). Both the composite hash and the new `HASH_ALGO` constant use the same algo,
+covering the F6 magic-string cleanup for this file ahead of schedule.
+
+- New `tests/Unit/Core/CompilerHashTest.php`:
+  - `testNonFileUriIsNotOpenedAndUsedAsVersionToken` registers a `vault://` spy
+    stream wrapper whose `stream_open` throws; proves `hash_file()` is never reached
+    for a non-file uri and that two distinct non-file uris produce distinct keys
+    (uri folded in verbatim as the version token).
+  - `testFileHashIsContentSensitiveAndStable` regression: a real temp file yields a
+    stable key for unchanged content and a different key after an edit.
+- Gates after change: `composer analyse` **OK (250/250, 0 errors)**;
+  `composer cs:check` **0 of 251 files**; `composer test:unit` **257 tests / 597
+  assertions, all passing** (+2 vs Phase-0 baseline of 255).
+
 ---
 
 ## Phase 2 — Hexagonal & DIP leaks (F1 / F2 / F4)
@@ -588,7 +605,7 @@ Per-phase hard gates:
 
 | Phase | Items | Risk | Est. | Merge independently? |
 |-------|-------|------|------|----------------------|
-| 1 | F16 | Low | S | Yes |
+| 1 | F16 | Low | S | Yes | ✅ done (2026-08-22) |
 | 2 | F1, F2, F4 | Med | M | Yes (F1+F2+F4 share `ConfigurationBuilder`; one branch) |
 | 3 | F3 | Low | S | Yes |
 | 4 | F5, F6, F8 | Med | M | Yes (F6/F8 are tiny; F5 is the bulk) |
