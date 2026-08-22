@@ -22,6 +22,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Behavior/.*
+    - name: Cli
+      collectors:
+        - type: directory
+          value: src/Cli/.*
     - name: Entry
       collectors:
         - type: directory
@@ -41,6 +45,13 @@ deptrac:
       - Reflection
       - Resolver
       - Behavior
+    Cli:
+      - Contract
+      - Reflection
+      - Resolver
+      - Generator
+      - Behavior
+      - Entry
     Entry:
       - Contract
       - Reflection

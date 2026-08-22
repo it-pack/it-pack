@@ -16,6 +16,9 @@
             "_Vendor\\": "fixtures/"
         }
     },
+    "bin": [
+        "bin/derive"
+    ],
     "authors": [
         {
             "name": "tidal",

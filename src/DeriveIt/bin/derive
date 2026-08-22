@@ -1,0 +1,23 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use ItPack\DeriveIt\Cli\DeriveCommand;
+
+(static function (): void {
+    $autoload = __DIR__ . '/../vendor/autoload.php';
+    if (!is_file($autoload)) {
+        fwrite(STDERR, "derive: vendor/autoload.php not found; run `composer install` first.\n");
+        exit(1);
+    }
+
+    require $autoload;
+
+    $args = array_slice($GLOBALS['argv'] ?? [], 1);
+    $command = new DeriveCommand(
+        static fn (string $data): int|false => fwrite(STDOUT, $data),
+        static fn (string $data): int|false => fwrite(STDERR, $data),
+    );
+    exit($command->execute($args));
+})();

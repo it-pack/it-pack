@@ -379,8 +379,8 @@ Phase 10 steps.
    wrapperMap, config)` derives the family of interfaces and emits a delegating
    adapter per member in a single source, auto-wiring cross-member returns
    (EC12).
-- **G17** CLI `bin/derive` — derive a class/file to stdout or a path for ad-hoc
-  ports and dogfooding.
+- **G17** ✅ CLI `bin/derive` — derive a class/file to stdout or a path for ad-hoc
+   ports and dogfooding (10.16).
 
 ### I. Performance & maintainability
 - **G13** ✅ Shared Nette `Factory` + de-dup reflection — `FamilyDeriver` threads one

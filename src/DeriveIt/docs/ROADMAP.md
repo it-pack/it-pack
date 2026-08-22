@@ -486,7 +486,7 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.15 complete (2026-08-22).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.16 complete (2026-08-22).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
@@ -496,8 +496,9 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 > family-of-adapters generation (G14 / EC12), re-expose owned interfaces
 > (G16 / A4), shared `Factory` + de-dup reflection (G13 / EC20), and the `BuildMeta`
 > value object + shared deriver base + injectable reflection cache (G15 / G18 / E5)
-> are implemented and tested. All five gates green. Step 10.16 (CLI `bin/derive`)
-> remains planned.
+> value object + shared deriver base + injectable reflection cache (G15 / G18 / E5),
+> and the `bin/derive` CLI (G17 / DX) are implemented and tested. All five gates
+> green. Phase 10 is complete.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -632,9 +633,10 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   `Psr\Cache\CacheItemPoolInterface`, persisting a "reflected" marker across processes;
   `get()` returns the in-process object when present (G18 / E5).
 
-### Step 10.16 — CLI `bin/derive` (G17, DX)
+### Step 10.16 — CLI `bin/derive` (G17, DX) ✅ COMPLETE
 - A small command to derive a class/file to stdout or a path for ad-hoc ports and
   dogfooding; exercises the public API end-to-end.
+- The bin/derive script wraps src/Cli/DeriveCommand.php, a unit-tested command that parses argv, resolves a class or PHP file to an FQCN, and dispatches to DeriveIt in five modes (flat, per-trait, adapter, family, family-adapter). Output goes to stdout, a single --out=FILE, or a --out=DIR/ with one file per member.
 
 ---
 

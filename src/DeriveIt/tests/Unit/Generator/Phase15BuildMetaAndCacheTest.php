@@ -49,8 +49,9 @@ final class Phase15BuildMetaAndCacheTest extends TestCase
             array_map(static fn (string $m): string => $m, array_keys($result->interface->getMethods())),
             $result->methods,
         );
-        // substitutions must at least carry the userland map (empty for this fixture).
-        self::assertIsArray($result->substitutions);
+        // Default config rewrites self/static to the derived interface FQCN.
+        self::assertArrayHasKey('self', $result->substitutions);
+        self::assertSame('_Fixture\TypedConstantsClassInterface', $result->substitutions['self']);
     }
 
     public function testSharedBaseAppliesSkipFilterInFlatMode(): void
@@ -105,6 +106,9 @@ final class Phase15BuildMetaAndCacheTest extends TestCase
 
         self::assertSame([Node::class], array_values(array_unique($cache->sets)));
         self::assertCount(1, $cache->sets);
+        // The same FQCN must be reflected (get) at least twice but set only once.
+        self::assertContains(Node::class, $cache->gets);
+        self::assertGreaterThanOrEqual(2, count($cache->gets));
     }
 
     public function testFamilyScanReflectsEachTypeExactlyOnce(): void
@@ -171,7 +175,7 @@ final class CountingReflectionCache implements ReflectionCacheInterface
  */
 final class InMemoryPool implements CacheItemPoolInterface
 {
-    /** @var array<string, CacheItem> */
+    /** @var array<string, CacheItemInterface> */
     private array $items = [];
 
     public function getItem(string $key): CacheItemInterface
