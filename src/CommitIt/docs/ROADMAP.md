@@ -468,35 +468,61 @@ and wire non-intrusive observation.
 
 ---
 
-## Milestone M5 — SDK / DX Facade
+## Milestone M5 — SDK / DX Facade ✅ COMPLETE (2026-08-22)
 
 **Goal:** An ergonomic, optional programmatic entry point for consumers.
 
-### Tasks
+**Status:** Done. The `CommitIt` facade is implemented as a thin, stateless
+wrapper over `RepositoryOpener`. Value-object ergonomics from M2 were verified
+and required no changes. The optional fluent builder was deliberately skipped
+(no consumer requires it).
 
-1. **`CommitIt` facade.**
-   - `src/SDK/CommitIt.php` — `final`, static `open()`, `init()`, `clone()`
-     delegating to `RepositoryOpener`. Returns `Contract\Repository`.
-   - Keep the SDK thin: no hidden state, no global configuration.
+### Tasks — status
 
-2. **Value-object ergonomics (if needed).**
-   - Ensure `CommitMessage::fromParts()`, `RepositoryPath::from()`,
-     `BranchName`/`TagName`/`RemoteName` constructors are convenient for SDK users
-     (already built in M2; verify DX).
+1. **`CommitIt` facade.** ✅ `src/SDK/CommitIt.php` — `final`, static
+   `open()`, `init()`, `clone()` delegating to `RepositoryOpener`. Returns
+   `Contract\Repository`. The facade holds no hidden state and performs no
+   global configuration.
+2. **Value-object ergonomics.** ✅ Verified. `CommitMessage::fromParts()` /
+   `fromString()`, `RepositoryPath::from()`, and `BranchName` / `TagName` /
+   `RemoteName` `from()` constructors are ergonomic and unchanged.
+3. **Optional fluent builder.** ⏭ Skipped. `src/SDK/Fluent/StageBuilder.php`
+   was not built — the ROADMAP explicitly says to skip unless a concrete
+   consumer requires it, and none exists yet.
+4. **SDK tests.** ✅ `tests/Unit/SDK/CommitItTest.php` — facade returns a
+   working repository via an injected test `RepositoryFactory`
+   (`Tests\Unit\Application\FakeFactory`); covers `open`/`init`/`clone`
+   delegation, observer wiring, and the no-cached-factory (stateless) property.
 
-3. **Optional fluent builder (only if a concrete consumer needs it).**
-   - `src/SDK/Fluent/StageBuilder.php` — chain `stage()->commit()`; do **not**
-     build speculatively. Skip if no consumer requires it.
+### Built
 
-4. **SDK tests.**
-   - `tests/Unit/SDK/` — facade returns a working repository backed by the
-     `MemoryRunner` factory in tests (inject a test factory).
+- `src/SDK/CommitIt.php` — `final` facade. Each static method accepts a
+  `RepositoryFactory` (required) and an optional `?RepositoryObserver`; it
+  constructs a `RepositoryOpener` and delegates, returning a vendor-neutral
+  `Contract\Repository`.
+- `tests/Unit/SDK/CommitItTest.php` — 5 tests (delegation for open/init/clone,
+  observer wiring through `RecordingObserver`, statelessness across calls).
+
+### Decisions
+
+- **Factory injected per call, not stored.** The facade is stateless and must
+  not couple to any concrete adapter (a default git factory would mean
+  `SDK → Adapter`, a DepTrac violation). Callers pass the backend explicitly
+  (e.g. `new GitPhpRepositoryFactory()`), which keeps the SDK depending only on
+  `Common, Contract, Domain, Application`.
+- **`clone()` is a valid static method name.** Although `clone` is a reserved
+  keyword, PHP permits it as a method name and `CommitIt::clone()` parses and
+  runs; no rename required.
+- **Fluent builder deferred.** Built only on demand to avoid speculative
+  abstraction (per AGENTS.md "do not add speculative abstractions").
 
 ### Acceptance criteria
 
-- `CommitIt::open/init/clone` return a usable `Repository` in tests.
-- SDK depends only on `Common, Contract, Domain, Application` (DepTrac).
-- No global mutable state; facade is stateless.
+- ✅ `CommitIt::open/init/clone` return a usable `Repository` in tests.
+- ✅ SDK depends only on `Common, Contract, Domain, Application` (DepTrac: 0
+      violations).
+- ✅ No global mutable state; facade is stateless (no static properties; the
+      supplied factory is never cached between calls).
 
 ---
 
@@ -628,7 +654,7 @@ M1  Common & Contract ports                     ✅ COMPLETE (2026-08-21)
 M2  Domain value objects + validators           ✅ COMPLETE (2026-08-21)
 M3  Git adapter (factory, repository, working tree, exception map) ✅ COMPLETE (2026-08-21)
 M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place) ✅ COMPLETE (2026-08-22)
-M5  SDK facade
+M5  SDK facade ✅ COMPLETE (2026-08-22)
 M6  Integration tests & failure/security injection
 M7  Documentation & ADRs
 M8  Quality hardening (phpstan max, deptrac, cs-fixer, infection)
