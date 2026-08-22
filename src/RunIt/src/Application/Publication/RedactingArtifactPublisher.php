@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -22,6 +23,8 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  */
 final readonly class RedactingArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
+    use DelegatesPublisherLifecycleBehavior;
+
     public function __construct(
         private RedactorInterface          $redactor,
         private ArtifactPublisherInterface $inner,
@@ -33,17 +36,4 @@ final readonly class RedactingArtifactPublisher implements ArtifactPublisherInte
         $this->inner->publish($this->redactor->redact($artifact));
     }
 
-    public function flush(): void
-    {
-        if ($this->inner instanceof FlushablePublisherInterface) {
-            $this->inner->flush();
-        }
-    }
-
-    public function close(): void
-    {
-        if ($this->inner instanceof CloseablePublisherInterface) {
-            $this->inner->close();
-        }
-    }
 }

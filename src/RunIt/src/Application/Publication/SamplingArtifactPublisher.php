@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -23,6 +24,8 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  */
 final readonly class SamplingArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
+    use DelegatesPublisherLifecycleBehavior;
+
     public function __construct(
         private SamplingPolicyInterface          $policy,
         private ArtifactPublisherInterface       $inner,
@@ -41,17 +44,4 @@ final readonly class SamplingArtifactPublisher implements ArtifactPublisherInter
         $this->health?->report(new \RuntimeException('Artifact dropped by sampling policy.'), $artifact);
     }
 
-    public function flush(): void
-    {
-        if ($this->inner instanceof FlushablePublisherInterface) {
-            $this->inner->flush();
-        }
-    }
-
-    public function close(): void
-    {
-        if ($this->inner instanceof CloseablePublisherInterface) {
-            $this->inner->close();
-        }
-    }
 }

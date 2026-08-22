@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -24,6 +25,8 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  */
 final readonly class FailSafeArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
+    use DelegatesPublisherLifecycleBehavior;
+
     public function __construct(
         private ArtifactPublisherInterface        $inner,
         private PublicationFailurePolicyInterface $policy,
@@ -41,17 +44,4 @@ final readonly class FailSafeArtifactPublisher implements ArtifactPublisherInter
         }
     }
 
-    public function flush(): void
-    {
-        if ($this->inner instanceof FlushablePublisherInterface) {
-            $this->inner->flush();
-        }
-    }
-
-    public function close(): void
-    {
-        if ($this->inner instanceof CloseablePublisherInterface) {
-            $this->inner->close();
-        }
-    }
 }

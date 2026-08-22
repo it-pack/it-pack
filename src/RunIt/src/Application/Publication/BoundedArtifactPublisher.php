@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
+use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -30,6 +31,8 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  */
 final class BoundedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
+    use DelegatesPublisherLifecycleBehavior;
+
     /**
      * @var array<string, int>
      */
@@ -78,20 +81,6 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
         }
 
         $this->inner->publish($artifact);
-    }
-
-    public function flush(): void
-    {
-        if ($this->inner instanceof FlushablePublisherInterface) {
-            $this->inner->flush();
-        }
-    }
-
-    public function close(): void
-    {
-        if ($this->inner instanceof CloseablePublisherInterface) {
-            $this->inner->close();
-        }
     }
 
     private function drop(string $reason, ExecutionArtifactInterface $artifact): void
