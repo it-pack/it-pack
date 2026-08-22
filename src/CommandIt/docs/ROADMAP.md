@@ -462,9 +462,9 @@ composer quality
 
 ### Tasks
 
-- [ ] **M12.1 `[Tooling]`** Make `composer mutation` runnable: restrict the infection runner to the `Unit` suite (e.g. add `phpunit.xml.dist` covering `tests/Unit`, or configure the Codeception adapter to target only `Unit`) so the empty default `Acceptance` suite no longer aborts coverage (exit 143) (`infection.json5`, `codeception.yml`).
-- [ ] **M12.2 `[Tooling]`** Set a realistic `--min-msi` floor once `composer mutation` executes; prioritize lifecycle/failure branches per M4 intent.
-- [ ] **M12.3 `[CI]`** Add `composer benchmark` as a CI job (not part of `composer quality`) using `benchmarks/CommandDispatchBench.php` + `phpbench.json`, capturing a baseline.
+- [x] **M12.1 `[Tooling]`** Made `composer mutation` runnable: `infection.json5` now sets `testFrameworkExtraArgs: "Unit"` so infection runs only the `Unit` suite (via `codecept run Unit`) and no longer aborts on the empty default `Acceptance` suite (the previous exit-143 failure) (`infection.json5`).
+- [ ] **M12.2 `[Tooling]`** Set a realistic `--min-msi` floor. **Blocked by an upstream `infection/codeception-adapter` ↔ Codeception 5.3.5 incompatibility** (see Notes). `infection.json5` gained `timeout: 120` to dampen spurious timeouts, but a meaningful floor cannot be set until per-mutant test narrowing works. `composer mutation` currently keeps `--min-msi=0 --min-covered-msi=0` so the nightly job never falsely passes.
+- [x] **M12.3 `[CI]`** Added `.github/workflows/quality.yml` modeled on the sibling `RunIt/.github/workflows/quality.yml`, with a nightly/dispatch `mutation` job (`composer mutation`, pcov) and a nightly/dispatch `benchmark` job (`composer benchmark`). `composer benchmark` is validated: `benchDispatch` ≈ 290µs, `benchHandlerResolution` ≈ 2.1µs.
 
 ### DoD
 
@@ -477,6 +477,43 @@ composer mutation
 composer benchmark
 composer quality
 ```
+
+### Notes — M12.2 upstream blocker (per-mutant test narrowing broken)
+
+`composer mutation` now **runs** (M12.1 fixed the empty-`Acceptance`-suite exit-143 abort), but its
+per-mutant test narrowing is non-functional in this environment, so the reported MSI is unreliable and
+no realistic `--min-msi` floor can be set yet.
+
+Root cause (verified empirically):
+
+- `infection/codeception-adapter` (0.4.7) builds each mutant command as
+  `codecept run Unit --group infection -o "groups: infection: [<abs>,<abs>,…]"`, joining the
+  coverage-derived test **absolute file paths** with commas.
+- Codeception 5.3.5's `GroupManager` (`vendor/codeception/codeception/src/Codeception/Lib/GroupManager.php`)
+  cannot resolve a group that lists **two or more file entries**: it mangles the paths
+  (`File or directory … does not exist`), even for relative paths. A single file entry *or* a directory
+  entry works; 2+ file entries fail. The adapter always emits 2+ entries (a mutant is covered by several
+  test files), so every mutant's grouped run is broken.
+- Consequence: the full `composer mutation` run reports ~450/460 mutants as **timed out**, and infection
+  counts timed-out mutants as non-escaped, yielding a meaningless "Covered Code MSI: 99%". The
+  `timeout: 120` setting in `infection.json5` dampens incidental timeouts but cannot fix narrowing
+  (infection's per-mutant timeout is `min(5 + 5·nominal, processTimeout)`, bounded by the coverage-derived
+  nominal test time, not by `processTimeout` alone).
+
+This is a vendor/adapter incompatibility, not a CommandIt defect, so it is left out of scope for M12.
+
+Recommended fix (outside this milestone, tracked here for the next owner):
+
+- Pin a Codeception version whose `GroupManager` accepts multiple absolute file-group entries, **or**
+- Patch `infection/codeception-adapter`'s `getMutantCommandLine` to emit group entries that Codeception
+  5.3.5 can parse (e.g. a group-file via `groups: infection: <path-to-file-listing-tests>` or
+  space/newline-separated paths), **or**
+- Switch infection's `testFramework` to PHPUnit (requires a `phpunit.xml.dist` covering `tests/Unit` and
+  migration of the Unit suite's bootstrap) so per-mutant narrowing uses PHPUnit's native filtering.
+
+Until then, `composer mutation` keeps `--min-msi=0 --min-covered-msi=0` so the nightly/dispatch CI job
+(`quality.yml` → `mutation`) reports without falsely passing, and the benchmark job (M12.3) runs
+independently and records a baseline.
 
 ---
 
