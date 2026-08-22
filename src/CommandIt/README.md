@@ -12,6 +12,16 @@ stays RunIt- and Symfony-free; adapters project it onto specific runtimes. The s
 declared for completeness yet not reachable from the executor until a
 `CancellationPort` is introduced (see `docs/architecture/MODEL.md`).
 
+## Documentation
+
+- **[User Guide](docs/USER_GUIDE.md)** — task-oriented, with runnable examples:
+  defining commands, input/coercion, handlers, middleware, context & isolation,
+  reporting, the CLI adapter, custom ports, testing, and benchmarks.
+- [Architecture model](docs/architecture/MODEL.md) — the domain model.
+- [Architecture decisions](docs/adr/) — RunIt integration via ports, lazy handler
+  resolution, and fiber-bound context.
+- [Milestone plan & confidence tooling](docs/archive/ROADMAP.md) (archived).
+
 ## Installation
 
 ```bash
@@ -193,6 +203,7 @@ $reporter = new GuardedExecutionReporter($reporter, $healthReporter);
   object serialization: resources, closures, and objects without `toArray()`/`Stringable`
   are rejected with a `SerializationException`. Only recursively-primitive data is returned.
 
-See `docs/architecture/MODEL.md` for the domain model, `docs/adr/` for the load-bearing
-decisions (RunIt integration, lazy handler resolution, fiber-bound context), and `docs/ROADMAP.md`
-for the milestone plan.
+See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for the task-oriented guide,
+`docs/architecture/MODEL.md` for the domain model, `docs/adr/` for the
+load-bearing decisions (RunIt integration, lazy handler resolution, fiber-bound
+context), and `docs/archive/ROADMAP.md` for the milestone plan.
