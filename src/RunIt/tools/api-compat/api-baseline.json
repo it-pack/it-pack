@@ -2562,7 +2562,7 @@
         "methods": {
             "extract": {
                 "static": false,
-                "return": "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpExecutionContext",
+                "return": "ItPack\\RunIt\\Contract\\Shared\\HttpExecutionContextInterface",
                 "params": [
                     {
                         "name": "request",
@@ -2878,7 +2878,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Shared\\HttpExecutionContextInterface": "ItPack\\RunIt\\Contract\\Shared\\HttpExecutionContextInterface"
+        },
         "constants": [],
         "methods": {
             "__construct": {
@@ -2911,6 +2913,31 @@
                         "optional": true
                     }
                 ]
+            },
+            "getName": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionNameInterface",
+                "params": []
+            },
+            "getKind": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionKindInterface",
+                "params": []
+            },
+            "getCorrelationId": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "getContext": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
+                "params": []
+            },
+            "getAttributes": {
+                "static": false,
+                "return": "array",
+                "params": []
             }
         },
         "cases": []
@@ -3035,7 +3062,7 @@
             },
             "extract": {
                 "static": false,
-                "return": "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpExecutionContext",
+                "return": "ItPack\\RunIt\\Contract\\Shared\\HttpExecutionContextInterface",
                 "params": [
                     {
                         "name": "request",
@@ -12364,6 +12391,41 @@
             "CLOUDEVENTS_CORRELATION_ATTRIBUTE": "public"
         },
         "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Shared\\HttpExecutionContextInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "getName": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionNameInterface",
+                "params": []
+            },
+            "getKind": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionKindInterface",
+                "params": []
+            },
+            "getCorrelationId": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "getContext": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
+                "params": []
+            },
+            "getAttributes": {
+                "static": false,
+                "return": "array",
+                "params": []
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Domain\\Activity\\Activity": {

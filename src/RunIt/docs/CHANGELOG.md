@@ -21,6 +21,26 @@ pre-release versions.
   - Contract-level unit tests validate determinism, value equality, ownership,
     primitive projections, and marker hierarchies.
 
+## Unreleased — Phase 0 (P0)
+
+- Made `composer analyse` (PHPStan level max) pass by clearing the 5 genuine
+  errors; the 15 `shipmonk.deadMethod` notices remain accepted noise and are
+  triaged in Phase 1 (T1.2).
+- Added `ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface`, a public
+  contract for `Adapter\Psr\Http\HttpExecutionContext` (closes the one real DIP
+  leak flagged by `runit.requireInterface`). The concrete DTO keeps its public
+  `readonly` properties for backward compatibility and implements the interface
+  through matching accessors (`getName()`, `getKind()`, `getCorrelationId()`,
+  `getContext()`, `getAttributes()`). `HttpContextExtractorInterface::extract()`
+  and `Psr7RequestContextExtractor::extract()` now return the contract.
+- Tightened `DefaultArtifactRedactor::maskKeys()` and `maskThrowable()` iterable
+  types to `array<array-key, mixed>` so the security/redaction component satisfies
+  level-max without `missingType.iterableValue`. Internal-only change.
+- Regenerated `tools/api-compat/api-baseline.json` and
+  `normalization-schema-baseline.json`; the additive public symbols and the
+  covariant return widening on `Psr7RequestContextExtractor::extract()` introduce
+  no backward-compatibility break.
+
 ## Unreleased — M1.2 identifiers
 
 - Implemented the shared domain identifier primitives (milestone M1.2):

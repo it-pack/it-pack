@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\Psr\Http;
 
 use ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface;
 use ItPack\RunIt\Contract\Shared\CorrelationKeys;
+use ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface;
 use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
@@ -35,7 +36,7 @@ final readonly class Psr7RequestContextExtractor implements HttpContextExtractor
     ) {
     }
 
-    public function extract(ServerRequestInterface $request): HttpExecutionContext
+    public function extract(ServerRequestInterface $request): HttpExecutionContextInterface
     {
         $correlationId = $request->getHeaderLine($this->correlationHeader);
         $correlationId = $correlationId === '' ? null : $correlationId;

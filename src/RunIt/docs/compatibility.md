@@ -26,6 +26,19 @@ compatibility guarantee. They must never appear in a public signature
 The checker fails closed: if a public symbol references an internal type, it is
 reported as a break.
 
+### Phase 0 (P0) public API additions
+
+- `ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface` is an additive
+  public contract (under `src/Contract`, already in scope). It is consumed in
+  place of the concrete `Adapter\Psr\Http\HttpExecutionContext` DTO, which remains
+  `@api` and unchanged in its public `readonly` properties.
+- `Psr7RequestContextExtractor::extract()` was widened to return the new interface
+  (covariant return). This is backward compatible: callers expecting the concrete
+  type still receive it, and callers typed against the interface gain the
+  abstraction. `composer api:check` confirms no break; the baseline was
+  regenerated.
+
+
 ## Stable normalization schema
 
 Artifact serialization is a separate compatibility surface. The stable,

@@ -42,10 +42,10 @@ final class HttpAdaptersTest extends Unit
 
         $context = $extractor->extract($request);
 
-        self::assertSame('get.users.id.orders', $context->name->toString());
-        self::assertSame('http.request', $context->kind->toString());
-        self::assertSame('corr-xyz', $context->correlationId);
-        self::assertTrue($context->context->has('ctx.correlation.id'));
+        self::assertSame('get.users.id.orders', $context->getName()->toString());
+        self::assertSame('http.request', $context->getKind()->toString());
+        self::assertSame('corr-xyz', $context->getCorrelationId());
+        self::assertTrue($context->getContext()->has('ctx.correlation.id'));
     }
 
     public function testExtractorReplacesUuidSegments(): void
@@ -53,7 +53,7 @@ final class HttpAdaptersTest extends Unit
         $extractor = new Psr7RequestContextExtractor();
         $request = new ServerRequest('POST', '/tenants/3f2504e0-4f89-41d3-9a0c-0305e82c3301/items');
 
-        self::assertSame('post.tenants.id.items', $extractor->extract($request)->name->toString());
+        self::assertSame('post.tenants.id.items', $extractor->extract($request)->getName()->toString());
     }
 
     public function testEnricherAddsCorrelationHeaders(): void
@@ -180,16 +180,16 @@ final class HttpAdaptersTest extends Unit
         $extractor = new Psr7RequestContextExtractor();
 
         $empty = $extractor->extract(new ServerRequest('GET', '/users/1', ['X-Correlation-Id' => ['']]));
-        self::assertNull($empty->correlationId);
-        self::assertFalse($empty->context->has('ctx.correlation.id'));
+        self::assertNull($empty->getCorrelationId());
+        self::assertFalse($empty->getContext()->has('ctx.correlation.id'));
 
         $whitespace = $extractor->extract(new ServerRequest('GET', '/users/1', ['X-Correlation-Id' => ['   ']]));
-        self::assertNull($whitespace->correlationId);
-        self::assertFalse($whitespace->context->has('ctx.correlation.id'));
+        self::assertNull($whitespace->getCorrelationId());
+        self::assertFalse($whitespace->getContext()->has('ctx.correlation.id'));
 
         // A name built from an unparseable path still collapses to a valid name.
         $odd = $extractor->extract(new ServerRequest('GET', '//%%/users//'));
-        self::assertMatchesRegularExpression('/^get\.[a-z0-9._-]+$/', $odd->name->toString());
+        self::assertMatchesRegularExpression('/^get\.[a-z0-9._-]+$/', $odd->getName()->toString());
     }
 
     public function testCorrelationValueCannotInjectExtraHeaders(): void

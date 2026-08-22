@@ -15,7 +15,12 @@ gate is green. Today `composer analyse` fails with 20 errors (15 accepted
 `shipmonk.deadMethod` + 5 genuine: 1 `runit.requireInterface`, 4 `missingType.iterableValue`).
 Phase 0 closes the 5 genuine errors.
 
-### T0.1 — Add a contract for `HttpExecutionContext` (REVIEW.md §3.4, §4 P0-1)
+> **Status: Complete (2026-08-22).** `composer analyse` now reports only the
+> accepted `shipmonk.deadMethod` notices (15, tracked for P1 T1.2). `composer
+> cs:check`, `composer architecture`, and `composer api:check` are green; the API
+> baseline was regenerated. No new genuine errors were introduced.
+
+### T0.1 — Add a contract for `HttpExecutionContext` (REVIEW.md §3.4, §4 P0-1) — **DONE**
 - **Goal:** `Adapter/Psr/Http/HttpExecutionContext` is a `final readonly` `@api` DTO with no
   interface and is **not** in the `RequireInterfaceRule` exemption list, so PHPStan fails
   with `runit.requireInterface`. Give it a public contract so consumers depend on the
@@ -49,20 +54,29 @@ Phase 0 closes the 5 genuine errors.
 - **Files:** `src/Application/Publication/DefaultArtifactRedactor.php`,
   `tests/Unit/Application/Publication/DefaultArtifactRedactorTest.php`.
 - **Steps:**
-  1. `maskKeys(array<string, mixed> $data, list<string> $keys): array{0: array<string, mixed>, 1: bool}`.
+  1. `maskKeys(array<array-key, mixed> $data, list<string> $keys): array{0: array<array-key, mixed>, 1: bool}`.
   2. `maskKeysRecursive(array<array-key, mixed> $data, list<string> $keys): array{0: array<array-key, mixed>, 1: bool}`
      (keeps the recursive shape consistent).
-  3. `maskThrowable(array<string, mixed> $throwable): array{0: array<string, mixed>, 1: bool}`.
+  3. `maskThrowable(array<array-key, mixed> $throwable): array{0: array<array-key, mixed>, 1: bool}`.
   4. Confirm the `config->marker` substitution and recursive tuple unwrapping still type-check.
 - **Verify:** PHPStan reports 0 `missingType.iterableValue`; existing redactor suite green;
-  `composer cs:check` clean; add a case asserting a nested `array<string, mixed>` payload is
+  `composer cs:check` clean; add a case asserting a nested `array<array-key, mixed>` payload is
   masked and the returned tuple shape is preserved.
 - **Risk/BC:** internal-only signature tightening; no public contract change.
+- **Deviation (2026-08-22):** the plan sketched `array<string, mixed>`, but the redactor's
+  normalized payloads are keyed by `array-key` (e.g. `normalizeThrowable()` yields
+  `array<array-key, mixed>`) and the `maskKeys()`/`maskThrowable()` call sites pass that wider
+  type. Using `array<string, mixed>` reintroduced `argument.type` mismatches, so the accepted
+  form is `array<array-key, mixed>`. The recursive helper `maskKeysRecursive()` was left with
+  its pre-existing `mixed` parameter / `@return array{0: mixed, 1: bool}` because PHPStan does
+  not flag it (its value flows back through `mixed`) — tightening it is optional and out of P0
+  scope.
 
-**Phase 0 exit:** `composer analyse` (PHPStan level max, full `src/`) reports **0 errors**.
-(The 15 `shipmonk.deadMethod` notices remain accepted noise; see P1-4.) Also green:
-`composer cs:check`, `composer architecture`, `composer api:check`, `composer test` (new P0
-suites).
+**Phase 0 exit:** `composer analyse` (PHPStan level max, full `src/`) reports **0 genuine errors**.
+(The 15 `shipmonk.deadMethod` notices remain accepted noise; triaged in T1.2.) Also green:
+`composer cs:check`, `composer architecture`, `composer api:check`. `composer api:baseline`
+was regenerated (additive `HttpExecutionContextInterface` + `getAttributes()`; covariant
+return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 
 ---
 

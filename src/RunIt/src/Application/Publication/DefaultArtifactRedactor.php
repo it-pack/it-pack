@@ -76,9 +76,9 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
     }
 
     /**
-     * @param array $data
-     * @param  list<string>        $keys
-     * @return array{0: array, 1: bool}
+     * @param array<array-key, mixed> $data
+     * @param list<string>            $keys
+     * @return array{0: array<array-key, mixed>, 1: bool}
      */
     private function maskKeys(array $data, array $keys): array
     {
@@ -129,8 +129,8 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
     }
 
     /**
-     * @param array $throwable
-     * @return array{0: array, 1: bool}
+     * @param array<array-key, mixed> $throwable
+     * @return array{0: array<array-key, mixed>, 1: bool}
      */
     private function maskThrowable(array $throwable): array
     {

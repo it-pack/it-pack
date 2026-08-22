@@ -123,6 +123,19 @@ AGENTS.md warns against creating interfaces "without semantic value"):
 New service/port classes in the un-exempted tree are still required to implement
 an interface.
 
+`Adapter\Psr\Http\HttpExecutionContext` was previously a concrete `@api` DTO with
+no interface and **not** on the exemption list — a genuine `runit.requireInterface`
+violation that made `composer analyse` fail. Phase 0 (T0.1) closed this by adding
+`Contract\Shared\HttpExecutionContextInterface` (accessor-based, since PHP
+interfaces cannot declare properties) and having the DTO implement it while
+keeping its public `readonly` properties. It now satisfies the rule and is no
+longer part of the interface gap.
+
+The 15 `shipmonk.deadMethod` notices are **accepted noise** for Phase 0 (they are
+intentionally-public fluent/API surfaces, e.g. `SecurityLimits::with*`, attribute
+accessors). They are triaged and kept explicitly in Phase 1 (T1.2); they are not
+suppressed with `@phpstan-ignore`.
+
 ### Final-class exemptions
 
 `require-final` enforces AGENTS.md's "every concrete class must be `final`". One

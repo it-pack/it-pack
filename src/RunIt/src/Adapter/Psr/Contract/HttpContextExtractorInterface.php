@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Contract;
 
-use ItPack\RunIt\Adapter\Psr\Http\HttpExecutionContext;
+use ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -17,5 +17,5 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 interface HttpContextExtractorInterface
 {
-    public function extract(ServerRequestInterface $request): HttpExecutionContext;
+    public function extract(ServerRequestInterface $request): HttpExecutionContextInterface;
 }

@@ -50,7 +50,7 @@ final readonly class ExecutionMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $context = ($this->extractor ?? new Psr7RequestContextExtractor())->extract($request);
-        $definition = $this->definition($context->name, $context->kind, $context->context);
+        $definition = $this->definition($context->getName(), $context->getKind(), $context->getContext());
 
         $executionId = null;
 
@@ -79,7 +79,7 @@ final readonly class ExecutionMiddleware implements MiddlewareInterface
         );
 
         return ($this->enricher ?? new Psr7ResponseCorrelationEnricher())
-            ->enrich($response, $executionId ?? 'unknown', $context->correlationId)
+            ->enrich($response, $executionId ?? 'unknown', $context->getCorrelationId())
         ;
     }
 
