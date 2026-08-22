@@ -526,41 +526,78 @@ and required no changes. The optional fluent builder was deliberately skipped
 
 ---
 
-## Milestone M6 — Integration Tests & Failure Injection
+## Milestone M6 — Integration Tests & Failure Injection ✅ COMPLETE (2026-08-22)
 
 **Goal:** Prove the adapter against real git repositories and hostile inputs.
 
-### Tasks
+**Status:** Done. Added three real-git functional suites (functional, failure,
+security) plus a `MemoryRunner`-driven adapter mapping test. All 104 tests pass
+(75 unit + 29 functional, 332 assertions).
 
-1. **Functional suite with real temp repos.**
-    - `tests/Functional/` using the M0 `GitRepoFactory` helper. Cover:
-     init → seed → stage → commit → getLastCommit; branch create/checkout/remove;
-     tag create/remove/rename; remote add/remove/rename/setUrl; pull/push against
-     a local bare repo; `hasChanges()` toggling; worktree add/list/remove.
+### Tasks — status
 
-2. **Failure-injection tests.**
-   - Missing repository path → `RepositoryNotFoundException`.
-   - Invalid ref name → `InvalidReferenceNameException` (validator boundary).
-   - Dirty working tree blocking an operation → `DirtyWorkingTreeException`.
-   - Forced `GitException` via `MemoryRunner` error scripting → mapped domain
-     exception with `previous` preserved.
+1. **Functional suite with real temp repos.** ✅ `tests/Functional/GitPhpFunctionalTest.php`
+   (real `GitRepoFactory` + `GitPhpRepositoryFactory`). Covers init → seed →
+   stage → commit → `getLastCommit`, `hasChanges()` toggling, branch
+   create/checkout/remove, tag create/remove, remote add/remove, worktree
+   add/list/remove, and clone → push → pull → fetch against a local bare repo.
+   - *Deviation:* the public contract exposes tag/remote **create/remove/list**
+     only — there are no `rename`/`setUrl` methods — so those two sub-operations
+     were intentionally not exercised (would require expanding the API, out of
+     scope for a test milestone).
+2. **Failure-injection tests.** ✅ `tests/Functional/GitPhpFailureTest.php` +
+   `tests/Unit/Adapter/Git/GitPhpExceptionMappingTest.php`. Missing/non-git path →
+   `RepositoryNotFoundException` (real git). Validator rejects invalid ref names
+   at the `BranchName`/`TagName`/`RemoteName` boundary. Concurrency isolation
+   loop (15 repeated commits in one repo + 10 fresh-repo cycles) passes.
+   - *Deviation:* a **dirty working tree** is proven to *block* the operation
+     (throws a `VcsOperationException`) against real git; the specific
+     `DirtyWorkingTreeException` classification is covered at the
+     `GitExceptionMap` unit level (see Decisions).
+3. **Security / negative tests.** ✅ `tests/Functional/GitPhpSecurityTest.php`.
+   git-forbidden ref names rejected for every kind; injection-shaped commit
+   message (newline) and oversized subject rejected; worktree `add`/`remove`
+   reject escaping paths (`\InvalidArgumentException`); `stage` rejects an
+   escaping path (real git refuses, mapped to `VcsOperationException`);
+   `clone` into a non-empty directory fails fast and preserves contents; `init`
+   into a non-empty directory never overwrites existing files.
+4. **Concurrency isolation.** ✅ see task 2 loop test.
 
-3. **Security / negative tests.**
-   - Injection-shaped ref names and commit messages are rejected by validators.
-   - Path-scope: stage/remove rejects paths escaping the repository root.
-   - `clone`/`init` into an existing non-empty directory fails fast (no silent
-     overwrite).
+### Built
 
-4. **Concurrency isolation.**
-   - Repeat a sequence of operations in a loop / persistent-worker simulation to
-     catch shared-state leaks.
+- `tests/Functional/GitPhpFunctionalTest.php` — 7 real-git scenario tests.
+- `tests/Functional/GitPhpFailureTest.php` — missing/non-git path, dirty-tree
+  block, repeated-operation concurrency loop.
+- `tests/Functional/GitPhpSecurityTest.php` — validator injection rejection,
+  path-scope escapes, clone/init overwrite protection.
+- `tests/Unit/Adapter/Git/GitPhpExceptionMappingTest.php` — `MemoryRunner`-
+  forced `GitException` → mapped `VcsOperationException` with `previous`
+  preserved.
+
+### Decisions
+
+- **git-php hides git's stderr.** czproject/git-php throws
+  `GitException("Command 'git …' failed (exit-code N)")` and does **not** include
+  the underlying git error text in the message. Consequently `GitExceptionMap`'s
+  keyword branches (`not a valid`/`unknown revision`, `working tree`, `not a git
+  repository`) cannot be reached from the live adapter — only the generic
+  `VcsOperationException` branch fires. The specific branches are still proven
+  via `tests/Unit/Adapter/Git/GitExceptionMapTest.php` with hand-built
+  `GitException` instances carrying the matching text.
+  - *Follow-up (not done in M6):* if `DirtyWorkingTreeException` /
+    `InvalidReferenceNameException` classification from real git is desired, the
+    adapter would need to feed git's stderr (the `RunnerResult` error output) into
+    the mapped message rather than relying on git-php's wrapper text. This is a
+    behavior change and should go through an ADR, not a test milestone.
 
 ### Acceptance criteria
 
-- Functional suite passes against real git (requires git in CI/environment).
-- Every exception branch in `GitExceptionMap` and the validators has a covering
-  test.
-- Negative/security tests pass.
+- ✅ Functional suite passes against real git (git 2.43 available in environment).
+- ✅ Every exception branch in `GitExceptionMap` and in the validators has a
+      covering test (map branches via `GitExceptionMapTest`; adapter pass-through
+      via `GitPhpExceptionMappingTest`; validators via `RefNameValidatorTest` /
+      `CommitMessageValidatorTest` / `GitPhpSecurityTest`).
+- ✅ Negative/security tests pass.
 
 ---
 
@@ -655,7 +692,7 @@ M2  Domain value objects + validators           ✅ COMPLETE (2026-08-21)
 M3  Git adapter (factory, repository, working tree, exception map) ✅ COMPLETE (2026-08-21)
 M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place) ✅ COMPLETE (2026-08-22)
 M5  SDK facade ✅ COMPLETE (2026-08-22)
-M6  Integration tests & failure/security injection
+M6  Integration tests & failure/security injection ✅ COMPLETE (2026-08-22)
 M7  Documentation & ADRs
 M8  Quality hardening (phpstan max, deptrac, cs-fixer, infection)
 ```
