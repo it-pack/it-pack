@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
+use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
@@ -25,6 +27,10 @@ use ReflectionUnionType;
  *  - auto-discovery of the family from a single root class's type graph (C3);
  *  - a single combined source string grouping all interfaces by namespace (C4);
  *  - each base interface is derived exactly once and memoized per config (E1 / E2).
+ *
+ * Phase 10.15 (G18 / E5): an injectable {@see ReflectionCacheInterface} memoizes
+ * each {@see ReflectionClass} so a whole-repo family scan reflects every type at
+ * most once and never re-runs `class_exists`.
  */
 final class FamilyDeriver
 {
@@ -36,14 +42,33 @@ final class FamilyDeriver
     private array $cache = [];
 
     public function __construct(
-        private readonly DeriveConfig $config = new DeriveConfig(),
-        private readonly ?Factory     $factory = null,
+        private readonly DeriveConfig            $config = new DeriveConfig(),
+        private readonly ?Factory                $factory = null,
+        private readonly ReflectionCacheInterface $reflectionCache = new InMemoryReflectionCache(),
     ) {
     }
 
     public function clearCache(): void
     {
         $this->cache = [];
+    }
+
+    /**
+     * Reflects a class name, memoizing the {@see ReflectionClass} in the injectable
+     * cache so a whole-repo scan never reflects (or `class_exists`) a type twice
+     * (G18 / E5).
+     */
+    private function reflect(string $fqcn): ReflectionClass
+    {
+        $cached = $this->reflectionCache->get($fqcn);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $reflection = new ReflectionClass($fqcn);
+        $this->reflectionCache->set($fqcn, $reflection);
+
+        return $reflection;
     }
 
     /**
@@ -55,7 +80,7 @@ final class FamilyDeriver
     {
         $reflections = [];
         foreach ($classes as $class) {
-            $reflections[$class] = new ReflectionClass($class);
+            $reflections[$class] = $this->reflect($class);
         }
 
         return $this->deriveReflections($reflections, $namespacePrefixMap);
@@ -85,7 +110,7 @@ final class FamilyDeriver
     {
         $reflections = [];
         foreach ($classes as $class) {
-            $reflections[$class] = new ReflectionClass($class);
+            $reflections[$class] = $this->reflect($class);
         }
         $interfaces = $this->deriveReflections($reflections, $namespacePrefixMap);
 
@@ -199,7 +224,7 @@ final class FamilyDeriver
     private function discover(string $rootClass): array
     {
         $seen = [];
-        $queue = [new ReflectionClass($rootClass)];
+        $queue = [$this->reflect($rootClass)];
 
         while ($queue !== []) {
             $reflection = array_shift($queue);
@@ -237,7 +262,7 @@ final class FamilyDeriver
                             continue;
                         }
                         if (class_exists($className) || interface_exists($className) || trait_exists($className) || enum_exists($className)) {
-                            $queue[] = new ReflectionClass($className);
+                            $queue[] = $this->reflect($className);
                         }
                     }
                 }

@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
-use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
+use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Exception\NamingCollisionException;
 use ItPack\DeriveIt\Reflection\ClassReflection;
+use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
 use ReflectionClass;
@@ -22,21 +23,19 @@ use ReflectionClass;
  * When a method name is declared by multiple traits, the first trait in
  * the getTraitsRecursively () order owns it; the others drop it, so no duplicate
  * method declaration can occur across the extended interfaces.
+ *
+ * Phase 10.15 (G15 / G18): substitutor seeding + skip filtering + reflection
+ * memoization live in the shared {@see AbstractDeriver} base.
  */
-final readonly class PerTraitInterfaceDeriver implements DeriverInterface
+final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
 {
-    private MethodExtractor $extractor;
-    private SourceRenderer $renderer;
-    private MethodSignatureFactory $signatureFactory;
-
     public function __construct(
-        ?MethodSignatureFactory $signatureFactory = null,
-        private DeriveConfig    $config = new DeriveConfig(),
-        ?Factory                $factory = null,
+        ?MethodSignatureFactory       $signatureFactory = null,
+        DeriveConfig                   $config = new DeriveConfig(),
+        ?Factory                       $factory = null,
+        ?ReflectionCacheInterface      $reflectionCache = null,
     ) {
-        $this->extractor = new MethodExtractor($config);
-        $this->renderer = new SourceRenderer();
-        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(factory: $factory, config: $config);
+        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache());
     }
 
     /**
@@ -106,7 +105,7 @@ final readonly class PerTraitInterfaceDeriver implements DeriverInterface
 
     public function derive(ReflectionClass|string $class): InterfaceType
     {
-        $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+        $reflection = $this->reflect($class);
         Naming::assertNoCollision($reflection);
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
 
@@ -157,7 +156,7 @@ final readonly class PerTraitInterfaceDeriver implements DeriverInterface
 
     public function deriveSource(ReflectionClass|string $class): string
     {
-        $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+        $reflection = $this->reflect($class);
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
         $main = $this->derive($reflection);
 
@@ -187,33 +186,5 @@ final readonly class PerTraitInterfaceDeriver implements DeriverInterface
                 $main->getName(),
             ));
         }
-    }
-
-    private function shouldSkipMethod(string $name): bool
-    {
-        if (in_array($name, $this->config->skipMethods, true)) {
-            return true;
-        }
-
-        if ($this->config->onlyMethods !== [] && !in_array($name, $this->config->onlyMethods, true)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param ReflectionClass $reflection
-     * @return TypeSubstitutor
-     */
-    private function createTypeSubstitutor(ReflectionClass $reflection): TypeSubstitutor
-    {
-        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
-        $parent = $reflection->getParentClass();
-        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
-            ? Naming::derivedInterfaceFqcn($parent)
-            : null;
-
-        return new TypeSubstitutor($this->config->typeSubstitutionMap, $selfFqcn, $parentFqcn);
     }
 }

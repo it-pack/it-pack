@@ -25,4 +25,10 @@ parameters:
         -
             identifier: shipmonk.deadMethod
             path: src/DeriveIt.php
+        # DerivationResult is a public value object: its fields (methods,
+        # substitutions, constants) are read by consumers of the library, not
+        # internally, so the dead-property detector would otherwise flag them.
+        -
+            identifier: shipmonk.deadProperty.neverRead
+            path: src/Generator/DerivationResult.php
 

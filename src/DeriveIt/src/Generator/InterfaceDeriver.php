@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
-use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
+use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
 use ItPack\DeriveIt\Exception\EmptyDerivationException;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
+use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\Method;
@@ -25,21 +26,20 @@ use ReflectionClass;
  * capture are opt-in (B1 / B3 / B2); naming collisions are detected (A5); an empty
  * surface can be escalated to an error (A6); and a structured {@see DerivationResult}
  * is available alongside the source string (D1).
+ *
+ * Phase 10.15 (G15 / G18): {@see BuildMeta} replaces the untyped `build()` return;
+ * substitutor seeding + skip filtering + reflection memoization live in the shared
+ * {@see AbstractDeriver} base.
  */
-final readonly class InterfaceDeriver implements DeriverInterface
+final readonly class InterfaceDeriver extends AbstractDeriver
 {
-    private MethodExtractor $extractor;
-    private SourceRenderer $renderer;
-    private MethodSignatureFactory $signatureFactory;
-
     public function __construct(
-        ?MethodSignatureFactory $signatureFactory = null,
-        private DeriveConfig    $config = new DeriveConfig(),
-        ?Factory                $factory = null,
+        ?MethodSignatureFactory       $signatureFactory = null,
+        DeriveConfig                   $config = new DeriveConfig(),
+        ?Factory                       $factory = null,
+        ?ReflectionCacheInterface      $reflectionCache = null,
     ) {
-        $this->extractor = new MethodExtractor($config);
-        $this->renderer = new SourceRenderer();
-        $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(factory: $factory, config: $config);
+        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache());
     }
 
     public function derive(ReflectionClass|string $class): InterfaceType
@@ -108,9 +108,9 @@ final readonly class InterfaceDeriver implements DeriverInterface
     }
 
     /**
-     * @return object{interface: InterfaceType, methods: list<string>, substitutions: array<string,string>, constants: list<string>}
+     * @return BuildMeta
      */
-    private function build(ReflectionClass $reflection, ?TypeSubstitutor $substitutor = null, array $allowedNamespaces = []): object
+    private function build(ReflectionClass $reflection, ?TypeSubstitutor $substitutor = null, array $allowedNamespaces = []): BuildMeta
     {
         Naming::assertNoCollision($reflection);
 
@@ -123,18 +123,10 @@ final readonly class InterfaceDeriver implements DeriverInterface
         if ($substitutor === null) {
             // Seed the map with the class itself and its parent so that `self`
             // (which reflection resolves to the concrete class name) and `parent`
-            // are rewritten to their derived interface FQCNs (A1).
-            $typeMap = $this->config->typeSubstitutionMap;
-            if ($this->config->substituteSelfStatic) {
-                $typeMap[$reflection->getName()] = Naming::derivedInterfaceFqcn($reflection);
-                $parentReflection = $reflection->getParentClass();
-                if ($parentReflection !== false) {
-                    $typeMap[$parentReflection->getName()] = Naming::derivedInterfaceFqcn($parentReflection);
-                }
-            }
-
-            $substitutor = new TypeSubstitutor($typeMap, $selfFqcn, $parentFqcn);
-            $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $typeMap, []);
+            // are rewritten to their derived interface FQCNs (A1). Shared from the
+            // AbstractDeriver base so flat + per-trait modes stay in lockstep.
+            $substitutor = $this->createTypeSubstitutor($reflection);
+            $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->seedTypeMap($reflection), []);
         }
 
         $interface = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
@@ -199,12 +191,7 @@ final readonly class InterfaceDeriver implements DeriverInterface
             $substitutions['parent'] = $parentFqcn;
         }
 
-        return (object) [
-            'interface' => $interface,
-            'methods' => $methodNames,
-            'substitutions' => $substitutions,
-            'constants' => $constants,
-        ];
+        return new BuildMeta($interface, $methodNames, $substitutions, $constants);
     }
 
     /**
@@ -247,24 +234,6 @@ final readonly class InterfaceDeriver implements DeriverInterface
         }
 
         return true;
-    }
-
-    private function shouldSkipMethod(string $name): bool
-    {
-        if (in_array($name, $this->config->skipMethods, true)) {
-            return true;
-        }
-
-        if ($this->config->onlyMethods !== [] && !in_array($name, $this->config->onlyMethods, true)) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function reflect(ReflectionClass|string $class): ReflectionClass
-    {
-        return is_string($class) ? new ReflectionClass($class) : $class;
     }
 
     /**

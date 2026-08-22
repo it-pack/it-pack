@@ -486,7 +486,7 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
 
-> **Status: 🟢 Steps 10.1–10.14 complete (2026-08-22).** Deep leakage auditor (G1),
+> **Status: 🟢 Steps 10.1–10.15 complete (2026-08-22).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
 > caller `DeriveConfig` (G2), injectable instance cache replacing the static (G4),
 > adapter static-method delegation (G3), `self`/`static`/`parent` constant rewriting
@@ -494,8 +494,10 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 > with FQCN simplification (G8), the `analyze()` / `deriveMany()` / `diff()` DX
 > APIs (G9), config presets + validation + uniform method-renames (G10/G11),
 > family-of-adapters generation (G14 / EC12), re-expose owned interfaces
-> (G16 / A4), and shared `Factory` + de-dup reflection (G13 / EC20) are implemented
-> and tested. All five gates green. Steps 10.15–10.16 remain planned.
+> (G16 / A4), shared `Factory` + de-dup reflection (G13 / EC20), and the `BuildMeta`
+> value object + shared deriver base + injectable reflection cache (G15 / G18 / E5)
+> are implemented and tested. All five gates green. Step 10.16 (CLI `bin/derive`)
+> remains planned.
 > Source of truth: the §4 edge cases (EC1–EC20) and §6 feature backlog (G1–G18) in
 > `OPTIMIZATION_PLAN.md`. Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -616,12 +618,19 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
   re-reflecting each class and re-running `class_exists` — eliminating the EC20
   double-reflection path in family scans.
 
-### Step 10.15 — Maintainability: `BuildMeta` + PSR cache (G15/G18, F3-adjacent)
-- Replace the untyped `object{interface, methods, substitutions, constants}` returned
-  by `InterfaceDeriver::build()` with a typed `BuildMeta` value object.
-- Extract a shared deriver base (substitutor seeding + `shouldSkipMethod`) to remove
-  duplication between `InterfaceDeriver` and `PerTraitInterfaceDeriver`.
-- Optional PSR-6/16 reflection cache adapter (E5) so whole-repo scans don't re-reflect.
+### Step 10.15 — Maintainability: `BuildMeta` + shared base + PSR cache (G15/G18, E5) ✅ COMPLETE
+- `InterfaceDeriver::build()` now returns a typed `BuildMeta` value object (interface,
+  methods, substitutions, constants) instead of the untyped `(object){...}` shape, so
+  the deriver internals and `deriveWithResult()`/`analyze()` consume a documented type.
+- `InterfaceDeriver` and `PerTraitInterfaceDeriver` extend a shared `AbstractDeriver`
+  base that owns substitutor seeding (`self`/`static`/`parent` + concrete class/parent
+  FQCN rewriting — A1), the uniform `shouldSkipMethod()` filter, and reflection
+  memoization — removing the duplicated plumbing and keeping the two modes in lockstep.
+- An injectable `ReflectionCacheInterface` (`InMemoryReflectionCache` default, instance
+  scoped — never static) memoizes `ReflectionClass` instances so whole-repo scans never
+  re-reflect a type. A `PsrCacheReflectionCache` PSR-6 adapter wraps any
+  `Psr\Cache\CacheItemPoolInterface`, persisting a "reflected" marker across processes;
+  `get()` returns the in-process object when present (G18 / E5).
 
 ### Step 10.16 — CLI `bin/derive` (G17, DX)
 - A small command to derive a class/file to stdout or a path for ad-hoc ports and

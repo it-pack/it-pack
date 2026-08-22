@@ -387,13 +387,16 @@ Phase 10 steps.
    injectable `Factory` through every member (`InterfaceDeriver`/`PerTraitInterfaceDeriver`
    also accept one); `deriveFromRoot`/`deriveSource` reuse the `ReflectionClass`
    instances from `discover()` via a shared `deriveReflections()` core (EC20, E3).
-- **G15** `BuildMeta` value object — replace the untyped `object{interface,
-  methods, substitutions, constants}` returned by `InterfaceDeriver::build()` with
-  a typed `BuildMeta`; extract a shared deriver base (seeding the substitutor +
-  `shouldSkipMethod`) to remove duplication between `InterfaceDeriver` and
-  `PerTraitInterfaceDeriver`.
-- **G18** PSR-6/16 cache adapter for reflection — optional cache so whole-repo
-  scans don't re-reflect (E5).
+ - **G15** ✅ `BuildMeta` value object + shared deriver base — `InterfaceDeriver::build()`
+   returns a typed `BuildMeta` (interface, methods, substitutions, constants); `InterfaceDeriver`
+   and `PerTraitInterfaceDeriver` extend `AbstractDeriver`, which owns substitutor
+   seeding (`self`/`static`/`parent` + concrete class/parent FQCN) and the uniform
+   `shouldSkipMethod()` filter (10.15).
+ - **G18** ✅ PSR-6 cache adapter for reflection — `ReflectionCacheInterface`
+   (`InMemoryReflectionCache` default, instance-scoped) memoizes `ReflectionClass`
+   instances; `PsrCacheReflectionCache` wraps any `Psr\Cache\CacheItemPoolInterface`
+   and persists a per-FQCN "reflected" marker so whole-repo scans don't re-reflect
+   (E5, 10.15).
 
 ---
 
