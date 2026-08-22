@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Last reviewed: 2026-08-20 (post-Phase-9 review) · Status: **Phases 0–9 complete; release-ready; Phase 10 planned** · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-22 (post-Phase-10 review + `REVIEW.md` audit) · Status: **Phases 0–10 complete; release-ready; Phase 11 (refactoring & modernization) planned** · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -21,8 +21,9 @@ phase is built so a developer can pick it up cold.
 8. Phase 7 — Docs, ADRs & Release
  9. Phase 8 — Design Hardening Backlog (post-v1)
 10. Phase 9 — Edge-case & Optimization Hardening
-11. Phase 10 — Correctness, Leakage & DX Deepening (planned)
-12. Cross-cutting: Timeline, Risks, Definition of Done
+11. Phase 10 — Correctness, Leakage & DX Deepening
+12. Phase 11 — Refactoring & Modernization (planned)
+13. Cross-cutting: Timeline, Risks, Definition of Done
 
 ---
 
@@ -484,7 +485,7 @@ then surface richness (B), family depth (C), performance (E), maintainability (F
 
 ---
 
-## Phase 10 — Correctness, Leakage & DX Deepening (in progress)
+## Phase 10 — Correctness, Leakage & DX Deepening
 
 > **Status: 🟢 Steps 10.1–10.16 complete (2026-08-22).** Deep leakage auditor (G1),
 > per-mode collision/enum parity + per-trait short-name clash (G12), family honors
@@ -640,6 +641,114 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
 
 ---
 
+## Phase 11 — Refactoring & Modernization (planned)
+
+> **Status: 🟡 Planned (2026-08-22).** Implements the findings register in
+> `REVIEW.md` (F1–F13). Detailed execution spec: `docs/REFACTORING_PLAN.md`
+> (steps R.1–R.13). Every step must keep all five gates green (`test:unit`,
+> `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
+> No user-visible derivation-output changes are intended; the only API surface
+> changes are *additions* (new interfaces, a factory, two enums) plus internal
+> de-duplication.
+
+**Goal:** move the package from "sound" to "exemplary" on SOLID/DRY, hexagonal,
+and modern-PHP criteria. Sequencing (quick wins → structural → docs/optional):
+
+```
+F7/F8/F9/F10/F11  (no-API-change quick wins)
+  └─ F1/F6         (internal DRY + metadata correctness)
+       └─ F4/F5    (enums + CLI parser split)
+            └─ F2  (deriver interfaces + DeriveItFactory)
+                 └─ F3/F12/F13 (docs, optional lazy adapter, CLI trust note)
+```
+
+### Step 11.1 — Collapse `DeriveConfig` withers (F1, R.1) 🟡
+- Add a private `copyWith(array $overrides): self` to `src/Generator/DeriveConfig.php`
+  that reads current state via `get_object_vars($this)` and re-constructs
+  (`readonly`-safe, preserves constructor validation). Replace each of the 17
+  `with*()` bodies with a one-liner delegating to `copyWith`.
+- **Acceptance:** `DeriveConfig.php` ~590 → ~180 lines; all 17 methods + signatures
+  unchanged; golden/snapshot tests byte-identical. **No public API change.**
+
+### Step 11.2 — Secondary deriver interfaces + `DeriveItFactory` (F2, R.2) 🟡
+- New `src/Contract/Generator/FamilyDeriverInterface.php` (`derive`/`deriveFromRoot`/
+  `deriveSource`/`clearCache`) and `src/Contract/Generator/AdapterGeneratorInterface.php`
+  (`generate`/`generateSource`). `FamilyDeriver` and `AdapterGenerator` implement them.
+- New `src/DeriveItFactory.php` in the **Entry** layer (deptrac-clean: Entry →
+  Generator + Contract) that assembles the four derivers, optionally sharing one
+  `ReflectionCacheInterface` and one Nette `Factory`. `DeriveIt` may delegate to a
+  default factory (BC: keep static methods).
+- **Acceptance:** a test builds all derivers via the factory with a shared cache and
+  asserts identical output; `architecture` 0 violations. Controlled API *addition*.
+
+### Step 11.3 — Refresh drifted architecture docs (F3, R.3) 🟡
+- `docs/guide/architecture.md`: replace `setRecursive*Resolver()` wording with the
+  instance-injection design; add the **Cli** layer; correct the "three derivers
+  implement `DeriverInterface`" sentence (now four derivers across two interfaces
+  after 11.2); note `DeriveIt` is a static facade over injectable derivers.
+
+### Step 11.4 — `DeriveMode` + `Visibility` enums (F4, R.4) 🟡
+- New `src/Generator/DeriveMode.php` (FLAT/PER_TRAIT/ADAPTER/FAMILY/FAMILY_ADAPTER)
+  and `src/Generator/Visibility.php` (PUBLIC/PROTECTED). `DeriveConfig::$visibility`
+  typed to `Visibility` (keep string constants as backward-compat aliases or update
+  the 2 call sites in `DeriveCommand::buildConfig`); `DeriveCliInput::$mode` typed to
+  `DeriveMode`; CLI token → enum mapping lives in 11.5.
+- **Acceptance:** no bare `'flat'`/`'public'` literals remain in `src/` outside enum
+  `value` declarations.
+
+### Step 11.5 — Split `DeriveCommand::parse()` + declarative options (F5, R.5) 🟡
+- Extract an `ArgParser` value object (Cli layer) holding a declarative option table
+  (`value`/`flag`/`map` callbacks) replacing the inline `valueOptions` array + 25-case
+  `switch`. `DeriveCommand::parse()` becomes a thin loop; `runDerive()` switches on the
+  `DeriveMode` enum so the allowed-mode list lives in exactly one place. Keep exit
+  codes/messages identical.
+- **Acceptance:** `DeriveCommandTest` (13 tests) still passes; adding a mode = add enum
+  case + one option row (OCP).
+
+### Step 11.6 — Family map in `DerivationResult` (F6, R.6) 🟡
+- `InterfaceDeriver::build()` (via `deriveWithSubstitutor`) puts the effective
+  substitution map (not just `config->typeSubstitutionMap` + self/static/parent) into
+  `BuildMeta::$substitutions`, so family-mode `deriveWithResult()` reports the full
+  cross-reference map. Flat mode output unchanged.
+
+### Step 11.7 — Delete duplicate `@param` (F7, R.7) ✅ quick
+- Remove the duplicated `@param list<string> $reExposeOwnedInterfaces …` line in
+  `src/Generator/DeriveConfig.php`.
+
+### Step 11.8 — `0o755` const + drop `@` (F8, R.8) ✅ quick
+- `src/Cli/DeriveCommand.php`: add `private const OUTPUT_DIR_MODE = 0o755;` and replace
+  the two `!@mkdir($p, 0o777, true) && !is_dir($p)` with `!mkdir($p, self::OUTPUT_DIR_MODE, true) && !is_dir($p)`.
+
+### Step 11.9 — Hoist magic literals to constants (F9, R.9) ✅ quick
+- `src/Generator/FamilyDeriver.php`: extract `private const VENDOR_PREFIXES = [...]`
+  for `isUserland()`. `src/Reflection/PsrCacheReflectionCache.php`: extract
+  `private const CACHE_KEY_PREFIX = 'deriveit.reflection.'`.
+
+### Step 11.10 — Remove last `else`/`elseif` (F10, R.10) ✅ quick
+- `src/Cli/DeriveCommand.php`: convert the `elseif` at :143 (fold into the `ArgParser`
+  table / guard clause) and the `else` at :396 (early default assignment + guard) so
+  `grep` for `else`/`elseif` in `src/` returns zero code matches.
+
+### Step 11.11 — Reuse `SourceRenderer` (F11, R.11) ✅ quick
+- Replace `DeriveIt::renderInterface()` (`src/DeriveIt.php:222`) with a call to
+  `SourceRenderer::render()`; delete the private method. Rendered output byte-identical.
+
+### Step 11.12 — Optional lazy-object adapter (F12, R.12) 🟡 optional
+- Add an opt-in `AdapterGenerator` lazy-adaptee mode via `ReflectionClass::
+  newLazyGhost()`/`newLazyProxy()` (gated flag; default output unchanged). Mark
+  optional; may slip to post-v1.
+
+### Step 11.13 — Document CLI trust model (F13, R.13) ℹ️
+- Add a one-line trust note to `DeriveCommand::writeHelp()` and
+  `docs/guide/usage.md` (the CLI autoloads operator-supplied class names).
+
+> **Phase 11 status (planning, 2026-08-22):** quick wins (11.7–11.11) are low-risk and
+> can land first; structural steps (11.1, 11.2, 11.4, 11.5) are the substance and should
+> each be merged behind green gates. Full acceptance in `REFACTORING_PLAN.md` §Definition
+> of Done.
+
+---
+
 ## Cross-cutting: Timeline, Risks, Definition of Done
 
 ### Critical path
@@ -656,6 +765,7 @@ Phase 0
                                       └─ Phase 8 (design hardening backlog, post-v1)
                                             └─ Phase 9 (edge-case & optimization hardening)
                                                  └─ Phase 10 (correctness, leakage & DX deepening)
+                                                  └─ Phase 11 (refactoring & modernization, REVIEW F1–F13)
   ```
 
 ### Minimum viable production release
@@ -695,7 +805,8 @@ Phase 0
 
 ---
 
-*Companion documents: `REVIEW.md` (current status & gaps), `OPTIMIZATION_PLAN.md`
+*Companion documents: `REVIEW.md` (current status & gaps), `REFACTORING_PLAN.md`
+(detailed refactoring execution spec, REVIEW findings F1–F13), `OPTIMIZATION_PLAN.md`
 (in-depth feature review, edge-case analysis & enhancement backlog), and
 `IMPLEMENTATION_PLAN.md` (milestone summary). This roadmap is the detailed execution
 spec for the latter.*
