@@ -385,6 +385,35 @@ if the new param defaults to `[]` and the existing `string $message` ctor still 
 
 ---
 
+## Phase 3 — Status: DONE (2026-08-22)
+
+**F3 — `ValidationException` now implements `ValidationExceptionInterface`.**
+
+- New `src/ValueObject/ValidationMessage.php` (`final readonly class ValidationMessage
+  implements MessageInterface`; `path()`, `message()`, `toString()`/`__toString()`). It is
+  Core-owned so the exception can carry structured messages without leaking the Nette
+  adapter's `Message` type. `Adapter\Message` (Nette-backed) remains for adapter use.
+- `src/Exception/ValidationException.php` now `implements ValidationExceptionInterface`,
+  stores `list<MessageInterface> $messages` (default `[]`), and provides `getMessages():
+  list<string>` (`array_map(..., toString)`) and `getMessageObjects(): list<MessageInterface>`.
+  The constructor is backward compatible (`string $message`, `?int $code`, `?\Throwable
+  $previous`, `array $messages = []`).
+- Both Core throw sites now populate structured messages:
+  - `src/Core/ConfigurationResolver.php` → `toValidationMessages()` maps
+    `ValidationResultInterface::issues()` into `ValidationMessage` objects.
+  - `src/Core/ValidationProcessor.php` → builds `ValidationMessage` from each
+    `errors()` entry.
+- `ProcessorInterface` / `ConfigurationResolverInterface` already declared
+  `@throws ValidationExceptionInterface` — now accurate (no change needed).
+
+**Gates after change:** `composer analyse` **OK (0 errors)**; `composer cs:check` **0 of
+256 files**; `composer test:unit` **265 tests / 615 assertions, all passing** (+4 vs
+Phase-2 baseline). New `tests/Unit/Exception/ValidationExceptionTest.php` verifies the
+interface is implemented, the VO carries path/message, and the exception exposes both
+string and object message views.
+
+---
+
 ## Phase 4 — Enums, constants & forward-compat (F5 / F6 / F8)
 
 ### F5 — Replace raw-string discriminators with enums
@@ -649,7 +678,7 @@ Per-phase hard gates:
 |-------|-------|------|------|----------------------|
 | 1 | F16 | Low | S | Yes | ✅ done (2026-08-22) |
 | 2 | F1, F2, F4 | Med | M | Yes (F1+F2+F4 share `ConfigurationBuilder`; one branch) | ✅ done (2026-08-22) |
-| 3 | F3 | Low | S | Yes |
+| 3 | F3 | Low | S | Yes | ✅ done (2026-08-22) |
 | 4 | F5, F6, F8 | Med | M | Yes (F6/F8 are tiny; F5 is the bulk) |
 | 5 | F7–F15 | Low | M | Yes (each finding its own commit) |
 

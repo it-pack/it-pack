@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
+use ItPack\ConfigureIt\ValueObject\ValidationMessage;
 
 /**
  * Validates the graph against a schema as a discrete pipeline stage.
@@ -50,11 +51,13 @@ final readonly class ValidationProcessor implements ConfigurationProcessorInterf
         }
 
         $lines = ['Configuration validation failed:'];
+        $messages = [];
 
         foreach ($result->errors() as $error) {
+            $messages[] = new ValidationMessage($error['path'], $error['message']);
             $lines[] = \sprintf('  %s: %s', $error['path'], $error['message']);
         }
 
-        throw new ValidationException(\implode("\n", $lines));
+        throw new ValidationException(\implode("\n", $lines), messages: $messages);
     }
 }

@@ -17,11 +17,13 @@ use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DeclaresScalarTypesInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\LayerAwareSourceInterface;
+use ItPack\ConfigureIt\Contract\MessageInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\OccurrenceFactory;
+use ItPack\ConfigureIt\ValueObject\ValidationMessage;
 
 /**
  * Coordinates the entire resolution process and produces the final immutable
@@ -116,9 +118,26 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
                 || ($this->failOnWarnings && $result->hasWarnings());
 
             if ($blocking) {
-                throw new ValidationException($this->describe($result, $this->failOnWarnings));
+                throw new ValidationException(
+                    $this->describe($result, $this->failOnWarnings),
+                    messages: $this->toValidationMessages($result),
+                );
             }
         }
+    }
+
+    /**
+     * @return list<MessageInterface>
+     */
+    private function toValidationMessages(ValidationResultInterface $result): array
+    {
+        $messages = [];
+
+        foreach ($result->issues() as $issue) {
+            $messages[] = new ValidationMessage($issue['path'], $issue['message']);
+        }
+
+        return $messages;
     }
 
     /**
