@@ -19,24 +19,24 @@ use ItPack\RunIt\Contract\Domain\ContextSourceInterface;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class ContextSource implements ContextSourceInterface
+final readonly class ContextSource implements ContextSourceInterface
 {
     use StringProviderBehavior;
 
     /**
      * The canonical string projection of this source.
      *
-     * Backed by {@see ContextSource::$raw}; exposed as a virtual property so
-     * callers can read `$source->value` as well as `toString()`.
+     * Declared `readonly` (rather than a virtual hook) so the class can stay a
+     * `readonly class`; the value is validated and assigned exactly once, on
+     * construction. Callers read `$source->value` or `toString()`.
      */
-    public string $value {
-        get => $this->raw;
-    }
+    public readonly string $value;
 
-    private function __construct(
-        private readonly string $raw,
-    ) {
-        new StringValueValidator()->validate($raw);
+    private function __construct(string $value)
+    {
+        new StringValueValidator()->validate($value);
+
+        $this->value = $value;
     }
 
     /**
@@ -52,7 +52,7 @@ final class ContextSource implements ContextSourceInterface
 
     public function toString(): string
     {
-        return $this->raw;
+        return $this->value;
     }
 
     public function equals(ContextSourceInterface $other): bool

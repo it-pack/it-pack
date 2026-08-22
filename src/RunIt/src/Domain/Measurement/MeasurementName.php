@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementNameInterface;
  *
  * @see https://w3id.org/itpack/runit#measurementName
  */
-final class MeasurementName implements MeasurementNameInterface
+final readonly class MeasurementName implements MeasurementNameInterface
 {
     use ValidatedStringValueBehavior;
 }

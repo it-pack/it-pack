@@ -27,15 +27,16 @@ trait ValidatedStringIdentifierBehavior
     /**
      * The canonical string projection of this identifier.
      *
-     * Backed by {@see ValidatedStringIdentifierBehavior::$raw}; exposed as a
-     * virtual property so callers can read `$id->value` as well as `toString()`.
+     * Declared `readonly` (rather than a virtual hook) so the consuming class
+     * can stay a `readonly class`; the value is assigned exactly once, on
+     * construction, and never mutated. Callers read `$id->value` or
+     * `toString()`.
      */
-    public string $value {
-        get => $this->raw;
-    }
+    public readonly string $value;
 
-    private function __construct(private readonly string $raw)
+    private function __construct(string $value)
     {
+        $this->value = $value;
     }
 
     /**
@@ -54,6 +55,6 @@ trait ValidatedStringIdentifierBehavior
 
     public function toString(): string
     {
-        return $this->raw;
+        return $this->value;
     }
 }

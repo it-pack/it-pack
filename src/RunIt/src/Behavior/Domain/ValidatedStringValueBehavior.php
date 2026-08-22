@@ -28,21 +28,23 @@ trait ValidatedStringValueBehavior
     /**
      * The canonical string projection of this value.
      *
-     * Backed by {@see ValidatedStringValueBehavior::$raw}; exposed as a virtual
-     * property so callers can read `$value->value` as well as `toString()`.
+     * Declared `readonly` (rather than a virtual hook) so the consuming class
+     * can stay a `readonly class`; the value is validated and assigned exactly
+     * once, on construction, and never mutated. Callers read `$value->value`
+     * or `toString()`.
      */
-    public string $value {
-        get => $this->raw;
-    }
+    public readonly string $value;
 
     /**
      * @throws InvalidValueExceptionInterface
      */
     private function __construct(
-        private readonly string $raw,
+        string $value,
         StringValueValidatorInterface $validator = new \ItPack\RunIt\Behavior\Domain\StringValueValidator(),
     ) {
-        $validator->validate($raw);
+        $validator->validate($value);
+
+        $this->value = $value;
     }
 
     /**
@@ -58,7 +60,7 @@ trait ValidatedStringValueBehavior
 
     public function toString(): string
     {
-        return $this->raw;
+        return $this->value;
     }
 
     public function equals(StringValueInterface $other): bool

@@ -20,24 +20,24 @@ use ItPack\RunIt\Contract\Domain\StringValueInterface;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class ContextKey implements ContextKeyInterface
+final readonly class ContextKey implements ContextKeyInterface
 {
     use StringProviderBehavior;
 
     /**
      * The canonical string projection of this key.
      *
-     * Backed by {@see ContextKey::$raw}; exposed as a virtual property so
-     * callers can read `$key->value` as well as `toString()`.
+     * Declared `readonly` (rather than a virtual hook) so the class can stay a
+     * `readonly class`; the value is validated and assigned exactly once, on
+     * construction. Callers read `$key->value` or `toString()`.
      */
-    public string $value {
-        get => $this->raw;
-    }
+    public readonly string $value;
 
-    private function __construct(
-        private readonly string $raw,
-    ) {
-        new ContextValueValidator()->assertValidKey($raw);
+    private function __construct(string $value)
+    {
+        new ContextValueValidator()->assertValidKey($value);
+
+        $this->value = $value;
     }
 
     /**
@@ -53,7 +53,7 @@ final class ContextKey implements ContextKeyInterface
 
     public function toString(): string
     {
-        return $this->raw;
+        return $this->value;
     }
 
     public function equals(StringValueInterface $other): bool

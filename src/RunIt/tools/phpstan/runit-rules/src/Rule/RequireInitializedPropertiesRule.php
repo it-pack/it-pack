@@ -52,12 +52,6 @@ final class RequireInitializedPropertiesRule extends AbstractSrcRule implements 
                 continue;
             }
 
-            // A property with a `get` hook is computed on read and never stored,
-            // so it cannot be "uninitialized" in the way this rule guards against.
-            if ($property->hooks !== []) {
-                continue;
-            }
-
             foreach ($property->props as $prop) {
                 if ($prop->default === null) {
                     $uninitialized[$prop->name->name] = true;

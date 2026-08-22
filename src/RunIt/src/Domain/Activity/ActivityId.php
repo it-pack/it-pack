@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
  *
  * @see https://w3id.org/itpack/runit#activityId
  */
-final class ActivityId implements ActivityIdInterface
+final readonly class ActivityId implements ActivityIdInterface
 {
     use ValidatedStringIdentifierBehavior;
 }

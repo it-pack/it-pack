@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
  *
  * @see https://w3id.org/itpack/runit#executionName
  */
-final class ExecutionName implements ExecutionNameInterface
+final readonly class ExecutionName implements ExecutionNameInterface
 {
     use ValidatedStringValueBehavior;
 }

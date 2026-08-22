@@ -16,7 +16,7 @@ use ItPack\RunIt\Contract\Domain\ActivityKindInterface;
  *
  * @see https://w3id.org/itpack/runit#activityKind
  */
-final class ActivityKind implements ActivityKindInterface
+final readonly class ActivityKind implements ActivityKindInterface
 {
     use ValidatedStringValueBehavior;
 }
