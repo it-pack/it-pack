@@ -27,9 +27,10 @@ Design goals:
 - **Modern PHP 8.4.** `readonly`, property hooks, immutable builders, and strict
   typing throughout.
 
-> Status: planning. The design below is the target architecture described in
-> [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md). Source code is not
-> yet implemented.
+> Status: implemented (1.0.0 scope). The architecture below is the one shipped in
+> this repository; see [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)
+> for the full reasoning, [`docs/architecture/`](docs/architecture/) for the layer
+> map, and [`docs/adr/`](docs/adr/) for the accepted decisions.
 
 ---
 
@@ -53,7 +54,7 @@ never the reverse.
 
 ---
 
-## Planned Usage
+## Usage
 
 ### Opening, staging, and committing
 

@@ -376,19 +376,26 @@ implementation begins.
 
 ## 13. Open Questions / Decisions Needed
 
-- **`execute()` exposure.** Should the generic `execute(string $command, ...$args)`
-  escape hatch be part of the public `Repository` contract (portable but
-  git-specific) or live only on the git adapter under a `GitRepository` extension
-  interface? Recommendation: keep it on the contract but documented as
-  adapter-specific and non-portable.
-- **`Commit` richness.** Do we expose full author/committer metadata in 1.0.0 or a
-  minimal `Commit` (id + subject) with metadata added later? Recommendation:
-  ship the full immutable `Commit` since `czproject` already provides it cheaply.
-- **Scope of working trees.** Confirm worktree (linked) vs. bare secondary checkouts
-  — plan targets linked worktrees via `git worktree`.
-- **RunIt dependency decision.** Confirm CommitIt ships *zero* RunIt code and relies
-  solely on the `RepositoryObserver` port. Recommendation: yes (keeps the package
-  independently installable).
+> Resolved on 2026-08-22. Each item below was decided as recommended and matches
+> the implemented code. See the corresponding ADR under `docs/adr/` for the
+> recorded decision.
+
+- **`execute()` exposure.** *Resolved — accepted as recommended (ADR-002).* The
+  generic `execute(string $command, array $args = []): string` lives on the
+  `Repository` contract and is explicitly documented as git-specific and
+  non-portable. The git adapter implements it via the `czproject` runner's argv
+  vector, so arguments are never passed to a shell.
+- **`Commit` richness.** *Resolved — accepted as recommended (ADR-001/005).* The
+  immutable `Commit` carries the full id, subject, body, and author/committer
+  name, email, and date. `czproject` already provides this cheaply.
+- **Scope of working trees.** *Resolved — linked worktrees via `git worktree`
+  (ADR-004).* `GitPhpWorkingTree` composes a `GitPhpRepository` and uses its
+  `execute()` passthrough; it does **not** subclass `czproject` classes. Paths are
+  scope-checked so they cannot escape the repository parent.
+- **RunIt dependency decision.** *Resolved — accepted as recommended (ADR-003).*
+  CommitIt ships zero RunIt code. Observation is provided only through the
+  `RepositoryObserver` port, applied via the `ObservedRepository` decorator; a
+  future `it-pack/commit-it-runit` package maps it to RunIt without changes here.
 
 ---
 

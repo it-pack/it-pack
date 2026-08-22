@@ -601,36 +601,57 @@ security) plus a `MemoryRunner`-driven adapter mapping test. All 104 tests pass
 
 ---
 
-## Milestone M7 — Documentation & ADRs
+## Milestone M7 — Documentation & ADRs ✅ COMPLETE (2026-08-22)
 
 **Goal:** Record decisions and finalize public-facing docs.
 
-### Tasks
+**Status:** Done. Added the architecture writeup, five ADRs, resolved the plan's
+open questions, and updated the README to reflect the implemented API.
 
-1. **Architecture docs.**
-   - `docs/architecture/` — a short layer-and-dependency writeup (can summarize
-     `IMPLEMENTATION_PLAN.md` Section 3/4).
+### Tasks — status
 
-2. **ADRs** under `docs/adr/` for the topics identified in the plan:
+1. **Architecture docs.** ✅ `docs/architecture/LAYER_AND_DEPENDENCY.md` — a short
+   layer-and-dependency writeup (summary of `IMPLEMENTATION_PLAN.md` Sections 3–4)
+   with the dependency direction, per-layer responsibilities, and boundary
+   invariants.
+2. **ADRs** under `docs/adr/` ✅ all five topics recorded as accepted:
    - `ADR-001` Hexagonal layering and port boundaries.
-   - `ADR-002` Vendor-neutral vocabulary vs. git-first.
-   - `ADR-003` `RepositoryObserver` as the RunIt-integration boundary.
+   - `ADR-002` Vendor-neutral vocabulary vs. git-first (incl. `execute()` escape
+     hatch decision).
+   - `ADR-003` `RepositoryObserver` as the RunIt-integration boundary (zero RunIt
+     code).
    - `ADR-004` Worktree strategy (composition over `czproject` subclassing).
-   - `ADR-005` Value-object validation rules.
+   - `ADR-005` Value-object validation rules (`RefNameValidator`,
+     `CommitMessageValidator`, path scope).
+3. **`README.md`** ✅ updated: status note changed from "planning" to
+   "implemented"; the `## Planned Usage` section renamed to `## Usage`. Examples
+   already use the real public API (`CommitIt` facade, `CommitMessage`,
+   `InitOptions`, `BranchName`/`TagName`/`RemoteName`, worktrees, observer).
+4. **`AGENTS.md` "Sources of Truth"** — already lists `docs/architecture/` and
+   `docs/adr/` (items 5–6), so no change was required.
 
-3. **Update `README.md`** to mark implemented features as available (transition
-   the "planned" sections to "usage" as code lands). Keep examples executable and
-   `declare(strict_types=1)`-clean.
+### Built
 
-4. **Update `AGENTS.md` "Sources of Truth"** if new `docs/adr/` or
-   `docs/architecture/` paths are introduced.
+- `docs/architecture/LAYER_AND_DEPENDENCY.md`
+- `docs/adr/ADR-001.md` … `docs/adr/ADR-005.md`
+- `README.md` (status + section rename)
+- `docs/IMPLEMENTATION_PLAN.md` Section 13 (open questions resolved as accepted,
+  cross-linked to ADRs)
+
+### Decisions
+
+- Documentation follows **ADR-001..005** as the authoritative decisions; the plan's
+  four open questions were confirmed as the originally recommended options and now
+  match the shipped code.
+- The `execute()` escape hatch is intentionally on the `Repository` contract but
+  documented as git-specific/non-portable (ADR-002).
 
 ### Acceptance criteria
 
-- ADRs exist for all five topics and are consistent with the implemented code.
-- `README.md` examples reflect the actual public API at this milestone.
-- `docs/IMPLEMENTATION_PLAN.md` open questions (Section 13) are resolved or logged
-  as deferred with rationale.
+- ✅ ADRs exist for all five topics and are consistent with the implemented code.
+- ✅ `README.md` examples reflect the actual public API at this milestone.
+- ✅ `docs/IMPLEMENTATION_PLAN.md` open questions (Section 13) are resolved with
+      rationale and cross-linked to the ADRs.
 
 ---
 
@@ -693,7 +714,7 @@ M3  Git adapter (factory, repository, working tree, exception map) ✅ COMPLETE 
 M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place) ✅ COMPLETE (2026-08-22)
 M5  SDK facade ✅ COMPLETE (2026-08-22)
 M6  Integration tests & failure/security injection ✅ COMPLETE (2026-08-22)
-M7  Documentation & ADRs
+M7  Documentation & ADRs ✅ COMPLETE (2026-08-22)
 M8  Quality hardening (phpstan max, deptrac, cs-fixer, infection)
 ```
 
