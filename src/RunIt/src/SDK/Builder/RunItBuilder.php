@@ -16,9 +16,13 @@ use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
+use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
+use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -43,8 +47,13 @@ use ItPack\RunIt\SDK\RunItInterface;
  * Immutable {@see RunItBuilderInterface} implementation.
  *
  * The builder supplies application and domain defaults (context storage, nested and completion
- * policies, throwable mapper, hashing, and factories) and composes redaction and sampling around
- * the configured publisher. Required ports are validated at {@see self::build()}.
+ * policies, throwable mapper, hashing, execution factory, lifecycle coordinator, snapshot factory,
+ * and identifier factories) and composes redaction and sampling around the configured publisher.
+ * Any default collaborator can be replaced through its `with*` seam. Required ports are validated at
+ * {@see self::build()}.
+ *
+ * Every `with*` method returns a new builder via copy-on-write (`clone` + assign), so configuration
+ * can be shared and extended without mutation.
  *
  * @api
  *
@@ -53,277 +62,165 @@ use ItPack\RunIt\SDK\RunItInterface;
 final class RunItBuilder implements RunItBuilderInterface
 {
     private function __construct(
-        private readonly ?ArtifactPublisherInterface $publisher,
-        private readonly ?MonotonicClockInterface $clock,
-        private readonly ?SequenceAllocatorInterface $allocator,
-        private readonly ?SerializerInterface $serializer,
-        private readonly ?IdentifierGeneratorInterface $generator,
-        private readonly ?ContextStorageInterface $contextStorage,
-        private readonly ?SnapshotStoreInterface $snapshotStore,
-        private readonly ?ThrowableMapperInterface $throwableMapper,
-        private readonly ?NestedExecutionPolicyInterface $nestedPolicy,
-        private readonly ?ExecutionCompletionPolicyInterface $completionPolicy,
-        private readonly ?RedactorInterface $redactor,
-        private readonly ?SamplingPolicyInterface $samplingPolicy,
-        private readonly ?ExecutionEngineInterface $engine,
+        private ?ArtifactPublisherInterface $publisher = null,
+        private ?MonotonicClockInterface $clock = null,
+        private ?SequenceAllocatorInterface $allocator = null,
+        private ?SerializerInterface $serializer = null,
+        private ?IdentifierGeneratorInterface $generator = null,
+        private ?ContextStorageInterface $contextStorage = null,
+        private ?SnapshotStoreInterface $snapshotStore = null,
+        private ?ThrowableMapperInterface $throwableMapper = null,
+        private ?NestedExecutionPolicyInterface $nestedPolicy = null,
+        private ?ExecutionCompletionPolicyInterface $completionPolicy = null,
+        private ?RedactorInterface $redactor = null,
+        private ?SamplingPolicyInterface $samplingPolicy = null,
+        private ?ExecutionEngineInterface $engine = null,
+        private ?HashCalculatorInterface $hashCalculator = null,
+        private ?ExecutionFactoryInterface $executionFactory = null,
+        private ?ExecutionLifecycleCoordinatorInterface $coordinator = null,
+        private ?ExecutionSnapshotFactoryInterface $snapshotFactory = null,
     ) {
     }
 
     public static function create(): RunItBuilderInterface
     {
-        return new self(null, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new self();
     }
 
     public function withPublisher(ArtifactPublisherInterface $publisher): RunItBuilderInterface
     {
-        return new self(
-            $publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->publisher = $publisher;
+
+        return $clone;
     }
 
     public function withClock(MonotonicClockInterface $clock): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
-    }
+        $clone = clone $this;
+        $clone->clock = $clock;
 
-    public function withMonotonicClock(MonotonicClockInterface $clock): RunItBuilderInterface
-    {
-        return $this->withClock($clock);
+        return $clone;
     }
 
     public function withSequenceAllocator(SequenceAllocatorInterface $allocator): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->allocator = $allocator;
+
+        return $clone;
     }
 
     public function withSnapshotSerializer(SerializerInterface $serializer): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->serializer = $serializer;
+
+        return $clone;
     }
 
     public function withIdentifierGenerator(IdentifierGeneratorInterface $generator): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->generator = $generator;
+
+        return $clone;
     }
 
     public function withContextStorage(ContextStorageInterface $storage): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $storage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->contextStorage = $storage;
+
+        return $clone;
     }
 
     public function withSnapshotStore(?SnapshotStoreInterface $store): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $store,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->snapshotStore = $store;
+
+        return $clone;
     }
 
     public function withThrowableMapper(ThrowableMapperInterface $mapper): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $mapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->throwableMapper = $mapper;
+
+        return $clone;
     }
 
     public function withRedactor(?RedactorInterface $redactor): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->redactor = $redactor;
+
+        return $clone;
     }
 
     public function withSamplingPolicy(?SamplingPolicyInterface $policy): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $policy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->samplingPolicy = $policy;
+
+        return $clone;
     }
 
     public function withNestedExecutionPolicy(NestedExecutionPolicyInterface $policy): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $policy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->nestedPolicy = $policy;
+
+        return $clone;
     }
 
     public function withCompletionPolicy(ExecutionCompletionPolicyInterface $policy): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $policy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $this->engine,
-        );
+        $clone = clone $this;
+        $clone->completionPolicy = $policy;
+
+        return $clone;
     }
 
     public function withExecutionEngine(ExecutionEngineInterface $engine): RunItBuilderInterface
     {
-        return new self(
-            $this->publisher,
-            $this->clock,
-            $this->allocator,
-            $this->serializer,
-            $this->generator,
-            $this->contextStorage,
-            $this->snapshotStore,
-            $this->throwableMapper,
-            $this->nestedPolicy,
-            $this->completionPolicy,
-            $this->redactor,
-            $this->samplingPolicy,
-            $engine,
-        );
+        $clone = clone $this;
+        $clone->engine = $engine;
+
+        return $clone;
+    }
+
+    public function withHashCalculator(HashCalculatorInterface $hashCalculator): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->hashCalculator = $hashCalculator;
+
+        return $clone;
+    }
+
+    public function withExecutionFactory(ExecutionFactoryInterface $executionFactory): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->executionFactory = $executionFactory;
+
+        return $clone;
+    }
+
+    public function withLifecycleCoordinator(ExecutionLifecycleCoordinatorInterface $coordinator): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->coordinator = $coordinator;
+
+        return $clone;
+    }
+
+    public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->snapshotFactory = $snapshotFactory;
+
+        return $clone;
     }
 
     public function build(): RunItInterface
@@ -339,16 +236,17 @@ final class RunItBuilder implements RunItBuilderInterface
         $nestedPolicy = $this->nestedPolicy ?? new ChildExecutionPolicy();
         $completionPolicy = $this->completionPolicy ?? new AutoFailOpenActivitiesPolicy();
 
-        $hashCalculator = new DeterministicHashCalculator();
+        $hashCalculator = $this->hashCalculator ?? new DeterministicHashCalculator();
         $executionIdFactory = new StringIdentifierFactory(ExecutionId::fromString(...), $generator);
         $activityIdFactory = new StringIdentifierFactory(ActivityId::fromString(...), $generator);
         $observationIdFactory = new StringIdentifierFactory(ObservationId::fromString(...), $generator);
         $occurrenceIdFactory = new StringIdentifierFactory(OccurrenceId::fromString(...), $generator);
         $snapshotIdFactory = new StringIdentifierFactory(SnapshotId::fromString(...), $generator);
 
-        $executionFactory = new ExecutionFactory();
-        $coordinator = new ExecutionLifecycleCoordinator();
-        $snapshotFactory = new ExecutionSnapshotFactory($snapshotIdFactory, $hashCalculator);
+        $executionFactory = $this->executionFactory ?? new ExecutionFactory();
+        $coordinator = $this->coordinator ?? new ExecutionLifecycleCoordinator();
+        $snapshotFactory = $this->snapshotFactory ?? new ExecutionSnapshotFactory($snapshotIdFactory, $hashCalculator);
+
         $currentExecution = new CurrentExecution($contextStorage);
 
         $composedPublisher = $publisher;
@@ -362,28 +260,28 @@ final class RunItBuilder implements RunItBuilderInterface
         }
 
         $runner = new DefaultExecutionRunner(
-            $currentExecution,
-            $contextStorage,
-            $composedPublisher,
-            $serializer,
-            $executionFactory,
-            $coordinator,
-            $snapshotFactory,
-            $nestedPolicy,
-            $completionPolicy,
-            $clock,
-            $allocator,
-            $executionIdFactory,
-            $activityIdFactory,
-            $observationIdFactory,
-            $occurrenceIdFactory,
-            $snapshotIdFactory,
-            $hashCalculator,
-            $throwableMapper,
-            null,
-            $this->snapshotStore,
-            null,
-            $this->engine,
+            currentExecution: $currentExecution,
+            contextStorage: $contextStorage,
+            publisher: $composedPublisher,
+            serializer: $serializer,
+            executionFactory: $executionFactory,
+            coordinator: $coordinator,
+            snapshotFactory: $snapshotFactory,
+            nestedPolicy: $nestedPolicy,
+            completionPolicy: $completionPolicy,
+            clock: $clock,
+            sequenceAllocator: $allocator,
+            executionIdFactory: $executionIdFactory,
+            activityIdFactory: $activityIdFactory,
+            observationIdFactory: $observationIdFactory,
+            occurrenceIdFactory: $occurrenceIdFactory,
+            snapshotIdFactory: $snapshotIdFactory,
+            hashCalculator: $hashCalculator,
+            throwableMapper: $throwableMapper,
+            onPublicationFailure: null,
+            snapshotStore: $this->snapshotStore,
+            onSnapshotStoreFailure: null,
+            engine: $this->engine,
         );
 
         return new DefaultRunIt($runner, $currentExecution);

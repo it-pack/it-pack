@@ -6,9 +6,13 @@ namespace ItPack\RunIt\SDK\Builder;
 
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
+use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
+use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -43,12 +47,6 @@ interface RunItBuilderInterface
 
     public function withClock(MonotonicClockInterface $clock): RunItBuilderInterface;
 
-    /**
-     * Configures the monotonic clock; the single {@see MonotonicClockInterface} supplies both wall-clock
-     * and monotonic time, so this is an alias of {@see self::withClock()}.
-     */
-    public function withMonotonicClock(MonotonicClockInterface $clock): RunItBuilderInterface;
-
     public function withSequenceAllocator(SequenceAllocatorInterface $allocator): RunItBuilderInterface;
 
     public function withSnapshotSerializer(SerializerInterface $serializer): RunItBuilderInterface;
@@ -74,6 +72,28 @@ interface RunItBuilderInterface
      * the default synchronous engine. The runner still owns execution semantics.
      */
     public function withExecutionEngine(ExecutionEngineInterface $engine): RunItBuilderInterface;
+
+    /**
+     * Overrides the hash calculator used for snapshot integrity and artifact fingerprints.
+     * Replaces the default {@see \ItPack\RunIt\Domain\Shared\DeterministicHashCalculator} and is also
+     * wired into the default snapshot factory.
+     */
+    public function withHashCalculator(HashCalculatorInterface $hashCalculator): RunItBuilderInterface;
+
+    /**
+     * Overrides the execution factory that materializes a domain execution from a definition.
+     */
+    public function withExecutionFactory(ExecutionFactoryInterface $executionFactory): RunItBuilderInterface;
+
+    /**
+     * Overrides the lifecycle coordinator that owns the execution state machine.
+     */
+    public function withLifecycleCoordinator(ExecutionLifecycleCoordinatorInterface $coordinator): RunItBuilderInterface;
+
+    /**
+     * Overrides the snapshot factory that builds execution snapshots.
+     */
+    public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): RunItBuilderInterface;
 
     /**
      * Builds an interface-backed runtime facade, validating required dependencies first.

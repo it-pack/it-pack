@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\Psr\Http;
 
+use ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface;
+use ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface;
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
@@ -13,8 +15,6 @@ use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
-use ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface;
-use ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

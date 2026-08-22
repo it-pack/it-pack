@@ -9,12 +9,19 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Factory\ExecutionFactory;
+use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
+use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
+use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
@@ -172,6 +179,81 @@ final class RunItBuilderTest extends TestCase
         foreach ($spy->published as $artifact) {
             self::assertInstanceOf(RedactedTagArtifact::class, $artifact);
         }
+    }
+
+    public function testNewSeamWithersReturnNewBuilderInstances(): void
+    {
+        $base = $this->builder();
+        $hashCalculator = new DeterministicHashCalculator();
+        $executionFactory = new ExecutionFactory();
+        $coordinator = new ExecutionLifecycleCoordinator();
+        $snapshotFactory = new ExecutionSnapshotFactory(
+            new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
+            new DeterministicHashCalculator(),
+        );
+
+        self::assertNotSame($base, $base->withHashCalculator($hashCalculator));
+        self::assertNotSame($base, $base->withExecutionFactory($executionFactory));
+        self::assertNotSame($base, $base->withLifecycleCoordinator($coordinator));
+        self::assertNotSame($base, $base->withSnapshotFactory($snapshotFactory));
+    }
+
+    public function testBuildWiresConfiguredHashCalculatorIntoSnapshotFactory(): void
+    {
+        $spy = new SpyHashCalculator();
+
+        $runtime = RunItBuilder::create()
+            ->withPublisher(new InMemoryArtifactPublisher())
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withHashCalculator($spy)
+            ->build()
+        ;
+
+        $result = $runtime->run($this->definition(), static fn (): string => 'seams');
+
+        self::assertSame('seams', $result);
+        self::assertTrue($spy->called, 'configured hash calculator must be wired into the default snapshot factory');
+    }
+
+    public function testBuildAcceptsAllCustomSeams(): void
+    {
+        $spy = new SpyHashCalculator();
+
+        $runtime = RunItBuilder::create()
+            ->withPublisher(new InMemoryArtifactPublisher())
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withHashCalculator($spy)
+            ->withExecutionFactory(new ExecutionFactory())
+            ->withLifecycleCoordinator(new ExecutionLifecycleCoordinator())
+            ->withSnapshotFactory(new ExecutionSnapshotFactory(
+                new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
+                $spy,
+            ))
+            ->build()
+        ;
+
+        $result = $runtime->run($this->definition(), static fn (): string => 'all-seams');
+
+        self::assertSame('all-seams', $result);
+        self::assertTrue($spy->called, 'configured hash calculator must be invoked through the custom snapshot factory');
+    }
+}
+
+final class SpyHashCalculator implements HashCalculatorInterface
+{
+    public bool $called = false;
+
+    public function calculate(string $content): string
+    {
+        $this->called = true;
+
+        return hash('sha256', $content);
     }
 }
 

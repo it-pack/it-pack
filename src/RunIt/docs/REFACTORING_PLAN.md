@@ -132,10 +132,15 @@ Goal: remove magic strings guarding invariants and unify status/severity vocabul
 
 ## Phase 2 — P2 mechanical DRY, factories, interfaces, feature leverage
 
-### T2.1 — D1: `clone`-wither builder
-- **Files:** `src/SDK/Builder/RunItBuilder.php:77-327,74,329-390`.
-- **Steps:** convert each `withX()` to `$clone = clone $this; $clone->x = $x; return $clone;`; remove `withMonotonicClock()` alias (or deprecate); switch `:364-387` 22-arg call to named args; add `withHashCalculator()`/`withExecutionFactory()`/`withLifecycleCoordinator()`/`withSnapshotFactory()` seams (F1-adjacent).
-- **Verify:** builder test suite; ~230 lines removed.
+### T2.1 — D1: `clone`-wither builder — **DONE 2026-08-22**
+- **Files:** `src/SDK/Builder/RunItBuilder.php`, `src/SDK/Builder/RunItBuilderInterface.php`, `tests/Unit/SDK/Builder/RunItBuilderTest.php`; plus a style-only import reorder in `src/Adapter/Psr/Http/ExecutionMiddleware.php` (pre-existing non-compliance the fixer surfaced) to keep `cs:check` green.
+- **What changed:**
+  - **Copy-on-write withers.** Every `withX()` now does `$clone = clone $this; $clone->x = $x; return $clone;`. The constructor properties changed from `private readonly ?X` to `private ?X = null` (clone writable), and `create()` calls `new self()` with no args. Net ~190 lines removed from the builder (each wither dropped from ~17 lines to 4).
+  - **Removed `withMonotonicClock()` alias.** It was a pure pass-through to `withClock()` with no external callers in the repo; removed from both the concrete class and `RunItBuilderInterface` (pre-1.0, no BC impact on known consumers).
+  - **Named-arg `DefaultExecutionRunner` construction.** The 22-positional-arg `new DefaultExecutionRunner(...)` call in `build()` is now a named-argument call, so the 22 dependencies are self-documenting and order-independent.
+  - **Four new seams (F1-adjacent).** Added `withHashCalculator(HashCalculatorInterface)`, `withExecutionFactory(ExecutionFactoryInterface)`, `withLifecycleCoordinator(ExecutionLifecycleCoordinatorInterface)`, and `withSnapshotFactory(ExecutionSnapshotFactoryInterface)` to both the interface and the builder, plus the matching nullable properties. In `build()`, each defaults to `null` and falls back to the previous safe default; a supplied `HashCalculator` is also wired into the default `ExecutionSnapshotFactory`, so overriding it keeps the snapshot path consistent. All four are interface-typed, aligning with the F1 factory-vocabulary direction (T2.4).
+- **Verify:** `composer cs:check` clean (497/497). PHPStan: no errors on the changed files (full-tree run still only shows the pre-existing `SecurityLimits` dead-method notices from T1.4). DepTrac **0 violations** (Allowed 2238). Builder test suite green: 11 original + 3 new (immutability of the four new withers; configured hash calculator invoked through the default snapshot factory; all four custom seams build and execute) — 14/14; full `SDK` suite + `Application/Publication/PublicationPipelineTest` 42/42.
+- **Risk/BC:** pre-1.0 removal of `withMonotonicClock()` is safe (no repo callers). The class is no longer `readonly` internally (required for `clone`+reassign); the immutable *API contract* is unchanged and still covered by `testBuilderIsImmutable`. **Pre-existing, unrelated failures (unchanged):** `Adapter/OpenTelemetry` cannot load under PHP 8.5 (`readonly`+trait fatal) and `Adapter/Psr/Http` has 4 `TypeError`s (`ExecutionMiddleware` type-hints the wrong `HttpContextExtractorInterface` namespace) — neither touched by T2.1.
 
 ### T2.2 — D2: publisher lifecycle trait
 - **Files:** `src/Application/Publication/{Filtering, Sampling, Redacting, Guarded, FailSafe, Bounded}ArtifactPublisher.php`.
