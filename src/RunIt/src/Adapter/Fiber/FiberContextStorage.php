@@ -88,8 +88,10 @@ final class FiberContextStorage implements ContextStorageInterface
 
         if ($stack === []) {
             unset($this->stacks[$anchor]);
-        } else {
-            $this->stacks[$anchor] = $stack;
+
+            return;
         }
+
+        $this->stacks[$anchor] = $stack;
     }
 }

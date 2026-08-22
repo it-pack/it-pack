@@ -8,6 +8,7 @@ use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
+use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
@@ -33,8 +34,6 @@ use ItPack\RunIt\Domain\Shared\Instant;
  */
 final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenceMapperInterface
 {
-    private const string CORRELATION_ATTRIBUTE_KEY = 'correlation.id';
-
     public function map(CloudEvent $event): \ItPack\RunIt\Contract\Domain\OccurrenceInterface
     {
         $executionIdValue = $event->extensions[CloudEventExtensionKey::ExecutionId->value] ?? null;
@@ -48,13 +47,11 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
             : null;
 
         $sequenceValue = $event->extensions[CloudEventExtensionKey::Sequence->value] ?? null;
-        if (is_int($sequenceValue)) {
-            $sequence = ArtifactSequence::of($sequenceValue);
-        } elseif (is_numeric($sequenceValue)) {
-            $sequence = ArtifactSequence::of((int) $sequenceValue);
-        } else {
-            $sequence = ArtifactSequence::initial();
-        }
+        $sequence = match (true) {
+            is_int($sequenceValue) => ArtifactSequence::of($sequenceValue),
+            is_numeric($sequenceValue) => ArtifactSequence::of((int) $sequenceValue),
+            default => ArtifactSequence::initial(),
+        };
 
         $attributes = [];
 
@@ -69,7 +66,7 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
             }
 
             if ($key === CloudEventExtensionKey::CorrelationId->value && is_string($value)) {
-                $attributes[self::CORRELATION_ATTRIBUTE_KEY] = $value;
+                $attributes[CorrelationKeys::CLOUDEVENTS_CORRELATION_ATTRIBUTE] = $value;
 
                 continue;
             }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Psr\Http\Propagation;
 
 use ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface;
+use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 
 /**
  * Default correlation header propagator.
@@ -19,8 +20,8 @@ use ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface;
 final readonly class DefaultHeaderPropagator implements HeaderPropagatorInterface
 {
     public function __construct(
-        private string $executionHeader = 'X-Execution-Id',
-        private string $correlationHeader = 'X-Correlation-Id',
+        private string $executionHeader = CorrelationKeys::HTTP_EXECUTION_HEADER,
+        private string $correlationHeader = CorrelationKeys::HTTP_CORRELATION_HEADER,
     ) {
     }
 

@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Adapter\Psr\Http\Propagation;
 use ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -54,7 +55,7 @@ final readonly class Psr18CorrelationClientDecorator implements ClientInterface
 
     private function correlationId(ExecutionScopeInterface $scope): ?string
     {
-        $entry = $scope->context()->find('ctx.correlation.id');
+        $entry = $scope->context()->find(CorrelationKeys::CONTEXT_CORRELATION_KEY);
 
         if ($entry === null) {
             return null;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Psr\Http;
 
 use ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface;
+use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
@@ -29,7 +30,7 @@ final readonly class Psr7RequestContextExtractor implements HttpContextExtractor
 {
     public function __construct(
         private string $kind = 'http.request',
-        private string $correlationHeader = 'X-Correlation-Id',
+        private string $correlationHeader = CorrelationKeys::HTTP_CORRELATION_HEADER,
         private string $cardinalityPlaceholder = 'id',
     ) {
     }
@@ -44,7 +45,7 @@ final readonly class Psr7RequestContextExtractor implements HttpContextExtractor
         if ($correlationId !== null) {
             $context = $context->with(
                 ContextEntry::public(
-                    ContextKey::fromString('ctx.correlation.id'),
+                    ContextKey::fromString(CorrelationKeys::CONTEXT_CORRELATION_KEY),
                     $correlationId,
                 ),
             );

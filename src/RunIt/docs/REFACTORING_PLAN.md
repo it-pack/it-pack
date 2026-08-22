@@ -212,10 +212,34 @@ Goal: remove magic strings guarding invariants and unify status/severity vocabul
 
 ## Phase 3 — P3 guardrails & hygiene
 
-- **T3.1:** add phpstan/cs rules — `else`/`elseif` → error; forbid literals matching enum values outside the enum file; cognitive-complexity + max-ctor-param thresholds; forbid `spl_object_hash` as cache key.
-- **T3.2:** Infection targets for S1–S6 areas (`ContextValueValidator`, `ExecutionLifecycleCoordinator`, `JsonSnapshotSerializer`, `ExecutionSnapshot`, `DefaultExecutedAsMetadataReader`, `DefaultArtifactRedactor`).
-- **T3.3:** untrack generated artifacts (`build/coverage`, `build/*.xml`, `vendor/`); add `.gitignore`; fix stale coverage index referencing `SafeArtifactPublisher.php`.
-- **T3.4:** centralize duplicated header/context-key defaults (`X-Correlation-Id` ×3, `X-Execution-Id` ×2, `ctx.correlation.id` ×2, `CORRELATION_ATTRIBUTE_KEY` ×2) into one vocabulary.
+### T3.1 — add phpstan/cs rules
+ - **DONE (partial — see deferred items).** Three new custom PHPStan rules added to the `runit-rules` extension (`tools/phpstan/runit-rules/src/Rule/`) and registered in `tools/phpstan/runit-rules/extension.neon`:
+   - **`ForbidSplObjectHashRule`** (`FuncCall`): bans `spl_object_hash()` as a cache key — the S5 regression guard (object identity must go through a `WeakMap`). Verified 0 live calls in `src/` (the one `spl_object_hash` hit that remained was a doc-comment in `DefaultExecutedAsMetadataReader`).
+   - **`ForbidElseRule`** (`Else_` + `ElseIf_`, registered twice): requires guard-clause / `match` style over `else` / `elseif`. To make this pass, the **7 existing `else`/`elseif` sites were converted** (no behavior change): `BufferedArtifactPublisher::dropLowPriorityThenAppend` (early-return), `CoroutineContextStorage` + `FiberContextStorage` detach (early-return on empty stack), `DefaultCloudEventToOccurrenceMapper` sequence resolution (`if`/`elseif`/`else` → `match`), and `DefaultRunIt::wrap` (two nested `else` → inverted `if` + separate `if`). Verified by a temporary probe file that the rule fires (`runit.forbidElse`).
+   - **`MaxConstructorParametersRule`** (`ClassMethod`): flags constructors over a parameter threshold. Threshold set to **16** (above the widest intentional immutable value object — `Snapshot` 14, `Occurrence` 13 — so only genuine oversizing is caught). Three known-wide ctors are exempted (mirroring `RequireInterfaceRule`'s exemption list): `DefaultExecutionRunner` (24), `ExecutionScope` (18), `RunItBuilder` (18). New constructors wider than 16 params now fail unless exempted.
+ - **Deferred (documented, not implemented):** two of the four sub-rules were intentionally not added as enforced rules:
+   - **cognitive-complexity threshold** — PHPStan 2.2.8 has no native cognitive-complexity rule and `phpstan-strict-rules` does not provide one; a from-scratch AST-complexity metric would flag many existing methods and require large refactors out of scope for hygiene. Recommend a follow-up ADR + threshold tuning.
+   - **enum-value literal ban** — a global "forbid literals matching enum backing values outside the enum file" rule has high false-positive risk (`"info"`, `"warning"`, `"GET"`, context keys, and legitimate `from()`/`match` usages). The primary S9/S11 silent-wrong trap was already closed by T1.2 (`name()`→`label()` + enum-driven `match`es), so the residual risk is low. Deferred pending a curated allowlist design.
+   - A `cs` rule for `else`/`elseif` is intentionally not added: the `no_superfluous_elseif` fixer already covers superfluous cases, and a hard `else` ban belongs in static analysis (above), not style.
+ - **Verify:** `composer cs:check` clean (508/508); `composer architecture` 0 violations (Allowed 2273); `composer api:check` clean (the three rule classes live under `tools/`, outside the tracked API surface); PHPStan on all changed `src` files reports no new errors (only the accepted `shipmonk.deadMethod` notices). The full-tree PHPStan run is still masked by the pre-existing OTel `readonly`/trait fatal (unchanged from T1.4).
+
+### T3.2 — Infection targets for S1–S6 areas
+ - **DONE (config + script; execution blocked by env).** Added `infection.s1s6.json5`, a focused Infection profile that narrows `source.directories` to the six directories containing the P0 fix sites — `Domain/Context` (`ContextValueValidator`), `Application/Lifecycle` (`ExecutionLifecycleCoordinator`), `Adapter/Common` (`JsonSnapshotSerializer`), `Domain/Snapshot` (`ExecutionSnapshot`), `SDK/Attribute` (`DefaultExecutedAsMetadataReader`), `Application/Publication` (`DefaultArtifactRedactor`). Registered `composer mutation:p0` (`infection --configuration=infection.s1s6.json5 --only-covering-test-cases --no-interaction`). `composer.json` validated `--strict`; the json5 config parses.
+ - **Verify:** config + script present and valid. **Not executed here:** the Codeception `Unit` suite cannot bootstrap under plain `phpunit`/`codecept` in this environment (`Service di is not defined` — the same pre-existing DI issue that blocked the P0/P2 test runs), so MSI cannot be measured. The profile is intended for CI / a working Codeception harness.
+
+### T3.3 — untrack generated artifacts & stale coverage index
+ - **DONE (already satisfied — no action required).** `git ls-files` shows **0** tracked files under `build/`, `coverage/`, or `var/`; `.gitignore` already excludes `build/`, `coverage/`, `.coverage/`, `var/`, and `*.xml` under `build/`, so generated artifacts are never committed. The planned "stale coverage index referencing `SafeArtifactPublisher.php`" no longer exists: the class was renamed to `FailSafeArtifactPublisher` (grep across `src`/`tests`/`docs` finds only `FailSafeArtifactPublisher`, no `SafeArtifactPublisher` reference). No edits were needed.
+
+### T3.4 — centralize duplicated header/context-key defaults
+ - **DONE.** Added `src/Contract/Shared/CorrelationKeys.php` — a constants-only `interface` (mirroring the `ArtifactField` pattern, so it is exempt from `requireInterface` and carries no behavioral surface) holding the four duplicated literals: `HTTP_CORRELATION_HEADER = 'X-Correlation-Id'`, `HTTP_EXECUTION_HEADER = 'X-Execution-Id'`, `CONTEXT_CORRELATION_KEY = 'ctx.correlation.id'`, `CLOUDEVENTS_CORRELATION_ATTRIBUTE = 'correlation.id'`. The six duplicated sites now reference it:
+   - `Adapter/Psr/Http/Psr7RequestContextExtractor.php` (correlation header default + `ctx.correlation.id` context key),
+   - `Adapter/Psr/Http/Psr7ResponseCorrelationEnricher.php` (execution + correlation header defaults),
+   - `Adapter/Psr/Http/Propagation/DefaultHeaderPropagator.php` (execution + correlation header defaults),
+   - `Adapter/Psr/Http/Propagation/Psr18CorrelationClientDecorator.php` (`ctx.correlation.id` lookup),
+   - `Adapter/CloudEvents/Mapping/DefaultOccurrenceToCloudEventMapper.php` (removed local `CORRELATION_ATTRIBUTE_KEY`, now `CorrelationKeys::CLOUDEVENTS_CORRELATION_ATTRIBUTE`),
+   - `Adapter/CloudEvents/Mapping/DefaultCloudEventToOccurrenceMapper.php` (same).
+   - Placing the vocabulary in `Contract/Shared` keeps a single source of truth while respecting the hexagon: adapters may depend on `Contract`, and no adapter code is imported into `Contract` (DepTrac-clean).
+ - **Verify:** grep confirms the four literals now appear only in `CorrelationKeys.php` (and doc-comments); no `self::CORRELATION_ATTRIBUTE_KEY` / local consts remain. `composer cs:check` clean (508/508); `composer architecture` 0 violations; `composer api:check` clean after regenerating `tools/api-compat/api-baseline.json` for the one additive symbol (`CorrelationKeys`).
 
 ---
 

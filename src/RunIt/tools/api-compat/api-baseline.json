@@ -12352,6 +12352,20 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Shared\\CorrelationKeys": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": {
+            "HTTP_CORRELATION_HEADER": "public",
+            "HTTP_EXECUTION_HEADER": "public",
+            "CONTEXT_CORRELATION_KEY": "public",
+            "CLOUDEVENTS_CORRELATION_ATTRIBUTE": "public"
+        },
+        "methods": [],
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Activity\\Activity": {
         "kind": "class",
         "final": true,

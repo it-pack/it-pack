@@ -1,0 +1,26 @@
+{
+    "$schema": "https://raw.githubusercontent.com/infection/infection/0.33.3/resources/schema.json",
+    "source": {
+        "directories": [
+            "src/Domain/Context",
+            "src/Application/Lifecycle",
+            "src/Adapter/Common",
+            "src/Domain/Snapshot",
+            "src/SDK/Attribute",
+            "src/Application/Publication"
+        ]
+    },
+    "threads": "max",
+    "timeout": 30,
+    "testFramework": "codeception",
+    "testFrameworkExtraArgs": "Unit",
+    "mutators": {
+        "@default": true
+    },
+    "minMsi": 0,
+    "minCoveredMsi": 0,
+    "logs": {
+        "text": "var/infection.s1s6.log",
+        "summary": "var/infection.s1s6.summary.json"
+    }
+}

@@ -91,8 +91,10 @@ final class CoroutineContextStorage implements ContextStorageInterface
 
         if ($stack === []) {
             unset($this->stacks[$key]);
-        } else {
-            $this->stacks[$key] = $stack;
+
+            return;
         }
+
+        $this->stacks[$key] = $stack;
     }
 }

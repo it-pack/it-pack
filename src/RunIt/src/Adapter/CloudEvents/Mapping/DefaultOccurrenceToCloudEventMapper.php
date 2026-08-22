@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventFactoryInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 
 /**
  * Default occurrence-to-CloudEvent mapper.
@@ -26,8 +27,6 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
  */
 final class DefaultOccurrenceToCloudEventMapper implements OccurrenceToCloudEventMapperInterface
 {
-    private const string CORRELATION_ATTRIBUTE_KEY = 'correlation.id';
-
     public function __construct(
         private readonly CloudEventFactoryInterface $factory = new DefaultCloudEventFactory(),
     ) {
@@ -50,13 +49,13 @@ final class DefaultOccurrenceToCloudEventMapper implements OccurrenceToCloudEven
 
         $extensions[CloudEventExtensionKey::Sequence->value] = $occurrence->sequence();
 
-        $correlationId = $occurrence->extensionAttributes()[self::CORRELATION_ATTRIBUTE_KEY] ?? null;
+        $correlationId = $occurrence->extensionAttributes()[CorrelationKeys::CLOUDEVENTS_CORRELATION_ATTRIBUTE] ?? null;
         if (is_string($correlationId)) {
             $extensions[CloudEventExtensionKey::CorrelationId->value] = $correlationId;
         }
 
         foreach ($occurrence->extensionAttributes() as $key => $value) {
-            if ($key === self::CORRELATION_ATTRIBUTE_KEY) {
+            if ($key === CorrelationKeys::CLOUDEVENTS_CORRELATION_ATTRIBUTE) {
                 continue;
             }
 

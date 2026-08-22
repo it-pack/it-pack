@@ -64,10 +64,14 @@ final class DefaultRunIt implements RunItInterface
         if ($definition !== null) {
             if ($definition instanceof ExecutionDefinitionInterface) {
                 $static = $definition;
-            } else {
+            }
+
+            if (!$definition instanceof ExecutionDefinitionInterface) {
                 $factory = Closure::fromCallable($definition);
             }
-        } else {
+        }
+
+        if ($definition === null) {
             $metadata = $this->attributeReader->read($operation);
 
             if ($metadata instanceof ExecutedAs) {

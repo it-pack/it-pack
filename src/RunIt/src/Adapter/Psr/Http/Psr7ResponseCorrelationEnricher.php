@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Psr\Http;
 
 use ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface;
+use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -18,8 +19,8 @@ use Psr\Http\Message\ResponseInterface;
 final readonly class Psr7ResponseCorrelationEnricher implements ResponseCorrelationEnricherInterface
 {
     public function __construct(
-        private string $executionHeader = 'X-Execution-Id',
-        private string $correlationHeader = 'X-Correlation-Id',
+        private string $executionHeader = CorrelationKeys::HTTP_EXECUTION_HEADER,
+        private string $correlationHeader = CorrelationKeys::HTTP_CORRELATION_HEADER,
     ) {
     }
 

@@ -93,6 +93,7 @@
         "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction",
+        "mutation:p0": "vendor/bin/infection --configuration=infection.s1s6.json5 --only-covering-test-cases --no-interaction",
         "api:baseline": "php tools/api-compat/api-compat.php baseline",
         "api:check": "php tools/api-compat/api-compat.php check",
         "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",

@@ -208,10 +208,12 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
         if ($index !== null) {
             $this->removeAt($index);
-        } else {
-            $this->dropOldest();
+            $this->appendIncoming($incoming);
+
+            return;
         }
 
+        $this->dropOldest();
         $this->appendIncoming($incoming);
     }
 
