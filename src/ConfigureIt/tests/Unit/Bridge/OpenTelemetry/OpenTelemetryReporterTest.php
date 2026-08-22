@@ -17,6 +17,7 @@ use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 use Nette\Schema\Expect;
 
 class OpenTelemetryReporterTest extends Unit
@@ -170,7 +171,7 @@ class OpenTelemetryReporterTest extends Unit
         $inner = new ResolutionReporter();
         $reporter = new OpenTelemetryReporter($inner, $this->sink);
 
-        $reporter->record(new Occurrence('ConfigurationDrift', microtime(true), [
+        $reporter->record(new Occurrence(OccurrenceType::Drift, microtime(true), [
             'added' => 1,
             'removed' => 0,
             'changed' => 1,

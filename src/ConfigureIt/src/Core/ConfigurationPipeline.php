@@ -13,6 +13,7 @@ use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 
 /**
  * The ordered sequence of processors transforming documents into a graph.
@@ -52,7 +53,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
             }
 
             $this->reporter?->record(new Occurrence(
-                'ConfigurationLoaded',
+                OccurrenceType::Loaded,
                 microtime(true),
                 ['origin' => $origin, 'priority' => $priority],
             ));
@@ -66,7 +67,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
 
         if ($this->processors !== []) {
             $this->reporter?->record(new Occurrence(
-                'ConfigurationMerged',
+                OccurrenceType::Merged,
                 microtime(true),
                 ['processors' => count($this->processors)],
             ));

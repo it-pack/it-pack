@@ -8,7 +8,9 @@ use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\ValueObject\Format;
+use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * Applies default values for keys absent from the graph.
@@ -30,7 +32,7 @@ final readonly class DefaultsProcessor implements ConfigurationProcessorInterfac
 
     public function stageName(): string
     {
-        return 'DefaultsProcessor';
+        return ProcessorStage::Defaults->value;
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -53,7 +55,7 @@ final readonly class DefaultsProcessor implements ConfigurationProcessorInterfac
                     format: Format::PHP,
                     adapter: 'DefaultsProcessor',
                     priority: 0,
-                    sourceKind: 'default',
+                    sourceKind: SourceKind::Default,
                     at: microtime(true),
                 ),
             ));

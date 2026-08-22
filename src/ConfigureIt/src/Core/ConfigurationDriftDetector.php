@@ -10,6 +10,8 @@ use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\ValueObject\ConfigurationDiff;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use ItPack\ConfigureIt\ValueObject\Severity;
 
 /**
  * Compares the live configuration graph to a pinned baseline and reports drift.
@@ -105,7 +107,7 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
         if ($diff->empty()) {
             if ($this->reportedDriftHash !== null) {
                 $this->reporter?->observe(new Observation(
-                    'info',
+                    Severity::Info,
                     'Configuration drift resolved: the live graph matches the pinned baseline again.',
                     ['at' => microtime(true)],
                 ));
@@ -119,14 +121,14 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
 
         $summary = $this->differ->summarize($diff);
 
-        $this->reporter?->record(new Occurrence('ConfigurationDrift', microtime(true), [
+        $this->reporter?->record(new Occurrence(OccurrenceType::Drift, microtime(true), [
             'added'   => \count($diff->added),
             'removed' => \count($diff->removed),
             'changed' => \count($diff->changed),
             'summary' => $summary,
         ]));
 
-        $this->reporter?->observe(new Observation('warning', $summary, [
+        $this->reporter?->observe(new Observation(Severity::Warning, $summary, [
             'added'   => \count($diff->added),
             'removed' => \count($diff->removed),
             'changed' => \count($diff->changed),

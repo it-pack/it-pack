@@ -20,6 +20,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class RedactionTest extends Unit
 {
@@ -116,7 +117,7 @@ class RedactionTest extends Unit
                 'base.json',
                 10,
                 [],
-                new Provenance('base.json', Format::JSON, 'JsonLoader', 10, 'file'),
+                new Provenance('base.json', Format::JSON, 'JsonLoader', 10, SourceKind::File),
             ),
         ]);
 
@@ -127,7 +128,7 @@ class RedactionTest extends Unit
                 'k8s-secret://vault',
                 20,
                 [],
-                new Provenance('k8s-secret://vault', Format::JSON, 'JsonLoader', 20, 'k8s-secret', sensitive: true),
+                new Provenance('k8s-secret://vault', Format::JSON, 'JsonLoader', 20, SourceKind::K8sSecret, sensitive: true),
             ),
         ]);
 
@@ -177,7 +178,7 @@ class RedactionTest extends Unit
                 $provenance?->resourceUri() ?? 'unknown',
                 $provenance?->priority() ?? 0,
                 [],
-                $provenance ?? new Provenance('unknown', Format::JSON, 'loader', 0, 'file'),
+                $provenance ?? new Provenance('unknown', Format::JSON, 'loader', 0, SourceKind::File),
             );
         }
 

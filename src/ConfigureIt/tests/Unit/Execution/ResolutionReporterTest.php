@@ -9,6 +9,8 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use ItPack\ConfigureIt\ValueObject\Severity;
 
 class ResolutionReporterTest extends Unit
 {
@@ -16,8 +18,8 @@ class ResolutionReporterTest extends Unit
     {
         $reporter = new ResolutionReporter();
 
-        $reporter->record(new Occurrence('ConfigurationLoaded', 1.0, ['origin' => 'base']));
-        $reporter->record(new Occurrence('SnapshotCreated', 2.0));
+        $reporter->record(new Occurrence(OccurrenceType::Loaded, 1.0, ['origin' => 'base']));
+        $reporter->record(new Occurrence(OccurrenceType::SnapshotCreated, 2.0));
 
         $occurrences = $reporter->occurrences();
 
@@ -31,7 +33,7 @@ class ResolutionReporterTest extends Unit
     public function testObservesDiagnostics(): void
     {
         $reporter = new ResolutionReporter();
-        $reporter->observe(new Observation('warning', 'deprecated key used', ['key' => 'x']));
+        $reporter->observe(new Observation(Severity::Warning, 'deprecated key used', ['key' => 'x']));
 
         $observations = $reporter->observations();
 

@@ -26,7 +26,7 @@ final readonly class Provenance implements ProvenanceInterface
         public Format  $format,
         public string  $adapter,
         public int     $priority,
-        public string  $sourceKind,
+        public SourceKind $sourceKind,
         public array   $processorTrail = [],
         public bool    $overridden = false,
         public ?string $overriddenSource = null,
@@ -59,7 +59,7 @@ final readonly class Provenance implements ProvenanceInterface
 
     public function sourceKind(): string
     {
-        return $this->sourceKind;
+        return $this->sourceKind->value;
     }
 
     public function layerId(): ?string
@@ -191,7 +191,7 @@ final readonly class Provenance implements ProvenanceInterface
             'format'          => $this->format->name,
             'adapter'         => $this->adapter,
             'priority'        => $this->priority,
-            'sourceKind'      => $this->sourceKind,
+            'sourceKind'      => $this->sourceKind->value,
             'processorTrail'  => $this->processorTrail,
             'overridden'      => $this->overridden,
             'overriddenSource' => $this->overriddenSource,
@@ -222,7 +222,7 @@ final readonly class Provenance implements ProvenanceInterface
                 : Format::PHP,
             adapter: is_string($data['adapter'] ?? null) ? $data['adapter'] : '',
             priority: is_numeric($data['priority'] ?? null) ? (int) $data['priority'] : 0,
-            sourceKind: is_string($data['sourceKind'] ?? null) ? $data['sourceKind'] : '',
+            sourceKind: is_string($data['sourceKind'] ?? null) ? SourceKind::fromString($data['sourceKind']) : SourceKind::Other,
             processorTrail: self::stringList($data['processorTrail'] ?? null),
             overridden: ($data['overridden'] ?? false) === true,
             overriddenSource: isset($data['overriddenSource']) && is_string($data['overriddenSource'])

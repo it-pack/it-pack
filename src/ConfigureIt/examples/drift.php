@@ -15,6 +15,7 @@ use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 // In-memory configuration store standing in for a live source.
 $store = ['feature.enabled' => false, 'rate' => 10];
@@ -26,7 +27,7 @@ $node = static function (string $key, mixed $value) use (&$store): Configuration
         'store',
         10,
         [],
-        new Provenance('store', Format::JSON, 'ArrayLoader', 10, 'memory'),
+        new Provenance('store', Format::JSON, 'ArrayLoader', 10, SourceKind::Memory),
     );
 };
 

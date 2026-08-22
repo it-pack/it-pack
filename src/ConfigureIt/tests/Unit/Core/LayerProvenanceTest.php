@@ -15,6 +15,7 @@ use ItPack\ConfigureIt\Core\ConfigurationLayer;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * @covers \ItPack\ConfigureIt\Core\ConfigurationLayer::id
@@ -115,7 +116,7 @@ class LayerProvenanceTest extends Unit
                 'override.php',
                 20,
                 [],
-                new Provenance('override.php', Format::PHP, 'PhpLoader', 20, 'file', layerId: 'override'),
+                new Provenance('override.php', Format::PHP, 'PhpLoader', 20, SourceKind::File, layerId: 'override'),
             ),
         ]);
 

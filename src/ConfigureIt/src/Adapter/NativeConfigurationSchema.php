@@ -125,7 +125,6 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
     private function readPrivate(object $object, string $property): mixed
     {
         $reflection = new \ReflectionProperty($object, $property);
-        $reflection->setAccessible(true);
 
         return $reflection->getValue($object);
     }

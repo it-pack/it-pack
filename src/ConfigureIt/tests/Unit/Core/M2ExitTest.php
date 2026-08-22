@@ -19,6 +19,7 @@ use ItPack\ConfigureIt\Core\IncludeProcessor;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * End-to-end verification of the M2 exit criteria: `addLayer()` ordering,
@@ -173,7 +174,7 @@ class M2ExitTest extends Unit
                 'override.php',
                 20,
                 [],
-                new Provenance('override.php', Format::PHP, 'PhpLoader', 20, 'file', layerId: 'override'),
+                new Provenance('override.php', Format::PHP, 'PhpLoader', 20, SourceKind::File, layerId: 'override'),
             ),
         ]);
 

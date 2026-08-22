@@ -12,6 +12,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * End-to-end example: provenance, diagnostics and graph diffing (Roadmap Phase 6).
@@ -55,12 +56,12 @@ foreach ($reporter->observations() as $observation) {
 
 echo PHP_EOL . '== Graph diff: base vs merged ==' . PHP_EOL;
 $baseGraph = new ConfigurationGraph([
-    new ConfigurationNode('db.host', 'base-db', 'base.json', 10, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 10, 'file')),
-    new ConfigurationNode('app.debug', false, 'base.json', 10, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 10, 'file')),
+    new ConfigurationNode('db.host', 'base-db', 'base.json', 10, [],         new Provenance('base.json', Format::JSON, 'JsonLoader', 10, SourceKind::File)),
+    new ConfigurationNode('app.debug', false, 'base.json', 10, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 10, SourceKind::File)),
 ]);
 $mergedGraph = new ConfigurationGraph([
-    new ConfigurationNode('db.host', 'local-db', 'local.json', 20, [], (new Provenance('local.json', Format::JSON, 'JsonLoader', 20, 'file'))->asOverridden('base.json')),
-    new ConfigurationNode('app.debug', true, 'local.json', 20, [], (new Provenance('local.json', Format::JSON, 'JsonLoader', 20, 'file'))->asOverridden('base.json')),
+    new ConfigurationNode('db.host', 'local-db', 'local.json', 20, [], (new Provenance('local.json', Format::JSON, 'JsonLoader', 20, SourceKind::File))->asOverridden('base.json')),
+    new ConfigurationNode('app.debug', true, 'local.json', 20, [], (new Provenance('local.json', Format::JSON, 'JsonLoader', 20, SourceKind::File))->asOverridden('base.json')),
 ]);
 
 echo (new ConfigurationDiffer())->diff($baseGraph, $mergedGraph)->summary() . PHP_EOL;

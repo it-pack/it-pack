@@ -23,6 +23,8 @@ use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\OccurrenceFactory;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use ItPack\ConfigureIt\ValueObject\Severity;
 use ItPack\ConfigureIt\ValueObject\ValidationMessage;
 
 /**
@@ -87,7 +89,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
      */
     private function createOccurrence(string $name, array $data = []): Occurrence
     {
-        return $this->occurrenceFactory->build($name, microtime(true), $data);
+        return $this->occurrenceFactory->build(OccurrenceType::fromString($name), microtime(true), $data);
     }
 
     private function validateGraph(ConfigurationGraphInterface $graph): void
@@ -108,7 +110,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
 
             foreach ($result->issues() as $issue) {
                 $this->reporter?->observe(new Observation(
-                    $issue['severity'],
+                    Severity::fromString($issue['severity']),
                     sprintf('%s: %s', $issue['path'], $issue['message']),
                     ['path' => $issue['path'], 'severity' => $issue['severity']],
                 ));

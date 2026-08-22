@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\ValueObject\DiagnosticsReport;
+use ItPack\ConfigureIt\ValueObject\Severity;
 
 /**
  * Computes {@see DiagnosticsReport} from a resolved graph and, optionally, emits
@@ -45,7 +46,7 @@ final readonly class ConfigurationDiagnostics
                 ];
 
                 $this->reporter?->observe(new Observation(
-                    'info',
+                    Severity::Info,
                     sprintf('Key "%s" resolved from "%s" overrode "%s".', $key, $provenance->resourceUri(), $provenance->overriddenSource() ?? 'unknown'),
                     ['key' => $key, 'source' => $provenance->resourceUri(), 'shadowed' => $provenance->overriddenSource()],
                 ));
@@ -57,7 +58,7 @@ final readonly class ConfigurationDiagnostics
                 $unresolved[] = $key;
 
                 $this->reporter?->observe(new Observation(
-                    'warning',
+                    Severity::Warning,
                     sprintf('Key "%s" still contains an unresolved variable placeholder.', $key),
                     ['key' => $key],
                 ));

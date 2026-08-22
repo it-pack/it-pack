@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Adapter;
 use ItPack\ConfigureIt\Contract\ConfigurationWatcherInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 
 /**
  * Portable change detection: polls a signature on a fixed interval.
@@ -95,7 +96,7 @@ final class PollingWatcher implements ConfigurationWatcherInterface
     private function dispatch(): void
     {
         $this->reporter->record(new Occurrence(
-            'ConfigurationChanged',
+            OccurrenceType::Changed,
             microtime(true),
             [
                 'paths' => $this->paths,

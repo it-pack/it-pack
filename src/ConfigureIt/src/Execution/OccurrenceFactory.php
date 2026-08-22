@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Execution;
 
 use ItPack\ConfigureIt\Behavior\CreatableBehavior;
 use ItPack\ConfigureIt\Contract\Execution\OccurrenceFactoryInterface;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 
 class OccurrenceFactory implements OccurrenceFactoryInterface
 {
@@ -17,7 +18,7 @@ class OccurrenceFactory implements OccurrenceFactoryInterface
     }
 
     public function build(
-        string $type,
+        OccurrenceType $type,
         float $at,
         array $payload = [],
     ): Occurrence {

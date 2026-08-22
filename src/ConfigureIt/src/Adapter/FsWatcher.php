@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Adapter;
 use ItPack\ConfigureIt\Contract\ConfigurationWatcherInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 
 /**
  * Kernel-level file watching via the `inotify` extension.
@@ -175,7 +176,7 @@ final class FsWatcher implements ConfigurationWatcherInterface
     private function dispatch(): void
     {
         $this->reporter->record(new Occurrence(
-            'ConfigurationChanged',
+            OccurrenceType::Changed,
             microtime(true),
             [
                 'paths' => $this->paths,

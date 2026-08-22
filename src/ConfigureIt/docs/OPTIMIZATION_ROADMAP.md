@@ -516,6 +516,68 @@ private function readPrivate(object $object, string $property): mixed
 
 ---
 
+## Phase 4 — Status: DONE (2026-08-22)
+
+**F5 — Raw-string discriminators replaced with enums.**
+
+New enumerations under `src/ValueObject/`:
+
+- `Severity` (`info` / `warning` / `error`) — `Observation::$level` is now typed
+  `Severity`; `level()` still returns `->value` (string) so telemetry and
+  diagnostics stay string-compatible.
+- `OccurrenceType` (`Loaded` / `Merged` / `Validated` / `Resolved` /
+  `SnapshotCreated` / `Drift` / `Reloaded` / `Changed`) — `Occurrence::$type` is
+  typed `OccurrenceType`; `type()` returns `->value`.
+- `SourceKind` (`File` / `Env` / `Programmatic` / `Default` / `ConfigMap` /
+  `K8sSecret` / `DockerSecret` / `AwsSsm` / `AzureAppConfig` / `GcpSecretManager`
+  / `Vault` / `Http` / `Consul` / `Etcd` / `Memory` / `Other`) —
+  `Provenance::$sourceKind` is now typed `SourceKind`; `sourceKind()` returns
+  `->value`. `DocumentNormalizer::sourceKindOf()` now returns the enum, and
+  `Provenance::fromArray()` reconstructs via `SourceKind::fromString` (unknown
+  kinds collapse to `Other` rather than throwing, so provenance never rejects a
+  legitimate — even exotic — source).
+- `ProcessorStage` (`Defaults = 'DefaultsProcessor'`) — backs
+  `DefaultsProcessor::stageName()`; `Provenance::withProcessor()` /
+  `validated()` stay string-typed because generic processors append their class
+  name as the stage name.
+
+Each enum mirrors `Format::fromString` (`tryFrom` + an explicit fallback / throw)
+so deserialization stays safe, and `->value` is used at every serialization
+boundary (`Provenance::toArray`, the `Observation`/`Occurrence` getters) so the
+compiled-artifact cache format is unchanged. All `new Observation` / `new
+Occurrence` / `new Provenance` call sites (Core, Adapter, Bridge, tests,
+examples) now pass enum cases; the dynamic `$issue['severity']` and
+`createOccurrence($name)` paths use `Severity::fromString` /
+`OccurrenceType::fromString`. `OccurrenceFactory::build()` now accepts
+`OccurrenceType` (interface widened accordingly).
+
+**F6 — Magic strings → constants / enums.**
+
+- `ConfigurationCompiler::HASH_ALGO` (introduced in F16) already covers the
+  `sha256` magic string.
+- `ConfigurationNode::provenance()` now uses `SourceKind::Programmatic` (from F5)
+  instead of the raw `'programmatic'` literal. The `'unknown'` adapter sentinel
+  and `format: Format::PHP` there are deferred to **F9** (honest unknown format
+  sentinel, Phase 5) per the roadmap's own cross-reference.
+
+**F8 — `setAccessible` removed.**
+
+- `NativeConfigurationSchema::readPrivate()` no longer calls
+  `ReflectionProperty::setAccessible(true)`. On PHP 8.5 `getValue()` already reads
+  private/protected properties, so the call was a deprecated no-op.
+
+**Gates after change:** `composer analyse` **OK (0 errors)** over 259 files;
+`composer cs:check` **0 of 260 files**; `composer test:unit` **266 tests / 617
+assertions** (was 265/615; +1 test = +2 assertions from the new
+`ProvenanceTest::testSourceKindRoundTripsThroughArray` and
+`testUnknownSourceKindFallsBackToOther`). The F5 round-trip holds: `toArray()`
+emits `sourceKind => 'file'` and `fromArray()` reconstructs to `SourceKind::File`,
+while `Observation::level()` / `Occurrence::type()` still return the previous
+string values, so existing assertions and the serialized cache format are
+unchanged.
+
+---
+
 ## Phase 5 — Polish (F7, F9, F10, F11, F12, F13, F15)
 
 These are independent; do them in any order, each behind green gates.
@@ -679,7 +741,7 @@ Per-phase hard gates:
 | 1 | F16 | Low | S | Yes | ✅ done (2026-08-22) |
 | 2 | F1, F2, F4 | Med | M | Yes (F1+F2+F4 share `ConfigurationBuilder`; one branch) | ✅ done (2026-08-22) |
 | 3 | F3 | Low | S | Yes | ✅ done (2026-08-22) |
-| 4 | F5, F6, F8 | Med | M | Yes (F6/F8 are tiny; F5 is the bulk) |
+| 4 | F5, F6, F8 | Med | M | Yes (F6/F8 are tiny; F5 is the bulk) | ✅ done (2026-08-22) |
 | 5 | F7–F15 | Low | M | Yes (each finding its own commit) |
 
 All changes are additive/isolated; none block the existing feature set. Items 1–4 raise the

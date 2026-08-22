@@ -7,6 +7,7 @@ namespace Tests\Unit\ValueObject;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ProvenanceTest extends Unit
 {
@@ -17,7 +18,7 @@ class ProvenanceTest extends Unit
             format: Format::YAML,
             adapter: 'ItPack\ConfigureIt\Adapter\YamlLoader',
             priority: 10,
-            sourceKind: 'file',
+            sourceKind: SourceKind::File,
             at: 1.0,
         );
     }
@@ -54,12 +55,22 @@ class ProvenanceTest extends Unit
         verify($array['overriddenSource'])->equals('config/base.yaml');
     }
 
-    public function testImmutableReturnsNewInstance(): void
+    public function testSourceKindRoundTripsThroughArray(): void
     {
-        $base = $this->provenance();
-        $next = $base->withProcessor('CastingProcessor');
+        $p = $this->provenance();
+        verify($p->sourceKind())->equals('file');
 
-        verify($next)->notSame($base);
-        verify($base->processorTrail())->equals([]);
+        $array = $p->toArray();
+        verify($array['sourceKind'])->equals('file');
+
+        $restored = Provenance::fromArray($array);
+        verify($restored->sourceKind())->equals('file');
+    }
+
+    public function testUnknownSourceKindFallsBackToOther(): void
+    {
+        $restored = Provenance::fromArray(['sourceKind' => 'exotic-source']);
+
+        verify($restored->sourceKind())->equals('__other__');
     }
 }

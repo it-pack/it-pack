@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ProvenanceInterface;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * A single logical configuration value within the resolved graph.
@@ -73,7 +74,7 @@ final readonly class ConfigurationNode implements ConfigurationNodeInterface
             format: Format::PHP,
             adapter: 'unknown',
             priority: $this->priority,
-            sourceKind: 'programmatic',
+            sourceKind: SourceKind::Programmatic,
         );
     }
 

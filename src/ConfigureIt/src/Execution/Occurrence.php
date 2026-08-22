@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Execution;
 
 use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 
 /**
  * An immutable fact that happened during configuration resolution.
@@ -19,7 +20,7 @@ final readonly class Occurrence implements OccurrenceInterface
      * @param array<string, mixed> $payload structured detail about the occurrence.
      */
     public function __construct(
-        private string $type,
+        private OccurrenceType $type,
         private float $at,
         private array $payload = [],
     ) {
@@ -27,7 +28,7 @@ final readonly class Occurrence implements OccurrenceInterface
 
     public function type(): string
     {
-        return $this->type;
+        return $this->type->value;
     }
 
     public function at(): float

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Execution;
 
 use ItPack\ConfigureIt\Contract\Execution\ObservationInterface;
+use ItPack\ConfigureIt\ValueObject\Severity;
 
 /**
  * A qualitative observation made during configuration resolution.
@@ -19,7 +20,7 @@ final readonly class Observation implements ObservationInterface
      * @param array<string, mixed> $context structured detail about the observation.
      */
     public function __construct(
-        private string $level,
+        private Severity $level,
         private string $message,
         private array $context = [],
     ) {
@@ -27,7 +28,7 @@ final readonly class Observation implements ObservationInterface
 
     public function level(): string
     {
-        return $this->level;
+        return $this->level->value;
     }
 
     public function message(): string

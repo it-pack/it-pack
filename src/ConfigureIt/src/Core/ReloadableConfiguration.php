@@ -10,6 +10,8 @@ use ItPack\ConfigureIt\Contract\ConfigurationWatcherInterface;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use ItPack\ConfigureIt\ValueObject\Severity;
 
 /**
  * Live configuration facade: holds an immutable snapshot and re-resolves it on
@@ -139,7 +141,7 @@ final class ReloadableConfiguration
             $next = $this->resolver->resolve();
         } catch (\Throwable $failure) {
             $this->reporter->observe(new Observation(
-                'error',
+                Severity::Error,
                 'Configuration reload failed; serving last-good snapshot.',
                 [
                     'error' => $failure->getMessage(),
@@ -153,7 +155,7 @@ final class ReloadableConfiguration
         $this->snapshot = $next;
 
         $this->reporter->record(new Occurrence(
-            'ConfigurationReloaded',
+            OccurrenceType::Reloaded,
             microtime(true),
             [
                 'watcher' => $this->watcher::class,

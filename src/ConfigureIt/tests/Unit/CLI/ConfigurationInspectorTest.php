@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationInspectorTest extends Unit
 {
@@ -22,7 +23,7 @@ class ConfigurationInspectorTest extends Unit
                 'local.json',
                 20,
                 [],
-                new Provenance('local.json', Format::JSON, 'ItPack\ConfigureIt\Adapter\JsonLoader', 20, 'file')
+                new Provenance('local.json', Format::JSON, 'ItPack\ConfigureIt\Adapter\JsonLoader', 20, SourceKind::File)
                     ->asOverridden('base.json')
                     ->withProcessor('VariableProcessor'),
             ),
@@ -32,7 +33,7 @@ class ConfigurationInspectorTest extends Unit
                 'base.json',
                 10,
                 [],
-                new Provenance('base.json', Format::JSON, 'ItPack\ConfigureIt\Adapter\JsonLoader', 10, 'file'),
+                new Provenance('base.json', Format::JSON, 'ItPack\ConfigureIt\Adapter\JsonLoader', 10, SourceKind::File),
             ),
         ]);
     }

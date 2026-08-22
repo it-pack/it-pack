@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationSnapshotProvenanceTest extends Unit
 {
@@ -22,7 +23,7 @@ class ConfigurationSnapshotProvenanceTest extends Unit
                 'config/app.yaml',
                 10,
                 [],
-                new Provenance('config/app.yaml', Format::YAML, 'YamlLoader', 10, 'file'),
+                new Provenance('config/app.yaml', Format::YAML, 'YamlLoader', 10, SourceKind::File),
             ),
         ]);
 

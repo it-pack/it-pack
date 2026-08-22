@@ -13,6 +13,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationDriftDetectorTest extends Unit
 {
@@ -24,7 +25,7 @@ class ConfigurationDriftDetectorTest extends Unit
             $source,
             $priority,
             [],
-            new Provenance($source, Format::JSON, 'JsonLoader', $priority, 'file'),
+            new Provenance($source, Format::JSON, 'JsonLoader', $priority, SourceKind::File),
         );
     }
 

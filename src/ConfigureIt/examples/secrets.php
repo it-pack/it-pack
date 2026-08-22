@@ -16,6 +16,7 @@ use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * M4 — Epic E5.1 / E5.2 (Secrets & Redaction) example.
@@ -52,7 +53,7 @@ function renderSnapshot(\ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterf
             $provenance?->resourceUri() ?? 'unknown',
             $provenance?->priority() ?? 0,
             [],
-            $provenance ?? new Provenance('unknown', Format::JSON, 'loader', 0, 'file'),
+            $provenance ?? new Provenance('unknown', Format::JSON, 'loader', 0, SourceKind::File),
         );
     }
 

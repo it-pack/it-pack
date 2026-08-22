@@ -11,6 +11,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationDiagnosticsTest extends Unit
 {
@@ -26,7 +27,7 @@ class ConfigurationDiagnosticsTest extends Unit
                 'base.yaml',
                 10,
                 [],
-                new Provenance('base.yaml', Format::YAML, 'YamlLoader', 10, 'file'),
+                new Provenance('base.yaml', Format::YAML, 'YamlLoader', 10, SourceKind::File),
             ),
             new ConfigurationNode(
                 'db.host',
@@ -34,7 +35,7 @@ class ConfigurationDiagnosticsTest extends Unit
                 'local.yaml',
                 20,
                 [],
-                new Provenance('local.yaml', Format::YAML, 'YamlLoader', 20, 'file')->asOverridden('base.yaml'),
+                new Provenance('local.yaml', Format::YAML, 'YamlLoader', 20, SourceKind::File)->asOverridden('base.yaml'),
             ),
             new ConfigurationNode(
                 'app.name',
@@ -42,7 +43,7 @@ class ConfigurationDiagnosticsTest extends Unit
                 'local.yaml',
                 20,
                 [],
-                new Provenance('local.yaml', Format::YAML, 'YamlLoader', 20, 'file'),
+                new Provenance('local.yaml', Format::YAML, 'YamlLoader', 20, SourceKind::File),
             ),
         ]);
 
@@ -66,7 +67,7 @@ class ConfigurationDiagnosticsTest extends Unit
     public function testEmptyReportForCleanGraph(): void
     {
         $graph = new ConfigurationGraph([
-            new ConfigurationNode('a', 1, 'base.yaml', 10, [], new Provenance('base.yaml', Format::YAML, 'YamlLoader', 10, 'file')),
+            new ConfigurationNode('a', 1, 'base.yaml', 10, [], new Provenance('base.yaml', Format::YAML, 'YamlLoader', 10, SourceKind::File)),
         ]);
 
         $report = new ConfigurationDiagnostics()->report($graph);

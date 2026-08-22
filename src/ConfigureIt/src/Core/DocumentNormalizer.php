@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\DocumentNormalizerInterface;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * Default {@see DocumentNormalizerInterface}.
@@ -110,20 +111,20 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
         return false;
     }
 
-    private static function sourceKindOf(Format $format, string $uri): string
+    private static function sourceKindOf(Format $format, string $uri): SourceKind
     {
         $enterprise = [
-            'configmap://' => 'configmap',
-            'k8s-secret://' => 'k8s-secret',
-            'docker-secret://' => 'docker-secret',
-            'aws-ssm://' => 'aws-ssm',
-            'azure-appconfig://' => 'azure-appconfig',
-            'gcp-secretmanager://' => 'gcp-secretmanager',
-            'vault://' => 'vault',
-            'http://' => 'http',
-            'https://' => 'http',
-            'consul://' => 'consul',
-            'etcd://' => 'etcd',
+            'configmap://' => SourceKind::ConfigMap,
+            'k8s-secret://' => SourceKind::K8sSecret,
+            'docker-secret://' => SourceKind::DockerSecret,
+            'aws-ssm://' => SourceKind::AwsSsm,
+            'azure-appconfig://' => SourceKind::AzureAppConfig,
+            'gcp-secretmanager://' => SourceKind::GcpSecretManager,
+            'vault://' => SourceKind::Vault,
+            'http://' => SourceKind::Http,
+            'https://' => SourceKind::Http,
+            'consul://' => SourceKind::Consul,
+            'etcd://' => SourceKind::Etcd,
         ];
 
         foreach ($enterprise as $scheme => $kind) {
@@ -133,9 +134,9 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
         }
 
         return match ($format) {
-            Format::ENV, Format::DOTENV => 'env',
-            Format::PHP => 'programmatic',
-            default => 'file',
+            Format::ENV, Format::DOTENV => SourceKind::Env,
+            Format::PHP => SourceKind::Programmatic,
+            default => SourceKind::File,
         };
     }
 }

@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationGraphProvenanceTest extends Unit
 {
@@ -20,7 +21,7 @@ class ConfigurationGraphProvenanceTest extends Unit
             $source,
             $priority,
             [],
-            new Provenance($source, Format::YAML, 'Loader', $priority, 'file'),
+            new Provenance($source, Format::YAML, 'Loader', $priority, SourceKind::File),
         );
     }
 
