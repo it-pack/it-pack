@@ -12,7 +12,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
-use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 
 /**
  * Decorates a {@see ConfigurationResolverInterface} with opt-in artifact caching.
@@ -45,7 +45,7 @@ final class CachingResolver implements ConfigurationResolverInterface
         private array                          $processors,
         private array                          $readers,
         private array                          $loaders,
-        private ?ExecutionContext              $executionContext,
+        private ?ExecutionContextInterface      $executionContext,
     ) {
     }
 

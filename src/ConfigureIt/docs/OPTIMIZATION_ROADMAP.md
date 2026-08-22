@@ -262,6 +262,48 @@ grep -rln "implements.*ResolutionReporterInterface" src
 
 ---
 
+## Phase 2 — Status: DONE (2026-08-22)
+
+**F1 — Core→Adapter/Bridge wiring removed from Core.**
+- New contract `src/Contract/Wiring/ConfigurationWiringInterface.php` declares
+  `composeReader(array, ?DecrypterInterface)` and
+  `composeReporter(ResolutionReporterInterface, ?TelemetrySinkInterface, ?ExecutionContextInterface)`.
+- New composition root `src/Wiring/DefaultConfigurationWiring.php` is the **only**
+  place that `new`s `CompositeReader`, `DecryptingReader`, `OpenTelemetryReporter`.
+- `src/Core/ConfigurationBuilder.php` now depends on `ConfigurationWiringInterface`
+  (default `new DefaultConfigurationWiring()` — the single composition-root seam;
+  it does not match the `Adapter\`/`Bridge\OpenTelemetry\OpenTelemetryReporter`
+  grep gate). The leaky `Adapter\*`/`Bridge\OpenTelemetry\OpenTelemetryReporter`
+  imports and `new` calls are gone. `withTelemetry()`/`withDecrypter()` keep their
+  public signatures and behavior; wrapping is delegated to the wiring.
+- New `tests/Unit/Wiring/DefaultConfigurationWiringTest.php` asserts the reader
+  chain and reporter decoration are produced by the composition root.
+
+**F2 — Core type-hints interfaces, not concretions.**
+- `ConfigurationBuilder::withExecutionContext(ExecutionContextInterface)` and
+  `build(?ResolutionReporterInterface)`; `$executionContext` stored as the interface.
+- Ripple: `ConfigurationCompiler::hash()`/`contextFingerprint()` and
+  `CachingResolver::$executionContext` now take `?ExecutionContextInterface`, and
+  `OpenTelemetryReporter::__construct` context param widened to
+  `?ExecutionContextInterface` (it already depends on the concrete `ExecutionContext`
+  only for an `instanceof` check).
+
+**F4 — Contracts return their interfaces.**
+- `ResolutionReporterInterface` now uses `ObservationInterface`/`OccurrenceInterface`
+  in `record`/`observe`/`occurrences`/`observations`.
+- Both implementers widened: `Execution\ResolutionReporter` (stores
+  `list<OccurrenceInterface>`/`list<ObservationInterface>`) and
+  `Bridge\OpenTelemetry\OpenTelemetryReporter` (params + `spanAttributes` helper
+  + return types). Contravariant param / covariant return — fully compatible.
+
+**Gates after change:** `composer analyse` **OK (252/252, 0 errors)**;
+`composer cs:check` **0 of 254 files**; `composer test:unit` **261 tests / 603
+assertions, all passing** (+4 vs Phase-1 baseline). F1 grep gate:
+`grep -rn 'Adapter\\|Bridge\\OpenTelemetry\\OpenTelemetryReporter' src/Core` →
+**zero results**.
+
+---
+
 ## Phase 3 — Contract truth (F3)
 
 ### F3 — Implement `ValidationExceptionInterface`
@@ -606,7 +648,7 @@ Per-phase hard gates:
 | Phase | Items | Risk | Est. | Merge independently? |
 |-------|-------|------|------|----------------------|
 | 1 | F16 | Low | S | Yes | ✅ done (2026-08-22) |
-| 2 | F1, F2, F4 | Med | M | Yes (F1+F2+F4 share `ConfigurationBuilder`; one branch) |
+| 2 | F1, F2, F4 | Med | M | Yes (F1+F2+F4 share `ConfigurationBuilder`; one branch) | ✅ done (2026-08-22) |
 | 3 | F3 | Low | S | Yes |
 | 4 | F5, F6, F8 | Med | M | Yes (F6/F8 are tiny; F5 is the bulk) |
 | 5 | F7–F15 | Low | M | Yes (each finding its own commit) |

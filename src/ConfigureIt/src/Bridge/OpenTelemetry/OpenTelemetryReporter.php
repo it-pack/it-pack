@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
+use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+use ItPack\ConfigureIt\Contract\Execution\ObservationInterface;
+use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
-use ItPack\ConfigureIt\Execution\Observation;
-use ItPack\ConfigureIt\Execution\Occurrence;
 
 /**
  * Decorates the Execution reporter spine with native OpenTelemetry instrumentation.
@@ -40,13 +41,13 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
     public function __construct(
         private readonly ResolutionReporterInterface $inner,
         private readonly TelemetrySinkInterface $sink,
-        private readonly ?ExecutionContext $context = null,
+        private readonly ?ExecutionContextInterface $context = null,
         private readonly string $serviceName = 'configure-it',
         private readonly RedactingRenderer $renderer = new RedactingRenderer(),
     ) {
     }
 
-    public function record(Occurrence $occurrence): void
+    public function record(OccurrenceInterface $occurrence): void
     {
         $this->inner->record($occurrence);
 
@@ -112,7 +113,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
         }
     }
 
-    public function observe(Observation $observation): void
+    public function observe(ObservationInterface $observation): void
     {
         $this->inner->observe($observation);
 
@@ -133,7 +134,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
     }
 
     /**
-     * @return list<Occurrence>
+     * @return list<OccurrenceInterface>
      */
     public function occurrences(): array
     {
@@ -141,7 +142,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
     }
 
     /**
-     * @return list<Observation>
+     * @return list<ObservationInterface>
      */
     public function observations(): array
     {
@@ -178,7 +179,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
     /**
      * @return array<string, mixed>
      */
-    private function spanAttributes(Occurrence $occurrence): array
+    private function spanAttributes(OccurrenceInterface $occurrence): array
     {
         $attributes = [SemanticConventions::ATTR_EVENT => $occurrence->type()];
 

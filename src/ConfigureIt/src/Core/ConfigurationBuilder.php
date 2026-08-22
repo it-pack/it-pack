@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
-use ItPack\ConfigureIt\Adapter\CompositeReader;
-use ItPack\ConfigureIt\Adapter\Decryption\DecryptingReader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLayerInterface;
@@ -18,9 +15,13 @@ use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
+use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
+use ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
 
 /**
  * Mutable fluent API for assembling a configuration resolution pipeline.
@@ -66,7 +67,7 @@ final class ConfigurationBuilder
 
     private ?TelemetrySinkInterface $telemetrySink = null;
 
-    private ?ExecutionContext $executionContext = null;
+    private ?ExecutionContextInterface $executionContext = null;
 
     private ?ConfigurationCacheInterface $cache = null;
 
@@ -76,6 +77,7 @@ final class ConfigurationBuilder
 
     public function __construct(
         private readonly ConfigurationFactoryInterface $factory = new ConfigurationFactory(),
+        private readonly ConfigurationWiringInterface $wiring = new DefaultConfigurationWiring(),
     ) {
     }
 
@@ -150,7 +152,7 @@ final class ConfigurationBuilder
         return $this;
     }
 
-    public function withExecutionContext(ExecutionContext $context): self
+    public function withExecutionContext(ExecutionContextInterface $context): self
     {
         $this->executionContext = $context;
 
@@ -202,21 +204,19 @@ final class ConfigurationBuilder
         return $this;
     }
 
-    public function build(?ResolutionReporter $reporter = null): ConfigurationResolverInterface
+    public function build(?ResolutionReporterInterface $reporter = null): ConfigurationResolverInterface
     {
         $reporter ??= new ResolutionReporter();
 
-        if ($this->telemetrySink instanceof TelemetrySinkInterface) {
-            $reporter = new OpenTelemetryReporter(
-                $reporter,
-                $this->telemetrySink,
-                $this->executionContext,
-            );
-        }
+        $reporter = $this->wiring->composeReporter(
+            $reporter,
+            $this->telemetrySink,
+            $this->executionContext,
+        );
 
         $processors = $this->processors;
 
-        if ($this->executionContext instanceof ExecutionContext) {
+        if ($this->executionContext !== null) {
             $context = $this->executionContext;
 
             $processors = array_map(
@@ -230,11 +230,7 @@ final class ConfigurationBuilder
 
         $sources = $this->resolveSources();
 
-        $reader = new CompositeReader($this->readers);
-
-        if ($this->decrypter instanceof DecrypterInterface) {
-            $reader = new DecryptingReader($reader, $this->decrypter);
-        }
+        $reader = $this->wiring->composeReader($this->readers, $this->decrypter);
 
         $resolver = $this->factory->build(
             loaders: $this->loaders,

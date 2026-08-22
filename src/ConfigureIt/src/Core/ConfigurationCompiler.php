@@ -10,7 +10,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DeclaresScalarTypesInterface;
-use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use JsonException;
 
 /**
@@ -44,7 +44,7 @@ final class ConfigurationCompiler
         array                         $processors,
         array                         $readers,
         array                         $loaders,
-        ?ExecutionContext             $context,
+        ?ExecutionContextInterface    $context,
     ): string {
         $descriptors = [];
 
@@ -100,7 +100,7 @@ final class ConfigurationCompiler
         return $fingerprint;
     }
 
-    private function contextFingerprint(?ExecutionContext $context): string
+    private function contextFingerprint(?ExecutionContextInterface $context): string
     {
         if ($context === null) {
             return '';

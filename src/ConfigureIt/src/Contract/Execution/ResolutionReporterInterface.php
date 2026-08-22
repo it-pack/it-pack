@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract\Execution;
 
-use ItPack\ConfigureIt\Execution\Observation;
-use ItPack\ConfigureIt\Execution\Occurrence;
-
 /**
  * Emits execution-model events during resolution.
  *
@@ -17,17 +14,17 @@ use ItPack\ConfigureIt\Execution\Occurrence;
  */
 interface ResolutionReporterInterface
 {
-    public function record(Occurrence $occurrence): void;
+    public function record(OccurrenceInterface $occurrence): void;
 
-    public function observe(Observation $observation): void;
+    public function observe(ObservationInterface $observation): void;
 
     /**
-     * @return list<Occurrence>
+     * @return list<OccurrenceInterface>
      */
     public function occurrences(): array;
 
     /**
-     * @return list<Observation>
+     * @return list<ObservationInterface>
      */
     public function observations(): array;
 }

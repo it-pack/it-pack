@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Execution;
 
+use ItPack\ConfigureIt\Contract\Execution\ObservationInterface;
+use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 
 /**
@@ -16,12 +18,12 @@ use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 final class ResolutionReporter implements ResolutionReporterInterface
 {
     /**
-     * @var list<Occurrence>
+     * @var list<OccurrenceInterface>
      */
     private array $occurrences = [];
 
     /**
-     * @var list<Observation>
+     * @var list<ObservationInterface>
      */
     private array $observations = [];
 
@@ -30,26 +32,26 @@ final class ResolutionReporter implements ResolutionReporterInterface
     ) {
     }
 
-    public function record(Occurrence $occurrence): void
+    public function record(OccurrenceInterface $occurrence): void
     {
         $this->occurrences[] = $occurrence;
     }
 
     /**
-     * @return list<Occurrence>
+     * @return list<OccurrenceInterface>
      */
     public function occurrences(): array
     {
         return $this->occurrences;
     }
 
-    public function observe(Observation $observation): void
+    public function observe(ObservationInterface $observation): void
     {
         $this->observations[] = $observation;
     }
 
     /**
-     * @return list<Observation>
+     * @return list<ObservationInterface>
      */
     public function observations(): array
     {
