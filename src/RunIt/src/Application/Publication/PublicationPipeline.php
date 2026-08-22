@@ -29,7 +29,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class PublicationPipeline
+final class PublicationPipeline implements PublicationPipelineInterface
 {
     public function __construct(
         public ArtifactPublisherInterface $sink,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Security;
 
+use ItPack\RunIt\Contract\Application\Security\SnapshotIntegrityVerifierInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 
@@ -23,7 +24,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class SnapshotIntegrityVerifier
+final class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterface
 {
     public function __construct(
         private readonly HashCalculatorInterface $hashCalculator,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Conformance\Verifier;
 
 use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -19,7 +20,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class SamplingPolicyVerifier
+final class SamplingPolicyVerifier implements VerifierInterface
 {
     public function port(): string
     {

@@ -646,6 +646,11 @@
                         "name": "policy",
                         "type": "ItPack\\RunIt\\Adapter\\CloudEvents\\Mapping\\CloudEventMappingPolicy",
                         "optional": true
+                    },
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
                     }
                 ]
             },
@@ -794,6 +799,29 @@
                     {
                         "name": "content",
                         "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Common\\DefaultArtifactByteEstimator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface"
+        },
+        "constants": [],
+        "methods": {
+            "estimate": {
+                "static": false,
+                "return": "int",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
                         "optional": false
                     }
                 ]
@@ -2190,8 +2218,8 @@
         "cases": []
     },
     "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\AttributeKeys": {
-        "kind": "class",
-        "final": true,
+        "kind": "interface",
+        "final": false,
         "extends": null,
         "implements": [],
         "constants": {
@@ -2361,6 +2389,17 @@
         },
         "constants": [],
         "methods": {
+            "map": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "activity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "__construct": {
                 "static": false,
                 "return": null,
@@ -2383,17 +2422,6 @@
                     {
                         "name": "kindMap",
                         "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SpanKindMap",
-                        "optional": false
-                    }
-                ]
-            },
-            "map": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "activity",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityInterface",
                         "optional": false
                     }
                 ]
@@ -2410,6 +2438,17 @@
         },
         "constants": [],
         "methods": {
+            "map": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "execution",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "__construct": {
                 "static": false,
                 "return": null,
@@ -2432,17 +2471,6 @@
                     {
                         "name": "kindMap",
                         "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SpanKindMap",
-                        "optional": false
-                    }
-                ]
-            },
-            "map": {
-                "static": false,
-                "return": "void",
-                "params": [
-                    {
-                        "name": "execution",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
                         "optional": false
                     }
                 ]
@@ -2499,12 +2527,148 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HeaderPropagatorInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "headers": {
+                "static": false,
+                "return": "array",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "correlationId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HttpContextExtractorInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "extract": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpExecutionContext",
+                "params": [
+                    {
+                        "name": "request",
+                        "type": "Psr\\Http\\Message\\ServerRequestInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "toLevel": {
+                "static": false,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "severity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "toLevelFromNumeric": {
+                "static": false,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "level",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Psr\\Contract\\PsrEventToOccurrenceMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "map": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                "params": [
+                    {
+                        "name": "event",
+                        "type": "object",
+                        "optional": false
+                    },
+                    {
+                        "name": "type",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ResponseCorrelationEnricherInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "enrich": {
+                "static": false,
+                "return": "Psr\\Http\\Message\\ResponseInterface",
+                "params": [
+                    {
+                        "name": "response",
+                        "type": "Psr\\Http\\Message\\ResponseInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "correlationId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\Psr\\Event\\DefaultPsrEventToOccurrenceMapper": {
         "kind": "class",
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\Psr\\Event\\PsrEventToOccurrenceMapperInterface": "ItPack\\RunIt\\Adapter\\Psr\\Event\\PsrEventToOccurrenceMapperInterface"
+            "ItPack\\RunIt\\Adapter\\Psr\\Contract\\PsrEventToOccurrenceMapperInterface": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\PsrEventToOccurrenceMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -2661,32 +2825,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Adapter\\Psr\\Event\\PsrEventToOccurrenceMapperInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "map": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
-                "params": [
-                    {
-                        "name": "event",
-                        "type": "object",
-                        "optional": false
-                    },
-                    {
-                        "name": "type",
-                        "type": "null|string",
-                        "optional": true
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\Adapter\\Psr\\Http\\ExecutionMiddleware": {
         "kind": "class",
         "final": true,
@@ -2707,12 +2845,12 @@
                     },
                     {
                         "name": "extractor",
-                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpContextExtractorInterface",
+                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Contract\\HttpContextExtractorInterface",
                         "optional": true
                     },
                     {
                         "name": "enricher",
-                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Http\\ResponseCorrelationEnricherInterface",
+                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Contract\\ResponseCorrelationEnricherInterface",
                         "optional": true
                     }
                 ]
@@ -2736,21 +2874,85 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpContextExtractorInterface": {
-        "kind": "interface",
-        "final": false,
+    "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpExecutionContext": {
+        "kind": "class",
+        "final": true,
         "extends": null,
         "implements": [],
         "constants": [],
         "methods": {
-            "extract": {
+            "__construct": {
                 "static": false,
-                "return": "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpExecutionContext",
+                "return": null,
                 "params": [
                     {
-                        "name": "request",
-                        "type": "Psr\\Http\\Message\\ServerRequestInterface",
+                        "name": "name",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionNameInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "kind",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionKindInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "correlationId",
+                        "type": "null|string",
+                        "optional": false
+                    },
+                    {
+                        "name": "context",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "attributes",
+                        "type": "array",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Psr\\Http\\Propagation\\DefaultHeaderPropagator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HeaderPropagatorInterface": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HeaderPropagatorInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "executionHeader",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "correlationHeader",
+                        "type": "string",
+                        "optional": true
+                    }
+                ]
+            },
+            "headers": {
+                "static": false,
+                "return": "array",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "correlationId",
+                        "type": "null|string",
+                        "optional": true
                     }
                 ]
             }
@@ -2777,7 +2979,7 @@
                     },
                     {
                         "name": "propagator",
-                        "type": "ItPack\\RunIt\\Adapter\\Psr\\Http\\Propagation\\HeaderPropagatorInterface",
+                        "type": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HeaderPropagatorInterface",
                         "optional": false
                     },
                     {
@@ -2806,7 +3008,7 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpContextExtractorInterface": "ItPack\\RunIt\\Adapter\\Psr\\Http\\HttpContextExtractorInterface"
+            "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HttpContextExtractorInterface": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\HttpContextExtractorInterface"
         },
         "constants": [],
         "methods": {
@@ -2845,12 +3047,61 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\Psr\\Http\\Psr7ResponseCorrelationEnricher": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ResponseCorrelationEnricherInterface": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ResponseCorrelationEnricherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "executionHeader",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "correlationHeader",
+                        "type": "string",
+                        "optional": true
+                    }
+                ]
+            },
+            "enrich": {
+                "static": false,
+                "return": "Psr\\Http\\Message\\ResponseInterface",
+                "params": [
+                    {
+                        "name": "response",
+                        "type": "Psr\\Http\\Message\\ResponseInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "correlationId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\Psr\\Log\\DefaultObservationToPsr3LevelMapper": {
         "kind": "class",
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\Psr\\Log\\ObservationToPsr3LevelMapperInterface": "ItPack\\RunIt\\Adapter\\Psr\\Log\\ObservationToPsr3LevelMapperInterface"
+            "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -3147,7 +3398,7 @@
                     },
                     {
                         "name": "levelMapper",
-                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Log\\ObservationToPsr3LevelMapperInterface",
+                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface",
                         "optional": true
                     },
                     {
@@ -3353,31 +3604,35 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Adapter\\Psr\\Log\\ObservationToPsr3LevelMapperInterface": {
+    "ItPack\\RunIt\\Adapter\\Swoole\\Contract\\CoroutineIdProviderInterface": {
         "kind": "interface",
         "final": false,
         "extends": null,
         "implements": [],
         "constants": [],
         "methods": {
-            "toLevel": {
+            "currentCoroutineId": {
                 "static": false,
-                "return": "string",
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\Swoole\\Contract\\RequestContextExtractorInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "extract": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
                 "params": [
                     {
-                        "name": "severity",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "toLevelFromNumeric": {
-                "static": false,
-                "return": "string",
-                "params": [
-                    {
-                        "name": "level",
-                        "type": "int",
+                        "name": "request",
+                        "type": "mixed",
                         "optional": false
                     }
                 ]
@@ -3400,7 +3655,7 @@
                 "params": [
                     {
                         "name": "coroutines",
-                        "type": "ItPack\\RunIt\\Adapter\\Swoole\\CoroutineIdProviderInterface",
+                        "type": "ItPack\\RunIt\\Adapter\\Swoole\\Contract\\CoroutineIdProviderInterface",
                         "optional": false
                     }
                 ]
@@ -3463,42 +3718,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Adapter\\Swoole\\CoroutineIdProviderInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "currentCoroutineId": {
-                "static": false,
-                "return": "int",
-                "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\Adapter\\Swoole\\Http\\RequestContextExtractorInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "extract": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
-                "params": [
-                    {
-                        "name": "request",
-                        "type": "mixed",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\Adapter\\Swoole\\Http\\ServerExecutionMiddleware": {
         "kind": "class",
         "final": true,
@@ -3529,7 +3748,7 @@
                     },
                     {
                         "name": "contextExtractor",
-                        "type": "null|ItPack\\RunIt\\Adapter\\Swoole\\Http\\RequestContextExtractorInterface",
+                        "type": "null|ItPack\\RunIt\\Adapter\\Swoole\\Contract\\RequestContextExtractorInterface",
                         "optional": true
                     },
                     {
@@ -3563,7 +3782,7 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\Swoole\\CoroutineIdProviderInterface": "ItPack\\RunIt\\Adapter\\Swoole\\CoroutineIdProviderInterface"
+            "ItPack\\RunIt\\Adapter\\Swoole\\Contract\\CoroutineIdProviderInterface": "ItPack\\RunIt\\Adapter\\Swoole\\Contract\\CoroutineIdProviderInterface"
         },
         "constants": [],
         "methods": {
@@ -4677,18 +4896,18 @@
                         "optional": false
                     },
                     {
+                        "name": "clock",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\MonotonicClockInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "byteEstimator",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface",
+                        "optional": false
+                    },
+                    {
                         "name": "health",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "nowSeconds",
-                        "type": "null|Closure",
-                        "optional": true
-                    },
-                    {
-                        "name": "estimateBytes",
-                        "type": "null|Closure",
                         "optional": true
                     },
                     {
@@ -5596,7 +5815,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Application\\Publication\\PublicationPipelineInterface": "ItPack\\RunIt\\Application\\Publication\\PublicationPipelineInterface"
+        },
         "constants": [],
         "methods": {
             "__construct": {
@@ -5606,6 +5827,16 @@
                     {
                         "name": "sink",
                         "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "clock",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\MonotonicClockInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "byteEstimator",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface",
                         "optional": false
                     },
                     {
@@ -5645,6 +5876,21 @@
                     }
                 ]
             },
+            "build": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\PublicationPipelineInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
             "build": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
@@ -6291,6 +6537,11 @@
                         "optional": true
                     }
                 ]
+            },
+            "now": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
             }
         },
         "cases": []
@@ -6375,6 +6626,11 @@
                         "optional": true
                     }
                 ]
+            },
+            "now": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
             }
         },
         "cases": []
@@ -6464,6 +6720,11 @@
                         "optional": true
                     }
                 ]
+            },
+            "now": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
             }
         },
         "cases": []
@@ -6563,6 +6824,11 @@
                         "optional": true
                     }
                 ]
+            },
+            "now": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
             }
         },
         "cases": []
@@ -6637,6 +6903,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "now": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
             }
         },
         "cases": []
@@ -6786,6 +7057,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "now": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
             }
         },
         "cases": []
@@ -7204,7 +7480,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Security\\SnapshotIntegrityVerifierInterface": "ItPack\\RunIt\\Contract\\Application\\Security\\SnapshotIntegrityVerifierInterface"
+        },
         "constants": [],
         "methods": {
             "__construct": {
@@ -7248,7 +7526,7 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Common\\Contract\\FactoryInterface": {
+    "ItPack\\RunIt\\Common\\Contract\\IdentifierFactoryMarkerInterface": {
         "kind": "interface",
         "final": false,
         "extends": null,
@@ -8204,6 +8482,43 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Application\\Security\\SnapshotIntegrityVerifierInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "verifyIntegrity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "snapshot",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "verifyChain": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "snapshot",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "predecessor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Application\\ServerExecutionMiddlewareInterface": {
         "kind": "interface",
         "final": false,
@@ -8735,6 +9050,38 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Domain\\AttributeValidatorInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "assertValidKey": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "key",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "assertValidAttributes": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "attributes",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -9635,7 +9982,7 @@
         "final": false,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Common\\Contract\\FactoryInterface": "ItPack\\RunIt\\Common\\Contract\\FactoryInterface"
+            "ItPack\\RunIt\\Common\\Contract\\IdentifierFactoryMarkerInterface": "ItPack\\RunIt\\Common\\Contract\\IdentifierFactoryMarkerInterface"
         },
         "constants": [],
         "methods": {
@@ -11633,6 +11980,27 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "estimate": {
+                "static": false,
+                "return": "int",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": {
         "kind": "interface",
         "final": false,
@@ -12247,11 +12615,6 @@
                 "return": "string",
                 "params": []
             },
-            "isTerminal": {
-                "static": false,
-                "return": "bool",
-                "params": []
-            },
             "cases": {
                 "static": true,
                 "return": "array",
@@ -12278,6 +12641,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "isTerminal": {
+                "static": false,
+                "return": "bool",
+                "params": []
             }
         },
         "cases": [
@@ -12647,12 +13015,7 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface": "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface"
         },
-        "constants": {
-            "MAX_KEY_LENGTH": "public",
-            "MAX_VALUE_LENGTH": "public",
-            "MAX_ARRAY_ELEMENTS": "public",
-            "MAX_DEPTH": "public"
-        },
+        "constants": [],
         "methods": {
             "__construct": {
                 "static": false,
@@ -12660,7 +13023,7 @@
                 "params": [
                     {
                         "name": "limits",
-                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
                         "optional": true
                     }
                 ]
@@ -14031,11 +14394,6 @@
                 "return": "string",
                 "params": []
             },
-            "isTerminal": {
-                "static": false,
-                "return": "bool",
-                "params": []
-            },
             "cases": {
                 "static": true,
                 "return": "array",
@@ -14062,6 +14420,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "isTerminal": {
+                "static": false,
+                "return": "bool",
+                "params": []
             }
         },
         "cases": [
@@ -14174,7 +14537,7 @@
         "extends": null,
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\Factory\\StringIdentifierFactoryInterface": "ItPack\\RunIt\\Contract\\Domain\\Factory\\StringIdentifierFactoryInterface",
-            "ItPack\\RunIt\\Common\\Contract\\FactoryInterface": "ItPack\\RunIt\\Common\\Contract\\FactoryInterface"
+            "ItPack\\RunIt\\Common\\Contract\\IdentifierFactoryMarkerInterface": "ItPack\\RunIt\\Common\\Contract\\IdentifierFactoryMarkerInterface"
         },
         "constants": [],
         "methods": {
@@ -15559,6 +15922,23 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Domain\\Shared\\ArtifactField": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": {
+            "ID": "public",
+            "CONTEXT": "public",
+            "ATTRIBUTES": "public",
+            "THROWABLE": "public",
+            "DATA": "public",
+            "PAYLOAD": "public",
+            "MESSAGE": "public"
+        },
+        "methods": [],
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Shared\\ArtifactSequence": {
         "kind": "class",
         "final": true,
@@ -16093,17 +16473,111 @@
                     }
                 ]
             },
-            "with": {
+            "withMaxAttributeCount": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
                 "params": [
                     {
-                        "name": "name",
-                        "type": "string",
+                        "name": "maxAttributeCount",
+                        "type": "int",
                         "optional": false
-                    },
+                    }
+                ]
+            },
+            "withMaxAttributeKeyBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
                     {
-                        "name": "value",
+                        "name": "maxAttributeKeyBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxAttributeValueBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxAttributeValueBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxAttributeDepth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxAttributeDepth",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxOccurrencePayloadBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxOccurrencePayloadBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxSnapshotPayloadBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxSnapshotPayloadBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxActivityDepth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxActivityDepth",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxArtifactsPerExecution": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxArtifactsPerExecution",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxSerializationDepth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxSerializationDepth",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxSerializationBytes": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxSerializationBytes",
                         "type": "int",
                         "optional": false
                     }
@@ -17104,17 +17578,6 @@
                     }
                 ]
             },
-            "withMonotonicClock": {
-                "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
-                "params": [
-                    {
-                        "name": "clock",
-                        "type": "ItPack\\RunIt\\Contract\\Port\\MonotonicClockInterface",
-                        "optional": false
-                    }
-                ]
-            },
             "withSequenceAllocator": {
                 "static": false,
                 "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
@@ -17232,6 +17695,50 @@
                     {
                         "name": "engine",
                         "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionEngineInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withHashCalculator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "hashCalculator",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withExecutionFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "executionFactory",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withLifecycleCoordinator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "coordinator",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionLifecycleCoordinatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "snapshotFactory",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionSnapshotFactoryInterface",
                         "optional": false
                     }
                 ]
@@ -17278,17 +17785,6 @@
                     }
                 ]
             },
-            "withMonotonicClock": {
-                "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
-                "params": [
-                    {
-                        "name": "clock",
-                        "type": "ItPack\\RunIt\\Contract\\Port\\MonotonicClockInterface",
-                        "optional": false
-                    }
-                ]
-            },
             "withSequenceAllocator": {
                 "static": false,
                 "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
@@ -17406,6 +17902,50 @@
                     {
                         "name": "engine",
                         "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionEngineInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withHashCalculator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "hashCalculator",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withExecutionFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "executionFactory",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withLifecycleCoordinator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "coordinator",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionLifecycleCoordinatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "snapshotFactory",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionSnapshotFactoryInterface",
                         "optional": false
                     }
                 ]

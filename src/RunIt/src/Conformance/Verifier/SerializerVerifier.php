@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Conformance\Verifier;
 
 use ItPack\RunIt\Conformance\Contract\PortFixtureInterface;
+use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
@@ -21,7 +22,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class SerializerVerifier
+final class SerializerVerifier implements VerifierInterface
 {
     public function port(): string
     {

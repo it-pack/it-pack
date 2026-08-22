@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Factory;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Common\Contract\FactoryInterface;
+use ItPack\RunIt\Common\Contract\IdentifierFactoryMarkerInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
@@ -64,14 +64,14 @@ final class StringIdentifierFactoryTest extends Unit
             $this->generator('exec-1'),
         );
 
-        self::assertInstanceOf(FactoryInterface::class, $factory);
+        self::assertInstanceOf(IdentifierFactoryMarkerInterface::class, $factory);
 
         $built = $this->buildThrough($factory);
 
         self::assertInstanceOf(ExecutionIdInterface::class, $built);
     }
 
-    private function buildThrough(FactoryInterface $factory): object
+    private function buildThrough(IdentifierFactoryMarkerInterface $factory): object
     {
         return $factory->build();
     }

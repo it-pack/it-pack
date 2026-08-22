@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Behavior\Domain;
 
+use ItPack\RunIt\Contract\Domain\AttributeValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
@@ -27,7 +28,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class AttributeValidator
+final class AttributeValidator implements AttributeValidatorInterface
 {
     private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
 

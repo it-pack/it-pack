@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain\Factory;
 
-use ItPack\RunIt\Common\Contract\FactoryInterface;
+use ItPack\RunIt\Common\Contract\IdentifierFactoryMarkerInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 
@@ -24,7 +24,7 @@ use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
  *
  * @see https://w3id.org/itpack/runit#executionId
  */
-interface StringIdentifierFactoryInterface extends FactoryInterface
+interface StringIdentifierFactoryInterface extends IdentifierFactoryMarkerInterface
 {
     /**
      * Returns a new identifier produced by the configured generation policy.
