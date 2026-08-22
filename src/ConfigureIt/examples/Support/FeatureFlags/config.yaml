@@ -1,0 +1,18 @@
+feature_flags:
+  newDashboard:
+    enabled: true
+    environments: [staging, canary]
+  betaApi:
+    enabled: true
+    tenants: [acme, globex]
+    # Full rollout within the targeted tenants. Lower `rollout` (0-100) would
+    # enable only a stable percentage of the bucket (see FlagDefinitionTest).
+    rollout: 100
+    bucketBy: tenant
+  experiments:
+    enabled: true
+    attributes:
+      plan: enterprise
+
+service:
+  name: configure-it-demo

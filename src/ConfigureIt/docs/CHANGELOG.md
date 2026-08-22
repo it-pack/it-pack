@@ -740,6 +740,41 @@ warning fatal) plus updated `ValidationResultTest` and `ValidationProcessorTest`
 Suite green: **239 tests / 561 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M7.E8.2: Feature flags (env/tenant/user/attribute gating + rollout) ✅
+
+Completes E8.2 of Epic E8 / M7 (`docs/ADDITIONAL_FEATURES_PLAN.md` §8,
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`). Feature flags are now a thin,
+schema-driven evaluation layer built on top of the resolved configuration —
+they introduce **no new source of truth** (see plan §8). Flags are declared in
+config under a single key (default `feature_flags`) and evaluated against an
+`ExecutionContextInterface`.
+
+- `src/Contract/FlagEvaluatorInterface.php` (new) — port: `definitions()`,
+  `has()`, `isEnabled()`, `evaluate(ExecutionContextInterface)`.
+- `src/Core/FlagEvaluator.php` (new) — reads flag definitions from a
+  `ConfigurationSnapshotInterface` (default key `feature_flags`) and evaluates
+  each against the context. Unknown flags are off; a non-array `feature_flags`
+  value throws.
+- `src/ValueObject/FlagDefinition.php` (new) — parses a flag definition from a
+  bool shortcut or a full structure, then decides enablement per context.
+  Evaluation order: master `enabled` switch → environment allow-list → tenant
+  allow-list → required attribute match → percentage `rollout` (a stable
+  `crc32(bucket + flag) % 100 < rollout`, bucketed by `bucketBy`:
+  `tenant` | `user` | `environment`).
+- `src/Adapter/FeatureFlagSchema.php` (new) — reusable Nette Schema fragment
+  (`FeatureFlagSchema::structure()` / `::definition()`) so consumers compose
+  *validated* flag definitions into their own schema. Keeps Nette behind the
+  adapter boundary; Core never sees it.
+
+Tests: `FlagDefinitionTest` (bool shortcut; env/tenant/attribute gates; stable
+50% rollout split across 200 tenants; rollout boundaries; invalid `bucketBy` /
+`rollout` / malformed data throw) and `FlagEvaluatorTest` (no flags → empty
+state; reads definitions from snapshot; tenant + custom-path evaluation; unknown
+flag off; malformed flags throw). Runnable `examples/feature-flags.php` shows
+env-, tenant-, and attribute-gated flags across execution contexts. Suite
+green: **255 tests / 593 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

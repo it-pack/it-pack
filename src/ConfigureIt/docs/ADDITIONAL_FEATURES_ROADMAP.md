@@ -176,7 +176,7 @@ php-cs-fixer clean).
 
 ---
 
-## M7 — Runtime Intelligence  *(Plan §8)*
+## M7 — Runtime Intelligence  *(Plan §8)* ✅ DONE
 
 **Objective:** warnings vs errors, feature-flag evaluation.
 
@@ -185,12 +185,12 @@ php-cs-fixer clean).
 - [x] **T7.1.2 (M)** `ConfigurationBuilder::failOnWarnings(bool)` (default `false`); resolver throws only on errors, emits each issue as an `Observation` (`warning`/`error` level), and only fails on warnings when `failOnWarnings` is set.
 - [x] **T7.1.3 (M)** Tests: `SeverityTest` (warning-only resolves + observed; error throws; `failOnWarnings` makes a warning fatal) plus updated `ValidationResultTest`.
 
-### Epic E8.2 — Feature flags (Companion: `configure-it-flags`)
-- [ ] **T7.2.1 (M)** `FlagEvaluator` port over the resolved graph (percentage rollout, tenant/user targeting, env gating).
-- [ ] **T7.2.2 (M)** Schema-driven flag definitions; evaluation reads the snapshot (no new source of truth).
-- [ ] **T7.2.3 (M)** Tests + `examples/feature-flags.php`.
+### Epic E8.2 — Feature flags (Companion: `configure-it-flags`) ✅ DONE
+- [x] **T7.2.1 (M)** `FlagEvaluatorInterface`/`FlagEvaluator` over the resolved snapshot: env gating, tenant/user targeting, attribute match, and percentage rollout (stable per-bucket hashing).
+- [x] **T7.2.2 (M)** `FlagDefinition` (value object) parses flag definitions from config; `FeatureFlagSchema` (adapter) provides a reusable Nette Schema fragment so definitions are schema-validated. Evaluation reads the snapshot — no new source of truth.
+- [x] **T7.2.3 (M)** Tests (`FlagDefinitionTest`, `FlagEvaluatorTest`) + `examples/feature-flags.php`.
 
-**M7 Exit (E8.1 done):** warnings don't crash the resolver (surfaced as `warning` observations); errors still throw unless `failOnWarnings` flips them; E8.2 (feature flags) remains TODO. Gates green.
+**M7 Exit (E8.1 + E8.2 done):** validation warnings surface as `warning` observations without crashing (errors still throw unless `failOnWarnings` flips them); feature flags evaluate from the resolved config via `FlagEvaluator` (env/tenant/user/attribute gating + percentage rollout). Gates green.
 
 ---
 
