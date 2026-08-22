@@ -84,9 +84,9 @@ Detection / policy pipeline (all under `src/`, ports in `Contract\`, impls in
 - **Execution** (`Contract\ExecutionRecorderInterface` + `Adapter\NullExecutionRecorder`,
   `ValueObject\Execution\*`) records versioned occurrences (`disenchant.it.*.v1`).
 
-> Doc-drift note: `README.md` still mentions `AutoConstantPlacementStrategy`;
-> the code renamed it to `CompositeConstantPlacementStrategy`. Unrelated to this
-> plan, but worth a one-line README fix.
+> Doc-drift note (resolved, S6.1): `README.md` and `USER_GUIDE.md` previously
+> mentioned `AutoConstantPlacementStrategy`; the code renamed it to
+> `CompositeConstantPlacementStrategy` and the docs now match.
 
 ---
 
@@ -275,25 +275,25 @@ These make the richer detection safe and actionable.
 Severity = user value vs risk; Effort = S/M/L. "Fits arch" = additive port +
 adapter, Core unchanged.
 
-| # | Feature | Direction | Severity | Effort | Arch fit | Notes |
-|---|---------|-----------|----------|--------|----------|-------|
-| 1 | `LiteralSubkind` enum + `ContentClassifier` | B1 | 🔴 | M | ✅ port+adapter | best ROI: better names, feeds C1/C2 |
-| 2 | Backed-enum target | C1 | 🔴 | L | ✅ strategy | README's "eventually enums"; biggest feature |
-| 3 | Bitmask/flag-set detection + target | B2/C2 | 🟠 | M | ✅ | high-value int magic values |
-| 4 | Heredoc/nowdoc string coverage | A1 | 🟠 | S | ✅ | opt-in, size-gated |
-| 5 | Scope & ignore controls | D1 | 🟠 | M | ✅ | prerequisite for noisier kinds |
-| 6 | JSON / SARIF / diff reporting | D2 | 🟡 | M | ✅ | feeds off ExecutionRecorder |
-| 7 | Numeric meaning sub-kinds (status/port/time) | B3 | 🟡 | M | ✅ | naming + typed const |
-| 8 | Closed-set → enum candidacy pass | B4 | 🟡 | M | ✅ | analysis over existing candidates |
-| 9 | Shared/global constant target | C3 | 🟡 | S | ✅ | builds on SemConv |
-| 10 | SemConv persistence | D5 | 🟡 | M | ✅ | cross-run stability |
-| 11 | More syntactic positions | D3 | 🟡 | S | ✅ | visitor extension |
-| 12 | Naming dictionary / policy | D4 | 🟢 | S | ✅ | polish |
-| 13 | FQCN-string → `::class` converter | A3b | 🟢 | M | ✅ | explicit opt-in, risky |
-| 14 | Post-rewrite verify observer | D6 | 🟢 | S | ✅ | out-of-process |
-| — | **Promote bare `true`/`false`/`null`** | — | — | — | ❌ | **rejected**: noise, self-describing |
-| — | **Encapsed fragments** | A2 | — | — | ❌ | **rejected**: breaks interpolation |
-| — | **Magic constants / `::class` as values** | — | — | — | ❌ | **rejected**: references, not magic |
+| # | Feature | Direction | Severity | Effort | Arch fit | Notes | Delivered |
+|---|---------|-----------|----------|--------|----------|-------|-----------|
+| 1 | `LiteralSubkind` enum + `ContentClassifier` | B1 | 🔴 | M | ✅ port+adapter | best ROI: better names, feeds C1/C2 | ✅ (Phase 1/2) |
+| 2 | Backed-enum target | C1 | 🔴 | L | ✅ strategy | README's "eventually enums"; biggest feature | ✅ (`BackedEnumTarget`) |
+| 3 | Bitmask/flag-set detection + target | B2/C2 | 🟠 | M | ✅ | high-value int magic values | ✅ (Phase 3) |
+| 4 | Heredoc/nowdoc string coverage | A1 | 🟠 | S | ✅ | opt-in, size-gated | ✅ (Phase 4) |
+| 5 | Scope & ignore controls | D1 | 🟠 | M | ✅ | prerequisite for noisier kinds | ✅ (Phase 2) |
+| 6 | JSON / SARIF / diff reporting | D2 | 🟡 | M | ✅ | feeds off ExecutionRecorder | ✅ (Phase 5) |
+| 7 | Numeric meaning sub-kinds (status/port/time) | B3 | 🟡 | M | ✅ | naming + typed const | ✅ (Phase 1/2) |
+| 8 | Closed-set → enum candidacy pass | B4 | 🟡 | M | ✅ | analysis over existing candidates | ✅ (Phase 2/3) |
+| 9 | Shared/global constant target | C3 | 🟡 | S | ✅ | builds on SemConv | ⚠️ SemConv collector ✅ (Phase 4); `SharedConst` target seam = future (ADR-0006) |
+| 10 | SemConv persistence | D5 | 🟡 | M | ✅ | cross-run stability | ✅ (Phase 5) |
+| 11 | More syntactic positions | D3 | 🟡 | S | ✅ | visitor extension | ✅ (Phase 5) |
+| 12 | Naming dictionary / policy | D4 | 🟢 | S | ✅ | polish | ✅ (Phase 5) |
+| 13 | FQCN-string → `::class` converter | A3b | 🟢 | M | ✅ | explicit opt-in, risky | ✅ (Phase 4) |
+| 14 | Post-rewrite verify observer | D6 | 🟢 | S | ✅ | out-of-process | ✅ (Phase 5) |
+| — | **Promote bare `true`/`false`/`null`** | — | — | — | ❌ | **rejected**: noise, self-describing | ❌ out of scope |
+| — | **Encapsed fragments** | A2 | — | — | ❌ | **rejected**: breaks interpolation | ❌ out of scope |
+| — | **Magic constants / `::class` as values** | — | — | — | ❌ | **rejected**: references, not magic | ❌ out of scope |
 
 ---
 

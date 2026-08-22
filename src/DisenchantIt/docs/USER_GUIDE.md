@@ -319,10 +319,10 @@ promoted constant is declared:
 - **`PerClassConstantStrategy`** — occurrences span several classes → each
   class gets its own same-named `private const` (no shared abstraction is
   invented).
-- **`AutoConstantPlacementStrategy`** *(default)* — picks SameClass vs PerClass
+- **`CompositeConstantPlacementStrategy`** *(default)* — picks SameClass vs PerClass
   automatically based on whether a value spans one class or several.
 
-The default factory uses `Auto`. Selecting a specific strategy is an advanced
+The default factory uses `Composite`. Selecting a specific strategy is an advanced
 composition topic (§11).
 
 ---

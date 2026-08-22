@@ -61,7 +61,7 @@ The work splits into two independent halves that are composed by the caller.
     `private const` on that class.
   - `PerClassConstantStrategy` — occurrences span several classes → each class gets its
     own same-named `private const` (no new shared abstraction is invented).
-  - `AutoConstantPlacementStrategy` — picks SameClass vs PerClass automatically based on
+  - `CompositeConstantPlacementStrategy` — picks SameClass vs PerClass automatically based on
     whether the value spans one class or several.
 - A **rewriter** applies the placements to source text:
   - `LineBasedRewriter` inserts the `private const` declarations (right after each

@@ -431,20 +431,30 @@ target seam first, then the enum strategy, then closed-set detection.
 
 ---
 
-## Phase 6 — Docs & cleanup
+## Phase 6 — Docs & cleanup — ✅ DONE
 
-### S6.1 — Fix README drift
-- `README.md` mentions `AutoConstantPlacementStrategy`; rename to the actual
-  `CompositeConstantPlacementStrategy` (matches `src/`).
+### S6.1 — Fix README drift — ✅ DONE
+- `README.md` (§2 Replacement) and `docs/USER_GUIDE.md` (§placement) previously
+  mentioned `AutoConstantPlacementStrategy`; both now name the actual
+  `CompositeConstantPlacementStrategy` (matches `src/`). The historical
+  `REFACTORING_PLAN.md` / `REVIEW.md` / `MAGIC_NUMBERS_ROADMAP.md` entries that
+  *describe the rename* are intentionally left as-is (they document the
+  decision, not current usage).
 
-### S6.2 — New ADR for promotion targets
-- Add `docs/ADR-0006-promotion-targets.md`: const vs backed-enum vs flag-set
-  vs shared; the `PromotionTargetInterface` seam; closed-set detection policy.
+### S6.2 — New ADR for promotion targets — ✅ DONE
+- Added `docs/ADR-0006-promotion-targets.md`: const vs backed-enum vs flag-set
+  vs shared; the `PromotionTargetInterface` seam; the composite first-match-wins
+  ordering; the closed-set detection policy (operationalizing ADR-0003); and the
+  `TargetKind` closed enum. `TargetKind::SharedConst` is reserved for a future
+  shared-const target built on the same seam.
 
-### S6.3 — Update plan/roadmap status
-- Mark delivered rows in `ADDITIONAL_FEATURES_PLAN.md` and this roadmap as done;
-  keep rejected items (`true`/`false`/`null`, encapsed fragments, magic
-  constants) explicitly out of scope.
+### S6.3 — Update plan/roadmap status — ✅ DONE
+- `ADDITIONAL_FEATURES_PLAN.md` §8 prioritized table gained a **Delivered**
+  column marking each shipped row (and the rejected rows kept explicitly ❌ /
+  out of scope). The in-doc `README` drift note is resolved.
+- This roadmap marks Phases 0–6 done; the rejected items
+  (`true`/`false`/`null`, encapsed fragments, magic constants) remain explicitly
+  out of scope in §"Explicitly NOT built".
 
 ---
 
@@ -457,18 +467,18 @@ S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature) ✅ DON
 S3.1 → S3.2                 # bitmask/flags ✅ DONE
 S4.1 → S4.2                 # string coverage extension ✅ DONE
 S5.1 → S5.2 → S5.3 → S5.4 → S5.5   # operational ✅ DONE
-S6.1 → S6.2 → S6.3         # docs
+S6.1 → S6.2 → S6.3         # docs ✅ DONE
 ```
 
 Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
 
 > **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), 2 (S2.1–S2.4), 3
-> (S3.1–S3.2), 4 (S4.1–S4.2), and 5 (S5.1–S5.5) are implemented and verified.
-> `composer architecture`, `composer analyze` (on `src`), `composer format:check`,
-> and `composer test:unit` (164 tests, 378 assertions) all pass. Namespace
-> filtering is intentionally deferred (no namespace source on literal carriers
-> yet). The next shippable step is Phase 6 (docs & cleanup).
+> (S3.1–S3.2), 4 (S4.1–S4.2), 5 (S5.1–S5.5), and 6 (S6.1–S6.3) are implemented
+> and verified. `composer architecture`, `composer analyze` (on `src`),
+> `composer format:check`, and `composer test:unit` (164 tests, 378 assertions)
+> all pass. Namespace filtering is intentionally deferred (no namespace source on
+> literal carriers yet). All roadmap phases are delivered.
 >
 > **Known analysis caveat:** `composer analyze` runs PHPStan over **both** `src`
 > and `tests`. The `src` tree is clean at level 9; the `tests` tree currently
