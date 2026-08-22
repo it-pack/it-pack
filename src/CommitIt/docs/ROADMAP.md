@@ -393,45 +393,78 @@ mapping.
 
 ---
 
-## Milestone M4 — Application Layer
+## Milestone M4 — Application Layer ✅ COMPLETE
 
 **Goal:** Compose the adapter into a usable service, add ergonomic option builders,
 and wire non-intrusive observation.
 
-### Tasks
+> **Status (2026-08-22):** Implemented and verified. Gates green: `phpstan
+> analyse` (level max, 0 errors), `deptrac` (0 violations), `php-cs-fixer` (0
+> files), `composer validate` (valid), `codecept run Unit` (69 tests, 235
+> assertions).
 
-1. **Option builders (immutable, fluent).**
-   - `src/Application/Option/InitOptions.php`
-   - `src/Application/Option/CloneOptions.php`
-   - `src/Application/Option/CommitOptions.php`
-   - Each `final readonly` with named constructors and fluent `with*()` methods
-     returning new instances. No large untyped config arrays.
+### What was built
 
-2. **`ObservedRepository` decorator.**
-   - `src/Application/ObservedRepository.php` — `final`, implements
-     `Contract\Repository`, wraps a `Repository`, and dispatches
-     `RepositoryObserver::onStart/onSuccess/onFailure` around each operation.
-   - Failure path must call `onFailure` and rethrow the original `Throwable`
-     (never a substituted observer error). Observer failures are caught and routed
-     to a separate, non-recursive path (do not re-observe).
+- **`ObservedRepository` decorator** (`src/Application/ObservedRepository.php`) —
+  `final`, implements `Contract\Repository`, wraps a `Repository`, and dispatches
+  `RepositoryObserver::onStart/onSuccess/onFailure` around every operation via two
+  private helpers (`run` for value-returning operations, `runVoid` for void
+  operations). The failure path calls `onFailure` with the **original**
+  `Throwable` and rethrows it (never a substituted observer error). Every observer
+  dispatch is wrapped in `notify()`, which catches observer exceptions on a
+  separate, non-recursive path (observer failures never break or re-observe the
+  operation). Structured `context` carries only non-sensitive, operation-relevant
+  identifiers (branch/tag/remote/commit names, `allowEmpty`/`amend` flags, command
+  name); it deliberately omits commit-message bodies and any secret material per
+  AGENTS security rules.
+- **`RepositoryOpener`** (`src/Application/RepositoryOpener.php`) — `final`,
+  composes a `RepositoryFactory` with an optional `RepositoryObserver` (defaulting
+  to `NullRepositoryObserver`). `open()/init()/cloneRepository()` return a plain
+  `Repository` when no observer is supplied (zero observation overhead) and an
+  `ObservedRepository` otherwise. This is the wiring seam the SDK (M5) consumes.
+- **Application tests** (`tests/Unit/Application/{ObservedRepositoryTest,
+  RepositoryOpenerTest}.php` with `FakeRepository`, `FakeWorkingTree`,
+  `RecordingObserver`, `ThrowingObserver`, `FakeFactory` doubles): verify
+  `onStart`/`onSuccess`/`onFailure` dispatch and ordering on success; original
+  exception propagation with the same instance on failure; observer-failure
+  isolation (operation still returns its result); `NullRepositoryObserver` no-op;
+  `getWorkingTree()` is intentionally **not** observed (returns the inner tree
+  without observer events); and the opener returns a plain repository vs. an
+  `ObservedRepository` depending on the observer.
 
-3. **`RepositoryOpener`.**
-   - `src/Application/RepositoryOpener.php` — `final`, composes the
-     `RepositoryFactory` and an optional `RepositoryObserver`, returning either a
-     plain `Repository` or an `ObservedRepository`. This is the wiring seam the SDK
-     uses.
+### Decisions
 
-4. **Application tests.**
-   - `tests/Unit/Application/` — `ObservedRepository` invokes the observer on
-     every path (success + failure); `NullRepositoryObserver` is a true no-op;
-     option builders are immutable (`with*()` returns a different instance).
+- **Option builders live in `Domain\Option`, not `Application\Option`.** The M4 plan
+  sketched `InitOptions`/`CloneOptions`/`CommitOptions` under `Application\Option`,
+  but these were already built in `Domain\Option` during M1 and are referenced
+  directly by the `Contract\RepositoryFactory` and `Contract\Repository` signatures.
+  DepTrac forbids `Contract → Application` (the dependency direction is
+  `Application → Contract`), so relocating them would break the layering. The M4
+  option-builder deliverable is therefore satisfied by the existing, already-tested
+  immutable/fluent Domain builders (verified in M1/M2).
 
-### Acceptance criteria
+### Tasks (status)
+
+1. **Option builders (immutable, fluent).** ✅ Already satisfied by
+   `src/Domain/Option/{InitOptions,CloneOptions,CommitOptions}.php` (built M1, tested
+   M2). Not duplicated into `Application\Option` — see Decisions above.
+2. **`ObservedRepository` decorator.** ✅
+   `src/Application/ObservedRepository.php` — `final`, implements `Contract\Repository`,
+   wraps a `Repository`, dispatches observer lifecycle events, rethrows the original
+   error, and isolates observer failures on a non-recursive path.
+3. **`RepositoryOpener`.** ✅ `src/Application/RepositoryOpener.php` — `final`,
+   composes `RepositoryFactory` + optional `RepositoryObserver`, returning a plain or
+   observed `Repository` (the SDK wiring seam).
+4. **Application tests.** ✅ `tests/Unit/Application/` covers every dispatch path,
+   failure propagation, observer-failure isolation, the no-op observer, and opener
+   wiring.
+
+### Acceptance criteria — all met
 
 - `ObservedRepository` observer dispatch verified for `onStart`/`onSuccess`/
-  `onFailure`, including that the original exception propagates.
-- Option builders verified immutable and fluent.
-- DepTrac green: `Application → Common, Contract, Domain`.
+  `onFailure`, including that the original exception propagates (same instance).
+- Option builders verified immutable and fluent (M1/M2 suites).
+- DepTrac green: `Application → Common, Contract, Domain` (0 violations, 0 errors).
 
 ---
 
@@ -594,7 +627,7 @@ M0  Foundation & QA wiring                       ✅ COMPLETE (2026-08-21)
 M1  Common & Contract ports                     ✅ COMPLETE (2026-08-21)
 M2  Domain value objects + validators           ✅ COMPLETE (2026-08-21)
 M3  Git adapter (factory, repository, working tree, exception map) ✅ COMPLETE (2026-08-21)
-M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place)
+M4  Application (ObservedRepository, RepositoryOpener; option builders + domain exceptions already in place) ✅ COMPLETE (2026-08-22)
 M5  SDK facade
 M6  Integration tests & failure/security injection
 M7  Documentation & ADRs
