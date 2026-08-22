@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Common\DefaultArtifactByteEstimator;
+use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\BufferConfiguration;
 use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\BufferOverflowException;
 use ItPack\RunIt\Application\Publication\OverflowStrategy;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -21,6 +25,14 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
  */
 final class BufferingTest extends Unit
 {
+    private MonotonicClockInterface $clock;
+    private ArtifactByteEstimatorInterface $estimator;
+
+    protected function setUp(): void
+    {
+        $this->clock = new SystemMonotonicClock();
+        $this->estimator = new DefaultArtifactByteEstimator();
+    }
     private function artifact(string $severity = 'info', string $id = 'obs'): ExecutionArtifactInterface
     {
         $executionId = ExecutionId::fromString('exec-1');
@@ -55,7 +67,7 @@ final class BufferingTest extends Unit
     public function testDropNewestBoundsBuffer(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropNewest), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropNewest), $sink, $this->clock, $this->estimator);
 
         $buffer->publish($this->artifact('info', 'a'));
         $buffer->publish($this->artifact('info', 'b'));
@@ -71,7 +83,7 @@ final class BufferingTest extends Unit
     public function testDropOldestBoundsBuffer(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropOldest), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropOldest), $sink, $this->clock, $this->estimator);
 
         $buffer->publish($this->artifact('info', 'a'));
         $buffer->publish($this->artifact('info', 'b'));
@@ -85,7 +97,7 @@ final class BufferingTest extends Unit
     public function testDropLowPriorityKeepsHighPriority(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropLowPriority), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropLowPriority), $sink, $this->clock, $this->estimator);
 
         $buffer->publish($this->artifact('info', 'low-1'));
         $buffer->publish($this->artifact('info', 'low-2'));
@@ -98,7 +110,7 @@ final class BufferingTest extends Unit
     public function testDropLowPriorityDropsIncomingLow(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::DropLowPriority), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::DropLowPriority), $sink, $this->clock, $this->estimator);
 
         $buffer->publish($this->artifact('info', 'low-1'));
         $buffer->publish($this->artifact('info', 'low-2'));
@@ -110,7 +122,7 @@ final class BufferingTest extends Unit
     public function testFailStrategyThrows(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::Fail), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::Fail), $sink, $this->clock, $this->estimator);
 
         $buffer->publish($this->artifact('info', 'a'));
         $thrown = null;
@@ -127,7 +139,7 @@ final class BufferingTest extends Unit
     public function testFlushRespectsBatchSize(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 2), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 2), $sink, $this->clock, $this->estimator);
 
         for ($i = 0; $i < 5; $i++) {
             $buffer->publish($this->artifact('info', (string) $i));
@@ -144,7 +156,7 @@ final class BufferingTest extends Unit
     public function testCloseRespectsShutdownBudgetAndDropsRest(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 1024, budget: 1), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 1024, budget: 1), $sink, $this->clock, $this->estimator);
 
         for ($i = 0; $i < 3; $i++) {
             $buffer->publish($this->artifact('info', (string) $i));
@@ -160,7 +172,7 @@ final class BufferingTest extends Unit
     public function testMemoryStaysBoundedUnderSustainedLoad(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest), $sink);
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest), $sink, $this->clock, $this->estimator);
 
         for ($i = 0; $i < 1000; $i++) {
             $buffer->publish($this->artifact('info', (string) $i));
@@ -174,7 +186,7 @@ final class BufferingTest extends Unit
     {
         $config = BufferConfiguration::default();
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($config, $sink);
+        $buffer = new BufferedArtifactPublisher($config, $sink, $this->clock, $this->estimator);
 
         $buffer->publish($this->artifact('info', 'a'));
         $buffer->flush();

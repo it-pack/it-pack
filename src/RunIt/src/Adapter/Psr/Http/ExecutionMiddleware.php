@@ -13,6 +13,8 @@ use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface;
+use ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Tools\Dogfood;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Common\DefaultArtifactByteEstimator;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
@@ -38,7 +39,7 @@ final class DogfoodRunnerTest extends Unit
     private function buildRunner(ProcessRunnerInterface $processRunner): DogfoodRunner
     {
         $this->recorder = new InMemoryArtifactPublisher();
-        $publisher = new BufferedArtifactPublisher(BufferConfiguration::default(), $this->recorder);
+        $publisher = new BufferedArtifactPublisher(BufferConfiguration::default(), $this->recorder, new SystemMonotonicClock(), new DefaultArtifactByteEstimator());
 
         $runIt = RunItBuilder::create()
             ->withPublisher($publisher)

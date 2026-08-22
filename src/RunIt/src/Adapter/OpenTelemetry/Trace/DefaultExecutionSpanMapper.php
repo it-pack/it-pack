@@ -36,6 +36,8 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
             return;
         }
 
+        $definition = $execution->definition();
+
         $attributes = [
             AttributeKeys::EXECUTION_ID => $execution->id()->toString(),
             AttributeKeys::EXECUTION_NAME => $definition->name()->toString(),
@@ -66,6 +68,10 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
     private function resolveParentContext(ExecutionInterface|ActivityInterface $execution): ?ContextInterface
     {
+        if (!$execution instanceof ExecutionInterface) {
+            return null;
+        }
+
         $parentId = $execution->definition()->parentExecutionId();
         if ($parentId === null) {
             return null;

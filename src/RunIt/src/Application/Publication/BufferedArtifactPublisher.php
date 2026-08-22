@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
-use Closure;
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 
 /**
@@ -42,26 +43,19 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
     private int $lastFlushEpoch = 0;
 
-    /** @var \Closure(): int */
-    private readonly Closure $nowSeconds;
-
-    /** @var \Closure(ExecutionArtifactInterface): int */
-    private readonly Closure $byteEstimator;
-
     /**
-     * @param Closure(ExecutionArtifactInterface): int|null $estimateBytes
+     * @param MonotonicClockInterface $clock
+     * @param ArtifactByteEstimatorInterface $byteEstimator
      */
     public function __construct(
         private readonly BufferConfiguration $config,
         private readonly ArtifactPublisherInterface $inner,
+        private readonly MonotonicClockInterface $clock,
+        private readonly ArtifactByteEstimatorInterface $byteEstimator,
         private readonly ?InternalHealthReporterInterface $health = null,
-        ?Closure $nowSeconds = null,
-        ?Closure $estimateBytes = null,
         private readonly ?BatchFlushObserverInterface $observer = null,
     ) {
-        $this->nowSeconds = $nowSeconds ?? static fn (): int => time();
-        $this->byteEstimator = $estimateBytes ?? static fn (ExecutionArtifactInterface $artifact): int => strlen((string) json_encode($artifact->normalize(), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE));
-        $now = ($this->nowSeconds)();
+        $now = $this->clock->nowSeconds();
         $this->lastFlushEpoch = $now;
     }
 
@@ -78,7 +72,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         $this->buffer[] = $item;
         $this->estimatedBytes += $item['bytes'];
 
-        $now = ($this->nowSeconds)();
+        $now = $this->clock->nowSeconds();
         if ($this->config->flushIntervalSeconds > 0 && $now - $this->lastFlushEpoch >= $this->config->flushIntervalSeconds) {
             $this->flush();
         }
@@ -87,7 +81,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
     public function flush(): void
     {
         $start = hrtime(true);
-        $now = ($this->nowSeconds)();
+        $now = $this->clock->nowSeconds();
         $this->lastFlushEpoch = $now;
         $flushed = $this->drain($this->config->batchSize);
         $this->observe($flushed, $start);
@@ -127,8 +121,8 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function toItem(ExecutionArtifactInterface $artifact): array
     {
-        $enqueued = ($this->nowSeconds)();
-        $bytes = ($this->byteEstimator)($artifact);
+        $enqueued = $this->clock->nowSeconds();
+        $bytes = $this->byteEstimator->estimate($artifact);
 
         return [
             'artifact' => $artifact,
@@ -285,7 +279,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
             /** @var int $enqueued */
             $enqueued = $item['enqueued'];
-            $now = ($this->nowSeconds)();
+            $now = $this->clock->nowSeconds();
 
             if ($now - $enqueued > $this->config->maxAgeSeconds) {
                 $this->reportDrop($item['artifact']);

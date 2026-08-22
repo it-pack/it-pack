@@ -37,6 +37,8 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
             return;
         }
 
+        $definition = $activity->definition();
+
         $attributes = [
             AttributeKeys::ACTIVITY_ID => $activity->id()->toString(),
             AttributeKeys::ACTIVITY_NAME => $definition->name()->toString(),
@@ -68,6 +70,10 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
     private function resolveParentContext(ActivityInterface|ExecutionInterface $activity): ?ContextInterface
     {
+        if (!$activity instanceof ActivityInterface) {
+            return null;
+        }
+
         $parentActivityId = $activity->definition()->parentActivityId();
         if ($parentActivityId !== null) {
             $parentSpan = $this->store->activityContext($parentActivityId->toString());

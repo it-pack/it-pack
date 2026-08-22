@@ -20,7 +20,7 @@ final class SpanKindMap
 {
     /**
      * @param string $kind
-     * @return int 0|1|2|3|4
+     * @return int<0,4>
      */
     public function toSpanKind(string $kind): int
     {

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Common\DefaultArtifactByteEstimator;
+use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\ArtifactTypeFilter;
@@ -14,6 +16,8 @@ use ItPack\RunIt\Application\Publication\FailClosedPolicy;
 use ItPack\RunIt\Application\Publication\ObservationSeverityFilter;
 use ItPack\RunIt\Application\Publication\PublicationPipeline;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -30,6 +34,14 @@ use RuntimeException;
  */
 final class PublicationPipelineTest extends Unit
 {
+    private MonotonicClockInterface $clock;
+    private ArtifactByteEstimatorInterface $estimator;
+
+    protected function setUp(): void
+    {
+        $this->clock = new SystemMonotonicClock();
+        $this->estimator = new DefaultArtifactByteEstimator();
+    }
     private function observation(): ExecutionArtifactInterface
     {
         return Observation::info(
@@ -56,7 +68,7 @@ final class PublicationPipelineTest extends Unit
     public function testPipelineFiltersRedactsAndPublishes(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $pipeline = new PublicationPipeline($sink);
+        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator);
         $pipeline->filter = new ArtifactTypeFilter([Observation::class]);
         $pipeline->redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']));
         $pipeline = $pipeline->build();
@@ -77,7 +89,7 @@ final class PublicationPipelineTest extends Unit
         $sink = new CallbackArtifactPublisher(static function (): void {
             throw new RuntimeException('transport down');
         });
-        $pipeline = new PublicationPipeline($sink);
+        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator);
         $pipeline->failurePolicy = new FailClosedPolicy();
         $pipeline = $pipeline->build();
 
@@ -94,7 +106,7 @@ final class PublicationPipelineTest extends Unit
     public function testPipelineFailOpenSwallows(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $pipeline = new PublicationPipeline($sink)->build();
+        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator)->build();
 
         $pipeline->publish($this->observation());
 
@@ -104,7 +116,7 @@ final class PublicationPipelineTest extends Unit
     public function testPipelineSeverityFloorDropsNoiseBeforeSink(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $pipeline = new PublicationPipeline($sink);
+        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator);
         $pipeline->filter = new ObservationSeverityFilter(400);
         $pipeline = $pipeline->build();
 

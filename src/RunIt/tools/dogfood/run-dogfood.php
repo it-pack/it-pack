@@ -15,13 +15,14 @@ declare(strict_types=1);
 
 require __DIR__ . '/../../vendor/autoload.php';
 
+use ItPack\RunIt\Adapter\Common\DefaultArtifactByteEstimator;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\BufferConfiguration;
+use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\RecordingBatchFlushObserver;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use Tools\Dogfood\Process\ShellProcessRunner;
@@ -36,8 +37,8 @@ $flushObserver = new RecordingBatchFlushObserver();
 $publisher = new BufferedArtifactPublisher(
     BufferConfiguration::default(),
     $recorder,
-    null,
-    null,
+    new SystemMonotonicClock(),
+    new DefaultArtifactByteEstimator(),
     null,
     $flushObserver,
 );
@@ -48,7 +49,8 @@ $runIt = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $runner = new DogfoodRunner(
     $runIt,

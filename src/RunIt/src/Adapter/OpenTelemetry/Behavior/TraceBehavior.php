@@ -18,10 +18,10 @@ use OpenTelemetry\Context\ContextInterface;
 trait TraceBehavior
 {
     public function __construct(
-        private ?TracerProviderInterface    $tracerProvider,
-        private ExecutionSpanStoreInterface $store,
-        private SpanStatusMap               $statusMap,
-        private SpanKindMap                 $kindMap,
+        private readonly ?TracerProviderInterface    $tracerProvider,
+        private readonly ExecutionSpanStoreInterface $store,
+        private readonly SpanStatusMap               $statusMap,
+        private readonly SpanKindMap                 $kindMap,
     ) {
     }
 

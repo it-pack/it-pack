@@ -10,7 +10,9 @@ use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterf
 use ItPack\RunIt\Contract\Application\Publication\PublicationGuardInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 
 /**
  * Composes the standard RunIt publication pipeline from its parts.
@@ -31,6 +33,8 @@ final class PublicationPipeline
 {
     public function __construct(
         public ArtifactPublisherInterface $sink,
+        public MonotonicClockInterface $clock,
+        public ArtifactByteEstimatorInterface $byteEstimator,
         public ?ArtifactFilterInterface $filter = null,
         public ?RedactorInterface $redactor = null,
         public ?SamplingPolicyInterface $sampling = null,
@@ -46,7 +50,7 @@ final class PublicationPipeline
         $publisher = $this->sink;
 
         if ($this->buffer instanceof BufferConfiguration) {
-            $publisher = new BufferedArtifactPublisher($this->buffer, $publisher, $this->health);
+            $publisher = new BufferedArtifactPublisher($this->buffer, $publisher, $this->clock, $this->byteEstimator, $this->health);
         }
 
         if ($this->sampling instanceof SamplingPolicyInterface) {
