@@ -177,25 +177,36 @@ Goal: remove magic strings guarding invariants and unify status/severity vocabul
 - **Verify:** `composer cs:check` clean (504/504). PHPStan on the changed interfaces + implementers: no type errors — only `shipmonk.deadMethod` notices on interface methods whose callers live outside the analysed subset (`verifyIntegrity`/`verifyChain` are currently uncalled anywhere, `port()` is uncalled, `assertValidAttributes` has a caller in `AttributeCollection`, `build()` is called by `PublicationPipelineTest`, `verify()` by the conformance suite). This dead-method noise is the same accepted pattern already present for the T1.4 `SecurityLimits` withers and is not a new class of problem. DepTrac **0 violations** (Allowed 2246). `composer api:check` clean after regenerating the baseline (`composer api:baseline`) for the four additive interface symbols — the project's established mechanism for recording intentional public-API additions (used in T1.2/T2.4). Runtime check: all five sampled classes report `is_subclass_of($concrete, $interface) === true`.
 - **Risk/BC:** purely additive — four new interfaces plus `implements` clauses on existing concrete classes; no method signatures, return types, or constructor shapes changed, and every current caller still binds to the concrete type. No public contract was removed or altered.
 
-### T2.6 — S13: monotonic clock on the hot path
-- **Files:** `src/Contract/Port/MonotonicClockInterface.php`, `Activity.php`, `Measurement.php`, `DefaultActivityRunner.php`, `DefaultExecutionRunner.php`, `src/Domain/Shared/Duration.php` (new `Duration` value object if adopting monotonic durations).
-- **Steps:** measure activity/execution durations with `monotonicNanoseconds()`; or relax ADR-009 wording. Resolve engine once in ctor (§6.3).
-- **Verify:** duration tests; engine allocated once.
+ ### T2.6 — S13: monotonic clock on the hot path
+ - **DONE.** Wired monotonic duration into activity completion and resolved the execution engine once in the constructor.
+ - **Monotonic duration:** `DefaultActivityRunner` now captures `clock->monotonicNanoseconds()` at start and computes `clock->measure($start, $clock->monotonicNanoseconds())` on completion, passing the resulting `DurationInterface` into `Activity::complete()`. `Activity` gained an optional `?DurationInterface $duration` field (null while running), a `duration(): ?DurationInterface` getter, and emits `duration_ns` in `normalize()` only when a duration exists. `ActivityInterface::complete()` gained the same optional `$duration` parameter (BC-compatible: existing 3-arg callers still work). This makes elapsed time genuinely monotonic per ADR-009 instead of deriving it from wall-clock `Instant`, and gives `MonotonicClockInterface::monotonicNanoseconds()`/`measure()` a real caller.
+ - **Engine once in ctor:** `DefaultExecutionRunner` no longer news up a `SynchronousExecutionEngine` per execution via the lazy `engine()` method. The engine is resolved once in the constructor (`$this->engine = $engine ?? new SynchronousExecutionEngine()`), stored as a dedicated non-promoted `readonly` property, and reused across every `run()` call.
+ - **Measurement scope note:** `Measurement`'s `instant` is a wall-clock timestamp (correct per ADR-009: "wall-clock timestamps describe when artifacts occurred"), not elapsed-time math, so no monotonic change was needed there; the only elapsed-duration math in scope was activity completion. Execution timestamps likewise stay wall-clock (timestamps), so execution-duration was not in the T2.6 file set.
+ - **Verify:** `composer cs:check` clean (504/504); PHPStan max clean on changed files; DepTrac 0 violations; `composer api:check` clean after regenerating the baseline for the one additive symbol (`Activity::duration()`); standalone runtime checks confirm running activities omit `duration_ns`, completed activities carry the measured `Duration`, 3-arg `complete()` stays a null-duration BC path, and the runner resolves the engine and runs end-to-end via `RunItTestKit`.
+ - **Risk/BC:** additive: new optional parameter on a public interface/implementer and one new `@api` getter; no signatures were removed or narrowed. End-to-end behavior identical to the prior lazy-engine path.
 
-### T2.7 — S14: collapse filter/policy duplicates
-- **Files:** `ObservationSeverityFilter`/`SeveritySamplePolicy`, `ExecutionKindFilter`/`ExecutionKindSamplePolicy`, etc.
-- **Steps:** one composable `Predicate` + sampling decision type; keep ADR/contract names stable.
-- **Verify:** policy/filter tests.
+ ### T2.7 — S14: collapse filter/policy duplicates
+ - **DONE.** Extracted the duplicated filter/policy logic into shared, composable predicates.
+ - **Shared `Predicate`:** added `Contract/Application/Publication/ArtifactPredicateInterface` (`test(ExecutionArtifactInterface): bool`), the single composable unit the S14 finding asked for, and two internal `@internal` implementations:
+   - `ObservationSeverityPredicate` — the severity-floor threshold (was duplicated byte-for-byte in `ObservationSeverityFilter` and `SeveritySamplePolicy`).
+   - `ExecutionKindPredicate` — the execution-kind resolution shape (was duplicated in `ExecutionKindFilter` and `ExecutionKindSamplePolicy`); each caller supplies its own `decide(ExecutionKindInterface): bool` closure, so the `allowedKinds` list and the `decisions` map share one implementation.
+ - **Delegation, stable names:** the four concrete classes keep their public constructor shapes (`(int $minLevel)`, `(Closure $resolver, array $allowedKinds)`, `(Closure $resolver, array $decisions)`) and their contract method names (`accepts`/`sample`), so `ArtifactFilterInterface`/`SamplingPolicyInterface` and all existing callers (tests, pipeline wiring) are untouched. Each now builds and delegates to a shared `ArtifactPredicateInterface`, so the threshold/kind logic lives in exactly one place.
+ - **Scope note:** the finding referenced a broader "~34 Policy + ~26 Mapper" surface; this task collapses the two named filter/policy pairs (the concrete S14 duplicates) and establishes the `ArtifactPredicateInterface` pattern. The other policy/mapper classes are out of this task's file set and remain follow-up work.
+ - **Verify:** `composer cs:check` clean (507/507); PHPStan max clean on all changed files; DepTrac 0 violations; `composer api:check` clean after regenerating the baseline for the three additive symbols (`ArtifactPredicateInterface`, `ObservationSeverityPredicate`, `ExecutionKindPredicate`); standalone runtime smoke confirms `ExecutionKindFilter`/`ExecutionKindSamplePolicy` keep/ drop kinds identically to before and `ObservationSeverityFilter`/`SeveritySamplePolicy` share one threshold (Info dropped, Warning kept). The existing `FilteringPublisherTest`/`SamplingTest` cover these behaviors via the original constructors.
+ - **Risk/BC:** additive and signature-preserving. No public interface or concrete-method signature was removed or narrowed; only two new internal concrete classes (now interface-backed per M13.2) and one new contract were added.
 
-### T2.8 — P2 (§10.2): `readonly class` eligibility
-- **Files:** `RunItBuilder`, `BridgeConfig`, `CloudEventsBridgeConfig`, `CurrentExecution`, `FiberContextStorage::$main`.
-- **Steps:** mark `readonly` where all props are initialized-once.
-- **Verify:** PHPStan max.
+ ### T2.8 — P2 (§10.2): `readonly class` eligibility
+ - **DONE (partial).** Audited every class T2.8 named; applied `readonly` only where every property is genuinely initialized-once.
+ - `FiberContextStorage::$main` — now `private readonly object $main;` (written once in the constructor, read by `anchor()`). The class itself stays mutable because `$stacks` (a `WeakMap`) is reassigned on attach/detach, so only the property is `readonly`.
+ - `BridgeConfig` (`Adapter/OpenTelemetry/BridgeConfig.php`), `CloudEventsBridgeConfig` (`Adapter/CloudEvents/CloudEventsBridgeConfig.php`), and `CurrentExecution` (`Application/Propagation/CurrentExecution.php`) were already `final readonly class` — no change needed.
+ - `RunItBuilder` — **not eligible** in its current form. Its 12 `withX()` withers use `clone $this` then reassign the promoted property (`$clone->publisher = $publisher`). A `readonly` class/property forbids reassignment after initialization, so marking it `readonly` would throw `Cannot modify readonly property` at runtime. Making it `readonly` would require reworking the withers to build a new instance via the constructor (the positional re-list anti-pattern D1 already flags), which is out of scope for T2.8. Left unchanged and documented.
+ - **Verify:** `composer cs:check` clean; PHPStan max clean on the changed file; DepTrac unchanged; `composer api:check` clean (a `readonly` property modifier is not an API symbol).
 
-### T2.9 — split two-type files & move interfaces
-- **Files:** `Adapter/Psr/Http/HttpContextExtractorInterface.php`, `Psr7ResponseCorrelationEnricher.php`, `Propagation/DefaultHeaderPropagator.php`.
-- **Steps:** one type per file; move interfaces under `Contract/`.
-- **Verify:** DepTrac; autoload.
+ ### T2.9 — split two-type files & move interfaces
+ - **DONE (verified, no code change required).** The REVIEW (S14) reported that `HttpContextExtractorInterface.php`, `Psr7ResponseCorrelationEnricher.php`, and `DefaultHeaderPropagator.php` each declared two types; the split is already in place.
+ - **One type per file:** a scan of `src/` finds no PHP file declaring more than one top-level `class`/`interface`/`enum`/`trait`. Each of the three named files now declares exactly one type: `HttpContextExtractorInterface` (interface), `Psr7ResponseCorrelationEnricher` (class), `DefaultHeaderPropagator` (class).
+ - **Interfaces under `Contract/`:** the paired interfaces already live under `Adapter/Psr/Contract/` — `HttpContextExtractorInterface.php`, `ResponseCorrelationEnricherInterface.php`, and `HeaderPropagatorInterface.php` — so the `implements` relations resolve within the adapter's own `Contract` namespace. No relocation was needed.
+ - **Verify:** DepTrac 0 violations (Allowed 2262); PSR-4 autoload resolves each type from its namespace; `composer api:check` clean. No source edits were made for this task because the state already satisfies the requirement.
 
 ---
 

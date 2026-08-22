@@ -5310,6 +5310,45 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Publication\\ExecutionKindPredicate": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\ArtifactPredicateInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\ArtifactPredicateInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "resolver",
+                        "type": "Closure",
+                        "optional": false
+                    },
+                    {
+                        "name": "decide",
+                        "type": "Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "test": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Publication\\ExecutionKindSamplePolicy": {
         "kind": "class",
         "final": true,
@@ -5651,6 +5690,40 @@
                 ]
             },
             "accepts": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ObservationSeverityPredicate": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Application\\Publication\\ArtifactPredicateInterface": "ItPack\\RunIt\\Contract\\Application\\Publication\\ArtifactPredicateInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "minLevel",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "test": {
                 "static": false,
                 "return": "bool",
                 "params": [
@@ -8311,6 +8384,27 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Application\\Publication\\ArtifactPredicateInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "test": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface": {
         "kind": "interface",
         "final": false,
@@ -8774,6 +8868,11 @@
                         "name": "endedAt",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "duration",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -12324,6 +12423,11 @@
                         "name": "endedAt",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "duration",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -12360,6 +12464,11 @@
             "endedAt": {
                 "static": false,
                 "return": "null|ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
+            },
+            "duration": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\DurationInterface",
                 "params": []
             },
             "throwableDescription": {

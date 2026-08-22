@@ -62,6 +62,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
 
         $activityId = $this->activityIdFactory->build();
         $startedAt = $this->now();
+        $startedAtMonotonic = $this->clock->monotonicNanoseconds();
         $sequence = $this->sequenceAllocator->allocate($this->executionId);
         $activity = Activity::start($activityId, $this->executionId, $definition, $startedAt, $sequence);
 
@@ -74,13 +75,13 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         try {
             $result = $operation(new ActivityScope($this->scope, $activity));
 
-            $completed = $this->complete($activity, ActivityStatus::Succeeded, null);
+            $completed = $this->complete($activity, ActivityStatus::Succeeded, null, $startedAtMonotonic);
             $this->publisher->publish($completed);
 
             return $result;
         } catch (Throwable $throwable) {
             $description = $this->throwableMapper->describe($throwable);
-            $completed = $this->complete($activity, ActivityStatus::Failed, $description);
+            $completed = $this->complete($activity, ActivityStatus::Failed, $description, $startedAtMonotonic);
             $this->publisher->publish($completed);
 
             throw $throwable;
@@ -90,8 +91,14 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         }
     }
 
-    private function complete(ActivityInterface $activity, ActivityStatusInterface $status, ?ThrowableDescriptionInterface $description): ActivityInterface
-    {
-        return $activity->complete($status, $description, $this->now());
+    private function complete(
+        ActivityInterface $activity,
+        ActivityStatusInterface $status,
+        ?ThrowableDescriptionInterface $description,
+        int $startedAtMonotonic,
+    ): ActivityInterface {
+        $duration = $this->clock->measure($startedAtMonotonic, $this->clock->monotonicNanoseconds());
+
+        return $activity->complete($status, $description, $this->now(), $duration);
     }
 }

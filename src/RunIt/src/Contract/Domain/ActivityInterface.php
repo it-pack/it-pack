@@ -39,6 +39,7 @@ interface ActivityInterface extends ExecutionArtifactInterface, ExecutionOwnedIn
     public function complete(
         ActivityStatusInterface $status,
         ?ThrowableDescriptionInterface $throwableDescription,
-        InstantInterface $endedAt
+        InstantInterface $endedAt,
+        ?DurationInterface $duration = null
     ): ActivityInterface;
 }

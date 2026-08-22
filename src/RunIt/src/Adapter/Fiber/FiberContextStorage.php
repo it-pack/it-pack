@@ -28,7 +28,7 @@ final class FiberContextStorage implements ContextStorageInterface
     /** @var WeakMap<object, list<FiberContextToken>> $stacks */
     private WeakMap $stacks;
 
-    private object $main;
+    private readonly object $main;
 
     public function __construct()
     {

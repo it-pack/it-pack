@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
+use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
@@ -39,6 +40,7 @@ final readonly class Activity implements ActivityInterface
         private ActivityStatusInterface        $status,
         private InstantInterface               $startedAt,
         private ?InstantInterface              $endedAt,
+        private ?DurationInterface             $duration,
         private AttributeCollectionInterface   $attributes,
         private ?ThrowableDescriptionInterface $throwableDescription,
         private ArtifactSequenceInterface      $sequence,
@@ -60,6 +62,7 @@ final readonly class Activity implements ActivityInterface
             ActivityStatus::Running,
             $startedAt,
             null,
+            null,
             $attributes ?? AttributeCollection::empty(),
             null,
             $sequence ?? ArtifactSequence::initial(),
@@ -70,6 +73,7 @@ final readonly class Activity implements ActivityInterface
         ActivityStatusInterface $status,
         ?ThrowableDescriptionInterface $throwableDescription,
         InstantInterface $endedAt,
+        ?DurationInterface $duration = null,
     ): self {
         return new self(
             $this->id,
@@ -78,6 +82,7 @@ final readonly class Activity implements ActivityInterface
             $status,
             $this->startedAt,
             $endedAt,
+            $duration,
             $this->attributes,
             $throwableDescription,
             $this->sequence,
@@ -119,6 +124,11 @@ final readonly class Activity implements ActivityInterface
         return $this->endedAt;
     }
 
+    public function duration(): ?DurationInterface
+    {
+        return $this->duration;
+    }
+
     public function throwableDescription(): ?ThrowableDescriptionInterface
     {
         return $this->throwableDescription;
@@ -152,7 +162,7 @@ final readonly class Activity implements ActivityInterface
      */
     public function normalize(): array
     {
-        return [
+        $normalized = [
             ArtifactField::ID => $this->id->toString(),
             'execution_id' => $this->executionId->toString(),
             'name' => $this->definition->name()->toString(),
@@ -165,5 +175,11 @@ final readonly class Activity implements ActivityInterface
             ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
             ArtifactField::THROWABLE => $this->throwableDescription?->toArray(),
         ];
+
+        if ($this->duration !== null) {
+            $normalized['duration_ns'] = $this->duration->nanoseconds();
+        }
+
+        return $normalized;
     }
 }

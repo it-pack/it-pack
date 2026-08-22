@@ -72,6 +72,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
      * @param Closure(\Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
      */
     private FailSafeArtifactPublisher $safePublisher;
+    private ExecutionEngineInterface  $engine;
     public function __construct(
         private CurrentExecutionInterface              $currentExecution,
         private ContextStorageInterface                $contextStorage,
@@ -99,12 +100,13 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         private ?Closure                               $onPublicationFailure = null,
         private ?SnapshotStoreInterface                $snapshotStore = null,
         private ?Closure                               $onSnapshotStoreFailure = null,
-        private ?ExecutionEngineInterface              $engine = null,
+        ?ExecutionEngineInterface                     $engine = null,
         private SecurityLimits                         $limits = new SecurityLimits(),
     ) {
         $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
         $bounded = new BoundedArtifactPublisher($this->limits, $this->publisher);
         $this->safePublisher = new FailSafeArtifactPublisher($bounded, new FailOpenPolicy(), $health);
+        $this->engine = $engine ?? new SynchronousExecutionEngine();
     }
 
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
@@ -183,7 +185,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         try {
             $this->safePublish($execution);
 
-            $result = $this->engine()->run($scope, $operation);
+            $result = $this->engine->run($scope, $operation);
 
             $this->completeSuccess($execution, $scope);
 
@@ -271,11 +273,6 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         if ($this->onPublicationFailure instanceof Closure) {
             ($this->onPublicationFailure)($failure);
         }
-    }
-
-    private function engine(): ExecutionEngineInterface
-    {
-        return $this->engine ?? new SynchronousExecutionEngine();
     }
 
     /**

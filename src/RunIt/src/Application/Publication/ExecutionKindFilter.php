@@ -6,17 +6,18 @@ namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
+use ItPack\RunIt\Contract\Application\Publication\ArtifactPredicateInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 
 /**
  * Filter that accepts artifacts by the kind of their owning execution.
  *
  * Artifacts carry only their execution identity, not the execution kind, so the
- * filter resolves the kind through a caller-supplied closure. The resolver is a
- * pure lookup: it must not retain the artifact.
+ * filter resolves the kind through a caller-supplied closure. The resolution shape
+ * is shared with {@see ExecutionKindSamplePolicy} via {@see ExecutionKindPredicate};
+ * this filter keeps a kind when it is present in {@see $allowedKinds}.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -26,21 +27,18 @@ final readonly class ExecutionKindFilter implements ArtifactFilterInterface
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param list<string>                                           $allowedKinds
      */
-    public function __construct(
-        private Closure $resolver,
-        private array   $allowedKinds,
-    ) {
+    public function __construct(Closure $resolver, array $allowedKinds)
+    {
+        $this->predicate = new ExecutionKindPredicate(
+            $resolver,
+            static fn (ExecutionKindInterface $kind): bool => in_array($kind->toString(), $allowedKinds, true),
+        );
     }
+
+    private ArtifactPredicateInterface $predicate;
 
     public function accepts(ExecutionArtifactInterface $artifact): bool
     {
-        if (!$artifact instanceof ExecutionOwnedInterface) {
-            return false;
-        }
-
-        $kind = ($this->resolver)($artifact->executionId());
-
-        return $kind instanceof ExecutionKindInterface
-            && in_array($kind->toString(), $this->allowedKinds, true);
+        return $this->predicate->test($artifact);
     }
 }
