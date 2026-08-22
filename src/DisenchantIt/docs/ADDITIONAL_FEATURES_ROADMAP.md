@@ -317,27 +317,47 @@ target seam first, then the enum strategy, then closed-set detection.
 
 ---
 
-## Phase 4 — Extend string coverage
+## Phase 4 — Extend string coverage — ✅ DONE
 
-### S4.1 — Heredoc / nowdoc (opt-in, size-gated)
-- **Modify** `Adapter/MagicLiteralVisitor` to also enter `Scalar\Heredoc` /
-  `Scalar\Encapsed` bodies; treat as `LiteralKind::String`, run them through
-  `RoleClassifier` + `ContentClassifier` (SQL/JSON sub-kind), and **gate** by a
-  max-body-size config on `DisenchantScope` (skip bodies > N chars by default).
-- **Tests:** a repeated heredoc SQL body becomes `SQL_FIND_USER`; a 50 KB prose
+### S4.1 — Heredoc / nowdoc (opt-in, size-gated) — ✅ DONE
+- **Modify** `Adapter/MagicLiteralVisitor` to collect heredoc / nowdoc bodies
+  (in this php-parser version a heredoc parses as a `String_` node with
+  `kind === KIND_HEREDOC|KIND_NOWDOC`). The body is taken from `$node->value`,
+  run through `RoleClassifier` + `ContentClassifier` (SQL/JSON sub-kind), and
+  **size-gated** by `DisenchantScope::$maxHeredocBodyChars` (default 4096 chars;
+  bodies larger than that are skipped at detection — bounded cost). A heredoc
+  literal records `endLine` (the closing-label line) so the line-based rewriter
+  can replace the whole multi-line token in one span edit; its declaration uses
+  the quoted body (not the multi-line token) and it is **not** collected into
+  SemConv. Interpolated heredocs (`<<<SQL ... {$x} ... SQL;`) are left alone
+  (they cannot become a single constant).
+- **Tests:** a repeated heredoc SQL body is promoted to a `private const string
+  SELECT_NAME_FROM_USERS = 'SELECT name FROM users'` with both usages rewritten
+  to `self::SELECT_NAME_FROM_USERS` (idempotent on a second pass); a ~60 KB prose
   heredoc is skipped by default.
 
-### S4.2 — FQCN strings: detect-and-exclude, optional `::class` converter
-- **Modify** `Adapter/ContentClassifier` to mark `'App\\Foo\\Bar'`-shaped values
-  `LiteralSubkind::Unknown` but set a `isClassnameString` flag on the carrier
-  (new optional field) so `CandidateFilter` **excludes** them from generic
-  promotion (they're references).
+### S4.2 — FQCN strings: detect-and-exclude, optional `::class` converter — ✅ DONE
+- **Modify** `Adapter/ContentClassifier` to add `isClassNameString()`
+  (FQCN shape: at least one namespace separator, every segment identifier-like).
+  `MagicLiteralVisitor` sets the new `isClassnameString` flag on the carrier
+  (new optional field on `LiteralInterface` / both carriers) so
+  `CandidateFilter` **excludes** FQCN strings from generic promotion by default.
 - **Add (explicit opt-in, separate adapter)** `Adapter/ClassnameToClassConst`
-  behind its own `Contract/ClassnameToClassConstInterface`, converting
-  non-concatenated, loadable FQCN strings to `<Short>::class`. Default **off**;
-  only active when scope enables `convertFqcnToClassConst`.
+  behind `Contract/ClassnameToClassConstInterface`, converting
+  non-concatenated FQCN strings to `<Short>::class`. It emits no declaration
+  (`::class` is engine-provided) and is wired into `CompositePromotionTarget`
+  **ahead** of the other targets only when the scope enables
+  `convertFqcnToClassConst` (threaded through `DisenchanterFactory` →
+  `DetectorFactory` scope and `PromotionTargetFactory`).
 - **Tests:** FQCN strings excluded by default; with the opt-in, a safe
-  `'App\\Foo\\Bar'` → `Bar::class`; a concatenated `"App\\{$x}"` left alone.
+  `'App\Foo\Bar'` → `Bar::class` (idempotent); a concatenated `"App\Foo\$x"`
+  is left alone (not a pure FQCN literal).
+
+> **Implementation note — heredoc AST shape:** php-parser v5 represents a
+> heredoc/nowdoc as a `PhpParser\Node\Scalar\String_` (not `InterpolatedString`)
+> with a `kind` attribute of `KIND_HEREDOC`/`KIND_NOWDOC`, so detection keys off
+> that attribute rather than the node class. Interpolated heredocs
+> (`{$x}`) remain `InterpolatedString` and are skipped.
 
 ---
 
@@ -409,7 +429,7 @@ S0.1 → S0.2 → S0.3          # sub-kind foundation (no behavior change yet) �
 S1.1 → S1.2                 # scope/ignore (safe to land early) ✅ DONE
 S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature) ✅ DONE
 S3.1 → S3.2                 # bitmask/flags ✅ DONE
-S4.1 → S4.2                 # string coverage extension
+S4.1 → S4.2                 # string coverage extension ✅ DONE
 S5.1 → S5.2 → S5.3 → S5.4 → S5.5   # operational
 S6.1 → S6.2 → S6.3         # docs
 ```
@@ -417,12 +437,12 @@ S6.1 → S6.2 → S6.3         # docs
 Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
 
-> **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), 2 (S2.1–S2.4), and
-> 3 (S3.1–S3.2) are implemented and verified. `composer architecture`,
-> `composer analyze` (on `src`), `composer format:check`, and `composer test:unit`
-> (135 tests, 307 assertions) all pass. Namespace filtering is intentionally
-> deferred (no namespace source on literal carriers yet). The next shippable step
-> is Phase 4 (string coverage extension).
+> **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), 2 (S2.1–S2.4), 3
+> (S3.1–S3.2), and 4 (S4.1–S4.2) are implemented and verified. `composer
+> architecture`, `composer analyze` (on `src`), `composer format:check`, and
+> `composer test:unit` (143 tests, 331 assertions) all pass. Namespace filtering
+> is intentionally deferred (no namespace source on literal carriers yet). The
+> next shippable step is Phase 5 (operational features).
 >
 > **Known analysis caveat:** `composer analyze` runs PHPStan over **both** `src`
 > and `tests`. The `src` tree is clean at level 9; the `tests` tree currently

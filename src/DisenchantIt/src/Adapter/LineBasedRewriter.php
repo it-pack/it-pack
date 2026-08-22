@@ -55,20 +55,55 @@ final class LineBasedRewriter implements RewriterInterface
 
         $lines = explode("\n", $code);
 
-        // --- Step 1: literal -> reference, one recorded line at a time ---
+        // --- Step 1: literal -> reference ---
 
+        // Single-line edits are in-place (no line shift); multi-line edits (e.g.
+        // heredoc bodies) replace a span of lines and therefore change the line
+        // count. Process every replacement ordered by start line, tracking a
+        // running delta so later edits still land on the correct line.
+        $replacements = [];
         foreach ($artifacts as $artifact) {
             foreach ($artifact->replacements as $replacement) {
-                $index = $replacement->line - 1; // token lines are 1-based
+                $replacements[] = $replacement;
+            }
+        }
 
-                if (!isset($lines[$index])) {
-                    continue; // defensive: stale line number, skip rather than corrupt an unrelated line
+        usort($replacements, static fn ($a, $b): int => $a->line <=> $b->line);
+
+        $delta = 0;
+        foreach ($replacements as $replacement) {
+            $index = $replacement->line - 1 - $delta; // token lines are 1-based
+
+            $isSpan = $replacement->endLine !== null && $replacement->endLine > $replacement->line;
+
+            if ($isSpan) {
+                $endIndex = $replacement->endLine - 1 - $delta;
+
+                if (!isset($lines[$index]) || !isset($lines[$endIndex])) {
+                    continue; // defensive: stale line number, skip rather than corrupt
                 }
 
-                $pos = strpos($lines[$index], $replacement->needle);
-                if ($pos !== false) {
-                    $lines[$index] = substr_replace($lines[$index], $replacement->replacement, $pos, strlen($replacement->needle));
-                }
+                $span = implode("\n", array_slice($lines, $index, $endIndex - $index + 1));
+                $pos = strpos($span, $replacement->needle);
+                $newSpan = $pos !== false
+                    ? substr_replace($span, $replacement->replacement, $pos, strlen($replacement->needle))
+                    : $replacement->replacement;
+
+                $newLines = explode("\n", $newSpan);
+                $removed = $endIndex - $index + 1;
+                array_splice($lines, $index, $removed, $newLines);
+                $delta += $removed - count($newLines);
+
+                continue;
+            }
+
+            if (!isset($lines[$index])) {
+                continue; // defensive: stale line number, skip rather than corrupt an unrelated line
+            }
+
+            $pos = strpos($lines[$index], $replacement->needle);
+            if ($pos !== false) {
+                $lines[$index] = substr_replace($lines[$index], $replacement->replacement, $pos, strlen($replacement->needle));
             }
         }
 

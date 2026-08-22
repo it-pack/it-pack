@@ -18,6 +18,8 @@ final readonly class StringLiteral implements StringLiteralInterface
         public string $raw = '',
         public ?NamingContextInterface $namingContext = null,
         public LiteralSubkind $subkind = LiteralSubkind::Unknown,
+        public int $endLine = 0,
+        public bool $isClassnameString = false,
     ) {
     }
 }

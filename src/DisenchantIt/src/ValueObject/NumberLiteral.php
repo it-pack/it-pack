@@ -18,6 +18,8 @@ final readonly class NumberLiteral implements LiteralInterface
         public string $methodName,
         public ?NamingContextInterface $namingContext = null,
         public LiteralSubkind $subkind = LiteralSubkind::Unknown,
+        public int $endLine = 0,
+        public bool $isClassnameString = false,
     ) {
     }
 }

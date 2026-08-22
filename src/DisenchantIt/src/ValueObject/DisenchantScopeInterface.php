@@ -45,4 +45,26 @@ interface DisenchantScopeInterface
      * (tests/, fixtures/, var/) are rejected.
      */
     public function isIgnoreTests(): bool;
+
+    /**
+     * Maximum accepted length (in characters) of a heredoc/nowdoc body that
+     * DisenchantIt will collect as a candidate string. Larger bodies are skipped
+     * at detection time (opt-in string coverage, bounded cost). 0 means "no
+     * limit"; the default is a conservative cap.
+     */
+    public function getMaxHeredocBodyChars(): int;
+
+    /**
+     * When true, fully-qualified class-name strings (`App\Foo\Bar`) are eligible
+     * for the opt-in `ClassnameToClassConst` converter (rewritten to
+     * `Bar::class`) instead of being excluded entirely.
+     */
+    public function isConvertFqcnToClassConst(): bool;
+
+    /**
+     * Immutable copy with the FQCN → `::class` converter flag toggled.
+     *
+     * @return static
+     */
+    public function withConvertFqcnToClassConst(bool $enabled): self;
 }

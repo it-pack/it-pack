@@ -31,4 +31,11 @@ interface ScopeFilterInterface
      * @param string $filePath relative path of the file the literal was found in
      */
     public function isAllowed(LiteralInterface $lit, string $filePath): bool;
+
+    /**
+     * Whether the opt-in FQCN → `::class` converter is enabled for the active
+     * scope. Lets the candidate filter keep fully-qualified class-name strings
+     * as candidates only when the converter can rewrite them.
+     */
+    public function isConvertFqcnEnabled(): bool;
 }

@@ -8,6 +8,7 @@ use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
+use ItPack\DisenchantIt\ValueObject\DisenchantScope;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
@@ -44,6 +45,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         private readonly NamingContextExtractorInterface $extractor,
         string $code,
         private readonly ContentClassifierInterface $contentClassifier = new ContentClassifier(),
+        private readonly int $maxHeredocBodyChars = DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS,
     ) {
         $this->code = $code;
     }
@@ -67,6 +69,55 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         }
 
         if ($node instanceof String_) {
+            $nodeKind = $node->getAttribute('kind');
+
+            // Heredoc / nowdoc bodies: collect the body as one string literal
+            // (size-gated), leave interpolated strings for a later phase.
+            if ($nodeKind === String_::KIND_HEREDOC || $nodeKind === String_::KIND_NOWDOC) {
+                if ($this->isInsideClassConstDeclaration($node)) {
+                    return null; // a constant's own declared value — not a usage site
+                }
+
+                $body = $node->value;
+
+                // Size-gated: skip empty or oversized bodies (bounded cost for
+                // the opt-in string-coverage scan; the limit comes from
+                // DisenchantScope). Heredocs without interpolation parse as a
+                // plain `String_`, so `$node->value` already holds the full body.
+                if ($body === '' || strlen($body) > $this->maxHeredocBodyChars) {
+                    return null;
+                }
+
+                $parent = $node->getAttribute('parent');
+                $typedParent = $parent instanceof Node ? $parent : null;
+                $role = $this->classifier->classify($node, $typedParent);
+
+                $proto = new StringLiteral(
+                    value: $body,
+                    line: $node->getStartLine(),
+                    role: $role,
+                    className: $this->currentClass ?? '(unknown)',
+                    methodName: $this->currentMethod ?? '(unknown)',
+                    raw: $this->rawOf($node),
+                    endLine: $node->getEndLine(),
+                );
+
+                $this->found[] = new StringLiteral(
+                    value: $proto->value,
+                    line: $proto->line,
+                    role: $proto->role,
+                    className: $proto->className,
+                    methodName: $proto->methodName,
+                    raw: $proto->raw,
+                    endLine: $proto->endLine,
+                    namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
+                    subkind: $this->contentClassifier->classify($proto, false),
+                    isClassnameString: $this->contentClassifier->isClassNameString($proto->value),
+                );
+
+                return null;
+            }
+
             if ($this->isInsideClassConstDeclaration($node)) {
                 return null; // this literal IS a constant's value — not a usage site
             }
@@ -85,6 +136,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $this->currentClass ?? '(unknown)',
                 methodName: $this->currentMethod ?? '(unknown)',
                 raw: $this->rawOf($node),
+                endLine: $node->getEndLine(),
             );
 
             $this->found[] = new StringLiteral(
@@ -94,8 +146,10 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $proto->className,
                 methodName: $proto->methodName,
                 raw: $proto->raw,
+                endLine: $proto->endLine,
                 namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
                 subkind: $this->contentClassifier->classify($proto, $inBitwiseContext),
+                isClassnameString: $this->contentClassifier->isClassNameString($proto->value),
             );
 
             return null;
@@ -122,6 +176,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $this->currentClass ?? '(unknown)',
                 methodName: $this->currentMethod ?? '(unknown)',
                 namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
+                endLine: $node->getEndLine(),
             );
 
             $this->found[] = new NumberLiteral(
@@ -133,6 +188,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $proto->className,
                 methodName: $proto->methodName,
                 namingContext: $proto->namingContext,
+                endLine: $proto->endLine,
                 subkind: $this->contentClassifier->classify($proto, $inBitwiseContext),
             );
 

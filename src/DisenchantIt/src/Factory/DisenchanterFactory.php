@@ -40,13 +40,13 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
     ) {
     }
 
-    public static function create(): self
+    public static function create(bool $convertFqcnToClassConst = false): self
     {
         $semconvConfig = new SemConvConfig();
 
         return new self(
-            DetectorFactory::create(),
-            PromotionTargetFactory::create(),
+            DetectorFactory::create($convertFqcnToClassConst),
+            PromotionTargetFactory::create($convertFqcnToClassConst),
             new LineBasedRewriter(),
             new SemConvCollector($semconvConfig),
             new SemConvAliasRewriter($semconvConfig),

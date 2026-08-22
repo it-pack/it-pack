@@ -40,6 +40,22 @@ interface LiteralInterface
     public string $methodName { get; }
 
     /**
+     * Source line the literal ENDS on (inclusive). For single-line literals this
+     * equals {@see $line}; for multi-line literals (heredoc/nowdoc bodies) it is
+     * the closing-label line. Used by the rewriter to replace a multi-line token
+     * span in one edit.
+     */
+    public int $endLine { get; }
+
+    /**
+     * True when the literal's value is a fully-qualified class name
+     * (`App\Foo\Bar`). Such strings are references, not magic values: excluded
+     * from generic constant promotion by default, and eligible for the opt-in
+     * `::class` converter instead.
+     */
+    public bool $isClassnameString { get; }
+
+    /**
      * Naming hints for a numeric literal (unit/comment/variable name), or null
      * for a string literal (strings are named by slug, not by hint). Numbers
      * carry a NamingContext only when a hint was discovered during the scan.

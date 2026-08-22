@@ -39,16 +39,17 @@ final readonly class DetectorFactory implements DetectorFactoryInterface
     ) {
     }
 
-    public static function create(): self
+    public static function create(bool $convertFqcnToClassConst = false): self
     {
         $classifier = new RoleClassifier();
+        $scope = DisenchantScope::default()->withConvertFqcnToClassConst($convertFqcnToClassConst);
 
         return new self(
             $classifier,
             NikicParserFactory::create(),
             NikicTraverserFactory::create(),
-            MagicStringVisitorFactory::create(),
-            new CandidateFilter($classifier, new ScopeFilter(DisenchantScope::default())),
+            MagicStringVisitorFactory::create($scope->getMaxHeredocBodyChars()),
+            new CandidateFilter($classifier, new ScopeFilter($scope)),
             new CandidateGrouper(
                 new ByValueGroupingStrategy(),
                 new ByValueAndContextGroupingStrategy(),

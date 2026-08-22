@@ -10,6 +10,7 @@ use ItPack\DisenchantIt\Contract\ScopeFilterInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
 
 /**
  * Default candidate filter. Strings keep the original rules (skip enum backing
@@ -55,10 +56,26 @@ final readonly class CandidateFilter implements CandidateFilterInterface
 
     private function keepString(LiteralInterface $lit): bool
     {
-        return $lit->role !== LiteralRole::EnumBackingValue
+        if ($lit->role !== LiteralRole::EnumBackingValue
             && $lit->role !== LiteralRole::ClassConstValue
             && !in_array($lit->role, [LiteralRole::ExceptionMessage, LiteralRole::FormatString], true)
-            && $this->classifier->looksIdentifierLike($lit->value);
+            && $this->classifier->looksIdentifierLike($lit->value)) {
+            return true;
+        }
+
+        // A fully-qualified class name (`App\Foo\Bar`) is a reference, not a
+        // magic value. Excluded from generic promotion by default; when the
+        // opt-in `::class` converter is enabled it becomes a candidate again so
+        // that target (registered ahead of the fallback) can rewrite it.
+        if ($lit->isClassnameString) {
+            return $this->scopeFilter->isConvertFqcnEnabled();
+        }
+
+        // Structured string bodies (SQL / JSON) legitimately contain spaces and
+        // are recognised by their sub-kind rather than identifier shape — keep
+        // them as candidates (e.g. repeated heredoc SQL bodies).
+        return $lit->subkind === LiteralSubkind::Sql
+            || $lit->subkind === LiteralSubkind::Json;
     }
 
     private function keepNumber(LiteralInterface $lit): bool

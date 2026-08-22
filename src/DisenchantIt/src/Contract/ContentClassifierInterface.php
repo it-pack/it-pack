@@ -25,4 +25,11 @@ interface ContentClassifierInterface
      *        node; the Contract stays vendor-free by taking a scalar flag).
      */
     public function classify(LiteralInterface $lit, bool $inBitwiseContext = false): LiteralSubkind;
+
+    /**
+     * True when a string value is a fully-qualified class name
+     * (`App\Foo\Bar`): at least one namespace separator and every segment
+     * identifier-shaped. Such strings are references, not magic values.
+     */
+    public function isClassNameString(string $value): bool;
 }

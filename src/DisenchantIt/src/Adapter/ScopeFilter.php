@@ -54,6 +54,15 @@ final readonly class ScopeFilter implements ScopeFilterInterface
     }
 
     /**
+     * Whether the opt-in FQCN → `::class` converter is enabled for the active
+     * scope (delegated from {@see DisenchantScopeInterface}).
+     */
+    public function isConvertFqcnEnabled(): bool
+    {
+        return $this->scope->isConvertFqcnToClassConst();
+    }
+
+    /**
      * @param list<string> $patterns
      */
     private function matchesAny(array $patterns, string $filePath): bool

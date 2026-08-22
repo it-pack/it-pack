@@ -18,6 +18,7 @@ final readonly class Replacement implements ReplacementInterface
         public int $line,
         public string $needle,
         public string $replacement,
+        public ?int $endLine = null,
     ) {
     }
 }

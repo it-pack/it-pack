@@ -50,6 +50,11 @@ final readonly class ClassConstantTarget implements PromotionTargetInterface
         $constantName = $this->resolver->resolve($occurrences[0]);
         $typeKeyword = LiteralKind::from($occurrences[0]->kind)->toPhpKeyword();
 
+        // A heredoc/nowdoc body spans multiple lines: its declaration value is
+        // the quoted body (not the multi-line token) and it is not collected
+        // into SemConv (publishing a large SQL/JSON body is undesirable).
+        $isMultiline = $occurrences[0]->endLine > $occurrences[0]->line;
+
         $byClass = [];
         foreach ($occurrences as $lit) {
             $byClass[$lit->className][] = $lit;
@@ -60,17 +65,22 @@ final readonly class ClassConstantTarget implements PromotionTargetInterface
         $placements = [];
 
         foreach ($byClass as $className => $classOccurrences) {
-            $placements[] = $this->placements->build(
-                className: $className,
-                constantName: $constantName,
-                value: $classOccurrences[0]->value,
-                type: $classOccurrences[0]->kind,
-                occurrences: $classOccurrences,
-            );
+            if ($isMultiline) {
+                $valueExpression = var_export($classOccurrences[0]->value, true);
+            } else {
+                $valueExpression = $classOccurrences[0]->raw;
+                $placements[] = $this->placements->build(
+                    className: $className,
+                    constantName: $constantName,
+                    value: $classOccurrences[0]->value,
+                    type: $classOccurrences[0]->kind,
+                    occurrences: $classOccurrences,
+                );
+            }
 
             $declarationLine = new ConstantDeclaration(
                 name: $constantName,
-                valueExpression: $classOccurrences[0]->raw,
+                valueExpression: $valueExpression,
                 typeKeyword: $typeKeyword,
                 visibility: 'private',
             )->toCodeLine();
@@ -78,7 +88,15 @@ final readonly class ClassConstantTarget implements PromotionTargetInterface
             $insertions[] = new Insertion($className, [$declarationLine], false);
 
             foreach ($classOccurrences as $lit) {
-                $replacements[] = new Replacement($lit->line, $lit->needle(), 'self::' . $constantName);
+                if ($isMultiline) {
+                    $needle = $lit->raw;
+                    $endLine = $lit->endLine;
+                } else {
+                    $needle = $lit->needle();
+                    $endLine = null;
+                }
+
+                $replacements[] = new Replacement($lit->line, $needle, 'self::' . $constantName, $endLine);
             }
         }
 

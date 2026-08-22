@@ -26,6 +26,9 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
      * @param list<string> $includeNamespaces namespace allow-list (deferred — not yet enforced)
      * @param list<string> $excludeNamespaces namespace deny-list (deferred — not yet enforced)
      * @param list<string> $excludeLiteralValues literal scalar values always rejected
+     * @param bool $ignoreTests          drop tests/fixtures/var directories
+     * @param int $maxHeredocBodyChars   max length of a heredoc/nowdoc body to collect (0 = unlimited)
+     * @param bool $convertFqcnToClassConst enable the opt-in FQCN → `::class` converter
      */
     public function __construct(
         public array $includePaths = [],
@@ -34,8 +37,17 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
         public array $excludeNamespaces = [],
         public array $excludeLiteralValues = [],
         public bool $ignoreTests = false,
+        public int $maxHeredocBodyChars = self::DEFAULT_MAX_HEREDOC_BODY_CHARS,
+        public bool $convertFqcnToClassConst = false,
     ) {
     }
+
+    /**
+     * Default cap (in characters) for heredoc/nowdoc bodies collected as
+     * candidate strings. Keeps the opt-in string-coverage scan bounded; a 50 KB
+     * prose heredoc is skipped by default.
+     */
+    public const int DEFAULT_MAX_HEREDOC_BODY_CHARS = 4096;
 
     /**
      * Build a scope from a flat config array (keys optional, all defaulting to
@@ -52,6 +64,8 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
             excludeNamespaces: self::stringList($config, 'excludeNamespaces'),
             excludeLiteralValues: self::stringList($config, 'excludeLiteralValues'),
             ignoreTests: (bool) ($config['ignoreTests'] ?? false),
+            maxHeredocBodyChars: self::intConfig($config, 'maxHeredocBodyChars', self::DEFAULT_MAX_HEREDOC_BODY_CHARS),
+            convertFqcnToClassConst: (bool) ($config['convertFqcnToClassConst'] ?? false),
         );
     }
 
@@ -62,6 +76,24 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
     public static function default(): self
     {
         return new self(ignoreTests: true);
+    }
+
+    /**
+     * Immutable copy with the FQCN → `::class` converter flag toggled. Replaces
+     * rather than mutates, per the value-object contract.
+     */
+    public function withConvertFqcnToClassConst(bool $enabled): self
+    {
+        return new self(
+            includePaths: $this->includePaths,
+            excludePaths: $this->excludePaths,
+            includeNamespaces: $this->includeNamespaces,
+            excludeNamespaces: $this->excludeNamespaces,
+            excludeLiteralValues: $this->excludeLiteralValues,
+            ignoreTests: $this->ignoreTests,
+            maxHeredocBodyChars: $this->maxHeredocBodyChars,
+            convertFqcnToClassConst: $enabled,
+        );
     }
 
     /** @return list<string> */
@@ -99,6 +131,16 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
         return $this->ignoreTests;
     }
 
+    public function getMaxHeredocBodyChars(): int
+    {
+        return $this->maxHeredocBodyChars;
+    }
+
+    public function isConvertFqcnToClassConst(): bool
+    {
+        return $this->convertFqcnToClassConst;
+    }
+
     /**
      * @param array<string, mixed> $config
      * @return list<string>
@@ -116,5 +158,19 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
         }
 
         return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private static function intConfig(array $config, string $key, int $default): int
+    {
+        $raw = $config[$key] ?? $default;
+
+        if (is_int($raw)) {
+            return $raw;
+        }
+
+        return is_numeric($raw) ? (int) $raw : $default;
     }
 }
