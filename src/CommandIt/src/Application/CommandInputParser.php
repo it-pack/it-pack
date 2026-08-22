@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\CommandIt\Application;
 
 use ItPack\CommandIt\Behavior\Domain\InputCoercionBehavior;
+use ItPack\CommandIt\Contract\Application\CommandInputParserInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandInputInterface;
 use ItPack\CommandIt\Domain\CommandInput;
@@ -15,7 +16,7 @@ use ItPack\CommandIt\Domain\CommandInput;
  *
  * @api
  */
-final class CommandInputParser
+final class CommandInputParser implements CommandInputParserInterface
 {
     use InputCoercionBehavior;
 

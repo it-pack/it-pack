@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Contract\Port;
 
+use ItPack\CommandIt\Contract\ContextEnricherInterface;
 use ItPack\CommandIt\Contract\Domain\CommandContextInterface;
 
 /**
@@ -16,11 +17,14 @@ use ItPack\CommandIt\Contract\Domain\CommandContextInterface;
  * consults the {@see RuntimeContextDetectorInterface} to choose the matching
  * storage so the ambient context never leaks across Fibers or requests.
  *
+ * The enrichment seam ({@see ContextEnricherInterface}) is inherited so middleware
+ * and handlers can attach classified context through the copy-on-write contract.
+ *
  * @api
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-interface ExecutionContextProviderInterface
+interface ExecutionContextProviderInterface extends ContextEnricherInterface
 {
     /**
      * Returns the context currently attached to this storage, or null when none.

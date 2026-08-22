@@ -8,6 +8,7 @@ use ItPack\CommandIt\Contract\Application\CommandExecutionCoordinatorInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
 use ItPack\CommandIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\CommandIt\Contract\Port\ExecutionContextProviderInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
 use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 use ItPack\CommandIt\Domain\CommandExecution;
@@ -21,12 +22,17 @@ use ItPack\CommandIt\Domain\CommandStatus;
  * emits the stable lifecycle occurrences. Reporter failures are best-effort and
  * never replace the original business exception (the executor owns rethrow).
  *
+ * When an {@see ExecutionContextProviderInterface} is supplied, the classified
+ * ambient context (redacted) is merged into every emitted occurrence so that
+ * middleware- or handler-attached entries flow to reporters without extra wiring.
+ *
  * @api
  */
 final class CommandExecutionCoordinator implements CommandExecutionCoordinatorInterface
 {
     public function __construct(
         private ExecutionReporterInterface $reporter,
+        private ?ExecutionContextProviderInterface $context = null,
     ) {
     }
 
@@ -39,10 +45,10 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
             ->transition(CommandStatus::Received)
         ;
 
-        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_RECEIVED, [
+        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_RECEIVED, $this->withContext([
             'execution_id' => $id->toString(),
             'command' => $definition->name()->toString(),
-        ]);
+        ]));
 
         return $execution;
     }
@@ -58,11 +64,11 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
             ->complete($result, $endedAt)
         ;
 
-        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_HANDLED, [
+        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_HANDLED, $this->withContext([
             'execution_id' => $completed->id()->toString(),
             'command' => $completed->definition()->name()->toString(),
             'status' => $result->status()->label(),
-        ]);
+        ]));
         $this->reportMeasurement('duration_ms', $durationMs);
 
         return $completed;
@@ -80,12 +86,12 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
             ->complete($failed, $endedAt)
         ;
 
-        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_FAILED, [
+        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_FAILED, $this->withContext([
             'execution_id' => $completed->id()->toString(),
             'command' => $completed->definition()->name()->toString(),
             'error_class' => $error::class,
             'error_message' => $error->getMessage(),
-        ]);
+        ]));
         $this->reportMeasurement('duration_ms', $durationMs);
 
         return $completed;
@@ -98,6 +104,26 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
         }
 
         return $execution;
+    }
+
+    /**
+     * Merges the redacted ambient context into an occurrence's explicit context.
+     *
+     * The redacted view replaces secret values with `***` before they reach the
+     * reporter, so a middleware-attached secret is never exported in plaintext.
+     *
+     * @param array<string, mixed> $explicit
+     * @return array<string, mixed>
+     */
+    private function withContext(array $explicit): array
+    {
+        $current = $this->context?->current();
+
+        if ($current === null) {
+            return $explicit;
+        }
+
+        return array_merge($current->redacted(), $explicit);
     }
 
     /**

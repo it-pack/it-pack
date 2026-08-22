@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Contract\Command;
 
+use ItPack\CommandIt\Contract\ContextEnricherInterface;
+
 /**
  * Cross-cutting logic applied around command handling.
  *
  * A middleware receives the command and a `next` callable that runs the rest of
- * the chain (remaining middlewares, then the handler). Middlewares compose in
- * explicit order and must be non-intrusive: logging, timing, authorization, and
- * similar concerns live here, not inside handlers.
+ * the chain (remaining middlewares, then the handler). It also receives the
+ * active {@see ContextEnricherInterface} so it can attach classified (e.g.
+ * secret) context that flows to reporters via the copy-on-write `enrich()` seam.
+ * Middlewares compose in explicit order and must be non-intrusive: logging,
+ * timing, authorization, and similar concerns live here, not inside handlers.
  *
  * @api
  *
@@ -23,5 +27,9 @@ interface CommandMiddlewareInterface
      *
      * @param callable(CommandInterface): CommandResultInterface $next
      */
-    public function process(CommandInterface $command, callable $next): CommandResultInterface;
+    public function process(
+        CommandInterface $command,
+        callable $next,
+        ContextEnricherInterface $context,
+    ): CommandResultInterface;
 }

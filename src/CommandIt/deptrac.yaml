@@ -28,6 +28,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Adapter/(?!SymfonyConsole/).*
+    - name: Bootstrap
+      collectors:
+        - type: directory
+          value: src/Bootstrap/.*
     - name: Port
       collectors:
         - type: directory
@@ -62,6 +66,14 @@ deptrac:
       - Contract
       - Domain
       - Application
+      - Port
+    Bootstrap:
+      - Common
+      - Contract
+      - Domain
+      - Application
+      - SDK
+      - Adapter
       - Port
     Adapter:
       - Common

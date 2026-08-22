@@ -20,6 +20,11 @@ enum CommandStatus: string implements CommandStatusInterface
     case Executing = 'executing';
     case Succeeded = 'succeeded';
     case Failed = 'failed';
+    /**
+     * Reserved terminal status. Declared for the closed lifecycle but not yet
+     * reachable: the executor has no cancellation path until a `CancellationPort`
+     * is introduced. See `docs/architecture/MODEL.md`.
+     */
     case Cancelled = 'cancelled';
 
     public function label(): string

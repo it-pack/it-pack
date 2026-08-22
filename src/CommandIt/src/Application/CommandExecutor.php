@@ -76,7 +76,7 @@ final class CommandExecutor implements CommandExecutorInterface
 
         try {
             try {
-                $result = $chain->process($command, $handler);
+                $result = $chain->process($command, $handler, $this->context);
             } catch (\Throwable $thrown) {
                 $durationMs = $this->durationMs($this->clock->monotonicNanoseconds() - $monoStart);
                 $failed = $this->coordinator->fail($execution, $thrown, $this->clock->nowSeconds(), $durationMs);

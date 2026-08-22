@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Application;
 
 use Codeception\Test\Unit;
+use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Application\MiddlewareChain;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandMiddlewareInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
+use ItPack\CommandIt\Contract\ContextEnricherInterface;
 use ItPack\CommandIt\Domain\Command;
 use ItPack\CommandIt\Domain\CommandInput;
 use ItPack\CommandIt\Domain\CommandResult;
@@ -42,7 +44,7 @@ final class MiddlewareChainTest extends Unit
 
     public function testEmptyChainRunsTerminalHandler(): void
     {
-        $result = new MiddlewareChain([])->process($this->command(), $this->terminal());
+        $result = new MiddlewareChain([])->process($this->command(), $this->terminal(), new AmbientContextStorage());
 
         self::assertSame('|', $result->payload());
     }
@@ -52,7 +54,7 @@ final class MiddlewareChainTest extends Unit
         $outer = $this->appending('O');
         $inner = $this->appending('I');
 
-        $result = new MiddlewareChain([$outer, $inner])->process($this->command(), $this->terminal());
+        $result = new MiddlewareChain([$outer, $inner])->process($this->command(), $this->terminal(), new AmbientContextStorage());
 
         self::assertSame('|IO', $result->payload());
     }
@@ -60,13 +62,13 @@ final class MiddlewareChainTest extends Unit
     public function testMiddlewareCanShortCircuit(): void
     {
         $shortCircuit = new class () implements CommandMiddlewareInterface {
-            public function process(CommandInterface $command, callable $next): CommandResultInterface
+            public function process(CommandInterface $command, callable $next, ContextEnricherInterface $context): CommandResultInterface
             {
                 return CommandResult::succeed('short');
             }
         };
 
-        $result = new MiddlewareChain([$shortCircuit])->process($this->command(), $this->terminal());
+        $result = new MiddlewareChain([$shortCircuit])->process($this->command(), $this->terminal(), new AmbientContextStorage());
 
         self::assertSame('short', $result->payload());
     }
@@ -79,7 +81,7 @@ final class MiddlewareChainTest extends Unit
             ) {
             }
 
-            public function process(CommandInterface $command, callable $next): CommandResultInterface
+            public function process(CommandInterface $command, callable $next, ContextEnricherInterface $context): CommandResultInterface
             {
                 $result = $next($command);
                 $payload = $result->payload();

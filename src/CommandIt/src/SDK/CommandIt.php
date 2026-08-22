@@ -53,7 +53,7 @@ final class CommandIt
         array $middlewares = [],
     ) {
         $this->registry = $registry;
-        $coordinator = new CommandExecutionCoordinator($reporter);
+        $coordinator = new CommandExecutionCoordinator($reporter, $context);
         $resolver = new HandlerResolver($registry);
 
         $this->executor = new CommandExecutor(

@@ -7,7 +7,10 @@ CommandIt models command execution itself: a validated intent (the `Command`) is
 dispatched through a bus that runs an explicit lifecycle (`received → executing →
 succeeded|failed`), records immutable artifacts (context, measurements,
 occurrences) via ports, and never leaks context across Fibers or requests. Core
-stays RunIt- and Symfony-free; adapters project it onto specific runtimes.
+stays RunIt- and Symfony-free; adapters project it onto specific runtimes. The six
+`CommandStatus` values form a closed lifecycle, but `cancelled` is **reserved** —
+declared for completeness yet not reachable from the executor until a
+`CancellationPort` is introduced (see `docs/architecture/MODEL.md`).
 
 ## Installation
 
@@ -31,6 +34,23 @@ The in-box adapters (`SystemClock`, `RandomIdentifierGenerator`, `CollectingExec
 programmatic dispatch, so no `suggest` package is required to run the examples below.
 
 ## Getting started
+
+The fastest path uses the composition-root factory, which wires the safe-by-default
+reporter (redaction + publication recursion guard), an ambient-or-fiber-bound
+context, and in-memory storage for you in one call:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use ItPack\CommandIt\Bootstrap\CommandItFactory;
+
+$commandIt = CommandItFactory::create();
+```
+
+Prefer explicit control? Pass any port to `create()` to override it, or construct
+each piece yourself — the factory is just a convenience over the same wiring:
 
 ```php
 <?php

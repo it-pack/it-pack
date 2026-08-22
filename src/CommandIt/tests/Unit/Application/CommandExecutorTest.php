@@ -11,6 +11,7 @@ use ItPack\CommandIt\Adapter\Common\SystemClock;
 use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Adapter\Memory\InMemoryCommandExecutionStorage;
 use ItPack\CommandIt\Adapter\Reporting\CollectingExecutionReporter;
+use ItPack\CommandIt\Adapter\Reporting\SafeReporterFactory;
 use ItPack\CommandIt\Application\CommandExecutionCoordinator;
 use ItPack\CommandIt\Application\CommandExecutor;
 use ItPack\CommandIt\Application\CommandRegistry;
@@ -19,6 +20,9 @@ use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandMiddlewareInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
+use ItPack\CommandIt\Contract\ContextEnricherInterface;
+use ItPack\CommandIt\Contract\Domain\Classification;
+use ItPack\CommandIt\Contract\Domain\CommandContextInterface;
 use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 use ItPack\CommandIt\Domain\Command;
 use ItPack\CommandIt\Domain\CommandDefinition;
@@ -149,7 +153,7 @@ final class CommandExecutorTest extends Unit
     public function testMiddlewareRunsAroundHandler(): void
     {
         $middleware = new class () implements CommandMiddlewareInterface {
-            public function process(CommandInterface $command, callable $next): CommandResultInterface
+            public function process(CommandInterface $command, callable $next, ContextEnricherInterface $context): CommandResultInterface
             {
                 $result = $next($command);
                 $payload = $result->payload();
@@ -274,6 +278,75 @@ final class CommandExecutorTest extends Unit
         $storedResult = $stored->result();
         self::assertNotNull($storedResult);
         self::assertInstanceOf(\stdClass::class, $storedResult->payload());
+    }
+
+    public function testMiddlewareAttachedSecretIsRedactedByReporter(): void
+    {
+        $reporter = new SafeReporterFactory()->wrap($this->reporter);
+
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($reporter, $this->context),
+            $this->context,
+            $this->storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+            [new class () implements CommandMiddlewareInterface {
+                public function process(
+                    CommandInterface $command,
+                    callable $next,
+                    ContextEnricherInterface $context,
+                ): CommandResultInterface {
+                    $context->enrich(static function (CommandContextInterface $current): CommandContextInterface {
+                        return $current
+                            ->with('secret', 'topsecret', Classification::Secret)
+                            ->with('trace_id', 'abc123', Classification::Public)
+                        ;
+                    });
+
+                    return $next($command);
+                }
+            }],
+        );
+
+        $this->register('demo:run', new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed('ok');
+            }
+        });
+
+        $executor->dispatch($this->command('demo:run'));
+
+        $secret = null;
+        $traceId = null;
+        $found = false;
+
+        foreach ($this->reporter->entries() as $entry) {
+            if (($entry['type'] ?? null) === 'occurrence' && ($entry['name'] ?? null) === 'command.handled.v1') {
+                $context = $entry['context'] ?? [];
+                self::assertIsArray($context);
+                /** @var array<string, mixed> $context */
+                $secret = $context['secret'] ?? null;
+                $traceId = $context['trace_id'] ?? null;
+                $found = true;
+                break;
+            }
+        }
+
+        self::assertTrue($found, 'command.handled.v1 occurrence emitted');
+
+        self::assertNotNull($secret, 'secret entry present in reporter context');
+        self::assertIsString($secret);
+        self::assertNotSame('topsecret', $secret, 'secret never reaches the reporter in plaintext');
+        self::assertStringContainsString('redacted', $secret);
+        self::assertSame('abc123', $traceId, 'non-secret context entry is preserved');
     }
 
     /**

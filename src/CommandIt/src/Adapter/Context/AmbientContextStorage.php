@@ -29,21 +29,21 @@ final class AmbientContextStorage implements ExecutionContextProviderInterface
 
     public function current(): ?CommandContextInterface
     {
-        return $this->stack->top();
+        return $this->stack->current();
     }
 
     public function enter(CommandContextInterface $context): ContextTokenInterface
     {
-        return $this->stack->push($context);
+        return $this->stack->enter($context);
     }
 
     public function leave(ContextTokenInterface $token): void
     {
-        $this->stack->pop($token);
+        $this->stack->leave($token);
     }
 
-    public function stack(): ContextStack
+    public function enrich(\Closure $patch): void
     {
-        return $this->stack;
+        $this->stack->enrich($patch);
     }
 }

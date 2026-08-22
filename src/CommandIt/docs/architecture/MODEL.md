@@ -31,8 +31,10 @@ RECEIVED            ── occurrence: CommandReceived   (reported by coordinato
    ▼
 EXECUTING           ── activity begins; duration_ms measurement starts (monotonic clock)
    ├──► SUCCEEDED   ── occurrence: CommandHandled; snapshot: CommandResult (carries CommandExecution)
-   ├──► FAILED      ── occurrence: CommandFailed; original Throwable preserved
-   └──► CANCELLED   ── (optional, via Cancellation port)
+    ├──► FAILED      ── occurrence: CommandFailed; original Throwable preserved
+    └──► CANCELLED   ── RESERVED: declared in `CommandStatus` but not yet wired;
+                         the executor cannot reach it until a `CancellationPort`
+                         is introduced. Do not treat it as a live terminal state.
 ```
 
 Invariants enforced by the core (see `AGENTS.md`):

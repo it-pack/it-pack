@@ -31,34 +31,47 @@ final class FiberBoundContextStorage implements ExecutionContextProviderInterfac
 
     public function __construct(
         private RuntimeContextDetectorInterface $detector,
-        private AmbientContextStorage $ambient,
+        private ExecutionContextProviderInterface $ambient,
     ) {
         $this->stacks = new WeakMap();
     }
 
-    private function stack(): ContextStack
+    /**
+     * Returns the provider that owns the current call stack: the ambient provider
+     * for synchronous (main) code, or a per-Fiber {@see ContextStack} otherwise.
+     */
+    private function provider(): ExecutionContextProviderInterface
     {
         $fiber = $this->detector->currentFiber();
 
         if ($fiber === null) {
-            return $this->ambient->stack();
+            return $this->ambient;
         }
 
-        return $this->stacks[$fiber] ??= new ContextStack();
+        if (!isset($this->stacks[$fiber])) {
+            $this->stacks[$fiber] = new ContextStack();
+        }
+
+        return $this->stacks[$fiber];
     }
 
     public function current(): ?CommandContextInterface
     {
-        return $this->stack()->top();
+        return $this->provider()->current();
     }
 
     public function enter(CommandContextInterface $context): ContextTokenInterface
     {
-        return $this->stack()->push($context);
+        return $this->provider()->enter($context);
     }
 
     public function leave(ContextTokenInterface $token): void
     {
-        $this->stack()->pop($token);
+        $this->provider()->leave($token);
+    }
+
+    public function enrich(\Closure $patch): void
+    {
+        $this->provider()->enrich($patch);
     }
 }
