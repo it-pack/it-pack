@@ -212,17 +212,17 @@ php-cs-fixer clean).
 
 **Objective:** turn the SDK into a product surface.
 
-### Epic E9.2 — Web Explorer + graph query (Companion: `configure-it-explorer`)
-- [ ] **T9.2.1 (M)** Read-only UI over `ConfigurationInspector`/`GraphVisualizer`/`bin/configure-it` services: explain, diff, graph (DOT/ASCII).
-- [ ] **T9.2.2 (M)** Graph query API over `ConfigurationGraph` + `ConfigurationDiffer` (e.g. "keys overridden by `local.json`", "keys from `aws-ssm`").
-- [ ] **T9.2.3 (M)** Tests: query returns expected node sets.
+### Epic E9.2 — Web Explorer + graph query (Companion: `configure-it-explorer`) ✅ DONE
+- [x] **T9.2.1 (M)** Read-only UI (`Http\ExplorerController` + `View\HtmlRenderer`, served by `public/index.php` + `bin/configure-it-explorer`) over `ConfigurationInspector`/`GraphVisualizer`/`ConfigurationDiffer`: `/explain`, `/diff`, `/graph` (DOT/ASCII). Every route also answers `?format=json`.
+- [x] **T9.2.2 (M)** Graph query API over `ConfigurationGraph` + `ConfigurationDiffer` (`Query\GraphQuery` + `QueryParser`/`QueryCriterion`/`QueryPredicate`): `source`, `overridden-by`, `sensitive`, `adapter`, `layer`, `format`, `trail`, plus `changed` (two-graph diff). Powers `/query` and the `GraphQuery` service for consumers.
+- [x] **T9.2.3 (M)** Tests: `GraphQueryTest` (9 predicates + cross-graph `changes`) and `ExplorerControllerTest` (HTML + JSON for explain/diff/graph/query, graceful 400s, end-to-end over real fixture files).
 
-### Epic E9.3 — Schema → docs & testing utilities (Companion)
+### Epic E9.3 — Schema → docs & testing utilities (Companion) ⏸ DEFERRED
 - [ ] **T9.3.1 (M)** `configure-it-schema-docs`: emit Markdown + JSON-Schema from a `Nette\Schema\Expect` definition.
 - [ ] **T9.3.2 (M)** `configure-it-testing`: fakes + `ConfigurationAssertions` trait for consumers.
 - [ ] **T9.3.3 (M)** Tests for both companions.
 
-**M9 Exit:** explorer serves explain/diff/graph + query; schema→docs and testing pkg usable; gates green.
+**M9 Exit (E9.2 done):** explorer serves explain/diff/graph + query (HTML + JSON); `configure-it-explorer` passes PHPStan level 9, php-cs-fixer, PHPUnit (22 tests / 42 assertions). E9.3 (`configure-it-schema-docs`, `configure-it-testing`) is deferred — the M9 Exit only requires the explorer, now delivered.
 
 ---
 

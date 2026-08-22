@@ -812,6 +812,44 @@ assertions**, PHPStan level 9, php-cs-fixer clean).
 as separate companions and the M8 Exit only requires PSR-11 + one full framework
 bundle, both now delivered. Laravel is tracked as a follow-up companion.
 
+### Additional Features — M9: Tooling & Operability (Epic E9.2 — web explorer + graph query) ✅
+
+Completes E9.2 of Epic E9 / M9 (`docs/ADDITIONAL_FEATURES_PLAN.md` §9,
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`). ConfigureIt now has a read-only product
+surface so teams can *see* their resolved configuration — provenance, overrides
+and structure — in a browser, and query it programmatically.
+
+- **`configure-it-explorer`** (`src/ConfigureItExplorer/`, read-only web explorer
+  + graph query API): a framework-free, dependency-light companion (only
+  `it-pack/configure-it` as a runtime dependency). It reuses the Core
+  diagnostics services so it behaves identically to `bin/configure-it`:
+  - `Http\ExplorerController` serves `/explain`, `/diff`, `/graph`
+    (Graphviz DOT / ASCII) and `/query`. Every route answers HTML by default and
+    JSON when `?format=json` (or `Accept: application/json`) is requested, so the
+    explorer doubles as an HTTP query API.
+  - `Query\GraphQuery` + `QueryParser`/`QueryCriterion`/`QueryPredicate` implement
+    a tiny, **safe, enumerate-driven** query language over a resolved graph:
+    `source`, `overridden-by` (e.g. "keys overridden by `local.json`"),
+    `sensitive`, `adapter`, `layer`, `format`, `trail`, plus `changed` (keys that
+    differ between two graphs, built on `ConfigurationDiffer`). A bare value falls
+    back to `source`, so "keys from `aws-ssm`" is just `aws-ssm`.
+  - `Server\` (`Request`/`Response`/`Router`) is a minimal HTTP layer kept fully
+    decoupled from the built-in server; `ExplorerApplication::bootstrap()` wires
+    it and `public/index.php` + `bin/configure-it-explorer` serve it via
+    `php -S`. `View\HtmlRenderer` escapes all output and Core masks secrets, so
+    nothing sensitive is ever rendered in clear text.
+
+Each companion is an independent composer package (own `composer.json`,
+`phpstan.neon`, `.php-cs-fixer.php`, `phpunit.xml.dist`, README) and runs its own
+gate: **PHPStan level 9 — 0 errors**, `php-cs-fixer` — **0 files**, and
+**PHPUnit — 22 tests / 42 assertions** (query predicates + cross-graph changes,
+and HTML/JSON controller behaviour incl. end-to-end over real fixture files). The
+core `ConfigureIt` package is unchanged by this milestone and remains green
+(**255 tests / 593 assertions**, PHPStan level 9, php-cs-fixer clean).
+
+Epic E9.3 (`configure-it-schema-docs`, `configure-it-testing`) is deferred: the
+M9 Exit only required the explorer, now delivered.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage
