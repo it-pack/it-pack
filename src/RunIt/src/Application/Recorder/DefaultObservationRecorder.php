@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
-use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
@@ -21,7 +21,6 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
-use ItPack\RunIt\Domain\Shared\Instant;
 use Throwable;
 
 /**
@@ -35,6 +34,8 @@ use Throwable;
  */
 final readonly class DefaultObservationRecorder implements ObservationRecorderInterface
 {
+    use InstantClockBehavior;
+
     /**
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
@@ -91,11 +92,6 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
     private function activityId(): ?ActivityIdInterface
     {
         return ($this->currentActivityId)();
-    }
-
-    private function now(): InstantInterface
-    {
-        return Instant::of($this->clock->nowSeconds());
     }
 
     private function sequence(): ArtifactSequenceInterface

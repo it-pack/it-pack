@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
@@ -12,7 +13,6 @@ use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
-use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
@@ -22,7 +22,6 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
-use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use Throwable;
@@ -38,6 +37,8 @@ use Throwable;
  */
 final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterface
 {
+    use InstantClockBehavior;
+
     /**
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
@@ -142,11 +143,6 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
     private function activityId(): ?ActivityIdInterface
     {
         return ($this->currentActivityId)();
-    }
-
-    private function now(): InstantInterface
-    {
-        return Instant::of($this->clock->nowSeconds());
     }
 
     private function sequence(): ArtifactSequenceInterface

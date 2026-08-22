@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Activity;
 
+use ItPack\RunIt\Behavior\Domain\TerminalStatusBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
 
 /**
@@ -18,6 +19,8 @@ use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
  */
 enum ActivityStatus: string implements ActivityStatusInterface
 {
+    use TerminalStatusBehavior;
+
     case Created = 'created';
     case Running = 'running';
     case Succeeded = 'succeeded';
@@ -28,13 +31,5 @@ enum ActivityStatus: string implements ActivityStatusInterface
     public function label(): string
     {
         return $this->value;
-    }
-
-    public function isTerminal(): bool
-    {
-        return $this === self::Succeeded
-            || $this === self::Failed
-            || $this === self::Cancelled
-            || $this === self::TimedOut;
     }
 }

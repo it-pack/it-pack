@@ -11,6 +11,7 @@ use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
+use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -48,7 +49,6 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
-use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
@@ -66,6 +66,8 @@ use Throwable;
  */
 final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 {
+    use InstantClockBehavior;
+
     /**
      * @param Closure(\Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
      */
@@ -152,7 +154,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
         $rawId = $this->executionIdFactory->build();
         $id = ExecutionId::fromString($rawId->toString());
-        $startedAt = Instant::of($this->clock->nowSeconds());
+        $startedAt = $this->now();
         $sequence = $this->sequenceAllocator->allocate($id);
         $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
         $execution = $this->coordinator->start($created);
@@ -202,7 +204,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     {
         $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
 
-        $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), Instant::of($this->clock->nowSeconds()));
+        $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), $this->now());
 
         $this->publishTerminal($completed);
     }
@@ -223,7 +225,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             'execution.failure',
         );
 
-        $completed = $this->coordinator->transition($execution, ExecutionFailure::of(ExecutionStatus::Failed, $description), Instant::of($this->clock->nowSeconds()));
+        $completed = $this->coordinator->transition($execution, ExecutionFailure::of(ExecutionStatus::Failed, $description), $this->now());
 
         $this->publishTerminal($completed);
     }

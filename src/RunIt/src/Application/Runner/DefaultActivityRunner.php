@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Runner;
 
 use ItPack\RunIt\Application\Scope\ActivityScope;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
+use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
@@ -20,7 +21,6 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Exception\ActivityDepthExceededException;
-use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use Throwable;
 
@@ -37,6 +37,8 @@ use Throwable;
  */
 final readonly class DefaultActivityRunner implements ActivityRunnerInterface
 {
+    use InstantClockBehavior;
+
     public function __construct(
         private ExecutionScope                   $scope,
         private ExecutionIdInterface             $executionId,
@@ -59,7 +61,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         }
 
         $activityId = $this->activityIdFactory->build();
-        $startedAt = Instant::of($this->clock->nowSeconds());
+        $startedAt = $this->now();
         $sequence = $this->sequenceAllocator->allocate($this->executionId);
         $activity = Activity::start($activityId, $this->executionId, $definition, $startedAt, $sequence);
 
@@ -90,6 +92,6 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
 
     private function complete(ActivityInterface $activity, ActivityStatusInterface $status, ?ThrowableDescriptionInterface $description): ActivityInterface
     {
-        return $activity->complete($status, $description, Instant::of($this->clock->nowSeconds()));
+        return $activity->complete($status, $description, $this->now());
     }
 }

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
-use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementNameInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
@@ -20,7 +20,6 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
-use ItPack\RunIt\Domain\Shared\Instant;
 
 /**
  * Default measurement recorder.
@@ -33,6 +32,8 @@ use ItPack\RunIt\Domain\Shared\Instant;
  */
 final readonly class DefaultMeasurementRecorder implements MeasurementRecorderInterface
 {
+    use InstantClockBehavior;
+
     /**
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
@@ -78,11 +79,6 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
     private function activityId(): ?ActivityIdInterface
     {
         return ($this->currentActivityId)();
-    }
-
-    private function now(): InstantInterface
-    {
-        return Instant::of($this->clock->nowSeconds());
     }
 
     private function sequence(): ArtifactSequenceInterface
