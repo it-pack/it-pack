@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
+use ItPack\DeriveIt\Contract\Generator\FamilyDeriverInterface;
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
@@ -32,8 +33,20 @@ use ReflectionUnionType;
  * each {@see ReflectionClass} so a whole-repo family scan reflects every type at
  * most once and never re-runs `class_exists`.
  */
-final class FamilyDeriver
+final class FamilyDeriver implements FamilyDeriverInterface
 {
+    /**
+     * Vendor/third-party namespaces that are never treated as userland types when
+     * auto-discovering a family (so the scan doesn't try to reflect framework code).
+     */
+    private const VENDOR_PREFIXES = [
+        'Nette\\',
+        'PHPUnit\\',
+        'Codeception\\',
+        'Symfony\\',
+        'Composer\\',
+        'Illuminate\\',
+    ];
     /**
      * @var array<string, InterfaceType> memo cache keyed by class FQCN + config hash.
      * Instance-scoped (not static) so it cannot leak across unrelated derivations
@@ -299,7 +312,7 @@ final class FamilyDeriver
         }
 
         return array_all(
-            ['Nette\\', 'PHPUnit\\', 'Codeception\\', 'Symfony\\', 'Composer\\', 'Illuminate\\'],
+            self::VENDOR_PREFIXES,
             fn ($vendor) => !str_starts_with($className, $vendor)
         );
     }

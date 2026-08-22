@@ -151,6 +151,21 @@ $reflection = ClassReflection::create(\App\Widget::class);
 $reflection->getClassesRecursively();
 ```
 
+## Command-line interface
+
+`DeriveIt` ships an ad-hoc CLI driver (`ItPack\DeriveIt\Cli\DeriveCommand`) that
+derives a class or file to stdout or to a path / directory in any of the
+supported modes (flat, per-trait, adapter, family, family-adapter). Run it with
+no arguments or `--help` for the full option list:
+
+```bash
+derive --mode=family 'App\Payments\Gateway' --out=ports/
+```
+
+> **Trust model (F13 / R.13):** the CLI *autoloads the class names you pass* (and
+> token-scans any file targets). Only run it against code you trust — do not point
+> it at untrusted class names or files.
+
 ## API reference — `DeriveIt` (facade)
 
 All methods accept `ReflectionClass|class-string` for the target class unless

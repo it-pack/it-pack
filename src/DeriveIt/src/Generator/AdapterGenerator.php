@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Generator;
 
+use ItPack\DeriveIt\Contract\Generator\AdapterGeneratorInterface;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\Method;
@@ -25,7 +26,7 @@ use ReflectionClass;
  * The generated adapter lives in the adaptee's own namespace, so the FQCN types
  * (adaptee + wrapper adapters) simplify to local short names when rendered.
  */
-final readonly class AdapterGenerator
+final readonly class AdapterGenerator implements AdapterGeneratorInterface
 {
     /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.

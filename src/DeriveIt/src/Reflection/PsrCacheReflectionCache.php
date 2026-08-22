@@ -21,6 +21,11 @@ use ReflectionClass;
  */
 final class PsrCacheReflectionCache implements ReflectionCacheInterface
 {
+    /**
+     * Key prefix for the PSR-6 persisted "already reflected" markers (G18 / E5).
+     */
+    private const CACHE_KEY_PREFIX = 'deriveit.reflection.';
+
     /** @var array<string, ReflectionClass> */
     private array $memory = [];
 
@@ -45,6 +50,6 @@ final class PsrCacheReflectionCache implements ReflectionCacheInterface
 
     private function key(string $fqcn): string
     {
-        return 'deriveit.reflection.' . $fqcn;
+        return self::CACHE_KEY_PREFIX . $fqcn;
     }
 }

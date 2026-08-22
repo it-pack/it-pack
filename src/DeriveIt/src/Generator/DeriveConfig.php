@@ -24,8 +24,8 @@ use ReflectionMethod;
  */
 final class DeriveConfig
 {
-    public const string VISIBILITY_PUBLIC = 'public';
-    public const string VISIBILITY_PROTECTED = 'protected';
+    public const Visibility VISIBILITY_PUBLIC = Visibility::PUBLIC;
+    public const Visibility VISIBILITY_PROTECTED = Visibility::PROTECTED;
 
     /**
      * @param array<string, string> $typeSubstitutionMap Class FQCN => derived interface FQCN.
@@ -33,11 +33,12 @@ final class DeriveConfig
      * @param list<string> $skipMethods Method names always dropped.
      * @param list<string> $ownedAttributes Attribute class FQCNs permitted when `attributePassThrough` is on.
      * @param array<string, string> $methodRenames Original method name => new name, applied uniformly (G11 / B4).
- * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends` (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
- * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends` (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
+     * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends` (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
      */
+    public readonly Visibility $visibility;
+
     public function __construct(
-        public readonly string $visibility = self::VISIBILITY_PUBLIC,
+        string|Visibility $visibility = self::VISIBILITY_PUBLIC,
         public readonly bool $includeStatic = false,
         public readonly bool $includeMagic = false,
         public readonly bool $dropConstruct = true,
@@ -56,9 +57,16 @@ final class DeriveConfig
         public readonly array $methodRenames = [],
         public readonly array $reExposeOwnedInterfaces = [],
     ) {
-        if (!in_array($visibility, [self::VISIBILITY_PUBLIC, self::VISIBILITY_PROTECTED], true)) {
-            throw new \InvalidArgumentException(sprintf('Unsupported visibility "%s".', $visibility));
+        // Normalize to the enum; an invalid string is rejected as the previous
+        // "unsupported visibility" InvalidArgumentException (not a raw ValueError).
+        if (is_string($visibility)) {
+            try {
+                $visibility = Visibility::from($visibility);
+            } catch (\ValueError $e) {
+                throw new \InvalidArgumentException(sprintf('Unsupported visibility "%s".', $visibility), 0, $e);
+            }
         }
+        $this->visibility = $visibility;
 
         // EC16: an allow/deny list sharing a name is a contradiction — fail loudly
         // rather than let one silently win.
@@ -120,201 +128,68 @@ final class DeriveConfig
      */
     public function visibilityMask(): int
     {
-        return $this->visibility === self::VISIBILITY_PROTECTED
+        return $this->visibility === Visibility::PROTECTED
             ? ReflectionMethod::IS_PUBLIC | ReflectionMethod::IS_PROTECTED
             : ReflectionMethod::IS_PUBLIC;
     }
 
-    public function withVisibility(string $visibility): self
+    /**
+     * Returns a copy of this config with the given properties overridden. Reads the
+     * current state via `get_object_vars` and re-constructs through the (readonly)
+     * constructor, so every wither stays a one-liner and validation is preserved.
+     *
+     * @param array<string, mixed> $overrides Property name => new value.
+     */
+    private function copyWith(array $overrides): self
     {
-        return new self(
-            visibility: $visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        $vars = get_object_vars($this);
+        foreach ($overrides as $key => $value) {
+            $vars[$key] = $value;
+        }
+
+        return new self(...$vars);
+    }
+
+    public function withVisibility(string|Visibility $visibility): self
+    {
+        $visibility = is_string($visibility) ? Visibility::from($visibility) : $visibility;
+
+        return $this->copyWith(['visibility' => $visibility]);
     }
 
     public function withIncludeStatic(bool $includeStatic): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['includeStatic' => $includeStatic]);
     }
 
     public function withIncludeMagic(bool $includeMagic): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['includeMagic' => $includeMagic]);
     }
 
     public function withDropConstruct(bool $dropConstruct): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['dropConstruct' => $dropConstruct]);
     }
 
     public function withDropDestruct(bool $dropDestruct): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['dropDestruct' => $dropDestruct]);
     }
 
     public function withTypeSubstitutionMap(array $typeSubstitutionMap): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['typeSubstitutionMap' => $typeSubstitutionMap]);
     }
 
     public function withSubstituteSelfStatic(bool $substituteSelfStatic): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['substituteSelfStatic' => $substituteSelfStatic]);
     }
 
     public function withIncludeConstants(bool $includeConstants): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['includeConstants' => $includeConstants]);
     }
 
     /**
@@ -322,26 +197,7 @@ final class DeriveConfig
      */
     public function withOnlyMethods(array $onlyMethods): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['onlyMethods' => $onlyMethods]);
     }
 
     /**
@@ -349,122 +205,27 @@ final class DeriveConfig
      */
     public function withSkipMethods(array $skipMethods): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['skipMethods' => $skipMethods]);
     }
 
     public function withFailOnEmpty(bool $failOnEmpty): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['failOnEmpty' => $failOnEmpty]);
     }
 
     public function withAttributePassThrough(bool $attributePassThrough): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['attributePassThrough' => $attributePassThrough]);
     }
 
     public function withThrowsCapture(bool $throwsCapture): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['throwsCapture' => $throwsCapture]);
     }
 
     public function withAuditLeakage(bool $auditLeakage): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['auditLeakage' => $auditLeakage]);
     }
 
     /**
@@ -475,26 +236,7 @@ final class DeriveConfig
      */
     public function withPreserveDocblocks(bool $preserveDocblocks): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['preserveDocblocks' => $preserveDocblocks]);
     }
 
     /**
@@ -504,26 +246,7 @@ final class DeriveConfig
      */
     public function withOwnedAttributes(array $ownedAttributes): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['ownedAttributes' => $ownedAttributes]);
     }
 
     /**
@@ -535,26 +258,7 @@ final class DeriveConfig
      */
     public function withMethodRenames(array $methodRenames): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $methodRenames,
-            reExposeOwnedInterfaces: $this->reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['methodRenames' => $methodRenames]);
     }
 
     /**
@@ -567,25 +271,6 @@ final class DeriveConfig
      */
     public function withReExposeOwnedInterfaces(array $reExposeOwnedInterfaces): self
     {
-        return new self(
-            visibility: $this->visibility,
-            includeStatic: $this->includeStatic,
-            includeMagic: $this->includeMagic,
-            dropConstruct: $this->dropConstruct,
-            dropDestruct: $this->dropDestruct,
-            typeSubstitutionMap: $this->typeSubstitutionMap,
-            substituteSelfStatic: $this->substituteSelfStatic,
-            includeConstants: $this->includeConstants,
-            onlyMethods: $this->onlyMethods,
-            skipMethods: $this->skipMethods,
-            failOnEmpty: $this->failOnEmpty,
-            attributePassThrough: $this->attributePassThrough,
-            throwsCapture: $this->throwsCapture,
-            auditLeakage: $this->auditLeakage,
-            ownedAttributes: $this->ownedAttributes,
-            preserveDocblocks: $this->preserveDocblocks,
-            methodRenames: $this->methodRenames,
-            reExposeOwnedInterfaces: $reExposeOwnedInterfaces,
-        );
+        return $this->copyWith(['reExposeOwnedInterfaces' => $reExposeOwnedInterfaces]);
     }
 }

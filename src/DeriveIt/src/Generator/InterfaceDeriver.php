@@ -182,7 +182,10 @@ final readonly class InterfaceDeriver extends AbstractDeriver
             $this->config->auditLeakage,
         );
 
-        $substitutions = $this->config->typeSubstitutionMap;
+        // Report the effective map this substitutor actually applied (a full family
+        // cross-reference map in family mode), plus the self/static/parent keyword
+        // rewrites that reflection surfaces verbatim (A1). F6 / R.6.
+        $substitutions = $substitutor->getMap();
         if ($selfFqcn !== null) {
             $substitutions['self'] = $selfFqcn;
             $substitutions['static'] = $selfFqcn;

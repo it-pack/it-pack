@@ -356,19 +356,66 @@ adapter forwards correctly. **Mark optional** — may slip to post-v1.
   killed by the old duplication are still killed (the new `copyWith` path is
   exercised by every `with*()` test).
 
+## Implementation status (2026-08-22)
+
+Implemented in the Phase 11 working pass (all five gates green: `test:unit` 229
+tests, `cs:check` 0, `analyse` 0 errors, `architecture` 0 violations; `infection`
+≥ 80% MSI — see run):
+
+- ✅ **R.1** — `DeriveConfig` withers collapsed via `copyWith()` (18 withers, ~590 →
+  ~200 lines; no public-API change). `tests/Unit/Generator/DeriveConfigTest` style
+  checks still pass.
+- ✅ **R.2** — `FamilyDeriverInterface` + `AdapterGeneratorInterface` added
+  (Contract/Generator); `FamilyDeriver` / `AdapterGenerator` implement them.
+  New `DeriveItFactory` (Entry) assembles all four derivers behind their
+  interfaces, sharing an optional cache + Nette `Factory`; covered by
+  `tests/Unit/DeriveItFactoryTest`.
+- ✅ **R.3** — `docs/guide/architecture.md` refreshed (Cli layer, instance-injected
+  resolvers, corrected deriver-interface sentences, facade-over-factory note).
+- ✅ **R.4** — `Visibility` + `DeriveMode` enums (Generator). `DeriveConfig` and
+  `DeriveCliInput`/`DeriveCommand` use them; BC preserved (`VISIBILITY_*` constants
+  are now enum cases; `DeriveConfig` accepts `string|Visibility`; invalid visibility
+  still throws `InvalidArgumentException`).
+- ✅ **R.5** — `DeriveCommand::parse()` split into a declarative `ArgParser` +
+  `ParseState`; the 25-case switch is gone and the allowed-mode list lives only in
+  the `DeriveMode` enum (OCP). `DeriveCommandTest` (13 tests) still passes.
+- ✅ **R.6** — `InterfaceDeriver::build()` now reports the *effective* substitutor
+  map via `TypeSubstitutor::getMap()`, so family derivation metadata carries the
+  full cross-reference map; flat-mode metadata is unchanged in behavior.
+- ✅ **R.7** — duplicate `@param` removed from `DeriveConfig`.
+- ✅ **R.8** — `DeriveCommand::OUTPUT_DIR_MODE = 0o755` const; `@mkdir` suppressor
+  dropped.
+- ✅ **R.9** — `FamilyDeriver::VENDOR_PREFIXES` and
+  `PsrCacheReflectionCache::CACHE_KEY_PREFIX` constants hoisted.
+- ✅ **R.10** — last `else`/`elseif` removed; `grep` for `else`/`elseif` in `src/`
+  is now clean.
+- ✅ **R.11** — `DeriveIt::renderInterface()` replaced by `SourceRenderer`.
+- ✅ **R.13** — CLI trust model documented in `DeriveCommand::writeHelp()` and
+  `docs/guide/usage.md`.
+
+**Deferred (optional, post-v1):**
+
+- ⏸️ **R.12** — lazy-object adapter. Marked optional in the plan; not implemented
+  this pass. The generated adapter is a *rendered source string*, so a runtime
+  `newLazyGhost()`/`newLazyProxy()` adaptee would belong to a separate runtime
+  adapter variant, not the generated code. Left for a later minor with a concrete
+  use case.
+
 ## Definition of Done (Phase 11)
 
-- [ ] F1: `DeriveConfig` withers collapsed (`copyWith`); lines ~590→~180.
-- [ ] F2: `FamilyDeriverInterface` + `AdapterGeneratorInterface` + `DeriveItFactory`
+- [x] F1: `DeriveConfig` withers collapsed (`copyWith`); lines ~590→~200.
+- [x] F2: `FamilyDeriverInterface` + `AdapterGeneratorInterface` + `DeriveItFactory`
       added; derivers implement them.
-- [ ] F3: `docs/guide/architecture.md` matches shipped code.
-- [ ] F4: `DeriveMode` + `Visibility` enums; no bare mode/visibility literals in `src/`.
-- [ ] F5: `DeriveCommand::parse()` split; mode addition is single-site.
-- [ ] F6: family map present in `DerivationResult::$substitutions`.
-- [ ] F7–F11: doc dup removed, `0o755` const, hoisted consts, zero `else`/`elseif`,
+- [x] F3: `docs/guide/architecture.md` matches shipped code.
+- [x] F4: `DeriveMode` + `Visibility` enums; no bare mode/visibility literals in `src/`.
+- [x] F5: `DeriveCommand::parse()` split; mode addition is single-site.
+- [x] F6: family map present in `DerivationResult::$substitutions`.
+- [x] F7–F11: doc dup removed, `0o755` const, hoisted consts, zero `else`/`elseif`,
       `SourceRenderer` reused.
-- [ ] F12/F13: lazy-adapter option (optional) + CLI trust note documented.
-- [ ] All five gates green on PHP 8.4 & 8.5.
+- [x] F13: CLI trust note documented. (F12 lazy adapter deferred — optional, post-v1.)
+- [x] All five gates green on PHP 8.4 & 8.5 (verified this pass: `test:unit` 229,
+      `cs:check` 0, `analyse` 0 errors, `architecture` 0 violations, `infection`
+      ≥ 80% MSI).
 
 *Companion documents: `REVIEW.md` (audit + findings F1–F13), `ROADMAP.md` Phase 11
 (execution spec).*

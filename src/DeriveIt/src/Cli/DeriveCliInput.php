@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Cli;
 
 use ItPack\DeriveIt\Generator\DeriveConfig;
+use ItPack\DeriveIt\Generator\DeriveMode;
 
 /**
  * Parsed, validated input for {@see DeriveCommand}. Immutable: {@see withMode}
@@ -20,7 +21,7 @@ final readonly class DeriveCliInput
      * @param array<string, string> $wrapperMap
      */
     public function __construct(
-        public string $mode,
+        public DeriveMode $mode,
         public ?string $out,
         public ?string $root,
         public array $targets,
@@ -30,7 +31,7 @@ final readonly class DeriveCliInput
     ) {
     }
 
-    public function withMode(string $mode): self
+    public function withMode(DeriveMode $mode): self
     {
         return new self(
             mode: $mode,

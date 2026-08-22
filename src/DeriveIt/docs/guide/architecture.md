@@ -9,8 +9,11 @@ overview; the binding design decisions live in the
 DeriveIt is organised into deptrac layers (enforced by `composer architecture`):
 
 ```
-Entry        DeriveIt (public facade)
+Entry        DeriveIt (public facade) + DeriveItFactory (composition root)
   │
+Cli          DeriveCommand, ArgParser, DeriveCliInput (ad-hoc CLI driver)
+  │          depends on Entry + Generator + Contract
+  ▼
 Generator    InterfaceDeriver, PerTraitInterfaceDeriver,
   │           FamilyDeriver, AdapterGenerator, MethodExtractor,
   │           MethodSignatureFactory, TypeSubstitutor, DeriveConfig, filters
@@ -20,7 +23,9 @@ Resolver     RecursiveClassResolver, RecursiveInterfaceResolver,
   │
 Reflection    ClassReflection
   │
-Contract      *ResolverInterface, DeriverInterface, MethodFilterInterface
+Contract      *ResolverInterface, DeriverInterface,
+  │           FamilyDeriverInterface, AdapterGeneratorInterface,
+  │           MethodFilterInterface
   │
 Behavior      LazyCreatable (shared utility trait)
 ```
@@ -31,7 +36,10 @@ Behavior      LazyCreatable (shared utility trait)
 - **Reflection** — `ClassReflection`, a `ReflectionClass` subclass.
 - **Resolver** — the three recursive graph walkers; depend on Contract + Behavior.
 - **Generator** — the derivers and helpers; depend on everything below.
-- **Entry** — `DeriveIt`, the single public facade; depends on Generator.
+- **Cli** — `DeriveCommand` (CLI driver), `ArgParser` (declarative argv parser),
+  and `DeriveCliInput`; depends on Entry + Generator + Contract.
+- **Entry** — `DeriveIt`, the single public facade, and `DeriveItFactory`, the
+  composition root; depends on Generator (+ Contract).
 
 `deptrac` runs with **0 violations**: no upward or lateral leakage between
 layers.
@@ -71,8 +79,9 @@ layers.
 `getClassesRecursively()`, `getInterfacesRecursively()`, and
 `getTraitsRecursively()` to the three resolvers. Each resolver recursively
 collects its slice of the graph (parents, interfaces, or traits — the latter
-including nested traits) and de-duplicates. Resolvers are swappable through
-`ClassReflection::setRecursive*Resolver()`.
+including nested traits) and de-duplicates. Resolvers are injected at construction time: `ClassReflection::create()`
+accepts optional resolver instances and falls back to a single shared immutable
+default, so resolution is injectable without static global state.
 
 ### Extraction & filtering (`Generator`)
 
@@ -118,14 +127,24 @@ in-memory `InterfaceType` objects and rendered source agree. See
   injection of the adaptee, forwarding bodies) plus the derived interface in one
   self-contained file.
 
-All three derivers implement `DeriverInterface` (`derive()` → `InterfaceType`,
-`deriveSource()` → `string`).
+`InterfaceDeriver` and `PerTraitInterfaceDeriver` implement `DeriverInterface`
+(`derive()` → `InterfaceType`, `deriveSource()` → `string`). `FamilyDeriver`
+implements `FamilyDeriverInterface` (batch / family derivation) and
+`AdapterGenerator` implements `AdapterGeneratorInterface` (delegating adapter
+generation). All four are assembled by `DeriveItFactory` (Entry) behind their
+interfaces (F2 / R.2), so each deriver is polymorphic and independently
+testable.
 
 ### Entry (`DeriveIt`)
 
-`DeriveIt` is the only public surface most users need. It wires the generators
-together and offers `derive()`, `deriveInterface()`, `derivePerTrait()`,
-`deriveTraitInterfaces()`, `deriveFamily()`, and `deriveAdapter()`.
+`DeriveIt` is the only public surface most users need. It is a **static facade
+over the injectable derivers** — `DeriveItFactory` (same Entry layer) is the
+composition root that wires the four derivers behind their interfaces, optionally
+sharing a reflection cache and a Nette `Factory` across a run. It wires the
+generators together and offers `derive()`, `deriveInterface()`, `derivePerTrait()`,
+`deriveTraitInterfaces()`, `deriveFamily()`, `deriveFamilySource()`,
+`deriveFamilyFromRoot()`, `deriveFamilyAdapter()`, `deriveAdapter()`,
+`deriveWithResult()`, `analyze()`, `deriveMany()`, and `diff()`.
 
 ## Design decisions (ADRs)
 

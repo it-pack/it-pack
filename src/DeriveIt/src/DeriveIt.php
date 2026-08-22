@@ -80,7 +80,7 @@ final class DeriveIt
         foreach ($classes as $class) {
             $reflection = new ReflectionClass($class);
             $interface = $derived[$reflection->getName()];
-            $result[$reflection->getName()] = self::renderInterface($interface, $reflection->getNamespaceName());
+            $result[$reflection->getName()] = new SourceRenderer()->render($interface, $reflection->getNamespaceName());
         }
 
         return $result;
@@ -215,17 +215,6 @@ final class DeriveIt
             }
             $file->addNamespace($ns);
         }
-
-        return (string) $file;
-    }
-
-    private static function renderInterface(InterfaceType $interface, string $namespace): string
-    {
-        $ns = new PhpNamespace($namespace);
-        $ns->add($interface);
-
-        $file = new PhpFile();
-        $file->addNamespace($ns);
 
         return (string) $file;
     }

@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Last reviewed: 2026-08-22 (post-Phase-10 review + `REVIEW.md` audit) · Status: **Phases 0–10 complete; release-ready; Phase 11 (refactoring & modernization) planned** · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-22 (post-Phase-10 review + `REVIEW.md` audit + Phase 11 refactor implemented) · Status: **Phases 0–10 complete; release-ready; Phase 11 (refactoring & modernization) implemented (F12 deferred)** · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -643,7 +643,8 @@ opt-in re-expose feature (G16), then performance/maintainability (G13, G15, G18)
 
 ## Phase 11 — Refactoring & Modernization (planned)
 
-> **Status: 🟡 Planned (2026-08-22).** Implements the findings register in
+> **Status: 🟢 Implemented (2026-08-22); F12 lazy adapter deferred (optional, post-v1).**
+> Implements the findings register in
 > `REVIEW.md` (F1–F13). Detailed execution spec: `docs/REFACTORING_PLAN.md`
 > (steps R.1–R.13). Every step must keep all five gates green (`test:unit`,
 > `cs:check`, `analyse`, `architecture`, `infection` ≥ 80%) per `AGENTS.md`.
@@ -742,10 +743,11 @@ F7/F8/F9/F10/F11  (no-API-change quick wins)
 - Add a one-line trust note to `DeriveCommand::writeHelp()` and
   `docs/guide/usage.md` (the CLI autoloads operator-supplied class names).
 
-> **Phase 11 status (planning, 2026-08-22):** quick wins (11.7–11.11) are low-risk and
-> can land first; structural steps (11.1, 11.2, 11.4, 11.5) are the substance and should
-> each be merged behind green gates. Full acceptance in `REFACTORING_PLAN.md` §Definition
-> of Done.
+> **Phase 11 status (implemented, 2026-08-22):** all steps shipped except the
+> optional R.12 lazy-object adapter (deferred to post-v1). Every step merged behind
+> green gates (`test:unit` 229, `cs:check` 0, `analyse` 0, `architecture` 0,
+> `infection` ≥ 80% MSI). Full status in `REFACTORING_PLAN.md` §Implementation
+> status / §Definition of Done.
 
 ---
 

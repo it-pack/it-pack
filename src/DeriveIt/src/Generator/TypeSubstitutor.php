@@ -44,6 +44,20 @@ final readonly class TypeSubstitutor
     }
 
     /**
+     * The effective substitution map (class FQCN => derived interface FQCN) this
+     * substitutor was built with, including any self/static seeding. Consumers such
+     * as {@see InterfaceDeriver} report this as the applied substitutions so the
+     * returned metadata matches what was actually rewritten (e.g. a full family
+     * cross-reference map in family mode).
+     *
+     * @return array<string, string>
+     */
+    public function getMap(): array
+    {
+        return $this->map;
+    }
+
+    /**
      * Rewrites class FQCNs inside an already-extracted phpdoc comment (the text
      * returned by {@see MethodSignatureFactory::applyDocblock()}) using the same
      * substitution map as {@see self::substitute()}, so a `@param Foo $x` /
