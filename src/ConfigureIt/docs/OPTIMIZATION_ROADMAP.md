@@ -13,17 +13,38 @@
 
 ## 0. Pre-flight (run once)
 
+> **Composer script names (from `composer.json`).** The shorthand used below maps to the
+> real scripts — use these exact names in every later phase:
+> - `composer analyse`  → PHPStan level 9 + ShipMonk dead-code
+> - `composer cs:check` → `php-cs-fixer fix --dry-run --diff` (`@PSR12` + `@PHP84Migration` + `no_superfluous_elseif`)
+> - `composer test:unit` → Codeception Unit suite (PHPUnit)
+
 ```bash
 cd src/ConfigureIt
 composer install --no-interaction
-composer phpstan        # baseline must be green
-composer cs-fixer fix --dry-run --diff
-composer test           # baseline must be green
-git log --oneline -5    # confirm clean starting point
+composer analyse     # baseline must be green (PHPStan L9)
+composer cs:check    # baseline must be clean
+composer test:unit   # baseline must be green (PHPUnit)
+git -C /home/quill/tinker/php/project/it-pack log --oneline -5   # confirm clean starting point
 ```
 
-Record baselines (e.g. test count) so regressions are obvious. Keep `vendor/` untouched —
-the nette/schema LSP noise is third-party and out of scope.
+Keep `vendor/` untouched — the nette/schema LSP noise is third-party and out of scope.
+
+### Recorded baselines (Phase 0, 2026-08-22)
+
+Captured before any optimization change, so later phases can detect regressions.
+
+| Gate | Command | Result |
+|------|---------|--------|
+| Environment | `php -v` | PHP **8.5.8** (cli, NTS); `vendor/` present, 26 dev binaries |
+| Git HEAD | `git log --oneline -1` | `16a179c Create optimization roadmap` (working tree clean) |
+| Static analysis | `composer analyse` | **249/249** files, **[OK] No errors** |
+| Coding standard | `composer cs:check` | **0 of 250** files need fixing (5.4s) |
+| Tests | `composer test:unit` | **OK — 255 tests, 593 assertions** (6.7s) |
+
+**Interpretation:** all three gates are green at the start, so Phase 1–5 changes are
+expected to keep PHPStan at 0 errors, cs-fixer at 0 fixable files, and the test count at
+≥255 (new tests added per phase). Any drop is a regression signal.
 
 ---
 
@@ -71,7 +92,7 @@ $version = $hash !== false ? $hash : $uri;
   as the version token.
 - Regression: feed a real temp file, assert the key changes when the file content changes
   and is stable when unchanged.
-- `composer phpstan && composer test`.
+- `composer analyse && composer test:unit`.
 
 **Risk:** Low. Logic is additive (`is_file` guard). If a path is a stream-wrapper "file"
 that should be hashed, it still is — `is_file()` returns true for local wrappers.
@@ -134,7 +155,7 @@ not an adapter, so it is allowed. Only `CompositeReader`, `DecryptingReader`,
 
 **Verification:**
 - `grep -rn 'Adapter\\|Bridge\\OpenTelemetry\\OpenTelemetryReporter' src/Core` → **zero** results.
-- `composer phpstan` (make sure no remaining concrete type-hints remain).
+- `composer analyse` (make sure no remaining concrete type-hints remain).
 - Add an integration test in the composition root (or `examples/`) that builds a resolver with
   OTel + decryption enabled and asserts the produced reader/reporter are decorated instances.
 
@@ -172,7 +193,7 @@ public function build(?ResolutionReporter $reporter = null): ConfigurationResolv
    `$reporter ??= $this->defaultReporter;` instead of `new ResolutionReporter()`.
 
 **Verification:**
-- `composer phpstan` green.
+- `composer analyse` green.
 - Public-API test: a caller passing a custom `ExecutionContextInterface`/`ResolutionReporterInterface`
   implementation still works.
 
@@ -212,8 +233,8 @@ public function observe(Observation $observation): void;
 4. Update `OpenTelemetryReporter` (Bridge) and any other implementer similarly.
 
 **Verification:**
-- `composer phpstan` (this catches any implementer not widened).
-- `composer test` — execution-model tests must still pass.
+- `composer analyse` (this catches any implementer not widened).
+- `composer test:unit` — execution-model tests must still pass.
 - A test that records a custom `OccurrenceInterface` implementation.
 
 **Risk:** Low–Medium. Touches every implementer of `ResolutionReporterInterface`; grep all
@@ -295,7 +316,7 @@ interface ValidationExceptionInterface extends \Throwable
   self::assertSame(['required'], $e->getMessages());
   self::assertCount(1, $e->getMessageObjects());
   ```
-- `composer phpstan && composer test`.
+- `composer analyse && composer test:unit`.
 
 **Risk:** Low. Additive (`implements` + new constructor arg with default). Backward compatible
 if the new param defaults to `[]` and the existing `string $message` ctor still works.
@@ -348,8 +369,8 @@ if the new param defaults to `[]` and the existing `string $message` ctor still 
   ```
 
 **Verification:**
-- `composer phpstan` (enum types tighten everything — expect a few call sites to need updating).
-- `composer test`; add a round-trip test: build a `Provenance`/`Observation`/`Occurrence`,
+- `composer analyse` (enum types tighten everything — expect a few call sites to need updating).
+- `composer test:unit`; add a round-trip test: build a `Provenance`/`Observation`/`Occurrence`,
   `toArray()` + `fromArray()` (or equivalent), assert equality and that `->value` matches the
   previous string output.
 - Confirm the compiled-artifact cache format is unchanged (enums serialize to their `value`).
@@ -373,7 +394,7 @@ files break.
    - For `adapter: 'unknown'` and `format: Format::PHP` see F9 (honest unknown sentinel).
 3. Grep to confirm no stray literal `'sha256'`/`'unknown'` remains outside its constant/enum.
 
-**Verification:** `composer phpstan && composer test`; grep assertions.
+**Verification:** `composer analyse && composer test:unit`; grep assertions.
 
 ### F8 — Remove deprecated `setAccessible`
 
@@ -401,7 +422,7 @@ private function readPrivate(object $object, string $property): mixed
   php -d error_reporting=E_ALL -d display_errors=1 vendor/bin/phpunit --filter NativeConfigurationSchema
   ```
   → no `ReflectionProperty::setAccessible()` deprecation.
-- `composer test`.
+- `composer test:unit`.
 
 **Risk:** Low. Behavior identical on supported PHP versions.
 
@@ -422,7 +443,7 @@ These are independent; do them in any order, each behind green gates.
    `priority: 0` occurrences (lines 49, 55). Optionally promote to a shared
    `ItPack\ConfigureIt\ValueObject\Priority` if reused widely.
 
-**Verification:** `composer phpstan && composer test`; behavior unchanged.
+**Verification:** `composer analyse && composer test:unit`; behavior unchanged.
 
 ### F9 — Honest "unknown" format sentinel
 
@@ -454,7 +475,7 @@ These are independent; do them in any order, each behind green gates.
 2. For each, introduce a precise type or a generic. Where truly heterogeneous, keep `mixed` but
    document why. Prefer `array<string, mixed>` over bare `array`.
 
-**Verification:** `composer phpstan`; no new errors.
+**Verification:** `composer analyse`; no new errors.
 
 ### F11 — Flesh out `PORTS.md`
 
@@ -490,7 +511,7 @@ These are independent; do them in any order, each behind green gates.
    method collide. Safest: keep the explicit methods; only use hooks for *new* accessors. Treat
    as optional cleanup; skip if it risks interface conflicts.
 
-**Verification:** `composer phpstan && composer test`.
+**Verification:** `composer analyse && composer test:unit`.
 
 ### F13 — Lazy / WeakMap (optional)
 
@@ -501,7 +522,7 @@ These are independent; do them in any order, each behind green gates.
 2. Consider `\LazyObject` for expensive snapshot coercion.
 3. Add a benchmark; only merge if it measurably helps large configs.
 
-**Verification:** micro-benchmark + `composer test`.
+**Verification:** micro-benchmark + `composer test:unit`.
 
 ### F14 — Fibers — DO NOT ADOPT
 
@@ -543,7 +564,7 @@ reproducibility). No action.
 2. Rewrite the four mutators to `return $this->copy([...]);` (after the idempotency guards).
 3. This also makes F5/F9 enum changes touch only the `copy()` signature + `fromArray`.
 
-**Verification:** `composer phpstan && composer test`; the existing `Provenance` mutator tests
+**Verification:** `composer analyse && composer test:unit`; the existing `Provenance` mutator tests
 still pass unchanged.
 
 ---
@@ -551,9 +572,9 @@ still pass unchanged.
 ## Cross-cutting acceptance (run after every phase)
 
 ```bash
-composer phpstan          # level 9 + dead-code, must be green
-composer cs-fixer fix --dry-run --diff   # @PSR12 + @PHP84Migration + no_superfluous_elseif
-composer test             # full PHPUnit suite
+composer analyse    # PHPStan L9 + dead-code, must be green (0 errors)
+composer cs:check   # @PSR12 + @PHP84Migration + no_superfluous_elseif, must be clean
+composer test:unit  # full Codeception Unit suite, must be green (≥255 tests)
 ```
 
 Per-phase hard gates:
