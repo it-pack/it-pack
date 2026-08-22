@@ -23,7 +23,8 @@ phase is built so a developer can pick it up cold.
 10. Phase 9 — Edge-case & Optimization Hardening
 11. Phase 10 — Correctness, Leakage & DX Deepening
 12. Phase 11 — Refactoring & Modernization (planned)
-13. Cross-cutting: Timeline, Risks, Definition of Done
+13. Phase 12 — Residual Refactoring (REVIEW F-1 … F-10, planned)
+14. Cross-cutting: Timeline, Risks, Definition of Done
 
 ---
 
@@ -751,6 +752,132 @@ F7/F8/F9/F10/F11  (no-API-change quick wins)
 
 ---
 
+## Phase 12 — Residual Refactoring (REVIEW F-1 … F-10, planned)
+
+> **Status: 🟡 Planned (2026-08-22).** Implements the residual findings from the
+> post-Phase-11 review (`REVIEW.md` §11, F-1 … F-10). Detailed execution spec:
+> `docs/REFACTORING_PLAN.md` (steps RP-1 … RP-10). Every step must keep all five
+> gates green (`test:unit`, `cs:check`, `analyse`, `architecture`, `infection ≥ 80%`)
+> per `AGENTS.md`. No user-visible derivation-output change is intended; the only
+> API surface changes are *additions* (new interfaces/constants) plus internal
+> de-duplication. Items marked ◐ are optional and may be skipped with a one-line
+> rationale in the commit.
+
+**Goal:** promote the package from "sound" to "exemplary" on control-flow hygiene,
+DRY, and (optionally) DIP/defense-in-depth — closing the last ten review findings
+so `REVIEW.md` can mark each F-* as addressed/optional.
+
+**Sequencing (quick wins → optional seams):**
+```
+RP-1, RP-2          (Medium: magic literals → constants)
+   └─ RP-5, RP-6   (Low DRY: Naming::shortName, LazyCreatable default)
+        └─ RP-8    (Low perf: FamilyDeriver queue/config identity)
+             └─ RP-10  (Low consistency: facade → factory)
+                  └─ RP-3, RP-4, RP-7, RP-9   (◐ optional seams / defense-in-depth)
+```
+
+### Step 12.1 — Named exit-code constants (F-1, RP-1) 🟡 Medium
+- `src/Cli/DeriveCommand.php`: add
+  `private const EXIT_SUCCESS = 0; EXIT_USAGE = 1; EXIT_DERIVATION = 2; EXIT_OUTPUT = 3;`
+  (next to `OUTPUT_DIR_MODE`) and replace every `return 0/1/2/3;` in `execute()`
+  with the matching constant. Update the docblock "Exit codes:" line.
+- **Acceptance:** no bare `0/1/2/3` returns remain; `DeriveCommandTest` (13 tests)
+  green with identical numeric codes; `cs:check`/`analyse` clean.
+
+### Step 12.2 — Named type-separator constants (F-2, RP-2) 🟡 Medium
+- `src/Generator/AdapterGenerator.php::bodyFor()`: hoist `'void'`→`TYPE_VOID`,
+  `'|'`→`TYPE_SEPARATOR_OR`, `'&'`→`TYPE_SEPARATOR_AND` (use them in the
+  `===`/`str_contains`/`preg_split` comparisons) so the re-parsed return-type string
+  uses no bare literals. Also add `private const OVERRIDE_ATTRIBUTE = 'Override';` in
+  `MethodSignatureFactory::filterAttributes` and use it for the `'Override'` check.
+- **Acceptance:** no bare `'void'`/`'|'`/`'&'`/`'Override'` literals remain outside
+  the constant declarations; golden `tests/_expected/Tree.adapter.php` byte-identical;
+  `AdapterGeneratorTest` green; `infection` ≥ 80%. (Threading the real `ReflectionType`
+  is an optional, larger alternative — out of scope to keep output unchanged.)
+
+### Step 12.3 — `Naming::shortName()` DRY helper (F-5, RP-5) 🟡 Low
+- `src/Generator/Naming.php`: add `public static function shortName(string $fqcn): string`
+  returning the substring after the last `\\` (or the whole string if none).
+- Replace the inline `substr($fqcn, (int) strrpos($fqcn, '\\') + 1)` copies in
+  `DeriveCommand::fileNameFor` (`src/Cli/DeriveCommand.php:308`),
+  `PerTraitInterfaceDeriver::assertPerTraitSelfContained`,
+  `FamilyDeriver` constant handling, and `LeakageAuditor::allowedNamespaces` with
+  `Naming::shortName($fqcn)`.
+- **Acceptance:** no inline FQCN→short-name surgery remains outside `Naming`; all
+  gates green; per-trait / leakage / family tests pass.
+
+### Step 12.4 — Default `create()` in `LazyCreatable` (F-6, RP-6) 🟡 Low
+- `src/Behavior/Utility/LazyCreatable.php`: replace `abstract public static function create(): self;`
+  with a concrete `public static function create(): self { return new self(); }`
+  (`new self()` in a trait binds to the using class).
+- Delete the duplicated `public static function create(): self { return new self(); }`
+  blocks from `RecursiveClassResolver`, `RecursiveInterfaceResolver`,
+  `RecursiveTraitResolver`.
+- **Acceptance:** no resolver-level `create()` definitions remain; resolver /
+  `ClassReflectionTest` tests green.
+
+### Step 12.5 — `FamilyDeriver` perf micro-fixes (F-8, RP-8) 🟡 Low
+- `src/Generator/FamilyDeriver.php::discover()`: replace `array_shift($queue)` in the
+  `while` loop with an index pointer (`$i = 0; while ($i < count($queue)) { $reflection = $queue[$i++]; … }`)
+  to remove the O(n²) dequeue. Output identical.
+- `configHash()` re-`serialize()` and `LeakageAuditor::simplifyDocblock()` per-method
+  map loop: **measure-first** — change only if a benchmark shows pressure; otherwise
+  note "no change needed" in the commit.
+- **Acceptance:** family / family-adapter golden + unit tests byte-identical and
+  green; `infection` ≥ 80%.
+
+### Step 12.6 — Route `DeriveIt` facade through `DeriveItFactory` (F-10, RP-10) 🟡 Low
+- `src/DeriveIt.php`: add a private static `factory(DeriveConfig $config): DeriveItFactory`
+  accessor and rewrite each static method to obtain its deriver via the factory
+  (`interfaceDeriver()` / `perTraitDeriver()` / `familyDeriver()` /
+  `adapterGenerator(...)`), dropping the inline `new InterfaceDeriver` / `new FamilyDeriver`
+  / `new AdapterGenerator` / `new PerTraitInterfaceDeriver` constructions. Keep all
+  current signatures and the `SourceRenderer` usage.
+- **Acceptance:** `grep` for `new (InterfaceDeriver|FamilyDeriver|AdapterGenerator|PerTraitInterfaceDeriver)` in
+  `DeriveIt.php` returns no matches; all facade tests + golden files byte-identical;
+  all five gates green. (Documentation-only alternative: if routing is unwanted,
+  add a one-line note that `DeriveIt` is an intentional thin wrapper and
+  `DeriveItFactory` is the injectable composition root — choose one, not both.)
+
+### Step 12.7 — ◐ Optional `MethodSignatureFactory` / `SourceRenderer` ports (F-3, RP-3)
+- New `Contract/Generator/MethodSignatureFactoryInterface.php`
+  (`fromMethod(ReflectionMethod, ?TypeSubstitutor = null): Method`) and
+  `Contract/Generator/SourceRendererInterface.php`
+  (`render` / `renderMany`). Have the two concretions `implements` them; type-hint
+  the interfaces in `InterfaceDeriver` / `PerTraitInterfaceDeriver` / `FamilyDeriver`
+  (defaulting to the current concretions) and in `DeriveItFactory`. No behavior change.
+- **Acceptance:** `architecture` 0 violations; golden files byte-identical. May be
+  skipped (F-3 is optional) with a one-line rationale.
+
+### Step 12.8 — ◐ Optional `CommandInterface` (F-4, RP-4)
+- New `Contract/Cli/CommandInterface.php` with `execute(array $args): int`;
+  `DeriveCommand implements CommandInterface`. Optional route for `bin/derive`.
+- **Acceptance:** `architecture` 0 violations; `DeriveCommandTest` green.
+
+### Step 12.9 — ◐ Optional `WeakReference` reflection cache (F-7, RP-7)
+- New `src/Reflection/WeakReflectionCache.php` implementing `ReflectionCacheInterface`
+  (stores `WeakReference::create($reflection)`, returns `$ref->get()`); keep
+  `InMemoryReflectionCache` as the default. Add a test for GC-driven `null` return.
+- **Acceptance:** new file compiles; default path unchanged; gates green. May be
+  skipped (F-7 is optional) if no long-running scan use case exists.
+
+### Step 12.10 — ◐ Optional `--out` path guard (F-9, RP-9)
+- `src/Cli/DeriveCommand.php`: add an `assertSafeOutputPath(string $path, ?string $baseDir)`
+  that rejects traversal / symlink escapes when an optional `--base-dir=DIR` is
+  supplied (threaded through `ArgParser` + `DeriveCliInput`); preserve current
+  trusted-operator behavior when `--base-dir` is absent.
+- **Acceptance:** existing `DeriveCommandTest` green; new tests assert rejection of
+  escapes and allowance of safe paths. May be skipped (F-9 is optional, covered by
+  the documented trust model).
+
+> **Phase 12 status (planned):** steps 12.1–12.6 are the committed, non-optional
+> work (Medium + Low DRY/consistency/perf). Steps 12.7–12.10 are ◐ optional seams /
+> defense-in-depth, each independently shippable or skippable. All work keeps the
+> five gates green and leaves generated output byte-identical. Detailed steps,
+> acceptance, and rollback notes live in `REFACTORING_PLAN.md` (RP-1 … RP-10).
+
+---
+
 ## Cross-cutting: Timeline, Risks, Definition of Done
 
 ### Critical path
@@ -767,8 +894,9 @@ Phase 0
                                       └─ Phase 8 (design hardening backlog, post-v1)
                                             └─ Phase 9 (edge-case & optimization hardening)
                                                  └─ Phase 10 (correctness, leakage & DX deepening)
-                                                  └─ Phase 11 (refactoring & modernization, REVIEW F1–F13)
-  ```
+                                                   └─ Phase 11 (refactoring & modernization, REVIEW F1–F13)
+                                                        └─ Phase 12 (residual refactoring, REVIEW F-1 … F-10)
+   ```
 
 ### Minimum viable production release
 - Phase 0 + Phase 1 + Phase 6 (CI/deptrac) + Phase 7 (README/changelog) already yields a
