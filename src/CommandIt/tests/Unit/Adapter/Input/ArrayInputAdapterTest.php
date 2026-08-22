@@ -25,7 +25,6 @@ final class ArrayInputAdapterTest extends Unit
             CommandName::fromString('demo:run'),
             arguments: [new Argument(ArgumentName::fromString('count'), required: true, type: 'int')],
             options: [new Option(OptionName::fromString('force'), required: false, type: 'bool')],
-            handlerKey: 'demo',
         );
     }
 
@@ -59,7 +58,6 @@ final class ArrayInputAdapterTest extends Unit
         $definition = new CommandDefinition(
             CommandName::fromString('demo:run'),
             options: [new Option(OptionName::fromString('note'), required: false, type: 'string')],
-            handlerKey: 'demo',
         );
 
         $this->expectException(InvalidCommandException::class);

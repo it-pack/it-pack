@@ -57,7 +57,7 @@ final class CommandDispatchBench
         $this->resolver = new HandlerResolver($this->registry);
 
         $this->registry->register(
-            new CommandDefinition(CommandName::fromString('bench:run'), handlerKey: 'bench'),
+            new CommandDefinition(CommandName::fromString('bench:run')),
             static fn () => new class () implements CommandHandlerInterface {
                 public function handles(): string
                 {

@@ -18,6 +18,7 @@ use ItPack\CommandIt\Contract\Port\ClockInterface;
 use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionContextProviderInterface;
 use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
+use ItPack\CommandIt\Contract\Port\SerializerInterface;
 use ItPack\CommandIt\Domain\CommandContext;
 use ItPack\CommandIt\Domain\ValueObject\CommandExecutionId;
 
@@ -48,6 +49,7 @@ final class CommandExecutor implements CommandExecutorInterface
         private IdentifierGeneratorInterface $ids,
         /** @var list<CommandMiddlewareInterface> */
         private array $middlewares = [],
+        private ?SerializerInterface $serializer = null,
     ) {
     }
 
@@ -84,7 +86,8 @@ final class CommandExecutor implements CommandExecutorInterface
             }
 
             $durationMs = $this->durationMs($this->clock->monotonicNanoseconds() - $monoStart);
-            $completed = $this->coordinator->succeed($execution, $result, $this->clock->nowSeconds(), $durationMs);
+            $stored = $result->withPayload($this->normalizePayload($result->payload()));
+            $completed = $this->coordinator->succeed($execution, $stored, $this->clock->nowSeconds(), $durationMs);
             $this->record(fn () => $this->storage->store($executionId, $completed));
 
             return $result->withExecution($completed);
@@ -104,6 +107,25 @@ final class CommandExecutor implements CommandExecutorInterface
     private function durationMs(int $nanoseconds): int
     {
         return intdiv($nanoseconds, 1_000_000);
+    }
+
+    /**
+     * Best-effort normalization of the result payload before persistence.
+     *
+     * A serialization failure must never replace the business result, so the
+     * original payload is kept when the serializer rejects the data.
+     */
+    private function normalizePayload(mixed $payload): mixed
+    {
+        if ($this->serializer === null) {
+            return $payload;
+        }
+
+        try {
+            return $this->serializer->normalize($payload);
+        } catch (\Throwable) {
+            return $payload;
+        }
     }
 
     /**

@@ -14,12 +14,12 @@ use ItPack\CommandIt\Contract\Command\CommandBusInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
-use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 use ItPack\CommandIt\Contract\Port\ClockInterface;
 use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionContextProviderInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
 use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
+use ItPack\CommandIt\Contract\Port\SerializerInterface;
 
 /**
  * Ergonomic entry point that assembles the application core and wires it to the
@@ -48,6 +48,7 @@ final class CommandIt
         ExecutionReporterInterface $reporter,
         ExecutionContextProviderInterface $context,
         CommandExecutionStorageInterface $storage,
+        ?SerializerInterface $serializer = null,
         CommandRegistryInterface $registry = new CommandRegistry(),
         array $middlewares = [],
     ) {
@@ -64,6 +65,7 @@ final class CommandIt
             $clock,
             $ids,
             $middlewares,
+            $serializer,
         );
     }
 
@@ -98,7 +100,7 @@ final class CommandIt
     }
 
     /**
-     * @throws HandlerNotFoundException when no command is registered under the name
+     * Reports whether a command is registered under the given name.
      */
     public function has(string $name): bool
     {

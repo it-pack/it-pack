@@ -31,7 +31,6 @@ final class ArgvInputParserTest extends Unit
                 new Option(OptionName::fromString('force'), required: false, type: 'bool'),
                 new Option(OptionName::fromString('mode'), required: false, type: 'string', defaultValue: 'fast'),
             ],
-            handlerKey: 'demo',
         );
     }
 

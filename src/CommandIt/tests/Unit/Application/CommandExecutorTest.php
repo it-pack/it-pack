@@ -6,6 +6,7 @@ namespace Tests\Unit\Application;
 
 use Codeception\Test\Unit;
 use ItPack\CommandIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\CommandIt\Adapter\Common\SafeSerializer;
 use ItPack\CommandIt\Adapter\Common\SystemClock;
 use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Adapter\Memory\InMemoryCommandExecutionStorage;
@@ -62,7 +63,7 @@ final class CommandExecutorTest extends Unit
     private function register(string $name, CommandHandlerInterface $handler): void
     {
         $this->registry->register(
-            new CommandDefinition(CommandName::fromString($name), handlerKey: $name),
+            new CommandDefinition(CommandName::fromString($name)),
             static fn () => $handler,
         );
     }
@@ -184,6 +185,95 @@ final class CommandExecutorTest extends Unit
         $result = $executor->dispatch($this->command('demo:run'));
 
         self::assertSame('ok+', $result->payload());
+    }
+
+    public function testResultPayloadIsNormalizedBeforeStorageWhenSerializerProvided(): void
+    {
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($this->reporter),
+            $this->context,
+            $this->storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+            [],
+            new SafeSerializer(),
+        );
+
+        $this->registry->register(new CommandDefinition(CommandName::fromString('demo:run')), static fn () => new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed(new class () {
+                    /** @return array{normalized: bool} */
+                    public function toArray(): array
+                    {
+                        return ['normalized' => true];
+                    }
+                });
+            }
+        });
+
+        $result = $executor->dispatch($this->command('demo:run'));
+
+        // The caller receives the original (un-normalized) payload object.
+        self::assertIsObject($result->payload());
+
+        // The persisted execution carries the safely-normalized payload.
+        $execution = $result->execution();
+        self::assertInstanceOf(CommandExecution::class, $execution);
+        $stored = $this->storage->find($execution->id());
+        self::assertNotNull($stored);
+        self::assertInstanceOf(CommandExecution::class, $stored);
+        $storedResult = $stored->result();
+        self::assertNotNull($storedResult);
+        self::assertSame(['normalized' => true], $storedResult->payload());
+    }
+
+    public function testSerializationFailureKeepsOriginalPayloadBestEffort(): void
+    {
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($this->reporter),
+            $this->context,
+            $this->storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+            [],
+            new SafeSerializer(),
+        );
+
+        $this->registry->register(new CommandDefinition(CommandName::fromString('demo:run')), static fn () => new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed(new \stdClass());
+            }
+        });
+
+        $result = $executor->dispatch($this->command('demo:run'));
+
+        // A serializer rejection must never replace the business result.
+        self::assertInstanceOf(\stdClass::class, $result->payload());
+
+        $execution = $result->execution();
+        self::assertInstanceOf(CommandExecution::class, $execution);
+        $stored = $this->storage->find($execution->id());
+        self::assertNotNull($stored);
+        self::assertInstanceOf(CommandExecution::class, $stored);
+        $storedResult = $stored->result();
+        self::assertNotNull($storedResult);
+        self::assertInstanceOf(\stdClass::class, $storedResult->payload());
     }
 
     /**

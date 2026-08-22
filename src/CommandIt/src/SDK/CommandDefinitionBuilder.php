@@ -33,8 +33,6 @@ final class CommandDefinitionBuilder
     /** @var list<OptionInterface> */
     private array $options = [];
 
-    private string $handlerKey = '';
-
     public function name(CommandNameInterface|string $name): self
     {
         $clone = clone $this;
@@ -67,17 +65,6 @@ final class CommandDefinitionBuilder
         return $clone;
     }
 
-    /**
-     * Sets the key the handler resolver uses to locate the handler implementation.
-     */
-    public function handler(string $handlerKey): self
-    {
-        $clone = clone $this;
-        $clone->handlerKey = $handlerKey;
-
-        return $clone;
-    }
-
     public function build(): CommandDefinitionInterface
     {
         if ($this->name === null) {
@@ -89,7 +76,6 @@ final class CommandDefinitionBuilder
             $this->description,
             $this->arguments,
             $this->options,
-            $this->handlerKey,
         );
     }
 }

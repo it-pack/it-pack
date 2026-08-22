@@ -62,7 +62,7 @@ final class PersistentWorkerIsolationTest extends Unit
         );
 
         $this->registry->register(
-            new CommandDefinition(CommandName::fromString('demo:run'), handlerKey: 'demo'),
+            new CommandDefinition(CommandName::fromString('demo:run')),
             static fn () => new class () implements CommandHandlerInterface {
                 public function handles(): string
                 {

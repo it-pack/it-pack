@@ -30,7 +30,6 @@ final class CommandInputParserTest extends Unit
             options: [
                 new Option(OptionName::fromString('force'), required: false, type: 'bool'),
             ],
-            handlerKey: 'demo',
         );
     }
 
@@ -80,7 +79,6 @@ final class CommandInputParserTest extends Unit
         $definition = new CommandDefinition(
             CommandName::fromString('demo:run'),
             options: [new Option(OptionName::fromString('note'), required: false, type: 'string')],
-            handlerKey: 'demo',
         );
 
         $this->expectException(InvalidCommandException::class);

@@ -139,7 +139,6 @@ $commandIt = new CommandIt(
 $definition = (new CommandDefinitionBuilder())
     ->name('cache:clear')
     ->argument(new Argument(ArgumentName::fromString('count'), required: true, type: 'int'))
-    ->handler('cache.clear')
     ->build();
 
 $commandIt->register($definition, static fn () => new class () implements \ItPack\CommandIt\Contract\Command\CommandHandlerInterface {

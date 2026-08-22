@@ -62,11 +62,9 @@ final class CommandModelTest extends Unit
             'Clears the cache.',
             [new Argument(ArgumentName::fromString('source'), true)],
             [new Option(OptionName::fromString('force'))],
-            'cache.clear',
         );
 
         self::assertSame('cache:clear <source> --force', $definition->signature());
-        self::assertSame('cache.clear', $definition->handlerKey());
         self::assertSame('Clears the cache.', $definition->description());
     }
 }

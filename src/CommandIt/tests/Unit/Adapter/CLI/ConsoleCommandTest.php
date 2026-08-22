@@ -63,7 +63,6 @@ final class ConsoleCommandTest extends Unit
             CommandName::fromString('demo:run'),
             arguments: [new Argument(ArgumentName::fromString('count'), required: true, type: 'int')],
             options: [new Option(OptionName::fromString('force'), required: false, type: 'bool')],
-            handlerKey: 'demo',
         );
     }
 

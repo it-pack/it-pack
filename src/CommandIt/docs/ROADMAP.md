@@ -401,15 +401,21 @@ composer quality
 
 ### Tasks
 
-- [ ] **M10.1 `[Contract/Command]`** Resolve the dead `handlerKey`: remove `handlerKey()` from `CommandDefinitionInterface` + `CommandDefinition` and `handler()` from `CommandDefinitionBuilder` (recommended), OR wire a `HandlerLocatorInterface` keyed by `handlerKey` (only if a consumer needs it). Pick one (`src/Domain/CommandDefinition.php:57`, `src/SDK/CommandDefinitionBuilder.php:36,73-92`, `src/Application/CommandRegistry.php:27-53`).
-- [ ] **M10.2 `[Core/Port]`** Wire `SerializerInterface` into the storage path: normalize `result->payload()` via a `SerializerInterface` (default `SafeSerializer`) before `store()` in `CommandExecutor`; keep `record()` best-effort so serialization failure never replaces the business result (`src/Application/CommandExecutor.php:69,81,88`). Document as consumer-only instead if storage-as-object is intentional.
-- [ ] **M10.3 `[SDK]`** Fix `CommandIt::has()` docblock — remove the false `@throws HandlerNotFoundException` (body returns `bool`) (`src/SDK/CommandIt.php:100-106`).
-- [ ] **M10.4 `[Composer/Docs]`** Reconcile PSR `suggest`: ship minimal `Adapter/Psr` adapters (`Psr3ExecutionReporter`, `Psr14ExecutionReporter`, `Psr20Clock`) OR reword `composer.json` `suggest` to "bring-your-own adapter" (`composer.json:48-53`).
-- [ ] **M10.5 `[Tests]`** Adjust/extend tests for the `handlerKey` decision and the serializer wiring; confirm `grep -rn handlerKey src` is empty (option a) or a real read path exists (option b).
+- [x] **M10.1 `[Contract/Command]`** Resolved the dead `handlerKey` by **removing** it: `handlerKey()` deleted from `CommandDefinitionInterface` + `CommandDefinition`, and `handler()` from `CommandDefinitionBuilder`; `CommandRegistry` already keys by name (option a, recommended). `grep -rn handlerKey src` is now empty.
+- [x] **M10.2 `[Core/Port]`** Wired `SerializerInterface` into the storage path: `CommandExecutor` accepts `?SerializerInterface $serializer` (default `null`); on success the handler result payload is normalized via `normalizePayload()` and the *normalized* payload is stored, while the caller still receives the original payload. `record()` stays best-effort and `normalizePayload()` catches serializer failures so the business result is never replaced. `CommandResultInterface::withPayload()` added to support this.
+- [x] **M10.3 `[SDK]`** Fixed `CommandIt::has()` docblock — removed the false `@throws HandlerNotFoundException`; body returns `bool`.
+- [x] **M10.4 `[Composer/Docs]`** Reconciled `composer.json` `suggest`: no PSR/Symfony adapters ship in core, so the entries were reworded to "bring-your-own adapter" and point at the relevant ports/bridges (`ExecutionReporterInterface`, `ClockInterface`, `Adapter/CLI`).
+- [x] **M10.5 `[Tests]`** Adjusted/extended tests for the `handlerKey` removal (builder + model assertions updated) and added serializer-wiring tests in `CommandExecutorTest` (payload normalized before store; serialization failure keeps the original payload best-effort). `grep -rn handlerKey src` is empty.
+
+### Notes
+
+- **BC break (M10.1):** removing `CommandDefinitionInterface::handlerKey()`, `CommandDefinition::handlerKey()`, and `CommandDefinitionBuilder::handler()` is a public-surface change. Pre-1.0 per `AGENTS.md`, so acceptable; it eliminates the misleading "external handler locator" implication. `M2.8` / `M5.1` milestone notes in this file still list `handlerKey()` as delivered — that surface no longer exists and was intentionally removed here.
+- **Serializer default is `null`, not `SafeSerializer` (M10.2):** the SDK (`CommandIt`) must stay adapter-free (DepTrac: `SDK` → `Common, Contract, Domain, Application, Port` only), so it cannot default to `Adapter/Common/SafeSerializer`. The port is therefore **opt-in**: pass a `SerializerInterface` (e.g. `new SafeSerializer()`) to `CommandExecutor`/`CommandIt` and the core normalizes payloads before `store()`; omit it and storage receives the artifact object as before. This satisfies the DoD's "serializer exercised by the core" while keeping the SDK dependency-clean. The stored artifact carries the normalized payload; the returned `CommandResult` keeps the original payload.
+- **`suggest` wording (M10.4):** the original text implied shipped PSR/Symfony integrations; none exist in `src/`. Reworded to "bring-your-own adapter" referencing the ports/bridges that a consumer would implement.
 
 ### DoD
 
-No dead fields; serializer either exercised by the core or explicitly documented as consumer-only; `CommandIt::has()` docblock matches behavior; `suggest` text matches shipped adapters.
+No dead fields; serializer exercised by the core (opt-in port); `CommandIt::has()` docblock matches behavior; `suggest` text matches shipped reality (no adapters in core → bring-your-own).
 
 ### QG
 

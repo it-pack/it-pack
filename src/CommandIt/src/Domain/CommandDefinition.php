@@ -30,7 +30,6 @@ final readonly class CommandDefinition implements CommandDefinitionInterface
         private string $description = '',
         private array $arguments = [],
         private array $options = [],
-        private string $handlerKey = '',
     ) {
     }
 
@@ -52,11 +51,6 @@ final readonly class CommandDefinition implements CommandDefinitionInterface
     public function options(): array
     {
         return $this->options;
-    }
-
-    public function handlerKey(): string
-    {
-        return $this->handlerKey;
     }
 
     public function signature(): string

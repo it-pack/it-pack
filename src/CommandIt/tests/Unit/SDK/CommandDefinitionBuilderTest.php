@@ -35,13 +35,11 @@ final class CommandDefinitionBuilderTest extends Unit
             ->description('Clears the cache')
             ->argument($this->argument())
             ->option($this->option())
-            ->handler('cache.clear')
             ->build()
         ;
 
         self::assertSame('cache:clear', $definition->name()->toString());
         self::assertSame('Clears the cache', $definition->description());
-        self::assertSame('cache.clear', $definition->handlerKey());
         self::assertCount(1, $definition->arguments());
         self::assertCount(1, $definition->options());
         self::assertSame('cache:clear <source> --force', $definition->signature());
@@ -50,10 +48,10 @@ final class CommandDefinitionBuilderTest extends Unit
     public function testBuilderIsImmutable(): void
     {
         $base = new CommandDefinitionBuilder()->name('cache:clear');
-        $extended = $base->handler('cache.clear');
+        $extended = $base->description('extended');
 
-        self::assertSame('', $base->build()->handlerKey(), 'receiver unchanged');
-        self::assertSame('cache.clear', $extended->build()->handlerKey());
+        self::assertSame('', $base->build()->description(), 'receiver unchanged');
+        self::assertSame('extended', $extended->build()->description());
     }
 
     public function testBuildWithoutNameThrows(): void

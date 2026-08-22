@@ -58,7 +58,7 @@ final class LazyHandlerResolutionTest extends Unit
     private function registerCountingHandler(): void
     {
         $this->registry->register(
-            new CommandDefinition(CommandName::fromString('demo:run'), handlerKey: 'demo'),
+            new CommandDefinition(CommandName::fromString('demo:run')),
             function (): CommandHandlerInterface {
                 ++$this->factoryCalls;
 

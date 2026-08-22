@@ -32,7 +32,7 @@ final class HandlerResolverTest extends Unit
         $constructed = 0;
         $registry = new CommandRegistry();
         $registry->register(
-            new CommandDefinition(CommandName::fromString('demo:run'), handlerKey: 'demo'),
+            new CommandDefinition(CommandName::fromString('demo:run')),
             static function () use (&$constructed): CommandHandlerInterface {
                 ++$constructed;
 

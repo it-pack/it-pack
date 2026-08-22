@@ -47,7 +47,6 @@ final class CommandItTest extends Unit
         return new CommandDefinitionBuilder()
             ->name('demo:run')
             ->argument(new Argument(ArgumentName::fromString('count'), required: true, type: 'int'))
-            ->handler('demo')
             ->build()
         ;
     }

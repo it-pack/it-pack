@@ -18,7 +18,7 @@ final class CommandRegistryTest extends Unit
     public function testRegisterThenLookup(): void
     {
         $registry = new CommandRegistry();
-        $definition = new CommandDefinition(CommandName::fromString('demo:run'), handlerKey: 'demo');
+        $definition = new CommandDefinition(CommandName::fromString('demo:run'));
 
         $registry->register($definition, static fn () => throw new \LogicException('not constructed'));
 

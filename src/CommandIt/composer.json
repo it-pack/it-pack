@@ -46,10 +46,11 @@
         "infection/codeception-adapter": "^0.4.7"
     },
     "suggest": {
-        "symfony/console": "CLI projection adapter (maps CommandDefinition to Symfony Console commands)",
-        "psr/log": "PSR-3 observation and logger integration",
-        "psr/event-dispatcher": "PSR-14 occurrence integration",
-        "psr/clock": "PSR-20 monotonic clock integration"
+        "it-pack/command-it-run-it": "Future RunIt pipeline adapter for persisting/transporting executions",
+        "symfony/console": "Bring-your-own CLI projection adapter; see Adapter/CLI for the bridge shape",
+        "psr/log": "Bring-your-own PSR-3 observation adapter (see ExecutionReporterInterface)",
+        "psr/event-dispatcher": "Bring-your-own PSR-14 occurrence adapter (see ExecutionReporterInterface)",
+        "psr/clock": "Bring-your-own PSR-20 clock adapter (see ClockInterface)"
     },
     "scripts": {
         "test": [

@@ -18,7 +18,7 @@ final class CommandBuilderTest extends Unit
 {
     private function definition(): CommandDefinition
     {
-        return new CommandDefinition(CommandName::fromString('demo:run'), handlerKey: 'demo');
+        return new CommandDefinition(CommandName::fromString('demo:run'));
     }
 
     public function testBuildProducesCommandWithNameFromDefinition(): void
