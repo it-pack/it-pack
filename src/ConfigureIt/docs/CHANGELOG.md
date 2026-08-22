@@ -847,8 +847,37 @@ and HTML/JSON controller behaviour incl. end-to-end over real fixture files). Th
 core `ConfigureIt` package is unchanged by this milestone and remains green
 (**255 tests / 593 assertions**, PHPStan level 9, php-cs-fixer clean).
 
-Epic E9.3 (`configure-it-schema-docs`, `configure-it-testing`) is deferred: the
-M9 Exit only required the explorer, now delivered.
+Epic E9.3 (`configure-it-schema-docs`, `configure-it-testing`) is also delivered
+(see the companion packages under `src/`), completing M9 in full.
+
+### Additional Features — M9: Tooling & Operability (Epic E9.3 — schema docs & testing utilities) ✅
+
+- **`configure-it-schema-docs`** (`src/ConfigureItSchemaDocs/`): reflects a
+  `Nette\Schema\Expect` definition (via `ReflectionProperty`, the same boundary
+  the Core crosses in `NativeConfigurationSchema::scalarTypes()`) into a
+  normalized `SchemaNode` tree, then renders Markdown reference docs or a
+  JSON-Schema (draft 2020-12) document (`SchemaDocGenerator`, `SchemaIntrospector`,
+  `Renderer\MarkdownRenderer`, `Renderer\JsonSchemaRenderer`). A
+  `bin/configure-it-schema-docs` CLI emits either format from a PHP file that
+  returns an `Expect` definition.
+- **`configure-it-testing`** (`src/ConfigureItTesting/`): fakes and a PHPUnit
+  trait for consumers — `Fake\FakeConfigurationSource`, `Fake\FakeLoader`,
+  `Fake\SpyProcessor`, `Fake\InMemoryGraph`, `Node\FakeNode`, and
+  `Assertions\ConfigurationAssertions` (key presence, resolved value, source kind,
+  override status, sensitivity, format, adapter, priority, processor trail,
+  whole-graph equality, and `assertConfigValid` against an `Expect` definition).
+
+These companions run the same per-package gate as the explorer: **PHPStan level 9
+— 0 errors**, `php-cs-fixer` — **0 files**, and **PHPUnit** —
+`configure-it-schema-docs` **25 tests / 84 assertions**,
+`configure-it-testing` **20 tests / 63 assertions**. The core `ConfigureIt`
+package remains unchanged and green (**255 tests / 593 assertions**, PHPStan
+level 9, php-cs-fixer clean).
+
+**M9 Exit:** explorer (explain/diff/graph + query, HTML + JSON) plus
+`configure-it-schema-docs` (Markdown + JSON-Schema from `Expect`) and
+`configure-it-testing` (fakes + `ConfigurationAssertions` trait) are all
+delivered and pass their gates.
 
 ### Notes
 

@@ -217,12 +217,17 @@ php-cs-fixer clean).
 - [x] **T9.2.2 (M)** Graph query API over `ConfigurationGraph` + `ConfigurationDiffer` (`Query\GraphQuery` + `QueryParser`/`QueryCriterion`/`QueryPredicate`): `source`, `overridden-by`, `sensitive`, `adapter`, `layer`, `format`, `trail`, plus `changed` (two-graph diff). Powers `/query` and the `GraphQuery` service for consumers.
 - [x] **T9.2.3 (M)** Tests: `GraphQueryTest` (9 predicates + cross-graph `changes`) and `ExplorerControllerTest` (HTML + JSON for explain/diff/graph/query, graceful 400s, end-to-end over real fixture files).
 
-### Epic E9.3 — Schema → docs & testing utilities (Companion) ⏸ DEFERRED
-- [ ] **T9.3.1 (M)** `configure-it-schema-docs`: emit Markdown + JSON-Schema from a `Nette\Schema\Expect` definition.
-- [ ] **T9.3.2 (M)** `configure-it-testing`: fakes + `ConfigurationAssertions` trait for consumers.
-- [ ] **T9.3.3 (M)** Tests for both companions.
+### Epic E9.3 — Schema → docs & testing utilities (Companion) ✅ DONE
+- [x] **T9.3.1 (M)** `configure-it-schema-docs`: emit Markdown + JSON-Schema (draft 2020-12) from a `Nette\Schema\Expect` definition.
+- [x] **T9.3.2 (M)** `configure-it-testing`: fakes (`FakeConfigurationSource`, `FakeLoader`, `SpyProcessor`, `InMemoryGraph`, `FakeNode`) + `ConfigurationAssertions` trait for consumers.
+- [x] **T9.3.3 (M)** Tests for both companions (schema introspection/Markdown/JSON-Schema/CLI; fakes + assertions trait).
 
-**M9 Exit (E9.2 done):** explorer serves explain/diff/graph + query (HTML + JSON); `configure-it-explorer` passes PHPStan level 9, php-cs-fixer, PHPUnit (22 tests / 42 assertions). E9.3 (`configure-it-schema-docs`, `configure-it-testing`) is deferred — the M9 Exit only requires the explorer, now delivered.
+**M9 Exit (E9.2 + E9.3 both done):** explorer serves explain/diff/graph + query (HTML + JSON); `configure-it-schema-docs` and `configure-it-testing` are delivered as independent companions. All three companions pass PHPStan level 9, php-cs-fixer clean, and PHPUnit:
+- `configure-it-explorer`: 22 tests / 42 assertions
+- `configure-it-schema-docs`: 25 tests / 84 assertions
+- `configure-it-testing`: 20 tests / 63 assertions
+
+The core `ConfigureIt` package is unchanged by M9 and remains green (**255 tests / 593 assertions**, PHPStan level 9, php-cs-fixer clean).
 
 ---
 
