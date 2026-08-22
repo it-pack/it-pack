@@ -86,6 +86,18 @@ final class ObservedRepositoryTest extends Unit
         self::assertContains('commit', $inner->calls);
     }
 
+    public function testVoidOperationDispatchesStartThenSuccess(): void
+    {
+        $inner = new FakeRepository();
+        $observer = new RecordingObserver();
+        $repository = new ObservedRepository($inner, $observer);
+
+        $repository->stageAll();
+
+        self::assertContains('stageAll', $inner->calls);
+        self::assertSame(['start:stageAll', 'success:stageAll'], $observer->sequence());
+    }
+
     public function testGetWorkingTreeIsNotObserved(): void
     {
         $inner = new FakeRepository();

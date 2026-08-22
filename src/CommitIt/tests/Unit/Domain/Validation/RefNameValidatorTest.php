@@ -62,7 +62,7 @@ final class RefNameValidatorTest extends Unit
     public function testAssertValidThrowsTaggedException(): void
     {
         $this->expectException(InvalidReferenceNameException::class);
-        $this->expectExceptionMessage('Branch name is invalid');
+        $this->expectExceptionMessage('Branch name is invalid: The reference name must not contain "..".');
 
         RefNameValidator::assertValid('..', RefKind::Branch);
     }

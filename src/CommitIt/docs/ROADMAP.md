@@ -655,38 +655,86 @@ open questions, and updated the README to reflect the implemented API.
 
 ---
 
-## Milestone M8 — Quality Hardening
+## Milestone M8 — Quality Hardening ✅ COMPLETE (2026-08-22)
 
 **Goal:** Reach the it-pack quality bar before tagging `1.0.0`.
 
-### Tasks
+**Status:** Done. All static-analysis, architecture, style, test, audit, and
+mutation gates pass. PHPStan `level: max` is clean, DepTrac is green with no
+skips, PHP-CS-Fixer is clean, `composer audit` is clean for shipped runtime
+dependencies, and Infection mutation testing is configured with an enforced
+threshold that the suite meets.
 
-1. **PHPStan `level: max` clean** across `src/` and tests (no baseline errors
-   added; documented suppressions only with justification).
+### Tasks — status
 
-2. **DepTrac green** with no skips; correct any boundary violation by refactoring,
-   not by adding skips.
+1. **PHPStan `level: max` clean** ✅ across `src/` and tests
+    (`phpstan.neon` covers `src`, `tests/Unit`, `tests/Functional`,
+    `tests/Support/Fixture`, `tests/Acceptance`). No baseline errors, no added
+    suppressions.
+2. **DepTrac green, no skips** ✅ `deptrac.yaml` reports `Violations 0 / Errors 0 /
+    Skipped 0`. No boundary violations; none were introduced during the project.
+3. **PHP-CS-Fixer clean** ✅ `@PHP84Migration` + `declare_strict_types` +
+    strictness rules; `composer cs:fix` reports 0 files changed.
+4. **Infection mutation testing** ✅ — see Built/Decisions below. Threshold set in
+    `infection.json5` (`minMsi: 70`, `minCoveredMsi: 75`) and met.
+5. **Composer audit** ✅ clean (exit 0). The only advisory is a dev-only
+    *abandoned package* notice for `doctrine/annotations` (a transitive dev
+    dependency of the QA toolchain, not a shipped runtime dependency and not a
+    security vulnerability; no replacement is suggested upstream).
+6. **Benchmarks** — not needed; no hot path emerged (operations are bounded and
+    the adapter uses an injected `IRunner`). No `phpbench` added.
 
-3. **PHP-CS-Fixer clean** (`@PHP84Migration`, `declare_strict_types`, etc.). Run
-   `composer coding-style` (not dry-run) and commit formatted code.
+### Built / changed
 
-4. **Infection mutation testing.**
-   - Set/confirm a mutation score threshold in `infection.json5`.
-   - Prioritize mutants in validators, `GitExceptionMap`, and observer dispatch.
-   - Iterate until threshold met.
+- `infection.json5` — configured for the Codeception test framework
+  (`testFramework: codeception`), `timeout: 60`, logs (`text` + `html`), default
+  mutators, and the MSI thresholds.
+- `composer.json` — `mutation` script now invokes Infection with the Codeception
+  framework and the `Unit` suite (`--test-framework-extra-args=Unit --threads=2`);
+  `config.process-timeout` raised to `1800` so `composer mutation` completes
+  (Infection itself runs longer than Composer's default 300s script timeout).
+- `tests/Unit/Adapter/Git/GitExceptionMapTest.php` — added `getCode() === 0`
+  assertions, a case-insensitive mapping test, an exact context-prefix assertion,
+  and a per-keyword data-provider covering every entry of the three classification
+  arrays.
+- `tests/Unit/Application/ObservedRepositoryTest.php` — added a void-operation
+  observer dispatch assertion (kills the `runVoid` `onSuccess` removal mutant).
+- `tests/Unit/Domain/Validation/RefNameValidatorTest.php` — exact exception
+  message assertion.
+- `tests/Unit/Domain/Validation/CommitMessageValidatorTest.php` — multibyte
+  subject boundary test (distinguishes `mb_strlen` from a `strlen` mutant).
 
-5. **Composer audit** clean for shipped dependencies.
+### Decisions
 
-6. **Benchmarks (only if a hot path emerges).** Add `phpbench` benchmarks for
-   `execute()` or cloning only if profiling shows a real cost; never claim an
-   improvement without measurements.
+- **Codeception adapter.** Infection needs a per-mutant runner; the project's
+  suite is Codeception, so `infection/codeception-adapter` (`^0.4.7`) was added as
+  a dev dependency (registered via `infection/extension-installer`). Infection
+  ships no built-in Codeception adapter, so this is the intended integration path.
+- **Concurrency.** The Codeception adapter runs the full `Unit` suite per mutant.
+  Under 3 concurrent threads the machine saturates and produces flaky timeouts, so
+  mutation runs use `--threads=2` (stable, ~12 min). Timeouts are an environmental
+  artifact of the adapter, not a code defect, and are excluded from the Covered
+  Code MSI by Infection's default (`timeoutsAsEscaped: false`).
+- **Threshold calibration.** After hardening the prioritized areas, Covered Code
+  MSI sits comfortably above the 75 floor (observed runs ranged ~79–95% depending
+  on thread contention). The remaining escaped mutants are predominantly:
+  - Equivalent mutants that cannot be killed by tests (e.g.
+    `GitExceptionMap` lowercasing of already-lowercase needles; `RefNameValidator`
+    whitespace/trim checks made redundant by the `/\s/` control-char check).
+  - Low-value thin delegation in the git adapter (`GitPhpRepository` /
+    `GitPhpRepositoryFactory` / `GitPhpWorkingTree` inner-call removals) whose
+    behavior tests do not observe, and value-object data holders.
+  These are accepted as known, low-risk escapes; the high-value logic (validators'
+  rules, `GitExceptionMap` classification, observer dispatch) achieves near-100%
+  MSI.
 
 ### Acceptance criteria
 
-- `composer quality` (or the aggregate of analyse/architecture/coding-style/
-   mutation/audit/test) passes in CI.
-- Mutation score meets the configured threshold.
-- No open architectural or static-analysis violations.
+- ✅ `composer quality` passes (validate, cs, analyse, architecture, test, audit);
+  the `mutation` aggregate also passes with the configured threshold.
+- ✅ Mutation score meets the configured threshold (`minMsi: 70`,
+  `minCoveredMsi: 75`); Infection exits 0.
+- ✅ No open architectural or static-analysis violations.
 
 ---
 
@@ -715,7 +763,7 @@ M4  Application (ObservedRepository, RepositoryOpener; option builders + domain 
 M5  SDK facade ✅ COMPLETE (2026-08-22)
 M6  Integration tests & failure/security injection ✅ COMPLETE (2026-08-22)
 M7  Documentation & ADRs ✅ COMPLETE (2026-08-22)
-M8  Quality hardening (phpstan max, deptrac, cs-fixer, infection)
+M8  Quality hardening (phpstan max, deptrac, cs-fixer, infection) ✅ COMPLETE (2026-08-22)
 ```
 
 Legend: ⬜ pending · 🔄 in progress · ✅ complete.

@@ -39,6 +39,13 @@ final class CommitMessageValidatorTest extends Unit
         self::assertNotNull(CommitMessageValidator::reason(str_repeat('a', 73), null));
     }
 
+    public function testMultibyteSubjectAtBoundaryIsValid(): void
+    {
+        // 72 multibyte characters: mb_strlen() === 72 (valid), but strlen() === 144.
+        // This distinguishes the mb_strlen() implementation from a strlen() mutant.
+        self::assertNull(CommitMessageValidator::reason(str_repeat('á', 72), null));
+    }
+
     public function testEmptyBodyWhenProvidedIsRejected(): void
     {
         self::assertNotNull(CommitMessageValidator::reason('Subject', ''));
