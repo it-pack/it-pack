@@ -12,8 +12,10 @@ use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
 use ItPack\DisenchantIt\Adapter\FlagSetTarget;
 use ItPack\DisenchantIt\Contract\ConstantNameResolverInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
+use ItPack\DisenchantIt\Contract\DictionaryNameResolverInterface;
 use ItPack\DisenchantIt\Contract\PromotionTargetFactoryInterface;
 use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
+use ItPack\DisenchantIt\ValueObject\NamePolicy;
 
 /**
  * Composition root for the composite promotion target. Builds the
@@ -31,11 +33,14 @@ final readonly class PromotionTargetFactory implements PromotionTargetFactoryInt
     ) {
     }
 
-    public static function create(bool $convertFqcnToClassConst = false): self
-    {
+    public static function create(
+        bool $convertFqcnToClassConst = false,
+        ?NamePolicy $namePolicy = null,
+        ?DictionaryNameResolverInterface $dictionary = null,
+    ): self {
         return new self(
             ConstantPlacementFactory::create(),
-            ConstantNameResolver::create(),
+            ConstantNameResolver::create($namePolicy, $dictionary),
             $convertFqcnToClassConst,
         );
     }

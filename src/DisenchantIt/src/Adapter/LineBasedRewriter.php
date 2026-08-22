@@ -38,7 +38,7 @@ final class LineBasedRewriter implements RewriterInterface
     /**
      * @param list<PromotionArtifactInterface|ConstantPlacementInterface> $items
      */
-    public function rewrite(string $code, array $items): string
+    public function rewrite(string $code, array $items, bool $dryRun = false): string
     {
         $artifacts = [];
         foreach ($items as $item) {
@@ -50,6 +50,13 @@ final class LineBasedRewriter implements RewriterInterface
         }
 
         if ($artifacts === []) {
+            return $code;
+        }
+
+        // Dry-run: never apply an edit. The caller (Disenchanter) records the
+        // planned edits through the recorder port so a diff/report can be built
+        // without mutating the source.
+        if ($dryRun) {
             return $code;
         }
 

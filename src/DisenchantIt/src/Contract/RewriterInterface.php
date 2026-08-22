@@ -35,6 +35,9 @@ interface RewriterInterface
      *        must not mutate $code in a way that invalidates the line numbers
      *        recorded on OTHER items' occurrences — LineBasedRewriter processes
      *        items bottom-up so earlier insertions never shift pending anchors.
+     * @param bool $dryRun when true, implementations MUST NOT modify $code; they
+     *        return it unchanged so a caller (Disenchanter) can produce a
+     *        diff/report through the recorder port without writing any edit.
      */
-    public function rewrite(string $code, array $items): string;
+    public function rewrite(string $code, array $items, bool $dryRun = false): string;
 }

@@ -361,47 +361,73 @@ target seam first, then the enum strategy, then closed-set detection.
 
 ---
 
-## Phase 5 — Operational features
+## Phase 5 — Operational features — ✅ DONE
 
-### S5.1 — Output / reporting formats
-- **Add** `Adapter/JsonReportRecorder.php` and `Adapter/SarifRecorder.php`,
-  both implementing the existing `Contract/ExecutionRecorderInterface`
-  (ADR-0011). They turn the `disenchant.it.*.v1` occurrences DisenchantIt already
-  emits into a JSON report / SARIF log. Wire as an alternative recorder in
-  `Factory/DisenchanterFactory` (selected by a config flag).
-- Add a `dryRun` mode to `LineBasedRewriter` (return the `PromotionArtifact`
-  without applying) so `Disenchanter` can produce a diff/report without writing.
-- **Tests:** recorder produces parseable JSON/SARIF from a known run.
+### S5.1 — Output / reporting formats — ✅ DONE
+- **Add** `Adapter/JsonReportRecorder.php` (implements
+  `Contract/JsonReportRecorderInterface`) and `Adapter/SarifRecorder.php`
+  (implements `Contract/SarifRecorderInterface`); both extend
+  `Contract/ReportRecorderInterface` which extends the existing
+  `Contract/ExecutionRecorderInterface` (ADR-0011). They accumulate the
+  `disenchant.it.*.v1` occurrences Core emits and render them via `toJson()`
+  (machine-readable run report) / `toSarif()` (a valid SARIF 2.1.0 log). Wire as
+  an alternative recorder in `DisenchanterFactory::create(recorder: $r)`.
+- Add a `dryRun` mode to `LineBasedRewriter::rewrite()` (and
+  `RewriterInterface`): when true it returns the source **unchanged** (no edit
+  applied), and `Disenchanter::rewrite(..., $dryRun = true)` records a
+  `disenchant.it.dry_run.plan.v1` occurrence carrying the planned edits so a
+  diff/report can be built without writing.
+- **Tests:** `ReportRecorderTest` (JSON/SARIF parseable), `DisenchanterDryRunTest`
+  (dry-run returns unchanged source + records the plan; non-dry-run still writes).
 
-### S5.2 — More syntactic positions
-- **Extend** `Adapter/MagicLiteralVisitor` to collect literals in attribute
-  arguments, property defaults, constant-initializer expressions, and `match`/
-  `enum` arms (most roles already exist; add the node entries). Pure AST
-  extension; same pipeline + tests (each new position yields a detected,
-  promotable literal).
+### S5.2 — More syntactic positions — ✅ DONE
+- `Adapter/MagicLiteralVisitor` already enters **every** `String_` / `LNumber` /
+  `DNumber` node regardless of parent context, so literals in attribute
+  arguments, property defaults, `match` arms and `enum` arms are already
+  collected. No new node entries were required — the generic traversal covers
+  them; only the constant-initializer self-reference case is (correctly)
+  excluded via `isInsideClassConstDeclaration()`.
+- **Tests:** `Phase5SyntacticPositionsTest` proves detection + promotion at
+  attribute arguments, property defaults, and `match` arms, and that a const's
+  own initializer value is never re-promoted.
 
-### S5.3 — Naming dictionary / policy
-- **Add** `ValueObject/NamePolicy.php` (prefix/suffix/casing) +
-  `Contract/NameResolverInterface` extension or a new
+### S5.3 — Naming dictionary / policy — ✅ DONE
+- **Add** `ValueObject/NamePolicy.php` (`prefix` / `suffix` / `casing` via the
+  closed `ValueObject/NameCasing` enum) implementing `NamePolicyInterface`, and
   `Contract/DictionaryNameResolverInterface` + `Adapter/DictionaryNameResolver`
-  that maps a literal → explicit name from an optional dictionary file. Wire
-  into `ConstantNameResolver`/`CompositeConstantPlacementStrategy`.
-- **Tests:** dictionary override wins; policy casing applied.
+  (inline map via `create()` or JSON file via `fromFile()`). `ConstantNameResolver`
+  now takes an optional `?NamePolicy` and `?DictionaryNameResolverInterface`: the
+  dictionary overrides the generated name, then the policy (prefix/suffix/casing)
+  is applied to whichever name wins. Wired through `ConstantNameResolver::create`
+  → `PromotionTargetFactory::create` → `DisenchanterFactory::create`.
+- **Tests:** `Phase5NamingPolicyTest` — dictionary override wins; unknown literal
+  falls back to generator; policy casing applied; prefix/suffix/casing applied to
+  dictionary name; end-to-end via the Disenchanter.
 
-### S5.4 — SemConv persistence
+### S5.4 — SemConv persistence — ✅ DONE
 - **Add** `Contract/SemConvStoreInterface.php` + `Adapter/FileSemConvStore`
-  (load/merge/save the canonical name→value map). `SemConvCollector` merges via
-  the store when present; stable names across runs.
-- **Tests:** second run reuses prior canonical names; merge preserves existing
-  entries (no override of differing values — hard error per domain invariant).
+  (filesystem load/merge/save, fail-closed on write errors). `SemConvCollector`
+  gains an optional `?SemConvStoreInterface`: when present it loads the prior
+  registry when no explicit `$existingSource` is given, and persists the merged
+  result — giving stable, accumulating SemConv names across runs without Core
+  touching the filesystem. Wired via `DisenchanterFactory::create(semconvStore: $s)`.
+- **Tests:** `Phase5SemConvStoreTest` — accumulation across runs; merge preserves
+  existing entries; same-name/different-value is a `SemConvCollisionException`
+  (hard error, per domain invariant); collector without a store stays pure.
 
-### S5.5 — Post-rewrite verify observer (out-of-process)
-- **Add** `Contract/VerificationObserverInterface.php` (one method
-  `afterRewrite(string $rewrittenSource): void`) + `Adapter/PhpLintObserver`
-  that shells out to `php -l` on a temp file (a **separate process**, never
-  inside Core). Disenchanter invokes it through the execution recorder seam.
-- **Tests:** observer invoked after rewrite; lint failure reported, original
-  exception preserved.
+### S5.5 — Post-rewrite verify observer (out-of-process) — ✅ DONE
+- **Add** `Contract/VerificationObserverInterface.php` (`afterRewrite(string):
+  void`) + `Adapter/PhpLintObserver` that lints the rewritten source with `php -l`
+  on a throwaway temp file — a **separate process**, never inside Core. The
+  observer is invoked by `Disenchanter` only after a successful rewrite (both
+  `rewrite()` and `rewriteWithSemConv()`), so a business exception raised earlier
+  propagates unchanged (original failure preserved). A lint failure throws
+  `Exception/VerificationException`. Wired via
+  `DisenchanterFactory::create(observer: $o)`.
+- **Tests:** `Phase5VerifyObserverTest` — observer invoked after rewrite; lint
+  failure reported as `VerificationException`; valid source passes; a
+  SemConv-collision business exception is preserved and the observer is never
+  reached.
 
 ---
 
@@ -430,7 +456,7 @@ S1.1 → S1.2                 # scope/ignore (safe to land early) ✅ DONE
 S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature) ✅ DONE
 S3.1 → S3.2                 # bitmask/flags ✅ DONE
 S4.1 → S4.2                 # string coverage extension ✅ DONE
-S5.1 → S5.2 → S5.3 → S5.4 → S5.5   # operational
+S5.1 → S5.2 → S5.3 → S5.4 → S5.5   # operational ✅ DONE
 S6.1 → S6.2 → S6.3         # docs
 ```
 
@@ -438,11 +464,11 @@ Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
 
 > **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), 2 (S2.1–S2.4), 3
-> (S3.1–S3.2), and 4 (S4.1–S4.2) are implemented and verified. `composer
-> architecture`, `composer analyze` (on `src`), `composer format:check`, and
-> `composer test:unit` (143 tests, 331 assertions) all pass. Namespace filtering
-> is intentionally deferred (no namespace source on literal carriers yet). The
-> next shippable step is Phase 5 (operational features).
+> (S3.1–S3.2), 4 (S4.1–S4.2), and 5 (S5.1–S5.5) are implemented and verified.
+> `composer architecture`, `composer analyze` (on `src`), `composer format:check`,
+> and `composer test:unit` (164 tests, 378 assertions) all pass. Namespace
+> filtering is intentionally deferred (no namespace source on literal carriers
+> yet). The next shippable step is Phase 6 (docs & cleanup).
 >
 > **Known analysis caveat:** `composer analyze` runs PHPStan over **both** `src`
 > and `tests`. The `src` tree is clean at level 9; the `tests` tree currently

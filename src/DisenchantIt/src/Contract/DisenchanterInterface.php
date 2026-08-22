@@ -32,8 +32,13 @@ interface DisenchanterInterface
      * Full pipeline for one source string: detect -> decide placements for
      * every candidate whose occurrence count meets $minOccurrences -> apply
      * those placements and return the rewritten source.
+     *
+     * When $dryRun is true, no edit is applied (the rewriter is told to skip
+     * writing) and the planned edits are recorded through the recorder port as a
+     * `disenchant.it.dry_run.plan.v1` occurrence so a diff/report can be built
+     * without mutating the source.
      */
-    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null): string;
+    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null, bool $dryRun = false): string;
 
     /**
      * Full pipeline including the SemConv collect + alias steps: detect ->

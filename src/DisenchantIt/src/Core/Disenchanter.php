@@ -15,6 +15,7 @@ use ItPack\DisenchantIt\Contract\RewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
 use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\Contract\VerificationObserverInterface;
 use ItPack\DisenchantIt\ValueObject\Candidate;
 use ItPack\DisenchantIt\ValueObject\CandidateInterface;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
@@ -51,6 +52,7 @@ final readonly class Disenchanter implements DisenchanterInterface
         private SemConvAliasRewriterInterface $aliasRewriter,
         private ExecutionRecorderInterface $recorder,
         private ClosedSetDetectorInterface $closedSetDetector,
+        private ?VerificationObserverInterface $observer = null,
     ) {
     }
 
@@ -97,16 +99,25 @@ final readonly class Disenchanter implements DisenchanterInterface
         return $detected;
     }
 
-    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null): string
+    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null, bool $dryRun = false): string
     {
         $candidates = $this->detect($code, $relativePath);
         $groups = $this->closedSetDetector->detect($candidates);
 
         $artifacts = $this->buildArtifacts($groups, $minOccurrences);
 
+        if ($dryRun) {
+            $this->record('disenchant.it.dry_run.plan.v1', $this->planPayload($artifacts));
+
+            return $this->rewriter->rewrite($code, $artifacts, true);
+        }
+
         $this->record('disenchant.it.rewrite.v1', ['count' => count($artifacts)]);
 
-        return $this->rewriter->rewrite($code, $artifacts);
+        $rewritten = $this->rewriter->rewrite($code, $artifacts);
+        $this->invokeObserver($rewritten);
+
+        return $rewritten;
     }
 
     public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null, ?string $relativePath = null): DisenchantResultInterface
@@ -138,7 +149,62 @@ final readonly class Disenchanter implements DisenchanterInterface
             'semconvLines' => substr_count($semconvSource, "\n") + 1,
         ]);
 
+        $this->invokeObserver($aliased);
+
         return new DisenchantResult($aliased, $semconvSource);
+    }
+
+    /**
+     * Invokes the optional post-rewrite verification observer (out-of-process
+     * `php -l`, etc.) on successfully rewritten source. The observer runs only
+     * after a successful rewrite, so a business exception raised earlier in the
+     * pipeline propagates unchanged (the original failure is preserved, never
+     * replaced by a verification failure).
+     */
+    private function invokeObserver(string $rewrittenSource): void
+    {
+        $this->observer?->afterRewrite($rewrittenSource);
+    }
+
+    /**
+     * Builds the structured plan payload recorded on a dry-run: every
+     * promotion artifact's kind, its declaration insertions (class + lines), and
+     * its per-occurrence literal → reference replacements.
+     *
+     * @param list<PromotionArtifactInterface> $artifacts
+     * @return array<string, mixed>
+     */
+    private function planPayload(array $artifacts): array
+    {
+        $edits = [];
+        foreach ($artifacts as $artifact) {
+            $declarations = [];
+            foreach ($artifact->insertions as $insertion) {
+                $declarations[] = [
+                    'className' => $insertion->className,
+                    'topLevel' => $insertion->topLevel,
+                    'lines' => $insertion->lines,
+                ];
+            }
+
+            $replacements = [];
+            foreach ($artifact->replacements as $replacement) {
+                $replacements[] = [
+                    'line' => $replacement->line,
+                    'endLine' => $replacement->endLine,
+                    'needle' => $replacement->needle,
+                    'replacement' => $replacement->replacement,
+                ];
+            }
+
+            $edits[] = [
+                'kind' => $artifact->kind->value,
+                'declarations' => $declarations,
+                'replacements' => $replacements,
+            ];
+        }
+
+        return ['count' => count($artifacts), 'edits' => $edits];
     }
 
     /**

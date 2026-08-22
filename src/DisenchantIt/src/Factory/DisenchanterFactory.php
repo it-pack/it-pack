@@ -13,12 +13,17 @@ use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
 use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
 use ItPack\DisenchantIt\Adapter\SemConvCollector;
 use ItPack\DisenchantIt\Contract\ClosedSetDetectorInterface;
+use ItPack\DisenchantIt\Contract\DictionaryNameResolverInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterFactoryInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
+use ItPack\DisenchantIt\Contract\ExecutionRecorderInterface;
 use ItPack\DisenchantIt\Contract\RewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
+use ItPack\DisenchantIt\Contract\SemConvStoreInterface;
+use ItPack\DisenchantIt\Contract\VerificationObserverInterface;
 use ItPack\DisenchantIt\Core\Disenchanter;
+use ItPack\DisenchantIt\ValueObject\NamePolicy;
 use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 
 /**
@@ -37,20 +42,30 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
         private readonly SemConvCollectorInterface $semconvCollector,
         private readonly SemConvAliasRewriterInterface $semconvAliasRewriter,
         private readonly ClosedSetDetectorInterface $closedSetDetector,
+        private readonly ?ExecutionRecorderInterface $recorder = null,
+        private readonly ?VerificationObserverInterface $observer = null,
     ) {
     }
 
-    public static function create(bool $convertFqcnToClassConst = false): self
-    {
+    public static function create(
+        bool $convertFqcnToClassConst = false,
+        ?ExecutionRecorderInterface $recorder = null,
+        ?NamePolicy $namePolicy = null,
+        ?DictionaryNameResolverInterface $dictionary = null,
+        ?SemConvStoreInterface $semconvStore = null,
+        ?VerificationObserverInterface $observer = null,
+    ): self {
         $semconvConfig = new SemConvConfig();
 
         return new self(
             DetectorFactory::create($convertFqcnToClassConst),
-            PromotionTargetFactory::create($convertFqcnToClassConst),
+            PromotionTargetFactory::create($convertFqcnToClassConst, $namePolicy, $dictionary),
             new LineBasedRewriter(),
-            new SemConvCollector($semconvConfig),
+            new SemConvCollector($semconvConfig, $semconvStore),
             new SemConvAliasRewriter($semconvConfig),
             new ClosedSetDetector(),
+            $recorder,
+            $observer,
         );
     }
 
@@ -68,8 +83,9 @@ final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
             $this->rewriter,
             $this->semconvCollector,
             $this->semconvAliasRewriter,
-            new NullExecutionRecorder(),
+            $this->recorder ?? new NullExecutionRecorder(),
             $this->closedSetDetector,
+            $this->observer,
         );
     }
 }

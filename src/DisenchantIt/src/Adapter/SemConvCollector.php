@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter;
 
 use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
+use ItPack\DisenchantIt\Contract\SemConvStoreInterface;
 use ItPack\DisenchantIt\Exception\SemConvCollisionException;
 use ItPack\DisenchantIt\ValueObject\ConstantDeclaration;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
@@ -16,11 +17,17 @@ use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
  * ConstantPlacements. Read-only with respect to the original source files —
  * this only ever produces ONE new file's content; SemConvAliasRewriter
  * (below) is what touches the original classes.
+ *
+ * When an optional {@see SemConvStoreInterface} is supplied, collect() loads
+ * the prior registry from it when no explicit $existingSource is given, and
+ * persists the merged result back to it — giving stable, accumulating SemConv
+ * names across runs without Core touching the filesystem.
  */
 final readonly class SemConvCollector implements SemConvCollectorInterface
 {
     public function __construct(
         private SemConvConfigInterface $config,
+        private ?SemConvStoreInterface $store = null,
     ) {
     }
 
@@ -30,17 +37,22 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
      *        file, if one already exists from a prior run — passed in
      *        explicitly (rather than this class reading the filesystem
      *        itself) to keep it a pure string-in/string-out transform, the same
-     *        discipline as the rest of DisenchantIt. Without this, a second
-     *        run whose Step 1 finds fewer NEW candidates than a first run
-     *        found (expected, since idempotent Step 1 finds nothing left to
-     *        promote) would regenerate an interface containing only this
-     *        run's placements — silently discarding every constant a prior
-     *        run had already collected. Found and fixed via an actual
+     *        discipline as the rest of DisenchantIt. When null and a store is
+     *        wired, the existing source is loaded from the store instead.
+     *        Without this, a second run whose Step 1 finds fewer NEW candidates
+     *        than a first run found (expected, since idempotent Step 1 finds
+     *        nothing left to promote) would regenerate an interface containing
+     *        only this run's placements — silently discarding every constant a
+     *        prior run had already collected. Found and fixed via an actual
      *        two-runs-in-a-row test, not by inspection.
      * @return string
      */
     public function collect(array $placements, ?string $existingSource = null): string
     {
+        if ($existingSource === null && $this->store !== null) {
+            $existingSource = $this->store->load();
+        }
+
         /** @var array<string, array{type: string, value: string}> $entries */
         $entries = $this->extractExistingEntries($existingSource);
         $collisions = [];
@@ -66,7 +78,16 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
 
         ksort($entries);
 
-        return $this->render($entries);
+        $rendered = $this->render($entries);
+
+        // Persist the merged registry back to the store (when wired) so the
+        // next run loads these entries and keeps names stable. No-op without a
+        // store — the pure string transform is unchanged.
+        if ($this->store !== null) {
+            $this->store->save($rendered);
+        }
+
+        return $rendered;
     }
 
     /**
