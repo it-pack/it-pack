@@ -1,0 +1,12 @@
+{
+    "db": {
+        "host": "db.local",
+        "port": 5432
+    },
+    "log": {
+        "level": "debug"
+    },
+    "secret": {
+        "token": "s3cr3t"
+    }
+}

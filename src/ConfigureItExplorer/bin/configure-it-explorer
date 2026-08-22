@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+# Starts the ConfigureIt read-only web explorer on PHP's built-in server.
+# Override the bind address with CONFIGURE_IT_EXPLORER_HOST (default 127.0.0.1:8080).
+set -e
+
+DIR=$(cd "$(dirname "$0")/.." && pwd)
+HOST="${CONFIGURE_IT_EXPLORER_HOST:-127.0.0.1:8080}"
+
+echo "ConfigureIt Explorer running at http://${HOST}"
+echo "Press Ctrl+C to stop."
+exec php -S "${HOST}" -t "${DIR}/public" "${DIR}/public/index.php"

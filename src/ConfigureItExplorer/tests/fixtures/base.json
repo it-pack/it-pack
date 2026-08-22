@@ -1,0 +1,9 @@
+{
+    "db": {
+        "host": "db.base",
+        "port": 5432
+    },
+    "log": {
+        "level": "info"
+    }
+}
