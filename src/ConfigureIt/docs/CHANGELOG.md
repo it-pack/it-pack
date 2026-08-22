@@ -775,6 +775,43 @@ env-, tenant-, and attribute-gated flags across execution contexts. Suite
 green: **255 tests / 593 assertions**, PHPStan level 9 **0 errors**,
 `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M8: Framework Adoption (Epic E9.1 — framework bundles) ✅
+
+Completes E9.1 of Epic E9 / M8 (`docs/ADDITIONAL_FEATURES_PLAN.md` §9,
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`). ConfigureIt now meets teams in their
+stack through standalone, framework-agnostic **companion packages** (per the
+"No Framework Bias" principle — each only adapts the public
+builder/snapshot ports, no Core changes).
+
+- **`configure-it-psr11`** (`src/ConfigureItPsr11/`, PSR-11 entry exposing the
+  snapshot): `ConfigureItContainer` implements `Psr\Container\ContainerInterface`
+  and serves the resolved `ConfigurationSnapshotInterface` under a single, stable
+  entry id (default: the interface FQCN; overridable). Unknown ids throw a
+  `Psr\Container\NotFoundExceptionInterface`. `ConfigureItContainerFactory`
+  offers `fromSnapshot()` (already-resolved) and `fromBuilder()` (owns the final
+  resolve step).
+- **`configure-it-symfony`** (`src/ConfigureItSymfony/`, full Symfony bundle):
+  `ConfigureItBundle` (extends `Symfony\HttpKernel\Bundle\Bundle`) registers
+  `ConfigureItExtension`, which translates the `configure_it` bundle config
+  (`sources` / `environment` / `schema` / `cache`) into service definitions. The
+  container exposes the resolved `ConfigurationSnapshotInterface` **and** the
+  configured `ConfigurationBuilder` as public services. Wiring is delegated to
+  `ConfigureItSnapshotFactory` (a pure, testable data transformation) so the
+  extension stays thin. Verified by booting a `ContainerBuilder` both from an
+  array config and from a real YAML bundle config via `YamlFileLoader`.
+
+Each companion is an independent composer package (own `composer.json`,
+`phpstan.neon`, `.php-cs-fixer.php`, `phpunit.xml.dist`, README) and runs its
+own gate: **PHPStan level 9 — 0 errors**, `php-cs-fixer` — **0 files**,
+**PHPUnit — 4 tests** (PSR-11: `ConfigureItContainerTest`; Symfony:
+`ConfigureItExtensionTest` + `ConfigureItBundleTest`). The core `ConfigureIt`
+package is unchanged by this milestone and remains green (**255 tests / 593
+assertions**, PHPStan level 9, php-cs-fixer clean).
+
+`configure-it-laravel` (T8.1.3) is deferred: the plan scopes framework bundles
+as separate companions and the M8 Exit only requires PSR-11 + one full framework
+bundle, both now delivered. Laravel is tracked as a follow-up companion.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

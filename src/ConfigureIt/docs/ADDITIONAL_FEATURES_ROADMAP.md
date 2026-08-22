@@ -194,17 +194,17 @@ php-cs-fixer clean).
 
 ---
 
-## M8 — Framework Adoption  *(Plan §9)*
+## M8 — Framework Adoption  *(Plan §9)* ✅ DONE
 
 **Objective:** meet teams in their stack.
 
-### Epic E9.1 — Framework bundles (Companion packages)
-- [ ] **T8.1.1 (M)** `configure-it-psr11`: PSR-11 container entry exposing the snapshot.
-- [ ] **T8.1.2 (L)** `configure-it-symfony`: bundle wiring `ConfigurationBuilder` from bundle config + env.
-- [ ] **T8.1.3 (L)** `configure-it-laravel`: service provider + facade.
-- [ ] **T8.1.4 (M)** Each: integration test booting the container and asserting a resolved, typed snapshot.
+### Epic E9.1 — Framework bundles (Companion packages) ✅ DONE (PSR-11 + Symfony)
+- [x] **T8.1.1 (M)** `configure-it-psr11`: PSR-11 container (`ConfigureItContainer` + `ConfigureItContainerFactory`) exposing the resolved `ConfigurationSnapshotInterface` under a single, stable entry id; unknown ids throw `NotFoundExceptionInterface`.
+- [x] **T8.1.2 (L)** `configure-it-symfony`: `ConfigureItBundle` (extends `Symfony\HttpKernel\Bundle\Bundle`) + `ConfigureItExtension` wiring `ConfigurationBuilder` from bundle config (`sources` / `environment` / `schema` / `cache`), exposing the resolved `ConfigurationSnapshotInterface` **and** the configured `ConfigurationBuilder` as services. Verified by booting a `ContainerBuilder` via both array config and a real YAML bundle config.
+- [ ] **T8.1.3 (L)** `configure-it-laravel`: service provider + facade — **deferred** (not required for M8 Exit; tracked as a follow-up companion). The PSR-11 + Symfony bundles already satisfy the exit criterion.
+- [x] **T8.1.4 (M)** Each shipped companion has an integration test booting its container and asserting a resolved, typed snapshot (PSR-11: `ConfigureItContainerTest`; Symfony: `ConfigureItExtensionTest` + `ConfigureItBundleTest`).
 
-**M8 Exit:** at least PSR-11 + one full framework bundle boot and resolve; gates green in each companion.
+**M8 Exit (PSR-11 + Symfony bundle done):** at least PSR-11 + one full framework bundle boot and resolve; gates green in each companion. `configure-it-psr11` and `configure-it-symfony` each pass PHPStan level 9, php-cs-fixer, and PHPUnit (4 tests each). Core `ConfigureIt` gates remain green (255 tests). Laravel deferred per plan §9 (companion, no framework bias).
 
 ---
 
