@@ -112,4 +112,76 @@ final class ContentClassifierTest extends Unit
 
         $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit));
     }
+
+    /**
+     * @dataProvider bitmaskCases
+     */
+    public function testClassifiesBitmaskForPowersOfTwoInBitwiseContext(int $value): void
+    {
+        $lit = new NumberLiteral(
+            kind: LiteralKind::Int->value,
+            value: (string) $value,
+            raw: (string) $value,
+            line: 1,
+            role: LiteralRole::NumericExpression,
+            className: 'C',
+            methodName: 'm',
+        );
+
+        $this->assertSame(LiteralSubkind::Bitmask, $this->classifier->classify($lit, true));
+    }
+
+    public function bitmaskCases(): iterable
+    {
+        yield '1' => [1];
+        yield '2' => [2];
+        yield '4' => [4];
+        yield '8' => [8];
+        yield '1024' => [1024];
+    }
+
+    public function testDoesNotClassifyBitmaskWithoutBitwiseContext(): void
+    {
+        $lit = new NumberLiteral(
+            kind: LiteralKind::Int->value,
+            value: '4',
+            raw: '4',
+            line: 1,
+            role: LiteralRole::NumericExpression,
+            className: 'C',
+            methodName: 'm',
+        );
+
+        $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit, false));
+    }
+
+    public function testDoesNotClassifyBitmaskForNonPowerOfTwo(): void
+    {
+        $lit = new NumberLiteral(
+            kind: LiteralKind::Int->value,
+            value: '3',
+            raw: '3',
+            line: 1,
+            role: LiteralRole::NumericExpression,
+            className: 'C',
+            methodName: 'm',
+        );
+
+        $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit, true));
+    }
+
+    public function testDoesNotClassifyBitmaskForLoneHundred(): void
+    {
+        $lit = new NumberLiteral(
+            kind: LiteralKind::Int->value,
+            value: '100',
+            raw: '100',
+            line: 1,
+            role: LiteralRole::NumericExpression,
+            className: 'C',
+            methodName: 'm',
+        );
+
+        $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit, true));
+    }
 }

@@ -19,5 +19,10 @@ use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
  */
 interface ContentClassifierInterface
 {
-    public function classify(LiteralInterface $lit): LiteralSubkind;
+    /**
+     * @param bool $inBitwiseContext true when the literal sits inside a bitwise
+     *        `|`/`&`/`^` operation (passed by the scanner, which holds the AST
+     *        node; the Contract stays vendor-free by taking a scalar flag).
+     */
+    public function classify(LiteralInterface $lit, bool $inBitwiseContext = false): LiteralSubkind;
 }

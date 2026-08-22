@@ -22,14 +22,14 @@ use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
  */
 final readonly class ContentClassifier implements ContentClassifierInterface
 {
-    public function classify(LiteralInterface $lit): LiteralSubkind
+    public function classify(LiteralInterface $lit, bool $inBitwiseContext = false): LiteralSubkind
     {
         if ($lit->kind === LiteralKind::String->value) {
             return $this->classifyString($lit->value);
         }
 
         if ($lit->kind === LiteralKind::Int->value) {
-            return $this->classifyInt((int) $lit->value, $lit->role);
+            return $this->classifyInt((int) $lit->value, $lit->role, $inBitwiseContext);
         }
 
         return LiteralSubkind::Unknown;
@@ -89,7 +89,7 @@ final readonly class ContentClassifier implements ContentClassifierInterface
         return $value[strlen($value) - 1] === $first;
     }
 
-    private function classifyInt(int $value, LiteralRole $role): LiteralSubkind
+    private function classifyInt(int $value, LiteralRole $role, bool $inBitwiseContext): LiteralSubkind
     {
         // Status / HTTP-status codes: a three-digit number in a comparison or
         // branch context. Refined further in later phases.
@@ -98,6 +98,13 @@ final readonly class ContentClassifier implements ContentClassifierInterface
             && in_array($role, [LiteralRole::Comparison, LiteralRole::BranchValue], true)
         ) {
             return LiteralSubkind::StatusCode;
+        }
+
+        // Bitmask: a power-of-two integer that participates in a bitwise
+        // operation. Powers of two are the atoms of a flag set; a lone or
+        // non-power-of-two value (e.g. 3, 100) is not.
+        if ($inBitwiseContext && $value > 0 && ($value & ($value - 1)) === 0) {
+            return LiteralSubkind::Bitmask;
         }
 
         return LiteralSubkind::Unknown;

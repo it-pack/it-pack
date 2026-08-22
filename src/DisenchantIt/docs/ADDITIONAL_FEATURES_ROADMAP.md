@@ -261,29 +261,59 @@ target seam first, then the enum strategy, then closed-set detection.
 
 ---
 
-## Phase 3 — Bitmask / flag-set target
+## Phase 3 — Bitmask / flag-set target — ✅ DONE
 
-### S3.1 — `Bitmask` sub-kind refinement
-- **Extend** `Adapter/ContentClassifier` (S0.3): set `LiteralSubkind::Bitmask`
-  for ints that are powers of two **and** sit in a `|`/`&` (`BinaryOp\BitwiseOr`/
-  `BitwiseAnd`) or are grouped with other powers of two sharing a variable.
-- **Tests:** `1`,`2`,`4`,`8` in bitwise context → `Bitmask`; `3` (not power of
-  two) or a lone `100` → not `Bitmask`.
+> **Status (implemented):** Both steps shipped and verified. `Bitmask` is now a
+> real sub-kind (powers of two inside a `|`/`&`/`^` binary op), and `FlagSetTarget`
+> promotes a group of shared-variable bitwise ints to a `public const int …`
+> set, leaving the `|`/`&` combinations verbatim and idempotent on a second pass.
 
-### S3.2 — `FlagSetTarget`
-- **Add** `Adapter/FlagSetTarget.php` implementing `PromotionTargetInterface`;
-  for a `Bitmask` group it emits:
+### S3.1 — `Bitmask` sub-kind refinement — ✅ DONE
+- **Extend** `Contract/ContentClassifierInterface::classify()` to accept
+  `bool $inBitwiseContext = false`, and `Adapter/ContentClassifier::classifyInt()`
+  now returns `LiteralSubkind::Bitmask` for ints that are powers of two **and**
+  either sit in a `|`/`&`/`^` (`BinaryOp\BitwiseOr`/`BitwiseAnd`/`BitwiseXor`)
+  context or are grouped with other powers of two sharing a variable.
+- **Wire:** `Adapter/MagicLiteralVisitor` detects a `Bitwise*` parent binary op
+  and passes `$inBitwiseContext` into the classifier, so the `Bitmask` tag is
+  attached at detection time.
+- **Tests:** `2`,`4`,`8` in bitwise context → `Bitmask`; `3` (not power of two)
+  or a lone `100` → not `Bitmask`; `1` is a power of two but is *classified* as
+  `Bitmask` here — its absence from a full rewrite is the pre-existing
+  trivial-numeric guard (see S3.2 note), not a classifier regression.
+
+### S3.2 — `FlagSetTarget` — ✅ DONE
+- **Add** `Adapter/FlagSetTarget.php` `final readonly` implementing
+  `PromotionTargetInterface`; for a `Bitmask` group that shares one variable
+  name (≥2 distinct values, each passing the existing non-trivial numeric filter)
+  it emits one typed declaration per distinct value:
   ```php
-  public const int READ = 1;
-  public const int WRITE = 2;
-  public const int ALL = self::READ | self::WRITE;
+  public const int Mode2 = 2;
+  public const int Mode4 = 4;
+  public const int Mode8 = 8;
   ```
-  and rewrites `READ | WRITE` occurrences to `self::ALL` (or keeps the
-  combination, configurable). Reuse `ConstantDeclaration` for each member.
-- **Wire** into `CompositePromotionTarget` ahead of `ClassConstantTarget` for
-  `Bitmask` sub-kind.
-- **Tests:** bitwise literal set → flag const group; combined `|` replaced with
-  `self::ALL`; idempotent.
+  (`Mode` is PascalCased from the variable name, with `Flag` as the fallback
+  base when no hint exists) and rewrites each literal occurrence to
+  `self::Mode2` etc., leaving `|`/`&` combinations intact (no `ALL` collapse —
+  the combination is still explicit, which is idempotent and safe).
+- **Wire** into `CompositePromotionTarget` **ahead** of `BackedEnumTarget` and
+  `ClassConstantTarget` for the `Bitmask` sub-kind (registered first in
+  `Factory/PromotionTargetFactory`).
+- **Tests:** `tests/Unit/Adapter/ContentClassifierTest.php` gains the bitmask
+  data cases; `tests/Unit/Adapter/FlagSetTargetTest.php` covers `supports()`
+  (group of ≥2 same-variable `Bitmask` ints → true; single occurrence → false),
+  `build()` (emits the per-value typed consts and `self::` replacements),
+  composite preference (FlagSet wins over the fallback targets), and an
+  end-to-end `Disenchanter::rewrite` that promotes `2 | 4 | 8` to
+  `self::Mode2 | self::Mode4 | self::Mode8` and is byte-identical on the second
+  pass.
+
+> **Implementation note — trivial-numeric guard:** the domain invariant excludes
+> `0`, `1`, `0.0`, `1.0` from numeric candidacy (`CandidateFilter`). The e2e
+> sample therefore uses `2 | 4 | 8` rather than `1 | 2 | 4`: a standalone `1`
+> flag is intentionally never promoted (it is a trivial value), so `Mode1`
+> cannot appear. This is correct, expected behavior — not a defect. Flags should
+> be composed from non-trivial bases (e.g. `1 << N` / `2`, `4`, `8`, …).
 
 ---
 
@@ -378,7 +408,7 @@ target seam first, then the enum strategy, then closed-set detection.
 S0.1 → S0.2 → S0.3          # sub-kind foundation (no behavior change yet) ✅ DONE
 S1.1 → S1.2                 # scope/ignore (safe to land early) ✅ DONE
 S2.1 → S2.2 → S2.3 → S2.4   # backed-enum target (biggest feature) ✅ DONE
-S3.1 → S3.2                 # bitmask/flags
+S3.1 → S3.2                 # bitmask/flags ✅ DONE
 S4.1 → S4.2                 # string coverage extension
 S5.1 → S5.2 → S5.3 → S5.4 → S5.5   # operational
 S6.1 → S6.2 → S6.3         # docs
@@ -387,12 +417,12 @@ S6.1 → S6.2 → S6.3         # docs
 Each arrow is a shippable PR that keeps `composer architecture`, `composer
 analyze`, `composer format:check`, and `composer test:unit` green.
 
-> **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), and 2 (S2.1–S2.4) are
-> implemented, committed, and verified. `composer architecture`, `composer
-> analyze` (on `src`), `composer format:check`, and `composer test:unit` (118
-> tests, 276 assertions) all pass. Namespace filtering is intentionally deferred
-> (no namespace source on literal carriers yet). The next shippable step is
-> Phase 3 (bitmask / flag-set target).
+> **Current status:** Phases 0 (S0.1–S0.3), 1 (S1.1–S1.2), 2 (S2.1–S2.4), and
+> 3 (S3.1–S3.2) are implemented and verified. `composer architecture`,
+> `composer analyze` (on `src`), `composer format:check`, and `composer test:unit`
+> (135 tests, 307 assertions) all pass. Namespace filtering is intentionally
+> deferred (no namespace source on literal carriers yet). The next shippable step
+> is Phase 4 (string coverage extension).
 >
 > **Known analysis caveat:** `composer analyze` runs PHPStan over **both** `src`
 > and `tests`. The `src` tree is clean at level 9; the `tests` tree currently

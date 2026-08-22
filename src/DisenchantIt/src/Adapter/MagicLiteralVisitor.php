@@ -13,6 +13,9 @@ use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
 use ItPack\DisenchantIt\ValueObject\StringLiteral;
 use PhpParser\Node;
+use PhpParser\Node\Expr\BinaryOp\BitwiseAnd;
+use PhpParser\Node\Expr\BinaryOp\BitwiseOr;
+use PhpParser\Node\Expr\BinaryOp\BitwiseXor;
 use PhpParser\Node\Scalar\DNumber;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\Node\Scalar\String_;
@@ -70,6 +73,9 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
 
             $parent = $node->getAttribute('parent');
             $typedParent = $parent instanceof Node ? $parent : null;
+            $inBitwiseContext = $typedParent instanceof BitwiseOr
+                || $typedParent instanceof BitwiseAnd
+                || $typedParent instanceof BitwiseXor;
             $role = $this->classifier->classify($node, $typedParent);
 
             $proto = new StringLiteral(
@@ -89,7 +95,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 methodName: $proto->methodName,
                 raw: $proto->raw,
                 namingContext: $this->extractor->extract($node, $node->getStartLine(), $this->code),
-                subkind: $this->contentClassifier->classify($proto),
+                subkind: $this->contentClassifier->classify($proto, $inBitwiseContext),
             );
 
             return null;
@@ -102,6 +108,9 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
 
             $parent = $node->getAttribute('parent');
             $typedParent = $parent instanceof Node ? $parent : null;
+            $inBitwiseContext = $typedParent instanceof BitwiseOr
+                || $typedParent instanceof BitwiseAnd
+                || $typedParent instanceof BitwiseXor;
             $role = $this->classifier->classify($node, $typedParent);
 
             $proto = new NumberLiteral(
@@ -124,7 +133,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 className: $proto->className,
                 methodName: $proto->methodName,
                 namingContext: $proto->namingContext,
-                subkind: $this->contentClassifier->classify($proto),
+                subkind: $this->contentClassifier->classify($proto, $inBitwiseContext),
             );
 
             return null;
