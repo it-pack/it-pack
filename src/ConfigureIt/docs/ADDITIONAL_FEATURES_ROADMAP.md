@@ -180,17 +180,17 @@ php-cs-fixer clean).
 
 **Objective:** warnings vs errors, feature-flag evaluation.
 
-### Epic E8.1 — Validation severity (Core)
-- [ ] **T7.1.1 (M)** `ValidationResult` gains `severity` (error|warning); `NativeConfigurationSchema` maps Nette messages to severity.
-- [ ] **T7.1.2 (M)** `ConfigurationBuilder::failOnWarnings(bool)`; resolver throws only on errors, emits warnings as `Observation`s.
-- [ ] **T7.1.3 (M)** Tests: `SeverityTest` (warning-only resolves + observed; error throws).
+### Epic E8.1 — Validation severity (Core) ✅ DONE
+- [x] **T7.1.1 (M)** `ValidationResultInterface`/`ValidationResult` gain `severity` (`error`|`warning`); `NativeConfigurationSchema` maps Nette error messages to `error` and (deprecation/soft) warnings via `Processor::getWarnings()` to `warning`.
+- [x] **T7.1.2 (M)** `ConfigurationBuilder::failOnWarnings(bool)` (default `false`); resolver throws only on errors, emits each issue as an `Observation` (`warning`/`error` level), and only fails on warnings when `failOnWarnings` is set.
+- [x] **T7.1.3 (M)** Tests: `SeverityTest` (warning-only resolves + observed; error throws; `failOnWarnings` makes a warning fatal) plus updated `ValidationResultTest`.
 
 ### Epic E8.2 — Feature flags (Companion: `configure-it-flags`)
 - [ ] **T7.2.1 (M)** `FlagEvaluator` port over the resolved graph (percentage rollout, tenant/user targeting, env gating).
 - [ ] **T7.2.2 (M)** Schema-driven flag definitions; evaluation reads the snapshot (no new source of truth).
 - [ ] **T7.2.3 (M)** Tests + `examples/feature-flags.php`.
 
-**M7 Exit:** warnings don't crash; flags evaluate from config; gates green.
+**M7 Exit (E8.1 done):** warnings don't crash the resolver (surfaced as `warning` observations); errors still throw unless `failOnWarnings` flips them; E8.2 (feature flags) remains TODO. Gates green.
 
 ---
 

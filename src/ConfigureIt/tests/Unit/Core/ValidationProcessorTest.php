@@ -45,7 +45,7 @@ class ValidationProcessorTest extends Unit
             {
                 return $this->valid
                     ? new ValidationResult(true)
-                    : new ValidationResult(false, [['path' => 'a', 'message' => 'must be string']]);
+                    : new ValidationResult(false, [['path' => 'a', 'message' => 'must be string', 'severity' => 'error']]);
             }
         };
     }

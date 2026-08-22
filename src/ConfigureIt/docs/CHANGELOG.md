@@ -703,6 +703,43 @@ re-emitting) and an `OpenTelemetryReporterTest` asserting the `config.drift`
 event + span. Suite green: **233 tests / 539 assertions**, PHPStan level 9
 **0 errors**, `php-cs-fixer` **0 files to fix**.
 
+### Additional Features — M7.E8.1: Validation severity (warnings vs errors) ✅
+
+Completes E8.1 of Epic E8 / M7 (`docs/ADDITIONAL_FEATURES_PLAN.md` §8,
+`docs/ADDITIONAL_FEATURES_ROADMAP.md`). Validation now distinguishes blocking
+errors from non-blocking warnings, so deprecations and other soft notices no
+longer crash resolution — they surface as observations. Behaviour is backward
+compatible (errors still throw by default).
+
+- `src/Contract/ValueObject/ValidationResultInterface.php` (changed) — adds
+  `issues()`, `warnings()`, `hasErrors()`, `hasWarnings()`; every issue now
+  carries a `severity` of `'error'` or `'warning'`. `errors()` returns only the
+  blocking (error-severity) issues.
+- `src/ValueObject/ValidationResult.php` (changed) — splits issues by severity;
+  `valid()` means "no errors" (warnings do not make a result invalid).
+- `src/ValueObject/ValidationResultFactory.php` + its contract — docblock updated
+  to the severity-aware issue shape.
+- `src/Adapter/NativeConfigurationSchema.php` (changed) — now reads Nette's
+  separate warning channel (`Processor::getWarnings()`) and maps those messages
+  to `severity => 'warning'`, while `ValidationException` messages map to
+  `severity => 'error'`. A warning-only result is reported as valid.
+- `src/Core/ConfigurationResolver.php` (changed) — `validateGraph()` records a
+  `ConfigurationValidated` occurrence (with error/warning counts) and emits one
+  `Observation` per issue (level = its severity). Resolution only aborts on
+  errors, unless the new `failOnWarnings` flag is set.
+- `src/Core/ConfigurationBuilder.php` (changed) — new `failOnWarnings(bool)`
+  (default `false`); threaded through `ConfigurationFactory` →
+  `ConfigurationResolver` so warnings can optionally be made fatal.
+- `src/Contract/ConfigurationFactoryInterface.php` + `src/Core/ConfigurationFactory.php`
+  (changed) — to carry the `failOnWarnings` flag; `CachingResolver` is unaffected
+  (the inner resolver is already built with the flag by the builder).
+
+Tests: `SeverityTest` (warning-only resolves and emits a `warning` observation;
+error throws regardless of `failOnWarnings`; `failOnWarnings(true)` makes a
+warning fatal) plus updated `ValidationResultTest` and `ValidationProcessorTest`.
+Suite green: **239 tests / 561 assertions**, PHPStan level 9 **0 errors**,
+`php-cs-fixer` **0 files to fix**.
+
 ### Notes
 
 - PHPStan level 9 reports only `shipmonk.deadMethod` findings at this stage

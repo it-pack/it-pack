@@ -29,7 +29,8 @@ final readonly class ConfigurationFactory implements ConfigurationFactoryInterfa
         ?ConfigurationSchemaInterface $schema = null,
         iterable                     $sources = [],
         array                        $processors = [],
-        ?ResolutionReporterInterface $reporter = null
+        ?ResolutionReporterInterface $reporter = null,
+        bool                         $failOnWarnings = false,
     ): ConfigurationResolverInterface {
         return new ConfigurationResolver(
             reader: $reader,
@@ -38,6 +39,7 @@ final readonly class ConfigurationFactory implements ConfigurationFactoryInterfa
             schema: $schema,
             reporter: $reporter ?? $this->reporter,
             sources: $sources,
+            failOnWarnings: $failOnWarnings,
         );
     }
 }

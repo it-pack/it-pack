@@ -72,6 +72,8 @@ final class ConfigurationBuilder
 
     private ?DecrypterInterface $decrypter = null;
 
+    private bool $failOnWarnings = false;
+
     public function __construct(
         private readonly ConfigurationFactoryInterface $factory = new ConfigurationFactory(),
     ) {
@@ -186,6 +188,20 @@ final class ConfigurationBuilder
         return $this;
     }
 
+    /**
+     * Treat schema warnings (e.g. deprecations) as fatal.
+     *
+     * By default only errors block resolution and warnings are surfaced as
+     * `Observation`s. Enabling this makes a warning-only result throw a
+     * {@see \ItPack\ConfigureIt\Exception\ValidationException} instead.
+     */
+    public function failOnWarnings(bool $failOnWarnings = true): self
+    {
+        $this->failOnWarnings = $failOnWarnings;
+
+        return $this;
+    }
+
     public function build(?ResolutionReporter $reporter = null): ConfigurationResolverInterface
     {
         $reporter ??= new ResolutionReporter();
@@ -227,6 +243,7 @@ final class ConfigurationBuilder
             sources: $sources,
             processors: $processors,
             reporter: $reporter,
+            failOnWarnings: $this->failOnWarnings,
         );
 
         if ($this->cache instanceof ConfigurationCacheInterface) {

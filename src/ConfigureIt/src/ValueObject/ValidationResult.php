@@ -10,17 +10,20 @@ use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
  * Outcome of validating a configuration graph against a schema.
  *
  * Immutably captures whether validation succeeded and, when it did not, the
- * collected diagnostics (path + human-readable message). Aligned with the
- * execution model's "Observation" concept (see docs/EXECUTION.md).
+ * collected diagnostics (path + human-readable message + severity). Aligned with
+ * the execution model's "Observation" concept (see docs/EXECUTION.md): warnings
+ * are non-blocking and surfaced as observations, only errors block resolution
+ * (unless {@see \ItPack\ConfigureIt\Core\ConfigurationResolver} is asked to treat
+ * warnings as fatal too).
  */
 final readonly class ValidationResult implements ValidationResultInterface
 {
     /**
-     * @param list<array{path: string, message: string}> $errors
+     * @param list<array{path: string, message: string, severity: 'error'|'warning'}> $issues
      */
     public function __construct(
         private bool $valid,
-        private array $errors = [],
+        private array $issues = [],
     ) {
     }
 
@@ -30,10 +33,42 @@ final readonly class ValidationResult implements ValidationResultInterface
     }
 
     /**
-     * @return list<array{path: string, message: string}>
+     * @return list<array{path: string, message: string, severity: 'error'|'warning'}>
+     */
+    public function issues(): array
+    {
+        return $this->issues;
+    }
+
+    /**
+     * @return list<array{path: string, message: string, severity: 'error'|'warning'}>
      */
     public function errors(): array
     {
-        return $this->errors;
+        return array_values(array_filter(
+            $this->issues,
+            static fn (array $issue): bool => $issue['severity'] === 'error',
+        ));
+    }
+
+    /**
+     * @return list<array{path: string, message: string, severity: 'error'|'warning'}>
+     */
+    public function warnings(): array
+    {
+        return array_values(array_filter(
+            $this->issues,
+            static fn (array $issue): bool => $issue['severity'] === 'warning',
+        ));
+    }
+
+    public function hasErrors(): bool
+    {
+        return $this->errors() !== [];
+    }
+
+    public function hasWarnings(): bool
+    {
+        return $this->warnings() !== [];
     }
 }

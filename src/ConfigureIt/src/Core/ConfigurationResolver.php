@@ -19,6 +19,7 @@ use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\LayerAwareSourceInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
+use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\OccurrenceFactory;
 
@@ -45,6 +46,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         private ?ConfigurationSchemaInterface         $schema = null,
         private ?ResolutionReporterInterface          $reporter = null,
         private iterable                              $sources = [],
+        private bool                                  $failOnWarnings = false,
         private OccurrenceFactory                     $occurrenceFactory = new OccurrenceFactory(),
         private ConfigurationDocumentFactoryInterface $documentFactory = new ConfigurationDocumentFactory(),
         private ConfigurationSnapshotFactoryInterface $snapshotFactory = new ConfigurationSnapshotFactory(),
@@ -61,12 +63,18 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         );
     }
 
-    private function describe(ValidationResultInterface $result): string
+    private function describe(ValidationResultInterface $result, bool $includeWarnings): string
     {
         $lines = ['Configuration validation failed:'];
 
         foreach ($result->errors() as $error) {
-            $lines[] = sprintf('  %s: %s', $error['path'], $error['message']);
+            $lines[] = sprintf('  [error] %s: %s', $error['path'], $error['message']);
+        }
+
+        if ($includeWarnings) {
+            foreach ($result->warnings() as $warning) {
+                $lines[] = sprintf('  [warning] %s: %s', $warning['path'], $warning['message']);
+            }
         }
 
         return implode("\n", $lines);
@@ -88,12 +96,27 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
             $this->reporter?->record(
                 $this->createOccurrence(
                     'ConfigurationValidated',
-                    ['valid' => $result->valid()],
+                    [
+                        'valid' => $result->valid(),
+                        'errors' => count($result->errors()),
+                        'warnings' => count($result->warnings()),
+                    ],
                 )
             );
 
-            if (!$result->valid()) {
-                throw new ValidationException($this->describe($result));
+            foreach ($result->issues() as $issue) {
+                $this->reporter?->observe(new Observation(
+                    $issue['severity'],
+                    sprintf('%s: %s', $issue['path'], $issue['message']),
+                    ['path' => $issue['path'], 'severity' => $issue['severity']],
+                ));
+            }
+
+            $blocking = !$result->valid()
+                || ($this->failOnWarnings && $result->hasWarnings());
+
+            if ($blocking) {
+                throw new ValidationException($this->describe($result, $this->failOnWarnings));
             }
         }
     }

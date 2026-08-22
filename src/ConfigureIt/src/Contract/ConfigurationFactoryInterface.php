@@ -20,5 +20,6 @@ interface ConfigurationFactoryInterface
         iterable                     $sources = [],
         array                        $processors = [],
         ?ResolutionReporterInterface $reporter = null,
+        bool                         $failOnWarnings = false,
     ): ConfigurationResolverInterface;
 }

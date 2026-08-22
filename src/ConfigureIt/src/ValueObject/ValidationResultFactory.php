@@ -12,12 +12,12 @@ class ValidationResultFactory implements ValidationResultFactoryInterface
     use CreatableBehavior;
 
     /**
-     * @param list<array{path: string, message: string}> $errors
+     * @param list<array{path: string, message: string, severity: 'error'|'warning'}> $issues
      */
     public function build(
         bool $valid,
-        array $errors = [],
+        array $issues = [],
     ): ValidationResult {
-        return new ValidationResult($valid, $errors);
+        return new ValidationResult($valid, $issues);
     }
 }

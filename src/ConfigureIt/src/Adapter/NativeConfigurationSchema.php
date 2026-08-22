@@ -44,10 +44,18 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
         try {
             $this->processor->process($this->schema, $graph->toArray());
         } catch (ValidationException $e) {
-            return $this->resultFactory->build(false, $this->normalize($e));
+            $issues = [
+                ...$this->normalizeErrors($e),
+                ...$this->normalizeWarnings($this->processor->getWarnings()),
+            ];
+
+            return $this->resultFactory->build(false, $issues);
         }
 
-        return $this->resultFactory->build(true);
+        $warnings = $this->normalizeWarnings($this->processor->getWarnings());
+
+        // Warnings are non-blocking: a warning-only result is still valid.
+        return $this->resultFactory->build(true, $warnings);
     }
 
     /**
@@ -123,9 +131,9 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
     }
 
     /**
-     * @return list<array{path: string, message: string}>
+     * @return list<array{path: string, message: string, severity: 'error'|'warning'}>
      */
-    private function normalize(ValidationException $e): array
+    private function normalizeErrors(ValidationException $e): array
     {
         $errors = [];
 
@@ -135,9 +143,29 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
             $errors[] = [
                 'path' => $path !== '' ? $path : '(root)',
                 'message' => $message->toString(),
+                'severity' => 'error',
             ];
         }
 
         return $errors;
+    }
+
+    /**
+     * Nette keeps deprecations/soft-assertions in a separate warning channel,
+     * surfaced after processing without aborting resolution.
+     *
+     * @param list<string> $warnings
+     * @return list<array{path: string, message: string, severity: 'error'|'warning'}>
+     */
+    private function normalizeWarnings(array $warnings): array
+    {
+        return array_map(
+            static fn (string $message): array => [
+                'path' => '(root)',
+                'message' => $message,
+                'severity' => 'warning',
+            ],
+            $warnings,
+        );
     }
 }

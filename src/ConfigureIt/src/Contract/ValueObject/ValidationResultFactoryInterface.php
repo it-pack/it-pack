@@ -7,10 +7,10 @@ namespace ItPack\ConfigureIt\Contract\ValueObject;
 interface ValidationResultFactoryInterface
 {
     /**
-     * @param list<array{path: string, message: string}> $errors
+     * @param list<array{path: string, message: string, severity: 'error'|'warning'}> $issues
      */
     public function build(
         bool $valid,
-        array $errors = [],
+        array $issues = [],
     ): ValidationResultInterface;
 }
