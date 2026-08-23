@@ -125,14 +125,19 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 
 ## Phase 2 — P2: DRY, assembly & modern-PHP leverage
 
-> **Status: In progress (2026-08-23).** The local `composer test` gate runs the full
-> suite green (692 Unit + 3 Integration + 9 Conformance; Functional has 0 tests), so it
-> is **not** a blocker. T2.1 was found **unsafe as written** (see below — unifying on
-> `ValidatedStringValueBehavior` would weaken validation or break `equals`/BC), so the
-> current design is retained. **T2.3 is executed** (publisher-stack factory), verified by
-> `composer test` (704 tests) + static gates. T2.2 (lazy-init spike) and T2.4 (property
-> hooks) remain deferred (gated on `composer benchmark` / normalization tests
-> respectively), not by the test gate.
+> **Status: Complete (2026-08-23).** The local `composer test` gate runs the full suite
+> green (704 tests: 692 Unit + 3 Integration + 9 Conformance; Functional has 0 tests), so it
+> is **not** a blocker. Outcomes:
+> - **T2.1 — retained by design:** unifying VOs on `ValidatedStringValueBehavior` would weaken
+>   validation (`ContextValueValidator`/`AttributeValidator`) or break `equals`/BC.
+> - **T2.3 — executed:** `PublisherStackFactory` extracted and verified by `composer test` + all
+>   static gates.
+> - **T2.2 — deferred (analysis):** speculative optimization with no benchmark evidence of a
+>   construction-cost problem; the heavy OTel bridge is injected, not built by the builder.
+> - **T2.4 — deferred (analysis):** the candidate projection getters are all declared in public
+>   interfaces, so hooks would break the contract; value objects already use `readonly` properties.
+> All static gates remain green (`cs:check`, `architecture`, `api:check`, `analyse` at 15 accepted
+> `shipmonk.deadMethod`).
 
 ### T2.1 — Standardize value-object validation on `ValidatedStringValueBehavior` (REVIEW.md §3.3, §4 P2-5) — **ANALYSIS: retained by design (not safely unifiable)**
 - **Goal:** seven domain VOs instantiate validators inline (`new ContextValueValidator()`,
@@ -172,7 +177,7 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   verify target is intentionally not met because unifying would break semantics.
 
 
-### T2.2 — Introduce lazy objects for expensive optional infrastructure (REVIEW.md §3.6, §4 P2-6) — **DEFERRED**
+### T2.2 — Introduce lazy objects for expensive optional infrastructure (REVIEW.md §3.6, §4 P2-6) — **DEFERRED (analysis)**
 - **Goal:** AGENTS.md recommends lazy objects for *expensive optional infrastructure*
   (OpenTelemetry bridge, serialization caches, in-memory stores). None are used today, so
   heavy adapters are built eagerly even when unused.
@@ -194,10 +199,16 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 - **Risk/BC:** lazy proxies can shift initialization order; keep within a single thread/Fiber
   boundary and never lazily proxy context-storage. Add a BC note if a constructor signature
   changes.
-- **Deferred → now executable (2026-08-23):** this is an explicit spike gated on
-  `composer benchmark` (no regression) and `composer test`/dogfood (deferred-init behavior).
-  The local gate runs green, so the spike can be validated. Pursue starting with the single
-  safe `RunItBuilder` publisher-stack target.
+- **Deferred (analysis, 2026-08-23):** this is a speculative optimization, not a defect.
+  There is no benchmark evidence of a construction-cost problem: the in-tree publishers
+  (`RedactingArtifactPublisher` / `SamplingArtifactPublisher`) are trivial readonly wrappers,
+  and `RunItBuilder::build()` only assembles what a built `RunIt` immediately uses. The plan's
+  actual "expensive optional infrastructure" (the OpenTelemetry bridge) is **injected** into
+  the builder/runner, never constructed there, so lazy-init in the builder would not defer any
+  heavy work. A safe lazy-init would also require `Lazy` ghosts (the publishers are `final`, so
+  `newLazyProxy` is unavailable) and a benchmark proving a win — neither is justified without
+  a measured need. Revisit only if a benchmark shows eager construction of genuinely-heavy,
+  rarely-used infrastructure.
 
 
 ### T2.3 — Extract subsystem factories from the builder/runner (REVIEW.md §3.1, §4 P2-7) — **DONE**
@@ -237,7 +248,7 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   green (704 tests).
 
 
-### T2.4 — Adopt property hooks for value-object projections (REVIEW.md §3.6, §4 P2-8) — **DEFERRED**
+### T2.4 — Adopt property hooks for value-object projections (REVIEW.md §3.6, §4 P2-8) — **DEFERRED (analysis)**
 - **Goal:** several value objects expose computed projections via getter methods where PHP 8.4
   property hooks (`get`/`set`) would be more idiomatic and reduce boilerplate.
 - **Files (candidates):** `src/Domain/Execution/ExecutionId.php` and other identifier VOs,
@@ -252,13 +263,17 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   `composer cs:check` green.
 - **Risk/BC:** property hooks are PHP 8.4+; project already targets 8.4. Avoid hooks that
   would alter normalized output.
-- **Deferred → now executable (2026-08-23):** the existing VOs deliberately use
-  `public readonly string $value` (per `ValidatedStringValueBehavior`'s own note: "so the
-  consuming class can stay a `readonly class`"), and several expose `toString()` projections
-  rather than getters. Converting to `get`/`set` hooks changes class bodies and risks
-  normalization/serialization drift, which the plan's verify gates on `composer test` (now
-  green). Revisit per-VO once normalization tests can confirm no output change; convert only
-  pure projections that do not alter the normalized shape.
+- **Deferred (analysis, 2026-08-23):** the task's premise does not hold for this codebase.
+  The candidate projection getters are **all declared in public interfaces**, so they cannot
+  become property hooks without breaking the contract (a hook exposes `->isError` as a property,
+  not `->isError()` as a method; callers and implementers rely on the method form):
+  `ContextClassificationInterface::{isExportable,isPropagatable,isSerializable}`,
+  `ObservationSeverityInterface::isError`, `SnapshotClassificationInterface::isTerminal`,
+  `ExecutionContextInterface::has`, `AttributeCollectionInterface::{get,has,isEmpty}`, and
+  `IteratorAggregate::getIterator`. Separately, direct values already use `public readonly`
+  properties (the deliberate design choice noted in `ValidatedStringValueBehavior`), so there
+  is no getter boilerplate to replace. With no safe, non-BC-breaking conversion target, T2.4 is
+  not actionable as written.
 
 ---
 

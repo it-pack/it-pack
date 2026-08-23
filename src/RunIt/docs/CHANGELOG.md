@@ -74,10 +74,17 @@ pre-release versions.
    `RunItBuilder::build()` wiring. The builder now delegates to the factory; its `with*` seams
    and copy-on-write behavior are unchanged. `composer architecture`, `composer analyse`,
    `composer api:check`, and `composer test` (704 tests) are green.
- - **T2.2 (lazy objects) and T2.4 (property hooks):** deferred (not blocked by the test gate,
-   which runs green locally). T2.2 is an explicit lazy-init spike gated on `composer benchmark`
-   (no regression) and T2.4 risks normalization/serialization drift, so both are scheduled for
-   a later pass with targeted benchmarks / normalization tests.
+ - **T2.2 (lazy objects):** deferred by analysis, not by the test gate (which runs green). It
+   is a speculative optimization with no benchmark evidence of a construction-cost problem; the
+   genuinely-expensive OpenTelemetry bridge is injected into the builder/runner, never constructed
+   there, so lazy-init in the builder would defer no heavy work. Revisit only if a benchmark
+   shows eager construction of rarely-used heavy infrastructure.
+ - **T2.4 (property hooks):** deferred by analysis. The candidate projection getters
+   (`isExportable`/`isPropagatable`/`isSerializable`, `isError`, `isTerminal`, `has`, `get`,
+   `isEmpty`, `getIterator`) are **all declared in public interfaces**, so converting them to
+   property hooks would break the contract (a hook is read as a property, not called as a method).
+   Direct values already use `public readonly` properties, so there is no getter boilerplate to
+   replace; no safe, non-BC-breaking conversion target exists.
 
  All static gates remain green: `composer cs:check`, `composer architecture`,
  `composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
