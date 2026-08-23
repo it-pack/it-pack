@@ -4074,6 +4074,39 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Factory\\PublisherStackFactory": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface"
+        },
+        "constants": [],
+        "methods": {
+            "compose": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Lifecycle\\ExecutionLifecycleCoordinator": {
         "kind": "class",
         "final": true,
@@ -12268,6 +12301,37 @@
                     {
                         "name": "toInclusive",
                         "type": "int",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "compose": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
                         "optional": false
                     }
                 ]

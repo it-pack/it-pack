@@ -55,6 +55,33 @@ pre-release versions.
   `composer analyse` therefore still reports exactly 15 errors, matching the
   documented kept set.
 
+## Unreleased — Phase 2 (P2)
+
+ Phase 2 was analysed; the design was retained where unification would be unsafe, and the
+ composition-root factory extraction was executed. Rationale per task:
+
+ - **T2.1 (VO validation unification):** `ValidatedStringValueBehavior` validates with
+   `StringValueValidator` and exposes `equals(StringValueInterface)`, so it only fits VOs
+   implementing `StringValueInterface` (the existing 7 name/kind/type VOs). The candidates
+   are not safely unifiable: `ContextKey`/`AttributeKey` use the **stricter**
+   `ContextValueValidator`/`AttributeValidator` (adopting the trait would weaken validation —
+   a security regression); `ContextSource` implements a different interface so the trait would
+   change its `equals` contract; `ContextEntry`/`Occurrence`/`Snapshot` are complex non-string
+   VOs; `ExecutionSnapshot` already injects its validator. No code change was made.
+ - **T2.3 (factory extraction) — executed:** added `Contract/Port/PublisherStackFactoryInterface`
+   and `Application/Factory/PublisherStackFactory` that compose redaction (closest to the base)
+   then sampling around the configured base publisher, mirroring the previous inlined
+   `RunItBuilder::build()` wiring. The builder now delegates to the factory; its `with*` seams
+   and copy-on-write behavior are unchanged. `composer architecture`, `composer analyse`,
+   `composer api:check`, and `composer test` (704 tests) are green.
+ - **T2.2 (lazy objects) and T2.4 (property hooks):** deferred (not blocked by the test gate,
+   which runs green locally). T2.2 is an explicit lazy-init spike gated on `composer benchmark`
+   (no regression) and T2.4 risks normalization/serialization drift, so both are scheduled for
+   a later pass with targeted benchmarks / normalization tests.
+
+ All static gates remain green: `composer cs:check`, `composer architecture`,
+ `composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+
 ## Unreleased — M1.2 identifiers
 
 - Implemented the shared domain identifier primitives (milestone M1.2):

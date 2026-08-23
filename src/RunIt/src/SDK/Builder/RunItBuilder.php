@@ -6,13 +6,12 @@ namespace ItPack\RunIt\SDK\Builder;
 
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
+use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
-use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
-use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -249,15 +248,9 @@ final class RunItBuilder implements RunItBuilderInterface
 
         $currentExecution = new CurrentExecution($contextStorage);
 
-        $composedPublisher = $publisher;
-
-        if ($this->redactor !== null) {
-            $composedPublisher = new RedactingArtifactPublisher($this->redactor, $composedPublisher);
-        }
-
-        if ($this->samplingPolicy !== null) {
-            $composedPublisher = new SamplingArtifactPublisher($this->samplingPolicy, $composedPublisher);
-        }
+        $composedPublisher = new PublisherStackFactory()
+            ->compose($publisher, $this->redactor, $this->samplingPolicy)
+        ;
 
         $runner = new DefaultExecutionRunner(
             currentExecution: $currentExecution,

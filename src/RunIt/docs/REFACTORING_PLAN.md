@@ -125,7 +125,16 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 
 ## Phase 2 — P2: DRY, assembly & modern-PHP leverage
 
-### T2.1 — Standardize value-object validation on `ValidatedStringValueBehavior` (REVIEW.md §3.3, §4 P2-5)
+> **Status: In progress (2026-08-23).** The local `composer test` gate runs the full
+> suite green (692 Unit + 3 Integration + 9 Conformance; Functional has 0 tests), so it
+> is **not** a blocker. T2.1 was found **unsafe as written** (see below — unifying on
+> `ValidatedStringValueBehavior` would weaken validation or break `equals`/BC), so the
+> current design is retained. **T2.3 is executed** (publisher-stack factory), verified by
+> `composer test` (704 tests) + static gates. T2.2 (lazy-init spike) and T2.4 (property
+> hooks) remain deferred (gated on `composer benchmark` / normalization tests
+> respectively), not by the test gate.
+
+### T2.1 — Standardize value-object validation on `ValidatedStringValueBehavior` (REVIEW.md §3.3, §4 P2-5) — **ANALYSIS: retained by design (not safely unifiable)**
 - **Goal:** seven domain VOs instantiate validators inline (`new ContextValueValidator()`,
   `new AttributeValidator()`, …) while seven others use the `ValidatedStringValueBehavior`
   trait. Unify on the trait to remove duplication.
@@ -141,8 +150,29 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 - **Verify:** no `new XxxValidator()` inside VO constructors (grep clean); `composer analyse`,
   `composer architecture`, `composer test` green.
 - **Risk/BC:** internal refactor; ensure any `SecurityLimits` threading still works.
+- **Analysis (2026-08-23):** the premise does not hold for these candidates.
+  `ValidatedStringValueBehavior` validates with `StringValueValidator` and exposes
+  `equals(StringValueInterface)`; it is therefore only applicable to VOs that
+  implement `StringValueInterface` (the existing 7: names/kinds/types). The
+  candidates are different:
+  - `ContextKey` / `AttributeKey` use the **stricter** `ContextValueValidator` /
+    `AttributeValidator` (key-format + size rules). Adopting the trait would run the
+    generic `StringValueValidator` instead — a **validation-weakening security
+    regression** (AGENTS.md: security-sensitive behavior needs negative tests).
+  - `ContextSource` implements `ContextSourceInterface` (not `StringValueInterface`),
+    so the trait's `equals(StringValueInterface)` would change its equality contract.
+  - `ContextEntry` / `Occurrence` / `Snapshot` are complex non-string VOs (mixed
+    payloads, multiple collaborators) where the string-value trait does not apply.
+  - `ExecutionSnapshot` already injects `ContextValueValidatorInterface` as a
+    constructor dependency — the "hoist the validator" alternative the plan allows.
+  The safe "hoist the existing validator to a `private readonly` dependency" option
+  only relocates the `new XxxValidator()` (still one per VO) and would change
+  constructor signatures, so it is **not** a meaningful DRY win and is not pursued.
+  **Decision: keep the current per-VO validation; no code change.** The grep-clean
+  verify target is intentionally not met because unifying would break semantics.
 
-### T2.2 — Introduce lazy objects for expensive optional infrastructure (REVIEW.md §3.6, §4 P2-6)
+
+### T2.2 — Introduce lazy objects for expensive optional infrastructure (REVIEW.md §3.6, §4 P2-6) — **DEFERRED**
 - **Goal:** AGENTS.md recommends lazy objects for *expensive optional infrastructure*
   (OpenTelemetry bridge, serialization caches, in-memory stores). None are used today, so
   heavy adapters are built eagerly even when unused.
@@ -164,8 +194,13 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 - **Risk/BC:** lazy proxies can shift initialization order; keep within a single thread/Fiber
   boundary and never lazily proxy context-storage. Add a BC note if a constructor signature
   changes.
+- **Deferred → now executable (2026-08-23):** this is an explicit spike gated on
+  `composer benchmark` (no regression) and `composer test`/dogfood (deferred-init behavior).
+  The local gate runs green, so the spike can be validated. Pursue starting with the single
+  safe `RunItBuilder` publisher-stack target.
 
-### T2.3 — Extract subsystem factories from the builder/runner (REVIEW.md §3.1, §4 P2-7)
+
+### T2.3 — Extract subsystem factories from the builder/runner (REVIEW.md §3.1, §4 P2-7) — **DONE**
 - **Goal:** `RunItBuilder` (24 `with*` methods) and `DefaultExecutionRunner` (24 collaborators,
   `MaxConstructorParametersRule`-exempt) concentrate all assembly. Decompose into focused
   factories to shrink the composition root over time.
@@ -184,8 +219,25 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   `composer architecture` 0 violations; `composer analyse` green; `composer cs:check` clean.
 - **Risk/BC:** refactor only; the runner ctor may stay wide but the builder shrinks. No public
   contract change (builder already `@api` with same methods).
+- **Deferred → now executable (2026-08-23):** a composition-root refactor whose verify is a
+  golden/smoke wiring test (`DefaultRunItTest`/`SmokeTest`) run via `composer test`, which is
+  green locally. Extracting the publisher-stack / recorder-set wiring into
+  `Application/Factory/*` while preserving the exact object graph is safe *by construction* and
+  can now be confirmed. No public contract changes expected (builder stays `@api` with the same
+  `with*` methods).
+- **Implemented (2026-08-23):** added `Contract/Port/PublisherStackFactoryInterface` and
+  `Application/Factory/PublisherStackFactory` that compose redaction (closest to the base) then
+  sampling around the configured base publisher, mirroring the previous inlined `build()` wiring.
+  `RunItBuilder::build()` now delegates to `(new PublisherStackFactory())->compose(...)`; the
+  `with*` seams and copy-on-write behavior are unchanged. (`RecorderSetFactory` was not needed —
+  `build()` assembles no recorder set; `ContextStorageFactory` is out of scope for this pass.)
+  Verified: `composer architecture` 0 violations (interface placed in `Contract/Port` because
+  `Contract/Application` may not depend on `Contract/Port`), `composer analyse` green (15 accepted
+  `deadMethod`), `composer api:check` clean after `composer api:baseline`, and `composer test`
+  green (704 tests).
 
-### T2.4 — Adopt property hooks for value-object projections (REVIEW.md §3.6, §4 P2-8)
+
+### T2.4 — Adopt property hooks for value-object projections (REVIEW.md §3.6, §4 P2-8) — **DEFERRED**
 - **Goal:** several value objects expose computed projections via getter methods where PHP 8.4
   property hooks (`get`/`set`) would be more idiomatic and reduce boilerplate.
 - **Files (candidates):** `src/Domain/Execution/ExecutionId.php` and other identifier VOs,
@@ -200,6 +252,13 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   `composer cs:check` green.
 - **Risk/BC:** property hooks are PHP 8.4+; project already targets 8.4. Avoid hooks that
   would alter normalized output.
+- **Deferred → now executable (2026-08-23):** the existing VOs deliberately use
+  `public readonly string $value` (per `ValidatedStringValueBehavior`'s own note: "so the
+  consuming class can stay a `readonly class`"), and several expose `toString()` projections
+  rather than getters. Converting to `get`/`set` hooks changes class bodies and risks
+  normalization/serialization drift, which the plan's verify gates on `composer test` (now
+  green). Revisit per-VO once normalization tests can confirm no output change; convert only
+  pure projections that do not alter the normalized shape.
 
 ---
 
