@@ -131,10 +131,32 @@ interfaces cannot declare properties) and having the DTO implement it while
 keeping its public `readonly` properties. It now satisfies the rule and is no
 longer part of the interface gap.
 
-The 15 `shipmonk.deadMethod` notices are **accepted noise** for Phase 0 (they are
-intentionally-public fluent/API surfaces, e.g. `SecurityLimits::with*`, attribute
-accessors). They are triaged and kept explicitly in Phase 1 (T1.2); they are not
-suppressed with `@phpstan-ignore`.
+### Accepted `shipmonk.deadMethod` notices (Phase 1, T1.2)
+
+`composer analyse` reports **15** `shipmonk.deadMethod` notices. Per the Phase 1
+plan these were triaged individually: none are genuinely-dead private helpers, so
+none were deleted (deletion would be a backward-compatibility break for a public
+interface method or fluent public API). They are **deliberately kept** public
+surfaces and are **not** suppressed with `@phpstan-ignore`. The reported count
+(15) is therefore expected and matches the explicitly-kept set below.
+
+| # | Symbol | File | Kind | Reason kept |
+|---|--------|------|------|-------------|
+| 1 | `PublicationPipelineInterface::build` | `src/Application/Publication/PublicationPipelineInterface.php:21` | Public port contract method | Assembly entry point of the publication pipeline port; consumed externally. |
+| 2 | `VerifierInterface::port` | `src/Conformance/Contract/VerifierInterface.php:23` | Conformance harness contract method | Part of the adapter-conformance contract; exercised by implementers/fixtures. |
+| 3 | `SnapshotIntegrityVerifierInterface::verifyIntegrity` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:25` | Public security contract method | Integrity-verification port method; consumed externally. |
+| 4 | `SnapshotIntegrityVerifierInterface::verifyChain` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:30` | Public security contract method | Chain-verification port method; consumed externally. |
+| 5 | `AttributeValidatorInterface::assertValidKey` | `src/Contract/Domain/AttributeValidatorInterface.php:20` | Public domain contract method | Attribute-key validation port method; consumed externally. |
+| 6 | `AttributeValidatorInterface::assertValidAttributes` | `src/Contract/Domain/AttributeValidatorInterface.php:25` | Public domain contract method | Attribute-bag validation port method; consumed externally. |
+| 7 | `SecurityLimits::withMaxAttributeKeyBytes` | `src/Domain/Shared/SecurityLimits.php:87` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 8 | `SecurityLimits::withMaxAttributeValueBytes` | `src/Domain/Shared/SecurityLimits.php:95` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 9 | `SecurityLimits::withMaxAttributeDepth` | `src/Domain/Shared/SecurityLimits.php:103` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 10 | `SecurityLimits::withMaxOccurrencePayloadBytes` | `src/Domain/Shared/SecurityLimits.php:111` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 11 | `SecurityLimits::withMaxSnapshotPayloadBytes` | `src/Domain/Shared/SecurityLimits.php:119` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 12 | `SecurityLimits::withMaxActivityDepth` | `src/Domain/Shared/SecurityLimits.php:127` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 13 | `SecurityLimits::withMaxArtifactsPerExecution` | `src/Domain/Shared/SecurityLimits.php:135` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 14 | `SecurityLimits::withMaxSerializationDepth` | `src/Domain/Shared/SecurityLimits.php:143` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+| 15 | `SecurityLimits::withMaxSerializationBytes` | `src/Domain/Shared/SecurityLimits.php:151` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
 
 ### Final-class exemptions
 

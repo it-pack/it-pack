@@ -82,7 +82,7 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 
 ## Phase 1 — P1: close the DIP leak & sweep dead code
 
-### T1.1 — Document `HttpExecutionContext` as a public contract (REVIEW.md §4 P1-3)
+### T1.1 — Document `HttpExecutionContext` as a public contract (REVIEW.md §4 P1-3) — **DONE**
 - **Goal:** treat T0.1's interface as a first-class, documented public surface rather than an
   internal fix.
 - **Files:** `docs/compatibility.md` (or release notes), `src/Contract/Shared/HttpExecutionContextInterface.php`
@@ -92,8 +92,11 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   `docs/compatibility.md`.
 - **Verify:** `composer api:check` still clean (baseline regenerated in T0.1); `composer cs:check` clean.
 - **Risk/BC:** documentation only.
+- **Implemented (2026-08-22):** `Contract/Shared/HttpExecutionContextInterface` carries
+  `@api` and `@see https://w3id.org/itpack/runit#Execution`; `docs/compatibility.md`
+  records the additive contract and the backward-safe covariant `extract()` return.
 
-### T1.2 — Triage the `shipmonk.deadMethod` notices (REVIEW.md §3.9, §4 P1-4)
+### T1.2 — Triage the `shipmonk.deadMethod` notices (REVIEW.md §3.9, §4 P1-4) — **DONE**
 - **Goal:** separate intentionally-public fluent/API surfaces from genuinely dead helpers so
   the noise floor drops and future dead code is easier to spot.
 - **Files:** `src/Domain/Shared/SecurityLimits.php` (`with*` methods),
@@ -110,6 +113,13 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   surfaces (documented in `docs/qa.md`); `composer test` green.
 - **Risk/BC:** removing methods is a public-API change if they are `@api`; keep `@api` ones
   and only delete internal dead code.
+- **Implemented (2026-08-22):** all 15 notices were triaged. None are genuinely-dead
+  private helpers: 6 are public interface/port contract methods (consumed externally, so
+  unseen by the in-tree call graph) and 9 are symmetric fluent `with*` withers on the
+  public `readonly` `SecurityLimits` value object. Deleting any would be a backward-
+  compatibility break, so **0 were removed**. They are documented as a deliberate keep-list
+  in `docs/qa.md` (table of 15) and are not suppressed with `@phpstan-ignore`.
+  `composer analyse` still reports exactly 15 errors, matching the documented kept set.
 
 ---
 

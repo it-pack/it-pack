@@ -41,6 +41,20 @@ pre-release versions.
   covariant return widening on `Psr7RequestContextExtractor::extract()` introduce
   no backward-compatibility break.
 
+## Unreleased — Phase 1 (P1)
+
+- Documented `Contract\Shared\HttpExecutionContextInterface` as a first-class
+  public contract: it is marked `@api` with a `@see https://w3id.org/itpack/runit#Execution`
+  vocabulary link, and `docs/compatibility.md` records the addition and the
+  backward-safe covariant `extract()` return.
+- Triaged the 15 `shipmonk.deadMethod` notices. Every one is a deliberate public
+  surface — 6 public interface/port contract methods and 9 symmetric fluent
+  `with*` withers on the `readonly` `SecurityLimits` value object — so none were
+  deleted (that would be a backward-compatibility break) and none are suppressed
+  with `@phpstan-ignore`. They are enumerated as a keep-list in `docs/qa.md`;
+  `composer analyse` therefore still reports exactly 15 errors, matching the
+  documented kept set.
+
 ## Unreleased — M1.2 identifiers
 
 - Implemented the shared domain identifier primitives (milestone M1.2):
