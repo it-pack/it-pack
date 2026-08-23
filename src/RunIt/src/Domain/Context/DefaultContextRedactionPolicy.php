@@ -29,6 +29,17 @@ final class DefaultContextRedactionPolicy implements ContextRedactionPolicyInter
 {
     public const string REDACTED = '[redacted]';
 
+    /**
+     * The canonical default deny-secret redaction policy.
+     *
+     * Callers that need "the default" depend on this single site rather than
+     * constructing the policy ad hoc, so the default choice lives in one place.
+     */
+    public static function default(): self
+    {
+        return new self();
+    }
+
     public function redact(ExecutionContextInterface $context): ExecutionContextInterface
     {
         $result = ExecutionContext::empty();

@@ -86,8 +86,32 @@ pre-release versions.
    Direct values already use `public readonly` properties, so there is no getter boilerplate to
    replace; no safe, non-BC-breaking conversion target exists.
 
- All static gates remain green: `composer cs:check`, `composer architecture`,
- `composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+  All static gates remain green: `composer cs:check`, `composer architecture`,
+  `composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+
+## Unreleased — Phase 3 (P3)
+
+Phase 3 (polish) completed. All gates green (`composer cs:check`, `composer architecture`,
+`composer api:check`, `composer analyse` at 15 accepted `shipmonk.deadMethod`, `composer test`
+704 tests).
+
+- **T3.1 (centralize redaction default):** added `DefaultContextRedactionPolicy::default()`
+  (additive `@api` named constructor) and replaced both `new DefaultContextRedactionPolicy()`
+  sites (in `ExecutionDefinition` and `Execution`) with it, so the default policy choice lives
+  in one place. `composer api:baseline` regenerated.
+- **T3.2 (complexity guard):** added `Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule`, a
+  `src/`-scoped rule counting branch-bearing nodes per method as a cognitive-complexity proxy,
+  registered in `tools/phpstan/runit-rules/extension.neon` with threshold 19 (the current worst
+  offender). It is a regression guard: nothing is flagged today, but newly-added over-complex
+  methods are caught. Documented in `docs/qa.md`.
+- **T3.3 (named constructors):** verified already satisfied. All five wide-constructor VOs
+  already expose ergonomic named constructors (`CloudEvent::create()`, `Measurement::{counter,
+  gauge, duration, size, ratio}()`, `Observation::{debug,info,notice,warning,error,critical,
+  alert,emergency}()`, `Timeout::of()`, `SecurityLimits::default()` + `with*` withers), so no
+  new builders were needed.
+- **T3.4 (recorder `$clock`):** confirmed not a false positive in practice — PHPStan does not
+  flag any recorder `$clock` (resolved via `InstantClockBehavior::now()`), and every recorder
+  reads it when timestamping. No suppression or removal; documented in `docs/qa.md`.
 
 ## Unreleased — M1.2 identifiers
 

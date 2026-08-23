@@ -158,6 +158,30 @@ surfaces and are **not** suppressed with `@phpstan-ignore`. The reported count
 | 14 | `SecurityLimits::withMaxSerializationDepth` | `src/Domain/Shared/SecurityLimits.php:143` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
 | 15 | `SecurityLimits::withMaxSerializationBytes` | `src/Domain/Shared/SecurityLimits.php:151` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
 
+### Recorder `$clock` is intentionally used (Phase 3, T3.4)
+
+The four recorders (`Default*Recorder`) declare `private MonotonicClockInterface $clock`
+and were suspected of a `property.onlyWritten` false positive. **Confirmed not an issue:**
+`InstantClockBehavior::now()` reads `$this->clock->nowSeconds()` and every recorder calls
+`$this->now()` when timestamping artifacts, so `$clock` is a genuine, read dependency — not
+dead. PHPStan does **not** currently flag `$clock` as only-written (its trait-usage analysis
+resolves the read through the trait), so no `@phpstan-ignore` is needed and the dependency is
+left in place. Do not "fix" this by removing `$clock`.
+
+### Complexity guard (Phase 3, T3.2)
+
+`runit.complexity` (rule `Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule`, registered in
+`tools/phpstan/runit-rules/extension.neon`) counts branch-bearing nodes (`if`/`elseif`/`else`,
+`switch`/`case`, loops, `try`/`catch`, ternary, coalesce, `match` arms) per `src/` method as a
+proxy for cognitive complexity. A method above the configured **threshold (19)** is flagged.
+
+The threshold is tuned to the current worst offender (measured at 19), so the rule is a
+**regression guard**: nothing in the tree is flagged today, but a newly-added method more
+complex than the current maximum is caught before merge. The "no `else`/`switch`" convention
+already keeps most methods small, so 19 is a permissive ceiling, not a target — lower it only
+with a recorded reason here. No method exemptions are needed at threshold 19 (the wide
+builders/runner are far below it).
+
 ### Final-class exemptions
 
 `require-final` enforces AGENTS.md's "every concrete class must be `final`". One

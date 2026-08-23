@@ -279,7 +279,13 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
 
 ## Phase 3 — P3: polish
 
-### T3.1 — Centralize the default redaction-policy instantiation (REVIEW.md §3.3, §4 P3-9)
+> **Status: Complete (2026-08-23).** All four tasks addressed: T3.1 executed (centralized
+> redaction default), T3.2 executed (added a complexity regression guard), T3.3 found already
+> satisfied (all five wide-ctor VOs already expose ergonomic named constructors), T3.4 verified
+> (recorder `$clock` is genuinely used, not flagged). All gates green (`cs:check`, `architecture`,
+> `api:check`, `analyse` at 15 accepted `shipmonk.deadMethod`, `composer test` 704).
+
+### T3.1 — Centralize the default redaction-policy instantiation (REVIEW.md §3.3, §4 P3-9) — **DONE**
 - **Goal:** `new DefaultContextRedactionPolicy()` appears in both `ExecutionDefinition` and
   `Execution`; centralize the default.
 - **Files:** `src/Domain/Execution/ExecutionDefinition.php`, `src/Domain/Execution/Execution.php`,
@@ -288,8 +294,13 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   dependency in the normalization path) so the policy choice lives in one place.
 - **Verify:** single instantiation site (grep clean); `composer test` green.
 - **Risk/BC:** internal; no contract change.
+- **Implemented (2026-08-23):** added `DefaultContextRedactionPolicy::default()` (additive
+  `@api` named constructor) and replaced both `new DefaultContextRedactionPolicy()` sites in
+  `ExecutionDefinition` and `Execution` with `DefaultContextRedactionPolicy::default()`, so the
+  default-policy choice lives in one place. `composer api:baseline` regenerated; verified
+  `composer test` green.
 
-### T3.2 — Add a measured-complexity guard (REVIEW.md §3.5, §4 P3-10)
+### T3.2 — Add a measured-complexity guard (REVIEW.md §3.5, §4 P3-10) — **DONE**
 - **Goal:** control-flow discipline is enforced by convention (no `else`/`switch`) but not by a
   complexity gate (the cognitive-complexity rule was deferred in T3.1 of the prior plan).
 - **Files:** `tools/phpstan/runit-rules/src/Rule/` (new rule) or `phpstan.neon` tuning.
@@ -304,8 +315,15 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   `docs/qa.md`.
 - **Risk/BC:** may surface pre-existing complex methods; handle via exemption+track, not
   broad ignores.
+- **Implemented (2026-08-23):** added `Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule`, a
+  `src/`-scoped rule counting branch-bearing nodes per method as a cognitive-complexity proxy,
+  registered in `tools/phpstan/runit-rules/extension.neon` with **threshold 19** (the current
+  worst offender, measured at 19). It is a regression guard: 0 methods are flagged today, but a
+  newly-added method more complex than the current maximum is caught. Documented in
+  `docs/qa.md`; no method exemptions needed at this threshold. `composer analyse` stays green
+  (15 accepted `shipmonk.deadMethod`); the rule file itself passes level-max analysis.
 
-### T3.3 — Named builders/factories for wide-constructor value objects (REVIEW.md §3.5, §4 P3-11)
+### T3.3 — Named builders/factories for wide-constructor value objects (REVIEW.md §3.5, §4 P3-11) — **DONE (already satisfied)**
 - **Goal:** five data-carrying VOs exceed 8 ctor params (`CloudEvent` 12, `Measurement` 11,
   `SecurityLimits` 10, `Observation` 10, `Timeout` 9). Acceptable for immutable carriers but
   ergonomically poor.
@@ -315,8 +333,14 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   10+ arg lists; keep `readonly` and validation intact.
 - **Verify:** `composer test` green; `composer analyse` green; `composer cs:check` clean.
 - **Risk/BC:** additive constructors only; no break.
+- **Implemented (2026-08-23):** verified already satisfied. All five listed VOs expose
+  ergonomic named constructors, so no new builders are needed: `CloudEvent::create()` (validated,
+  with defaults), `Measurement::{counter,gauge,duration,size,ratio}()`, `Observation::
+  {debug,info,notice,warning,error,critical,alert,emergency}()`, `Timeout::of()`, and
+  `SecurityLimits::default()` plus `with*` withers (its constructor already uses named args).
+  Callers never pass 10+ positional arguments.
 
-### T3.4 — Verify the recorder `$clock` false positive (REVIEW.md §3.9, §4 P3-12)
+### T3.4 — Verify the recorder `$clock` false positive (REVIEW.md §3.9, §4 P3-12) — **DONE**
 - **Goal:** four recorders' `$clock` is flagged `property.onlyWritten`, but it **is** read by
   `InstantClockBehavior::now()`. Confirm this is a PHPStan trait-analysis limitation, not a real
   dead dependency, before "fixing" by removing the clock.
@@ -330,6 +354,11 @@ return widening on `Psr7RequestContextExtractor::extract()` is backward-safe).
   3. If a recorder genuinely never timestamps, remove its `$clock` (real cleanup).
 - **Verify:** decision recorded; `composer analyse` error count reconciled; `composer test` green.
 - **Risk/BC:** do **not** delete `$clock` blindly — it drives `now()` timestamps.
+- **Implemented (2026-08-23):** confirmed the premise is not currently active. PHPStan does
+  **not** flag any recorder `$clock` (its trait-usage analysis resolves the read through
+  `InstantClockBehavior::now()` → `$this->clock->nowSeconds()`). Every recorder calls
+  `$this->now()` when timestamping, so `$clock` is a genuine, read dependency — not dead.
+  Documented in `docs/qa.md`; no `@phpstan-ignore` and no removal.
 
 ---
 

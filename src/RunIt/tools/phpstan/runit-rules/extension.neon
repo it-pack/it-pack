@@ -105,3 +105,9 @@ services:
         src/Application/Scope/ExecutionScope.php,
         src/SDK/Builder/RunItBuilder.php,
     ] }, tags: [phpstan.rules.rule] }
+
+    # complexity-guard: control-flow complexity regression guard (RunIt P3, T3.2).
+    # Threshold is tuned to the current worst offender so nothing is flagged today
+    # (verified), but newly-added over-complex methods are caught. Adjust only
+    # with a recorded reason in docs/qa.md.
+    - { class: Tools\PhpStan\RunitRules\Rule\ComplexityGuardRule, arguments: { srcRoot: %currentWorkingDirectory%/src, threshold: 19 }, tags: [phpstan.rules.rule] }

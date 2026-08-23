@@ -13336,6 +13336,11 @@
             "REDACTED": "public"
         },
         "methods": {
+            "default": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Context\\DefaultContextRedactionPolicy",
+                "params": []
+            },
             "redact": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",

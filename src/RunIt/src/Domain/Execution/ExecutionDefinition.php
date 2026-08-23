@@ -98,9 +98,9 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
                 static fn (ExecutionIdInterface $id): string => $id->toString(),
                 $this->linkedExecutionIds
             ),
-            ArtifactField::CONTEXT => $this->context->toArray(
-                new DefaultContextRedactionPolicy()
-            ),
+                ArtifactField::CONTEXT => $this->context->toArray(
+                    DefaultContextRedactionPolicy::default()
+                ),
         ];
     }
 }

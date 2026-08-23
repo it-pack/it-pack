@@ -170,7 +170,7 @@ final readonly class Execution implements ExecutionInterface
                 $this->definition->linkedExecutionIds(),
             ),
             'sequence' => $this->sequence->value(),
-            ArtifactField::CONTEXT => $this->definition->context()->toArray(new DefaultContextRedactionPolicy()),
+            ArtifactField::CONTEXT => $this->definition->context()->toArray(DefaultContextRedactionPolicy::default()),
             'result' => $this->result === null ? null : [
                 'status' => $this->result->status()->label(),
                 ArtifactField::THROWABLE => $this->result->throwableDescription()?->toArray(),
