@@ -45,6 +45,7 @@ final readonly class BridgeConfig
         public bool $mapOccurrencesToSpanEvents,
         public array $metricAttributeAllowList,
         public int $maxInstrumentCacheSize,
+        public array $occurrenceLogAttributeAllowList = [],
     ) {
     }
 

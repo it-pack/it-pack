@@ -85,10 +85,38 @@ signals it needs.
 
 - `withMetricAttributeAllowList(['region'])` — only listed keys become metric
   dimensions; everything else (including ids) is dropped by default.
+- `withOccurrenceLogAttributeAllowList([...])` — restricts which occurrence
+  extension attributes are exported to logs. An empty list (the default) keeps
+  the unrestricted copy, which is bounded upstream by occurrence validation; a
+  non-empty list exports only the listed keys.
 - `withSnapshotPayloadPolicy(...)` — snapshots export identity, type, and content hash
   by default; the full payload is exported only under `SnapshotPayloadPolicy::Full`.
 - Instrument objects are cached by a stable identity and the cache is bounded
   (`withMaxInstrumentCacheSize`).
+
+## Redaction before export
+
+The bridge exports whatever artifact reaches it, so redaction must be composed
+*before* the bridge. The SDK builder does this for you: since Phase 1 of the
+2026-08-24 plan, `RunItBuilder` installs a deny-by-default redactor that masks
+throwable messages unless you explicitly opt out with `withRedactor(null)` or
+supply a custom strategy. Payload masking (occurrence `data`, snapshot
+`payload`) is key-driven — configure a custom redactor:
+
+```php
+$runtime = RunItBuilder::create()
+    ->withPublisher(new TelemetryPublisher::fromConfig($bridgeConfig))
+    ->withRedactor(new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+        sensitiveDataKeys: ['token', 'password'],
+    )))
+    // ... required ports ...
+    ->build()
+;
+```
+
+The builder composes redaction closest to the sink and sampling outside it, so
+dropped artifacts are never serialized and exported artifacts are already
+masked.
 
 ## Fiber considerations
 

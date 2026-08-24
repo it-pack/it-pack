@@ -67,10 +67,21 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
     {
         $executionId = $artifact instanceof ExecutionOwnedInterface ? $artifact->executionId()->toString() : null;
 
+        // A terminal snapshot ends its execution's artifact budget: the counter is
+        // released on every exit path (published, payload-dropped, or count-dropped),
+        // so an oversized terminal snapshot can never strand it until generic
+        // eviction (Phase 1, T1.2).
+        $isTerminalSnapshot = $artifact instanceof SnapshotInterface
+            && $artifact->classification()->isTerminal();
+
         if ($executionId !== null) {
             $this->trackExecution($executionId);
 
             if ($this->countsPerExecution[$executionId] > $this->limits->maxArtifactsPerExecution) {
+                if ($isTerminalSnapshot) {
+                    unset($this->countsPerExecution[$executionId]);
+                }
+
                 $this->drop(self::DROP_REASON_ARTIFACT_COUNT, $artifact);
 
                 return;
@@ -84,14 +95,14 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
         }
 
         if ($artifact instanceof SnapshotInterface) {
+            if ($isTerminalSnapshot && $executionId !== null) {
+                unset($this->countsPerExecution[$executionId]);
+            }
+
             if ($this->byteEstimator->estimate($artifact) > $this->limits->maxSnapshotPayloadBytes) {
                 $this->drop(self::DROP_REASON_SNAPSHOT_PAYLOAD, $artifact);
 
                 return;
-            }
-
-            if ($executionId !== null && $artifact->classification()->isTerminal()) {
-                unset($this->countsPerExecution[$executionId]);
             }
         }
 

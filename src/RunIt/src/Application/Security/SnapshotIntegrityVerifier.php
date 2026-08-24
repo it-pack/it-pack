@@ -22,6 +22,8 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
  * for the optional signing port. The verifier throws {@see SnapshotIntegrityException} on any
  * violation so callers can reject tampered or mis-chained state before trusting it.
  *
+ * @api
+ *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
 final class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterface

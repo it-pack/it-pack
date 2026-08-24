@@ -56,8 +56,12 @@ final class FailSafeArtifactPublisher implements ArtifactPublisherInterface, Flu
             try {
                 $this->inner->publish($artifact);
             } catch (\Throwable $publicationError) {
-                $this->policy->handle($publicationError, $artifact);
+                // Report before the policy runs: a fail-closed policy rethrows,
+                // and without this ordering its faults would be invisible to
+                // the health channel (Phase 1, T1.2).
                 $this->health?->report($publicationError, $artifact);
+
+                $this->policy->handle($publicationError, $artifact);
             }
         } finally {
             --$this->publishDepth;

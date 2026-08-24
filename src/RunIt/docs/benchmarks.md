@@ -83,6 +83,22 @@ run before), so the change is justified analytically (one full payload encoding
 eliminated per publish) and pinned going forward by `benchBoundedPublish`.
 Regenerate with `composer benchmark` when comparing.
 
+### Redaction default (Phase 1, T1.1, 2026-08-24)
+
+The builder now installs a deny-by-default redactor (throwable-message masking)
+unless explicitly configured otherwise. Measured per-artifact cost of passing
+through the redacting stage on the snapshot path:
+
+| Subject | Mean | Deviation |
+|---------|------|-----------|
+| `benchBoundedPublish` (no redaction stage) | 3.52 µs | ±20.1% |
+| `benchRedaction` (sampling → redaction chain) | 4.58 µs | ±10.6% |
+
+The redaction stage costs ≈0.5–1.0 µs per artifact in this environment
+(projection walk + mask comparison). This is the price of deny-by-default
+protection; consumers publishing high volumes of non-sensitive artifacts can
+opt out via `withRedactor(null)` and should re-measure.
+
 ### Lazy initialization verdict (Phase 3, T3.5)
 
 `DefaultMeasurementInstrumentMapper::record()` with a null meter provider

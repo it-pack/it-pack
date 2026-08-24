@@ -46,6 +46,11 @@ final class BridgeConfigBuilder
 
     private int $maxInstrumentCacheSize = 1024;
 
+    /**
+     * @var list<string>
+     */
+    private array $occurrenceLogAttributeAllowList = [];
+
     public function withTracerProvider(?TracerProviderInterface $tracerProvider): self
     {
         $clone = clone $this;
@@ -129,6 +134,21 @@ final class BridgeConfigBuilder
         return $clone;
     }
 
+    /**
+     * Restricts which occurrence extension attributes are exported to logs.
+     * An empty list keeps the default unrestricted copy (bounded upstream by
+     * occurrence validation); a non-empty list exports only the listed keys.
+     *
+     * @param list<string> $allowedAttributeKeys
+     */
+    public function withOccurrenceLogAttributeAllowList(array $allowedAttributeKeys): self
+    {
+        $clone = clone $this;
+        $clone->occurrenceLogAttributeAllowList = $allowedAttributeKeys;
+
+        return $clone;
+    }
+
     public function withMaxInstrumentCacheSize(int $maxInstrumentCacheSize): self
     {
         $clone = clone $this;
@@ -154,6 +174,7 @@ final class BridgeConfigBuilder
             $this->mapOccurrencesToSpanEvents,
             $this->metricAttributeAllowList,
             $this->maxInstrumentCacheSize,
+            $this->occurrenceLogAttributeAllowList,
         );
     }
 }

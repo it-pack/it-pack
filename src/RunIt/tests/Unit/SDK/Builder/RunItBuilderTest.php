@@ -13,6 +13,7 @@ use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -40,6 +41,7 @@ use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
 use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use RuntimeException;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(RunItBuilder::class)]
@@ -290,6 +292,64 @@ final class RunItBuilderTest extends TestCase
         // Startup execution + recorded occurrence + terminal publications all
         // share the one-artifact budget in this configuration.
         self::assertCount(3, $failures);
+    }
+
+    public function testRedactionIsDenyByDefault(): void
+    {
+        $spy = new SpyPublisher();
+
+        $runtime = RunItBuilder::create()
+            ->withPublisher($spy)
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->build()
+        ;
+
+        $thrown = new RuntimeException('secret failure detail');
+
+        try {
+            $runtime->run($this->definition(), static function () use ($thrown): void {
+                throw $thrown;
+            });
+        } catch (RuntimeException) {
+            // business exception surfaces unchanged; the recorded observation is
+            // what we are inspecting here
+        }
+
+        $redacted = array_filter($spy->published, static fn ($a) => $a instanceof RedactedArtifact);
+        self::assertNotEmpty($redacted, 'without withRedactor() the default redactor must mask throwable messages');
+    }
+
+    public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
+    {
+        $spy = new SpyPublisher();
+
+        $runtime = RunItBuilder::create()
+            ->withPublisher($spy)
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withRedactor(null)
+            ->build()
+        ;
+
+        try {
+            $runtime->run($this->definition(), static fn (): int => 1 / 0 === [] ? 1 : 2);
+        } catch (\Throwable) {
+        }
+
+        $observations = array_filter(
+            $spy->published,
+            static fn ($a) => $a instanceof \ItPack\RunIt\Contract\Domain\ObservationInterface,
+        );
+        self::assertNotEmpty($observations, 'an explicit withRedactor(null) opt-out publishes raw observations');
+        self::assertEmpty(
+            array_filter($spy->published, static fn ($a) => $a instanceof RedactedArtifact),
+            'no artifact may be wrapped by the redactor once opted out',
+        );
     }
 
     public function testSecurityLimitsPropagateToActivityDepthGate(): void

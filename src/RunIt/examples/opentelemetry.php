@@ -97,7 +97,7 @@ try {
         Instant::now(),
     ));
 } catch (Throwable $e) {
-
+    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
 }
 
 try {
@@ -111,7 +111,7 @@ try {
         AttributeCollection::fromArray(['region' => 'eu']),
     ));
 } catch (Throwable $e) {
-
+    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
 }
 
 try {
@@ -121,7 +121,7 @@ try {
         'checkout completed',
     ));
 } catch (Throwable $e) {
-
+    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
 }
 
 try {
@@ -133,13 +133,13 @@ try {
         Instant::now(),
     ));
 } catch (Throwable $e) {
-
+    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
 }
 
 try {
     echo 'Execution result: ' . json_encode($result, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT) . PHP_EOL;
 } catch (JsonException $e) {
-
+    error_log('[opentelemetry-example] result encoding failed: ' . $e->getMessage());
 }
 echo 'Exported spans: ' . count($spanExporter->getSpans()) . PHP_EOL;
 echo 'Exported logs: ' . $logExporter->getStorage()->count() . PHP_EOL;

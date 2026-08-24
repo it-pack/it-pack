@@ -111,6 +111,33 @@ final class BoundedArtifactPublisherTest extends Unit
         self::assertCount(4, $this->inner->published(), 'counter must restart after the terminal snapshot');
     }
 
+    public function testOversizedTerminalSnapshotStillReleasesExecutionCounter(): void
+    {
+        // Payload gate: 300 KB far exceeds the 256 KB default snapshot bound.
+        $publisher = new BoundedArtifactPublisher(new SecurityLimits(maxArtifactsPerExecution: 3), $this->inner);
+
+        $publisher->publish($this->occurrence(['n' => 1]));
+        $publisher->publish($this->terminalSnapshotOversized());
+        $publisher->publish($this->occurrence(['n' => 2]));
+
+        self::assertCount(2, $this->inner->published(), 'oversized terminal snapshot is dropped but must still release the counter');
+    }
+
+    private function terminalSnapshotOversized(): Snapshot
+    {
+        return Snapshot::create(
+            SnapshotId::fromString('snap-term-big'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('execution.snapshot'),
+            1,
+            ['blob' => str_repeat('x', 300_000)],
+            new DeterministicHashCalculator(),
+            null,
+            null,
+            SnapshotClassification::Terminal,
+        );
+    }
+
     private function terminalSnapshot(): Snapshot
     {
         return Snapshot::create(

@@ -98,6 +98,26 @@ enforced structurally by the aggregate:
   business flow; primary failure plus handler fault land in a bounded fallback
   error-log line.
 
+### Refactoring plan Phase 1 (2026-08-24) changes
+
+- **Deny-by-default redaction:** `RunItBuilder::build()` now installs a default
+  redactor unless `withRedactor()` was explicitly called — including the
+  explicit opt-out `withRedactor(null)`. Out of the box, throwable messages are
+  masked before sampling or export; occurrence/snapshot payload masking is
+  key-driven via a custom redactor. This changes default export content
+  (throwable messages are `[redacted]`); opt out explicitly if you relied on
+  raw messages.
+- `BridgeConfig`/`BridgeConfigBuilder` gained
+  `occurrenceLogAttributeAllowList` / `withOccurrenceLogAttributeAllowList()`:
+  an optional allow-list restricting which occurrence extension attributes are
+  exported to OTel logs. Empty (default) keeps the previous unrestricted copy.
+- `FailSafeArtifactPublisher` reports publication failures to health *before*
+  applying the failure policy, so fail-closed rethrows are observable.
+- `BufferedArtifactPublisher::close()` reports remainder drops through the
+  internal health reporter (previously counted silently).
+- `BoundedArtifactPublisher` releases an execution's artifact counter on every
+  terminal-snapshot exit path, including count/payload-dropped ones.
+
 
 ## Stable normalization schema
 

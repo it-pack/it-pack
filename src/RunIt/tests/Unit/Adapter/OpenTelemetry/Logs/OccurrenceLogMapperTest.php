@@ -7,6 +7,13 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Logs;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Occurrence\Occurrence;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
+use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
@@ -105,5 +112,60 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-4', 'exec-1', ['key' => 'value']));
 
         self::assertCount(0, $this->kit->logs());
+    }
+
+    public function testOccurrenceExtensionAttributesAreCopiedByDefault(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-ext'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('execution.started.v1'),
+            'it-pack/test',
+            Instant::of(1_600),
+            null,
+            null,
+            null,
+            null,
+            MediaTypes::APPLICATION_JSON,
+            AttributeCollection::fromArray(['tenantflag' => 'on', 'otherflag' => 'off']),
+        );
+
+        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper->mapOccurrence($occurrence);
+
+        $attributes = $this->kit->log(0)->getAttributes()->toArray();
+        self::assertSame('on', $attributes['tenantflag']);
+        self::assertSame('off', $attributes['otherflag']);
+    }
+
+    public function testOccurrenceLogAttributeAllowListRestrictsExportedExtensions(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-ext'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('execution.started.v1'),
+            'it-pack/test',
+            Instant::of(1_600),
+            null,
+            null,
+            null,
+            null,
+            MediaTypes::APPLICATION_JSON,
+            AttributeCollection::fromArray(['tenantflag' => 'on', 'cardinality_heavy' => 'x']),
+        );
+
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            true,
+            false,
+            ['tenantflag'],
+        );
+        $mapper->mapOccurrence($occurrence);
+
+        $attributes = $this->kit->log(0)->getAttributes()->toArray();
+        self::assertSame('on', $attributes['tenantflag'], 'listed keys pass the allow-list');
+        self::assertArrayNotHasKey('cardinality_heavy', $attributes, 'unlisted keys are suppressed');
+        self::assertSame('occ-ext', $attributes['runit.occurrence.id'], 'structural identity attributes always export');
     }
 }

@@ -29,11 +29,16 @@ use OpenTelemetry\API\Trace\Span;
  */
 final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
 {
+    /**
+     * @param list<string> $occurrenceLogAttributeAllowList extension-attribute keys exported to
+     *                                                     logs; empty keeps the default unrestricted copy (bounded upstream by occurrence validation)
+     */
     public function __construct(
         private ?LoggerProviderInterface $loggerProvider,
         private SnapshotPayloadPolicy    $snapshotPayloadPolicy,
         private bool                     $mapOccurrencesToLogs,
         private bool                     $mapOccurrencesToSpanEvents,
+        private array                    $occurrenceLogAttributeAllowList = [],
     ) {
     }
 
@@ -59,6 +64,10 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         foreach ($occurrence->extensionAttributes() as $key => $value) {
+            if ($this->occurrenceLogAttributeAllowList !== [] && !in_array($key, $this->occurrenceLogAttributeAllowList, true)) {
+                continue;
+            }
+
             $attributes[$key] = $value;
         }
 

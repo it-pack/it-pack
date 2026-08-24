@@ -115,11 +115,12 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         $flushed = $this->drain($this->config->shutdownFlushBudget);
 
         while ($this->buffer !== []) {
-            array_shift($this->buffer);
-            $this->droppedCount++;
+            /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $item */
+            $item = array_shift($this->buffer);
+            $this->estimatedBytes -= $item['bytes'];
+            $this->reportDrop($item['artifact']);
         }
 
-        $this->estimatedBytes = 0;
         $this->observe($flushed, $start);
     }
 
@@ -290,7 +291,15 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
     }
 
     /**
-     * @throws \Throwable
+     * Flushes up to `$limit` artifacts to the inner publisher.
+     *
+     * Sink faults from the inner publisher propagate to the caller unchanged:
+     * when a `FailSafeArtifactPublisher` sits above (the default wiring), it
+     * owns the failure policy; standalone use therefore surfaces sink faults
+     * loudly rather than silently dropping them. Expired artifacts are dropped
+     * and reported through the internal health reporter.
+     *
+     * @throws \Throwable when the inner publisher throws
      */
     private function drain(int $limit): int
     {

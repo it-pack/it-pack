@@ -13,6 +13,7 @@ use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -76,6 +77,7 @@ final class RunItBuilder implements RunItBuilderInterface
         private ?NestedExecutionPolicyInterface $nestedPolicy = null,
         private ?ExecutionCompletionPolicyInterface $completionPolicy = null,
         private ?RedactorInterface $redactor = null,
+        private bool $redactorConfigured = false,
         private ?SamplingPolicyInterface $samplingPolicy = null,
         private ?ExecutionEngineInterface $engine = null,
         private ?HashCalculatorInterface $hashCalculator = null,
@@ -160,8 +162,11 @@ final class RunItBuilder implements RunItBuilderInterface
 
     public function withRedactor(?RedactorInterface $redactor): RunItBuilderInterface
     {
+        // Recording the explicit call is what distinguishes an opt-out
+        // (`withRedactor(null)`) from "never configured" (deny-by-default).
         $clone = clone $this;
         $clone->redactor = $redactor;
+        $clone->redactorConfigured = true;
 
         return $clone;
     }
@@ -293,10 +298,17 @@ final class RunItBuilder implements RunItBuilderInterface
 
         $currentExecution = new CurrentExecution($contextStorage);
 
+        // Deny-by-default redaction (Phase 1, T1.1): unless the consumer explicitly
+        // configured a redactor — including an explicit `withRedactor(null)` opt-out —
+        // the default redactor masks throwable messages before any sampling decision
+        // or export. Occurrence-data and snapshot-payload masking activate through
+        // the same component once sensitive keys are configured via a custom redactor.
+        $redactor = $this->redactor ?? ($this->redactorConfigured ? null : new DefaultArtifactRedactor());
+
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
 
         $composedPublisher = $publisherStackFactory
-            ->compose($publisher, $this->redactor, $this->samplingPolicy)
+            ->compose($publisher, $redactor, $this->samplingPolicy)
         ;
 
         $runner = new DefaultExecutionRunner(
