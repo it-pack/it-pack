@@ -11,6 +11,7 @@ use ItPack\DisenchantIt\ValueObject\ConstantDeclaration;
 use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
+use ItPack\DisenchantIt\ValueObject\Visibility;
 
 /**
  * Builds the shared interface file's source text from a set of
@@ -193,7 +194,7 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
                 name: $name,
                 valueExpression: $entry['value'],
                 typeKeyword: $entry['type'],
-                visibility: 'public',
+                visibility: Visibility::Public,
             )->toCodeLine();
         }
 

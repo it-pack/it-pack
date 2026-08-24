@@ -331,8 +331,8 @@ Security is **strong**; no vulnerabilities found.
 | F2 | DRY | Low | `LineBasedRewriter.php:205,288` | Extract `constNameFromLine()` helper. | ✅ Resolved (M3) |
 | F3 | DRY | Low | `LineBasedRewriter.php:307,338` | Unify class-brace scan into one scanner. | ✅ Resolved (M3 — `findClassBodyBraces()`) |
 | F4 | Perf / maint | Low–Med | `ParsedSourceCache.php:28` | Bound the content-keyed cache (LRU/size cap) or document single-Detector lifetime. | ✅ Resolved (M2 — bounded FIFO cache, cap 32) |
-| F5 | Style | Low | `LineBasedRewriter.php:47,194`; `ClassConstantTarget.php:70,94`; `FlagSetTarget.php:139` | Convert trivial `else` to early-return/guard. | Open (M5; `FlagSetTarget.php:139` won't-fix) |
-| F6 | Magic string | Low | `LineBasedRewriter.php:145`; `ClassConstantTarget.php:85` | Use a `Visibility` constant/enum. | Open (M5) |
+| F5 | Style | Low | `LineBasedRewriter.php:47,194`; `ClassConstantTarget.php:70,94`; `FlagSetTarget.php:139` | Convert trivial `else` to early-return/guard. | ✅ Resolved (M5; `FlagSetTarget.php:139` won't-fix) |
+| F6 | Magic string | Low | `LineBasedRewriter.php:145`; `ClassConstantTarget.php:85` | Use a `Visibility` constant/enum. | ✅ Resolved (M5 — `Visibility` enum, all 4 sites) |
 | F7 | Maint | Low | `LineBasedRewriter.php:135` | Remove legacy `ConstantPlacementInterface` shim when safe. | ✅ Resolved (M4 — shim deleted, port narrowed) |
 | F8 | DX | Info | `Core/Disenchanter.php:59-66` | Fix duplicate docblock. | ✅ Resolved (M4) |
 

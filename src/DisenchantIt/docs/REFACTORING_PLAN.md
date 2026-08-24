@@ -322,7 +322,7 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
 ### Tasks
 
-- [ ] **M5-T1 Guard conversion in `planInsertions` (F5).**
+- [x] **M5-T1 Guard conversion in `planInsertions` (F5).**
       `LineBasedRewriter.php:176-220` currently wraps the top-level branch in
       `else`. Convert to early-continue:
 
@@ -339,7 +339,7 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
       Behavior identical; nesting depth drops by one.
 
-- [ ] **M5-T2 Expression selects in `ClassConstantTarget` (F5).**
+- [x] **M5-T2 Expression selects in `ClassConstantTarget` (F5).**
       Replace the `if ($isMultiline) … else …` pairs at
       `ClassConstantTarget.php:68-79` and `:91-97` with expression form, keeping
       the side-effecting statement separate:
@@ -357,7 +357,7 @@ Ordering note: run this **after** M4 so the shim's `'private'`
           : [$lit->needle(), null];
       ```
 
-- [ ] **M5-T3 `Visibility` value object (F6).** Introduce a backed enum:
+- [x] **M5-T3 `Visibility` value object (F6).** Introduce a backed enum:
 
       ```php
       // src/ValueObject/Visibility.php
@@ -437,6 +437,34 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
 Dated record of what actually landed, per milestone. The checkboxes above mark
 task completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-24 — M5 landed, style & magic-value sweep (REVIEW F5 + F6)
+
+- `LineBasedRewriter::planInsertions()`: top-level branch now ends in
+  `continue`; class-body branch unnested — no `else`, one less nesting level,
+  insertion logic unchanged.
+- `ClassConstantTarget::build()`: both `$isMultiline` if/else pairs converted
+  to expression selects (ternary for the declaration value; list destructuring
+  for needle/endLine); the side-effecting placement push is a separate guarded
+  statement.
+- New `ValueObject\Visibility` backed enum (`Private`/`Protected`/`Public`);
+  `ConstantDeclarationInterface::$visibility` hook and `ConstantDeclaration`
+  property retyped from `string` to `Visibility` (default `Private`);
+  `toCodeLine()` renders `->value`. Call sites migrated: ClassConstantTarget →
+  `Visibility::Private`, FlagSetTarget + SemConvCollector →
+  `Visibility::Public`. Acceptance grep: visibility literals remain only inside
+  the enum itself. phparkitect interface-dependency rule accepts the enum
+  dependency (`enum_exists` carve-out) — gate PASS.
+  **API impact (pre-1.0, deliberate):** `ConstantDeclaration::__construct()`
+  fourth parameter widened from `string` to `Visibility`; upgrade note lands
+  in M6.
+- `FlagSetTarget.php:139` elseif accumulator: confirmed won't-fix per
+  traceability matrix (readable as-is).
+- Behavior-preserving: rendered const lines byte-identical (covered by every
+  insertion assertion); unit suite identical to baseline (172 tests / 431
+  assertions).
+- Verification: architecture PASS · PHPStan src lvl 9 clean · format clean ·
+  unit suite OK 172/431.
 
 ### 2026-08-24 — M4 landed, legacy placement shim removed (REVIEW F7 + F8)
 

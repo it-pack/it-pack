@@ -146,32 +146,35 @@ final class LineBasedRewriter implements RewriterInterface
                 }
 
                 $insertionPoints[$anchorIndex] = array_merge($insertionPoints[$anchorIndex] ?? [], $declarationLines);
-            } else {
-                $braceLineIndex = $this->findClassOpeningBraceLine($lines, $className);
-                if ($braceLineIndex === null) {
-                    continue;
-                }
 
-                $existingConstantNames = $this->findExistingConstantNames($lines, $braceLineIndex);
-
-                $declarationLines = [];
-                foreach ($classInsertions as $insertion) {
-                    foreach ($insertion->lines as $lineText) {
-                        $constName = $this->constantNameFromLine($lineText);
-                        if ($constName !== null && in_array($constName, $existingConstantNames, true)) {
-                            // Already declared — never re-declare.
-                            continue;
-                        }
-                        $declarationLines[] = $lineText;
-                    }
-                }
-
-                if ($declarationLines === []) {
-                    continue;
-                }
-
-                $insertionPoints[$braceLineIndex] = array_merge($insertionPoints[$braceLineIndex] ?? [], $declarationLines);
+                continue;
             }
+
+            // Class-body insertion: consts go right after the opening brace.
+            $braceLineIndex = $this->findClassOpeningBraceLine($lines, $className);
+            if ($braceLineIndex === null) {
+                continue;
+            }
+
+            $existingConstantNames = $this->findExistingConstantNames($lines, $braceLineIndex);
+
+            $declarationLines = [];
+            foreach ($classInsertions as $insertion) {
+                foreach ($insertion->lines as $lineText) {
+                    $constName = $this->constantNameFromLine($lineText);
+                    if ($constName !== null && in_array($constName, $existingConstantNames, true)) {
+                        // Already declared — never re-declare.
+                        continue;
+                    }
+                    $declarationLines[] = $lineText;
+                }
+            }
+
+            if ($declarationLines === []) {
+                continue;
+            }
+
+            $insertionPoints[$braceLineIndex] = array_merge($insertionPoints[$braceLineIndex] ?? [], $declarationLines);
         }
 
         return $insertionPoints;

@@ -15,6 +15,7 @@ use ItPack\DisenchantIt\ValueObject\PromotionArtifact;
 use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
 use ItPack\DisenchantIt\ValueObject\Replacement;
 use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\ValueObject\Visibility;
 
 /**
  * Promotion target that isolates today's constant-promotion behavior behind the
@@ -65,10 +66,10 @@ final readonly class ClassConstantTarget implements PromotionTargetInterface
         $placements = [];
 
         foreach ($byClass as $className => $classOccurrences) {
-            if ($isMultiline) {
-                $valueExpression = var_export($classOccurrences[0]->value, true);
-            } else {
-                $valueExpression = $classOccurrences[0]->raw;
+            $valueExpression = $isMultiline
+                ? var_export($classOccurrences[0]->value, true)
+                : $classOccurrences[0]->raw;
+            if (!$isMultiline) {
                 $placements[] = $this->placements->build(
                     className: $className,
                     constantName: $constantName,
@@ -82,19 +83,15 @@ final readonly class ClassConstantTarget implements PromotionTargetInterface
                 name: $constantName,
                 valueExpression: $valueExpression,
                 typeKeyword: $typeKeyword,
-                visibility: 'private',
+                visibility: Visibility::Private,
             )->toCodeLine();
 
             $insertions[] = new Insertion($className, [$declarationLine], false);
 
             foreach ($classOccurrences as $lit) {
-                if ($isMultiline) {
-                    $needle = $lit->raw;
-                    $endLine = $lit->endLine;
-                } else {
-                    $needle = $lit->needle();
-                    $endLine = null;
-                }
+                [$needle, $endLine] = $isMultiline
+                    ? [$lit->raw, $lit->endLine]
+                    : [$lit->needle(), null];
 
                 $replacements[] = new Replacement($lit->line, $needle, 'self::' . $constantName, $endLine);
             }

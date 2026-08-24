@@ -6,8 +6,8 @@ namespace ItPack\DisenchantIt\ValueObject;
 
 /**
  * Immutable carrier for one promoted constant declaration, shared by the
- * LineBasedRewriter (private) and SemConvCollector (public). Centralises the
- * `const` line shape so the two emitters can never drift apart.
+ * promotion targets (private) and SemConvCollector (public). Centralises the
+ * `const` line shape so the emitters can never drift apart.
  */
 final readonly class ConstantDeclaration implements ConstantDeclarationInterface
 {
@@ -15,7 +15,7 @@ final readonly class ConstantDeclaration implements ConstantDeclarationInterface
         public string $name,
         public string $valueExpression,
         public string $typeKeyword,
-        public string $visibility = 'private',
+        public Visibility $visibility = Visibility::Private,
     ) {
     }
 
@@ -28,7 +28,7 @@ final readonly class ConstantDeclaration implements ConstantDeclarationInterface
         return sprintf(
             '%s%s const %s %s = %s;',
             str_repeat(' ', $indent),
-            $this->visibility,
+            $this->visibility->value,
             $this->typeKeyword,
             $this->name,
             $this->valueExpression,

@@ -17,7 +17,7 @@ interface ConstantDeclarationInterface
 
     public string $typeKeyword { get; }
 
-    public string $visibility { get; }
+    public Visibility $visibility { get; }
 
     public function toCodeLine(int $indent = 4): string;
 }

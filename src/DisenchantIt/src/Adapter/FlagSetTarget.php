@@ -16,6 +16,7 @@ use ItPack\DisenchantIt\ValueObject\PromotionArtifact;
 use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
 use ItPack\DisenchantIt\ValueObject\Replacement;
 use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\ValueObject\Visibility;
 
 /**
  * Promotion target for a bit-flag set (Phase 3, S3.2). A group qualifies when
@@ -105,7 +106,7 @@ final readonly class FlagSetTarget implements PromotionTargetInterface
                     name: $flagName,
                     valueExpression: $lit->raw,
                     typeKeyword: 'int',
-                    visibility: 'public',
+                    visibility: Visibility::Public,
                 )->toCodeLine();
             }
 
