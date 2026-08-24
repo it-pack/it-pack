@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\CastException;
+use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 
 /**
  * Coerces node values to explicitly declared scalar types.
@@ -33,7 +34,7 @@ final readonly class CastingProcessor implements ConfigurationProcessorInterface
 
     public function stageName(): string
     {
-        return 'CastingProcessor';
+        return ProcessorStage::Casting->value;
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface

@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
+use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 
 /**
  * Resolves `${dotted.key}` placeholders inside string values against the graph.
@@ -26,7 +27,7 @@ final readonly class VariableProcessor implements ConfigurationProcessorInterfac
 
     public function stageName(): string
     {
-        return 'VariableProcessor';
+        return ProcessorStage::Variable->value;
     }
 
 

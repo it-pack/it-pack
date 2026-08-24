@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
+use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 use ItPack\ConfigureIt\ValueObject\ValidationMessage;
 
 /**
@@ -31,7 +32,7 @@ final readonly class ValidationProcessor implements ConfigurationProcessorInterf
 
     public function stageName(): string
     {
-        return 'ValidationProcessor';
+        return ProcessorStage::Validation->value;
     }
 
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
@@ -39,7 +40,7 @@ final readonly class ValidationProcessor implements ConfigurationProcessorInterf
         $result = $this->schema->validate($graph);
 
         if ($result->valid()) {
-            $stage = get_class($this->schema);
+            $stage = ProcessorStage::Validation->value;
 
             $validated = new ConfigurationGraph();
 

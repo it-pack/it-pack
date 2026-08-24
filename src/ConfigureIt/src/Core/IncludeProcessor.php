@@ -17,6 +17,7 @@ use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
+use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 
 /**
  * Imports external configuration files referenced from the graph.
@@ -58,7 +59,7 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
 
     public function stageName(): string
     {
-        return 'IncludeProcessor';
+        return ProcessorStage::Include->value;
     }
 
     public function withExecutionContext(ExecutionContextInterface $context): static

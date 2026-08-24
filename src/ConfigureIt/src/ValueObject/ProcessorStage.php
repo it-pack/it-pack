@@ -17,7 +17,11 @@ namespace ItPack\ConfigureIt\ValueObject;
  */
 enum ProcessorStage: string
 {
-    case Defaults = 'DefaultsProcessor';
+    case Defaults   = 'DefaultsProcessor';
+    case Validation = 'ValidationProcessor';
+    case Casting    = 'CastingProcessor';
+    case Include    = 'IncludeProcessor';
+    case Variable   = 'VariableProcessor';
 
     public static function fromString(string $value): self
     {

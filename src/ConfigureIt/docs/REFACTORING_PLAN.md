@@ -123,7 +123,12 @@ artifacts and processor trails are unchanged. The optional R10b loader change is
 non-trivial sub-task.
 
 ### Status
-⬜ Pending.
+✅ done (2026-08-24). `ProcessorStage` gained `Validation`/`Casting`/`Include`/`Variable`;
+all four `ProvenanceAwareProcessorInterface::stageName()` implementations return the enum
+`->value`; `ValidationProcessor` no longer calls `get_class($schema)`. Two new assertions in
+`ValidationProcessorTest` lock `stageName()` and `validatedBy()`. `composer analyse` 0 errors,
+`composer cs:check` 0/260, `composer test:unit` 269 tests / 622 assertions. (R10b loader
+identity deferred as optional.)
 
 ---
 

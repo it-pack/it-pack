@@ -15,6 +15,24 @@ use ItPack\ConfigureIt\ValueObject\ValidationResult;
 
 class ValidationProcessorTest extends Unit
 {
+    public function testStageNameIsEnumBackedValue(): void
+    {
+        verify(new ValidationProcessor($this->schema(true))->stageName())
+            ->equals('ValidationProcessor')
+        ;
+    }
+
+    public function testValidatedNodeRecordsValidationStage(): void
+    {
+        $graph = new ConfigurationGraph([new ConfigurationNode('a', 1, 'base', 10)]);
+
+        $next = new ValidationProcessor($this->schema(true))->process($graph);
+
+        verify($next->node('a')->provenance()->validatedBy())
+            ->equals('ValidationProcessor')
+        ;
+    }
+
     public function testPassesValidGraphThrough(): void
     {
         $graph = new ConfigurationGraph([new ConfigurationNode('a', 1, 'base', 10)]);
