@@ -33,6 +33,12 @@ Behavior      LazyCreatable (shared utility trait)
 - **Contract** — interfaces only; depends on nothing.
 - **Behavior** — the `LazyCreatable` utility trait (dependency-free); the
   foundational layer that others depend on.
+- **Telemetry** — `NullDeriveEventSink`, the default no-op implementation of
+  `Contract\Telemetry\DeriveEventSinkInterface`. Derivations emit activities,
+  measurements, observations, and occurrences through this optional port
+  (facts only — no timing or identity); wiring a real sink is opt-in via
+  `DeriveItFactory` and is how a RunIt bridge will attach derivations to an
+  execution (see `../CONSOLIDATION_PLAN.md`).
 - **Reflection** — `ClassReflection`, a `ReflectionClass` subclass.
 - **Resolver** — the three recursive graph walkers; depend on Contract + Behavior.
 - **Generator** — the derivers and helpers; depend on everything below.

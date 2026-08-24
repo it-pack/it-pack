@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Exception\NamingCollisionException;
 use ItPack\DeriveIt\Reflection\ClassReflection;
@@ -34,8 +35,9 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
         DeriveConfig                   $config = new DeriveConfig(),
         ?Factory                       $factory = null,
         ?ReflectionCacheInterface      $reflectionCache = null,
+        ?DeriveEventSinkInterface      $eventSink = null,
     ) {
-        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache());
+        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache(), $eventSink);
     }
 
     /**
@@ -48,6 +50,8 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
         $claimed = [];
         $interfaces = [];
         $shortNameToFqcn = [];
+        $totalTraitMethods = 0;
+        $adaptee = ['adaptee' => $reflection->getName()];
 
         $allowedNamespaces = LeakageAuditor::allowedNamespaces(
             $reflection->getNamespaceName(),
@@ -55,7 +59,13 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             [],
         );
 
-        foreach (ClassReflection::create($reflection->getName())->getTraitsRecursively() as $trait) {
+        $this->events->activityStarted('graph.walk', $adaptee);
+        $traits = ClassReflection::create($reflection->getName())->getTraitsRecursively();
+        $this->events->activityFinished('graph.walk');
+        $this->events->measured('family.members', count($traits), 'count', ['graph' => 'traits']);
+
+        $this->events->activityStarted('surface.extract', $adaptee + ['surface' => 'trait-interfaces']);
+        foreach ($traits as $trait) {
             $shortName = Naming::interfaceShortName($trait->getShortName());
             $fqcn = Naming::derivedInterfaceFqcn($trait);
 
@@ -90,15 +100,20 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             Naming::assertMethodNamesUnique($interface->getName(), $methods);
             $interface->setMethods($methods);
 
+            $this->events->activityStarted('leakage.audit', ['target' => $trait->getName()]);
             new LeakageAuditor()->audit(
                 $interface,
                 $trait->getNamespaceName(),
                 $allowedNamespaces,
                 $this->config->auditLeakage,
             );
+            $this->events->activityFinished('leakage.audit');
 
             $interfaces[$trait->getShortName()] = $interface;
+            $totalTraitMethods += count($methods);
         }
+        $this->events->activityFinished('surface.extract');
+        $this->events->measured('methods.derived', $totalTraitMethods, 'count', $adaptee + ['surface' => 'trait-interfaces']);
 
         return $interfaces;
     }
@@ -107,8 +122,23 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
     {
         $reflection = $this->reflect($class);
         Naming::assertNoCollision($reflection);
-        $traitInterfaces = $this->deriveTraitInterfaces($reflection);
+        $this->events->occurred('derivation.started', ['target' => $reflection->getName()]);
+        $main = $this->assemble($reflection, $this->deriveTraitInterfaces($reflection));
+        $this->events->occurred('derivation.completed', ['target' => $reflection->getName()]);
 
+        return $main;
+    }
+
+    /**
+     * Composes the main interface around already-derived trait interfaces.
+     * Split from {@see self::derive()} so {@see self::deriveSource()} can derive
+     * the trait graph exactly once and still emit each pipeline stage's events
+     * exactly once.
+     *
+     * @param array<string, InterfaceType> $traitInterfaces
+     */
+    private function assemble(ReflectionClass $reflection, array $traitInterfaces): InterfaceType
+    {
         $main = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
         $namespace = $reflection->getNamespaceName();
         $main->setExtends(array_map(
@@ -126,8 +156,10 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
         }
 
         $substitutor = $this->createTypeSubstitutor($reflection);
+        $adaptee = ['adaptee' => $reflection->getName()];
 
         $mainMethods = [];
+        $this->events->activityStarted('surface.extract', $adaptee + ['surface' => 'main']);
         foreach ($this->extractor->extract($reflection) as $method) {
             if (isset($traitMethodNames[$method->getName()])) {
                 continue;
@@ -138,15 +170,20 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             }
             $mainMethods[] = $signature;
         }
+        $this->events->activityFinished('surface.extract');
+        $this->events->measured('methods.derived', count($mainMethods), 'count', $adaptee + ['surface' => 'main']);
+
         Naming::assertMethodNamesUnique($main->getName(), $mainMethods);
         $main->setMethods($mainMethods);
 
+        $this->events->activityStarted('leakage.audit', $adaptee);
         new LeakageAuditor()->audit(
             $main,
             $reflection->getNamespaceName(),
             LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->config->typeSubstitutionMap, []),
             $this->config->auditLeakage,
         );
+        $this->events->activityFinished('leakage.audit');
 
         self::assertPerTraitSelfContained($main, $traitInterfaces);
 
@@ -156,10 +193,20 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
     public function deriveSource(ReflectionClass|string $class): string
     {
         $reflection = $this->reflect($class);
-        $traitInterfaces = $this->deriveTraitInterfaces($reflection);
-        $main = $this->derive($reflection);
+        Naming::assertNoCollision($reflection);
+        $this->events->occurred('derivation.started', ['target' => $reflection->getName()]);
 
-        return $this->renderer->renderMany([...array_values($traitInterfaces), $main], $reflection->getNamespaceName());
+        // Derive the trait graph exactly once and reuse it for both the composed
+        // main interface and the rendered output (REVIEW_3 §4 DRY note; telemetry
+        // stages then appear exactly once per phase).
+        $traitInterfaces = $this->deriveTraitInterfaces($reflection);
+        $main = $this->assemble($reflection, $traitInterfaces);
+
+        $source = $this->renderer->renderMany([...array_values($traitInterfaces), $main], $reflection->getNamespaceName());
+        $this->events->measured('source.bytes', strlen($source), 'By', ['target' => $reflection->getName()]);
+        $this->events->occurred('derivation.completed', ['target' => $reflection->getName()]);
+
+        return $source;
     }
 
     /**

@@ -6,6 +6,7 @@ namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\Method;
@@ -30,16 +31,19 @@ abstract readonly class AbstractDeriver implements DeriverInterface
     protected MethodExtractor $extractor;
     protected SourceRenderer $renderer;
     protected MethodSignatureFactory $signatureFactory;
+    protected DeriveEventEmitter $events;
 
     public function __construct(
         ?MethodSignatureFactory     $signatureFactory = null,
         protected DeriveConfig       $config = new DeriveConfig(),
         ?Factory                     $factory = null,
         protected ReflectionCacheInterface $reflectionCache = new InMemoryReflectionCache(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ) {
         $this->extractor = new MethodExtractor($config);
         $this->renderer = new SourceRenderer();
         $this->signatureFactory = $signatureFactory ?? new MethodSignatureFactory(factory: $factory, config: $config);
+        $this->events = new DeriveEventEmitter($eventSink);
     }
 
     /**

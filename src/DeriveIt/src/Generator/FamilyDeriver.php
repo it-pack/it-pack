@@ -6,6 +6,7 @@ namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Generator\FamilyDeriverInterface;
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
@@ -54,11 +55,17 @@ final class FamilyDeriver implements FamilyDeriverInterface
      */
     private array $cache = [];
 
+    private readonly ?DeriveEventSinkInterface $eventSink;
+    private readonly DeriveEventEmitter $events;
+
     public function __construct(
         private readonly DeriveConfig            $config = new DeriveConfig(),
         private readonly ?Factory                $factory = null,
         private readonly ReflectionCacheInterface $reflectionCache = new InMemoryReflectionCache(),
+        ?DeriveEventSinkInterface                $eventSink = null,
     ) {
+        $this->eventSink = $eventSink;
+        $this->events = new DeriveEventEmitter($eventSink);
     }
 
     public function clearCache(): void
@@ -163,6 +170,8 @@ final class FamilyDeriver implements FamilyDeriverInterface
         $map = $this->transitiveClosure($map);
         $configHash = $this->configHash($map, $namespacePrefixMap);
 
+        $this->events->measured('family.members', count($reflections), 'count', ['graph' => 'classes']);
+
         $result = [];
         foreach ($reflections as $reflection) {
             $fqcn = $reflection->getName();
@@ -188,14 +197,15 @@ final class FamilyDeriver implements FamilyDeriverInterface
 
         $memberConfig = $this->config->withTypeSubstitutionMap($map);
 
-        // Forward the family's own reflection cache and Nette factory so the
-        // assembled set is genuinely shared across members, as documented on the
-        // composition root (G18 / E5 / R3-12).
+        // Forward the family's own reflection cache, Nette factory, and telemetry
+        // sink so the assembled set is genuinely shared across members, as
+        // documented on the composition root (G18 / E5 / R3-12).
         return new InterfaceDeriver(
             signatureFactory: new MethodSignatureFactory(factory: $this->factory, config: $memberConfig),
             config: $memberConfig,
             factory: $this->factory,
             reflectionCache: $this->reflectionCache,
+            eventSink: $this->eventSink,
         )->deriveWithSubstitutor($reflection, $substitutor, $allowedNamespaces);
     }
 
@@ -245,6 +255,7 @@ final class FamilyDeriver implements FamilyDeriverInterface
         // (O(n²) -> O(n) for large families). `count($queue)` is re-read each
         // iteration because members are appended during the walk.
         $i = 0;
+        $this->events->activityStarted('graph.walk', ['root' => $rootClass]);
         while ($i < count($queue)) {
             $reflection = $queue[$i++];
             $name = $reflection->getName();
@@ -287,6 +298,7 @@ final class FamilyDeriver implements FamilyDeriverInterface
                 }
             }
         }
+        $this->events->activityFinished('graph.walk');
 
         return $seen;
     }

@@ -71,13 +71,16 @@ scripts/
   derive.php                            # demo: prints a derived interface
   regenerate_goldens.php                # dev helper: rewrites tests/_expected/*
 src/
-  Cli/                                  # DeriveCommand, ArgParser, DeriveCliInput, ParseState
+  Cli/                                  # DeriveCommand, ArgParser, DeriveCliInput, ParseState,
+                                        #   Preset
   Contract/
     Cli/CommandInterface.php
     Generator/                          # DeriverInterface, FamilyDeriverInterface,
                                         #   AdapterGeneratorInterface, MethodFilterInterface
     Reflection/ReflectionCacheInterface.php
     Resolver/                           # RecursiveResolverInterface + 3 typed sub-interfaces
+    Telemetry/                          # DeriveEventSinkInterface (execution-model emission port,
+                                        #   see docs/CONSOLIDATION_PLAN.md)
   DeriveIt.php                          # static facade (Entry) — every public API method
   DeriveItFactory.php                   # composition root (Entry): wires derivers behind ports,
                                         #   shares one ReflectionCacheInterface + Nette Factory
@@ -93,6 +96,7 @@ src/
   Reflection/                           # ClassReflection facade + InMemory / PsrCache /
                                         #   Weak reflection caches
   Resolver/                             # RecursiveClass / Interface / TraitResolver
+  Telemetry/                            # NullDeriveEventSink (default no-op sink)
   Behavior/Utility/LazyCreatable.php    # shared default-bodied create() factory trait
 fixtures/
   Stubs/                                # stubs used by unit tests
@@ -139,6 +143,11 @@ Namespace roots (composer.json): `ItPack\DeriveIt\` → `src/`,
 - **No mutable global/static state.** Caches and resolvers are instance-scoped and
   injected (`DeriveItFactory`, `ClassReflection::create()`); static singletons are
   forbidden (they leak across tests and mask Infection mutants).
+- **Telemetry is facts-only and opt-in.** The pipeline emits activities,
+  measurements, observations, and occurrences through the injectable
+  `DeriveEventSinkInterface` (default `NullDeriveEventSink`): scalar attributes,
+  no timing/identity (host concerns), failures still throw — see
+  `docs/CONSOLIDATION_PLAN.md` before adding emission sites.
 - **Golden files are contracts.** Never edit `tests/_expected/*` by hand; if a
   deliberate output change is intended, regenerate via `scripts/regenerate_goldens.php`
   and review the full diff.

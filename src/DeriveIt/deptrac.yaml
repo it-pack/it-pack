@@ -14,6 +14,10 @@ deptrac:
       collectors:
         - type: directory
           value: src/Reflection/.*
+    - name: Telemetry
+      collectors:
+        - type: directory
+          value: src/Telemetry/.*
     - name: Generator
       collectors:
         - type: directory
@@ -40,6 +44,8 @@ deptrac:
       - Contract
       - Resolver
       - Behavior
+    Telemetry:
+      - Contract
     Generator:
       - Contract
       - Reflection

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Exception\EmptyDerivationException;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
@@ -38,8 +39,9 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         DeriveConfig                   $config = new DeriveConfig(),
         ?Factory                       $factory = null,
         ?ReflectionCacheInterface      $reflectionCache = null,
+        ?DeriveEventSinkInterface      $eventSink = null,
     ) {
-        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache());
+        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache(), $eventSink);
     }
 
     public function derive(ReflectionClass|string $class): InterfaceType
@@ -64,7 +66,10 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         $reflection = $this->reflect($class);
         $meta = $this->build($reflection);
 
-        return $this->renderer->render($meta->interface, $reflection->getNamespaceName());
+        $source = $this->renderer->render($meta->interface, $reflection->getNamespaceName());
+        $this->events->measured('source.bytes', strlen($source), 'By', ['target' => $reflection->getName()]);
+
+        return $source;
     }
 
     /**
@@ -75,11 +80,14 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         $reflection = $this->reflect($class);
         $meta = $this->build($reflection);
 
+        $source = $this->renderer->render($meta->interface, $reflection->getNamespaceName());
+        $this->events->measured('source.bytes', strlen($source), 'By', ['target' => $reflection->getName()]);
+
         return new DerivationResult(
             interface: $meta->interface,
             fqcn: Naming::derivedInterfaceFqcn($reflection),
             shortName: Naming::derivedInterfaceShortName($reflection),
-            source: $this->renderer->render($meta->interface, $reflection->getNamespaceName()),
+            source: $source,
             methods: $meta->methods,
             substitutions: $meta->substitutions,
             constants: $meta->constants,
@@ -114,6 +122,9 @@ final readonly class InterfaceDeriver extends AbstractDeriver
     {
         Naming::assertNoCollision($reflection);
 
+        $target = ['target' => $reflection->getName()];
+        $this->events->occurred('derivation.started', $target);
+
         if ($substitutor === null) {
             // Seed the map with the class itself and its parent so that `self`
             // (which reflection resolves to the concrete class name) and `parent`
@@ -128,22 +139,37 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         // G16 / A4: re-expose owned interfaces the adaptee implements by carrying
         // them onto the derived interface via `extends`. Only interfaces explicitly
         // listed in the allow-list and actually implemented are re-exposed; the core
-        // leakage invariant otherwise keeps `extends` empty.
+        // leakage invariant otherwise keeps `extends` empty. A listed-but-unimplemented
+        // entry is a configuration mistake worth surfacing rather than skipping
+        // silently (first `observed()` emission site — CONSOLIDATION_PLAN §5.2).
         $implemented = $reflection->getInterfaceNames();
         foreach ($this->config->reExposeOwnedInterfaces as $owned) {
-            if (in_array($owned, $implemented, true)) {
-                $interface->addExtend($owned);
+            if (!in_array($owned, $implemented, true)) {
+                $this->events->observed(
+                    sprintf('reExposeOwnedInterfaces entry "%s" is not implemented by "%s"; skipped.', $owned, $reflection->getName()),
+                    'warning',
+                    ['target' => $reflection->getName(), 'interface' => $owned],
+                );
+
+                continue;
             }
+
+            $interface->addExtend($owned);
         }
 
+        $this->events->activityStarted('surface.extract', $target);
+        $extracted = $this->extractor->extract($reflection);
         $collected = [];
-        foreach ($this->extractor->extract($reflection) as $method) {
+        foreach ($extracted as $method) {
             $signature = $this->signatureFor($method, $substitutor);
             if ($signature === null) {
                 continue;
             }
             $collected[] = $signature;
         }
+        $this->events->activityFinished('surface.extract');
+        $this->events->measured('methods.derived', count($collected), 'count', $target);
+        $this->events->measured('methods.dropped', max(0, count($extracted) - count($collected)), 'count', $target);
 
         $methodNames = array_map(static fn (Method $m): string => $m->getName(), $collected);
 
@@ -153,6 +179,7 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         $constants = [];
         if ($this->config->includeConstants) {
             $constants = $this->addConstants($interface, $reflection);
+            $this->events->measured('constants.lifted', count($constants), 'count', $target);
         }
 
         if ($this->config->failOnEmpty && $methodNames === [] && $constants === []) {
@@ -162,6 +189,7 @@ final readonly class InterfaceDeriver extends AbstractDeriver
             ));
         }
 
+        $this->events->activityStarted('leakage.audit', $target);
         self::assertSelfContained($interface, $this->config->reExposeOwnedInterfaces);
 
         new LeakageAuditor()->audit(
@@ -170,6 +198,7 @@ final readonly class InterfaceDeriver extends AbstractDeriver
             $allowedNamespaces,
             $this->config->auditLeakage,
         );
+        $this->events->activityFinished('leakage.audit');
 
         // Report the effective map this substitutor actually applied (a full family
         // cross-reference map in family mode), plus the self/static/parent keyword
@@ -187,6 +216,9 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         if ($parentFqcn !== null) {
             $substitutions['parent'] = $parentFqcn;
         }
+
+        $this->events->measured('substitutions.applied', count($substitutions), 'count', $target);
+        $this->events->occurred('derivation.completed', $target);
 
         return new BuildMeta($interface, $methodNames, $substitutions, $constants);
     }
