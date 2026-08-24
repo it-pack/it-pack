@@ -325,16 +325,16 @@ Security is **strong**; no vulnerabilities found.
 
 ## 11. Findings summary
 
-| # | Area | Severity | Location | Recommendation |
-|---|------|----------|----------|----------------|
-| F1 | DRY | Medium | `BackedEnumTarget.php:102` / `FlagSetTarget.php:151` | Extract shared `NameSlugifier`. |
-| F2 | DRY | Low | `LineBasedRewriter.php:205,288` | Extract `constNameFromLine()` helper. |
-| F3 | DRY | Low | `LineBasedRewriter.php:307,338` | Unify class-brace scan into one scanner. |
-| F4 | Perf / maint | Low–Med | `ParsedSourceCache.php:28` | Bound the content-keyed cache (LRU/size cap) or document single-Detector lifetime. |
-| F5 | Style | Low | `LineBasedRewriter.php:47,194`; `ClassConstantTarget.php:70,94`; `FlagSetTarget.php:139` | Convert trivial `else` to early-return/guard. |
-| F6 | Magic string | Low | `LineBasedRewriter.php:145`; `ClassConstantTarget.php:85` | Use a `Visibility` constant/enum. |
-| F7 | Maint | Low | `LineBasedRewriter.php:135` | Remove legacy `ConstantPlacementInterface` shim when safe. |
-| F8 | DX | Info | `Core/Disenchanter.php:59-66` | Fix duplicate docblock. |
+| # | Area | Severity | Location | Recommendation | Status |
+|---|------|----------|----------|----------------|--------|
+| F1 | DRY | Medium | `BackedEnumTarget.php:102` / `FlagSetTarget.php:151` | Extract shared `NameSlugifier`. | ✅ Resolved (M1 — `Adapter\NameSlugifier`) |
+| F2 | DRY | Low | `LineBasedRewriter.php:205,288` | Extract `constNameFromLine()` helper. | Open (M3) |
+| F3 | DRY | Low | `LineBasedRewriter.php:307,338` | Unify class-brace scan into one scanner. | Open (M3) |
+| F4 | Perf / maint | Low–Med | `ParsedSourceCache.php:28` | Bound the content-keyed cache (LRU/size cap) or document single-Detector lifetime. | Open (M2) |
+| F5 | Style | Low | `LineBasedRewriter.php:47,194`; `ClassConstantTarget.php:70,94`; `FlagSetTarget.php:139` | Convert trivial `else` to early-return/guard. | Open (M5; `FlagSetTarget.php:139` won't-fix) |
+| F6 | Magic string | Low | `LineBasedRewriter.php:145`; `ClassConstantTarget.php:85` | Use a `Visibility` constant/enum. | Open (M5) |
+| F7 | Maint | Low | `LineBasedRewriter.php:135` | Remove legacy `ConstantPlacementInterface` shim when safe. | Open (M4) |
+| F8 | DX | Info | `Core/Disenchanter.php:59-66` | Fix duplicate docblock. | Open (M4) |
 
 No architectural, security, or SOLID defects were found.
 

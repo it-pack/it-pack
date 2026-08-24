@@ -17,7 +17,7 @@
 > composer architecture
 > vendor/bin/phpstan analyse src --level=9
 > composer format:check
-> vendor/bin/codecept run unit        # baseline: OK (164 tests, 378 assertions)
+> vendor/bin/codecept run unit        # baseline: OK (168 tests, 388 assertions)
 > ```
 
 ---
@@ -68,11 +68,21 @@ Deliberately **not planned** (recorded so they are not re-raised):
 
 **Goal:** prove the starting state and isolate the work.
 
-- [ ] **M0-T1** Record baseline gate output (all four commands above) in the
+- [x] **M0-T1** Record baseline gate output (all four commands above) in the
       working notes; expected: PASS / no errors / 0 files / OK (164, 378).
-- [ ] **M0-T2** Create branch `refactor/post-review-consolidation` off `main`.
+      **Recorded (2026-08-24, post-M1):** architecture PASS · PHPStan lvl 9 no
+      errors · format 0 of 170 files to fix · unit suite OK (**168 tests, 388
+      assertions** — grew by `NameSlugifierTest`; pre-M1 figure was 164/378).
+      This is the regression baseline for M2 onward.
+- [x] **M0-T2** ~~Create branch `refactor/post-review-consolidation` off
+      `main`.~~ **Adapted:** this repository is a mono-repo with several
+      subprojects worked on simultaneously; milestones land as ordinary commits
+      on `main` instead of a dedicated branch (user decision). Isolation is
+      provided per-milestone commit granularity (`e685933` = M1) rather than a
+      long-lived branch.
 
-**Acceptance:** baseline green on the branch before M1 starts.
+**Acceptance:** baseline green before each milestone starts; M1 landed green on
+`main`.
 
 ---
 
@@ -417,9 +427,54 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 5. **No new ADR required** — none of these tasks changes aggregate boundaries,
    dependency direction, lifecycle semantics, or serialization. The two API
    notes land as upgrade-notes instead (pre-1.0 policy, AGENTS.md).
-6. **Baseline counts** (164 tests / 378 assertions) are expected to hold or grow;
+6. **Baseline counts** (recorded in §2 M0-T1; currently 168 tests / 388
+   assertions) are expected to hold or grow;
    any shrinkage during a milestone is a regression signal, not acceptable
    collateral.
+
+## Implementation log
+
+Dated record of what actually landed, per milestone. The checkboxes above mark
+task completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-24 — M1 landed (`e685933`), M0 closed on `main`
+
+**M1 — Shared name slugifier (REVIEW F1).**
+
+- Added `Adapter\NameSlugifierInterface` (port, `pascalCase(string $value,
+  string $fallback = 'Value'): string`) and `Adapter\NameSlugifier`
+  (`final readonly`, stateless). Body moved verbatim from the two deleted
+  private `pascalCase()` copies; only difference: empty-result fallback is now
+  a parameter.
+- `BackedEnumTarget` / `FlagSetTarget` take `NameSlugifierInterface` via
+  constructor injection and pass explicit fallbacks (`'Value'` for enum
+  cases/names, `'Flag'` for flag-set base names). Stale "kept private to avoid
+  a shared dependency" docblock removed.
+- **API impact (pre-1.0, deliberate):** `BackedEnumTarget::*construct*` /
+  `FlagSetTarget::__construct()` changed from no-arg to one required
+  `NameSlugifierInterface` argument. Direct constructors are internal wiring;
+  consumers use `PromotionTargetFactory::create()->build()`, which is unchanged
+  and now wires a single shared slugifier into both targets.
+- Construction sites updated: `PromotionTargetFactory`,
+  `BackedEnumTargetTest`, `FlagSetTargetTest`,
+  `CompositePromotionTargetTest`, `examples/05_placement_strategies.php`.
+- Incidental fix in example 05 (same file, discovered by static analysis): its
+  import pointed at non-existent `Factory\ConstantNameResolver`; corrected to
+  `Adapter\ConstantNameResolver` (would have fataled on run).
+- New `tests/Unit/Adapter/NameSlugifierTest.php` (6 cases): word splitting /
+  title-casing, passthrough, leading-digit guard, default fallback `'Value'`,
+  custom fallback `'Flag'`. Note: `ucfirst('4xx')` leaves digit-leading words
+  untouched → `'V4xxMode'`, byte-compatible with the removed copies.
+- Verification: architecture PASS · PHPStan src lvl 9 clean · format clean ·
+  unit suite OK 168 tests / 388 assertions · example 05 smoke-runs.
+
+**M0 — baseline recorded, branch step adapted.**
+
+- All four gates re-run green post-M1 (numbers in §2 M0-T1). Baseline for
+  M2+ is **168 tests / 388 assertions**.
+- Deviation: no dedicated branch — mono-repo with parallel subproject work;
+  milestones land as ordinary commits on `main` (M1 = `e685933`). Isolation is
+  per-milestone commit granularity instead.
 
 ## Suggested execution order
 
