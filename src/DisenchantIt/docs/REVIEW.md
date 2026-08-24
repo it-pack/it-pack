@@ -328,8 +328,8 @@ Security is **strong**; no vulnerabilities found.
 | # | Area | Severity | Location | Recommendation | Status |
 |---|------|----------|----------|----------------|--------|
 | F1 | DRY | Medium | `BackedEnumTarget.php:102` / `FlagSetTarget.php:151` | Extract shared `NameSlugifier`. | ✅ Resolved (M1 — `Adapter\NameSlugifier`) |
-| F2 | DRY | Low | `LineBasedRewriter.php:205,288` | Extract `constNameFromLine()` helper. | Open (M3) |
-| F3 | DRY | Low | `LineBasedRewriter.php:307,338` | Unify class-brace scan into one scanner. | Open (M3) |
+| F2 | DRY | Low | `LineBasedRewriter.php:205,288` | Extract `constNameFromLine()` helper. | ✅ Resolved (M3) |
+| F3 | DRY | Low | `LineBasedRewriter.php:307,338` | Unify class-brace scan into one scanner. | ✅ Resolved (M3 — `findClassBodyBraces()`) |
 | F4 | Perf / maint | Low–Med | `ParsedSourceCache.php:28` | Bound the content-keyed cache (LRU/size cap) or document single-Detector lifetime. | ✅ Resolved (M2 — bounded FIFO cache, cap 32) |
 | F5 | Style | Low | `LineBasedRewriter.php:47,194`; `ClassConstantTarget.php:70,94`; `FlagSetTarget.php:139` | Convert trivial `else` to early-return/guard. | Open (M5; `FlagSetTarget.php:139` won't-fix) |
 | F6 | Magic string | Low | `LineBasedRewriter.php:145`; `ClassConstantTarget.php:85` | Use a `Visibility` constant/enum. | Open (M5) |

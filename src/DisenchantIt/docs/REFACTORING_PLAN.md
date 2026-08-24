@@ -224,7 +224,7 @@ regex and (b) the classlike-declaration scan.
 
 ### Tasks
 
-- [ ] **M3-T1 Const-name helper (F2).** Extract
+- [x] **M3-T1 Const-name helper (F2).** Extract
 
       ```php
       private function constantNameFromLine(string $line): ?string
@@ -236,7 +236,7 @@ regex and (b) the classlike-declaration scan.
       sites. Acceptance: `grep -n 'const\\\\s+' src/Adapter/LineBasedRewriter.php`
       shows the pattern exactly once.
 
-- [ ] **M3-T2 Declaration-pattern helper (part of F3).** The
+- [x] **M3-T2 Declaration-pattern helper (part of F3).** The
       `(?:class|enum|interface|trait)` alternation is built twice
       (`:309-312` and `:340-343`). Extract
 
@@ -246,7 +246,7 @@ regex and (b) the classlike-declaration scan.
 
       returning the composed `sprintf('/\\b(?:class|enum|interface|trait)\\s+%s\\b/', preg_quote($className, '/'))`.
 
-- [ ] **M3-T3 Unified brace scanner (F3).** Merge
+- [x] **M3-T3 Unified brace scanner (F3).** Merge
       `findClassOpeningBraceLine` (`:338`) and `findClassClosingBraceLine`
       (`:307`) into one scanner:
 
@@ -437,6 +437,28 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
 Dated record of what actually landed, per milestone. The checkboxes above mark
 task completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-24 — M3 landed, rewriter DRY consolidation (REVIEW F2 + F3)
+
+- `LineBasedRewriter::constantNameFromLine()` extracted — the
+  `\bconst\s+…([A-Z_][A-Z0-9_]*)\s*=` pattern now exists exactly once (was at
+  the planInsertions duplicate-guard and findExistingConstantNames collector).
+- `LineBasedRewriter::classlikeDeclarationPattern()` extracted — the
+  `class|enum|interface|trait` alternation is composed in exactly one place.
+- `findClassOpeningBraceLine()` / `findClassClosingBraceLine()` collapsed onto
+  one `findClassBodyBraces()` walk returning `array{opening: int|null,
+  closing: int|null}|null`; both originals remain as thin wrappers so each
+  caller keeps its own tolerance for a missing member (e.g. a single-line
+  `class C {}` has an opening but no later closing line). Documented
+  assumption: first matching declaration wins (previously later same-named
+  declarations could be retried when the first produced no result — a
+  pathological shape not present in any fixture).
+- Behavior-preserving: unit suite byte-identical to the M2 baseline
+  (172 tests / 431 assertions), including all idempotency second-pass and
+  enum/const insertion fixtures. No new tests required per plan; existing
+  suites exercise every touched path.
+- Verification: architecture PASS · PHPStan src lvl 9 clean · format clean ·
+  unit suite OK 172/431.
 
 ### 2026-08-24 — M2 landed, bounded parse cache (REVIEW F4)
 

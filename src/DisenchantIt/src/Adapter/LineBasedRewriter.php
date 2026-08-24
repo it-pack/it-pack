@@ -202,8 +202,8 @@ final class LineBasedRewriter implements RewriterInterface
                 $declarationLines = [];
                 foreach ($classInsertions as $insertion) {
                     foreach ($insertion->lines as $lineText) {
-                        if (preg_match('/\bconst\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)?([A-Z_][A-Z0-9_]*)\s*=/', $lineText, $m) === 1
-                            && in_array($m[1], $existingConstantNames, true)) {
+                        $constName = $this->constantNameFromLine($lineText);
+                        if ($constName !== null && in_array($constName, $existingConstantNames, true)) {
                             // Already declared — never re-declare.
                             continue;
                         }
@@ -285,8 +285,9 @@ final class LineBasedRewriter implements RewriterInterface
             $depth += substr_count($lines[$i], '{');
             $depth -= substr_count($lines[$i], '}');
 
-            if (preg_match('/\bconst\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)?([A-Z_][A-Z0-9_]*)\s*=/', $lines[$i], $m) === 1) {
-                $names[] = $m[1];
+            $constName = $this->constantNameFromLine($lines[$i]);
+            if ($constName !== null) {
+                $names[] = $constName;
             }
 
             if ($depth <= 0 && $i > $braceLineIndex) {
@@ -298,33 +299,71 @@ final class LineBasedRewriter implements RewriterInterface
     }
 
     /**
-     * Finds the line index of the `}` that closes the given class/enum body,
-     * tracking brace depth from the declaration. Used to insert a top-level enum
-     * after the class (enums cannot be nested inside a class).
-     *
-     * @param list<string> $lines
+     * Extracts the constant name from a `const [type] NAME =` declaration
+     * line, or null when the line is not a const declaration. Single source
+     * of truth for both the duplicate guard in planInsertions() and the
+     * existing-name collection in findExistingConstantNames().
      */
-    private function findClassClosingBraceLine(array $lines, string $className): ?int
+    private function constantNameFromLine(string $line): ?string
     {
-        $declarationPattern = sprintf(
+        if (preg_match('/\bconst\s+(?:[A-Za-z_][A-Za-z0-9_]*\s+)?([A-Z_][A-Z0-9_]*)\s*=/', $line, $m) === 1) {
+            return $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Builds the classlike-declaration match pattern for a given name. Single
+     * source of truth so the class|enum|interface|trait alternation cannot
+     * drift between call sites.
+     */
+    private function classlikeDeclarationPattern(string $className): string
+    {
+        return sprintf(
             '/\b(?:class|enum|interface|trait)\s+%s\b/',
             preg_quote($className, '/'),
         );
+    }
+
+    /**
+     * Locates a classlike body's brace lines in one walk: scans for the first
+     * declaration matching the name, then tracks depth forward, recording the
+     * opening `{` line and the depth-balanced closing `}` line independently.
+     * Either member may be null when the source shape doesn't produce it
+     * (e.g. a single-line `class C {}` has an opening but no later closing
+     * line), and callers keep their own tolerance via the two wrappers below.
+     *
+     * @param list<string> $lines
+     * @return array{opening: int|null, closing: int|null}|null null when no
+     *         declaration with that name exists in this file
+     */
+    private function findClassBodyBraces(array $lines, string $className): ?array
+    {
+        $declarationPattern = $this->classlikeDeclarationPattern($className);
 
         foreach ($lines as $index => $line) {
             if (preg_match($declarationPattern, $line) !== 1) {
                 continue;
             }
 
+            $opening = null;
+            $closing = null;
             $depth = 0;
             for ($i = $index, $iMax = count($lines); $i < $iMax; $i++) {
+                if ($opening === null && str_contains($lines[$i], '{')) {
+                    $opening = $i;
+                }
                 $depth += substr_count($lines[$i], '{');
                 $depth -= substr_count($lines[$i], '}');
 
                 if ($depth <= 0 && $i > $index) {
-                    return $i;
+                    $closing = $i;
+                    break;
                 }
             }
+
+            return ['opening' => $opening, 'closing' => $closing];
         }
 
         return null;
@@ -337,23 +376,22 @@ final class LineBasedRewriter implements RewriterInterface
      */
     private function findClassOpeningBraceLine(array $lines, string $className): ?int
     {
-        $declarationPattern = sprintf(
-            '/\b(?:class|enum|interface|trait)\s+%s\b/',
-            preg_quote($className, '/'),
-        );
+        $braces = $this->findClassBodyBraces($lines, $className);
 
-        foreach ($lines as $index => $line) {
-            if (preg_match($declarationPattern, $line) !== 1) {
-                continue;
-            }
+        return $braces === null ? null : $braces['opening'];
+    }
 
-            for ($i = $index, $iMax = count($lines); $i < $iMax; $i++) {
-                if (str_contains($lines[$i], '{')) {
-                    return $i;
-                }
-            }
-        }
+    /**
+     * Finds the line index of the `}` that closes the given class/enum body,
+     * tracking brace depth from the declaration. Used to insert a top-level enum
+     * after the class (enums cannot be nested inside a class).
+     *
+     * @param list<string> $lines
+     */
+    private function findClassClosingBraceLine(array $lines, string $className): ?int
+    {
+        $braces = $this->findClassBodyBraces($lines, $className);
 
-        return null;
+        return $braces === null ? null : $braces['closing'];
     }
 }
