@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementKindInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementNameInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Domain\Exception\InvalidMeasurementValueException;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
@@ -181,7 +182,7 @@ final readonly class Measurement implements MeasurementInterface
     private static function assertFinite(float $value): void
     {
         if (!is_finite($value)) {
-            throw new \InvalidArgumentException('Measurement value must be finite.');
+            throw InvalidMeasurementValueException::forNonFiniteValue();
         }
     }
 

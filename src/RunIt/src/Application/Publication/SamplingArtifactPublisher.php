@@ -41,7 +41,7 @@ final readonly class SamplingArtifactPublisher implements ArtifactPublisherInter
             return;
         }
 
-        $this->health?->report(new \RuntimeException('Artifact dropped by sampling policy.'), $artifact);
+        $this->health?->report(SamplingDropException::forArtifact(), $artifact);
     }
 
 }

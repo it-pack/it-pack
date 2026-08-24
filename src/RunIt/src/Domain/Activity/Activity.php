@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Exception\ConflictingActivityCompletionException;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
@@ -75,6 +76,10 @@ final readonly class Activity implements ActivityInterface
         InstantInterface $endedAt,
         ?DurationInterface $duration = null,
     ): self {
+        if ($this->status->isTerminal()) {
+            throw ConflictingActivityCompletionException::forConflict($this->status);
+        }
+
         return new self(
             $this->id,
             $this->executionId,

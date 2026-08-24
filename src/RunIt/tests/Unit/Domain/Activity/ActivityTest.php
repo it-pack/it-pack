@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Activity;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
+use ItPack\RunIt\Domain\Exception\ConflictingActivityCompletionException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -69,6 +71,32 @@ final class ActivityTest extends Unit
         self::assertSame(2000, $done->endedAt()?->epochSeconds());
         self::assertNull($done->throwableDescription());
         self::assertSame(ActivityStatus::Running, $running->status());
+    }
+
+    public function testReopeningATerminalActivityIsRejectedByAggregate(): void
+    {
+        $done = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        )->complete(
+            ActivityStatus::Succeeded,
+            null,
+            Instant::of(2000),
+        );
+
+        try {
+            $done->complete(
+                ActivityStatus::Failed,
+                ThrowableDescription::create('RuntimeException', 'late failure', 0, null, null),
+                Instant::of(3000),
+            );
+            self::fail('reopening a completed activity must be rejected by the aggregate itself');
+        } catch (ConflictingActivityCompletionException $exception) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
+            self::assertStringContainsString('"succeeded"', $exception->getMessage());
+        }
     }
 
     public function testFailedActivityCarriesThrowableDescription(): void

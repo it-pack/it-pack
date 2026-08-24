@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Execution;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
+use ItPack\RunIt\Domain\Exception\ConflictingCompletionException;
+use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -90,6 +94,91 @@ final class ExecutionTest extends Unit
         self::assertNotNull($done->result());
         // original is unchanged
         self::assertSame(ExecutionStatus::Running, $running->status());
+    }
+
+    public function testCompleteFromTerminalStatusIsRejectedByAggregate(): void
+    {
+        $terminal = Execution::start(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000))
+            ->complete(ExecutionSuccess::create(), Instant::of(2000))
+        ;
+
+        try {
+            $terminal->complete(
+                ExecutionFailure::of(
+                    ExecutionStatus::Failed,
+                    \ItPack\RunIt\Domain\Shared\ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+                ),
+                Instant::of(3000),
+            );
+            self::fail('completing a terminal execution must be rejected by the aggregate itself');
+        } catch (ConflictingCompletionException $exception) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
+            self::assertStringContainsString('succeeded', $exception->getMessage());
+            self::assertStringContainsString('failed', $exception->getMessage());
+        }
+    }
+
+    public function testTerminalReCompletionWithSameStatusIsAlsoRejectedByAggregate(): void
+    {
+        $terminal = Execution::start(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000))
+            ->complete(ExecutionSuccess::create(), Instant::of(2000))
+        ;
+
+        $this->expectException(ConflictingCompletionException::class);
+
+        $terminal->complete(ExecutionSuccess::create(), Instant::of(3000));
+    }
+
+    public function testCompleteFromCreatedSkippingRunningIsRejected(): void
+    {
+        $created = Execution::create(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000));
+
+        try {
+            $created->complete(ExecutionSuccess::create(), Instant::of(2000));
+            self::fail('skipping the running state must be rejected');
+        } catch (InvalidLifecycleTransitionException $exception) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
+            self::assertStringContainsString('"created" to "succeeded"', $exception->getMessage());
+        }
+    }
+
+    public function testLifecycleExceptionsRemainCatchableAsInvalidValue(): void
+    {
+        $conflict = ConflictingCompletionException::forConflict(ExecutionStatus::Succeeded, ExecutionStatus::Failed);
+        $transition = InvalidLifecycleTransitionException::forTransition(ExecutionStatus::Created, ExecutionStatus::Running);
+
+        self::assertInstanceOf(InvalidValueExceptionInterface::class, $conflict);
+        self::assertInstanceOf(InvalidValueExceptionInterface::class, $transition);
+    }
+
+    public function testTransitionMatrixIsOwnedByTheStatusEnum(): void
+    {
+        self::assertTrue(ExecutionStatus::Created->canTransitionTo(ExecutionStatus::Running));
+        self::assertTrue(ExecutionStatus::Created->canTransitionTo(ExecutionStatus::Cancelled));
+        self::assertFalse(ExecutionStatus::Created->canTransitionTo(ExecutionStatus::Succeeded));
+        self::assertFalse(ExecutionStatus::Created->canTransitionTo(ExecutionStatus::Created));
+
+        self::assertTrue(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::Succeeded));
+        self::assertTrue(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::Failed));
+        self::assertTrue(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::Cancelled));
+        self::assertTrue(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::TimedOut));
+        self::assertFalse(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::Running));
+
+        foreach ([ExecutionStatus::Succeeded, ExecutionStatus::Failed, ExecutionStatus::Cancelled, ExecutionStatus::TimedOut] as $terminal) {
+            self::assertFalse($terminal->canTransitionTo(ExecutionStatus::Running), 'terminal statuses cannot transition');
+            self::assertFalse($terminal->canTransitionTo($terminal), 'idempotent repeats are handled above the aggregate, not in the matrix');
+        }
+    }
+
+    public function testNonTerminalFailureStatusIsRejected(): void
+    {
+        $this->expectException(InvalidLifecycleTransitionException::class);
+        $this->expectExceptionMessage('requires a terminal status');
+
+        ExecutionFailure::of(
+            ExecutionStatus::Running,
+            \ItPack\RunIt\Domain\Shared\ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+        );
     }
 
     public function testNormalizationIsDeterministic(): void

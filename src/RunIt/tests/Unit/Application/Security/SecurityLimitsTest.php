@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Security;
 
 use Codeception\Test\Unit;
-use InvalidArgumentException;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use ItPack\RunIt\Domain\Exception\InvalidSecurityLimitException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -40,8 +41,19 @@ final class SecurityLimitsTest extends Unit
 
     public function testNegativeOrZeroLimitIsRejected(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidSecurityLimitException::class);
+        $this->expectExceptionMessage('Security limit maxAttributeCount must be a positive integer, got 0');
 
         new SecurityLimits(maxAttributeCount: 0);
+    }
+
+    public function testLimitRejectionCarriesTheInvalidValueMarker(): void
+    {
+        try {
+            new SecurityLimits(maxSerializationBytes: -1);
+            self::fail('non-positive security limits must be rejected');
+        } catch (InvalidSecurityLimitException $exception) {
+            self::assertInstanceOf(InvalidValueExceptionInterface::class, $exception);
+        }
     }
 }

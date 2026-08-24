@@ -85,7 +85,6 @@ implement alongside their SPL base class:
 - `RunItExceptionInterface` — root marker for all public RunIt exceptions.
 - `InvalidValueExceptionInterface` — an invalid value was supplied.
 - `LifecycleExceptionInterface` — an illegal state transition or guard violation.
-- `UnsupportedOperationExceptionInterface` — a behavior is not supported.
 
 Consumers can catch any category marker to react to RunIt failures without
 depending on a framework or a base class.

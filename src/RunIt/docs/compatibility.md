@@ -53,6 +53,35 @@ reported as a break.
   documentation-level declaration of their existing public-contract status; no
   signatures changed.
 
+### Refactoring plan Phase 1 (2026-08-23) lifecycle changes
+
+Per ADR-023 the execution lifecycle matrix is now owned by the domain and
+enforced structurally by the aggregate:
+
+- `ExecutionStatusInterface` gained `canTransitionTo()`. **Breaking** for
+  third-party status implementations, who must now express the closed matrix.
+- `Execution::complete()` rejects re-completion of a terminal record (any
+  target status) and illegal non-terminal transitions. Code that previously
+  bypassed the coordinator to rebuild terminal records will now receive
+  `ConflictingCompletionException` / `InvalidLifecycleTransitionException`.
+  Coordinator semantics are unchanged (idempotent same-status repeats remain
+  no-ops).
+- `Activity::complete()` rejects completion of an already-terminal activity
+  (`ConflictingActivityCompletionException`, new).
+- `ExecutionFailure::__construct` became private; `of()` rejects non-terminal
+  statuses. Direct construction was possible before and is no longer — use
+  `ExecutionFailure::of()`.
+- `ConflictingCompletionException` and `InvalidLifecycleTransitionException`
+  additionally implement `LifecycleExceptionInterface`; existing catches on
+  `InvalidValueExceptionInterface` keep working.
+- `UnsupportedOperationExceptionInterface` was removed: it had zero
+  implementations and zero consumers. Code referencing it must be updated.
+- The measurement finite-value violation throws
+  `InvalidMeasurementValueException` (implements
+  `InvalidValueExceptionInterface`) instead of a bare
+  `\InvalidArgumentException`; the security-limit range check throws
+  `InvalidSecurityLimitException`. Both preserve message text.
+
 
 ## Stable normalization schema
 

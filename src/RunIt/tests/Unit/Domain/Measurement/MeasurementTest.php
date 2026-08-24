@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Measurement;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+use ItPack\RunIt\Domain\Exception\InvalidMeasurementValueException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
@@ -43,13 +46,29 @@ final class MeasurementTest extends Unit
 
     public function testNonFiniteValueIsRejected(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidMeasurementValueException::class);
+        $this->expectExceptionMessage('Measurement value must be finite.');
 
         Measurement::gauge(
             MeasurementName::fromString('cpu.usage'),
             ExecutionId::fromString('exec-1'),
             INF,
         );
+    }
+
+    public function testNonFiniteValueRejectionCarriesTheInvalidValueMarker(): void
+    {
+        try {
+            Measurement::gauge(
+                MeasurementName::fromString('cpu.usage'),
+                ExecutionId::fromString('exec-1'),
+                NAN,
+            );
+            self::fail('non-finite measurement values must be rejected');
+        } catch (InvalidMeasurementValueException $exception) {
+            self::assertInstanceOf(RunItExceptionInterface::class, $exception);
+            self::assertInstanceOf(InvalidValueExceptionInterface::class, $exception);
+        }
     }
 
     public function testActivityBoundMeasurementReportsActivityId(): void

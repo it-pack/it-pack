@@ -14,12 +14,15 @@ use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 
 /**
- * The closed transition matrix for the execution lifecycle.
+ * The application-level lifecycle coordinator.
  *
- * `created` may only move to `running` or `cancelled`. `running` may only move to a
- * terminal status. Terminal statuses are immutable except for an idempotent repeat of
- * the same status, which is a no-op rather than an error. Any other transition, or a
- * repeat with a different terminal status, is rejected.
+ * The transition matrix itself is owned by the domain
+ * ({@see ExecutionStatus::canTransitionTo()}); the coordinator applies it above
+ * the aggregate and adds idempotent-completion semantics: a terminal execution
+ * completed again with the same status is a no-op rather than an error, while a
+ * repeat with a different terminal status is rejected. The aggregate enforces
+ * the same matrix structurally, so an illegal completion cannot be smuggled
+ * past the coordinator by calling the record directly.
  *
  * The coordinator produces the new immutable execution record through the domain's own
  * completion method and never mutates the receiver.
@@ -28,22 +31,6 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
  */
 final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinatorInterface
 {
-    /**
-     * @var array<string, list<string>>
-     */
-    private const array ALLOWED = [
-        ExecutionStatus::Created->value => [
-            ExecutionStatus::Running->value,
-            ExecutionStatus::Cancelled->value,
-        ],
-        ExecutionStatus::Running->value => [
-            ExecutionStatus::Succeeded->value,
-            ExecutionStatus::Failed->value,
-            ExecutionStatus::Cancelled->value,
-            ExecutionStatus::TimedOut->value,
-        ],
-    ];
-
     public function transition(ExecutionInterface $execution, ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface
     {
         $from = $execution->status();
@@ -57,7 +44,7 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
             throw ConflictingCompletionException::forConflict($from, $to);
         }
 
-        if (!self::isAllowed($from, $to)) {
+        if (!$from->canTransitionTo($to)) {
             throw InvalidLifecycleTransitionException::forTransition($from, $to);
         }
 
@@ -81,10 +68,6 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
      */
     public static function isAllowed(ExecutionStatusInterface $from, ExecutionStatusInterface $to): bool
     {
-        if ($from->isTerminal()) {
-            return $from === $to;
-        }
-
-        return isset(self::ALLOWED[$from->label()]) && in_array($to->label(), self::ALLOWED[$from->label()], true);
+        return $from->canTransitionTo($to);
     }
 }

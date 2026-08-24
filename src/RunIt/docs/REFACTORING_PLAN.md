@@ -114,6 +114,15 @@ completion path can replace the original business exception.
 
 ## Phase 1 — P1: structural lifecycle invariants & real exception markers
 
+> **Status: Complete (2026-08-23).** The transition matrix now lives in
+> `ExecutionStatus::canTransitionTo()` and is enforced by the aggregate itself
+> (ADR-023); `Activity::complete()` rejects re-completion;
+> `ExecutionFailure` validates terminal status behind a private constructor;
+> `LifecycleExceptionInterface` has three implementations and
+> `UnsupportedOperationExceptionInterface` was removed (zero consumers);
+> all bare SPL throws in Domain/Application are gone. Green: `analyse`,
+> `cs:check`, `architecture`, full suite (Unit + Conformance + Integration).
+
 ### T1.1 — Enforce the transition matrix in the aggregate, not only the coordinator (REVIEW.md §3.7, §4 P1-3)
 - **Goal:** `Execution::complete()` currently accepts any status, so callers bypassing
   `ExecutionLifecycleCoordinator` can drive a terminal execution to another outcome.
@@ -142,6 +151,19 @@ completion path can replace the original business exception.
   DepTrac unchanged (matrix stays in Domain).
 - **Risk/BC:** breaking for anyone mutating aggregates directly (intentional, pre-1.0);
   requires ADR per AGENTS.md "Lifecycle semantics".
+- **Implemented (2026-08-23):** matrix moved to `ExecutionStatus::canTransitionTo()`
+  (added to `ExecutionStatusInterface`, single const map in the enum);
+  `Execution::complete()` raises `ConflictingCompletionException` for terminal
+  re-completion (including same-status — idempotency stays a coordinator behavior) and
+  `InvalidLifecycleTransitionException` for illegal non-terminal transitions; the
+  coordinator delegates to the same matrix (`ALLOWED` const removed, `isAllowed()`
+  retained as the pure companion). `Activity::complete()` raises the new
+  `ConflictingActivityCompletionException`; `ExecutionFailure::__construct` is private
+  with terminal validation in `of()` via new factory
+  `InvalidLifecycleTransitionException::forNonTerminalFailure()`. ADR-023 written;
+  compatibility notes recorded. Tests: matrix truth table, aggregate re-completion,
+  skip-running rejection, reopen guard, non-terminal failure rejection, marker
+  instanceof assertions; coordinator idempotency re-asserted at the coordinator level.
 
 ### T1.2 — Implement the promised lifecycle marker; retire or implement the unused one (REVIEW.md §3.7, §4 P1-4)
 - **Goal:** `LifecycleExceptionInterface` is promised by `@throws` on
@@ -171,6 +193,15 @@ completion path can replace the original business exception.
   marker was removed.
 - **Risk/BC:** additive marker implementation (safe); interface deletion requires a BC
   note and baseline refresh.
+- **Implemented (2026-08-23):** both lifecycle exceptions now implement
+  `LifecycleExceptionInterface` **and** keep `InvalidValueExceptionInterface`
+  (backward-compatible with existing catch blocks); the new
+  `ConflictingActivityCompletionException` implements the marker as well — three
+  implementations total. The runner's stale `@throws LifecycleExceptionInterface`
+  docs were removed in Phase 0 (T0.2); the coordinator interface keeps them, now
+  truthfully. `UnsupportedOperationExceptionInterface` deleted: repo-wide scan found
+  zero consumers outside its definition, marker test, and concept docs — all updated.
+  BC note recorded in `docs/compatibility.md`; no baseline entries referenced it.
 
 ### T1.3 — No unmarked SPL exceptions (REVIEW.md §3.5, §4 P1-5)
 - **Goal:** three throws escape the RunIt exception-marker system:
@@ -194,6 +225,13 @@ completion path can replace the original business exception.
   `composer api:check` clean after baseline refresh.
 - **Risk/BC:** new concrete exceptions are additive; changing thrown types is observable —
   document in release notes.
+- **Implemented (2026-08-23):** added `InvalidMeasurementValueException`
+  (`forNonFiniteValue()`, message preserved) and `InvalidSecurityLimitException`
+  (`forNonPositive()`, message preserved), both implementing
+  `InvalidValueExceptionInterface`; added `SamplingDropException` (`forArtifact()`,
+  `@internal`, implements `RunItExceptionInterface`) for the sampling health notice.
+  Measurement and SecurityLimits tests updated to the marker types with explicit
+  message assertions plus new marker-interface assertions.
 
 ---
 

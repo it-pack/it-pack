@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Domain\Context\DefaultContextRedactionPolicy;
+use ItPack\RunIt\Domain\Exception\ConflictingCompletionException;
 use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
@@ -91,6 +92,14 @@ final readonly class Execution implements ExecutionInterface
 
     public function complete(ExecutionResultInterface $result, InstantInterface $endedAt): self
     {
+        if ($this->status->isTerminal()) {
+            throw ConflictingCompletionException::forConflict($this->status, $result->status());
+        }
+
+        if (!$this->status->canTransitionTo($result->status())) {
+            throw InvalidLifecycleTransitionException::forTransition($this->status, $result->status());
+        }
+
         return new self(
             $this->id,
             $this->definition,

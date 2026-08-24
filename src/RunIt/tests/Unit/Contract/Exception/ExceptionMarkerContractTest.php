@@ -9,7 +9,6 @@ use InvalidArgumentException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
-use ItPack\RunIt\Contract\Exception\UnsupportedOperationExceptionInterface;
 
 final class ExceptionMarkerContractTest extends Unit
 {
@@ -34,11 +33,6 @@ final class ExceptionMarkerContractTest extends Unit
         self::assertTrue(
             $this->extendsInterface(
                 LifecycleExceptionInterface::class
-            )
-        );
-        self::assertTrue(
-            $this->extendsInterface(
-                UnsupportedOperationExceptionInterface::class
             )
         );
     }

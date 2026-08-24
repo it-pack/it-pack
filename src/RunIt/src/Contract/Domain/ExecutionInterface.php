@@ -32,17 +32,19 @@ interface ExecutionInterface extends ExecutionArtifactInterface, ExecutionOwnedI
     /**
      * Returns a copy of this record carrying the terminal result and end time.
      *
-     * The receiver is never mutated. The lifecycle coordinator is the canonical place
-     * to decide whether the completion is legal before calling this method.
+     * The receiver is never mutated. The aggregate itself enforces the closed
+     * lifecycle matrix: a terminal receiver cannot be completed again, and a
+     * transition not permitted by the matrix raises. The lifecycle coordinator
+     * applies the same rules above the aggregate and additionally defines
+     * idempotent re-completion semantics.
      */
     public function complete(ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface;
 
     /**
      * Returns a copy of this record carrying the running status.
      *
-     * The receiver must be in the created state; the lifecycle coordinator is the
-     * canonical place to decide whether the transition is legal before calling this
-     * method.
+     * The receiver must be in the created state; the aggregate enforces this
+     * directly and the lifecycle coordinator applies the same rule above it.
      */
     public function beginRunning(): ExecutionInterface;
 }

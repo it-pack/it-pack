@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Shared;
 
-use InvalidArgumentException;
+use ItPack\RunIt\Domain\Exception\InvalidSecurityLimitException;
 
 /**
  * Bounded configuration for the data-protection controls of RunIt.
@@ -70,7 +70,7 @@ final readonly class SecurityLimits
             ] as $name => $value
         ) {
             if ($value < 1) {
-                throw new InvalidArgumentException(\sprintf('Security limit %s must be a positive integer, got %d', $name, $value));
+                throw InvalidSecurityLimitException::forNonPositive($name, $value);
             }
         }
     }

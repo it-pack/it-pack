@@ -141,9 +141,17 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Succeeded, ExecutionStatus::Failed));
         self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Failed, ExecutionStatus::Succeeded));
 
-        // Repeating the same terminal status is allowed (idempotent).
-        self::assertTrue(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Succeeded, ExecutionStatus::Succeeded));
-        self::assertTrue(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Failed, ExecutionStatus::Failed));
+        // The matrix excludes idempotent repeats: they are coordinator no-ops,
+        // not transitions. transition() still treats them as idempotent.
+        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Succeeded, ExecutionStatus::Succeeded));
+        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Failed, ExecutionStatus::Failed));
+
+        $terminal = Execution::start(
+            ExecutionId::fromString('exec-1'),
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            Instant::of(1),
+        )->complete(ExecutionSuccess::create(), Instant::of(2));
+        self::assertSame($terminal, $coordinator->transition($terminal, ExecutionSuccess::create(), Instant::of(3)), 'same-status repeat is an idempotent no-op');
     }
 
 }

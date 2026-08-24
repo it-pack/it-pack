@@ -6467,6 +6467,91 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Publication\\SamplingDropException": {
+        "kind": "class",
+        "final": true,
+        "extends": "RuntimeException",
+        "implements": {
+            "Throwable": "Throwable",
+            "Stringable": "Stringable",
+            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
+        },
+        "constants": [],
+        "methods": {
+            "forArtifact": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Application\\Publication\\SamplingDropException",
+                "params": []
+            },
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "code",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "previous",
+                        "type": "null|Throwable",
+                        "optional": true
+                    }
+                ]
+            },
+            "__wakeup": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": []
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Publication\\SeveritySamplePolicy": {
         "kind": "class",
         "final": true,
@@ -10132,6 +10217,17 @@
                 "static": false,
                 "return": "bool",
                 "params": []
+            },
+            "canTransitionTo": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "to",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -12085,60 +12181,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Contract\\Exception\\UnsupportedOperationExceptionInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": {
-            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface",
-            "Stringable": "Stringable",
-            "Throwable": "Throwable"
-        },
-        "constants": [],
-        "methods": {
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface": {
         "kind": "interface",
         "final": false,
@@ -13593,6 +13635,98 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Domain\\Exception\\ConflictingActivityCompletionException": {
+        "kind": "class",
+        "final": true,
+        "extends": "RuntimeException",
+        "implements": {
+            "Throwable": "Throwable",
+            "Stringable": "Stringable",
+            "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface",
+            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
+        },
+        "constants": [],
+        "methods": {
+            "forConflict": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Exception\\ConflictingActivityCompletionException",
+                "params": [
+                    {
+                        "name": "existing",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "code",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "previous",
+                        "type": "null|Throwable",
+                        "optional": true
+                    }
+                ]
+            },
+            "__wakeup": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": []
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Exception\\ConflictingCompletionException": {
         "kind": "class",
         "final": true,
@@ -13601,6 +13735,7 @@
             "Throwable": "Throwable",
             "Stringable": "Stringable",
             "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface",
+            "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface",
             "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
         },
         "constants": [],
@@ -13895,6 +14030,7 @@
             "Throwable": "Throwable",
             "Stringable": "Stringable",
             "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface",
+            "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface",
             "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
         },
         "constants": [],
@@ -13911,6 +14047,200 @@
                     {
                         "name": "to",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "forNonTerminalFailure": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidLifecycleTransitionException",
+                "params": [
+                    {
+                        "name": "status",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "code",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "previous",
+                        "type": "null|Throwable",
+                        "optional": true
+                    }
+                ]
+            },
+            "__wakeup": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": []
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Exception\\InvalidMeasurementValueException": {
+        "kind": "class",
+        "final": true,
+        "extends": "RuntimeException",
+        "implements": {
+            "Throwable": "Throwable",
+            "Stringable": "Stringable",
+            "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface",
+            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
+        },
+        "constants": [],
+        "methods": {
+            "forNonFiniteValue": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidMeasurementValueException",
+                "params": []
+            },
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "code",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "previous",
+                        "type": "null|Throwable",
+                        "optional": true
+                    }
+                ]
+            },
+            "__wakeup": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": []
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Exception\\InvalidSecurityLimitException": {
+        "kind": "class",
+        "final": true,
+        "extends": "RuntimeException",
+        "implements": {
+            "Throwable": "Throwable",
+            "Stringable": "Stringable",
+            "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\InvalidValueExceptionInterface",
+            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
+        },
+        "constants": [],
+        "methods": {
+            "forNonPositive": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidSecurityLimitException",
+                "params": [
+                    {
+                        "name": "name",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "value",
+                        "type": "int",
                         "optional": false
                     }
                 ]
@@ -14437,22 +14767,6 @@
         },
         "constants": [],
         "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "status",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "description",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ThrowableDescriptionInterface",
-                        "optional": false
-                    }
-                ]
-            },
             "of": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionResultInterface",
@@ -14647,6 +14961,17 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "canTransitionTo": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "to",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
             },
             "cases": {
                 "static": true,

@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Domain\Exception;
 
 use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use RuntimeException;
 
 /**
@@ -13,13 +14,16 @@ use RuntimeException;
  *
  * Repeating the same terminal completion is idempotent and must not raise; only a
  * *conflicting* completion (for example `succeeded` after `failed`) is an error. The
- * message names both statuses so the conflict is diagnosable.
+ * message names both statuses so the conflict is diagnosable. The aggregate itself
+ * raises this for any re-completion of a terminal record; the coordinator raises it
+ * above the aggregate only for conflicting repeats, since idempotent repeats are
+ * no-ops there.
  *
  * @api
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ConflictingCompletionException extends RuntimeException implements InvalidValueExceptionInterface
+final class ConflictingCompletionException extends RuntimeException implements InvalidValueExceptionInterface, LifecycleExceptionInterface
 {
     public static function forConflict(ExecutionStatusInterface $existing, ExecutionStatusInterface $attempted): self
     {
