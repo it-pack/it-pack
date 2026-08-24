@@ -10,10 +10,10 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -26,6 +26,14 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  * observable. Dropping follows the publication pipeline's fail-open-with-fallback
  * posture: a single oversized artifact never replaces the business result or
  * aborts the execution.
+ *
+ * Payload sizes come from {@see ArtifactByteEstimatorInterface} (default:
+ * {@see PayloadSectionByteEstimator}), measured natively instead of by encoding
+ * every artifact on this hottest of paths. The per-execution count map is bounded
+ * by {@see SecurityLimits::maxTrackedExecutions} (oldest entry evicted when exceeded,
+ * deterministic insertion order) and an execution's counter is released as soon as
+ * its terminal snapshot passes through, so the map cannot accumulate across
+ * persistent-worker requests.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -45,15 +53,16 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
         private readonly SecurityLimits $limits,
         private readonly ArtifactPublisherInterface $inner,
         private readonly ?Closure $onDropped = null,
+        private readonly ArtifactByteEstimatorInterface $byteEstimator = new PayloadSectionByteEstimator(),
     ) {
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
-        if ($artifact instanceof ExecutionOwnedInterface) {
-            $executionId = $artifact->executionId()->toString();
+        $executionId = $artifact instanceof ExecutionOwnedInterface ? $artifact->executionId()->toString() : null;
 
-            $this->countsPerExecution[$executionId] = ($this->countsPerExecution[$executionId] ?? 0) + 1;
+        if ($executionId !== null) {
+            $this->trackExecution($executionId);
 
             if ($this->countsPerExecution[$executionId] > $this->limits->maxArtifactsPerExecution) {
                 $this->drop('artifact_count', $artifact);
@@ -62,25 +71,44 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
             }
         }
 
-        if ($artifact instanceof OccurrenceInterface) {
-            $bytes = strlen((string) json_encode($artifact->normalize()[ArtifactField::DATA] ?? null));
-            if ($bytes > $this->limits->maxOccurrencePayloadBytes) {
-                $this->drop('occurrence_payload', $artifact);
+        if ($artifact instanceof OccurrenceInterface && $this->byteEstimator->estimate($artifact) > $this->limits->maxOccurrencePayloadBytes) {
+            $this->drop('occurrence_payload', $artifact);
 
-                return;
-            }
+            return;
         }
 
         if ($artifact instanceof SnapshotInterface) {
-            $bytes = strlen((string) json_encode($artifact->payload()));
-            if ($bytes > $this->limits->maxSnapshotPayloadBytes) {
+            if ($this->byteEstimator->estimate($artifact) > $this->limits->maxSnapshotPayloadBytes) {
                 $this->drop('snapshot_payload', $artifact);
 
                 return;
             }
+
+            if ($executionId !== null && $artifact->classification()->isTerminal()) {
+                unset($this->countsPerExecution[$executionId]);
+            }
         }
 
         $this->inner->publish($artifact);
+    }
+
+    private function trackExecution(string $executionId): void
+    {
+        if (isset($this->countsPerExecution[$executionId])) {
+            ++$this->countsPerExecution[$executionId];
+
+            return;
+        }
+
+        if (count($this->countsPerExecution) >= $this->limits->maxTrackedExecutions) {
+            $oldest = array_key_first($this->countsPerExecution);
+
+            if (is_string($oldest)) {
+                unset($this->countsPerExecution[$oldest]);
+            }
+        }
+
+        $this->countsPerExecution[$executionId] = 1;
     }
 
     private function drop(string $reason, ExecutionArtifactInterface $artifact): void

@@ -168,20 +168,20 @@ final readonly class Execution implements ExecutionInterface
     {
         return [
             ArtifactField::ID => $this->id->toString(),
-            'name' => $this->definition->name()->toString(),
-            'kind' => $this->definition->kind()->toString(),
-            'status' => $this->status->label(),
-            'started_at' => $this->startedAt->epochSeconds(),
-            'ended_at' => $this->endedAt?->epochSeconds(),
-            'parent_execution_id' => $this->definition->parentExecutionId()?->toString(),
-            'linked_execution_ids' => array_map(
+            ArtifactField::NAME => $this->definition->name()->toString(),
+            ArtifactField::KIND => $this->definition->kind()->toString(),
+            ArtifactField::STATUS => $this->status->label(),
+            ArtifactField::STARTED_AT => $this->startedAt->epochSeconds(),
+            ArtifactField::ENDED_AT => $this->endedAt?->epochSeconds(),
+            ArtifactField::PARENT_EXECUTION_ID => $this->definition->parentExecutionId()?->toString(),
+            ArtifactField::LINKED_EXECUTION_IDS => array_map(
                 static fn (ExecutionIdInterface $linked): string => $linked->toString(),
                 $this->definition->linkedExecutionIds(),
             ),
-            'sequence' => $this->sequence->value(),
+            ArtifactField::SEQUENCE => $this->sequence->value(),
             ArtifactField::CONTEXT => $this->definition->context()->toArray(DefaultContextRedactionPolicy::default()),
-            'result' => $this->result === null ? null : [
-                'status' => $this->result->status()->label(),
+            ArtifactField::RESULT => $this->result === null ? null : [
+                ArtifactField::STATUS => $this->result->status()->label(),
                 ArtifactField::THROWABLE => $this->result->throwableDescription()?->toArray(),
             ],
         ];

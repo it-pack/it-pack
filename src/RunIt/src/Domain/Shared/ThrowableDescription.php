@@ -77,11 +77,11 @@ final readonly class ThrowableDescription implements ThrowableDescriptionInterfa
     public function toArray(): array
     {
         return [
-            'class' => $this->class,
-            'message' => $this->message,
-            'code' => $this->code,
-            'previous' => $this->previous?->toArray(),
-            'trace' => $this->trace,
+            ArtifactField::THROWABLE_CLASS => $this->class,
+            ArtifactField::MESSAGE => $this->message,
+            ArtifactField::CODE => $this->code,
+            ArtifactField::PREVIOUS => $this->previous?->toArray(),
+            ArtifactField::TRACE => $this->trace,
         ];
     }
 }

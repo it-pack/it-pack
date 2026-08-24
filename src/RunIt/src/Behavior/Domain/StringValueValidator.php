@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Behavior\Domain;
 
 use ItPack\RunIt\Contract\Domain\StringValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
+use ItPack\RunIt\Contract\Shared\KeyPattern;
 
 /**
  * The default RunIt string-value rules.
@@ -41,7 +42,7 @@ final readonly class StringValueValidator implements StringValueValidatorInterfa
      */
     public const int MAX_LENGTH = 128;
 
-    private const string ALLOWED = '/^[A-Za-z0-9._-]++\z/';
+    private const string ALLOWED = KeyPattern::VALIDATED_KEY;
 
     public function validate(string $value): void
     {

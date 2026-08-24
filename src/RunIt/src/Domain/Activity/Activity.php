@@ -169,20 +169,20 @@ final readonly class Activity implements ActivityInterface
     {
         $normalized = [
             ArtifactField::ID => $this->id->toString(),
-            'execution_id' => $this->executionId->toString(),
-            'name' => $this->definition->name()->toString(),
-            'kind' => $this->definition->kind()->toString(),
-            'status' => $this->status->label(),
-            'started_at' => $this->startedAt->epochSeconds(),
-            'ended_at' => $this->endedAt?->epochSeconds(),
-            'parent_activity_id' => $this->definition->parentActivityId()?->toString(),
-            'sequence' => $this->sequence->value(),
+            ArtifactField::EXECUTION_ID => $this->executionId->toString(),
+            ArtifactField::NAME => $this->definition->name()->toString(),
+            ArtifactField::KIND => $this->definition->kind()->toString(),
+            ArtifactField::STATUS => $this->status->label(),
+            ArtifactField::STARTED_AT => $this->startedAt->epochSeconds(),
+            ArtifactField::ENDED_AT => $this->endedAt?->epochSeconds(),
+            ArtifactField::PARENT_ACTIVITY_ID => $this->definition->parentActivityId()?->toString(),
+            ArtifactField::SEQUENCE => $this->sequence->value(),
             ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
             ArtifactField::THROWABLE => $this->throwableDescription?->toArray(),
         ];
 
         if ($this->duration !== null) {
-            $normalized['duration_ns'] = $this->duration->nanoseconds();
+            $normalized[ArtifactField::DURATION_NS] = $this->duration->nanoseconds();
         }
 
         return $normalized;

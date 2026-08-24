@@ -166,18 +166,18 @@ final readonly class Occurrence implements OccurrenceInterface
     {
         return [
             ArtifactField::ID => $this->id->toString(),
-            'execution_id' => $this->executionId->toString(),
-            'activity_id' => $this->activityId?->toString(),
-            'type' => $this->type->toString(),
-            'version' => $this->type->version(),
-            'source' => $this->source,
-            'subject' => $this->subject,
-            'time' => $this->time->epochSeconds(),
+            ArtifactField::EXECUTION_ID => $this->executionId->toString(),
+            ArtifactField::ACTIVITY_ID => $this->activityId?->toString(),
+            ArtifactField::TYPE => $this->type->toString(),
+            ArtifactField::VERSION => $this->type->version(),
+            ArtifactField::SOURCE => $this->source,
+            ArtifactField::SUBJECT => $this->subject,
+            ArtifactField::TIME => $this->time->epochSeconds(),
             ArtifactField::DATA => $this->data,
-            'data_schema' => $this->dataSchema,
-            'content_type' => $this->contentType,
-            'extension_attributes' => $this->extensionAttributes->toArray(),
-            'sequence' => $this->sequence->value(),
+            ArtifactField::DATA_SCHEMA => $this->dataSchema,
+            ArtifactField::CONTENT_TYPE => $this->contentType,
+            ArtifactField::EXTENSION_ATTRIBUTES => $this->extensionAttributes->toArray(),
+            ArtifactField::SEQUENCE => $this->sequence->value(),
         ];
     }
 }

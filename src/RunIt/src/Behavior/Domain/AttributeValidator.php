@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Behavior\Domain;
 
 use ItPack\RunIt\Contract\Domain\AttributeValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
+use ItPack\RunIt\Contract\Shared\KeyPattern;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -30,8 +31,6 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  */
 final class AttributeValidator implements AttributeValidatorInterface
 {
-    private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
-
     public function __construct(
         private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
@@ -50,7 +49,7 @@ final class AttributeValidator implements AttributeValidatorInterface
             throw InvalidAttributeException::keyTooLong($length, $maxKey);
         }
 
-        if (preg_match(self::KEY_PATTERN, $key) !== 1) {
+        if (preg_match(KeyPattern::VALIDATED_KEY, $key) !== 1) {
             throw InvalidAttributeException::unsupportedKeyCharacters();
         }
     }
@@ -70,41 +69,24 @@ final class AttributeValidator implements AttributeValidatorInterface
             throw InvalidAttributeException::tooManyAttributes($count, $maxCount);
         }
 
-        $maxDepth = $this->limits->maxAttributeDepth;
-
         foreach ($attributes as $key => $value) {
             $this->assertValidKey($key);
-            $this->assertSupportedValue($value, 1, $maxDepth);
+            $this->walker()->assertSupported($value);
         }
     }
 
     /**
-     * @throws InvalidAttributeException when the value is not a scalar, null, or
-     *                                   a bounded list/map of scalars
+     * The attribute rule set shares the bounded primitive walk with the context
+     * rules; per-array entry counts are not checked here because the
+     * collection-wide count bound is asserted above with its own violation.
      */
-    private function assertSupportedValue(mixed $value, int $depth, int $maxDepth): void
+    private function walker(): BoundedPrimitiveValueWalker
     {
-        if (is_scalar($value) || $value === null) {
-            $maxValue = $this->limits->maxAttributeValueBytes;
-            if (is_string($value) && strlen($value) > $maxValue) {
-                throw InvalidAttributeException::valueTooLong(strlen($value), $maxValue);
-            }
-
-            return;
-        }
-
-        if (is_array($value)) {
-            if ($depth >= $maxDepth) {
-                throw InvalidAttributeException::valueTooDeep($depth, $maxDepth);
-            }
-
-            foreach ($value as $member) {
-                $this->assertSupportedValue($member, $depth + 1, $maxDepth);
-            }
-
-            return;
-        }
-
-        throw InvalidAttributeException::unsupportedValue();
+        return new BoundedPrimitiveValueWalker(
+            $this->limits,
+            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooLong($length, $maximum),
+            static fn (int $depth, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooDeep($depth, $maximum),
+            static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedValue(),
+        );
     }
 }

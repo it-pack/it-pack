@@ -4767,6 +4767,11 @@
                         "name": "onDropped",
                         "type": "null|Closure",
                         "optional": true
+                    },
+                    {
+                        "name": "byteEstimator",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -4973,6 +4978,11 @@
                     {
                         "name": "observer",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\BatchFlushObserverInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "sleep",
+                        "type": "null|Closure",
                         "optional": true
                     }
                 ]
@@ -5278,6 +5288,22 @@
         },
         "constants": [],
         "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "throwableMapper",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ThrowableMapperInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "logTo",
+                        "type": "null|Closure",
+                        "optional": true
+                    }
+                ]
+            },
             "report": {
                 "static": false,
                 "return": "void",
@@ -5689,6 +5715,11 @@
                         "name": "keyOf",
                         "type": "null|Closure",
                         "optional": true
+                    },
+                    {
+                        "name": "limits",
+                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
                     }
                 ]
             },
@@ -5882,6 +5913,29 @@
             "BlockWithTimeout",
             "Fail"
         ]
+    },
+    "ItPack\\RunIt\\Application\\Publication\\PayloadSectionByteEstimator": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface"
+        },
+        "constants": [],
+        "methods": {
+            "estimate": {
+                "static": false,
+                "return": "int",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
     },
     "ItPack\\RunIt\\Application\\Publication\\PublicationGuard": {
         "kind": "class",
@@ -12534,6 +12588,17 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Shared\\KeyPattern": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": {
+            "VALIDATED_KEY": "public"
+        },
+        "methods": [],
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Activity\\Activity": {
         "kind": "class",
         "final": true,
@@ -16513,7 +16578,45 @@
             "THROWABLE": "public",
             "DATA": "public",
             "PAYLOAD": "public",
-            "MESSAGE": "public"
+            "MESSAGE": "public",
+            "EXECUTION_ID": "public",
+            "ACTIVITY_ID": "public",
+            "PARENT_EXECUTION_ID": "public",
+            "LINKED_EXECUTION_IDS": "public",
+            "PARENT_ACTIVITY_ID": "public",
+            "PREDECESSOR_ID": "public",
+            "NAME": "public",
+            "KIND": "public",
+            "STATUS": "public",
+            "RESULT": "public",
+            "SEQUENCE": "public",
+            "STARTED_AT": "public",
+            "ENDED_AT": "public",
+            "CREATED_AT": "public",
+            "TIMESTAMP": "public",
+            "TIME": "public",
+            "EXPIRES_AT": "public",
+            "DURATION_NS": "public",
+            "SEVERITY": "public",
+            "LEVEL": "public",
+            "DIAGNOSTIC_CODE": "public",
+            "UNIT": "public",
+            "VALUE": "public",
+            "TYPE": "public",
+            "VERSION": "public",
+            "SOURCE": "public",
+            "SUBJECT": "public",
+            "DATA_SCHEMA": "public",
+            "CONTENT_TYPE": "public",
+            "EXTENSION_ATTRIBUTES": "public",
+            "CLASSIFICATION": "public",
+            "SCHEMA_VERSION": "public",
+            "CONTENT_HASH": "public",
+            "KEY": "public",
+            "THROWABLE_CLASS": "public",
+            "CODE": "public",
+            "PREVIOUS": "public",
+            "TRACE": "public"
         },
         "methods": [],
         "cases": []
@@ -17049,6 +17152,11 @@
                         "name": "maxSerializationBytes",
                         "type": "int",
                         "optional": true
+                    },
+                    {
+                        "name": "maxTrackedExecutions",
+                        "type": "int",
+                        "optional": true
                     }
                 ]
             },
@@ -17157,6 +17265,17 @@
                 "params": [
                     {
                         "name": "maxSerializationBytes",
+                        "type": "int",
+                        "optional": false
+                    }
+                ]
+            },
+            "withMaxTrackedExecutions": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": [
+                    {
+                        "name": "maxTrackedExecutions",
                         "type": "int",
                         "optional": false
                     }

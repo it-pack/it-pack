@@ -33,4 +33,94 @@ interface ArtifactField
     public const string PAYLOAD = 'payload';
 
     public const string MESSAGE = 'message';
+
+    // Identity and relationships
+
+    public const string EXECUTION_ID = 'execution_id';
+
+    public const string ACTIVITY_ID = 'activity_id';
+
+    public const string PARENT_EXECUTION_ID = 'parent_execution_id';
+
+    public const string LINKED_EXECUTION_IDS = 'linked_execution_ids';
+
+    public const string PARENT_ACTIVITY_ID = 'parent_activity_id';
+
+    public const string PREDECESSOR_ID = 'predecessor_id';
+
+    // Lifecycle, naming, and ordering
+
+    public const string NAME = 'name';
+
+    public const string KIND = 'kind';
+
+    public const string STATUS = 'status';
+
+    public const string RESULT = 'result';
+
+    public const string SEQUENCE = 'sequence';
+
+    public const string STARTED_AT = 'started_at';
+
+    public const string ENDED_AT = 'ended_at';
+
+    public const string CREATED_AT = 'created_at';
+
+    public const string TIMESTAMP = 'timestamp';
+
+    public const string TIME = 'time';
+
+    public const string EXPIRES_AT = 'expires_at';
+
+    public const string DURATION_NS = 'duration_ns';
+
+    // Observation specifics
+
+    public const string SEVERITY = 'severity';
+
+    public const string LEVEL = 'level';
+
+    public const string DIAGNOSTIC_CODE = 'diagnostic_code';
+
+    // Measurement specifics
+
+    public const string UNIT = 'unit';
+
+    public const string VALUE = 'value';
+
+    // Occurrence and snapshot typing
+
+    public const string TYPE = 'type';
+
+    public const string VERSION = 'version';
+
+    public const string SOURCE = 'source';
+
+    public const string SUBJECT = 'subject';
+
+    public const string DATA_SCHEMA = 'data_schema';
+
+    public const string CONTENT_TYPE = 'content_type';
+
+    public const string EXTENSION_ATTRIBUTES = 'extension_attributes';
+
+    public const string CLASSIFICATION = 'classification';
+
+    public const string SCHEMA_VERSION = 'schema_version';
+
+    public const string CONTENT_HASH = 'content_hash';
+
+    // Context entries
+
+    public const string KEY = 'key';
+
+    // Throwable descriptions ('class' is a reserved word, hence the prefix)
+
+    public const string THROWABLE_CLASS = 'class';
+
+    public const string CODE = 'code';
+
+    public const string PREVIOUS = 'previous';
+
+    public const string TRACE = 'trace';
 }

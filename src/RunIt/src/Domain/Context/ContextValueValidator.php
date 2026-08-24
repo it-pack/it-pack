@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Context;
 
+use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Contract\Shared\KeyPattern;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -28,8 +30,6 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  */
 final class ContextValueValidator implements ContextValueValidatorInterface
 {
-    private const string KEY_PATTERN = '/^[A-Za-z0-9._-]++\z/';
-
     public function __construct(
         private readonly SecurityLimits $limits = new SecurityLimits(),
     ) {
@@ -48,7 +48,7 @@ final class ContextValueValidator implements ContextValueValidatorInterface
             throw InvalidContextValueException::keyTooLong($length, $maxKey);
         }
 
-        if (preg_match(self::KEY_PATTERN, $key) !== 1) {
+        if (preg_match(KeyPattern::VALIDATED_KEY, $key) !== 1) {
             throw InvalidContextValueException::unsupportedKeyCharacters();
         }
     }
@@ -64,48 +64,22 @@ final class ContextValueValidator implements ContextValueValidatorInterface
      */
     public function assertSupportedValue(mixed $value): void
     {
-        $maxDepth = $this->limits->maxAttributeDepth;
-
-        $this->assertSupportedValueRecursive($value, 1, $maxDepth);
+        $this->walker()->assertSupported($value);
     }
 
     /**
-     * Recursively rejects values that are not scalars, null, or bounded lists/maps
-     * of scalars. Nesting depth is bounded so a deeply nested structure cannot
-     * recurse until the stack overflows.
-     *
-     * @throws InvalidContextValueException when the value is not a scalar, null, or
-     *                                   a bounded list/map of scalars, or exceeds the
-     *                                   depth bound
+     * The context rule set shares the bounded primitive walk with the attribute
+     * rules and additionally rejects arrays that exceed the per-array entry
+     * bound at any nesting level.
      */
-    private function assertSupportedValueRecursive(mixed $value, int $depth, int $maxDepth): void
+    private function walker(): BoundedPrimitiveValueWalker
     {
-        if (is_scalar($value) || $value === null) {
-            $maxValue = $this->limits->maxAttributeValueBytes;
-
-            if (is_string($value) && strlen($value) > $maxValue) {
-                throw InvalidContextValueException::valueTooLarge(strlen($value), $maxValue);
-            }
-
-            return;
-        }
-
-        if (is_array($value)) {
-            if ($depth >= $maxDepth) {
-                throw InvalidContextValueException::valueTooDeep($depth, $maxDepth);
-            }
-
-            if (count($value) > $this->limits->maxAttributeCount) {
-                throw InvalidContextValueException::unsupportedValue();
-            }
-
-            foreach ($value as $member) {
-                $this->assertSupportedValueRecursive($member, $depth + 1, $maxDepth);
-            }
-
-            return;
-        }
-
-        throw InvalidContextValueException::unsupportedValue();
+        return new BoundedPrimitiveValueWalker(
+            $this->limits,
+            static fn (int $length, int $maximum): InvalidContextValueException => InvalidContextValueException::valueTooLarge($length, $maximum),
+            static fn (int $depth, int $maximum): InvalidContextValueException => InvalidContextValueException::valueTooDeep($depth, $maximum),
+            static fn (): InvalidContextValueException => InvalidContextValueException::unsupportedValue(),
+            rejectOversizedArrays: true,
+        );
     }
 }

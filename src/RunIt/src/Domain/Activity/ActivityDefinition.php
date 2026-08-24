@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityKindInterface;
 use ItPack\RunIt\Contract\Domain\ActivityNameInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * The immutable blueprint of an activity.
@@ -57,9 +58,9 @@ final readonly class ActivityDefinition implements ActivityDefinitionInterface
     public function normalize(): array
     {
         return [
-            'name' => $this->name->toString(),
-            'kind' => $this->kind->toString(),
-            'parent_activity_id' => $this->parentActivityId?->toString(),
+            ArtifactField::NAME => $this->name->toString(),
+            ArtifactField::KIND => $this->kind->toString(),
+            ArtifactField::PARENT_ACTIVITY_ID => $this->parentActivityId?->toString(),
         ];
     }
 }

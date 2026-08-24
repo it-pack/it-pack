@@ -45,6 +45,36 @@ final readonly class Observation implements ObservationInterface
     ) {
     }
 
+    /**
+     * The single severity-parameterized construction path behind every named
+     * constructor: defaults are applied once and the record is assembled once.
+     */
+    private static function atSeverity(
+        ObservationSeverityInterface $severity,
+        ObservationIdInterface $id,
+        ExecutionIdInterface $executionId,
+        string $message,
+        ?ActivityIdInterface $activityId,
+        ?string $diagnosticCode,
+        ?AttributeCollectionInterface $attributes,
+        ?ThrowableDescriptionInterface $throwableDescription,
+        ?InstantInterface $instant,
+        ?ArtifactSequenceInterface $sequence,
+    ): self {
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            $severity,
+            $message,
+            $diagnosticCode,
+            $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
+        );
+    }
+
     public static function debug(
         ObservationIdInterface $id,
         ExecutionIdInterface $executionId,
@@ -56,18 +86,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Debug,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Debug, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function info(
@@ -81,18 +100,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Info,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Info, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function notice(
@@ -106,18 +114,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Notice,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Notice, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function warning(
@@ -131,18 +128,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Warning,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Warning, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function error(
@@ -156,18 +142,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Error,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Error, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function critical(
@@ -181,18 +156,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Critical,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Critical, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function alert(
@@ -206,18 +170,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Alert,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Alert, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public static function emergency(
@@ -231,18 +184,7 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            ObservationSeverity::Emergency,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::atSeverity(ObservationSeverity::Emergency, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
     }
 
     public function id(): ObservationIdInterface
@@ -310,14 +252,14 @@ final readonly class Observation implements ObservationInterface
     {
         return [
             ArtifactField::ID => $this->id->toString(),
-            'execution_id' => $this->executionId->toString(),
-            'activity_id' => $this->activityId?->toString(),
-            'severity' => $this->severity->label(),
-            'level' => $this->severity->level(),
-            'message' => $this->message,
-            'diagnostic_code' => $this->diagnosticCode,
-            'sequence' => $this->sequence->value(),
-            'timestamp' => $this->instant->epochSeconds(),
+            ArtifactField::EXECUTION_ID => $this->executionId->toString(),
+            ArtifactField::ACTIVITY_ID => $this->activityId?->toString(),
+            ArtifactField::SEVERITY => $this->severity->label(),
+            ArtifactField::LEVEL => $this->severity->level(),
+            ArtifactField::MESSAGE => $this->message,
+            ArtifactField::DIAGNOSTIC_CODE => $this->diagnosticCode,
+            ArtifactField::SEQUENCE => $this->sequence->value(),
+            ArtifactField::TIMESTAMP => $this->instant->epochSeconds(),
             ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
             ArtifactField::THROWABLE => $this->throwableDescription?->toArray(),
         ];

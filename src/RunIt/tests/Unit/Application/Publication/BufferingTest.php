@@ -136,6 +136,33 @@ final class BufferingTest extends Unit
         self::assertSame(1, $buffer->bufferedCount());
     }
 
+    public function testBlockWithTimeoutWaitsThroughTheInjectableSleepSeam(): void
+    {
+        $sleeps = [];
+
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, OverflowStrategy::BlockWithTimeout),
+            new InMemoryArtifactPublisher(),
+            $this->clock,
+            $this->estimator,
+            null,
+            null,
+            static function (int $microseconds) use (&$sleeps): void {
+                $sleeps[] = $microseconds;
+            },
+        );
+
+        // Fill the single slot, then block: the injected seam records the wait
+        // instead of actually sleeping, and the deadline eventually drops the
+        // incoming artifact (nothing drains because nothing flushes here).
+        $buffer->publish($this->artifact('info', 'obs-1'));
+        $buffer->publish($this->artifact('info', 'obs-2'));
+
+        self::assertNotEmpty($sleeps, 'the blocking strategy must wait through the sleep seam');
+        self::assertSame(100, $sleeps[0], 'the wait quantum is the documented 100 microseconds');
+        self::assertSame(1, $buffer->droppedCount(), 'after the deadline the incoming artifact is dropped');
+    }
+
     public function testFlushRespectsBatchSize(): void
     {
         $sink = new InMemoryArtifactPublisher();

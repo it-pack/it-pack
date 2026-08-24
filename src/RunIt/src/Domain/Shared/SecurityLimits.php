@@ -42,6 +42,7 @@ final readonly class SecurityLimits
      * @param int $maxArtifactsPerExecution   maximum artifacts recorded per execution
      * @param int $maxSerializationDepth      maximum depth of arbitrary data normalization
      * @param int $maxSerializationBytes      maximum size of an arbitrary serialized payload in bytes
+     * @param int $maxTrackedExecutions       maximum executions tracked by per-execution caches before oldest entries are evicted
      */
     public function __construct(
         public int $maxAttributeCount = 64,
@@ -54,6 +55,7 @@ final readonly class SecurityLimits
         public int $maxArtifactsPerExecution = 10000,
         public int $maxSerializationDepth = 64,
         public int $maxSerializationBytes = 1048576,
+        public int $maxTrackedExecutions = 10000,
     ) {
         foreach (
             [
@@ -67,6 +69,7 @@ final readonly class SecurityLimits
                 'maxArtifactsPerExecution' => $this->maxArtifactsPerExecution,
                 'maxSerializationDepth' => $this->maxSerializationDepth,
                 'maxSerializationBytes' => $this->maxSerializationBytes,
+                'maxTrackedExecutions' => $this->maxTrackedExecutions,
             ] as $name => $value
         ) {
             if ($value < 1) {
@@ -76,11 +79,35 @@ final readonly class SecurityLimits
     }
 
     /**
+     * Returns a copy of this instance with the given limits overridden.
+     *
+     * Every limit name matches its constructor parameter, so a single named-argument
+     * helper replaces the previously hand-copied per-limit clone methods. This runs at
+     * configuration time only, never on a hot path.
+     */
+    private function with(int ...$overrides): self
+    {
+        return new self(
+            maxAttributeCount: $overrides['maxAttributeCount'] ?? $this->maxAttributeCount,
+            maxAttributeKeyBytes: $overrides['maxAttributeKeyBytes'] ?? $this->maxAttributeKeyBytes,
+            maxAttributeValueBytes: $overrides['maxAttributeValueBytes'] ?? $this->maxAttributeValueBytes,
+            maxAttributeDepth: $overrides['maxAttributeDepth'] ?? $this->maxAttributeDepth,
+            maxOccurrencePayloadBytes: $overrides['maxOccurrencePayloadBytes'] ?? $this->maxOccurrencePayloadBytes,
+            maxSnapshotPayloadBytes: $overrides['maxSnapshotPayloadBytes'] ?? $this->maxSnapshotPayloadBytes,
+            maxActivityDepth: $overrides['maxActivityDepth'] ?? $this->maxActivityDepth,
+            maxArtifactsPerExecution: $overrides['maxArtifactsPerExecution'] ?? $this->maxArtifactsPerExecution,
+            maxSerializationDepth: $overrides['maxSerializationDepth'] ?? $this->maxSerializationDepth,
+            maxSerializationBytes: $overrides['maxSerializationBytes'] ?? $this->maxSerializationBytes,
+            maxTrackedExecutions: $overrides['maxTrackedExecutions'] ?? $this->maxTrackedExecutions,
+        );
+    }
+
+    /**
      * Returns a copy with the maximum attribute count changed.
      */
     public function withMaxAttributeCount(int $maxAttributeCount): self
     {
-        return new self(maxAttributeCount: $maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxAttributeCount: $maxAttributeCount);
     }
 
     /**
@@ -88,7 +115,7 @@ final readonly class SecurityLimits
      */
     public function withMaxAttributeKeyBytes(int $maxAttributeKeyBytes): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxAttributeKeyBytes: $maxAttributeKeyBytes);
     }
 
     /**
@@ -96,7 +123,7 @@ final readonly class SecurityLimits
      */
     public function withMaxAttributeValueBytes(int $maxAttributeValueBytes): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxAttributeValueBytes: $maxAttributeValueBytes);
     }
 
     /**
@@ -104,7 +131,7 @@ final readonly class SecurityLimits
      */
     public function withMaxAttributeDepth(int $maxAttributeDepth): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxAttributeDepth: $maxAttributeDepth);
     }
 
     /**
@@ -112,7 +139,7 @@ final readonly class SecurityLimits
      */
     public function withMaxOccurrencePayloadBytes(int $maxOccurrencePayloadBytes): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxOccurrencePayloadBytes: $maxOccurrencePayloadBytes);
     }
 
     /**
@@ -120,7 +147,7 @@ final readonly class SecurityLimits
      */
     public function withMaxSnapshotPayloadBytes(int $maxSnapshotPayloadBytes): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxSnapshotPayloadBytes: $maxSnapshotPayloadBytes);
     }
 
     /**
@@ -128,7 +155,7 @@ final readonly class SecurityLimits
      */
     public function withMaxActivityDepth(int $maxActivityDepth): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxActivityDepth: $maxActivityDepth);
     }
 
     /**
@@ -136,7 +163,7 @@ final readonly class SecurityLimits
      */
     public function withMaxArtifactsPerExecution(int $maxArtifactsPerExecution): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxArtifactsPerExecution: $maxArtifactsPerExecution);
     }
 
     /**
@@ -144,7 +171,7 @@ final readonly class SecurityLimits
      */
     public function withMaxSerializationDepth(int $maxSerializationDepth): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $maxSerializationDepth, maxSerializationBytes: $this->maxSerializationBytes);
+        return $this->with(maxSerializationDepth: $maxSerializationDepth);
     }
 
     /**
@@ -152,6 +179,14 @@ final readonly class SecurityLimits
      */
     public function withMaxSerializationBytes(int $maxSerializationBytes): self
     {
-        return new self(maxAttributeCount: $this->maxAttributeCount, maxAttributeKeyBytes: $this->maxAttributeKeyBytes, maxAttributeValueBytes: $this->maxAttributeValueBytes, maxAttributeDepth: $this->maxAttributeDepth, maxOccurrencePayloadBytes: $this->maxOccurrencePayloadBytes, maxSnapshotPayloadBytes: $this->maxSnapshotPayloadBytes, maxActivityDepth: $this->maxActivityDepth, maxArtifactsPerExecution: $this->maxArtifactsPerExecution, maxSerializationDepth: $this->maxSerializationDepth, maxSerializationBytes: $maxSerializationBytes);
+        return $this->with(maxSerializationBytes: $maxSerializationBytes);
+    }
+
+    /**
+     * Returns a copy with the maximum tracked-executions cache bound changed.
+     */
+    public function withMaxTrackedExecutions(int $maxTrackedExecutions): self
+    {
+        return $this->with(maxTrackedExecutions: $maxTrackedExecutions);
     }
 }

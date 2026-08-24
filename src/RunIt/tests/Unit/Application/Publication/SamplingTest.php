@@ -22,6 +22,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * @group application
@@ -130,6 +131,36 @@ final class SamplingTest extends Unit
         self::assertTrue($first);
         self::assertTrue($second, 'The second artifact follows the first execution decision (head-based).');
         self::assertSame(1, $inner->calls, 'The wrapped policy is consulted only once per execution.');
+    }
+
+    public function testDecisionCacheIsBoundedAndOldestKeyIsReDecided(): void
+    {
+        $inner = new class () implements SamplingPolicyInterface {
+            public int $calls = 0;
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->calls++;
+
+                return true;
+            }
+        };
+
+        $policy = new HeadBasedSamplingPolicy(
+            $inner,
+            limits: new SecurityLimits(maxTrackedExecutions: 1),
+        );
+
+        $policy->sample($this->observation('info', 'exec-1'));
+        self::assertSame(1, $inner->calls);
+
+        // A second execution evicts the first key from the bounded cache...
+        $policy->sample($this->observation('info', 'exec-2'));
+        self::assertSame(2, $inner->calls);
+
+        // ...so the first execution is re-decided instead of being retained forever.
+        $policy->sample($this->observation('info', 'exec-1'));
+        self::assertSame(3, $inner->calls, 'an evicted execution key must be re-decided through the wrapped policy');
     }
 
     public function testSamplingPublisherDropsRejectedArtifacts(): void

@@ -237,6 +237,19 @@ completion path can replace the original business exception.
 
 ## Phase 2 — P2: DRY consolidation, bounded caches, hot-path cost
 
+> **Status: Complete (2026-08-23).** One shared key pattern (`Contract\Shared\KeyPattern`)
+> and one shared value walk (`BoundedPrimitiveValueWalker`) back all three validators,
+> pinned by a parity test; the `Observation`/`Measurement`/`SecurityLimits` constructor
+> families collapsed behind shared private factories; all projection field names now come
+> from `ArtifactField` (66+ replacements, output byte-identical under the existing
+> exact-output tests); both per-execution caches are bounded via the new
+> `SecurityLimits::maxTrackedExecutions` with release-on-terminal; the health reporter
+> logs mapper-sanitized messages; the bounded publisher measures payloads natively
+> (`PayloadSectionByteEstimator`) and the buffer routes every clock read through the port
+> (wall-clock allowlist entry removed). `phpbench.json` was broken pre-existing and is
+> fixed; first baselines recorded in `docs/benchmarks.md`. Green: `analyse`, `cs:check`,
+> `architecture`, full suite (737 tests), `api:check` (baseline regenerated).
+
 ### T2.1 — Consolidate validators and constructor families (REVIEW.md §3.3, §4 P2-6)
 - **Goal:** the key-pattern regex `/^[A-Za-z0-9._-]++\z/` exists three times
   (`StringValueValidator:44`, `ContextValueValidator:31`, `AttributeValidator:33`);
@@ -267,6 +280,16 @@ completion path can replace the original business exception.
   mutation:p0 in CI for validators (AGENTS.md mutation priority list includes validators).
 - **Risk/BC:** none if public constructors remain; deleting `AttributeValidator` class is
   internal-only (verify no external imports first).
+- **Implemented (2026-08-23):** key pattern hoisted to `Contract\Shared\KeyPattern::VALIDATED_KEY`
+  (constants-only interface, mirroring `CorrelationKeys`); the twin recursive walks merged
+  into `Behavior\Domain\BoundedPrimitiveValueWalker`, parameterized by exception factories
+  (`ContextValueValidator` additionally rejects oversized arrays inside the walk, exactly as
+  before); both public validator contracts and their exception messages are unchanged. The
+  `Observation` ×8 severity constructors collapsed behind a private `atSeverity()` factory,
+  `Measurement` ×5 behind `record()`, and the ten hand-copied `SecurityLimits::with*`
+  clone bodies behind one typed `with(int ...$overrides)` helper — all public signatures
+  preserved. New `ValidatorParityTest` pins identical accept/reject sets across both rule
+  sets so the shared walk cannot silently diverge.
 
 ### T2.2 — Finish `ArtifactField` adoption in projections (REVIEW.md §3.5, §4 P2-7)
 - **Goal:** `Domain/Shared/ArtifactField` constants exist, yet ~60 field-name string
@@ -285,6 +308,14 @@ completion path can replace the original business exception.
   `ArtifactField` itself, adapters mapping to foreign vocabularies);
   serialization round-trip tests green; `composer test`, `cs:check` clean.
 - **Risk/BC:** none — pure symbol substitution with identical values.
+- **Implemented (2026-08-23):** `ArtifactField` extended with the full normalized
+  vocabulary (identity/relationships, lifecycle/timing, observation, measurement,
+  occurrence/snapshot typing, context-entry keys, throwable-description fields — `class`
+  mapped to `THROWABLE_CLASS` because of the reserved word). 67 literal key sites replaced
+  across all ten projection owners. Byte-identical output verified by the existing
+  exact-output `normalize()` tests (`ExecutionTest`, `ActivityTest`, `ObservationTest`,
+  `MeasurementTest`, `OccurrenceTest`, `SnapshotTest`), which pin complete arrays and all
+  pass unchanged.
 
 ### T2.3 — Bound the unbounded maps and close the health-reporter leak (REVIEW.md §3.8, §4 P2-8)
 - **Goal:** two caches grow without eviction and leak in persistent workers:
@@ -311,6 +342,17 @@ completion path can replace the original business exception.
 - **Risk/BC:** additive limits with defaults = current unbounded behavior? No — default
   bound should ship enabled (fail-safe default); document chosen bound in
   `docs/architecture/security.md`.
+- **Implemented (2026-08-23):** added `SecurityLimits::maxTrackedExecutions` (default
+  10000, validated like every limit, plus a `withMaxTrackedExecutions()` wither).
+  `HeadBasedSamplingPolicy` accepts optional `SecurityLimits` and evicts the oldest key in
+  deterministic insertion order when the bound is hit (a trimmed key may re-decide — the
+  documented consistency trade-off); `BoundedArtifactPublisher` applies the same bound to
+  its count map and releases an execution's counter when its terminal snapshot passes.
+  `ErrorLogHealthReporter` now logs the mapper's truncated, structural description
+  (`[class] message …`) instead of raw `getMessage()`, with an injectable log sink for
+  deterministic tests. Tests: sampling eviction/re-decision, bounded-counter release on
+  terminal snapshot, health-line sanitization with unique markers (head present, tail
+  absent, bounded line length).
 
 ### T2.4 — Replace eager JSON sizing and route buffer time through ports (REVIEW.md §3.9, §4 P2-9)
 - **Goal:** `BoundedArtifactPublisher::publish()` runs `strlen(json_encode(...))` on every
@@ -341,6 +383,20 @@ completion path can replace the original business exception.
   publish-path timings (attach figures); `composer test` green.
 - **Risk/BC:** constructor signature changes on internal publishers — check external
   construction sites; keep old signatures working via optional parameters where cheap.
+- **Implemented (2026-08-23), with one recorded deviation:** the bounded publisher's
+  sizing now goes through `ArtifactByteEstimatorInterface` with a new default
+  collaborator, but the plan's implied default (`DefaultArtifactByteEstimator`) was
+  rejected on inspection — it normalizes the whole artifact and JSON-encodes it, which
+  would have *added* work to the hottest path. The new
+  `Application\Publication\PayloadSectionByteEstimator` measures exactly the enforced
+  sections (occurrence `data`, snapshot `payload`) natively, eliminating one full
+  encoding per publish while keeping the port contract. The buffer routes flush/close
+  self-timing and blocking deadlines through `monotonicNanoseconds()` and waits through
+  an injectable sleep closure (`usleep` remains the production default); the
+  `BufferedArtifactPublisher` wall-clock allowlist entry is removed from both rule
+  registrations. Pre-existing broken `phpbench.json` fixed (invalid top-level key);
+  first baselines + the new `benchBoundedPublish` subject recorded in
+  `docs/benchmarks.md`.
 
 ---
 

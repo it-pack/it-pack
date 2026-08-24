@@ -58,6 +58,38 @@ final readonly class Measurement implements MeasurementInterface
     ) {
     }
 
+    /**
+     * The single kind-parameterized construction path behind every named
+     * constructor: defaults are applied once and the record is assembled once.
+     */
+    private static function record(
+        MeasurementKindInterface $kind,
+        MeasurementUnitInterface $unit,
+        MeasurementNameInterface $name,
+        ExecutionIdInterface $executionId,
+        int|float $value,
+        ?ActivityIdInterface $activityId,
+        ?InstantInterface $instant,
+        ?ArtifactSequenceInterface $sequence,
+        ?AttributeCollectionInterface $attributes,
+    ): self {
+        if (is_float($value)) {
+            self::assertFinite($value);
+        }
+
+        return new self(
+            $name,
+            $kind,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
+        );
+    }
+
     public static function counter(
         MeasurementNameInterface $name,
         ExecutionIdInterface $executionId,
@@ -68,17 +100,7 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Count,
     ): self {
-        return new self(
-            $name,
-            MeasurementKind::Counter,
-            $unit,
-            $value,
-            $executionId,
-            $activityId,
-            $instant ?? Instant::now(),
-            $attributes ?? AttributeCollection::empty(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::record(MeasurementKind::Counter, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
     }
 
     public static function gauge(
@@ -91,19 +113,7 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Percent,
     ): self {
-        self::assertFinite($value);
-
-        return new self(
-            $name,
-            MeasurementKind::Gauge,
-            $unit,
-            $value,
-            $executionId,
-            $activityId,
-            $instant ?? Instant::now(),
-            $attributes ?? AttributeCollection::empty(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::record(MeasurementKind::Gauge, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
     }
 
     public static function duration(
@@ -116,19 +126,7 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Milliseconds,
     ): self {
-        self::assertFinite($value);
-
-        return new self(
-            $name,
-            MeasurementKind::Duration,
-            $unit,
-            $value,
-            $executionId,
-            $activityId,
-            $instant ?? Instant::now(),
-            $attributes ?? AttributeCollection::empty(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::record(MeasurementKind::Duration, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
     }
 
     public static function size(
@@ -141,17 +139,7 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Bytes,
     ): self {
-        return new self(
-            $name,
-            MeasurementKind::Size,
-            $unit,
-            $value,
-            $executionId,
-            $activityId,
-            $instant ?? Instant::now(),
-            $attributes ?? AttributeCollection::empty(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::record(MeasurementKind::Size, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
     }
 
     public static function ratio(
@@ -164,19 +152,7 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Ratio,
     ): self {
-        self::assertFinite($value);
-
-        return new self(
-            $name,
-            MeasurementKind::Ratio,
-            $unit,
-            $value,
-            $executionId,
-            $activityId,
-            $instant ?? Instant::now(),
-            $attributes ?? AttributeCollection::empty(),
-            $sequence ?? ArtifactSequence::initial()
-        );
+        return self::record(MeasurementKind::Ratio, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
     }
 
     private static function assertFinite(float $value): void
@@ -245,14 +221,14 @@ final readonly class Measurement implements MeasurementInterface
     public function normalize(): array
     {
         return [
-            'name' => $this->name->toString(),
-            'kind' => $this->kind->label(),
-            'unit' => $this->unit->label(),
-            'value' => $this->value,
-            'execution_id' => $this->executionId->toString(),
-            'activity_id' => $this->activityId?->toString(),
-            'timestamp' => $this->instant->epochSeconds(),
-            'sequence' => $this->sequence->value(),
+            ArtifactField::NAME => $this->name->toString(),
+            ArtifactField::KIND => $this->kind->label(),
+            ArtifactField::UNIT => $this->unit->label(),
+            ArtifactField::VALUE => $this->value,
+            ArtifactField::EXECUTION_ID => $this->executionId->toString(),
+            ArtifactField::ACTIVITY_ID => $this->activityId?->toString(),
+            ArtifactField::TIMESTAMP => $this->instant->epochSeconds(),
+            ArtifactField::SEQUENCE => $this->sequence->value(),
             ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
         ];
     }

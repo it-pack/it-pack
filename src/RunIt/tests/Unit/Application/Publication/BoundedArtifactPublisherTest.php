@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 
@@ -92,6 +93,37 @@ final class BoundedArtifactPublisherTest extends Unit
         $publisher->publish($this->occurrence(['n' => 3]));
 
         self::assertCount(2, $this->inner->published());
+    }
+
+    public function testPerExecutionCounterIsReleasedWhenTerminalSnapshotPasses(): void
+    {
+        $publisher = new BoundedArtifactPublisher(new SecurityLimits(maxArtifactsPerExecution: 3), $this->inner);
+
+        $publisher->publish($this->occurrence(['n' => 1]));
+        $publisher->publish($this->occurrence(['n' => 2]));
+
+        $publisher->publish($this->terminalSnapshot());
+
+        // The terminal snapshot releases the execution's counter, so a persistent
+        // worker's next request for the same id starts from a clean budget.
+        $publisher->publish($this->occurrence(['n' => 3]));
+
+        self::assertCount(4, $this->inner->published(), 'counter must restart after the terminal snapshot');
+    }
+
+    private function terminalSnapshot(): Snapshot
+    {
+        return Snapshot::create(
+            SnapshotId::fromString('snap-term'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('execution.snapshot'),
+            1,
+            ['final' => true],
+            new DeterministicHashCalculator(),
+            null,
+            null,
+            SnapshotClassification::Terminal,
+        );
     }
 
     public function testDropReasonIsReported(): void

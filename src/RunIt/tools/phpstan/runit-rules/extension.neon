@@ -44,8 +44,8 @@ services:
     - { class: Tools\PhpStan\RunitRules\Rule\ForbidArbitraryObjectSerializationRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
 
     # forbid-direct-wall-clock: time must come from the MonotonicClockInterface port.
-    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDirectWallClockRule, arguments: { nodeType: PhpParser\Node\Expr\FuncCall, srcRoot: %currentWorkingDirectory%/src, allowDirectories: [src/Adapter], allowFiles: [src/Domain/Shared/Instant.php, src/Application/Publication/BufferedArtifactPublisher.php] }, tags: [phpstan.rules.rule] }
-    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDirectWallClockRule, arguments: { nodeType: PhpParser\Node\Expr\New_, srcRoot: %currentWorkingDirectory%/src, allowDirectories: [src/Adapter], allowFiles: [src/Domain/Shared/Instant.php, src/Application/Publication/BufferedArtifactPublisher.php] }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDirectWallClockRule, arguments: { nodeType: PhpParser\Node\Expr\FuncCall, srcRoot: %currentWorkingDirectory%/src, allowDirectories: [src/Adapter], allowFiles: [src/Domain/Shared/Instant.php] }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\RunitRules\Rule\ForbidDirectWallClockRule, arguments: { nodeType: PhpParser\Node\Expr\New_, srcRoot: %currentWorkingDirectory%/src, allowDirectories: [src/Adapter], allowFiles: [src/Domain/Shared/Instant.php] }, tags: [phpstan.rules.rule] }
 
     # forbid-domain-imports-adapters: core layers must not import adapter code.
     - { class: Tools\PhpStan\RunitRules\Rule\ForbidDomainImportsAdaptersRule, arguments: { nodeType: PhpParser\Node\Stmt\Use_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }

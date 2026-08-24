@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use Closure;
 use ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -26,11 +27,17 @@ use ItPack\RunIt\Domain\Shared\Duration;
  * artifacts are reported to the internal health reporter so loss stays observable without
  * re-entering the guarded pipeline.
  *
+ * All time — wall-clock bookkeeping, monotonic self-timing, and blocking deadlines —
+ * flows through the {@see MonotonicClockInterface} port, and the overflow wait goes
+ * through an injectable sleep seam, so overflow behavior is deterministic under test.
+ *
  * @see https://w3id.org/itpack/runit#Execution
  */
 final class BufferedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
     private const int BLOCK_BUDGET_MICROSECONDS = 2000;
+
+    private const int SLEEP_QUANTUM_MICROSECONDS = 100;
 
     /**
      * @var array<int, array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int}>
@@ -43,9 +50,12 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
     private int $lastFlushEpoch = 0;
 
+    private readonly Closure $sleep;
+
     /**
      * @param MonotonicClockInterface $clock
      * @param ArtifactByteEstimatorInterface $byteEstimator
+     * @param Closure(int $microseconds): void|null $sleep injectable wait for the blocking overflow strategy
      */
     public function __construct(
         private readonly BufferConfiguration $config,
@@ -54,7 +64,11 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         private readonly ArtifactByteEstimatorInterface $byteEstimator,
         private readonly ?InternalHealthReporterInterface $health = null,
         private readonly ?BatchFlushObserverInterface $observer = null,
+        ?Closure $sleep = null,
     ) {
+        $this->sleep = $sleep ?? static function (int $microseconds): void {
+            usleep($microseconds);
+        };
         $now = $this->clock->nowSeconds();
         $this->lastFlushEpoch = $now;
     }
@@ -80,7 +94,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
     public function flush(): void
     {
-        $start = hrtime(true);
+        $start = $this->clock->monotonicNanoseconds();
         $now = $this->clock->nowSeconds();
         $this->lastFlushEpoch = $now;
         $flushed = $this->drain($this->config->batchSize);
@@ -89,7 +103,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 
     public function close(): void
     {
-        $start = hrtime(true);
+        $start = $this->clock->monotonicNanoseconds();
         $flushed = $this->drain($this->config->shutdownFlushBudget);
 
         while ($this->buffer !== []) {
@@ -222,10 +236,10 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function blockWithTimeoutThenAppend(array $incoming): void
     {
-        $deadline = hrtime(true) + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
+        $deadline = $this->clock->monotonicNanoseconds() + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
 
-        while ($this->isFull() && hrtime(true) < $deadline) {
-            usleep(100);
+        while ($this->isFull() && $this->clock->monotonicNanoseconds() < $deadline) {
+            ($this->sleep)(self::SLEEP_QUANTUM_MICROSECONDS);
         }
 
         if ($this->isFull()) {
@@ -302,7 +316,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
             return;
         }
 
-        $durationMicroseconds = max(0, (int) ((hrtime(true) - $startedAtNanoseconds) / Duration::NANOS_PER_MICROSECOND));
+        $durationMicroseconds = max(0, (int) (($this->clock->monotonicNanoseconds() - $startedAtNanoseconds) / Duration::NANOS_PER_MICROSECOND));
         $this->observer->onFlush($flushed, $durationMicroseconds, count($this->buffer));
     }
 

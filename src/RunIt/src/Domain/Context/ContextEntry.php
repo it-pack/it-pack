@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Domain\ContextEntryInterface;
 use ItPack\RunIt\Contract\Domain\ContextKeyInterface;
 use ItPack\RunIt\Contract\Domain\ContextSourceInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * An immutable, classified context entry.
@@ -139,11 +140,11 @@ final readonly class ContextEntry implements ContextEntryInterface
     public function toArray(): array
     {
         return [
-            'key' => $this->key->toString(),
-            'value' => $this->value,
-            'classification' => $this->classification->label(),
-            'expires_at' => $this->expiresAt?->epochSeconds(),
-            'source' => $this->source?->toString(),
+            ArtifactField::KEY => $this->key->toString(),
+            ArtifactField::VALUE => $this->value,
+            ArtifactField::CLASSIFICATION => $this->classification->label(),
+            ArtifactField::EXPIRES_AT => $this->expiresAt?->epochSeconds(),
+            ArtifactField::SOURCE => $this->source?->toString(),
         ];
     }
 }

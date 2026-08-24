@@ -7,6 +7,7 @@ namespace Benchmarks;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\AlwaysSamplePolicy;
+use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
@@ -14,12 +15,16 @@ use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
@@ -48,6 +53,7 @@ final class ExecutionBench
 {
     private RunItTestKit $kit;
     private ArtifactPublisherInterface $redactorChain;
+    private ArtifactPublisherInterface $boundedPublisher;
     private ExecutionArtifactInterface $snapshotArtifact;
     private DefaultThrowableMapper $mapper;
     private ExecutionDefinition $definition;
@@ -73,9 +79,9 @@ final class ExecutionBench
     {
         $this->kit->runner->run($this->definition, function ($scope) {
             return $scope->activities()->run(
-                \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
-                    \ItPack\RunIt\Domain\Activity\ActivityName::fromString('load'),
-                    \ItPack\RunIt\Domain\Activity\ActivityKind::fromString('io'),
+                ActivityDefinition::create(
+                    ActivityName::fromString('load'),
+                    ActivityKind::fromString('io'),
                 ),
                 static fn () => 'inner',
             );
@@ -118,6 +124,17 @@ final class ExecutionBench
         $this->redactorChain->publish($this->snapshotArtifact);
     }
 
+    /**
+     * The bounded publisher is the runner's last gate before any adapter: this
+     * subject pins the cost of its count/payload checks per publish.
+     */
+    #[BeforeMethods('setUp')]
+    #[Subject]
+    public function benchBoundedPublish(): void
+    {
+        $this->boundedPublisher->publish($this->snapshotArtifact);
+    }
+
     #[BeforeMethods('setUp')]
     #[Subject]
     public function benchBuffering(): void
@@ -143,6 +160,10 @@ final class ExecutionBench
         $this->redactorChain = new SamplingArtifactPublisher(
             new AlwaysSamplePolicy(),
             new RedactingArtifactPublisher($redactor, $inner),
+        );
+        $this->boundedPublisher = new BoundedArtifactPublisher(
+            new SecurityLimits(),
+            $inner,
         );
 
         $this->snapshotArtifact = Snapshot::create(

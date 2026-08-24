@@ -91,10 +91,10 @@ final readonly class ExecutionDefinition implements ExecutionDefinitionInterface
     public function normalize(): array
     {
         return [
-            'name' => $this->name->toString(),
-            'kind' => $this->kind->toString(),
-            'parent_execution_id' => $this->parentExecutionId?->toString(),
-            'linked_execution_ids' => array_map(
+            ArtifactField::NAME => $this->name->toString(),
+            ArtifactField::KIND => $this->kind->toString(),
+            ArtifactField::PARENT_EXECUTION_ID => $this->parentExecutionId?->toString(),
+            ArtifactField::LINKED_EXECUTION_IDS => array_map(
                 static fn (ExecutionIdInterface $id): string => $id->toString(),
                 $this->linkedExecutionIds
             ),

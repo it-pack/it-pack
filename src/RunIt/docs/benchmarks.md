@@ -19,6 +19,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Measurement creation | `benchMeasurementCreation` | Recording one measurement |
 | Observation creation | `benchObservationCreation` | Recording one observation |
 | Throwable normalization | `benchThrowableNormalization` | `DefaultThrowableMapper::describe` |
+| Bounded publication gate | `benchBoundedPublish` | Per-execution count + payload-bound checks (native byte estimation) |
 | Context copy-on-write | (context suites) | Immutable `with`/`without` projections |
 | Composite publisher | (publication suites) | Redact + sample + publish chain |
 | Filtering and sampling | `benchRedaction` / sampling suites | Policy decisions per artifact |
@@ -50,7 +51,33 @@ implementation of the relevant path changes.
 - Hardware and runtime configuration (PHP version, extensions, CPU model) are recorded with every
   baseline so comparisons are meaningful.
 
-> Note: in the M12 development environment the installed phpbench binary fails to start due to a
-> configuration/schema incompatibility unrelated to the benchmark code. The benchmark classes are
-> present, autoloadable, and syntactically valid; run them in a correctly configured phpbench to
-> (re)generate baselines.
+> Historical note: in the M12 development environment the installed phpbench binary failed to
+> start due to a configuration/schema incompatibility unrelated to the benchmark code
+> (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
+> the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## Recorded baselines (2026-08-23)
+
+First machine-readable baselines, measured after the Phase 2 hot-path work. Environment:
+PHP 8.5.8 CLI, no xdebug, no opcache, Linux container — figures are environment-relative,
+meaningful for future comparisons on the same host, not absolute claims.
+
+| Subject | Mean | Deviation |
+|---------|------|-----------|
+| `benchNullWrapper` | 0.31 µs | ±5.9% |
+| `benchInMemoryExecutionLifecycle` | 182.7 µs | ±41.6% |
+| `benchActivityLifecycle` | 208.4 µs | ±36.1% |
+| `benchMeasurementCreation` | 220.9 µs | ±39.4% |
+| `benchObservationCreation` | 220.8 µs | ±27.0% |
+| `benchThrowableNormalization` | 2.11 µs | ±11.1% |
+| `benchRedaction` | 3.93 µs | ±9.7% |
+| `benchBoundedPublish` | 3.59 µs | ±4.5% |
+| `benchBuffering` | 44.10 µs | ±64.3% |
+
+Phase 2 (T2.4) replaced the bounded publisher's per-publish
+`strlen(json_encode(...))` sizing — which encoded every occurrence/snapshot
+payload just to measure it — with the native
+`PayloadSectionByteEstimator`. No pre-change figures exist (the suite could not
+run before), so the change is justified analytically (one full payload encoding
+eliminated per publish) and pinned going forward by `benchBoundedPublish`.
+Regenerate with `composer benchmark` when comparing.

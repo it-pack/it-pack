@@ -1,7 +1,4 @@
 {
     "$schema": "https://phpbench.github.io/phpbench/schema.json",
-    "runner": {
-        "iterations": 3,
-        "revs": 100
-    }
+    "runner.bootstrap": "vendor/autoload.php"
 }
