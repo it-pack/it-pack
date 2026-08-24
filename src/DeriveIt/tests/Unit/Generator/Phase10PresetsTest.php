@@ -59,6 +59,18 @@ class Phase10PresetsTest extends \Codeception\Test\Unit
         new DeriveConfig(methodRenames: ['foo' => '']);
     }
 
+    public function testCopyWithRejectsUnknownOverrideKeys(): void
+    {
+        // Withers address constructor parameters by string key; the guard makes a
+        // renamed parameter fail loudly here instead of silently breaking a wither.
+        $copyWith = new \ReflectionMethod(DeriveConfig::class, 'copyWith');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Unknown DeriveConfig override key "notARealProperty"');
+
+        $copyWith->invoke(new DeriveConfig(), ['notARealProperty' => true]);
+    }
+
     public function testFlatMethodRename(): void
     {
         $config = new DeriveConfig()->withMethodRenames(['withName' => 'withNameRenamed']);

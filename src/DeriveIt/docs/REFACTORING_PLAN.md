@@ -14,8 +14,11 @@
 > otherwise. API surface changes are additions only (new enum/constants/helpers);
 > no public signature is removed or re-typed.
 >
-> **Status: Milestones A–C implemented (2026-08-24); Milestones D–E planned.** Update
-> the implementation-status table as steps land (see §Implementation status).
+> **Status: Milestones A–D implemented (2026-08-24); Milestone E (doc-only) planned.**
+> Gates after Milestone D: `test:unit` **252 tests / 525 assertions**, `cs:check` 0,
+> `analyse` 0, `architecture` 0 violations, `infection` MSI ≈ **99.8%**
+> (1200 mutants, 2 escaped, min-msi 80), goldens byte-stable. Update the
+> implementation-status table as steps land (see §Implementation status).
 
 ## Severity legend (mirrors `docs/REVIEW.md` §11)
 
@@ -79,10 +82,10 @@ the gates between them).
 | R3-8 | F-7 | ✅ Done | `Cli\Preset` backed enum (`STRICT`/`ADAPTER`/`FAMILY`) with `values()` + `toConfig()`; `ArgParser` parses via `tryFrom`, error message enumerates `Preset::values()`, and `buildConfig()`'s preset `match` collapsed to `$s->preset?->toConfig() ?? new DeriveConfig()`. `VALUE_OPTIONS` list replaced by an arity map co-located with the handler table; help text interpolates `Preset::values()`. `DeriveCommand::FAMILY_ADAPTER_SOURCE_KEY` replaces the `'Family'` literal. New tests: per-preset flags, flag-over-preset, message enumeration. |
 | R3-9 | F-13 | ✅ Done | Unreachable `root !== null` check inside the FLAT/PER_TRAIT/ADAPTER arm of `DeriveCommand::validate()` removed; intent documented on the promotion block. No test asserted the deleted error string (verified before deletion). New test: `--mode=flat --root=X` promotes to family derivation. |
 | R3-10 | F-12 | ✅ Done | `RecursiveClassResolver` / `RecursiveInterfaceResolver` marked `final` after verifying no subclasses exist anywhere (`RecursiveTraitResolver` already was). All three resolvers now consistent. |
-| R3-11 | F-3 | ⬜ Planned | — |
-| R3-12 | F-8 | ⬜ Planned | — |
-| R3-13 | F-10 | ⬜ Planned | — |
-| R3-14 | F-11 | ⬜ Planned | — |
+| R3-11 | F-3 | ✅ Done | `DeriveConfig` is now `final readonly class` — immutability is a language guarantee (all props were already readonly; verified no extension or dynamic-property use anywhere before the change). `copyWith()`'s `get_object_vars()` read path unaffected. |
+| R3-12 | F-8 | ✅ Done | `FamilyDeriver::deriveMember()` forwards its `$reflectionCache` and Nette `$factory` into each member `InterfaceDeriver`, so family runs genuinely share the assembled set as documented on the composition root. No golden diffs; memoization behavior unchanged. |
+| R3-13 | F-10 | ✅ Done | `copyWith()` rejects unknown override keys with a `LogicException` naming the key and the fix; new test `testCopyWithRejectsUnknownOverrideKeys` exercises the guard via reflection. |
+| R3-14 | F-11 | ✅ Done | `WeakReflectionCache::get()` collapsed to `($this->items[$fqcn] ?? null)?->get();`. |
 | R3-15 | F-14 | ⬜ Planned | — |
 
 ---

@@ -188,9 +188,14 @@ final class FamilyDeriver implements FamilyDeriverInterface
 
         $memberConfig = $this->config->withTypeSubstitutionMap($map);
 
+        // Forward the family's own reflection cache and Nette factory so the
+        // assembled set is genuinely shared across members, as documented on the
+        // composition root (G18 / E5 / R3-12).
         return new InterfaceDeriver(
             signatureFactory: new MethodSignatureFactory(factory: $this->factory, config: $memberConfig),
             config: $memberConfig,
+            factory: $this->factory,
+            reflectionCache: $this->reflectionCache,
         )->deriveWithSubstitutor($reflection, $substitutor, $allowedNamespaces);
     }
 

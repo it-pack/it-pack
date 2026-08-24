@@ -22,7 +22,7 @@ use ReflectionMethod;
  * form the fluent builder; `methodRenames` (G11 / B4) is applied uniformly
  * across flat / per-trait / family derivation.
  */
-final class DeriveConfig
+final readonly class DeriveConfig
 {
     public const Visibility VISIBILITY_PUBLIC = Visibility::PUBLIC;
     public const Visibility VISIBILITY_PROTECTED = Visibility::PROTECTED;
@@ -137,6 +137,9 @@ final class DeriveConfig
      * Returns a copy of this config with the given properties overridden. Reads the
      * current state via `get_object_vars` and re-constructs through the (readonly)
      * constructor, so every wither stays a one-liner and validation is preserved.
+     * Unknown keys fail fast — withers address constructor parameters by string
+     * key, and a rename would otherwise surface only as a confusing runtime error
+     * at the call site instead of at the offending wither (R3-13).
      *
      * @param array<string, mixed> $overrides Property name => new value.
      */
@@ -144,6 +147,12 @@ final class DeriveConfig
     {
         $vars = get_object_vars($this);
         foreach ($overrides as $key => $value) {
+            if (!array_key_exists($key, $vars)) {
+                throw new \LogicException(sprintf(
+                    'Unknown DeriveConfig override key "%s" — update the wither to match the constructor parameter.',
+                    $key,
+                ));
+            }
             $vars[$key] = $value;
         }
 

@@ -22,9 +22,7 @@ final class WeakReflectionCache implements ReflectionCacheInterface
 
     public function get(string $fqcn): ?ReflectionClass
     {
-        $ref = $this->items[$fqcn] ?? null;
-
-        return $ref !== null ? ($ref->get() ?? null) : null;
+        return ($this->items[$fqcn] ?? null)?->get();
     }
 
     public function set(string $fqcn, ReflectionClass $reflection): void
