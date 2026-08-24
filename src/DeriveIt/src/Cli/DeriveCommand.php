@@ -33,6 +33,13 @@ final class DeriveCommand implements CommandInterface
     private const OUTPUT_DIR_MODE = 0o755;
 
     /**
+     * Output key under which the combined family-adapter source is reported (the
+     * mode emits one grouped source string, not a per-member map). Named in place
+     * of the previous bare `'Family'` literal (F7 / R3-8).
+     */
+    private const FAMILY_ADAPTER_SOURCE_KEY = 'Family';
+
+    /**
      * Process exit codes (F-1 / RP-1): named in place of bare integer literals.
      */
     private const EXIT_SUCCESS = 0;
@@ -124,6 +131,9 @@ final class DeriveCommand implements CommandInterface
     private function validate(DeriveCliInput $input): DeriveCliInput
     {
         if ($input->root !== null) {
+            // `--root` forces family mode (rejecting family-adapter here, where
+            // the conflict is detectable); the single-target validation below
+            // therefore never sees a root — no per-mode root check is needed.
             if ($input->mode === DeriveMode::FAMILY_ADAPTER) {
                 throw new \InvalidArgumentException('--root is not supported with --mode=family-adapter (pass the member classes explicitly).');
             }
@@ -133,9 +143,6 @@ final class DeriveCommand implements CommandInterface
         if ($input->mode === DeriveMode::FLAT
             || $input->mode === DeriveMode::PER_TRAIT
             || $input->mode === DeriveMode::ADAPTER) {
-            if ($input->root !== null) {
-                throw new \InvalidArgumentException(sprintf('--root is only valid for --mode=family (got --mode=%s).', $input->mode->value));
-            }
             if (count($input->targets) !== 1) {
                 throw new \InvalidArgumentException(sprintf('--mode=%s expects exactly one target (got %d).', $input->mode->value, count($input->targets)));
             }
@@ -271,7 +278,7 @@ final class DeriveCommand implements CommandInterface
             DeriveMode::FAMILY => $root !== null
                 ? DeriveIt::deriveFamilyFromRoot($root, $namespacePrefixMap, $config)
                 : DeriveIt::deriveFamily($classes, $config),
-            DeriveMode::FAMILY_ADAPTER => ['Family' => DeriveIt::deriveFamilyAdapter($classes, $wrapperMap, $config)],
+            DeriveMode::FAMILY_ADAPTER => [self::FAMILY_ADAPTER_SOURCE_KEY => DeriveIt::deriveFamilyAdapter($classes, $wrapperMap, $config)],
         };
     }
 
@@ -391,7 +398,8 @@ final class DeriveCommand implements CommandInterface
 
     private function writeHelp(): void
     {
-        $this->write(<<<'HELP'
+        $presetValues = implode('|', Preset::values());
+        $this->write(<<<HELP
             derive — derive self-contained interfaces from existing PHP types
 
             Usage:
@@ -420,7 +428,7 @@ final class DeriveCommand implements CommandInterface
               --fail-on-empty          fail if the derived surface is empty
               --attribute-pass-through copy attributes (all, or owned via --owned-attr)
               --throws-capture         capture @throws from the adaptee phpdoc
-              --preset=strict|adapter|family   apply a DeriveConfig preset
+              --preset={$presetValues}   apply a DeriveConfig preset
               --skip=M1,M2             drop these method names
               --only=M1,M2             keep only these method names
               --subst=Orig=Port,..     type-substitution map (FQCN => derived interface)

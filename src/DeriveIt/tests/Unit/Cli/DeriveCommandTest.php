@@ -144,6 +144,16 @@ final class DeriveCommandTest extends TestCase
         rmdir($dir);
     }
 
+    public function testRootPromotesFlatModeToFamily(): void
+    {
+        // `--root` forces family mode even when another mode is requested, so this
+        // derives the family (not an error and not a flat derivation).
+        $result = $this->runCommand(['--mode=flat', '--root=' . CliSampleA::class]);
+
+        self::assertSame(0, $result['code']);
+        self::assertStringContainsString('interface CliSampleAInterface', $result['stdout']);
+    }
+
     public function testFamilyAdapterMode(): void
     {
         $result = $this->runCommand(['--mode=family-adapter', CliSampleA::class, CliSampleB::class]);

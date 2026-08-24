@@ -16,15 +16,31 @@ use ItPack\DeriveIt\Generator\DeriveMode;
 final class ArgParser
 {
     /**
-     * Options that consume a value (from the next argv entry when no `=value` form
-     * is used). Everything else is treated as a boolean flag.
+     * Number of value arguments each option consumes; absent entries are boolean
+     * flags. Kept as a map co-located with {@see self::table()} so adding an
+     * option is one table row plus (when value-consuming) one arity entry —
+     * replacing the previous duplicate VALUE_OPTIONS name list (F7 / R3-8).
      *
-     * @var list<string>
+     * @return array<string, int>
      */
-    private const VALUE_OPTIONS = [
-        'mode', 'out', 'root', 'preset', 'ns-prefix', 'wrapper',
-        'skip', 'only', 'subst', 'rename', 'owned-attr', 're-expose', 'base-dir',
-    ];
+    private static function arities(): array
+    {
+        return [
+            'mode' => 1,
+            'out' => 1,
+            'root' => 1,
+            'preset' => 1,
+            'ns-prefix' => 1,
+            'wrapper' => 1,
+            'skip' => 1,
+            'only' => 1,
+            'subst' => 1,
+            'rename' => 1,
+            'owned-attr' => 1,
+            're-expose' => 1,
+            'base-dir' => 1,
+        ];
+    }
 
     public function parse(array $args): DeriveCliInput
     {
@@ -43,7 +59,7 @@ final class ArgParser
             if (str_contains($body, '=')) {
                 [$body, $value] = explode('=', $body, 2);
             }
-            if ($value === null && in_array($body, self::VALUE_OPTIONS, true) && isset($args[$i + 1]) && $args[$i + 1][0] !== '-') {
+            if ($value === null && (self::arities()[$body] ?? 0) > 0 && isset($args[$i + 1]) && $args[$i + 1][0] !== '-') {
                 $value = $args[$i + 1];
                 ++$i;
             }
@@ -97,7 +113,16 @@ final class ArgParser
                 $s->root = self::requireValue($v, 'root');
             },
             'preset' => static function (?string $v, ParseState $s): void {
-                $s->preset = self::requireValue($v, 'preset');
+                $raw = self::requireValue($v, 'preset');
+                $preset = Preset::tryFrom($raw);
+                if ($preset === null) {
+                    throw new \InvalidArgumentException(sprintf(
+                        'unknown preset "%s" (expected %s).',
+                        $raw,
+                        implode('|', Preset::values()),
+                    ));
+                }
+                $s->preset = $preset;
             },
             'ns-prefix' => static function (?string $v, ParseState $s): void {
                 $s->namespacePrefixMap = [...$s->namespacePrefixMap, ...self::parsePairs(self::requireValue($v, 'ns-prefix'))];
@@ -155,13 +180,9 @@ final class ArgParser
 
     private function buildConfig(ParseState $s): DeriveConfig
     {
-        $config = match ($s->preset) {
-            'strict' => DeriveConfig::strict(),
-            'adapter' => DeriveConfig::forAdapter(),
-            'family' => DeriveConfig::forFamily(),
-            null => new DeriveConfig(),
-            default => throw new \InvalidArgumentException(sprintf('unknown preset "%s" (expected strict|adapter|family).', $s->preset)),
-        };
+        // The preset (when given) selects the starting config; explicit flags are
+        // applied on top of it below, so a flag always wins over its preset default.
+        $config = $s->preset?->toConfig() ?? new DeriveConfig();
 
         if ($s->protected) {
             $config = $config->withVisibility(DeriveConfig::VISIBILITY_PROTECTED);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Cli;
 
 use ItPack\DeriveIt\Cli\ArgParser;
+use ItPack\DeriveIt\Cli\Preset;
 use ItPack\DeriveIt\Generator\DeriveMode;
 use ItPack\DeriveIt\Generator\Visibility;
 use PHPUnit\Framework\TestCase;
@@ -145,5 +146,41 @@ final class ArgParserTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $this->parser->parse(['--out', '--mode=flat', ArgParserSample::class]);
+    }
+
+    public function testPresetsMapToTheirConfigFlags(): void
+    {
+        $strict = $this->parser->parse(['--preset=strict'])->config;
+        self::assertTrue($strict->failOnEmpty);
+        self::assertTrue($strict->auditLeakage);
+        self::assertTrue($strict->substituteSelfStatic);
+
+        $adapter = $this->parser->parse(['--preset=adapter'])->config;
+        self::assertTrue($adapter->includeStatic);
+        self::assertTrue($adapter->substituteSelfStatic);
+
+        $family = $this->parser->parse(['--preset=family'])->config;
+        self::assertTrue($family->substituteSelfStatic);
+        self::assertFalse($family->includeStatic);
+    }
+
+    public function testExplicitFlagOverridesPresetDefault(): void
+    {
+        $input = $this->parser->parse(['--preset=family', '--include-static']);
+
+        self::assertTrue($input->config->substituteSelfStatic);
+        self::assertTrue($input->config->includeStatic);
+    }
+
+    public function testUnknownPresetMessageEnumeratesValidValues(): void
+    {
+        try {
+            $this->parser->parse(['--preset=bogus']);
+            self::fail('expected an InvalidArgumentException for the unknown preset');
+        } catch (\InvalidArgumentException $e) {
+            foreach (Preset::values() as $value) {
+                self::assertStringContainsString($value, $e->getMessage());
+            }
+        }
     }
 }

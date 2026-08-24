@@ -8,7 +8,7 @@ use ItPack\DeriveIt\Behavior\Utility\LazyCreatable;
 use ItPack\DeriveIt\Contract\Resolver\RecursiveInterfaceResolverInterface;
 use ReflectionClass;
 
-class RecursiveInterfaceResolver implements RecursiveInterfaceResolverInterface
+final class RecursiveInterfaceResolver implements RecursiveInterfaceResolverInterface
 {
     use LazyCreatable;
 

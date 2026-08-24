@@ -14,7 +14,7 @@
 > otherwise. API surface changes are additions only (new enum/constants/helpers);
 > no public signature is removed or re-typed.
 >
-> **Status: Milestones A–B implemented (2026-08-24); Milestones C–E planned.** Update
+> **Status: Milestones A–C implemented (2026-08-24); Milestones D–E planned.** Update
 > the implementation-status table as steps land (see §Implementation status).
 
 ## Severity legend (mirrors `docs/REVIEW.md` §11)
@@ -76,9 +76,9 @@ the gates between them).
 | R3-5 | F-5 | ✅ Done | `AbstractDeriver::signatureFor(ReflectionMethod, TypeSubstitutor): ?Method` added (skip-check → signature → rename in one place); the flat build loop and both per-trait loops rewired. `cloneWithName` now appears exactly once in `src/`. Site-specific logic (`$claimed`, trait/main split) kept at call sites. |
 | R3-6 | F-6 | ✅ Done | Orphaned duplicate docblock above `FamilyDeriver::deriveReflections()` deleted; PHPStan still reads the correct block (0 errors). |
 | R3-7 | F-9 | ✅ Done | `TypeSubstitutor::selfFqcn()` / `parentFqcn()` accessors added; `InterfaceDeriver::build()` no longer recomputes the values and reports applied substitutions straight from the substitutor (single owner of the rule). |
-| R3-8 | F-7 | ⬜ Planned | — |
-| R3-9 | F-13 | ⬜ Planned | — |
-| R3-10 | F-12 | ⬜ Planned | — |
+| R3-8 | F-7 | ✅ Done | `Cli\Preset` backed enum (`STRICT`/`ADAPTER`/`FAMILY`) with `values()` + `toConfig()`; `ArgParser` parses via `tryFrom`, error message enumerates `Preset::values()`, and `buildConfig()`'s preset `match` collapsed to `$s->preset?->toConfig() ?? new DeriveConfig()`. `VALUE_OPTIONS` list replaced by an arity map co-located with the handler table; help text interpolates `Preset::values()`. `DeriveCommand::FAMILY_ADAPTER_SOURCE_KEY` replaces the `'Family'` literal. New tests: per-preset flags, flag-over-preset, message enumeration. |
+| R3-9 | F-13 | ✅ Done | Unreachable `root !== null` check inside the FLAT/PER_TRAIT/ADAPTER arm of `DeriveCommand::validate()` removed; intent documented on the promotion block. No test asserted the deleted error string (verified before deletion). New test: `--mode=flat --root=X` promotes to family derivation. |
+| R3-10 | F-12 | ✅ Done | `RecursiveClassResolver` / `RecursiveInterfaceResolver` marked `final` after verifying no subclasses exist anywhere (`RecursiveTraitResolver` already was). All three resolvers now consistent. |
 | R3-11 | F-3 | ⬜ Planned | — |
 | R3-12 | F-8 | ⬜ Planned | — |
 | R3-13 | F-10 | ⬜ Planned | — |

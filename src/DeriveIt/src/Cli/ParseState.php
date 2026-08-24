@@ -17,7 +17,7 @@ final class ParseState
     public DeriveMode $mode = DeriveMode::FLAT;
     public ?string $out = null;
     public ?string $root = null;
-    public ?string $preset = null;
+    public ?Preset $preset = null;
     public ?string $baseDir = null;
 
     /** @var list<string> */
