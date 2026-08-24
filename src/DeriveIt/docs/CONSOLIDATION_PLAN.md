@@ -3,16 +3,17 @@
 > Companion to `docs/EXECUTION.md` (the shared It-Pack execution model), the
 > sister package `it-pack/run-it` (the model's reference implementation), and
 > `docs/REVIEW.md` / `docs/REFACTORING_PLAN.md`.
-> Prepared: 2026-08-24 · Package: `it-pack/derive-it` · Status: **C1–C3
-> implemented; C4 (bridge package) open.** Gates after C3: `test:unit` **269
-> tests / 572 assertions**, cs 0, analyse 0, deptrac 0 violations, goldens
-> byte-stable. Plan deviations, all gate- or scope-driven and recorded in the
-> implementation-status notes below: `DeriveObservationSeverity` landed with C3's
-> consumers (dead-code gate), the first observation site is the previously-silent
-> re-expose skip warning, per-trait assembly was de-duplicated (`assemble()`), and
-> `DeriveIt::diff()` gained an optional trailing `?DeriveEventSinkInterface`
-> parameter (additive) so CI drift hosts can wire telemetry without touching the
-> other facade signatures.
+> Prepared: 2026-08-24 · Package: `it-pack/derive-it` · Status: **Complete —
+> C1–C4 all implemented.** DeriveIt gates after C3: `test:unit` **269 tests /
+> 572 assertions**, cs 0, analyse 0, deptrac 0 violations, goldens byte-stable.
+> C4 ships the sibling bridge package `src/DeriveItRunit/` (`it-pack/derive-it-runit`):
+> `RunItDerivationEventSink` (fact→recorder mapping, namespaced versioned
+> occurrence types), `DeriveItExecutions::run()` wrapper, PHPUnit suite incl. an
+> end-to-end test deriving inside a real RunIt execution and asserting recorded
+> artifacts; its own gates are green (4 tests / 21 assertions, PHPStan level 8,
+> cs clean). Plan deviations recorded in the notes below (typed severity landed
+> with consumers; `diff()` gained an optional trailing sink parameter;
+> per-trait assembly de-duplicated).
 
 **Hard constraint (from the review brief):** DeriveIt must **not** depend on
 RunIt — not at composer level, and not at code level — yet must be able to work
