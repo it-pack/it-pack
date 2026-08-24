@@ -11,9 +11,13 @@
 > occurrence types), `DeriveItExecutions::run()` wrapper, PHPUnit suite incl. an
 > end-to-end test deriving inside a real RunIt execution and asserting recorded
 > artifacts; its own gates are green (4 tests / 21 assertions, PHPStan level 8,
-> cs clean). Plan deviations recorded in the notes below (typed severity landed
-> with consumers; `diff()` gained an optional trailing sink parameter;
-> per-trait assembly de-duplicated).
+> cs clean). Documentation updates shipped: guide/architecture.md telemetry
+> layer + annotated data flow, `docs/integrations/runit.md` with the CI
+> drift-as-execution recipe, AGENTS.md layout + routing entries. Plan deviations
+> recorded in the notes below (typed severity landed with consumers;
+> per-trait assembly de-duplicated; §5.1's "facade keeps its current signatures"
+> was superseded — the per-trait/adapter/family/result/diff facade entries each
+> gained an optional trailing `?DeriveEventSinkInterface`, additive).
 
 **Hard constraint (from the review brief):** DeriveIt must **not** depend on
 RunIt — not at composer level, and not at code level — yet must be able to work

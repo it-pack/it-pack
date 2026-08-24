@@ -193,6 +193,9 @@ Namespace roots (composer.json): `ItPack\DeriveIt\` → `src/`,
 - "What are the quality gates?" → §2 above; enforcement in `.github/workflows/ci.yml`
   and `infection.json5`.
 - "Where are the design decisions?" → `docs/architecture/decisions/ADR-0001 … 0004`.
+- "How does telemetry / the execution model work?" → `Contract/Telemetry/`,
+  `Generator/DeriveEventEmitter`, `docs/integrations/runit.md`; the bridge lives
+  in the sibling package `src/DeriveItRunit/` (see `docs/CONSOLIDATION_PLAN.md`).
 
 ---
 

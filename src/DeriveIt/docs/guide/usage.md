@@ -175,6 +175,10 @@ Pass `--verbose` to stream pipeline diagnostics (activities, measurements,
 occurrences, warnings) to **stderr** as `derive: …` lines; stdout stays
 byte-identical to a non-verbose run.
 
+To attach derivations to a [RunIt](../EXECUTION.md) execution instead of
+reading them as text, see
+[integrations/runit.md](../integrations/runit.md).
+
 ## API reference — `DeriveIt` (facade)
 
 All methods accept `ReflectionClass|class-string` for the target class unless
@@ -232,10 +236,10 @@ Methods: `visibilityMask(): int` (bitmask for extraction),
   them by global name. Functionally valid; a future revision may namespace them.
 - **Why FQCNs internally?** So in-memory objects and rendered source agree, and
   Nette simplifies FQCNs to short names on render. See
-  [ADR-0004](decisions/ADR-0004-type-substitution.md).
+  [ADR-0004](../architecture/decisions/ADR-0004-type-substitution.md).
 
 ## Where to go next
 
 - Run the [`examples/`](../../examples/README.md) — one script per feature.
 - Read the [Architecture](architecture.md) page for how it fits together.
-- Browse the [design decisions](decisions/).
+- Browse the [design decisions](../architecture/decisions/).

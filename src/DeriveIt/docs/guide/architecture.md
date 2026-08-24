@@ -11,34 +11,38 @@ DeriveIt is organised into deptrac layers (enforced by `composer architecture`):
 ```
 Entry        DeriveIt (public facade) + DeriveItFactory (composition root)
   │
-Cli          DeriveCommand, ArgParser, DeriveCliInput (ad-hoc CLI driver)
+Cli          DeriveCommand, ArgParser, DeriveConsoleSink (--verbose diagnostics)
   │          depends on Entry + Generator + Contract
   ▼
 Generator    InterfaceDeriver, PerTraitInterfaceDeriver,
   │           FamilyDeriver, AdapterGenerator, MethodExtractor,
-  │           MethodSignatureFactory, TypeSubstitutor, DeriveConfig, filters
+  │           MethodSignatureFactory, TypeSubstitutor, DeriveConfig,
+  │           DeriveEventEmitter, filters
   │
 Resolver     RecursiveClassResolver, RecursiveInterfaceResolver,
   │           RecursiveTraitResolver
   │
-Reflection    ClassReflection
+Reflection    ClassReflection (+ reflection caches)
+  │
+Telemetry     NullDeriveEventSink (default no-op sink)
   │
 Contract      *ResolverInterface, DeriverInterface,
   │           FamilyDeriverInterface, AdapterGeneratorInterface,
-  │           MethodFilterInterface
+  │           MethodFilterInterface, Telemetry\DeriveEventSinkInterface
   │
 Behavior      LazyCreatable (shared utility trait)
 ```
 
-- **Contract** — interfaces only; depends on nothing.
+- **Contract** — interfaces only; depends on nothing. Includes the telemetry
+  port `Contract\Telemetry\DeriveEventSinkInterface`.
 - **Behavior** — the `LazyCreatable` utility trait (dependency-free); the
   foundational layer that others depend on.
 - **Telemetry** — `NullDeriveEventSink`, the default no-op implementation of
   `Contract\Telemetry\DeriveEventSinkInterface`. Derivations emit activities,
   measurements, observations, and occurrences through this optional port
-  (facts only — no timing or identity); wiring a real sink is opt-in via
-  `DeriveItFactory` and is how a RunIt bridge will attach derivations to an
-  execution (see `../CONSOLIDATION_PLAN.md`).
+  (facts only — no timing or identity); wiring a real sink is opt-in via the
+  factory/facade, and is how derivations attach to a [RunIt](../integrations/runit.md)
+  execution.
 - **Reflection** — `ClassReflection`, a `ReflectionClass` subclass.
 - **Resolver** — the three recursive graph walkers; depend on Contract + Behavior.
 - **Generator** — the derivers and helpers; depend on everything below.
@@ -52,32 +56,59 @@ layers.
 
 ## Data flow (flat derivation)
 
+`◄─ telemetry` marks the points where facts are emitted to the optional event
+sink; with the default `NullDeriveEventSink` every one of them is a no-op.
+
 ```
-              ┌─────────────────────────────────────────────┐
- class-string │                                             │
- ───────────► │  ClassReflection::create($class)            │
-              │        │                                     │
-              │        ▼                                     │
-              │  Recursive*Resolver::resolve()  (graph walk) │
-              │        │  returns ReflectionClass[]          │
-              │        ▼                                     │
-              │  MethodExtractor::extract()                 │
-              │        │  filter pipeline (DeriveConfig)     │
-              │        ▼  ReflectionMethod[]                 │
-              │  MethodSignatureFactory::fromMethod()        │
-              │        │  Nette Factory::fromMethodReflection│
-              │        │  + TypeSubstitutor (FQCN rewrite)   │
-              │        │  + force abstract/public, no body   │
-              │        ▼  Nette Method[]                     │
-              │  InterfaceDeriver::derive()                  │
-              │        │  assemble InterfaceType             │
-              │        │  assertSelfContained()  ◄─ leakage  │
-              │        ▼                                     │
-              │  render → string (PhpNamespace → PhpFile)    │
-              └─────────────────────────────────────────────┘
+               ┌─────────────────────────────────────────────┐
+ class-string  │                                             │
+ ────────────► │  occurred: derivation.started  ◄─ telemetry │
+               │        │                                    │
+               │        ▼                                    │
+               │  MethodExtractor::extract()                 │
+               │   [activity surface.extract]   ◄─ telemetry │
+               │        │ measured: methods.derived/dropped  │
+               │        ▼  filter pipeline (DeriveConfig)    │
+               │  MethodSignatureFactory::fromMethod()       │
+               │        │  Nette Factory::fromMethodReflection│
+               │        │  + TypeSubstitutor (FQCN rewrite)   │
+               │        ▼  Nette Method[]                    │
+               │  InterfaceDeriver::derive()                 │
+               │   [activity leakage.audit]     ◄─ telemetry │
+               │        │ measured: substitutions.applied    │
+               │        ▼ assemble InterfaceType             │
+               │  render → string                            │
+               │   measured: source.bytes       ◄─ telemetry │
+               │        │                                    │
+               │        ▼                                    │
+               │  occurred: derivation.completed ◄─ telemetry│
+               └─────────────────────────────────────────────┘
 ```
 
+In family and per-trait modes the pipeline is preceded by a `graph.walk`
+activity (root-class BFS discovery, or the recursive trait walk), followed by a
+`family.members` measurement; `diff()` wraps its comparison in a
+`diff.compute` activity and closes with a `drift.detected` / `drift.clean`
+occurrence.
+
 ## Component responsibilities
+
+### Telemetry (`Contract/Telemetry` + `Telemetry`)
+
+`DeriveEventSinkInterface` is the single emission port: five methods
+(`activityStarted/Finished`, `measured`, `observed`, `occurred`) carrying
+**facts only** — names plus scalar attributes. No timing, no execution
+identity, no context storage: those are host concerns, so derivations fail
+fast by throwing exactly as before and the *host* decides how failures map to
+telemetry. The default implementation is the no-op `NullDeriveEventSink`
+(zero-cost); sinks thread through `DeriveItFactory`, the optional trailing
+`$eventSink` parameter on the facade's per-trait/adapter/family/result/diff
+entries, and `--verbose` on the CLI (`DeriveConsoleSink`, human-readable lines
+on stderr).
+
+The vocabulary mirrors RunIt's recorder surface 1:1, which keeps an integration
+bridge mechanical; see [integrations/runit.md](../integrations/runit.md) for
+the shipped bridge package and CI recipes.
 
 ### Graph walking (`Reflection` + `Resolver`)
 
@@ -146,11 +177,15 @@ testable.
 `DeriveIt` is the only public surface most users need. It is a **static facade
 over the injectable derivers** — `DeriveItFactory` (same Entry layer) is the
 composition root that wires the four derivers behind their interfaces, optionally
-sharing a reflection cache and a Nette `Factory` across a run. It wires the
-generators together and offers `derive()`, `deriveInterface()`, `derivePerTrait()`,
-`deriveTraitInterfaces()`, `deriveFamily()`, `deriveFamilySource()`,
-`deriveFamilyFromRoot()`, `deriveFamilyAdapter()`, `deriveAdapter()`,
-`deriveWithResult()`, `analyze()`, `deriveMany()`, and `diff()`.
+sharing a reflection cache, a Nette `Factory`, and a telemetry event sink across
+a run. It wires the generators together and offers `derive()`,
+`deriveInterface()`, `derivePerTrait()`, `deriveTraitInterfaces()`,
+`deriveFamily()`, `deriveFamilySource()`, `deriveFamilyFromRoot()`,
+`deriveFamilyAdapter()`, `deriveAdapter()`, `deriveWithResult()`, `analyze()`,
+`deriveMany()`, and `diff()`; the per-trait, adapter, family, result, and
+drift-detection entries accept an optional trailing `?DeriveEventSinkInterface`
+(the legacy `derive()` / `deriveInterface()` / `analyze()` / `deriveMany()`
+convenience signatures do not).
 
 ## Design decisions (ADRs)
 
@@ -173,3 +208,5 @@ generators together and offers `derive()`, `deriveInterface()`, `derivePerTrait(
   pretty; a future revision may namespace them.
 - Post-v1 (documented only): OTel-assisted shape discovery; LLM-assisted
   long-tail edge cases.
+- The adapter generator does not emit telemetry yet; events cover the
+  derivation pipeline and drift detection (`diff()`).
