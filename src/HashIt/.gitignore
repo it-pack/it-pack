@@ -21,6 +21,7 @@ coverage/
 .coverage/
 .phpunit.result.cache
 tests/_output/
+var/
 
 # Environment
 .env

@@ -50,7 +50,7 @@ M8  OPTIONAL keyed HMAC         (F-8)                   <- stretch; design decis
 
 ---
 
-## M0 — Packaging baseline (F-2, F-7 hygiene)
+## M0 — Packaging baseline (F-2, F-7 hygiene) — ✅ DONE (2026-08-24)
 
 **Goal:** Declare a truthful platform floor and clean repo noise so later milestones can rely on PHP ≥ 8.4 semantics and a quiet working tree.
 
@@ -78,6 +78,8 @@ git status --porcelain   # var/ noise gone
 
 **Dependencies:** none.
 **Acceptance:** `composer validate` clean; fixer warning gone; README floor matches manifest; gates green; no empty directories tracked.
+
+**Completion note (2026-08-24):** All four tasks landed. One deviation beyond the listed files: `composer.json`'s `autoload-dev` mappings `_Fixture\` and `_Vendor\` (both pointing into the deleted `fixtures/`) were removed, because PHPStan's `TestsUsageExcluder` fatals on realpathing the now-missing directory — a forced consequence of task 3, verified by the green gate run. `composer update --lock` refreshed the lock hash after each manifest edit. Verification results: `composer validate` ✅ · Codeception 37 tests / 168 assertions ✅ · php-cs-fixer 0 of 22 (the "No PHP version requirement" warning is gone; the remaining note about running fixer on 8.5 vs floor 8.4 is informational) · PHPStan 0 errors ✅ · `var/` absent from `git status` ✅. Observation recorded for later milestones: `composer audit` reports one high-severity advisory in a dev-only transitive dependency (`squizlabs/php_codesniffer` < 3.13.6 via `just-bases/php-qa-base`, CVE-2026-67434) and an abandoned `doctrine/annotations` — no runtime impact; revisit when the QA base is bumped.
 
 ---
 

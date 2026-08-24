@@ -10,7 +10,7 @@ Hashes strings and files via PHP's `hash_*` extension, behind a small **hexagona
 composer require it-pack/hash-it
 ```
 
-Requires PHP `>= 8.1` and the `hash` extension (`ext-hash`).
+Requires PHP `^8.4` and the `hash` extension (`ext-hash`).
 
 ## Usage
 

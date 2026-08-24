@@ -1,6 +1,10 @@
 {
     "name": "it-pack/hash-it",
+    "description": "Hashes strings, files and streams via PHP's hash extension behind a small hexagonal (ports & adapters) API",
+    "type": "library",
+    "license": "MIT",
     "require": {
+        "php": "^8.4",
         "ext-hash": "*"
     },
     "autoload": {
@@ -10,9 +14,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/",
-            "_Fixture\\": "fixtures/",
-            "_Vendor\\": "fixtures/"
+            "Tests\\": "tests/"
         }
     },
     "authors": [
