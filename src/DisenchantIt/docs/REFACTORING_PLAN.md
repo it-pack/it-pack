@@ -394,22 +394,22 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
 ## 8. Milestone M6 — Documentation sync, status closeout, final audit 🟡
 
-- [ ] **M6-T1** Update `docs/REVIEW.md`: add a **Status** column to the §11
+- [x] **M6-T1** Update `docs/REVIEW.md`: add a **Status** column to the §11
       findings table marking F1–F8 resolved, with the landed mechanism
       (e.g. "F1 → `Adapter\\NameSlugifier`").
-- [ ] **M6-T2** Scan `README.md` / `USER_GUIDE.md` for drift against touched
+- [x] **M6-T2** Scan `README.md` / `USER_GUIDE.md` for drift against touched
       surfaces: `RewriterInterface` contract wording, `ConstantDeclaration`
       construction examples (now `Visibility::…`), and any cache-lifetime prose;
       fix what changed.
-- [ ] **M6-T3** Add a short **Upgrade notes** block (release notes location per
+- [x] **M6-T3** Add a short **Upgrade notes** block (release notes location per
       repo convention) covering the two pre-1.0 deliberate changes:
       `RewriterInterface` no longer accepts legacy placements; `ConstantDeclaration`
       takes a `Visibility` enum.
-- [ ] **M6-T4** Optional quality extras, only where repository scripts exist
+- [x] **M6-T4** Optional quality extras, only where repository scripts exist
       (verify `composer.json` first): targeted Infection run scoped to
       `LineBasedRewriter` + promotion targets (mutation priority per AGENTS.md:
       placement decisions, idempotency guards), `composer validate`.
-- [ ] **M6-T5** Final full gate run; merge the branch; tag-free (no release
+- [x] **M6-T5** Final full gate run; merge the branch; tag-free (no release
       implied).
 
 ---
@@ -433,10 +433,62 @@ Ordering note: run this **after** M4 so the shim's `'private'`
    any shrinkage during a milestone is a regression signal, not acceptable
    collateral.
 
+## Upgrade notes (pre-1.0)
+
+Deliberate API changes landed by this consolidation plan. All are breaking only
+for consumers constructing the affected internals directly; the primary entry
+point (`DisenchanterFactory::create()->build()`) is unchanged.
+
+1. **`RewriterInterface::rewrite()` accepts promotion artifacts only** (M4).
+   The Phase-2 transition shim that also accepted legacy
+   `ConstantPlacementInterface` items is removed. Pass
+   `PromotionArtifactInterface` lists — which every current promotion target
+   emits — or build rewriters through `RewriterInterface` implementations.
+   Runtime signature (`array $items`) is unchanged.
+2. **`ConstantDeclaration::__construct()` takes a `Visibility` enum** (M5).
+   The fourth parameter widened from `string` to `ValueObject\Visibility`
+   (`Private`/`Protected`/`Public`, default `Private`). Replace
+   `visibility: 'private'` with `visibility: Visibility::Private` and
+   `visibility: 'public'` with `visibility: Visibility::Public`.
+3. **`BackedEnumTarget` / `FlagSetTarget` require a `NameSlugifierInterface`**
+   (M1). Both constructors changed from no-arg to one required collaborator;
+   case naming now flows through the shared port. Construct them via
+   `PromotionTargetFactory::create()->build()` — unchanged and recommended —
+   or pass `new NameSlugifier()` explicitly when composing by hand.
+
 ## Implementation log
 
 Dated record of what actually landed, per milestone. The checkboxes above mark
 task completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-24 — M6 landed, closeout — plan complete
+
+- **M6-T1:** REVIEW §11 status table verified complete — all eight findings
+  F1–F8 marked ✅ with their landed mechanism (maintained incrementally during
+  M1–M5).
+- **M6-T2 drift scan:** README / USER_GUIDE contain no `ConstantDeclaration`
+  construction examples, no rewriter-contract wording tied to legacy
+  placements, and no cache-lifetime prose. One stale claim fixed:
+  README Requirements listed WeakMap among intended feature levers; replaced
+  with the accurate statement that the scan-result cache is a bounded
+  content-keyed store (deliberate M2 design). `CompositeConstantPlacement*`
+  mentions are the live placement-strategy component, not legacy shim text.
+- **M6-T3 upgrade notes:** added an "Upgrade notes (pre-1.0)" section to this
+  document covering all three deliberate API changes: artifact-only
+  `RewriterInterface` (M4), `Visibility`-typed `ConstantDeclaration` (M5),
+  and slugifier-injected `BackedEnumTarget`/`FlagSetTarget` constructors (M1).
+  No repo changelog convention exists; this plan is the release-notes home
+  until one is introduced.
+- **M6-T4 quality extras:** `composer validate` → valid (license warning is
+  pre-existing, out of scope). Targeted Infection skipped — no `mutation`
+  script exists in composer.json (AGENTS.md: do not assume scripts exist).
+- **M6-T5 final audit** (adapted: no branch to merge — mono-repo workflow per
+  M0): architecture PASS · PHPStan src lvl 9 clean · format 0 of 172 files ·
+  unit suite OK **172 tests / 431 assertions** · examples 05 & 14 smoke-runs OK.
+- **Plan complete.** All findings F1–F8 addressed or explicitly closed
+  (won't-fix recorded for `FlagSetTarget.php:139`). Baseline grew from
+  164 tests / 378 assertions (review) to 172 / 431 with zero behavioral
+  regressions; every milestone landed green on `main`.
 
 ### 2026-08-24 — M5 landed, style & magic-value sweep (REVIEW F5 + F6)
 

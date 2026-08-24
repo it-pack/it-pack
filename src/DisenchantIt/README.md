@@ -140,6 +140,7 @@ API is fronted by `DisenchanterInterface` (built via `DisenchanterFactory`) and 
 ## Requirements
 
 - PHP 8.4 or newer (the codebase intends to leverage readonly classes, property hooks,
-  lazy objects, and WeakMap).
+  and lazy objects; the scan-result cache is a bounded content-keyed store rather
+  than a WeakMap, so cross-call reuse does not depend on object lifetime).
 - `nikic/php-parser` ^5 (detection).
 - `nette/php-generator` and `rector/rector` are declared for future adapter work.
