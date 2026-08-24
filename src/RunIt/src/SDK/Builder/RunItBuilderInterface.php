@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\SDK\Builder;
 
+use Closure;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
@@ -21,6 +22,7 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\SDK\RunItInterface;
 
 /**
@@ -94,6 +96,31 @@ interface RunItBuilderInterface
      * Overrides the snapshot factory that builds execution snapshots.
      */
     public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): RunItBuilderInterface;
+
+    /**
+     * Overrides the data-protection bounds enforced by the runner's bounded publisher and the
+     * activity-depth gate. Replaces the conservative {@see SecurityLimits::default()}; limits are
+     * never widened silently at any later stage.
+     */
+    public function withSecurityLimits(SecurityLimits $limits): RunItBuilderInterface;
+
+    /**
+     * Receives internal publication failures (adapter faults, terminal-publication faults, or
+     * secondary completion-path faults) so they can be reported without ever replacing the
+     * business result or exception. Without a handler, publication failures follow the fail-open
+     * default and are not observable.
+     *
+     * @param Closure(\Throwable): void|null $handler
+     */
+    public function withPublicationFailureHandler(?Closure $handler): RunItBuilderInterface;
+
+    /**
+     * Receives snapshot-store failures so persistence problems stay observable without aborting
+     * the execution. Without a handler, store failures follow the fail-open default.
+     *
+     * @param Closure(\Throwable): void|null $handler
+     */
+    public function withSnapshotStoreFailureHandler(?Closure $handler): RunItBuilderInterface;
 
     /**
      * Builds an interface-backed runtime facade, validating required dependencies first.

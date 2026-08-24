@@ -38,6 +38,21 @@ reported as a break.
   abstraction. `composer api:check` confirms no break; the baseline was
   regenerated.
 
+### Refactoring plan (2026-08-23) public API additions
+
+- `RunItBuilderInterface` gained three additive seams:
+  `withSecurityLimits(SecurityLimits $limits)`,
+  `withPublicationFailureHandler(?Closure)`, and
+  `withSnapshotStoreFailureHandler(?Closure)`. Adding methods to a public
+  interface is a source break for third-party implementers of the builder
+  interface (acceptable pre-1.0 and deliberate); consumers who only *call* the
+  builder are unaffected. The baseline was regenerated.
+- `SecurityLimits`, `PublicationPipelineInterface`, `VerifierInterface`
+  (`src/Conformance`), `SnapshotIntegrityVerifierInterface`, and
+  `AttributeValidatorInterface` were formally marked `@api`. This is a
+  documentation-level declaration of their existing public-contract status; no
+  signatures changed.
+
 
 ## Stable normalization schema
 

@@ -14,6 +14,8 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  * The sink is the only required part; every other stage is optional and skipped when
  * omitted.
  *
+ * @api
+ *
  * @see https://w3id.org/itpack/runit#Execution
  */
 interface PublicationPipelineInterface

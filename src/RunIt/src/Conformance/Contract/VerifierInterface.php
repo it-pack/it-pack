@@ -13,6 +13,8 @@ namespace ItPack\RunIt\Conformance\Contract;
  * verifier targets, which lets a conformance harness register and report verifiers by
  * the contract they exercise.
  *
+ * @api
+ *
  * @see https://w3id.org/itpack/runit#Execution
  */
 interface VerifierInterface

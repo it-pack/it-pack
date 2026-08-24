@@ -17,6 +17,8 @@ use InvalidArgumentException;
  * The values are intentionally conservative defaults. Consumers wire a tuned
  * instance through the SDK builder; the values are never silently widened.
  *
+ * @api
+ *
  * @see https://w3id.org/itpack/runit#Execution
  */
 final readonly class SecurityLimits

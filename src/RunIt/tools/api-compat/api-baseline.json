@@ -17997,6 +17997,39 @@
                     }
                 ]
             },
+            "withSecurityLimits": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPublicationFailureHandler": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "handler",
+                        "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotStoreFailureHandler": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "handler",
+                        "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            },
             "build": {
                 "static": false,
                 "return": "ItPack\\RunIt\\SDK\\RunItInterface",
@@ -18200,6 +18233,39 @@
                     {
                         "name": "snapshotFactory",
                         "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionSnapshotFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSecurityLimits": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPublicationFailureHandler": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "handler",
+                        "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotStoreFailureHandler": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "handler",
+                        "type": "null|Closure",
                         "optional": false
                     }
                 ]

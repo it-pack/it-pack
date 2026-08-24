@@ -34,7 +34,6 @@ use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
-use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -50,6 +49,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use Throwable;
 
 /**
@@ -60,7 +60,16 @@ use Throwable;
  * records the outcome, and always restores the prior context. On success it returns the
  * operation's result unchanged; on failure it records the failure and rethrows the exact
  * original throwable. Publication failures are caught and forwarded to the configured health
- * callback so they can never replace the business result or exception.
+ * callback so they can never replace the business result or exception. Completion-path faults
+ * (completion policies, failure recording, lifecycle transitions) are staged the same way:
+ * each stage degrades independently, reports through the health callback, and can never mask
+ * the business outcome or replace the original throwable.
+ *
+ * The runner's built-in publication stack is only Bounded→FailSafe(fail-open): data-protection
+ * redaction and sampling reach the pipeline because {@see \ItPack\RunIt\SDK\Builder\RunItBuilder}
+ * composes them around the configured publisher via
+ * {@see \ItPack\RunIt\Application\Factory\PublisherStackFactory}. A directly constructed runner
+ * publishes unredacted artifacts; prefer the builder unless this is explicitly intended.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -199,37 +208,75 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
     }
 
-    /**
-     * @throws LifecycleExceptionInterface
-     */
     private function completeSuccess(ExecutionInterface $execution, ExecutionScope $scope): void
     {
-        $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
+        try {
+            $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+        }
 
-        $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), $this->now());
+        try {
+            $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), $this->now());
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+
+            return;
+        }
+
+        $this->publishTerminal($completed);
+    }
+
+    private function completeFailure(ExecutionInterface $execution, ExecutionScope $scope, Throwable $throwable): void
+    {
+        try {
+            $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+        }
+
+        $description = null;
+        try {
+            $description = $this->throwableMapper->describe($throwable);
+            $scope->observations()->record(
+                'Execution failed: ' . $description->message(),
+                ObservationSeverity::Error,
+                null,
+                $throwable,
+                'execution.failure',
+            );
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+        }
+
+        try {
+            $completed = $this->coordinator->transition(
+                $execution,
+                ExecutionFailure::of(ExecutionStatus::Failed, $description ?? $this->fallbackDescription($throwable)),
+                $this->now(),
+            );
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+
+            return;
+        }
 
         $this->publishTerminal($completed);
     }
 
     /**
-     * @throws LifecycleExceptionInterface
+     * Builds a minimal description directly from the original throwable when the configured
+     * mapper itself fails, so the execution can still be completed as failed.
      */
-    private function completeFailure(ExecutionInterface $execution, ExecutionScope $scope, Throwable $throwable): void
+    private function fallbackDescription(Throwable $throwable): ThrowableDescription
     {
-        $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
-
-        $description = $this->throwableMapper->describe($throwable);
-        $scope->observations()->record(
-            'Execution failed: ' . $description->message(),
-            ObservationSeverity::Error,
+        return ThrowableDescription::create(
+            $throwable::class,
+            $throwable->getMessage(),
+            $throwable->getCode(),
             null,
-            $throwable,
-            'execution.failure',
+            null,
         );
-
-        $completed = $this->coordinator->transition($execution, ExecutionFailure::of(ExecutionStatus::Failed, $description), $this->now());
-
-        $this->publishTerminal($completed);
     }
 
     /**

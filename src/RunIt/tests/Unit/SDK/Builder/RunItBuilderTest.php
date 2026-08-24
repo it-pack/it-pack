@@ -12,16 +12,25 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Exception\ActivityDepthExceededException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
@@ -198,6 +207,91 @@ final class RunItBuilderTest extends TestCase
         self::assertNotSame($base, $base->withSnapshotFactory($snapshotFactory));
     }
 
+    public function testSecurityLimitsAndHandlerSeamsReturnNewBuilderInstances(): void
+    {
+        $base = $this->builder();
+
+        self::assertNotSame($base, $base->withSecurityLimits(new SecurityLimits()));
+        self::assertNotSame(
+            $base,
+            $base->withPublicationFailureHandler(static function (\Throwable $failure): void {
+            }),
+        );
+        self::assertNotSame(
+            $base,
+            $base->withSnapshotStoreFailureHandler(static function (\Throwable $failure): void {
+            }),
+        );
+    }
+
+    public function testSecurityLimitsPropagateToActivityDepthGate(): void
+    {
+        $runtime = $this->builder()
+            ->withSecurityLimits(new SecurityLimits(maxActivityDepth: 1))
+            ->build()
+        ;
+
+        try {
+            $runtime->run($this->definition(), static function (ExecutionScopeInterface $scope): void {
+                $scope->activities()->run(
+                    ActivityDefinition::create(ActivityName::fromString('outer'), ActivityKind::fromString('task')),
+                    static function () use ($scope): void {
+                        $scope->activities()->run(
+                            ActivityDefinition::create(ActivityName::fromString('inner'), ActivityKind::fromString('task')),
+                            static fn (): string => 'never reached',
+                        );
+                    },
+                );
+            });
+
+            self::fail('configured maxActivityDepth must be enforced by the built runtime');
+        } catch (ActivityDepthExceededException $exception) {
+            self::assertStringContainsString('2', $exception->getMessage(), 'depth 2 must exceed the configured limit of 1');
+        }
+    }
+
+    public function testPublicationFailureHandlerReceivesAdapterFailure(): void
+    {
+        $failures = [];
+        $runtime = RunItBuilder::create()
+            ->withPublisher(new FailingPublisher())
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withPublicationFailureHandler(static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            })
+            ->build()
+        ;
+
+        $result = $runtime->run($this->definition(), static fn (): int => 42);
+
+        self::assertSame(42, $result, 'publication failure must not replace the business result');
+        self::assertNotEmpty($failures, 'publication failure handler must receive the adapter fault');
+    }
+
+    public function testSnapshotStoreFailureHandlerReceivesStoreFailure(): void
+    {
+        $storeFailures = [];
+        $runtime = $this->builder()
+            ->withSnapshotStore(new FailingSnapshotStore())
+            ->withSnapshotStoreFailureHandler(static function (\Throwable $failure) use (&$storeFailures): void {
+                $storeFailures[] = $failure;
+            })
+            ->build()
+        ;
+
+        $result = $runtime->run($this->definition(), static function (ExecutionScopeInterface $scope): int {
+            $scope->snapshots()->record(SnapshotType::fromString('test.snapshot'), ['state' => 'captured']);
+
+            return 99;
+        });
+
+        self::assertSame(99, $result);
+        self::assertNotEmpty($storeFailures, 'snapshot-store failure handler must receive the store fault');
+    }
+
     public function testBuildWiresConfiguredHashCalculatorIntoSnapshotFactory(): void
     {
         $spy = new SpyHashCalculator();
@@ -254,6 +348,22 @@ final class SpyHashCalculator implements HashCalculatorInterface
         $this->called = true;
 
         return hash('sha256', $content);
+    }
+}
+
+final class FailingPublisher implements ArtifactPublisherInterface
+{
+    public function publish(ExecutionArtifactInterface $artifact): void
+    {
+        throw new \RuntimeException('publisher is broken');
+    }
+}
+
+final class FailingSnapshotStore implements SnapshotStoreInterface
+{
+    public function store(SnapshotInterface $snapshot): void
+    {
+        throw new \RuntimeException('snapshot store is broken');
     }
 }
 

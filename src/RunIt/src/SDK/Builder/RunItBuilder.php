@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\SDK\Builder;
 
+use Closure;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
@@ -37,6 +38,7 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\SDK\DefaultRunIt;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
@@ -47,9 +49,10 @@ use ItPack\RunIt\SDK\RunItInterface;
  *
  * The builder supplies application and domain defaults (context storage, nested and completion
  * policies, throwable mapper, hashing, execution factory, lifecycle coordinator, snapshot factory,
- * and identifier factories) and composes redaction and sampling around the configured publisher.
- * Any default collaborator can be replaced through its `with*` seam. Required ports are validated at
- * {@see self::build()}.
+ * identifier factories, and security limits) and composes redaction and sampling around the
+ * configured publisher. Any default collaborator can be replaced through its `with*` seam, and
+ * publication/snapshot-store failure handlers can be registered so internal faults stay
+ * observable. Required ports are validated at {@see self::build()}.
  *
  * Every `with*` method returns a new builder via copy-on-write (`clone` + assign), so configuration
  * can be shared and extended without mutation.
@@ -78,6 +81,9 @@ final class RunItBuilder implements RunItBuilderInterface
         private ?ExecutionFactoryInterface $executionFactory = null,
         private ?ExecutionLifecycleCoordinatorInterface $coordinator = null,
         private ?ExecutionSnapshotFactoryInterface $snapshotFactory = null,
+        private ?SecurityLimits $limits = null,
+        private ?Closure $onPublicationFailure = null,
+        private ?Closure $onSnapshotStoreFailure = null,
     ) {
     }
 
@@ -222,6 +228,30 @@ final class RunItBuilder implements RunItBuilderInterface
         return $clone;
     }
 
+    public function withSecurityLimits(SecurityLimits $limits): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->limits = $limits;
+
+        return $clone;
+    }
+
+    public function withPublicationFailureHandler(?Closure $handler): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->onPublicationFailure = $handler;
+
+        return $clone;
+    }
+
+    public function withSnapshotStoreFailureHandler(?Closure $handler): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->onSnapshotStoreFailure = $handler;
+
+        return $clone;
+    }
+
     public function build(): RunItInterface
     {
         $publisher = $this->requirePublisher();
@@ -271,10 +301,11 @@ final class RunItBuilder implements RunItBuilderInterface
             snapshotIdFactory: $snapshotIdFactory,
             hashCalculator: $hashCalculator,
             throwableMapper: $throwableMapper,
-            onPublicationFailure: null,
+            onPublicationFailure: $this->onPublicationFailure,
             snapshotStore: $this->snapshotStore,
-            onSnapshotStoreFailure: null,
+            onSnapshotStoreFailure: $this->onSnapshotStoreFailure,
             engine: $this->engine,
+            limits: $this->limits ?? new SecurityLimits(),
         );
 
         return new DefaultRunIt($runner, $currentExecution);

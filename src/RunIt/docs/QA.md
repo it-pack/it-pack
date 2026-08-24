@@ -131,32 +131,43 @@ interfaces cannot declare properties) and having the DTO implement it while
 keeping its public `readonly` properties. It now satisfies the rule and is no
 longer part of the interface gap.
 
-### Accepted `shipmonk.deadMethod` notices (Phase 1, T1.2)
+### `shipmonk.deadMethod` notices resolved (Phase 0, T0.1 of the 2026-08-23 plan)
 
-`composer analyse` reports **15** `shipmonk.deadMethod` notices. Per the Phase 1
-plan these were triaged individually: none are genuinely-dead private helpers, so
-none were deleted (deletion would be a backward-compatibility break for a public
-interface method or fluent public API). They are **deliberately kept** public
-surfaces and are **not** suppressed with `@phpstan-ignore`. The reported count
-(15) is therefore expected and matches the explicitly-kept set below.
+`composer analyse` now reports **0 errors**. The previously-accepted set of 15
+`shipmonk.deadMethod` notices was triaged in Phase 1 (T1.2) as deliberately-kept
+public surfaces; they are now formally declared as such instead of remaining
+gate noise:
 
-| # | Symbol | File | Kind | Reason kept |
-|---|--------|------|------|-------------|
-| 1 | `PublicationPipelineInterface::build` | `src/Application/Publication/PublicationPipelineInterface.php:21` | Public port contract method | Assembly entry point of the publication pipeline port; consumed externally. |
-| 2 | `VerifierInterface::port` | `src/Conformance/Contract/VerifierInterface.php:23` | Conformance harness contract method | Part of the adapter-conformance contract; exercised by implementers/fixtures. |
-| 3 | `SnapshotIntegrityVerifierInterface::verifyIntegrity` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:25` | Public security contract method | Integrity-verification port method; consumed externally. |
-| 4 | `SnapshotIntegrityVerifierInterface::verifyChain` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:30` | Public security contract method | Chain-verification port method; consumed externally. |
-| 5 | `AttributeValidatorInterface::assertValidKey` | `src/Contract/Domain/AttributeValidatorInterface.php:20` | Public domain contract method | Attribute-key validation port method; consumed externally. |
-| 6 | `AttributeValidatorInterface::assertValidAttributes` | `src/Contract/Domain/AttributeValidatorInterface.php:25` | Public domain contract method | Attribute-bag validation port method; consumed externally. |
-| 7 | `SecurityLimits::withMaxAttributeKeyBytes` | `src/Domain/Shared/SecurityLimits.php:87` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 8 | `SecurityLimits::withMaxAttributeValueBytes` | `src/Domain/Shared/SecurityLimits.php:95` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 9 | `SecurityLimits::withMaxAttributeDepth` | `src/Domain/Shared/SecurityLimits.php:103` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 10 | `SecurityLimits::withMaxOccurrencePayloadBytes` | `src/Domain/Shared/SecurityLimits.php:111` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 11 | `SecurityLimits::withMaxSnapshotPayloadBytes` | `src/Domain/Shared/SecurityLimits.php:119` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 12 | `SecurityLimits::withMaxActivityDepth` | `src/Domain/Shared/SecurityLimits.php:127` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 13 | `SecurityLimits::withMaxArtifactsPerExecution` | `src/Domain/Shared/SecurityLimits.php:135` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 14 | `SecurityLimits::withMaxSerializationDepth` | `src/Domain/Shared/SecurityLimits.php:143` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
-| 15 | `SecurityLimits::withMaxSerializationBytes` | `src/Domain/Shared/SecurityLimits.php:151` | Public fluent wither | Symmetric wither over a public `readonly` config value object. |
+- `SecurityLimits` carries a class-level `@api` tag — its fluent withers
+  (`withMaxAttributeKeyBytes`, …, `withMaxSerializationBytes`) are supported
+  public API for tuning limits through
+  `RunItBuilder::withSecurityLimits()` (the seam added by T0.1).
+- `PublicationPipelineInterface`, `VerifierInterface`,
+  `SnapshotIntegrityVerifierInterface`, and `AttributeValidatorInterface`
+  carry interface-level `@api` tags — their externally-consumed methods
+  (`build`, `port`, `verifyIntegrity`, `verifyChain`, `assertValidKey`,
+  `assertValidAttributes`) are extension points for consumers and third-party
+  adapter authors.
+
+The dead-code detector's `apiPhpDoc` usage provider treats `@api` members as
+used, which matches their declared contract status exactly — no
+`@phpstan-ignore`, no baseline, and no deletion of public API. The table below
+is retained for history.
+
+<details>
+<summary>Formerly-accepted notices (resolved 2026-08-23)</summary>
+
+| # | Symbol | File | Kind | Resolution |
+|---|--------|------|------|------------|
+| 1 | `PublicationPipelineInterface::build` | `src/Application/Publication/PublicationPipelineInterface.php:21` | Public port contract method | Interface marked `@api`. |
+| 2 | `VerifierInterface::port` | `src/Conformance/Contract/VerifierInterface.php:23` | Conformance harness contract method | Interface marked `@api`. |
+| 3 | `SnapshotIntegrityVerifierInterface::verifyIntegrity` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:25` | Public security contract method | Interface marked `@api`. |
+| 4 | `SnapshotIntegrityVerifierInterface::verifyChain` | `src/Contract/Application/Security/SnapshotIntegrityVerifierInterface.php:30` | Public security contract method | Interface marked `@api`. |
+| 5 | `AttributeValidatorInterface::assertValidKey` | `src/Contract/Domain/AttributeValidatorInterface.php:20` | Public domain contract method | Interface marked `@api`. |
+| 6 | `AttributeValidatorInterface::assertValidAttributes` | `src/Contract/Domain/AttributeValidatorInterface.php:25` | Public domain contract method | Interface marked `@api`. |
+| 7–15 | `SecurityLimits::withMax*` (9 withers) | `src/Domain/Shared/SecurityLimits.php:87–151` | Public fluent withers | Class marked `@api`; reachable via `RunItBuilder::withSecurityLimits()`. |
+
+</details>
 
 ### Recorder `$clock` is intentionally used (Phase 3, T3.4)
 

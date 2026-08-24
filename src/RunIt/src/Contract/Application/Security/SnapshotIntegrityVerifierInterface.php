@@ -15,6 +15,8 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
  * must exist and precede the snapshot in time). The verifier throws on any violation
  * so callers can reject tampered or mis-chained state before trusting it.
  *
+ * @api
+ *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
 interface SnapshotIntegrityVerifierInterface

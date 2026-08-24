@@ -13,6 +13,8 @@ namespace ItPack\RunIt\Contract\Domain;
  * scalars or null. Limits can be tightened through a {@see \ItPack\RunIt\Domain\Shared\SecurityLimits}
  * instance; when none is supplied the conservative built-in defaults apply.
  *
+ * @api
+ *
  * @see https://w3id.org/itpack/runit#Observation
  */
 interface AttributeValidatorInterface

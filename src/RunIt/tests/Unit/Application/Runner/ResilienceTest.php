@@ -6,9 +6,16 @@ namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
+use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
+use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -184,6 +191,105 @@ final class ResilienceTest extends Unit
         self::assertCount(0, $inner->published(), 'sampling policy failure must be swallowed by the fail-safe boundary');
     }
 
+    public function testCompletionPolicyFailureOnSuccessPathPreservesResult(): void
+    {
+        $failures = [];
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            completionPolicy: new ThrowingCompletionPolicy(),
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): int => 42);
+
+        self::assertSame(42, $result, 'a throwing completion policy must not mask the successful result');
+        self::assertNotEmpty($failures, 'the completion-policy fault must be reported to the health path');
+    }
+
+    public function testCompletionPolicyFailureDuringFailurePathPreservesOriginalThrowable(): void
+    {
+        $failures = [];
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            completionPolicy: new ThrowingCompletionPolicy(),
+        );
+
+        $thrown = new RuntimeException('business broke');
+        $caught = null;
+
+        try {
+            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+                throw $thrown;
+            });
+        } catch (RuntimeException $exception) {
+            $caught = $exception;
+        }
+
+        self::assertSame($thrown, $caught, 'original business exception must survive a throwing completion policy');
+        self::assertNotEmpty($failures, 'the completion-policy fault must be reported, not silently discarded');
+    }
+
+    public function testTransitionFailureDuringFailurePathPreservesOriginalThrowable(): void
+    {
+        $failures = [];
+        $coordinator = new \ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator();
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            coordinator: new TransitionFailingCoordinator($coordinator),
+        );
+
+        $thrown = new RuntimeException('business broke');
+        $caught = null;
+
+        try {
+            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+                throw $thrown;
+            });
+        } catch (RuntimeException $exception) {
+            $caught = $exception;
+        }
+
+        self::assertSame($thrown, $caught, 'original business exception must survive a failing lifecycle transition');
+        self::assertNotEmpty($failures, 'the transition fault must be reported to the health path');
+    }
+
+    public function testThrowableMapperFailureStillCompletesExecutionAsFailed(): void
+    {
+        $failures = [];
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            throwableMapper: new ThrowingThrowableMapper(),
+        );
+
+        $thrown = new RuntimeException('business broke');
+        $caught = null;
+
+        try {
+            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+                throw $thrown;
+            });
+        } catch (RuntimeException $exception) {
+            $caught = $exception;
+        }
+
+        self::assertSame($thrown, $caught, 'original business exception must survive a throwing throwable mapper');
+        self::assertNotEmpty(
+            array_filter(
+                $kit->artifacts(),
+                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface,
+            ),
+            'execution must still reach its terminal snapshot when the mapper fails',
+        );
+        self::assertNotEmpty($failures, 'the mapper fault must be reported to the health path');
+    }
+
     private function definition(): \ItPack\RunIt\Domain\Execution\ExecutionDefinition
     {
         return \ItPack\RunIt\Domain\Execution\ExecutionDefinition::create(
@@ -198,6 +304,39 @@ final class FailingArtifactPublisher implements ArtifactPublisherInterface
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         throw new RuntimeException('publisher is broken');
+    }
+}
+
+final class ThrowingCompletionPolicy implements ExecutionCompletionPolicyInterface
+{
+    public function resolveOpenActivities(ExecutionScopeInterface $scope, array $openActivities): void
+    {
+        throw new RuntimeException('completion policy is broken');
+    }
+}
+
+final class TransitionFailingCoordinator implements ExecutionLifecycleCoordinatorInterface
+{
+    public function __construct(private readonly ExecutionLifecycleCoordinatorInterface $inner)
+    {
+    }
+
+    public function transition(ExecutionInterface $execution, ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface
+    {
+        throw new RuntimeException('transition is broken');
+    }
+
+    public function start(ExecutionInterface $execution): ExecutionInterface
+    {
+        return $this->inner->start($execution);
+    }
+}
+
+final class ThrowingThrowableMapper implements ThrowableMapperInterface
+{
+    public function describe(\Throwable $throwable): ThrowableDescriptionInterface
+    {
+        throw new RuntimeException('throwable mapper is broken');
     }
 }
 

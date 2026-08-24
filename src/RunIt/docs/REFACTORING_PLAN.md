@@ -16,6 +16,11 @@ layer deep-reads, and gate runs under PHP 8.5.8). No source has been modified ye
 
 ## Phase 0 — P0: gate health & exception-preservation guarantee
 
+> **Status: Complete (2026-08-23).** `composer analyse` reports **0 errors**
+> (previously 15 `shipmonk.deadMethod`). Green: `cs:check`, `architecture`
+> (0 violations), `api:check` (baseline regenerated), full suite
+> (712 tests: Unit + Conformance + Integration).
+
 Goal: clear the **15** PHPStan level-max errors (all `shipmonk.deadMethod` on
 `SecurityLimits::with*`, one root cause) and close the ADR-008 hole where a throwing
 completion path can replace the original business exception.
@@ -47,6 +52,26 @@ completion path can replace the original business exception.
   `composer api:baseline`) green.
 - **Risk/BC:** additive builder methods (no break); API baseline regeneration required;
   no ADR needed (advances the existing documented intent).
+- **Implemented (2026-08-23), with two recorded deviations:**
+  1. The plan sketched `withSecurityLimits(SecurityLimitsInterface $limits)`;
+     `SecurityLimits` deliberately has no interface (tracked exemption in
+     `docs/QA.md`), and the runner already accepts the concrete type, so the seam
+     takes `SecurityLimits` directly.
+  2. Adding the seam alone did **not** clear the gate: `shipmonk.deadMethod`
+     flags members with no *call sites* in analyzed code, and a wither that is only
+     *received* remains unused-in-tree. The REVIEW.md claim that the seam "in one
+     move eliminates all 15 errors" was therefore imprecise. The honest fix was to
+     formally declare the documented keep-list as public API: class-level `@api`
+     on `SecurityLimits`, interface-level `@api` on `PublicationPipelineInterface`,
+     `VerifierInterface`, `SnapshotIntegrityVerifierInterface`, and
+     `AttributeValidatorInterface`. The dead-code detector's `apiPhpDoc` usage
+     provider treats `@api` members as used — matching their declared contract
+     status, with no ignores, no baseline, and no public-API deletion. Recorded in
+     `docs/QA.md`; `@api` declarations noted in `docs/compatibility.md`.
+  Tests added (`RunItBuilderTest`): seam immutability, limits propagation via the
+  activity-depth gate (`maxActivityDepth: 1` rejects depth-2 nesting), publication-
+  failure handler receives adapter faults, snapshot-store handler receives store
+  faults.
 
 ### T0.2 — Guarantee original-exception preservation in `completeFailure()` (REVIEW.md §3.7, §4 P0-2)
 - **Goal:** in `DefaultExecutionRunner::runExecution()`, `completeFailure()` runs inside
@@ -68,6 +93,19 @@ completion path can replace the original business exception.
   `composer mutation:p0` run in CI covers the state transitions (local Infection remains
   unavailable — see cross-cutting notes); `composer cs:check` clean.
 - **Risk/BC:** behavior hardening only; no contract change.
+- **Implemented (2026-08-23):** both completion paths are now staged so each stage
+  degrades independently and reports through the health callback:
+  *completion policy* faults (success and failure paths) are reported and completion
+  continues; *failure-recording* faults (throwable mapper or observation recorder) are
+  reported, with a minimal fallback description built from the original throwable so
+  the execution still completes as failed; *lifecycle transition* faults are reported
+  and terminal publication is skipped. The stale `@throws LifecycleExceptionInterface`
+  docs (and import) were removed — these private paths no longer throw. Tests added to
+  `ResilienceTest`: throwing completion policy on success path (result preserved),
+  throwing policy during failure path (original exception preserved), failing
+  transition during failure path (original preserved), throwing mapper (execution
+  still reaches its terminal snapshot). `RunItTestKit` gained optional injectable
+  `completionPolicy`, `coordinator`, and `throwableMapper` parameters.
 
 **Phase 0 exit:** `composer analyse` reports **0 errors** (no baseline noise left);
 `composer test`, `cs:check`, `architecture`, `api:check` green.

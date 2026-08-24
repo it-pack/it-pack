@@ -21,9 +21,12 @@ use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
+use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
+use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
@@ -64,7 +67,7 @@ final class RunItTestKit
 
     private DeterministicHashCalculator $hashCalculator;
 
-    private DefaultThrowableMapper $throwableMapper;
+    private ThrowableMapperInterface $throwableMapper;
 
     /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ExecutionIdInterface> */
     private StringIdentifierFactoryInterface $executionIdFactory;
@@ -94,6 +97,9 @@ final class RunItTestKit
         ?SnapshotStoreInterface $snapshotStore = null,
         ?Closure $onSnapshotStoreFailure = null,
         ?ContextStorageInterface $storage = null,
+        ?ExecutionCompletionPolicyInterface $completionPolicy = null,
+        ?ExecutionLifecycleCoordinatorInterface $coordinator = null,
+        ?ThrowableMapperInterface $throwableMapper = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->snapshotStore = $snapshotStore;
@@ -102,7 +108,7 @@ final class RunItTestKit
         $this->storage = $storage ?? new StackContextStorage();
         $this->allocator = new InMemorySequenceAllocator();
         $this->hashCalculator = new DeterministicHashCalculator();
-        $this->throwableMapper = new DefaultThrowableMapper();
+        $this->throwableMapper = $throwableMapper ?? new DefaultThrowableMapper();
 
         $this->executionIdFactory = new StringIdentifierFactory(ExecutionId::fromString(...), $this->generator('exec'));
         $this->activityIdFactory = new StringIdentifierFactory(ActivityId::fromString(...), $this->generator('act'));
@@ -116,10 +122,10 @@ final class RunItTestKit
             $this->publisher,
             new JsonSnapshotSerializer(),
             new ExecutionFactory(),
-            new ExecutionLifecycleCoordinator(),
+            $coordinator ?? new ExecutionLifecycleCoordinator(),
             new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
             new ChildExecutionPolicy(),
-            new AutoFailOpenActivitiesPolicy(),
+            $completionPolicy ?? new AutoFailOpenActivitiesPolicy(),
             $this->clock,
             $this->allocator,
             $this->executionIdFactory,
