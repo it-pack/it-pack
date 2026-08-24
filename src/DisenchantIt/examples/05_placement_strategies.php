@@ -20,9 +20,10 @@ require __DIR__ . '/bootstrap.php';
 
 use ItPack\DisenchantIt\Adapter\BackedEnumTarget;
 use ItPack\DisenchantIt\Adapter\ClassConstantTarget;
+use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\NameSlugifier;
 use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
 use ItPack\DisenchantIt\Factory\ConstantPlacementFactory;
-use ItPack\DisenchantIt\Factory\ConstantNameResolver;
 use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
 
 $multiClassCode = <<<'PHP'
@@ -47,7 +48,7 @@ $strategies = [
         ConstantPlacementFactory::create(),
         ConstantNameResolver::create(),
     ),
-    'BackedEnumTarget only' => new BackedEnumTarget(),
+    'BackedEnumTarget only' => new BackedEnumTarget(new NameSlugifier()),
 ];
 
 foreach ($strategies as $label => $target) {

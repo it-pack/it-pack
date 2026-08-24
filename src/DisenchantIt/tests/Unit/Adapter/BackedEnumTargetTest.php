@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\BackedEnumTarget;
+use ItPack\DisenchantIt\Adapter\NameSlugifier;
 use ItPack\DisenchantIt\ValueObject\Candidate;
 use ItPack\DisenchantIt\ValueObject\GroupedCandidate;
 use ItPack\DisenchantIt\ValueObject\LiteralRole;
@@ -39,9 +40,14 @@ final class BackedEnumTargetTest extends Unit
         return new GroupedCandidate($this->closedCandidate($values), true, 'status');
     }
 
+    private function target(): BackedEnumTarget
+    {
+        return new BackedEnumTarget(new NameSlugifier());
+    }
+
     public function testSupportsOnlyClosedSets(): void
     {
-        $target = new BackedEnumTarget();
+        $target = $this->target();
 
         $this->assertTrue($target->supports($this->closedGroup(['new', 'active', 'closed'])));
         $this->assertFalse($target->supports(new GroupedCandidate($this->closedCandidate(['lonely']))));
@@ -49,7 +55,7 @@ final class BackedEnumTargetTest extends Unit
 
     public function testBuildsTopLevelBackedEnumWithCasesAndReferences(): void
     {
-        $target = new BackedEnumTarget();
+        $target = $this->target();
         $artifact = $target->build($this->closedGroup(['new', 'active', 'closed']));
 
         $this->assertSame(TargetKind::Enum, $artifact->kind);
@@ -77,7 +83,7 @@ final class BackedEnumTargetTest extends Unit
 
     public function testCaseNamesArePascalCased(): void
     {
-        $target = new BackedEnumTarget();
+        $target = $this->target();
         $artifact = $target->build($this->closedGroup(['role:admin', 'role-user']));
 
         $enumSource = implode("\n", $artifact->insertions[0]->lines);

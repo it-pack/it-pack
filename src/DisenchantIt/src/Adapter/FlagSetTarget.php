@@ -35,6 +35,11 @@ use ItPack\DisenchantIt\ValueObject\TargetKind;
  */
 final readonly class FlagSetTarget implements PromotionTargetInterface
 {
+    public function __construct(
+        private readonly NameSlugifierInterface $nameSlugifier,
+    ) {
+    }
+
     public function supports(GroupedCandidateInterface $group): bool
     {
         $occurrences = $group->candidate->occurrences;
@@ -74,7 +79,7 @@ final readonly class FlagSetTarget implements PromotionTargetInterface
         }
 
         $variable = $this->sharedVariable($occurrences) ?? '';
-        $base = $variable !== '' ? $this->pascalCase($variable) : 'Flag';
+        $base = $variable !== '' ? $this->nameSlugifier->pascalCase($variable, 'Flag') : 'Flag';
 
         $byClass = [];
         foreach ($occurrences as $lit) {
@@ -142,26 +147,5 @@ final readonly class FlagSetTarget implements PromotionTargetInterface
         }
 
         return $variable;
-    }
-
-    /**
-     * PascalCases a variable name into a valid const-base prefix (mirrors
-     * BackedEnumTarget's case naming, kept private to avoid a shared dependency).
-     */
-    private function pascalCase(string $value): string
-    {
-        $clean = preg_replace('/[^A-Za-z0-9]+/', ' ', $value) ?? $value;
-        $parts = array_filter(explode(' ', trim($clean)), static fn (string $p): bool => $p !== '');
-        $name = implode('', array_map(ucfirst(...), $parts));
-
-        if ($name === '') {
-            $name = 'Flag';
-        }
-
-        if (ctype_digit($name[0])) {
-            $name = 'V' . $name;
-        }
-
-        return $name;
     }
 }

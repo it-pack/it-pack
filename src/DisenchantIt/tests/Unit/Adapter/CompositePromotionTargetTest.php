@@ -9,6 +9,7 @@ use ItPack\DisenchantIt\Adapter\BackedEnumTarget;
 use ItPack\DisenchantIt\Adapter\ClassConstantTarget;
 use ItPack\DisenchantIt\Adapter\CompositePromotionTarget;
 use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\NameSlugifier;
 use ItPack\DisenchantIt\Factory\ConstantPlacementFactory;
 use ItPack\DisenchantIt\ValueObject\Candidate;
 use ItPack\DisenchantIt\ValueObject\GroupedCandidate;
@@ -22,7 +23,7 @@ final class CompositePromotionTargetTest extends Unit
     private function composite(): CompositePromotionTarget
     {
         return new CompositePromotionTarget([
-            new BackedEnumTarget(),
+            new BackedEnumTarget(new NameSlugifier()),
             new ClassConstantTarget(ConstantPlacementFactory::create(), ConstantNameResolver::create()),
         ]);
     }

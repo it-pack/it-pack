@@ -100,7 +100,7 @@ implementations are identical except for the empty-result fallback
 
 ### Tasks
 
-- [ ] **M1-T1** Add the port:
+- [x] **M1-T1** Add the port:
 
   ```php
   namespace ItPack\DisenchantIt\Adapter;
@@ -116,13 +116,13 @@ implementations are identical except for the empty-result fallback
   }
   ```
 
-- [ ] **M1-T2** Add `final readonly class NameSlugifier implements
+- [x] **M1-T2** Add `final readonly class NameSlugifier implements
       NameSlugifierInterface`. Move the body verbatim from
       `BackedEnumTarget::pascalCase` (`[^A-Za-z0-9]+` collapse, `ucfirst` join,
       `'V' .` leading-digit guard), returning `$fallback` instead of the
       hard-coded `'Value'`.
 
-- [ ] **M1-T3** Inject `NameSlugifierInterface $nameSlugifier` into the
+- [x] **M1-T3** Inject `NameSlugifierInterface $nameSlugifier` into the
       constructors of `BackedEnumTarget` and `FlagSetTarget`; delete both
       private `pascalCase()` methods; route calls through the port:
       - `BackedEnumTarget::caseNameMap` → `$this->nameSlugifier->pascalCase($lit->value, 'Value')`
@@ -131,13 +131,13 @@ implementations are identical except for the empty-result fallback
       Update the stale docblock at `FlagSetTarget.php:147-149` ("kept private to
       avoid a shared dependency") to reference the shared service.
 
-- [ ] **M1-T4** Wire in `PromotionTargetFactory::build()`:
+- [x] **M1-T4** Wire in `PromotionTargetFactory::build()`:
       `$slugifier = new NameSlugifier();` passed to both targets. Verify no
       other construction sites exist (`grep -rn "new BackedEnumTarget\\|new FlagSetTarget"`),
       including `tests/Unit/Adapter/` fixtures — update those to receive the
       collaborator.
 
-- [ ] **M1-T5** Add `tests/Unit/Adapter/NameSlugifierTest.php`:
+- [x] **M1-T5** Add `tests/Unit/Adapter/NameSlugifierTest.php`:
       - splits on any non-alphanumeric run and title-cases words
         (`'cache-ttl_seconds'` → `'CacheTtlSeconds'`);
       - guards a leading digit (`'4xx_mode'` → `'V4XxMode'`-shape);

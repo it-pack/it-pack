@@ -20,12 +20,21 @@ use ItPack\DisenchantIt\ValueObject\TargetKind;
  * <Case> = '<raw>'; ... }` inserted at file top level after the owning class —
  * and rewrites each literal occurrence to `<Name>::<Case>`.
  *
+ * Case names are produced through the shared NameSlugifierInterface port
+ * ('Value' fallback), so naming cannot drift from FlagSetTarget's const
+ * prefixes.
+ *
  * Idempotent by construction: on a second pass the enum's own backing values are
  * excluded by CandidateFilter (role EnumBackingValue), and already-rewritten
  * usages no longer contain the raw literal token, so neither is re-promoted.
  */
 final readonly class BackedEnumTarget implements PromotionTargetInterface
 {
+    public function __construct(
+        private readonly NameSlugifierInterface $nameSlugifier,
+    ) {
+    }
+
     public function supports(GroupedCandidateInterface $group): bool
     {
         return $group->isClosedSet;
@@ -81,7 +90,7 @@ final readonly class BackedEnumTarget implements PromotionTargetInterface
         $map = [];
         $used = [];
         foreach ($occurrences as $lit) {
-            $base = $this->pascalCase($lit->value);
+            $base = $this->nameSlugifier->pascalCase($lit->value, 'Value');
             $name = $base;
             $suffix = 2;
             while (isset($used[strtolower($name)])) {
@@ -95,31 +104,10 @@ final readonly class BackedEnumTarget implements PromotionTargetInterface
         return $map;
     }
 
-    /**
-     * PascalCases a raw literal value into a valid enum case / type name. Keeps
-     * only alphanumerics, title-cases each word, and guards a leading digit.
-     */
-    private function pascalCase(string $value): string
-    {
-        $clean = preg_replace('/[^A-Za-z0-9]+/', ' ', $value) ?? $value;
-        $parts = array_filter(explode(' ', trim($clean)), static fn (string $p): bool => $p !== '');
-        $name = implode('', array_map(ucfirst(...), $parts));
-
-        if ($name === '') {
-            $name = 'Value';
-        }
-
-        if (ctype_digit($name[0])) {
-            $name = 'V' . $name;
-        }
-
-        return $name;
-    }
-
     private function enumName(?string $proposed): string
     {
         if ($proposed !== null && $proposed !== '') {
-            return $this->pascalCase($proposed);
+            return $this->nameSlugifier->pascalCase($proposed, 'Value');
         }
 
         return 'Disenchanted';

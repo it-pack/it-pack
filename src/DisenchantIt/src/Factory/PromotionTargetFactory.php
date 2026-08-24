@@ -10,6 +10,7 @@ use ItPack\DisenchantIt\Adapter\ClassnameToClassConst;
 use ItPack\DisenchantIt\Adapter\CompositePromotionTarget;
 use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
 use ItPack\DisenchantIt\Adapter\FlagSetTarget;
+use ItPack\DisenchantIt\Adapter\NameSlugifier;
 use ItPack\DisenchantIt\Contract\ConstantNameResolverInterface;
 use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
 use ItPack\DisenchantIt\Contract\DictionaryNameResolverInterface;
@@ -53,8 +54,10 @@ final readonly class PromotionTargetFactory implements PromotionTargetFactoryInt
             $targets[] = new ClassnameToClassConst();
         }
 
-        $targets[] = new FlagSetTarget();
-        $targets[] = new BackedEnumTarget();
+        $slugifier = new NameSlugifier();
+
+        $targets[] = new FlagSetTarget($slugifier);
+        $targets[] = new BackedEnumTarget($slugifier);
         $targets[] = new ClassConstantTarget($this->placements, $this->resolver);
 
         return new CompositePromotionTarget($targets);

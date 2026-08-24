@@ -6,6 +6,7 @@ namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\FlagSetTarget;
+use ItPack\DisenchantIt\Adapter\NameSlugifier;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
 use ItPack\DisenchantIt\ValueObject\Candidate;
@@ -44,9 +45,14 @@ final class FlagSetTargetTest extends Unit
         return new GroupedCandidate($this->flagCandidate(...$occurrences));
     }
 
+    private function target(): FlagSetTarget
+    {
+        return new FlagSetTarget(new NameSlugifier());
+    }
+
     public function testSupportsTrueForBitmaskPowersOfTwoSharedVariable(): void
     {
-        $target = new FlagSetTarget();
+        $target = $this->target();
 
         $this->assertTrue($target->supports($this->flagGroup(
             $this->flagOccurrence(1, 5),
@@ -69,12 +75,12 @@ final class FlagSetTargetTest extends Unit
             subkind: LiteralSubkind::Unknown,
         );
 
-        $this->assertFalse(new FlagSetTarget()->supports($this->flagGroup($lit, $this->flagOccurrence(2, 6))));
+        $this->assertFalse($this->target()->supports($this->flagGroup($lit, $this->flagOccurrence(2, 6))));
     }
 
     public function testSupportsFalseWhenNotPowerOfTwo(): void
     {
-        $this->assertFalse(new FlagSetTarget()->supports($this->flagGroup(
+        $this->assertFalse($this->target()->supports($this->flagGroup(
             $this->flagOccurrence(3, 5),
             $this->flagOccurrence(2, 6),
         )));
@@ -82,7 +88,7 @@ final class FlagSetTargetTest extends Unit
 
     public function testSupportsFalseWhenDifferentVariables(): void
     {
-        $this->assertFalse(new FlagSetTarget()->supports($this->flagGroup(
+        $this->assertFalse($this->target()->supports($this->flagGroup(
             $this->flagOccurrence(1, 5, 'a'),
             $this->flagOccurrence(2, 6, 'b'),
         )));
@@ -90,14 +96,14 @@ final class FlagSetTargetTest extends Unit
 
     public function testSupportsFalseWhenSingleOccurrence(): void
     {
-        $this->assertFalse(new FlagSetTarget()->supports($this->flagGroup(
+        $this->assertFalse($this->target()->supports($this->flagGroup(
             $this->flagOccurrence(1, 5),
         )));
     }
 
     public function testBuildEmitsFlagConstsAndSelfReferences(): void
     {
-        $target = new FlagSetTarget();
+        $target = $this->target();
         $artifact = $target->build($this->flagGroup(
             $this->flagOccurrence(1, 5),
             $this->flagOccurrence(2, 6),
@@ -124,7 +130,7 @@ final class FlagSetTargetTest extends Unit
 
     public function testBuildPreservesCombinedBitwiseExpression(): void
     {
-        $target = new FlagSetTarget();
+        $target = $this->target();
         // Both flags on the same line as `1 | 2`.
         $artifact = $target->build($this->flagGroup(
             $this->flagOccurrence(1, 5),
