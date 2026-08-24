@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
@@ -67,7 +68,7 @@ readonly class Snapshot implements SnapshotInterface
         ?SnapshotIdInterface $predecessorId = null,
         ?SnapshotClassificationInterface $classification = null,
         ?InstantInterface $createdAt = null,
-        string $contentType = 'application/json',
+        string $contentType = MediaTypes::APPLICATION_JSON,
         ?AttributeCollectionInterface $attributes = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {

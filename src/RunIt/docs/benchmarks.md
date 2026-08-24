@@ -20,6 +20,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Observation creation | `benchObservationCreation` | Recording one observation |
 | Throwable normalization | `benchThrowableNormalization` | `DefaultThrowableMapper::describe` |
 | Bounded publication gate | `benchBoundedPublish` | Per-execution count + payload-bound checks (native byte estimation) |
+| OTel bridge no-op path | `benchOtelNullProviderRecord` | Instrument-mapper record without a meter provider |
 | Context copy-on-write | (context suites) | Immutable `with`/`without` projections |
 | Composite publisher | (publication suites) | Redact + sample + publish chain |
 | Filtering and sampling | `benchRedaction` / sampling suites | Policy decisions per artifact |
@@ -81,3 +82,13 @@ payload just to measure it — with the native
 run before), so the change is justified analytically (one full payload encoding
 eliminated per publish) and pinned going forward by `benchBoundedPublish`.
 Regenerate with `composer benchmark` when comparing.
+
+### Lazy initialization verdict (Phase 3, T3.5)
+
+`DefaultMeasurementInstrumentMapper::record()` with a null meter provider
+measures **≈0.29 µs per record** (`benchOtelNullProviderRecord`, at the
+measurement noise floor). The path is already a single null-check short-circuit;
+there is no eagerly constructed infrastructure to defer, so the AGENTS.md
+lazy-objects recommendation was **rejected by measurement** rather than
+implemented speculatively. Revisit only if the bridge ever grows eager
+per-instance construction on an optional path.

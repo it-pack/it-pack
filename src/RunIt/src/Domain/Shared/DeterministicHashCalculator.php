@@ -17,7 +17,7 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class DeterministicHashCalculator implements HashCalculatorInterface
+final readonly class DeterministicHashCalculator implements HashCalculatorInterface
 {
     public function calculate(string $content): string
     {

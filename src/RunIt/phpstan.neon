@@ -6,8 +6,8 @@ parameters:
     level: max
     paths:
         - ./src
-        - ./tests/Acceptance
         - ./tests/Conformance
+        - ./tests/Concurrency
         - ./tests/Functional
         - ./tests/Integration
         - ./tests/Support/Fixture

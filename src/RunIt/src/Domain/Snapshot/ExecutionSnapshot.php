@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
@@ -33,6 +34,11 @@ use ItPack\RunIt\Domain\Shared\Instant;
  */
 final readonly class ExecutionSnapshot extends Snapshot implements ExecutionSnapshotInterface
 {
+    /**
+     * The schema version stamped onto terminal execution snapshots.
+     */
+    public const int SCHEMA_VERSION = 1;
+
     public static function create(
         SnapshotIdInterface                                         $id,
         ExecutionIdInterface                                     $executionId,
@@ -44,7 +50,7 @@ final readonly class ExecutionSnapshot extends Snapshot implements ExecutionSnap
         ?SnapshotIdInterface             $predecessorId = null,
         ?SnapshotClassificationInterface $classification = null,
         ?InstantInterface                $createdAt = null,
-        string                           $contentType = 'application/json',
+        string                           $contentType = MediaTypes::APPLICATION_JSON,
         ?AttributeCollectionInterface    $attributes = null,
         ?ArtifactSequenceInterface       $sequence = null,
         ContextValueValidatorInterface   $validator = new ContextValueValidator(),

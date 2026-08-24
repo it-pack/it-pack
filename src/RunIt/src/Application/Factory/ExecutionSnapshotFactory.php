@@ -43,13 +43,13 @@ final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterfac
     public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
     {
         $id = $this->snapshotIdFactory->build();
-        $this->type ??= SnapshotType::fromString('execution.terminal');
+        $this->type ??= SnapshotType::executionTerminal();
 
         return ExecutionSnapshot::create(
             $id,
             $execution->executionId(),
             $this->type,
-            1,
+            ExecutionSnapshot::SCHEMA_VERSION,
             $execution->normalize(),
             $this->hashCalculator,
             null,

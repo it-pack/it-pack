@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\ContextEntryInterface;
 use ItPack\RunIt\Contract\Domain\ContextRedactionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
  * An immutable, bounded execution context.
@@ -29,7 +30,11 @@ use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
  */
 final readonly class ExecutionContext implements ExecutionContextInterface, IteratorAggregate
 {
-    public const int MAX_ENTRIES = 64;
+    /**
+     * The context-entry ceiling, deliberately derived from the security-limit
+     * default so the two entry ceilings cannot drift apart silently.
+     */
+    public const int MAX_ENTRIES = SecurityLimits::DEFAULT_MAX_ATTRIBUTE_COUNT;
 
     /**
      * @var array<string, ContextEntryInterface>

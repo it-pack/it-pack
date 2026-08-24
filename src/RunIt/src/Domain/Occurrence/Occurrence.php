@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
@@ -64,7 +65,7 @@ final readonly class Occurrence implements OccurrenceInterface
         ?ActivityIdInterface $activityId = null,
         ?string $subject = null,
         ?string $dataSchema = null,
-        string $contentType = 'application/json',
+        string $contentType = MediaTypes::APPLICATION_JSON,
         ?AttributeCollectionInterface $extensionAttributes = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {

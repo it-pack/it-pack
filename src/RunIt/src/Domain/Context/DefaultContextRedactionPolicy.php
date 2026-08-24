@@ -25,7 +25,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class DefaultContextRedactionPolicy implements ContextRedactionPolicyInterface
+final readonly class DefaultContextRedactionPolicy implements ContextRedactionPolicyInterface
 {
     public const string REDACTED = '[redacted]';
 

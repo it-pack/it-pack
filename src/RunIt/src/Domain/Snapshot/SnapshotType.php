@@ -12,7 +12,8 @@ use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
  * `execution.snapshot`.
  *
  * Snapshot types name the shape of a snapshot's payload. They are extensible,
- * validated strings rather than a closed enum.
+ * validated strings rather than a closed enum. RunIt's own canonical types are
+ * exposed as named constructors so the spelling lives in exactly one place.
  *
  * @api
  *
@@ -21,4 +22,12 @@ use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
 final readonly class SnapshotType implements SnapshotTypeInterface
 {
     use ValidatedStringValueBehavior;
+
+    /**
+     * The terminal snapshot the runner emits when an execution completes.
+     */
+    public static function executionTerminal(): self
+    {
+        return self::fromString('execution.terminal');
+    }
 }

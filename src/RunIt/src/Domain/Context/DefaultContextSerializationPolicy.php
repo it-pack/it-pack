@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\ContextSerializationPolicyInterface;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class DefaultContextSerializationPolicy implements ContextSerializationPolicyInterface
+final readonly class DefaultContextSerializationPolicy implements ContextSerializationPolicyInterface
 {
     public function isSerializable(ContextClassificationInterface $classification): bool
     {

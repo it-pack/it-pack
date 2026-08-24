@@ -19,6 +19,19 @@ use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
  */
 enum ObservationSeverity: string implements ObservationSeverityInterface
 {
+    /**
+     * PSR-3/monolog-compatible numeric levels; `trace` extends below `debug`.
+     */
+    private const int LEVEL_TRACE = 50;
+    private const int LEVEL_DEBUG = 100;
+    private const int LEVEL_INFO = 200;
+    private const int LEVEL_NOTICE = 250;
+    private const int LEVEL_WARNING = 300;
+    private const int LEVEL_ERROR = 400;
+    private const int LEVEL_CRITICAL = 500;
+    private const int LEVEL_ALERT = 550;
+    private const int LEVEL_EMERGENCY = 600;
+
     case Trace = 'trace';
     case Debug = 'debug';
     case Info = 'info';
@@ -37,15 +50,15 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
     public function level(): int
     {
         return match ($this) {
-            self::Trace => 50,
-            self::Debug => 100,
-            self::Info => 200,
-            self::Notice => 250,
-            self::Warning => 300,
-            self::Error => 400,
-            self::Critical => 500,
-            self::Alert => 550,
-            self::Emergency => 600,
+            self::Trace => self::LEVEL_TRACE,
+            self::Debug => self::LEVEL_DEBUG,
+            self::Info => self::LEVEL_INFO,
+            self::Notice => self::LEVEL_NOTICE,
+            self::Warning => self::LEVEL_WARNING,
+            self::Error => self::LEVEL_ERROR,
+            self::Critical => self::LEVEL_CRITICAL,
+            self::Alert => self::LEVEL_ALERT,
+            self::Emergency => self::LEVEL_EMERGENCY,
         };
     }
 

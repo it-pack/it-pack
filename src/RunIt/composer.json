@@ -75,14 +75,15 @@
     "scripts": {
         "test": [
             "@test:unit",
-            "@test:functional",
             "@test:integration",
-            "@test:conformance"
+            "@test:conformance",
+            "@test:concurrency"
         ],
         "test:unit": "vendor/bin/codecept run Unit",
         "test:functional": "vendor/bin/codecept run Functional",
         "test:integration": "vendor/bin/codecept run Integration",
         "test:conformance": "vendor/bin/codecept run Conformance",
+        "test:concurrency": "vendor/bin/codecept run Concurrency",
         "examples": "bash scripts/examples.sh",
         "dogfood": "php tools/dogfood/run-dogfood.php",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",

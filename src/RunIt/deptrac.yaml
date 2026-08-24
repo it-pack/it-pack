@@ -24,6 +24,8 @@ deptrac:
       collectors:
         - type: directory
           value: src/Application/.*
+        - type: directory
+          value: src/Behavior/Application/.*
     - name: SDK
       collectors:
         - type: directory

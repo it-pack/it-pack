@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\ContextPropagationPolicyInterface;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class DefaultContextPropagationPolicy implements ContextPropagationPolicyInterface
+final readonly class DefaultContextPropagationPolicy implements ContextPropagationPolicyInterface
 {
     public function isPropagatable(ContextClassificationInterface $classification): bool
     {

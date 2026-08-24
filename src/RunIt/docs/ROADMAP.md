@@ -215,6 +215,9 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Create `src/Adapter/Null/`.
 - [x] Create `src/Adapter/Memory/`.
 - [x] Create `src/Adapter/Callback/`.
+  > Removed 2026-08-23 (refactoring plan T3.4): the callback implementations live
+  > in `src/Application/Publication` (`CallbackArtifactPublisher`,
+  > `CallbackHealthReporter`); the empty adapter namespace was a placeholder.
 - [x] Create `src/Adapter/Fiber/`.
 - [x] Create `src/Adapter/Psr/`.
 - [x] Create `src/Adapter/OpenTelemetry/`.
@@ -223,11 +226,17 @@ Any time designations are just estimates, no hard requirements are implied.
 - [x] Create `src/SDK/Builder/`.
 - [x] Create `src/SDK/Decorator/`.
 - [x] Create `src/SDK/Middleware/`.
+  > Removed 2026-08-23 (refactoring plan T3.4): no middleware implementation or
+  > consumer ever materialized, and AGENTS.md forbids speculative extension
+  > points. Reintroduce only when a concrete use case exists.
 - [x] Create `src/SDK/Attribute/`.
 - [x] Create `tests/Unit/`.
 - [x] Create `tests/Contract/`.
 - [x] Create `tests/Integration/`.
 - [x] Create `tests/Concurrency/`.
+  > Populated 2026-08-23 (refactoring plan T3.4) with fiber isolation,
+  > persistent-worker reuse, and timeout/cancellation classification tests;
+  > previously the directory existed without a suite config and ran nothing.
 - [x] Create `tests/Architecture/`.
 - [x] Create `tests/Performance/`.
 - [x] Create `benchmarks/`.

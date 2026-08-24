@@ -41,6 +41,12 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
 {
     use DelegatesPublisherLifecycleBehavior;
 
+    private const string DROP_REASON_ARTIFACT_COUNT = 'artifact_count';
+
+    private const string DROP_REASON_OCCURRENCE_PAYLOAD = 'occurrence_payload';
+
+    private const string DROP_REASON_SNAPSHOT_PAYLOAD = 'snapshot_payload';
+
     /**
      * @var array<string, int>
      */
@@ -65,21 +71,21 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
             $this->trackExecution($executionId);
 
             if ($this->countsPerExecution[$executionId] > $this->limits->maxArtifactsPerExecution) {
-                $this->drop('artifact_count', $artifact);
+                $this->drop(self::DROP_REASON_ARTIFACT_COUNT, $artifact);
 
                 return;
             }
         }
 
         if ($artifact instanceof OccurrenceInterface && $this->byteEstimator->estimate($artifact) > $this->limits->maxOccurrencePayloadBytes) {
-            $this->drop('occurrence_payload', $artifact);
+            $this->drop(self::DROP_REASON_OCCURRENCE_PAYLOAD, $artifact);
 
             return;
         }
 
         if ($artifact instanceof SnapshotInterface) {
             if ($this->byteEstimator->estimate($artifact) > $this->limits->maxSnapshotPayloadBytes) {
-                $this->drop('snapshot_payload', $artifact);
+                $this->drop(self::DROP_REASON_SNAPSHOT_PAYLOAD, $artifact);
 
                 return;
             }

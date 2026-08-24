@@ -78,6 +78,21 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     use InstantClockBehavior;
 
     /**
+     * Diagnostic code recorded on the failure observation of a failed execution.
+     */
+    private const string FAILURE_DIAGNOSTIC_CODE = 'execution.failure';
+
+    /**
+     * Stable message prefix for the failure observation; adapters map the rest.
+     */
+    private const string FAILURE_MESSAGE_PREFIX = 'Execution failed: ';
+
+    /**
+     * Placeholder for identities that cannot be resolved while rejecting a nested run.
+     */
+    private const string UNKNOWN_IDENTITY = 'unknown';
+
+    /**
      * @param Closure(\Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
      */
     private FailSafeArtifactPublisher $safePublisher;
@@ -125,7 +140,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
         return match ($mode) {
             NestedExecutionMode::RejectNested => throw RejectedNestedExecutionException::forExecution(
-                $current?->execution()->id()->toString() ?? 'unknown',
+                $current?->execution()->id()->toString() ?? self::UNKNOWN_IDENTITY,
             ),
             NestedExecutionMode::ActivityOnly => $this->runAsActivity($current, $definition, $operation),
             default => $this->runExecution($mode, $current, $definition, $operation),
@@ -239,11 +254,11 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         try {
             $description = $this->throwableMapper->describe($throwable);
             $scope->observations()->record(
-                'Execution failed: ' . $description->message(),
+                self::FAILURE_MESSAGE_PREFIX . $description->message(),
                 ObservationSeverity::Error,
                 null,
                 $throwable,
-                'execution.failure',
+                self::FAILURE_DIAGNOSTIC_CODE,
             );
         } catch (Throwable $failure) {
             $this->reportFailure($failure);

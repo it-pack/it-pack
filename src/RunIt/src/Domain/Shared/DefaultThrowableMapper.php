@@ -29,7 +29,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#ThrowableDescription
  */
-final class DefaultThrowableMapper implements ThrowableMapperInterface
+final readonly class DefaultThrowableMapper implements ThrowableMapperInterface
 {
     public const int DEFAULT_MAX_MESSAGE_LENGTH = 1024;
     public const int DEFAULT_MAX_TRACE_LENGTH = 8192;

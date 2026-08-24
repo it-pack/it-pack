@@ -61,9 +61,16 @@ services:
     - { class: Tools\PhpStan\RunitRules\Rule\RequireReadonlyForArtifactRule, arguments: { srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
 
     # require-interface: every concrete class implements an interface.
-    # Exemptions: test-harness (Conformance), shared behaviour helpers (Behavior),
-    # and a bounded set of value-object / config / adapter-DTO classes whose
-    # semantic interface is a tracked follow-up (see docs/qa.md).
+    #
+    # PERMANENT exemptions — classes whose shape makes an interface meaningless.
+    # Rationale per entry (see docs/QA.md for the full table):
+    #   * PHP attributes (`ExecutedAs`) cannot implement interfaces meaningfully.
+    #   * Builders exist to construct their own config VO; an interface would
+    #     duplicate the constructed type (`*BridgeConfigBuilder`).
+    #   * PSR-3 loggers are transitively backed by `LoggerInterface` via
+    #     `AbstractLogger`; no RunIt-specific contract adds information.
+    #   * Pure data carriers consumed only inside their adapter/config namespace
+    #     (`CloudEvent`, maps, caches) expose value semantics, not behavior.
     - { class: Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule, arguments: { srcRoot: %currentWorkingDirectory%/src, exemptDirectories: [src/Conformance, src/Behavior], exemptFiles: [
         src/Adapter/CloudEvents/CloudEvent.php,
         src/Adapter/CloudEvents/CloudEventsBridgeConfig.php,
@@ -80,12 +87,9 @@ services:
         src/Adapter/Psr/Event/OccurrenceEventWrapper.php,
         src/Adapter/Psr/Log/ExecutionAwareLogger.php,
         src/Adapter/Psr/Log/ObservationRecordingLogger.php,
-        src/Adapter/Psr/Http/HttpContextExtractorInterface.php,
         src/Application/Publication/ArtifactRedactionConfig.php,
         src/Application/Publication/BufferConfiguration.php,
-        src/Application/Publication/PublicationPipeline.php,
         src/Application/Publication/PublicationRoute.php,
-        src/Application/Security/SnapshotIntegrityVerifier.php,
         src/Domain/Shared/SecurityLimits.php,
         src/SDK/Attribute/ExecutedAs.php,
     ] }, tags: [phpstan.rules.rule] }

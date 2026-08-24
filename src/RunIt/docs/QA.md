@@ -108,20 +108,51 @@ stays meaningful for every other layer.
 ### Interface-backing exemptions
 
 `require-interface` enforces AGENTS.md's "every concrete class implements an
-appropriate interface". A bounded set of existing classes is exempted because
-extracting a semantic interface for them is a separate, tracked follow-up (and
-AGENTS.md warns against creating interfaces "without semantic value"):
+appropriate interface". The exemption set below is **permanent and
+rationale-backed** (Phase 3, T3.2): each entry exists because an interface
+would add no semantic value, not because a contract is pending.
 
-- Whole directories: `src/Conformance` (test-harness verifiers), `src/Behavior`
-  (shared trait/behaviour helpers).
-- Value-object / config / adapter-DTO classes: `SecurityLimits`,
-  `ExecutedAs`, the publication configs (`ArtifactRedactionConfig`,
-  `BufferConfiguration`, `PublicationPipeline`, `PublicationRoute`),
-  `SnapshotIntegrityVerifier`, and the CloudEvents / OpenTelemetry / PSR adapter
-  DTOs, builders, maps, and logger wrappers listed in `extension.neon`.
+- Whole directories: `src/Conformance` (test-harness verifiers/fixtures),
+  `src/Behavior` (shared trait/behaviour helpers).
+- **PHP attributes**: `ExecutedAs` — attributes are metadata; a contract behind
+  them has no consumer.
+- **Transitively backed PSR-3 loggers**: `ExecutionAwareLogger`,
+  `ObservationRecordingLogger` — both extend `AbstractLogger`, so they already
+  satisfy `LoggerInterface`; a RunIt-specific marker would duplicate that.
+- **Builders of their own config type**: `CloudEventsBridgeConfigBuilder`,
+  `BridgeConfigBuilder` — the built VO is the contract.
+- **Pure data carriers / lookup maps inside their adapter or config namespace**:
+  `CloudEvent`, `CloudEventsBridgeConfig`, `CloudEventMappingPolicy`,
+  `BridgeConfig`, `BridgeCapability`, `InstrumentCache`, `SeverityMap`,
+  `SpanKindMap`, `SpanStatusMap`, `AttributeKeys`, `OccurrenceEventWrapper`,
+  `SecurityLimits`, `ArtifactRedactionConfig`, `BufferConfiguration`,
+  `PublicationRoute`.
+
+Stale entries were pruned in T3.2: `PublicationPipeline` and
+`SnapshotIntegrityVerifier` implement interfaces today and
+`HttpContextExtractorInterface` was listed although it *is* an interface.
 
 New service/port classes in the un-exempted tree are still required to implement
 an interface.
+
+### Contract enums without interfaces (deliberate)
+
+`NestedExecutionMode` and `ContextCollisionPolicy` are closed internal value
+sets consumed directly (runner `match`, merge strategies); no polymorphic
+consumer exists, so pairing them with marker interfaces would be speculative
+abstraction (AGENTS.md: "Do not create interfaces solely to duplicate another
+interface without semantic value"). Revisit if an adapter ever needs to supply
+its own mode/collision implementations.
+
+### Suite pipeline honesty (Phase 3, T3.4)
+
+The default `composer test` pipeline runs only suites that contain tests:
+`Unit`, `Integration`, `Conformance`, and `Concurrency`. The empty Functional
+suite was removed from the default gate so a suite can never report silent
+green; `test:functional` remains available for manual use and returns to the
+pipeline when the suite gains content. The boilerplate Acceptance suite (and
+its browser-emulation config) was deleted: RunIt is a library, not an
+application under browser test.
 
 `Adapter\Psr\Http\HttpExecutionContext` was previously a concrete `@api` DTO with
 no interface and **not** on the exemption list — a genuine `runit.requireInterface`

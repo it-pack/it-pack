@@ -402,6 +402,21 @@ completion path can replace the original business exception.
 
 ## Phase 3 — P3: polish, hygiene, and measured modernization
 
+> **Status: Complete (2026-08-23).** Seven mutation-free services are now
+> `final readonly`; the two contract enums are documented deliberate exemptions
+> (no polymorphic consumer). `Behavior/Application` is policed inside the
+> Application layer; stale interface-rule exemptions pruned with per-entry
+> rationale. All planned magic values centralized (`MediaTypes`,
+> `SnapshotType::executionTerminal()`, `ExecutionSnapshot::SCHEMA_VERSION`,
+> drop-reason/priority/diagnostic constants, PSR-3 level constants,
+> `MAX_ENTRIES` derived from `SecurityLimits`); serialized output unchanged.
+> Concurrency suite populated (fiber isolation, persistent-worker reuse,
+> timeout/cancellation classification) and wired into the default pipeline;
+> empty Acceptance suite and placeholder namespaces removed with dated ROADMAP
+> notes. Lazy initialization rejected by measurement (null-provider path
+> ≈0.29 µs). Green: full suite incl. new Concurrency suite, `analyse`,
+> `cs:check`, `architecture`, `api:check`.
+
 ### T3.1 — `final readonly` sweep and enum-contract pairing (REVIEW.md §3.6, §4 P3-10)
 - **Goal:** seven provably mutation-free services are not declared `readonly`
   (`DeterministicHashCalculator`, `DefaultContextPropagationPolicy`,
@@ -420,6 +435,7 @@ completion path can replace the original business exception.
   non-readonly concrete class without a documented reason (extend the QA table if any);
   `composer test` green.
 - **Risk/BC:** declaration-only changes; none expected.
+- **Implemented (2026-08-23):** all seven services converted to `final readonly` (the T2.1-shared `AttributeValidator` included). Enum pairing resolved as document-only: neither `NestedExecutionMode` nor `ContextCollisionPolicy` has a polymorphic consumer, so interfaces would be speculative abstraction; recorded in `docs/QA.md` under "Contract enums without interfaces".
 
 ### T3.2 — Architecture-gate completeness: DepTrac layer + exemption-list truthfulness (REVIEW.md §3.1, §4 P3-11)
 - **Goal:** `src/Behavior/Application/**` (imported by 12 Application sites) matches no
@@ -440,6 +456,7 @@ completion path can replace the original business exception.
   `--report-uncovered` that the traits no longer appear); extension.neon contains no
   entries for classes that implement interfaces; `composer architecture` + `analyse` green.
 - **Risk/BC:** none; gate-tightening only.
+- **Implemented (2026-08-23):** `Behavior/Application` folded into the Application layer collector (DepTrac now polices those 12 import sites; allowed edges 2298 → 2349, still 0 violations). Stale exemptions pruned (`PublicationPipeline`, `SnapshotIntegrityVerifier`, the interface-file entry); remaining entries grouped permanent with per-category rationale in `extension.neon`; `docs/QA.md` exemption section rewritten as rationale-backed and a new deliberate-exemptions subsection added.
 
 ### T3.3 — Name the remaining magic values (REVIEW.md §3.5, §4 P3-12)
 - **Goal:** residual literals with semantic weight: `'application/json'` ×3,
@@ -467,6 +484,7 @@ completion path can replace the original business exception.
 - **Verify:** targeted greps come back empty; serialized output unchanged
   (round-trip tests from T2.2 cover this); `composer test`, `cs:check` green.
 - **Risk/BC:** none — values preserved verbatim.
+- **Implemented (2026-08-23):** `Contract\Shared\MediaTypes::APPLICATION_JSON` replaces the three content-type defaults; `SnapshotType::executionTerminal()` + `ExecutionSnapshot::SCHEMA_VERSION` replace the factory literals; drop reasons and buffer priorities became named constants; the runner's diagnostic code/message prefix/unknown fallback and the health reporter's log prefix are constants; PSR-3 levels are named enum constants; `ExecutionContext::MAX_ENTRIES` now derives from `SecurityLimits::DEFAULT_MAX_ATTRIBUTE_COUNT`. All exact-output normalization tests pass unchanged.
 
 ### T3.4 — Suite honesty: populate or retire empty gates (REVIEW.md §3.10, §4 P3-13)
 - **Goal:** Functional/Acceptance/Concurrency suites exist but run zero tests while
@@ -494,6 +512,7 @@ completion path can replace the original business exception.
 - **Verify:** `composer test` executes >0 tests in every included suite; no suite is
   silently empty; ROADMAP checkboxes reflect reality.
 - **Risk/BC:** none (test/config only).
+- **Implemented (2026-08-23):** empty `Adapter/Callback` + `SDK/Middleware` namespaces and the boilerplate Acceptance suite removed (dated ROADMAP notes); `tests/Concurrency` populated with fiber-isolation, persistent-worker reuse, and timeout/cancellation classification tests and wired into the default pipeline as `test:concurrency`; the empty Functional suite was dropped from the default gate until it gains content (`test:functional` script retained for manual use); decision documented in `docs/QA.md`.
 
 ### T3.5 — Lazy-object opportunity, strictly benchmark-gated (REVIEW.md §3.6, §4 P2-6 legacy)
 - **Goal:** zero lazy objects despite AGENTS.md recommending them for expensive optional
@@ -513,6 +532,7 @@ completion path can replace the original business exception.
 - **Verify:** benchmark deltas attached to the decision; `composer test` incl. OTel
   adapter suite green; no behavioral change for present providers.
 - **Risk/BC:** none if the memoized-null variant is chosen (no reflection semantics).
+- **Implemented (2026-08-23), rejected by measurement:** the null-provider path is already a single null-check short-circuit — `benchOtelNullProviderRecord` measures ≈0.29 µs at the noise floor, leaving nothing to lazy-initialize. Verdict and pinning subject recorded in `docs/benchmarks.md`; revisit only if eager per-instance construction appears on an optional bridge path.
 
 ---
 

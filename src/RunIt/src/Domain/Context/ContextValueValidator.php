@@ -28,7 +28,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-final class ContextValueValidator implements ContextValueValidatorInterface
+final readonly class ContextValueValidator implements ContextValueValidatorInterface
 {
     public function __construct(
         private readonly SecurityLimits $limits = new SecurityLimits(),

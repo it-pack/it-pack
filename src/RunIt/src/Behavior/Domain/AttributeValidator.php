@@ -29,7 +29,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class AttributeValidator implements AttributeValidatorInterface
+final readonly class AttributeValidator implements AttributeValidatorInterface
 {
     public function __construct(
         private readonly SecurityLimits $limits = new SecurityLimits(),

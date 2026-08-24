@@ -27,6 +27,8 @@ final class ErrorLogHealthReporter implements InternalHealthReporterInterface
 {
     private readonly Closure $logTo;
 
+    private const string LOG_PREFIX = '[runit] publication health: ';
+
     /**
      * @param Closure(string): void|null $logTo injectable destination for the formatted line; defaults to the PHP error log
      */
@@ -47,7 +49,7 @@ final class ErrorLogHealthReporter implements InternalHealthReporterInterface
         $description = $this->throwableMapper->describe($error);
 
         ($this->logTo)(sprintf(
-            '[runit] publication health: [%s] %s in %s:%d while publishing %s %s',
+            self::LOG_PREFIX . '[%s] %s in %s:%d while publishing %s %s',
             $description->class(),
             $description->message(),
             $error->getFile(),

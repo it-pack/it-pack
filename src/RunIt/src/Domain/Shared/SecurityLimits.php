@@ -24,6 +24,13 @@ use ItPack\RunIt\Domain\Exception\InvalidSecurityLimitException;
 final readonly class SecurityLimits
 {
     /**
+     * The default attribute-count bound, shared with
+     * {@see \ItPack\RunIt\Domain\Context\ExecutionContext::MAX_ENTRIES} so the two
+     * entry ceilings cannot drift apart silently.
+     */
+    public const int DEFAULT_MAX_ATTRIBUTE_COUNT = 64;
+
+    /**
      * Creates the default, conservative limits.
      */
     public static function default(): self
@@ -45,7 +52,7 @@ final readonly class SecurityLimits
      * @param int $maxTrackedExecutions       maximum executions tracked by per-execution caches before oldest entries are evicted
      */
     public function __construct(
-        public int $maxAttributeCount = 64,
+        public int $maxAttributeCount = self::DEFAULT_MAX_ATTRIBUTE_COUNT,
         public int $maxAttributeKeyBytes = 256,
         public int $maxAttributeValueBytes = 4096,
         public int $maxAttributeDepth = 8,

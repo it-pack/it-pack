@@ -37,6 +37,14 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
 {
     private const int BLOCK_BUDGET_MICROSECONDS = 2000;
 
+    /**
+     * Priority tiers for the DropLowPriority overflow strategy: high-priority
+     * artifacts are error observations and terminal snapshots.
+     */
+    private const int PRIORITY_HIGH = 1;
+
+    private const int PRIORITY_LOW = 0;
+
     private const int SLEEP_QUANTUM_MICROSECONDS = 100;
 
     /**
@@ -149,14 +157,14 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
     private function priorityOf(ExecutionArtifactInterface $artifact): int
     {
         if ($artifact instanceof ObservationInterface && $artifact->severity()->isError()) {
-            return 1;
+            return self::PRIORITY_HIGH;
         }
 
         if ($artifact instanceof SnapshotInterface && $artifact->classification()->isTerminal()) {
-            return 1;
+            return self::PRIORITY_HIGH;
         }
 
-        return 0;
+        return self::PRIORITY_LOW;
     }
 
     private function isFull(): bool
@@ -212,7 +220,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function dropLowPriorityThenAppend(array $incoming): void
     {
-        if ($incoming['priority'] === 0) {
+        if ($incoming['priority'] === self::PRIORITY_LOW) {
             $this->reportDrop($incoming['artifact']);
 
             return;
@@ -277,7 +285,7 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function oldestLowPriorityIndex(): ?int
     {
-        return array_find_key($this->buffer, fn ($item) => $item['priority'] === 0);
+        return array_find_key($this->buffer, fn ($item) => $item['priority'] === self::PRIORITY_LOW);
 
     }
 

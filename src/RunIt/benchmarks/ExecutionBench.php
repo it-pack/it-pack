@@ -6,6 +6,8 @@ namespace Benchmarks;
 
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
 use ItPack\RunIt\Application\Publication\AlwaysSamplePolicy;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
@@ -55,6 +57,8 @@ final class ExecutionBench
     private ArtifactPublisherInterface $redactorChain;
     private ArtifactPublisherInterface $boundedPublisher;
     private ExecutionArtifactInterface $snapshotArtifact;
+    private ExecutionArtifactInterface $measurementArtifact;
+    private DefaultMeasurementInstrumentMapper $otelNullProviderMapper;
     private DefaultThrowableMapper $mapper;
     private ExecutionDefinition $definition;
 
@@ -135,6 +139,18 @@ final class ExecutionBench
         $this->boundedPublisher->publish($this->snapshotArtifact);
     }
 
+    /**
+     * Pins the OpenTelemetry bridge's no-op path: without a meter provider the
+     * instrument mapper must short-circuit to a single null check (Phase 3,
+     * T3.5 measured this instead of adding speculative lazy initialization).
+     */
+    #[BeforeMethods('setUp')]
+    #[Subject]
+    public function benchOtelNullProviderRecord(): void
+    {
+        $this->otelNullProviderMapper->record($this->measurementArtifact);
+    }
+
     #[BeforeMethods('setUp')]
     #[Subject]
     public function benchBuffering(): void
@@ -164,6 +180,19 @@ final class ExecutionBench
         $this->boundedPublisher = new BoundedArtifactPublisher(
             new SecurityLimits(),
             $inner,
+        );
+
+        $this->otelNullProviderMapper = new DefaultMeasurementInstrumentMapper(
+            null,
+            new InstrumentCache(64),
+            [],
+        );
+        $this->measurementArtifact = \ItPack\RunIt\Domain\Measurement\Measurement::counter(
+            \ItPack\RunIt\Domain\Measurement\MeasurementName::fromString('bench.counter'),
+            ExecutionId::fromString('exec-bench'),
+            1,
+            null,
+            \ItPack\RunIt\Domain\Shared\Instant::of(1000),
         );
 
         $this->snapshotArtifact = Snapshot::create(
