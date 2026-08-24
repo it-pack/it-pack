@@ -5,24 +5,16 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter;
 
 use ItPack\DisenchantIt\Contract\RewriterInterface;
-use ItPack\DisenchantIt\ValueObject\ConstantDeclaration;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
-use ItPack\DisenchantIt\ValueObject\Insertion;
 use ItPack\DisenchantIt\ValueObject\InsertionInterface;
-use ItPack\DisenchantIt\ValueObject\PromotionArtifact;
 use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
-use ItPack\DisenchantIt\ValueObject\Replacement;
-use ItPack\DisenchantIt\ValueObject\TargetKind;
 
 /**
  * Line-based implementation of RewriterInterface: no AST reprinting, no
  * nette/php-generator Printer, no full-file regeneration. Every line NOT
  * touched by an artifact is left byte-for-byte identical.
  *
- * Consumes a list of PromotionArtifacts (the single shape every promotion target
- * emits). A thin shim still accepts the legacy ConstantPlacementInterface so any
- * not-yet-migrated caller keeps working for one transition step (see
- * docs/ADDITIONAL_FEATURES_ROADMAP.md, Phase 2).
+ * Consumes a list of PromotionArtifacts — the single shape every promotion
+ * target emits.
  *
  * Two operations, always in this order:
  *
@@ -36,20 +28,11 @@ use ItPack\DisenchantIt\ValueObject\TargetKind;
 final class LineBasedRewriter implements RewriterInterface
 {
     /**
-     * @param list<PromotionArtifactInterface|ConstantPlacementInterface> $items
+     * @param list<PromotionArtifactInterface> $items
      */
     public function rewrite(string $code, array $items, bool $dryRun = false): string
     {
-        $artifacts = [];
-        foreach ($items as $item) {
-            if ($item instanceof PromotionArtifactInterface) {
-                $artifacts[] = $item;
-            } elseif ($item instanceof ConstantPlacementInterface) {
-                $artifacts[] = $this->artifactFromPlacement($item);
-            }
-        }
-
-        if ($artifacts === []) {
+        if ($items === []) {
             return $code;
         }
 
@@ -69,7 +52,7 @@ final class LineBasedRewriter implements RewriterInterface
         // count. Process every replacement ordered by start line, tracking a
         // running delta so later edits still land on the correct line.
         $replacements = [];
-        foreach ($artifacts as $artifact) {
+        foreach ($items as $artifact) {
             foreach ($artifact->replacements as $replacement) {
                 $replacements[] = $replacement;
             }
@@ -116,7 +99,7 @@ final class LineBasedRewriter implements RewriterInterface
 
         // --- Step 2: insert declarations, bottom-of-file first ---
 
-        $insertionPoints = $this->planInsertions($lines, $artifacts);
+        $insertionPoints = $this->planInsertions($lines, $items);
 
         krsort($insertionPoints);
 
@@ -125,34 +108,6 @@ final class LineBasedRewriter implements RewriterInterface
         }
 
         return implode("\n", $lines);
-    }
-
-    /**
-     * Temporary compatibility shim: rebuilds the artifact a ConstantPlacement
-     * would have produced under the old pipeline. REMOVE once all callers emit
-     * PromotionArtifacts directly.
-     */
-    private function artifactFromPlacement(ConstantPlacementInterface $placement): PromotionArtifactInterface
-    {
-        $insertions = [];
-        $replacements = [];
-
-        if ($placement->occurrences !== []) {
-            $declarationLine = new ConstantDeclaration(
-                name: $placement->constantName,
-                valueExpression: $placement->occurrences[0]->raw,
-                typeKeyword: $placement->typeKeyword(),
-                visibility: 'private',
-            )->toCodeLine();
-
-            $insertions[] = new Insertion($placement->className, [$declarationLine], false);
-
-            foreach ($placement->occurrences as $lit) {
-                $replacements[] = new Replacement($lit->line, $lit->needle(), 'self::' . $placement->constantName);
-            }
-        }
-
-        return new PromotionArtifact($insertions, $replacements, TargetKind::Const, [$placement]);
     }
 
     /**

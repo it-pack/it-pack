@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
-use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
 use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
 
 /**
- * Port for "apply a set of ConstantPlacements to one file's source text".
+ * Port for "apply promotion artifacts to one file's source text".
  *
  * v1 ships LineBasedRewriter: plain line insertion + targeted per-line
  * literal replacement, no AST reprinting, no third-party rewrite engine.
@@ -29,9 +28,8 @@ use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
 interface RewriterInterface
 {
     /**
-     * @param list<PromotionArtifactInterface|ConstantPlacementInterface> $items
-     *        all promotion artifacts (or, during the Phase-2 transition, the
-     *        legacy ConstantPlacements) that apply to this file. Implementations
+     * @param list<PromotionArtifactInterface> $items
+     *        all promotion artifacts that apply to this file. Implementations
      *        must not mutate $code in a way that invalidates the line numbers
      *        recorded on OTHER items' occurrences — LineBasedRewriter processes
      *        items bottom-up so earlier insertions never shift pending anchors.

@@ -289,21 +289,21 @@ Record this in the release notes / upgrade section produced in M6.
 
 ### Tasks
 
-- [ ] **M4-T1** In `src/Contract/RewriterInterface.php`: drop the
+- [x] **M4-T1** In `src/Contract/RewriterInterface.php`: drop the
       `ConstantPlacementInterface` import; change the docblock type to
       `list<PromotionArtifactInterface>`; delete the "during the Phase-2
       transition" sentence; refresh the port docblock ("apply promotion
       artifacts to one file's source text").
-- [ ] **M4-T2** In `src/Adapter/LineBasedRewriter.php`: delete
+- [x] **M4-T2** In `src/Adapter/LineBasedRewriter.php`: delete
       `artifactFromPlacement()` (`:130-156`), simplify the item loop
       (`:43-50`) to accept artifacts directly, remove the now-unused
       `ConstantPlacementInterface` import, and strip the transition paragraphs
       from the class docblock (`:22-25`).
-- [ ] **M4-T3** Sweep for stragglers: `grep -rn "artifactFromPlacement\\|
+- [x] **M4-T3** Sweep for stragglers: `grep -rn "artifactFromPlacement\\|
       ConstantPlacementInterface" src/ examples/` — expected remaining hits are
       the legitimate payload usages only (`PromotionArtifact`,
       `ClassConstantTarget`, factories).
-- [ ] **M4-T4** Fix the duplicate docblock at `Core/Disenchanter.php:59-66`
+- [x] **M4-T4** Fix the duplicate docblock at `Core/Disenchanter.php:59-66`
       (merge the recorder-port description and the `@param` block into one
       docblock on `record()`).
 
@@ -437,6 +437,32 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
 Dated record of what actually landed, per milestone. The checkboxes above mark
 task completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-24 — M4 landed, legacy placement shim removed (REVIEW F7 + F8)
+
+- `Contract\RewriterInterface` narrowed: `rewrite()` docblock type is now
+  `list<PromotionArtifactInterface>` (was
+  `…|ConstantPlacementInterface`); port description reworded to "apply
+  promotion artifacts to one file's source text"; Phase-2 transition sentence
+  and import dropped. **API impact (pre-1.0, deliberate):** third-party callers
+  passing legacy ConstantPlacements to a Rewriter are no longer supported —
+  runtime signature (`array $items`) unchanged; full upgrade note lands in M6.
+- `LineBasedRewriter`: `artifactFromPlacement()` deleted; the dispatch loop
+  collapsed to direct use of `$items`; class docblock transition paragraph
+  removed; six now-dead imports dropped (`ConstantDeclaration`,
+  `ConstantPlacementInterface`, `Insertion`, `PromotionArtifact`,
+  `Replacement`, `TargetKind`). The file now imports only the three types it
+  actually names.
+- Straggler sweep: zero `artifactFromPlacement` hits anywhere; remaining
+  `ConstantPlacementInterface` references are legitimate payload/VO/factory
+  usages (PromotionArtifact carries placements, ClassConstantTarget builds
+  them, SemConv paths, factories). All three `Disenchanter` rewrite calls pass
+  artifacts from `buildArtifacts()`, typed `list<PromotionArtifactInterface>`.
+- `Core\Disenchanter::record()` duplicate docblock merged into one.
+- Behavior-preserving for every current caller: unit suite identical to the
+  M3 baseline (172 tests / 431 assertions).
+- Verification: architecture PASS · PHPStan src lvl 9 clean · format clean ·
+  unit suite OK 172/431.
 
 ### 2026-08-24 — M3 landed, rewriter DRY consolidation (REVIEW F2 + F3)
 

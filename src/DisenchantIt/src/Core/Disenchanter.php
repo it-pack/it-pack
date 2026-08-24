@@ -60,8 +60,7 @@ final readonly class Disenchanter implements DisenchanterInterface
      * Records an immutable execution artifact through the recorder port. Core
      * never depends on a concrete recorder, so a run is identical with or
      * without an active recorder.
-     */
-    /**
+     *
      * @param array<string, mixed> $payload
      */
     private function record(string $name, array $payload = []): void

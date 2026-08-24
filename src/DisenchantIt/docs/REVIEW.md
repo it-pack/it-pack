@@ -333,8 +333,8 @@ Security is **strong**; no vulnerabilities found.
 | F4 | Perf / maint | Low–Med | `ParsedSourceCache.php:28` | Bound the content-keyed cache (LRU/size cap) or document single-Detector lifetime. | ✅ Resolved (M2 — bounded FIFO cache, cap 32) |
 | F5 | Style | Low | `LineBasedRewriter.php:47,194`; `ClassConstantTarget.php:70,94`; `FlagSetTarget.php:139` | Convert trivial `else` to early-return/guard. | Open (M5; `FlagSetTarget.php:139` won't-fix) |
 | F6 | Magic string | Low | `LineBasedRewriter.php:145`; `ClassConstantTarget.php:85` | Use a `Visibility` constant/enum. | Open (M5) |
-| F7 | Maint | Low | `LineBasedRewriter.php:135` | Remove legacy `ConstantPlacementInterface` shim when safe. | Open (M4) |
-| F8 | DX | Info | `Core/Disenchanter.php:59-66` | Fix duplicate docblock. | Open (M4) |
+| F7 | Maint | Low | `LineBasedRewriter.php:135` | Remove legacy `ConstantPlacementInterface` shim when safe. | ✅ Resolved (M4 — shim deleted, port narrowed) |
+| F8 | DX | Info | `Core/Disenchanter.php:59-66` | Fix duplicate docblock. | ✅ Resolved (M4) |
 
 No architectural, security, or SOLID defects were found.
 
