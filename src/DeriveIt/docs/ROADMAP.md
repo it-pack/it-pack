@@ -1,7 +1,7 @@
 # DeriveIt — Implementation Roadmap
 
 > Detailed phase plan companion to `REVIEW.md` and `IMPLEMENTATION_PLAN.md`
-> Prepared: 2026-08-14 · Last reviewed: 2026-08-22 (post-Phase-10 review + `REVIEW.md` audit + Phase 11 refactor implemented) · Status: **Phases 0–10 complete; release-ready; Phase 11 (refactoring & modernization) implemented (F12 deferred)** · Package: `it-pack/derive-it`
+> Prepared: 2026-08-14 · Last reviewed: 2026-08-23 (Phase 12 residual refactoring implemented) · Status: **Phases 0–11 complete; Phase 12 (REVIEW F-1 … F-10) implemented; release-ready** · Package: `it-pack/derive-it`
 
 This document expands every milestone of the implementation plan into a working
 specification: objective, scope, step-by-step approach, dependencies, acceptance
@@ -870,11 +870,18 @@ RP-1, RP-2          (Medium: magic literals → constants)
   escapes and allowance of safe paths. May be skipped (F-9 is optional, covered by
   the documented trust model).
 
-> **Phase 12 status (planned):** steps 12.1–12.6 are the committed, non-optional
-> work (Medium + Low DRY/consistency/perf). Steps 12.7–12.10 are ◐ optional seams /
-> defense-in-depth, each independently shippable or skippable. All work keeps the
-> five gates green and leaves generated output byte-identical. Detailed steps,
-> acceptance, and rollback notes live in `REFACTORING_PLAN.md` (RP-1 … RP-10).
+> **Phase 12 status (implemented 2026-08-23):** steps 12.1–12.6 (RP-1, RP-2, RP-5,
+> RP-6, RP-8, RP-10) shipped, plus optional RP-4 (CommandInterface), RP-7
+> (WeakReflectionCache), and RP-9 (`--base-dir` output guard). RP-3
+> (MethodSignatureFactory/SourceRenderer ports) was deliberately **skipped** — it
+> would require also extracting a `TypeSubstitutorInterface` to avoid a
+> `Contract → Generator` coupling, which is larger than the optional finding
+> warrants; the composition-root `DeriveItFactory` already exposes the four primary
+> derivers behind interfaces. All work keeps the five gates green (`test:unit` 247 /
+> `cs:check` 0 / `analyse` 0 / `architecture` 0 / `infection` Covered Code MSI 84%)
+> and leaves generated output byte-identical. Detailed steps, acceptance, and
+> rollback notes live in `REFACTORING_PLAN.md` (RP-1 … RP-10, with an
+> *Implementation status* table).
 
 ---
 

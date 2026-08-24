@@ -239,8 +239,13 @@ final class FamilyDeriver implements FamilyDeriverInterface
         $seen = [];
         $queue = [$this->reflect($rootClass)];
 
-        while ($queue !== []) {
-            $reflection = array_shift($queue);
+        // Index-pointer walk (F-8 / RP-8): an index counter instead of repeated
+        // `array_shift()` avoids re-indexing the whole queue on every dequeue
+        // (O(n²) -> O(n) for large families). `count($queue)` is re-read each
+        // iteration because members are appended during the walk.
+        $i = 0;
+        while ($i < count($queue)) {
+            $reflection = $queue[$i++];
             $name = $reflection->getName();
             if (isset($seen[$name])) {
                 continue;

@@ -30,6 +30,11 @@ use ReflectionType;
  */
 final readonly class MethodSignatureFactory
 {
+    /**
+     * Attribute name always dropped from the derived surface because it is
+     * meaningless/invalid on an interface method (F-2 / RP-2).
+     */
+    private const OVERRIDE_ATTRIBUTE = 'Override';
     private Factory $factory;
 
     public function __construct(
@@ -166,7 +171,7 @@ final readonly class MethodSignatureFactory
 
         foreach ($attributes as $attribute) {
             $name = ltrim($attribute->getName(), '\\');
-            if ($name === 'Override') {
+            if ($name === self::OVERRIDE_ATTRIBUTE) {
                 continue;
             }
             if ($allowed === [] || in_array($name, $allowed, true) || in_array('\\' . $name, $allowed, true)) {

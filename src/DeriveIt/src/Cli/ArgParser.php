@@ -23,7 +23,7 @@ final class ArgParser
      */
     private const VALUE_OPTIONS = [
         'mode', 'out', 'root', 'preset', 'ns-prefix', 'wrapper',
-        'skip', 'only', 'subst', 'rename', 'owned-attr', 're-expose',
+        'skip', 'only', 'subst', 'rename', 'owned-attr', 're-expose', 'base-dir',
     ];
 
     public function parse(array $args): DeriveCliInput
@@ -55,6 +55,7 @@ final class ArgParser
             mode: $state->mode,
             out: $state->out,
             root: $state->root,
+            baseDir: $state->baseDir,
             targets: $state->targets,
             config: $this->buildConfig($state),
             namespacePrefixMap: $state->namespacePrefixMap,
@@ -88,6 +89,9 @@ final class ArgParser
             },
             'out' => static function (?string $v, ParseState $s): void {
                 $s->out = self::requireValue($v, 'out');
+            },
+            'base-dir' => static function (?string $v, ParseState $s): void {
+                $s->baseDir = self::requireValue($v, 'base-dir');
             },
             'root' => static function (?string $v, ParseState $s): void {
                 $s->root = self::requireValue($v, 'root');

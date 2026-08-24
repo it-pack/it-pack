@@ -174,10 +174,7 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
         $expected = array_map(static fn (InterfaceType $i): string => $i->getName(), array_values($traitInterfaces));
         sort($expected);
 
-        $shortName = static fn (string $fqcn): string => ($pos = strrpos($fqcn, '\\')) === false
-            ? $fqcn
-            : substr($fqcn, $pos + 1);
-        $actual = array_map($shortName, $main->getExtends());
+        $actual = array_map(static fn (string $fqcn): string => Naming::shortName($fqcn), $main->getExtends());
         sort($actual);
 
         if ($expected !== $actual) {

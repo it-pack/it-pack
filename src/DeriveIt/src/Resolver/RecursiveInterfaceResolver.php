@@ -12,11 +12,6 @@ class RecursiveInterfaceResolver implements RecursiveInterfaceResolverInterface
 {
     use LazyCreatable;
 
-    public static function create(): self
-    {
-        return new self();
-    }
-
     public function resolve(ReflectionClass $reflection): array
     {
         return $this->resolveClassInheritance($reflection);

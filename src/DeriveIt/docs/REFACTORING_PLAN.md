@@ -9,6 +9,12 @@
 > `AGENTS.md`. No user-visible derivation-output change is intended; the only
 > API surface changes are *additions* (new interfaces/constants) plus internal
 > de-duplication. Where a step is purely optional it is marked ◐.
+>
+> **Status (implemented 2026-08-23):** RP-1, RP-2, RP-4, RP-5, RP-6, RP-7, RP-8,
+> RP-9, RP-10 shipped; RP-3 skipped with rationale (see below). All five gates green
+> after the work: `test:unit` **247 tests / 509 assertions**, `cs:check` 0,
+> `analyse` 0, `architecture` 0 violations, `infection` **Covered Code MSI 84%**
+> (≥ 80%). See `Implementation status` below and `ROADMAP.md` Phase 12.
 
 ## Severity legend (mirrors REVIEW.md §11)
 
@@ -39,6 +45,35 @@ RP-1, RP-2          (Medium: magic literals → constants)
              └─ RP-10  (Low consistency: facade → factory)
                   └─ RP-3, RP-4, RP-7, RP-9   (optional seams / defense-in-depth)
 ```
+
+---
+
+## Implementation status (2026-08-23)
+
+| Step | Finding | Status | What shipped |
+|------|---------|--------|--------------|
+| RP-1 | F-1 | ✅ Done | `EXIT_SUCCESS/USAGE/DERIVATION/OUTPUT` constants in `DeriveCommand`; all `execute()`/`emit()` returns use them; docblock updated. |
+| RP-2 | F-2 | ✅ Done | `TYPE_VOID` / `TYPE_SEPARATOR_OR` / `TYPE_SEPARATOR_AND` + `OVERRIDE_ATTRIBUTE` constants in `AdapterGenerator` / `MethodSignatureFactory`; golden `Tree.adapter.php` byte-identical. |
+| RP-3 | F-3 | ⏭ Skipped | Needs a `TypeSubstitutorInterface` to avoid a `Contract → Generator` coupling; larger than the optional finding warrants. `DeriveItFactory` already exposes the four primary derivers behind interfaces. |
+| RP-4 | F-4 | ✅ Done | `Contract/Cli/CommandInterface.php`; `DeriveCommand implements CommandInterface`. |
+| RP-5 | F-5 | ✅ Done | `Naming::shortName()` added; inline `substr(strrpos(...,'\\')+1)` removed from `TypeSubstitutor`, `PerTraitInterfaceDeriver`; `DeriveCommand::fileNameFor` uses it. |
+| RP-6 | F-6 | ✅ Done | `LazyCreatable` supplies a default `create(): self { return new self(); }`; duplicated bodies deleted from the three resolvers. |
+| RP-7 | F-7 | ✅ Done | `Reflection/WeakReflectionCache.php` (`WeakReference`-backed, implements `ReflectionCacheInterface`) + `WeakReflectionCacheTest`. Default `InMemoryReflectionCache` unchanged. |
+| RP-8 | F-8 | ✅ Done (queue) | `FamilyDeriver::discover()` now uses an index-pointer queue (`$i++`) instead of `array_shift()`. `configHash`/`simplifyDocblock` left as-is (measure-first, no pressure). |
+| RP-9 | F-9 | ✅ Done | `--base-dir=DIR` option threaded `ArgParser → DeriveCliInput → DeriveCommand::assertSafeOutputPath()` (lexical `..`/`symlink` guard); trusted-operator behavior preserved when absent; 3 new CLI guard tests. |
+| RP-10 | F-10 | ✅ Done | `DeriveIt` gains a private `factory(DeriveConfig): DeriveItFactory` accessor; every static method obtains its deriver via the factory. `grep` for `new InterfaceDeriver|FamilyDeriver|AdapterGenerator|PerTraitInterfaceDeriver` in `DeriveIt.php` → no matches. |
+
+**Gates after the work (all green):** `test:unit` 247 tests / 509 assertions ·
+`cs:check` 0 · `analyse` 0 · `architecture` 0 violations · `infection` Covered Code
+MSI **84%** (≥ 80%).
+
+**RP-3 skip rationale (F-3 ◐):** extracting `MethodSignatureFactoryInterface` /
+`SourceRendererInterface` cleanly requires also extracting a `TypeSubstitutorInterface`
+(the `fromMethod` signature references `TypeSubstitutor`), which would create a
+`Contract → Generator` dependency and a larger surface than the optional finding
+justifies. The composition-root `DeriveItFactory` already provides the four primary
+derivers behind their interfaces, so the practical DIP seam exists. Revisit if
+finer-grained deriver substitution is ever needed.
 
 ---
 
@@ -435,18 +470,18 @@ already constructs the identical object graph.
 
 ## Definition of Done
 
-- [ ] RP-1: `DeriveCommand` exit codes are named constants; no bare `0/1/2/3` returns.
-- [ ] RP-2: `AdapterGenerator` / `MethodSignatureFactory` type literals are constants;
+- [x] RP-1: `DeriveCommand` exit codes are named constants; no bare `0/1/2/3` returns.
+- [x] RP-2: `AdapterGenerator` / `MethodSignatureFactory` type literals are constants;
       golden adapter file byte-identical.
-- [ ] RP-5: `Naming::shortName()` exists and the four inline copies are gone.
-- [ ] RP-6: `LazyCreatable` supplies `create()`; resolver bodies deleted.
-- [ ] RP-8: `FamilyDeriver::discover` uses an index-pointer queue; output unchanged.
-- [ ] RP-10: `DeriveIt` obtains derivers via `DeriveItFactory`.
-- [ ] RP-3, RP-4, RP-7, RP-9: implemented **or** explicitly marked optional/skipped
-      with a one-line rationale in the commit.
-- [ ] All five gates green: `test:unit`, `cs:check`, `analyse`, `architecture`,
-      `infection` MSI ≥ 80%.
-- [ ] `REVIEW.md` §11 findings F-1 … F-10 each carry an "addressed / optional / N-A"
+- [x] RP-5: `Naming::shortName()` exists and the inline copies are gone.
+- [x] RP-6: `LazyCreatable` supplies `create()`; resolver bodies deleted.
+- [x] RP-8: `FamilyDeriver::discover` uses an index-pointer queue; output unchanged.
+- [x] RP-10: `DeriveIt` obtains derivers via `DeriveItFactory`.
+- [x] RP-4, RP-7, RP-9: implemented (optional seams / defense-in-depth).
+- [x] RP-3: explicitly skipped with rationale (Contract→Generator coupling).
+- [x] All five gates green: `test:unit`, `cs:check`, `analyse`, `architecture`,
+      `infection` MSI ≥ 80% (measured 84% Covered Code MSI).
+- [x] `REVIEW.md` §11 findings F-1 … F-10 each carry an "addressed / optional / N-A"
       resolution note.
 
 *This plan is the detailed execution spec for ROADMAP.md Phase 12.*

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt\Cli;
 
+use ItPack\DeriveIt\Contract\Cli\CommandInterface;
 use ItPack\DeriveIt\DeriveIt;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\DeriveMode;
+use ItPack\DeriveIt\Generator\Naming;
 
 /**
  * Ad-hoc command-line driver for {@see DeriveIt} (Step 10.16 / G17).
@@ -16,18 +18,27 @@ use ItPack\DeriveIt\Generator\DeriveMode;
  * family, family-adapter). Intentionally thin — all behavior lives here so it can
  * be unit-tested without a shell.
  *
- * Exit codes: 0 success · 1 usage error · 2 resolution / derivation error · 3 output error.
+ * Exit codes: {@see EXIT_SUCCESS} success · {@see EXIT_USAGE} usage error ·
+ * {@see EXIT_DERIVATION} resolution / derivation error · {@see EXIT_OUTPUT} output error.
  *
  * Trust model (F13 / R.13): the CLI autoloads operator-supplied class names, so it
  * must only be run on code you trust.
  */
-final class DeriveCommand
+final class DeriveCommand implements CommandInterface
 {
     /**
      * Permission bits for created output directories (no world-write, unlike the
      * previous magic `0o777`).
      */
     private const OUTPUT_DIR_MODE = 0o755;
+
+    /**
+     * Process exit codes (F-1 / RP-1): named in place of bare integer literals.
+     */
+    private const EXIT_SUCCESS = 0;
+    private const EXIT_USAGE = 1;
+    private const EXIT_DERIVATION = 2;
+    private const EXIT_OUTPUT = 3;
 
     /**
      * @param \Closure(string):void $output where derived source is written
@@ -57,7 +68,7 @@ final class DeriveCommand
         if ($args === [] || in_array($args[0], ['-h', '--help', 'help'], true)) {
             $this->writeHelp();
 
-            return $args === [] ? 1 : 0;
+            return $args === [] ? self::EXIT_USAGE : self::EXIT_SUCCESS;
         }
 
         try {
@@ -66,7 +77,7 @@ final class DeriveCommand
             $this->writeErr('derive: ' . $e->getMessage() . "\n");
             $this->writeUsage();
 
-            return 1;
+            return self::EXIT_USAGE;
         }
 
         try {
@@ -75,7 +86,7 @@ final class DeriveCommand
         } catch (\Throwable $e) {
             $this->writeErr('derive: ' . $e->getMessage() . "\n");
 
-            return 2;
+            return self::EXIT_DERIVATION;
         }
 
         try {
@@ -90,15 +101,15 @@ final class DeriveCommand
         } catch (\Throwable $e) {
             $this->writeErr('derive: ' . $e->getMessage() . "\n");
 
-            return 2;
+            return self::EXIT_DERIVATION;
         }
 
         try {
-            return $this->emit($sources, $input->out);
+            return $this->emit($sources, $input->out, $input->baseDir);
         } catch (\Throwable $e) {
             $this->writeErr('derive: ' . $e->getMessage() . "\n");
 
-            return 3;
+            return self::EXIT_OUTPUT;
         }
     }
 
@@ -267,7 +278,7 @@ final class DeriveCommand
     /**
      * @param array<string, string> $sources
      */
-    private function emit(array $sources, ?string $out): int
+    private function emit(array $sources, ?string $out, ?string $baseDir = null): int
     {
         if ($out === null) {
             $first = true;
@@ -279,8 +290,10 @@ final class DeriveCommand
                 $first = false;
             }
 
-            return 0;
+            return self::EXIT_SUCCESS;
         }
+
+        $this->assertSafeOutputPath($out, $baseDir);
 
         $isDir = is_dir($out) || str_ends_with($out, DIRECTORY_SEPARATOR);
         if ($isDir) {
@@ -291,7 +304,7 @@ final class DeriveCommand
                 $this->writeFile(rtrim($out, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->fileNameFor($key), $source);
             }
 
-            return 0;
+            return self::EXIT_SUCCESS;
         }
 
         if (count($sources) > 1) {
@@ -300,12 +313,66 @@ final class DeriveCommand
 
         $this->writeFile($out, (string) reset($sources));
 
-        return 0;
+        return self::EXIT_SUCCESS;
+    }
+
+    /**
+     * Rejects an `--out` path that escapes the (optional) `--base-dir` sandbox
+     * (F-9 / RP-9). When no base dir is supplied the CLI keeps its documented
+     * trusted-operator behavior and writes anywhere the process may. The check is
+     * purely lexical (`..` / symlink-free canonicalization) so it works before the
+     * directories exist.
+     */
+    private function assertSafeOutputPath(string $out, ?string $baseDir): void
+    {
+        if ($baseDir === null) {
+            return;
+        }
+
+        $base = realpath($baseDir);
+        if ($base === false) {
+            throw new \RuntimeException(sprintf('cannot resolve --base-dir "%s".', $baseDir));
+        }
+
+        $canonical = $this->canonicalizePath($this->isAbsolutePath($out) ? $out : $base . DIRECTORY_SEPARATOR . $out);
+        $baseLen = strlen($base);
+        if (strncmp($canonical, $base, $baseLen) !== 0
+            || (strlen($canonical) > $baseLen && $canonical[$baseLen] !== DIRECTORY_SEPARATOR)) {
+            throw new \RuntimeException(sprintf('output path "%s" escapes --base-dir "%s".', $out, $baseDir));
+        }
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        return $path !== '' && $path[0] === DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Collapses `.` and `..` segments without touching the filesystem, so the
+     * result can be compared against the (realpath'd) base dir.
+     */
+    private function canonicalizePath(string $path): string
+    {
+        $segments = explode(DIRECTORY_SEPARATOR, $path);
+        $out = [];
+        foreach ($segments as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+            if ($segment === '..') {
+                array_pop($out);
+
+                continue;
+            }
+            $out[] = $segment;
+        }
+
+        return ($path[0] === DIRECTORY_SEPARATOR ? DIRECTORY_SEPARATOR : '') . implode(DIRECTORY_SEPARATOR, $out);
     }
 
     private function fileNameFor(string $key): string
     {
-        $short = substr($key, (int) strrpos($key, '\\') + 1);
+        $short = Naming::shortName($key);
         $safe = preg_replace('/[^A-Za-z0-9_]/', '_', $short) ?? $short;
 
         return $safe . '.interface.php';
@@ -360,6 +427,7 @@ final class DeriveCommand
               --rename=old=new,..      rename methods uniformly
               --owned-attr=A,B         attribute FQCNs allowed when --attribute-pass-through
               --re-expose=I1,I2        owned interfaces to re-expose via `extends`
+              --base-dir=DIR           sandbox --out to DIR (rejects path escapes)
               --ns-prefix=App\=App\Port\   namespace rewrite for --mode=family (root)
               --wrapper=Derived=Adapter     return-type wrapper map for adapter modes
               -h, --help               show this help

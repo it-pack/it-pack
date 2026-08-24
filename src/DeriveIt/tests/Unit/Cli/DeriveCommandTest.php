@@ -193,6 +193,39 @@ final class DeriveCommandTest extends TestCase
         self::assertStringContainsString('make', $result['stdout']);
     }
 
+    public function testBaseDirAllowsContainedOutput(): void
+    {
+        $base = sys_get_temp_dir() . '/derive_base_' . uniqid();
+        mkdir($base);
+        $file = $base . '/out.php';
+        $result = $this->runCommand(['--base-dir=' . $base, '--out=' . $file, CliSampleTarget::class]);
+
+        self::assertSame(0, $result['code']);
+        self::assertFileExists($file);
+        unlink($file);
+        rmdir($base);
+    }
+
+    public function testBaseDirRejectsEscape(): void
+    {
+        $base = sys_get_temp_dir() . '/derive_base_' . uniqid();
+        mkdir($base);
+        $escape = $base . '/../escape.php';
+        $result = $this->runCommand(['--base-dir=' . $base, '--out=' . $escape, CliSampleTarget::class]);
+
+        self::assertSame(3, $result['code']);
+        self::assertStringContainsString('escapes --base-dir', $result['stderr']);
+        rmdir($base);
+    }
+
+    public function testUnresolvableBaseDirRejected(): void
+    {
+        $result = $this->runCommand(['--base-dir=/no/such/dir/xyz', '--out=/no/such/dir/xyz/out.php', CliSampleTarget::class]);
+
+        self::assertSame(3, $result['code']);
+        self::assertStringContainsString('cannot resolve --base-dir', $result['stderr']);
+    }
+
     public function testBinEntrypointPrintsHelp(): void
     {
         if (!function_exists('proc_open') || !isset($GLOBALS['argv'])) {

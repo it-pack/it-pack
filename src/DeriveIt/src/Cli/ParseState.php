@@ -18,6 +18,7 @@ final class ParseState
     public ?string $out = null;
     public ?string $root = null;
     public ?string $preset = null;
+    public ?string $baseDir = null;
 
     /** @var list<string> */
     public array $targets = [];

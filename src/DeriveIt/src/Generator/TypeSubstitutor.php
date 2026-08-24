@@ -111,7 +111,7 @@ final readonly class TypeSubstitutor
         // backslash relative to the current namespace, so the captured class may
         // carry an unexpected prefix (e.g. `_Fixture\SimpleBackedEnum` for a global
         // enum). Fall back to the short name so a map keyed by the bare class works.
-        $short = ($pos = strrpos($class, '\\')) !== false ? substr($class, $pos + 1) : $class;
+        $short = Naming::shortName($class);
         if (isset($this->map[$short])) {
             return $this->map[$short] . '::' . $m['const'];
         }

@@ -308,6 +308,24 @@ soon / clear quality debt · **Low** = polish / optional.
 | F-9 | Low | Security (defense-in-depth) | `--out` path is operator-controlled with no traversal/symlink guard. | Optional base-dir / symlink check; covered today by the documented trust model. |
 | F-10 | Low | Consistency | `DeriveIt` facade `new`s concrete derivers, duplicating `DeriveItFactory` assembly. | Route facade through the factory (or document the facade as an intentional thin wrapper). |
 
+**Phase 12 resolution (2026-08-23):** all findings closed.
+
+| ID | Resolution | Where |
+|----|------------|-------|
+| F-1 | ✅ Addressed | `DeriveCommand` exit codes → `EXIT_SUCCESS/USAGE/DERIVATION/OUTPUT` constants (RP-1). |
+| F-2 | ✅ Addressed | `AdapterGenerator`/`MethodSignatureFactory` literals → `TYPE_VOID`/`TYPE_SEPARATOR_OR`/`TYPE_SEPARATOR_AND`/`OVERRIDE_ATTRIBUTE` constants (RP-2). |
+| F-3 | ⏭ Optional — skipped | Not extracted: would require a `TypeSubstitutorInterface` (Contract→Generator coupling) beyond the optional finding; `DeriveItFactory` already exposes the primary derivers behind interfaces (RP-3). |
+| F-4 | ✅ Addressed (optional seam) | `Contract/Cli/CommandInterface.php`; `DeriveCommand implements` it (RP-4). |
+| F-5 | ✅ Addressed | `Naming::shortName()` added; 3 inline copies removed (RP-5). |
+| F-6 | ✅ Addressed | `LazyCreatable` supplies default `create()`; resolver copies deleted (RP-6). |
+| F-7 | ✅ Addressed (optional seam) | `Reflection/WeakReflectionCache.php` (`WeakReference`-backed) added; default cache unchanged (RP-7). |
+| F-8 | ✅ Addressed (queue) | `FamilyDeriver::discover` index-pointer queue; `configHash`/`simplifyDocblock` left as-is (measure-first) (RP-8). |
+| F-9 | ✅ Addressed (optional seam) | `--base-dir` output guard (`assertSafeOutputPath`); trusted-operator behavior preserved when absent (RP-9). |
+| F-10 | ✅ Addressed | `DeriveIt` facade routes through `DeriveItFactory` (RP-10). |
+
+All five quality gates remain green after Phase 12: `test:unit` 247 tests, `cs:check`
+0, `analyse` 0, `architecture` 0 violations, `infection` Covered Code MSI 84% (≥ 80%).
+
 **Resolved-from-REVIEW_2 (confirmed):** `DeriveConfig` wither duplication (R.1),
 deriver-port coverage + factory (R.2), `DeriveMode`/`Visibility` enums (R.4),
 declarative `ArgParser` (R.5), family-map reporting (R.6), duplicate `@param` (R.7),

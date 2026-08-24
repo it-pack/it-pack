@@ -8,9 +8,6 @@ use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DerivationResult;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\DeriveDiff;
-use ItPack\DeriveIt\Generator\FamilyDeriver;
-use ItPack\DeriveIt\Generator\InterfaceDeriver;
-use ItPack\DeriveIt\Generator\PerTraitInterfaceDeriver;
 use ItPack\DeriveIt\Generator\SourceRenderer;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
@@ -28,11 +25,22 @@ use ReflectionException;
 final class DeriveIt
 {
     /**
+     * Composition-root accessor (F-10 / RP-10): assembles the derivers behind the
+     * {@see DeriveItFactory} so the facade stays a thin, stateless entry point.
+     */
+    private static function factory(DeriveConfig $config): DeriveItFactory
+    {
+        return new DeriveItFactory($config);
+    }
+
+    /**
      * @param ReflectionClass|class-string $class
      */
     public static function derive(ReflectionClass|string $class, bool $includeStatic = false): string
     {
-        return new InterfaceDeriver(config: new DeriveConfig(includeStatic: $includeStatic))->deriveSource($class);
+        $config = new DeriveConfig(includeStatic: $includeStatic);
+
+        return self::factory($config)->interfaceDeriver()->deriveSource($class);
     }
 
     /**
@@ -40,7 +48,9 @@ final class DeriveIt
      */
     public static function deriveInterface(ReflectionClass|string $class, bool $includeStatic = false): InterfaceType
     {
-        return new InterfaceDeriver(config: new DeriveConfig(includeStatic: $includeStatic))->derive($class);
+        $config = new DeriveConfig(includeStatic: $includeStatic);
+
+        return self::factory($config)->interfaceDeriver()->derive($class);
     }
 
     /**
@@ -51,7 +61,7 @@ final class DeriveIt
      */
     public static function derivePerTrait(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig()): string
     {
-        return new PerTraitInterfaceDeriver(config: $config)->deriveSource($class);
+        return self::factory($config)->perTraitDeriver()->deriveSource($class);
     }
 
     /**
@@ -60,7 +70,7 @@ final class DeriveIt
      */
     public static function deriveTraitInterfaces(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig()): array
     {
-        return new PerTraitInterfaceDeriver(config: $config)->deriveTraitInterfaces(
+        return self::factory($config)->perTraitDeriver()->deriveTraitInterfaces(
             is_string($class) ? new ReflectionClass($class) : $class,
         );
     }
@@ -74,7 +84,7 @@ final class DeriveIt
      */
     public static function deriveFamily(array $classes, DeriveConfig $config = new DeriveConfig()): array
     {
-        $derived = new FamilyDeriver($config)->derive($classes);
+        $derived = self::factory($config)->familyDeriver()->derive($classes);
 
         $result = [];
         foreach ($classes as $class) {
@@ -103,9 +113,9 @@ final class DeriveIt
     ): string {
         $reflection = is_string($class) ? new ReflectionClass($class) : $class;
 
-        $interface = new InterfaceDeriver(config: $config)->derive($reflection);
+        $interface = self::factory($config)->interfaceDeriver()->derive($reflection);
 
-        return new AdapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
+        return self::factory($config)->adapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
     }
 
     /**
@@ -118,7 +128,7 @@ final class DeriveIt
         ReflectionClass|string $class,
         DeriveConfig $config = new DeriveConfig(),
     ): DerivationResult {
-        return new InterfaceDeriver(config: $config)->deriveWithResult($class);
+        return self::factory($config)->interfaceDeriver()->deriveWithResult($class);
     }
 
     /**
@@ -134,7 +144,7 @@ final class DeriveIt
         array $namespacePrefixMap = [],
         DeriveConfig $config = new DeriveConfig(),
     ): string {
-        return new FamilyDeriver($config)->deriveSource($classes, $namespacePrefixMap);
+        return self::factory($config)->familyDeriver()->deriveSource($classes, $namespacePrefixMap);
     }
 
     /**
@@ -148,7 +158,7 @@ final class DeriveIt
         array $namespacePrefixMap = [],
         DeriveConfig $config = new DeriveConfig(),
     ): array {
-        $derived = new FamilyDeriver($config)->deriveFromRoot($rootClass, $namespacePrefixMap);
+        $derived = self::factory($config)->familyDeriver()->deriveFromRoot($rootClass, $namespacePrefixMap);
 
         $result = [];
         foreach ($derived as $fqcn => $interface) {
@@ -176,7 +186,7 @@ final class DeriveIt
         array $returnWrapperMap = [],
         DeriveConfig $config = new DeriveConfig(),
     ): string {
-        $interfaces = new FamilyDeriver($config)->derive($classes);
+        $interfaces = self::factory($config)->familyDeriver()->derive($classes);
 
         // Deduplicate input classes so each member is derived and emitted once.
         $reflections = [];
@@ -202,7 +212,7 @@ final class DeriveIt
         $byNamespace = [];
         foreach ($reflections as $reflection) {
             $namespace = $reflection->getNamespaceName();
-            $adapter = new AdapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)->generate();
+            $adapter = self::factory($config)->adapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)->generate();
             $byNamespace[$namespace][] = [$interfaces[$reflection->getName()], $adapter];
         }
 
@@ -230,7 +240,7 @@ final class DeriveIt
         ReflectionClass|string $class,
         DeriveConfig $config = new DeriveConfig(),
     ): DerivationResult {
-        return new InterfaceDeriver(config: $config)->analyze($class);
+        return self::factory($config)->interfaceDeriver()->analyze($class);
     }
 
     /**
@@ -245,7 +255,7 @@ final class DeriveIt
         iterable $classes,
         DeriveConfig $config = new DeriveConfig(),
     ): array {
-        $deriver = new InterfaceDeriver(config: $config);
+        $deriver = self::factory($config)->interfaceDeriver();
         $results = [];
 
         foreach ($classes as $class) {
@@ -268,7 +278,7 @@ final class DeriveIt
         string $existingSource,
         DeriveConfig $config = new DeriveConfig(),
     ): DeriveDiff {
-        $generated = new InterfaceDeriver(config: $config)->deriveSource($class);
+        $generated = self::factory($config)->interfaceDeriver()->deriveSource($class);
 
         return DeriveDiff::compute($existingSource, $generated);
     }

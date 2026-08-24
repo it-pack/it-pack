@@ -29,6 +29,14 @@ use ReflectionClass;
 final readonly class AdapterGenerator implements AdapterGeneratorInterface
 {
     /**
+     * Type grammar literals re-parsed from a {@see Method} return-type string
+     * (F-2 / RP-2): named so the comparison/preg_split sites read without bare
+     * magic chars.
+     */
+    private const TYPE_VOID = 'void';
+    private const TYPE_SEPARATOR_OR = '|';
+    private const TYPE_SEPARATOR_AND = '&';
+    /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
      */
     public function __construct(
@@ -134,16 +142,16 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
      */
     private function bodyFor(string $call, ?string $returnType, bool $nullable): string
     {
-        if ($returnType === null || $returnType === 'void') {
+        if ($returnType === null || $returnType === self::TYPE_VOID) {
             return $call . ';';
         }
 
         $normalized = str_replace('?', '', $returnType);
-        $isUnion = str_contains($normalized, '|');
-        $isIntersection = str_contains($normalized, '&');
+        $isUnion = str_contains($normalized, self::TYPE_SEPARATOR_OR);
+        $isIntersection = str_contains($normalized, self::TYPE_SEPARATOR_AND);
 
         $wrappers = [];
-        $segments = preg_split('/[|&]/', $normalized);
+        $segments = preg_split('/[' . self::TYPE_SEPARATOR_OR . self::TYPE_SEPARATOR_AND . ']/', $normalized);
         foreach ($segments === false ? [] : $segments as $segment) {
             $wrapper = $this->returnWrapperMap[$segment] ?? null;
             if ($wrapper !== null) {

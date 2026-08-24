@@ -12,11 +12,6 @@ class RecursiveClassResolver implements RecursiveClassResolverInterface
 {
     use LazyCreatable;
 
-    public static function create(): self
-    {
-        return new self();
-    }
-
     public function resolve(ReflectionClass $reflection): array
     {
         return ($parent = $reflection->getParentClass())

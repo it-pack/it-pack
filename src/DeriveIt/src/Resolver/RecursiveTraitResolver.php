@@ -21,11 +21,6 @@ final class RecursiveTraitResolver implements RecursiveTraitResolverInterface
      */
     private array $memo = [];
 
-    public static function create(): self
-    {
-        return new self();
-    }
-
     public function resolve(ReflectionClass $reflection): array
     {
         $key = $reflection->getName();

@@ -16,6 +16,19 @@ use ReflectionClass;
 final class Naming
 {
     /**
+     * Short name of an arbitrary FQCN: the substring after the last `\` (or the
+     * whole string when it is already unqualified). DRY helper for the inline
+     * `substr($fqcn, (int) strrpos($fqcn, '\\') + 1)` copies scattered across the
+     * CLI and derivers (F-5 / RP-5).
+     */
+    public static function shortName(string $fqcn): string
+    {
+        $pos = strrpos($fqcn, '\\');
+
+        return $pos === false ? $fqcn : substr($fqcn, $pos + 1);
+    }
+
+    /**
      * Short name of the interface derived from a class (e.g. Foo => FooInterface).
      */
     public static function derivedInterfaceShortName(ReflectionClass $reflection): string
