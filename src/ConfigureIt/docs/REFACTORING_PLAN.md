@@ -281,6 +281,111 @@ it. **Files (R17):** consider `ScalarCasterInterface` / `RedactingRendererInterf
 
 ---
 
+## Milestone 5 — Remove the sole abstract class via composition (R19, newly identified)
+
+> **Audit result:** a repo-wide scan for `abstract class` finds exactly **one** abstract type:
+> `src/Adapter/Decryption/CommandDecrypter`. It declares **no abstract methods** — it is a pure
+> behavior-sharing base, not a contract. Everything below applies only to this one class, so
+> completing this milestone fully satisfies "replace all abstract classes".
+
+### Brainstorm & reasoning
+
+`CommandDecrypter` `implements DecrypterInterface`, holds a `CommandRunnerInterface` + a
+`$command` array, and provides the complete `decrypt()` template (feed ciphertext to the
+command on stdin, return stdout, translate failures into `DecryptionException`). Its two
+subclasses (`AgeDecrypter`, `SopsDecrypter`) add **zero** logic — they only pass a different
+`$command` to the parent constructor. Inheritance is therefore used purely for code reuse,
+which `AGENTS.md` explicitly discourages ("Composition over Inheritance").
+
+**Why replace it**
+- **Single-inheritance tax.** A class may extend only one base. `CommandDecrypter` occupies that
+  slot for both decrypters for no polymorphic reason — the interface already enforces `decrypt()`.
+- **Testability.** The shared `decrypt()` logic is currently only exercisable *through* a subclass.
+  Extracting it yields a standalone, directly unit-testable unit.
+- **Nothing is lost.** Because the base declares no abstract method, turning it into a trait or a
+  composed helper loses no enforced polymorphism — the interface is the real contract.
+
+**Option A — Trait (`CommandDecryptionTrait`).** Move the properties + `decrypt()` into a trait;
+each decrypter `implements DecrypterInterface` and `use`s it, assigning `$this->runner` /
+`$this->command` in its own constructor.
+- *Pros:* smallest diff, no extra object, preserves the current class shape.
+- *Cons:* traits cannot use constructor promotion for shared state, so the subclass must assign
+  properties manually; a trait imposes no interface (the class must still `implements`); trait
+  `$this` state can collide with other trait/users; and `parent::__construct` idioms disappear.
+  Traits are also harder to mock/reason about than a value object.
+
+**Option B — Composition (`CommandDecryption` helper) — recommended.** Extract the runner + command
++ `decrypt()` into a small `final readonly class CommandDecryption`. Each decrypter becomes a thin
+adapter that *holds* one and delegates:
+```php
+final readonly class CommandDecryption
+{
+    public function __construct(
+        private CommandRunnerInterface $runner,
+        private array $command,
+    ) {
+    }
+
+    public function decrypt(string $ciphertext): string
+    {
+        try {
+            $output = $this->runner->run([...$this->command], $ciphertext);
+        } catch (\Throwable $e) {
+            throw new DecryptionException(sprintf('Failed to decrypt secret: %s', $e->getMessage()), 0, $e);
+        }
+
+        return rtrim($output, "\r\n");
+    }
+}
+
+final class AgeDecrypter implements DecrypterInterface
+{
+    public function __construct(CommandRunnerInterface $runner, string $identityFile)
+    {
+        $this->cmd = new CommandDecryption($runner, ['age', '--decrypt', '-i', $identityFile, '-']);
+    }
+
+    public function decrypt(string $ciphertext): string
+    {
+        return $this->cmd->decrypt($ciphertext);
+    }
+}
+```
+- *Pros:* true composition over inheritance (matches `AGENTS.md`); the shared logic is a single
+  reusable, mockable unit; each decrypter stays tiny and focused; no single-inheritance penalty.
+- *Cons:* one extra (trivial, immutable) object per decrypter instance — negligible.
+
+**Recommendation: Option B (composition).** It best matches the project's stated principles and
+yields the cleanest, directly-testable seam. Option A is acceptable only if zero extra objects is a
+hard constraint.
+
+**Files:** delete `src/Adapter/Decryption/CommandDecrypter.php`; add
+`src/Adapter/Decryption/CommandDecryption.php`; edit `AgeDecrypter.php`, `SopsDecrypter.php`.
+
+### Tasks
+1. Create `CommandDecryption` (`final readonly`) with the `runner`, `command` props and the
+   `decrypt()` body copied verbatim from `CommandDecrypter::decrypt()`.
+2. Rewrite `AgeDecrypter` / `SopsDecrypter` to `implements DecrypterInterface`, compose a
+   `CommandDecryption`, and delegate `decrypt()`.
+3. Delete `CommandDecrypter.php`.
+4. *(Trait alternative — Option A)* skip steps 1–3 and instead add `CommandDecryptionTrait`,
+   `use` it in both decrypters (assigning `$this->runner` / `$this->command` in each constructor),
+   and drop `extends CommandDecrypter`.
+
+### Verification
+- `composer analyse` (no inheritance remains; interface still satisfied — expect 0 errors).
+- `composer cs:check` clean.
+- `composer test:unit` green; **add a direct unit test for `CommandDecryption::decrypt()`** (the
+  stdin-command behavior was previously only reachable via subclasses) to lock the extracted logic.
+
+### Risk
+**Low.** Behavior-preserving: identical `$command` arrays and identical `decrypt()` body.
+
+### Status
+⬜ Pending.
+
+---
+
 ## Explicitly NOT adopted (from REVIEW.md)
 
 These are recorded as deliberate decisions, not backlog:
@@ -322,7 +427,9 @@ Per-milestone hard gates:
 | 2 | R7, R8 | Low–Med | S–M | Yes (interface + wiring) |
 | 3 | R11, R12, R13 | Low | S | Yes |
 | 4 | R17, R18 | Low (large churn) | M | Yes (optional) |
+| 5 | R19 (abstract class → composition) | Low | S | Yes |
 
 All changes are additive/isolated and behavior-preserving; none block the existing feature
-set. After Milestones 1–3 the codebase fully satisfies the `AGENTS.md` "exemplary" bar and the
-open findings in `REVIEW.md` are closed (R14–R16 remain intentionally not adopted).
+set. After Milestones 1–5 the codebase fully satisfies the `AGENTS.md` "exemplary" bar and the
+open findings in `REVIEW.md` are closed; R19 closes the abstract-class audit via composition,
+and R14–R16 remain intentionally not adopted.
