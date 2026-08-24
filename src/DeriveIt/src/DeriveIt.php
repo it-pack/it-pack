@@ -8,6 +8,7 @@ use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DerivationResult;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\DeriveDiff;
+use ItPack\DeriveIt\Generator\Naming;
 use ItPack\DeriveIt\Generator\SourceRenderer;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
@@ -202,8 +203,8 @@ final class DeriveIt
         foreach ($reflections as $reflection) {
             $interface = $interfaces[$reflection->getName()];
             $namespace = $reflection->getNamespaceName();
-            $interfaceFqcn = ($namespace === '' ? '' : $namespace . '\\') . $interface->getName();
-            $adapterFqcn = ($namespace === '' ? '' : $namespace . '\\') . $reflection->getShortName() . 'Adapter';
+            $interfaceFqcn = Naming::join($namespace, $interface->getName());
+            $adapterFqcn = Naming::join($namespace, Naming::adapterShortName($reflection));
             $autoWrapperMap[$interfaceFqcn] = $adapterFqcn;
         }
 

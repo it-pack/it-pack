@@ -58,6 +58,24 @@ final readonly class TypeSubstitutor
     }
 
     /**
+     * FQCN substituted for the `self` / `static` keywords, or null when no such
+     * substitution is configured.
+     */
+    public function selfFqcn(): ?string
+    {
+        return $this->selfFqcn;
+    }
+
+    /**
+     * FQCN substituted for the `parent` keyword, or null when there is no parent
+     * or no substitution is configured.
+     */
+    public function parentFqcn(): ?string
+    {
+        return $this->parentFqcn;
+    }
+
+    /**
      * Rewrites class FQCNs inside an already-extracted phpdoc comment (the text
      * returned by {@see MethodSignatureFactory::applyDocblock()}) using the same
      * substitution map as {@see self::substitute()}, so a `@param Foo $x` /

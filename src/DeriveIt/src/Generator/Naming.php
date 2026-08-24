@@ -16,6 +16,22 @@ use ReflectionClass;
 final class Naming
 {
     /**
+     * Suffix appended to a derived interface's short name (naming contract).
+     */
+    public const INTERFACE_SUFFIX = 'Interface';
+
+    /**
+     * Suffix appended to a generated adapter's short name (naming contract).
+     */
+    public const ADAPTER_SUFFIX = 'Adapter';
+
+    /**
+     * Marker appended when an input name already ends in {@see self::INTERFACE_SUFFIX},
+     * so deriving from an interface-shaped name stays collision-free.
+     */
+    private const DERIVED_MARKER = 'Derived';
+
+    /**
      * Short name of an arbitrary FQCN: the substring after the last `\` (or the
      * whole string when it is already unqualified). DRY helper for the inline
      * `substr($fqcn, (int) strrpos($fqcn, '\\') + 1)` copies scattered across the
@@ -29,15 +45,44 @@ final class Naming
     }
 
     /**
+     * Unconditional interface-suffix append. Deliberately NOT the same rule as
+     * {@see self::derivedInterfaceShortName()}: per-trait mode must keep producing
+     * `<Trait>Interface` even when the trait itself ends in `Interface`
+     * (e.g. LogInterface => LogInterfaceInterface), so no `Derived` marker logic
+     * applies here.
+     */
+    public static function interfaceShortName(string $shortName): string
+    {
+        return $shortName . self::INTERFACE_SUFFIX;
+    }
+
+    /**
+     * Short name of the delegating adapter generated for a concrete adaptee.
+     */
+    public static function adapterShortName(ReflectionClass $adaptee): string
+    {
+        return $adaptee->getShortName() . self::ADAPTER_SUFFIX;
+    }
+
+    /**
+     * Joins a namespace and a short name into `$ns\Short`, or returns the short
+     * name verbatim when the namespace is empty (the global namespace).
+     */
+    public static function join(string $namespace, string $shortName): string
+    {
+        return ($namespace === '' ? '' : $namespace . '\\') . $shortName;
+    }
+
+    /**
      * Short name of the interface derived from a class (e.g. Foo => FooInterface).
      */
     public static function derivedInterfaceShortName(ReflectionClass $reflection): string
     {
         $shortName = $reflection->getShortName();
 
-        return str_ends_with($shortName, 'Interface')
-            ? $shortName . 'Derived'
-            : $shortName . 'Interface';
+        return str_ends_with($shortName, self::INTERFACE_SUFFIX)
+            ? $shortName . self::DERIVED_MARKER
+            : self::interfaceShortName($shortName);
     }
 
     /**
@@ -45,9 +90,7 @@ final class Naming
      */
     public static function derivedInterfaceFqcn(ReflectionClass $reflection): string
     {
-        $namespace = $reflection->getNamespaceName();
-
-        return ($namespace === '' ? '' : $namespace . '\\') . self::derivedInterfaceShortName($reflection);
+        return self::join($reflection->getNamespaceName(), self::derivedInterfaceShortName($reflection));
     }
 
     /**

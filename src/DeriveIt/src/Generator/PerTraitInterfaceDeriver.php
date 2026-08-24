@@ -56,7 +56,7 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
         );
 
         foreach (ClassReflection::create($reflection->getName())->getTraitsRecursively() as $trait) {
-            $shortName = $trait->getShortName() . 'Interface';
+            $shortName = Naming::interfaceShortName($trait->getShortName());
             $fqcn = Naming::derivedInterfaceFqcn($trait);
 
             // EC19: two traits sharing a short name in different namespaces would
@@ -71,14 +71,14 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             $methods = [];
             foreach ($this->extractor->extract($trait) as $method) {
                 $name = $method->getName();
-                if (isset($claimed[$name]) || $this->shouldSkipMethod($name)) {
+                if (isset($claimed[$name])) {
+                    continue;
+                }
+                $signature = $this->signatureFor($method, $substitutor);
+                if ($signature === null) {
                     continue;
                 }
                 $claimed[$name] = true;
-                $signature = $this->signatureFactory->fromMethod($method, $substitutor);
-                if (isset($this->config->methodRenames[$name])) {
-                    $signature = $signature->cloneWithName($this->config->methodRenames[$name]);
-                }
                 $methods[] = $signature;
             }
 
@@ -129,13 +129,12 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
 
         $mainMethods = [];
         foreach ($this->extractor->extract($reflection) as $method) {
-            $name = $method->getName();
-            if (isset($traitMethodNames[$name]) || $this->shouldSkipMethod($name)) {
+            if (isset($traitMethodNames[$method->getName()])) {
                 continue;
             }
-            $signature = $this->signatureFactory->fromMethod($method, $substitutor);
-            if (isset($this->config->methodRenames[$name])) {
-                $signature = $signature->cloneWithName($this->config->methodRenames[$name]);
+            $signature = $this->signatureFor($method, $substitutor);
+            if ($signature === null) {
+                continue;
             }
             $mainMethods[] = $signature;
         }

@@ -145,10 +145,6 @@ final class FamilyDeriver implements FamilyDeriverInterface
     }
 
     /**
-     * @param array<string, string> $map
-     * @param array<string, string> $namespacePrefixMap
-     */
-    /**
      * Core family derivation over already-built ReflectionClass instances so that
      * discovery / derive never re-reflect the same class or re-run `class_exists`
      * (EC20 / G13). Each base interface is derived exactly once and memoized per

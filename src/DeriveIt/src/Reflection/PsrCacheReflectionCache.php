@@ -18,6 +18,10 @@ use ReflectionClass;
  * (e.g. a repeat whole-repo scan) knows the class was already discovered and can
  * skip its `class_exists` / re-discovery pass. Cross-process the object is rebuilt
  * on first access; within a process the same instance is reused.
+ *
+ * The pool is optional consumer infrastructure: this package depends only on the
+ * `psr/cache` *interface* contract and never ships or requires an implementation —
+ * bring your own (symfony/cache, doctrine/cache, …) and hand it to this adapter.
  */
 final class PsrCacheReflectionCache implements ReflectionCacheInterface
 {

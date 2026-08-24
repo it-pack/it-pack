@@ -14,7 +14,7 @@
 > otherwise. API surface changes are additions only (new enum/constants/helpers);
 > no public signature is removed or re-typed.
 >
-> **Status: Milestone A implemented (2026-08-24); Milestones B–E planned.** Update
+> **Status: Milestones A–B implemented (2026-08-24); Milestones C–E planned.** Update
 > the implementation-status table as steps land (see §Implementation status).
 
 ## Severity legend (mirrors `docs/REVIEW.md` §11)
@@ -72,10 +72,10 @@ the gates between them).
 | R3-1 | F-1 | ✅ Done | `"psr/cache": "^1.0 \|\| ^2.0 \|\| ^3.0"` added to `composer.json` require; lock updated; `composer why psr/cache` shows the direct link; `PsrCacheReflectionCache` docblock states the pool is optional consumer infrastructure. |
 | R3-2 | F-2 | ✅ Done | `AGENTS.md` rewritten to post-Phase-12 reality: current status narrative (all five modes, CLI, factory), live gate baseline (247/509, MSI ≈ 99.7%), real repo layout incl. `docs/`, cross-references repointed (`docs/REVIEW.md`, `docs/REFACTORING_PLAN.md`, guide + ADRs), maintenance-rule note added. |
 | R3-3 | F-15 | ✅ Done | `"license": "MIT"` declared (family convention) + MIT `LICENSE` file copied from sibling packages; `composer validate` warning-free. |
-| R3-4 | F-4 | ⬜ Planned | — |
-| R3-5 | F-5 | ⬜ Planned | — |
-| R3-6 | F-6 | ⬜ Planned | — |
-| R3-7 | F-9 | ⬜ Planned | — |
+| R3-4 | F-4 | ✅ Done | `Naming` gains `INTERFACE_SUFFIX` / `ADAPTER_SUFFIX` / `DERIVED_MARKER` constants plus `interfaceShortName()` (unconditional append, per-trait behavior preserved), `adapterShortName()`, and `join()`; `derivedInterfaceShortName()`/`derivedInterfaceFqcn()` re-implemented on them. Call sites migrated: `AdapterGenerator::generate()/interfaceFqcn()`, `DeriveIt::deriveFamilyAdapter()`, `PerTraitInterfaceDeriver::deriveTraitInterfaces()`. No suffix literal remains outside `Naming`; goldens byte-stable. |
+| R3-5 | F-5 | ✅ Done | `AbstractDeriver::signatureFor(ReflectionMethod, TypeSubstitutor): ?Method` added (skip-check → signature → rename in one place); the flat build loop and both per-trait loops rewired. `cloneWithName` now appears exactly once in `src/`. Site-specific logic (`$claimed`, trait/main split) kept at call sites. |
+| R3-6 | F-6 | ✅ Done | Orphaned duplicate docblock above `FamilyDeriver::deriveReflections()` deleted; PHPStan still reads the correct block (0 errors). |
+| R3-7 | F-9 | ✅ Done | `TypeSubstitutor::selfFqcn()` / `parentFqcn()` accessors added; `InterfaceDeriver::build()` no longer recomputes the values and reports applied substitutions straight from the substitutor (single owner of the rule). |
 | R3-8 | F-7 | ⬜ Planned | — |
 | R3-9 | F-13 | ⬜ Planned | — |
 | R3-10 | F-12 | ⬜ Planned | — |

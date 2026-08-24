@@ -114,12 +114,6 @@ final readonly class InterfaceDeriver extends AbstractDeriver
     {
         Naming::assertNoCollision($reflection);
 
-        $selfFqcn = $this->config->substituteSelfStatic ? Naming::derivedInterfaceFqcn($reflection) : null;
-        $parent = $reflection->getParentClass();
-        $parentFqcn = ($this->config->substituteSelfStatic && $parent !== false)
-            ? Naming::derivedInterfaceFqcn($parent)
-            : null;
-
         if ($substitutor === null) {
             // Seed the map with the class itself and its parent so that `self`
             // (which reflection resolves to the concrete class name) and `parent`
@@ -144,14 +138,9 @@ final readonly class InterfaceDeriver extends AbstractDeriver
 
         $collected = [];
         foreach ($this->extractor->extract($reflection) as $method) {
-            $name = $method->getName();
-            if ($this->shouldSkipMethod($name)) {
+            $signature = $this->signatureFor($method, $substitutor);
+            if ($signature === null) {
                 continue;
-            }
-
-            $signature = $this->signatureFactory->fromMethod($method, $substitutor);
-            if (isset($this->config->methodRenames[$name])) {
-                $signature = $signature->cloneWithName($this->config->methodRenames[$name]);
             }
             $collected[] = $signature;
         }
@@ -184,12 +173,17 @@ final readonly class InterfaceDeriver extends AbstractDeriver
 
         // Report the effective map this substitutor actually applied (a full family
         // cross-reference map in family mode), plus the self/static/parent keyword
-        // rewrites that reflection surfaces verbatim (A1). F6 / R.6.
+        // rewrites that reflection surfaces verbatim (A1). The substitutor is the
+        // single owner of those values — report from it, never recompute (R3-7).
         $substitutions = $substitutor->getMap();
+
+        $selfFqcn = $substitutor->selfFqcn();
         if ($selfFqcn !== null) {
             $substitutions['self'] = $selfFqcn;
             $substitutions['static'] = $selfFqcn;
         }
+
+        $parentFqcn = $substitutor->parentFqcn();
         if ($parentFqcn !== null) {
             $substitutions['parent'] = $parentFqcn;
         }

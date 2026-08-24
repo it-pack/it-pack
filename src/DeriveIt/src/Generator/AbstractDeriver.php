@@ -8,7 +8,9 @@ use ItPack\DeriveIt\Contract\Generator\DeriverInterface;
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
+use Nette\PhpGenerator\Method;
 use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * Shared base for the interface-deriving strategies ({@see InterfaceDeriver} flat
@@ -73,6 +75,28 @@ abstract readonly class AbstractDeriver implements DeriverInterface
         }
 
         return false;
+    }
+
+    /**
+     * Builds the derived signature for one reflected method: applies skip/allow
+     * filtering, the substitutor, and any configured rename. Returns null when
+     * the method is filtered out. Shared by the flat deriver's build loop and
+     * both per-trait loops so the extract → filter → rename pipeline exists once.
+     */
+    protected function signatureFor(ReflectionMethod $method, TypeSubstitutor $substitutor): ?Method
+    {
+        if ($this->shouldSkipMethod($method->getName())) {
+            return null;
+        }
+
+        $signature = $this->signatureFactory->fromMethod($method, $substitutor);
+
+        $rename = $this->config->methodRenames[$method->getName()] ?? null;
+        if ($rename !== null) {
+            $signature = $signature->cloneWithName($rename);
+        }
+
+        return $signature;
     }
 
     /**

@@ -48,7 +48,7 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
     public function generate(): ClassType
     {
         $adapteeFqcn = $this->adaptee->getName();
-        $adapterName = $this->adaptee->getShortName() . 'Adapter';
+        $adapterName = Naming::adapterShortName($this->adaptee);
 
         $class = new ClassType($adapterName);
         $class->setFinal(true);
@@ -101,9 +101,7 @@ final readonly class AdapterGenerator implements AdapterGeneratorInterface
      */
     private function interfaceFqcn(): string
     {
-        $namespace = $this->adaptee->getNamespaceName();
-
-        return ($namespace === '' ? '' : $namespace . '\\') . $this->interface->getName();
+        return Naming::join($this->adaptee->getNamespaceName(), $this->interface->getName());
     }
 
     /**

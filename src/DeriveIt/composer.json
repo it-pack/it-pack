@@ -1,8 +1,10 @@
 {
     "name": "it-pack/derive-it",
+    "license": "MIT",
     "require": {
         "php": ">=8.4",
-        "nette/php-generator": "^4.2"
+        "nette/php-generator": "^4.2",
+        "psr/cache": "^1.0 || ^2.0 || ^3.0"
     },
     "autoload": {
         "psr-4": {
