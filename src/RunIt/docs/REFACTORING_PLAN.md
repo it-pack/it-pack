@@ -126,6 +126,22 @@ the default wiring; all gates green.
 
 ## Phase 1 — P1: real security default & bounded-state defects
 
+> **Status: Complete (2026-08-24).** Deny-by-default redaction shipped: the builder
+> installs the default redactor unless `withRedactor()` is explicitly called —
+> `withRedactor(null)` is a recorded opt-out. **Semantics deviation, verified during
+> implementation:** the default config's payload toggles are *key-driven*, so out of the
+> box the guarantee is unconditional throwable-message masking; occurrence/snapshot
+> payload masking activates by configuring `sensitiveDataKeys` through a custom redactor.
+> Docs/recipe updated to teach exactly this. OTel gained
+> `withOccurrenceLogAttributeAllowList()` (extensions-only filter; structural identity
+> attributes always export). Bounded-state cluster fixed: terminal snapshots release
+> their counter on every exit path incl. count/payload drops; `close()` reports remainder
+> drops to health; fail-safe reports *before* policy so fail-closed rethrows are visible;
+> drain() propagation documented. Snapshot integrity tooling kept as first-class opt-in:
+> new recipe `docs/recipes/snapshot-integrity.md`, verifier marked `@api`. Benchmark
+> delta recorded (redaction stage ≈0.5–1.0 µs/artifact). Green: 758 tests,
+> `analyse`, `cs:check`, `architecture`, `api:check`.
+
 ### T1.1 — Make redaction the default and teach it (REVIEW.md §3.6, §4 P1-4)
 - **Goal:** the builder installs no redactor; no example passes `withRedactor`;
   neither OTel doc mentions it — out-of-the-box RunIt exports unredacted, while

@@ -87,6 +87,7 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
                 $config->snapshotPayloadPolicy,
                 $config->mapOccurrencesToLogs,
                 $config->mapOccurrencesToSpanEvents,
+                $config->occurrenceLogAttributeAllowList,
             ),
         );
     }

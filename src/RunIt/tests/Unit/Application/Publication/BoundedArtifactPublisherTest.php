@@ -125,12 +125,21 @@ final class BoundedArtifactPublisherTest extends Unit
 
     private function terminalSnapshotOversized(): Snapshot
     {
+        // Payload must pass creation validation (each value <= 4096 bytes,
+        // <= 64 keys) while its estimated total exceeds the default 256 KB
+        // snapshot bound: 64 x 4096 value bytes + key bytes.
+        $payload = [];
+
+        foreach (range(0, 63) as $index) {
+            $payload[sprintf('key%02d', $index)] = str_repeat('x', 4096);
+        }
+
         return Snapshot::create(
             SnapshotId::fromString('snap-term-big'),
             ExecutionId::fromString('exec-1'),
             SnapshotType::fromString('execution.snapshot'),
             1,
-            ['blob' => str_repeat('x', 300_000)],
+            $payload,
             new DeterministicHashCalculator(),
             null,
             null,

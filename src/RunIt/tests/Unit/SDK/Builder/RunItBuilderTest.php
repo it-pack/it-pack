@@ -41,8 +41,8 @@ use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
 use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
-use RuntimeException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 #[CoversClass(RunItBuilder::class)]
 #[CoversClass(MissingBuilderDependencyException::class)]
@@ -337,7 +337,9 @@ final class RunItBuilderTest extends TestCase
         ;
 
         try {
-            $runtime->run($this->definition(), static fn (): int => 1 / 0 === [] ? 1 : 2);
+            $runtime->run($this->definition(), static function (): int {
+                throw new RuntimeException('raw observation source');
+            });
         } catch (\Throwable) {
         }
 

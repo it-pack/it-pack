@@ -12,6 +12,7 @@ use ItPack\RunIt\Application\Publication\BufferConfiguration;
 use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\BufferOverflowException;
 use ItPack\RunIt\Application\Publication\OverflowStrategy;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
@@ -194,6 +195,45 @@ final class BufferingTest extends Unit
         self::assertCount(1, $sink->published());
         self::assertSame(0, $buffer->bufferedCount());
         self::assertSame(2, $buffer->droppedCount());
+    }
+
+    public function testCloseReportsRemainderDropsThroughHealth(): void
+    {
+        /** @var list<array{0: \Throwable, 1: ExecutionArtifactInterface}> $reported */
+        $reported = [];
+        $health = new class ($reported) implements InternalHealthReporterInterface {
+            /**
+             * @param list<array{0: \Throwable, 1: ExecutionArtifactInterface}> $sink
+             */
+            public function __construct(private array &$sink)
+            {
+            }
+
+            public function report(\Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                $sink = &$this->sink;
+                $sink[] = [$error, $artifact];
+            }
+        };
+
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropOldest, batchSize: 1024, budget: 1),
+            $sink,
+            $this->clock,
+            $this->estimator,
+            $health,
+        );
+
+        for ($i = 0; $i < 3; $i++) {
+            $buffer->publish($this->artifact('info', (string) $i));
+        }
+
+        $buffer->close();
+
+        self::assertSame(2, $buffer->droppedCount());
+        self::assertCount(2, $reported, 'remainder drops at close() must be reported to the health channel');
+        self::assertInstanceOf(BufferOverflowException::class, $reported[0][0]);
     }
 
     public function testMemoryStaysBoundedUnderSustainedLoad(): void

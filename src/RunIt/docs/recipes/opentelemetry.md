@@ -56,3 +56,26 @@ $runtime->run(
 A `null` provider disables that signal without error, so you can enable only the
 signals you need. Cardinality is controlled by `withMetricAttributeAllowList`; secret
 context is never propagated.
+
+## Redaction
+
+The builder composes redaction before the bridge: by default a deny-by-default
+redactor masks throwable messages, and you can supply a key-driven strategy for
+occurrence/snapshot payloads:
+
+```php
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+
+$runtime = RunItBuilder::create()
+    // ...
+    ->withRedactor(new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+        sensitiveDataKeys: ['token', 'password'],
+    )))
+    ->build();
+```
+
+To publish unredacted (not recommended), opt out explicitly with
+`withRedactor(null)` — the choice is recorded rather than falling back to
+defaults. Occurrence extension attributes exported to logs can additionally be
+restricted through `BridgeConfigBuilder::withOccurrenceLogAttributeAllowList()`.

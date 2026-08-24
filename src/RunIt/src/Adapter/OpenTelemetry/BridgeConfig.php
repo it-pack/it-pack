@@ -45,6 +45,9 @@ final readonly class BridgeConfig
         public bool $mapOccurrencesToSpanEvents,
         public array $metricAttributeAllowList,
         public int $maxInstrumentCacheSize,
+        /**
+         * @var list<string> extension-attribute keys exported to OTel logs; empty = unrestricted
+         */
         public array $occurrenceLogAttributeAllowList = [],
     ) {
     }

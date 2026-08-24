@@ -1321,6 +1321,11 @@
                         "name": "maxInstrumentCacheSize",
                         "type": "int",
                         "optional": false
+                    },
+                    {
+                        "name": "occurrenceLogAttributeAllowList",
+                        "type": "array",
+                        "optional": true
                     }
                 ]
             },
@@ -1444,6 +1449,17 @@
                 ]
             },
             "withMetricAttributeAllowList": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
+                "params": [
+                    {
+                        "name": "allowedAttributeKeys",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "withOccurrenceLogAttributeAllowList": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeConfigBuilder",
                 "params": [
@@ -1896,6 +1912,11 @@
                         "name": "mapOccurrencesToSpanEvents",
                         "type": "bool",
                         "optional": false
+                    },
+                    {
+                        "name": "occurrenceLogAttributeAllowList",
+                        "type": "array",
+                        "optional": true
                     }
                 ]
             },

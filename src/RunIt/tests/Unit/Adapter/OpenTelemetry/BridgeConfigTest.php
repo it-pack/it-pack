@@ -92,4 +92,15 @@ final class BridgeConfigTest extends Unit
         self::assertTrue($config->mapObservationsToSpanEvents);
         self::assertSame(256, $config->maxInstrumentCacheSize);
     }
+
+    public function testOccurrenceLogAttributeAllowListFlowsThroughTheBuilder(): void
+    {
+        $config = new BridgeConfigBuilder()
+            ->withOccurrenceLogAttributeAllowList(['tenantflag'])
+            ->build()
+        ;
+
+        self::assertSame(['tenantflag'], $config->occurrenceLogAttributeAllowList);
+        self::assertSame([], BridgeConfig::default()->occurrenceLogAttributeAllowList, 'default stays unrestricted');
+    }
 }
