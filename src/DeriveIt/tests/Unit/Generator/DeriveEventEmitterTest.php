@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Generator;
 
 use Codeception\Test\Unit;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 use ItPack\DeriveIt\Generator\DeriveEventEmitter;
 
 /**
@@ -23,7 +24,7 @@ final class DeriveEventEmitterTest extends Unit
         $emitter->activityStarted('graph.walk', $attributes);
         $emitter->activityFinished('graph.walk');
         $emitter->measured('methods.derived', 3, 'count', $attributes);
-        $emitter->observed('skipped', 'warning', ['interface' => 'X']);
+        $emitter->observed('skipped', DeriveObservationSeverity::WARNING, ['interface' => 'X']);
         $emitter->occurred('derivation.completed');
 
         self::assertSame([
@@ -53,7 +54,7 @@ final class DeriveEventEmitterTest extends Unit
         $emitter->activityStarted('a', $attributes);
         $emitter->activityFinished('a', true);
         $emitter->measured('m', 1, 'count');
-        $emitter->observed('msg', 'info');
+        $emitter->observed('msg', DeriveObservationSeverity::INFO);
         $emitter->occurred('t');
 
         $this->expectNotToPerformAssertions();

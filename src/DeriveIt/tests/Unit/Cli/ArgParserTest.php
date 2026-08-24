@@ -130,6 +130,15 @@ final class ArgParserTest extends TestCase
         self::assertSame('/tmp/sandbox', $input->baseDir);
     }
 
+    public function testVerboseFlagIsCaptured(): void
+    {
+        $plain = $this->parser->parse([ArgParserSample::class]);
+        $verbose = $this->parser->parse(['--verbose', ArgParserSample::class]);
+
+        self::assertFalse($plain->verbose);
+        self::assertTrue($verbose->verbose);
+    }
+
     public function testEqualsAndSpaceValueFormsAreEquivalent(): void
     {
         $equals = $this->parser->parse(['--out=file.php', ArgParserSample::class]);

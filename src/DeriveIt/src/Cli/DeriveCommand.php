@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Cli;
 
 use ItPack\DeriveIt\Contract\Cli\CommandInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\DeriveIt;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\DeriveMode;
@@ -104,6 +105,9 @@ final class DeriveCommand implements CommandInterface
                 $root,
                 $input->namespacePrefixMap,
                 $input->wrapperMap,
+                $input->verbose ? new DeriveConsoleSink(function (string $line): void {
+                    $this->writeErr($line . "\n");
+                }) : null,
             );
         } catch (\Throwable $e) {
             $this->writeErr('derive: ' . $e->getMessage() . "\n");
@@ -270,15 +274,16 @@ final class DeriveCommand implements CommandInterface
         ?string $root,
         array $namespacePrefixMap,
         array $wrapperMap,
+        ?DeriveEventSinkInterface $events = null,
     ): array {
         return match ($mode) {
-            DeriveMode::FLAT => [$classes[0] => DeriveIt::deriveWithResult($classes[0], $config)->source ?? ''],
-            DeriveMode::PER_TRAIT => [$classes[0] => DeriveIt::derivePerTrait($classes[0], $config)],
-            DeriveMode::ADAPTER => [$classes[0] => DeriveIt::deriveAdapter($classes[0], $wrapperMap, $config)],
+            DeriveMode::FLAT => [$classes[0] => DeriveIt::deriveWithResult($classes[0], $config, $events)->source ?? ''],
+            DeriveMode::PER_TRAIT => [$classes[0] => DeriveIt::derivePerTrait($classes[0], $config, $events)],
+            DeriveMode::ADAPTER => [$classes[0] => DeriveIt::deriveAdapter($classes[0], $wrapperMap, $config, $events)],
             DeriveMode::FAMILY => $root !== null
-                ? DeriveIt::deriveFamilyFromRoot($root, $namespacePrefixMap, $config)
-                : DeriveIt::deriveFamily($classes, $config),
-            DeriveMode::FAMILY_ADAPTER => [self::FAMILY_ADAPTER_SOURCE_KEY => DeriveIt::deriveFamilyAdapter($classes, $wrapperMap, $config)],
+                ? DeriveIt::deriveFamilyFromRoot($root, $namespacePrefixMap, $config, $events)
+                : DeriveIt::deriveFamily($classes, $config, $events),
+            DeriveMode::FAMILY_ADAPTER => [self::FAMILY_ADAPTER_SOURCE_KEY => DeriveIt::deriveFamilyAdapter($classes, $wrapperMap, $config, $events)],
         };
     }
 
@@ -431,6 +436,7 @@ final class DeriveCommand implements CommandInterface
               --fail-on-empty          fail if the derived surface is empty
               --attribute-pass-through copy attributes (all, or owned via --owned-attr)
               --throws-capture         capture @throws from the adaptee phpdoc
+              --verbose                stream pipeline diagnostics to stderr (facts only)
               --preset={$presetValues}   apply a DeriveConfig preset
               --skip=M1,M2             drop these method names
               --only=M1,M2             keep only these method names

@@ -72,7 +72,7 @@ scripts/
   regenerate_goldens.php                # dev helper: rewrites tests/_expected/*
 src/
   Cli/                                  # DeriveCommand, ArgParser, DeriveCliInput, ParseState,
-                                        #   Preset
+                                        #   Preset, DeriveConsoleSink (--verbose diagnostics)
   Contract/
     Cli/CommandInterface.php
     Generator/                          # DeriverInterface, FamilyDeriverInterface,

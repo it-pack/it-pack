@@ -163,6 +163,28 @@ final class DeriveCommandTest extends TestCase
         self::assertStringContainsString('CliSampleAAdapter', $result['stdout']);
     }
 
+    public function testVerboseStreamsDiagnosticsToStderrWithoutTouchingStdout(): void
+    {
+        $plain = $this->runCommand([CliSampleTarget::class]);
+        $verbose = $this->runCommand([
+            '--verbose',
+            '--re-expose=Tests\Unit\Cli\MissingFixtureInterface',
+            CliSampleTarget::class,
+        ]);
+
+        // stdout contract is byte-identical with and without --verbose.
+        self::assertSame($plain['stdout'], $verbose['stdout']);
+
+        // stderr carries the pipeline facts: lifecycle, stages, and the warning
+        // for the configured-but-unimplemented re-exposed interface.
+        self::assertSame(0, $verbose['code']);
+        self::assertStringContainsString('[event] derivation.completed', $verbose['stderr']);
+        self::assertStringContainsString('[activity] surface.extract started', $verbose['stderr']);
+        self::assertStringContainsString('[measure] methods.derived', $verbose['stderr']);
+        self::assertStringContainsString('[!] reExposeOwnedInterfaces entry "Tests\Unit\Cli\MissingFixtureInterface"', $verbose['stderr']);
+        self::assertStringNotContainsString('interface CliSampleTargetInterface', $verbose['stderr']);
+    }
+
     public function testUnknownTargetExitsTwo(): void
     {
         $result = $this->runCommand(['NoSuchClass_' . uniqid()]);

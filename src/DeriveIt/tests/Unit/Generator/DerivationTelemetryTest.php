@@ -10,6 +10,7 @@ use _Fixture\Stubs\ClassB;
 use _Fixture\UsesMultipleTraitsClass;
 use Codeception\Test\Unit;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 use ItPack\DeriveIt\DeriveItFactory;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 
@@ -37,9 +38,9 @@ final class RecordingDeriveEventSink implements DeriveEventSinkInterface
         $this->events[] = ['measured', $name, ['value' => $value, 'unit' => $unit] + $attributes];
     }
 
-    public function observed(string $message, string $severity, array $attributes = []): void
+    public function observed(string $message, DeriveObservationSeverity $severity, array $attributes = []): void
     {
-        $this->events[] = ['observed', $severity, ['message' => $message] + $attributes];
+        $this->events[] = ['observed', $severity->value, ['message' => $message] + $attributes];
     }
 
     public function occurred(string $type, array $attributes = []): void
@@ -171,5 +172,31 @@ final class DerivationTelemetryTest extends Unit
 
         self::assertSame($silent, $wired);
         self::assertNotSame([], $this->sink->events);
+    }
+
+    public function testDiffEmitsComputeActivityAndDriftOccurrence(): void
+    {
+        $source = new DeriveItFactory()->interfaceDeriver()->deriveSource(Collaborator::class);
+
+        \ItPack\DeriveIt\DeriveIt::diff(Collaborator::class, $source, new DeriveConfig(), $this->sink);
+
+        $kinds = $this->sink->kinds();
+        // The diff's own activity wraps the nested derivation lifecycle emitted
+        // by deriveSource().
+        self::assertContains('activity.started:diff.compute', $kinds);
+        self::assertContains('activity.finished:diff.compute', $kinds);
+        self::assertContains('occurred:drift.clean', $kinds);
+        self::assertNotContains('occurred:drift.detected', $kinds);
+    }
+
+    public function testDiffEmitsDetectedWhenSourcesDiverge(): void
+    {
+        \ItPack\DeriveIt\DeriveIt::diff(Collaborator::class, "stale source\n", new DeriveConfig(), $this->sink);
+
+        self::assertContains('occurred:drift.detected', $this->sink->kinds());
+        self::assertSame(
+            Collaborator::class,
+            $this->sink->events[array_search('occurred:drift.detected', $this->sink->kinds(), true)][2]['target'],
+        );
     }
 }

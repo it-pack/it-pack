@@ -29,6 +29,7 @@ final readonly class DeriveCliInput
         public DeriveConfig $config,
         public array $namespacePrefixMap,
         public array $wrapperMap,
+        public bool $verbose = false,
     ) {
     }
 
@@ -43,6 +44,7 @@ final readonly class DeriveCliInput
             config: $this->config,
             namespacePrefixMap: $this->namespacePrefixMap,
             wrapperMap: $this->wrapperMap,
+            verbose: $this->verbose,
         );
     }
 }

@@ -48,12 +48,9 @@ interface DeriveEventSinkInterface
     /**
      * A qualitative notice on a non-fatal path (fatal problems throw instead).
      *
-     * @param string $severity one of the PSR-3-shaped literals `debug`, `info`,
-     *                         `warning`, `error` (a typed enum joins with the
-     *                         first real emitters, see CONSOLIDATION_PLAN C3)
      * @param array<string, string|int|float|bool|null> $attributes
      */
-    public function observed(string $message, string $severity, array $attributes = []): void;
+    public function observed(string $message, DeriveObservationSeverity $severity, array $attributes = []): void;
 
     /**
      * An immutable fact that happened (e.g. `derivation.completed`,

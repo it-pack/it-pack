@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt;
 
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DerivationResult;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\DeriveDiff;
+use ItPack\DeriveIt\Generator\DeriveEventEmitter;
 use ItPack\DeriveIt\Generator\Naming;
 use ItPack\DeriveIt\Generator\SourceRenderer;
 use Nette\PhpGenerator\InterfaceType;
@@ -28,10 +30,12 @@ final class DeriveIt
     /**
      * Composition-root accessor (F-10 / RP-10): assembles the derivers behind the
      * {@see DeriveItFactory} so the facade stays a thin, stateless entry point.
+     * The optional telemetry sink threads through to every assembled deriver
+     * (CONSOLIDATION_PLAN.md §5.1).
      */
-    private static function factory(DeriveConfig $config): DeriveItFactory
+    private static function factory(DeriveConfig $config, ?DeriveEventSinkInterface $eventSink = null): DeriveItFactory
     {
-        return new DeriveItFactory($config);
+        return new DeriveItFactory($config, eventSink: $eventSink);
     }
 
     /**
@@ -60,18 +64,18 @@ final class DeriveIt
      *
      * @param ReflectionClass|class-string $class
      */
-    public static function derivePerTrait(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig()): string
+    public static function derivePerTrait(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig(), ?DeriveEventSinkInterface $eventSink = null): string
     {
-        return self::factory($config)->perTraitDeriver()->deriveSource($class);
+        return self::factory($config, $eventSink)->perTraitDeriver()->deriveSource($class);
     }
 
     /**
      * @param ReflectionClass|class-string $class
      * @return array<string, InterfaceType> keyed by trait short name
      */
-    public static function deriveTraitInterfaces(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig()): array
+    public static function deriveTraitInterfaces(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig(), ?DeriveEventSinkInterface $eventSink = null): array
     {
-        return self::factory($config)->perTraitDeriver()->deriveTraitInterfaces(
+        return self::factory($config, $eventSink)->perTraitDeriver()->deriveTraitInterfaces(
             is_string($class) ? new ReflectionClass($class) : $class,
         );
     }
@@ -83,9 +87,9 @@ final class DeriveIt
      * @param array<int, class-string> $classes
      * @return array<class-string, string> keyed by class FQCN -> rendered interface source
      */
-    public static function deriveFamily(array $classes, DeriveConfig $config = new DeriveConfig()): array
+    public static function deriveFamily(array $classes, DeriveConfig $config = new DeriveConfig(), ?DeriveEventSinkInterface $eventSink = null): array
     {
-        $derived = self::factory($config)->familyDeriver()->derive($classes);
+        $derived = self::factory($config, $eventSink)->familyDeriver()->derive($classes);
 
         $result = [];
         foreach ($classes as $class) {
@@ -111,12 +115,13 @@ final class DeriveIt
         ReflectionClass|string $class,
         array $returnWrapperMap = [],
         DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ): string {
         $reflection = is_string($class) ? new ReflectionClass($class) : $class;
 
-        $interface = self::factory($config)->interfaceDeriver()->derive($reflection);
+        $interface = self::factory($config, $eventSink)->interfaceDeriver()->derive($reflection);
 
-        return self::factory($config)->adapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
+        return self::factory($config, $eventSink)->adapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
     }
 
     /**
@@ -128,8 +133,9 @@ final class DeriveIt
     public static function deriveWithResult(
         ReflectionClass|string $class,
         DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ): DerivationResult {
-        return self::factory($config)->interfaceDeriver()->deriveWithResult($class);
+        return self::factory($config, $eventSink)->interfaceDeriver()->deriveWithResult($class);
     }
 
     /**
@@ -144,8 +150,9 @@ final class DeriveIt
         array $classes,
         array $namespacePrefixMap = [],
         DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ): string {
-        return self::factory($config)->familyDeriver()->deriveSource($classes, $namespacePrefixMap);
+        return self::factory($config, $eventSink)->familyDeriver()->deriveSource($classes, $namespacePrefixMap);
     }
 
     /**
@@ -158,8 +165,9 @@ final class DeriveIt
         string $rootClass,
         array $namespacePrefixMap = [],
         DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ): array {
-        $derived = self::factory($config)->familyDeriver()->deriveFromRoot($rootClass, $namespacePrefixMap);
+        $derived = self::factory($config, $eventSink)->familyDeriver()->deriveFromRoot($rootClass, $namespacePrefixMap);
 
         $result = [];
         foreach ($derived as $fqcn => $interface) {
@@ -186,8 +194,9 @@ final class DeriveIt
         array $classes,
         array $returnWrapperMap = [],
         DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ): string {
-        $interfaces = self::factory($config)->familyDeriver()->derive($classes);
+        $interfaces = self::factory($config, $eventSink)->familyDeriver()->derive($classes);
 
         // Deduplicate input classes so each member is derived and emitted once.
         $reflections = [];
@@ -213,7 +222,7 @@ final class DeriveIt
         $byNamespace = [];
         foreach ($reflections as $reflection) {
             $namespace = $reflection->getNamespaceName();
-            $adapter = self::factory($config)->adapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)->generate();
+            $adapter = self::factory($config, $eventSink)->adapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)->generate();
             $byNamespace[$namespace][] = [$interfaces[$reflection->getName()], $adapter];
         }
 
@@ -270,7 +279,9 @@ final class DeriveIt
     /**
      * Dry-run diff for CI drift detection (G9 / EC15 / D5). Derives $class and
      * compares the freshly generated source against $existingSource, reporting
-     * whether they diverge and a unified line diff.
+     * whether they diverge and a unified line diff. Emits a `diff.compute`
+     * activity and a `drift.detected` / `drift.clean` occurrence when an event
+     * sink is supplied (CONSOLIDATION_PLAN.md §5.2 / C3).
      *
      * @param ReflectionClass|class-string $class
      */
@@ -278,9 +289,19 @@ final class DeriveIt
         ReflectionClass|string $class,
         string $existingSource,
         DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
     ): DeriveDiff {
-        $generated = self::factory($config)->interfaceDeriver()->deriveSource($class);
+        $reflection = is_string($class) ? new ReflectionClass($class) : $class;
+        $target = ['target' => $reflection->getName()];
+        $events = new DeriveEventEmitter($eventSink);
 
-        return DeriveDiff::compute($existingSource, $generated);
+        $events->activityStarted('diff.compute', $target);
+        $generated = self::factory($config)->interfaceDeriver()->deriveSource($reflection);
+        $result = DeriveDiff::compute($existingSource, $generated);
+        $events->activityFinished('diff.compute');
+
+        $events->occurred($result->drift ? 'drift.detected' : 'drift.clean', $target);
+
+        return $result;
     }
 }

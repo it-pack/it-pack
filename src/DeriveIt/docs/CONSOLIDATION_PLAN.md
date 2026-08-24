@@ -3,19 +3,16 @@
 > Companion to `docs/EXECUTION.md` (the shared It-Pack execution model), the
 > sister package `it-pack/run-it` (the model's reference implementation), and
 > `docs/REVIEW.md` / `docs/REFACTORING_PLAN.md`.
-> Prepared: 2026-08-24 · Package: `it-pack/derive-it` · Status: **C1–C2
-> implemented; C3–C4 open.** Gates after C2: `test:unit` **262 tests / 551
-> assertions**, cs 0, analyse 0, deptrac 0 violations, infection MSI ≈ **99.2%**
-> (1290 mutants, 13 escaped — all in pre-existing code that previously scored
-> as time-outs; zero escapes and zero not-covered in the new telemetry code),
-> goldens byte-stable.
-> Plan deviations, both gate-driven: `DeriveObservationSeverity` moved to C3
-> (PHPStan's dead-code gate rejects an enum with zero consumers — it lands with
-> the CLI/docblock emitters), and the first real observation site is the
-> previously-silent skip of unimplemented `reExposeOwnedInterfaces` entries.
-> Per-trait derivation was also de-duplicated (`assemble()` extraction, closing
-> REVIEW_3's noted double trait-graph walk) so each pipeline stage emits exactly
-> once.
+> Prepared: 2026-08-24 · Package: `it-pack/derive-it` · Status: **C1–C3
+> implemented; C4 (bridge package) open.** Gates after C3: `test:unit` **269
+> tests / 572 assertions**, cs 0, analyse 0, deptrac 0 violations, goldens
+> byte-stable. Plan deviations, all gate- or scope-driven and recorded in the
+> implementation-status notes below: `DeriveObservationSeverity` landed with C3's
+> consumers (dead-code gate), the first observation site is the previously-silent
+> re-expose skip warning, per-trait assembly was de-duplicated (`assemble()`), and
+> `DeriveIt::diff()` gained an optional trailing `?DeriveEventSinkInterface`
+> parameter (additive) so CI drift hosts can wire telemetry without touching the
+> other facade signatures.
 
 **Hard constraint (from the review brief):** DeriveIt must **not** depend on
 RunIt — not at composer level, and not at code level — yet must be able to work

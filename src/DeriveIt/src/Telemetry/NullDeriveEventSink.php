@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Telemetry;
 
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 
 /**
  * Default {@see DeriveEventSinkInterface}: discards every event.
@@ -28,7 +29,7 @@ final class NullDeriveEventSink implements DeriveEventSinkInterface
     {
     }
 
-    public function observed(string $message, string $severity, array $attributes = []): void
+    public function observed(string $message, DeriveObservationSeverity $severity, array $attributes = []): void
     {
     }
 

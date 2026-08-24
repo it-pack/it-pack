@@ -76,6 +76,7 @@ final class ArgParser
             config: $this->buildConfig($state),
             namespacePrefixMap: $state->namespacePrefixMap,
             wrapperMap: $state->wrapperMap,
+            verbose: $state->verbose,
         );
     }
 
@@ -174,6 +175,9 @@ final class ArgParser
             },
             'throws-capture' => static function (?string $v, ParseState $s): void {
                 $s->throwsCapture = true;
+            },
+            'verbose' => static function (?string $v, ParseState $s): void {
+                $s->verbose = true;
             },
         ];
     }

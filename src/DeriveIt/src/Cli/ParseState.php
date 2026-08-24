@@ -38,6 +38,7 @@ final class ParseState
     public bool $failOnEmpty = false;
     public bool $attributePassThrough = false;
     public bool $throwsCapture = false;
+    public bool $verbose = false;
 
     /** @var list<string> */
     public array $skip = [];

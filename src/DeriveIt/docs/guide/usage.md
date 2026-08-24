@@ -171,6 +171,10 @@ derive --mode=family 'App\Payments\Gateway' --out=ports/
 > `--base-dir` is a lexical guard: it does not resolve symlinks in the target
 > path. Point `--out` only at paths you control.
 
+Pass `--verbose` to stream pipeline diagnostics (activities, measurements,
+occurrences, warnings) to **stderr** as `derive: …` lines; stdout stays
+byte-identical to a non-verbose run.
+
 ## API reference — `DeriveIt` (facade)
 
 All methods accept `ReflectionClass|class-string` for the target class unless

@@ -6,6 +6,7 @@ namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 use ItPack\DeriveIt\Exception\EmptyDerivationException;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
@@ -147,7 +148,7 @@ final readonly class InterfaceDeriver extends AbstractDeriver
             if (!in_array($owned, $implemented, true)) {
                 $this->events->observed(
                     sprintf('reExposeOwnedInterfaces entry "%s" is not implemented by "%s"; skipped.', $owned, $reflection->getName()),
-                    'warning',
+                    DeriveObservationSeverity::WARNING,
                     ['target' => $reflection->getName(), 'interface' => $owned],
                 );
 

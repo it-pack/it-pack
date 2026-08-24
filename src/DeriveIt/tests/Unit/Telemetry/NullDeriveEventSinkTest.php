@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Telemetry;
 
 use Codeception\Test\Unit;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 use ItPack\DeriveIt\Telemetry\NullDeriveEventSink;
 
 /**
@@ -23,7 +24,7 @@ final class NullDeriveEventSinkTest extends Unit
         $sink->activityStarted('surface.extract', $attributes);
         $sink->activityFinished('surface.extract');
         $sink->measured('methods.derived', 3, 'count', $attributes);
-        $sink->observed('notice', 'warning', $attributes);
+        $sink->observed('notice', DeriveObservationSeverity::WARNING, $attributes);
         $sink->occurred('derivation.completed', $attributes);
 
         $this->expectNotToPerformAssertions();

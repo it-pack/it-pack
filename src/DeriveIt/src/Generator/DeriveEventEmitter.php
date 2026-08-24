@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 
 /**
  * Null-safe pass-through from the derivation pipeline to the optional
@@ -47,10 +48,9 @@ final readonly class DeriveEventEmitter
     }
 
     /**
-     * @param string $severity PSR-3-shaped literal (`debug`|`info`|`warning`|`error`)
      * @param array<string, string|int|float|bool|null> $attributes
      */
-    public function observed(string $message, string $severity, array $attributes = []): void
+    public function observed(string $message, DeriveObservationSeverity $severity, array $attributes = []): void
     {
         $this->sink?->observed($message, $severity, $attributes);
     }
