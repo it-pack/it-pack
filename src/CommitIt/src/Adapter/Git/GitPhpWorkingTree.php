@@ -136,7 +136,11 @@ final class GitPhpWorkingTree implements WorkingTree
 
         $realRepoParent = realpath($repoParent);
 
-        if ($realRepoParent === false || !str_starts_with($realTargetParent, $realRepoParent)) {
+        $separator = DIRECTORY_SEPARATOR;
+        $inside = $realTargetParent === $realRepoParent
+            || str_starts_with($realTargetParent . $separator, $realRepoParent . $separator);
+
+        if ($realRepoParent === false || !$inside) {
             throw new \InvalidArgumentException(
                 'Worktree path must be located inside the repository parent directory.',
             );

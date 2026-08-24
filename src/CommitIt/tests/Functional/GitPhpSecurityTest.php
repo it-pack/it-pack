@@ -122,6 +122,45 @@ final class GitPhpSecurityTest extends Unit
         }
     }
 
+    public function testWorktreeAddRejectsSiblingPrefixPath(): void
+    {
+        $base = GitRepoFactory::createTempDir('commitit-sec-scope');
+        $repo = $base . DIRECTORY_SEPARATOR . 'repo';
+        $sibling = $base . '-sibling';
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            mkdir($sibling, 0o755, true);
+            $repository = $this->open($repo);
+
+            $this->expectException(\InvalidArgumentException::class);
+            $repository->getWorkingTree()->add(
+                RepositoryPath::from($sibling . DIRECTORY_SEPARATOR . 'wt'),
+                BranchName::from('escape'),
+            );
+        } finally {
+            GitRepoFactory::tearDown($repo, $sibling);
+        }
+    }
+
+    public function testWorktreeRemoveRejectsSiblingPrefixPath(): void
+    {
+        $base = GitRepoFactory::createTempDir('commitit-sec-scope');
+        $repo = $base . DIRECTORY_SEPARATOR . 'repo';
+        $sibling = $base . '-sibling';
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            mkdir($sibling, 0o755, true);
+            $repository = $this->open($repo);
+
+            $this->expectException(\InvalidArgumentException::class);
+            $repository->getWorkingTree()->remove(RepositoryPath::from($sibling . DIRECTORY_SEPARATOR . 'wt'));
+        } finally {
+            GitRepoFactory::tearDown($repo, $sibling);
+        }
+    }
+
     public function testStageRejectsEscapingPath(): void
     {
         $repo = GitRepoFactory::createTempDir('commitit-sec');

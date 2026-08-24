@@ -26,7 +26,7 @@ These constraints come from `AGENTS.md` and the review; violating them silently 
 
 ---
 
-## F3 — Worktree path-scope check is bypassable (P0, security)
+## F3 — Worktree path-scope check is bypassable (P0, security) — ✅ DONE (2026-08-22)
 
 **Goal:** Make `assertWithinRepositoryScope()` match *true ancestry* only, so a sibling directory whose name merely prefixes the repo parent is rejected.
 
