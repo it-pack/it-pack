@@ -184,7 +184,7 @@ design (which is correct — see REVIEW §7).
 
 ### Tasks
 
-- [ ] **M2-T1** In `ParsedSourceCache`:
+- [x] **M2-T1** In `ParsedSourceCache`:
       - add `public const DEFAULT_MAX_ENTRIES = 32;`
       - constructor: `public function __construct(private readonly int $maxEntries = self::DEFAULT_MAX_ENTRIES)`
       - throw `InvalidCacheConfigurationException` (new, extends
@@ -195,12 +195,13 @@ design (which is correct — see REVIEW §7).
       - rewrite the class docblock: entries are **bounded**; the lifetime note
         ("persist for the lifetime of the owning Detector") remains, now with an
         explicit memory ceiling.
-- [ ] **M2-T2** *(Optional exposure)* Read `src/Factory/DetectorFactory.php`
+- [x] **M2-T2** *(Optional exposure)* Read `src/Factory/DetectorFactory.php`
       (~lines 40–80) and, only if its `create()` already takes options, thread a
       `?int $cacheMaxEntries = null` through to the cache. Do **not** grow the
       factory signature just for this — the default suffices until a consumer
-      asks.
-- [ ] **M2-T3** Extend `tests/Unit/DetectorCacheTest.php`:
+      asks. *(Evaluated: skipped by design — no consumer asks yet; the factory's
+      `new ParsedSourceCache()` keeps defaults.)*
+- [x] **M2-T3** Extend `tests/Unit/DetectorCacheTest.php`:
       - inserting `DEFAULT_MAX_ENTRIES + N` distinct sources evicts the oldest
         (`has()` false for earliest keys, true for the newest cap);
       - re-`put()` of an existing key does not grow the store;
@@ -436,6 +437,29 @@ Ordering note: run this **after** M4 so the shim's `'private'`
 
 Dated record of what actually landed, per milestone. The checkboxes above mark
 task completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-24 — M2 landed, bounded parse cache (REVIEW F4)
+
+- Added `Exception\InvalidCacheConfigurationException` (`final`, extends
+  `\InvalidArgumentException`, implements `DisenchantItExceptionInterface`),
+  thrown when a cache is configured below one entry.
+- `ParsedSourceCache` is now **bounded**: new `DEFAULT_MAX_ENTRIES = 32`
+  constant and optional `maxEntries` constructor argument; deterministic FIFO
+  eviction (oldest insertion) when at capacity; re-putting an already-cached
+  key never evicts. Class docblock rewritten around the explicit memory
+  ceiling. Interface `ParsedSourceCacheInterface` unchanged.
+- `DetectorFactory::create()` deliberately NOT extended (M2-T2 guardrail):
+  no consumer asks for a custom bound yet; `new ParsedSourceCache()` keeps
+  defaults. Existing call sites in tests/examples untouched and still valid.
+- New/extended coverage in `tests/Unit/DetectorCacheTest.php`: default-cap
+  eviction of oldest entries, re-put-at-capacity non-eviction + correct FIFO
+  victim, `maxEntries = 0` throws, constant sanity check. Suite grew to
+  172 tests / 431 assertions.
+- Incidental doc fix in `examples/14_performance_cache.php` (same component):
+  three stale "WeakMap cache" references corrected to "content-keyed bounded"
+  wording; example output semantics verified unchanged.
+- Verification: architecture PASS · PHPStan src lvl 9 clean · format clean ·
+  unit suite OK 172/431 · examples 05 & 14 smoke-runs pass.
 
 ### 2026-08-24 — M1 landed (`e685933`), M0 closed on `main`
 

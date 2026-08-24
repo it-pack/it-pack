@@ -8,8 +8,9 @@ declare(strict_types=1);
  * Demonstrates, with concrete counts, that the Detector:
  *   1. Builds the (expensive) nikic parser exactly once per Detector and
  *      reuses it across every scan (lazy and reused parser stack), and
- *   2. Parses a given SourceCode only once thanks to the WeakMap
- *      ParsedSourceCache — re-scanning the SAME source is a pure cache hit.
+ *   2. Parses a given SourceCode only once thanks to the content-keyed
+ *      bounded ParsedSourceCache — re-scanning the SAME source is a pure
+ *      cache hit.
  *
  * Run: php examples/14_performance_cache.php
  */
@@ -28,7 +29,7 @@ use PhpParser\ParserFactory;
 
 /**
  * Wraps a real parser to count how many times parse() is actually invoked —
- * the metric that proves the WeakMap cache avoids re-parsing the same source.
+ * the metric that proves the content-keyed cache avoids re-parsing the same source.
  */
 final class CountingParser implements Parser
 {
@@ -130,4 +131,4 @@ echo sprintf(
     $distinctParses,
 );
 echo "\nTakeaway: the nikic parser is constructed once and reused; re-scanning\n";
-echo "the same SourceCode parses 0 additional times (WeakMap cache).\n";
+echo "the same SourceCode parses 0 additional times (bounded content-keyed cache).\n";

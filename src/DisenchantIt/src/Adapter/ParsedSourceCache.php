@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter;
 
 use ItPack\DisenchantIt\Contract\ParsedSourceCacheInterface;
+use ItPack\DisenchantIt\Exception\InvalidCacheConfigurationException;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\SourceCodeInterface;
 
@@ -17,15 +18,26 @@ use ItPack\DisenchantIt\ValueObject\SourceCodeInterface;
  * Keying by `SourceCode::identity()` — a stable content hash — collapses all
  * three into exactly one parse per distinct source string.
  *
- * Entries persist for the lifetime of the owning Detector. That is bounded by
- * the number of distinct sources scanned through that Detector, which for a
- *   single Disenchanter (one file) is one — so the original weak-reference GC
- *   guarantee is not needed here.
+ * The store is **bounded**: at most `maxEntries` distinct sources are held for
+ * the lifetime of the owning Detector. When the bound is reached, the oldest
+ * inserted entry (deterministic FIFO) is evicted before a new one is stored;
+ * re-putting an already-cached key never evicts. This keeps memory proportional
+ * to `maxEntries` even when one Detector scans many distinct sources, while a
+ * single Disenchanter run (one file) always fits in the default cap.
  */
 final class ParsedSourceCache implements ParsedSourceCacheInterface
 {
+    public const DEFAULT_MAX_ENTRIES = 32;
+
     /** @var array<string, list<LiteralInterface>> */
     private array $store = [];
+
+    public function __construct(private readonly int $maxEntries = self::DEFAULT_MAX_ENTRIES)
+    {
+        if ($this->maxEntries < 1) {
+            throw new InvalidCacheConfigurationException($this->maxEntries);
+        }
+    }
 
     public function has(SourceCodeInterface $code): bool
     {
@@ -41,6 +53,12 @@ final class ParsedSourceCache implements ParsedSourceCacheInterface
     /** @param list<LiteralInterface> $literals */
     public function put(SourceCodeInterface $code, array $literals): void
     {
+        if (!isset($this->store[$code->identity()])) {
+            while (count($this->store) >= $this->maxEntries) {
+                unset($this->store[array_key_first($this->store)]);
+            }
+        }
+
         $this->store[$code->identity()] = $literals;
     }
 }
