@@ -14,8 +14,8 @@
 > otherwise. API surface changes are additions only (new enum/constants/helpers);
 > no public signature is removed or re-typed.
 >
-> **Status: Planned — nothing below has been implemented yet.** Update the
-> implementation-status table as steps land (see §Implementation status).
+> **Status: Milestone A implemented (2026-08-24); Milestones B–E planned.** Update
+> the implementation-status table as steps land (see §Implementation status).
 
 ## Severity legend (mirrors `docs/REVIEW.md` §11)
 
@@ -69,9 +69,9 @@ the gates between them).
 
 | Step | Finding | Status | What shipped |
 |------|---------|--------|--------------|
-| R3-1 | F-1 | ⬜ Planned | — |
-| R3-2 | F-2 | ⬜ Planned | — |
-| R3-3 | F-15 | ⬜ Planned | — |
+| R3-1 | F-1 | ✅ Done | `"psr/cache": "^1.0 \|\| ^2.0 \|\| ^3.0"` added to `composer.json` require; lock updated; `composer why psr/cache` shows the direct link; `PsrCacheReflectionCache` docblock states the pool is optional consumer infrastructure. |
+| R3-2 | F-2 | ✅ Done | `AGENTS.md` rewritten to post-Phase-12 reality: current status narrative (all five modes, CLI, factory), live gate baseline (247/509, MSI ≈ 99.7%), real repo layout incl. `docs/`, cross-references repointed (`docs/REVIEW.md`, `docs/REFACTORING_PLAN.md`, guide + ADRs), maintenance-rule note added. |
+| R3-3 | F-15 | ✅ Done | `"license": "MIT"` declared (family convention) + MIT `LICENSE` file copied from sibling packages; `composer validate` warning-free. |
 | R3-4 | F-4 | ⬜ Planned | — |
 | R3-5 | F-5 | ⬜ Planned | — |
 | R3-6 | F-6 | ⬜ Planned | — |
