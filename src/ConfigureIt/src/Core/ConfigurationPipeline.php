@@ -27,6 +27,11 @@ use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 final readonly class ConfigurationPipeline implements ConfigurationPipelineInterface
 {
     /**
+     * Base priority assigned to the first document; each subsequent document is
+     * given a higher priority so later sources win last-wins merges.
+     */
+    private const DEFAULT_PRIORITY = 0;
+    /**
      * @param list<ConfigurationProcessorInterface> $processors
      */
     public function __construct(
@@ -41,7 +46,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
      */
     public function run(iterable $documents): ConfigurationGraphInterface
     {
-        $priority = 0;
+        $priority = self::DEFAULT_PRIORITY;
         $graph = new ConfigurationGraph();
 
         foreach ($documents as $document) {

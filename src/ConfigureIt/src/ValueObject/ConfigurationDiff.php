@@ -95,6 +95,9 @@ final readonly class ConfigurationDiff
         return implode("\n", $lines);
     }
 
+    /**
+     * @param mixed $value the (heterogeneous) changed value to render for display.
+     */
     private function display(mixed $value): string
     {
         return (string) json_encode($value);

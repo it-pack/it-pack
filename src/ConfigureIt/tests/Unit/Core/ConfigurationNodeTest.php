@@ -19,4 +19,15 @@ class ConfigurationNodeTest extends Unit
         verify($node->priority())->equals(10);
         verify($node->metadata())->equals(['origin' => 'base.yaml']);
     }
+
+    public function testDefaultProvenanceReportsUnknownFormatAndAdapter(): void
+    {
+        $node = new ConfigurationNode('db.host', 'localhost', 'inline', 10);
+
+        $provenance = $node->provenance();
+
+        verify($provenance->format())->equals(\ItPack\ConfigureIt\ValueObject\Format::UNKNOWN);
+        verify($provenance->adapter())->equals('unknown');
+        verify($provenance->sourceKind())->equals('programmatic');
+    }
 }

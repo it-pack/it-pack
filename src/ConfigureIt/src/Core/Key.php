@@ -100,6 +100,8 @@ final readonly class Key
      * Read a value from a nested tree, or $default when any segment is missing.
      *
      * @param array<string, mixed> $tree
+     * @param mixed $default fallback returned when the key is absent. Resolved
+     *        configuration values are intrinsically heterogeneous.
      */
     public function get(array $tree, mixed $default = null): mixed
     {

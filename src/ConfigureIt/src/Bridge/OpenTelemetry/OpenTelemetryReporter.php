@@ -149,6 +149,9 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
         return $this->inner->observations();
     }
 
+    /**
+     * @param mixed $value the (heterogeneous) attribute value to coerce to float.
+     */
     private function toFloat(mixed $value): float
     {
         return \is_numeric($value) ? (float) $value : 0.0;

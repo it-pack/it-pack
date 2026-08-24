@@ -55,6 +55,9 @@ final readonly class CastingProcessor implements ConfigurationProcessorInterface
     /**
      * @return int|float|bool|string
      */
+    /**
+     * @param mixed $value the (heterogeneous) configuration value to coerce.
+     */
     private function cast(mixed $value, string $type, string $key): int|float|bool|string
     {
         return match ($type) {

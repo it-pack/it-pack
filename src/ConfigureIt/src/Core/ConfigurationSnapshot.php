@@ -61,6 +61,10 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
         return $keys;
     }
 
+    /**
+     * @param mixed $default fallback returned when the path is absent. Configuration
+     *        values are intrinsically heterogeneous, so the return type is `mixed`.
+     */
     public function get(string $path, mixed $default = null): mixed
     {
         return Key::fromString($path)->get($this->tree, $default);

@@ -37,6 +37,9 @@ final class TreeBuilder
      * `mixed` directly (which the static analysis forbids). Non-scalars become
      * the empty string.
      */
+    /**
+     * @param mixed $value the (heterogeneous) configuration value to stringify for diffs.
+     */
     public static function asString(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';

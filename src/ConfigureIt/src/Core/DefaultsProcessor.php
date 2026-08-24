@@ -23,6 +23,11 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 final readonly class DefaultsProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
 {
     /**
+     * Priority assigned to nodes minted from default values. Lower than any
+     * real source so an explicit value always overrides a default.
+     */
+    private const DEFAULT_PRIORITY = 0;
+    /**
      * @param array<string, mixed> $defaults flat dotted-key defaults.
      */
     public function __construct(
@@ -48,13 +53,13 @@ final readonly class DefaultsProcessor implements ConfigurationProcessorInterfac
                 key: $key,
                 value: $value,
                 source: 'defaults',
-                priority: 0,
+                priority: self::DEFAULT_PRIORITY,
                 metadata: ['origin' => 'defaults'],
                 provenance: new Provenance(
                     resourceUri: 'defaults',
                     format: Format::PHP,
                     adapter: 'DefaultsProcessor',
-                    priority: 0,
+                    priority: self::DEFAULT_PRIORITY,
                     sourceKind: SourceKind::Default,
                     at: microtime(true),
                 ),

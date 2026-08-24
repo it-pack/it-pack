@@ -719,6 +719,73 @@ still pass unchanged.
 
 ---
 
+## Phase 5 — Status: DONE (2026-08-22)
+
+**F7 — Named priority constant.** `ConfigurationPipeline::run()` now seeds
+`$priority = self::DEFAULT_PRIORITY;` (`private const DEFAULT_PRIORITY = 0;`), and
+`DefaultsProcessor` declares `private const DEFAULT_PRIORITY = 0;` used for both
+`priority: 0` occurrences. Behavior unchanged.
+
+**F9 — Honest "unknown" format sentinel.** `Format` gains `case UNKNOWN = 'unknown';`.
+`Provenance::fromArray()` now falls back to `Format::UNKNOWN` (instead of
+`Format::PHP`) when no format is recorded, so a deserialized artifact without a
+known format is honestly "unknown" rather than mislabeled as PHP.
+`ConfigurationNode::provenance()` uses `Format::UNKNOWN` and a documented
+`private const UNKNOWN_ADAPTER = 'unknown'` (replacing the raw `'unknown'`
+literal); `sourceKind: SourceKind::Programmatic` is retained (F5/F6).
+`Format::UNKNOWN` round-trips via `fromString` (the existing `tryFrom` matches the
+`'unknown'` value). New `ConfigurationNodeTest::testDefaultProvenanceReportsUnknownFormatAndAdapter`
+asserts a node with no provenance reports `Format::UNKNOWN`, not `Format::PHP`, and
+adapter `'unknown'`.
+
+**F10 — Tighten bare `mixed`.** All bare `mixed` usages were reviewed; every one is
+at a legitimate heterogeneous boundary — configuration values
+(`ConfigurationNode::$value`, `ConfigurationSnapshot::get`, `ReloadableConfiguration::get`,
+`Key::get/set`, the `ScalarCaster`/`CastingProcessor` cast family, renderers),
+deserialization (`FlagDefinition::fromArray`, `Provenance::stringList`), or adapter
+contracts that deliberately mirror the Nette schema API
+(`ProcessorInterface::process`, `SchemaInterface::{normalize,merge,complete}`). None
+can be safely narrowed without breaking the "config values are any type" guarantee, so
+they are kept as `mixed` with documenting `@param` notes added to the public methods that
+previously lacked one (`ConfigurationSnapshot::get`, `ReloadableConfiguration::get`,
+`Key::get/set`, `RedactingRenderer::render`, `CastingProcessor::cast`, `ScalarCaster::toInt`,
+`OpenTelemetryReporter::toFloat`, `TreeBuilder::asString`, `ConfigurationDiff::display`). The
+dominant `array<string, mixed>` shape is retained per the roadmap; `composer analyse` stays green.
+
+**F11 — `PORTS.md` fleshed out.** `docs/architecture/PORTS.md` was a stub; it now
+documents every port (ConfigurationSource, ConfigurationReader, ConfigurationLoader,
+ConfigurationResolver, ConfigurationSchema, ConfigurationProcessor, ConfigurationMerger,
+ConfigurationCache, ConfigurationGraphBuilder, ConfigurationSnapshotFactory) using the
+Purpose / Responsibilities / May depend on / May not depend on / Typical adapters /
+Example template, plus Philosophy, Port Relationships, Lifecycle, Dependency Rules,
+Extension Guidelines and Examples sections. `ConfigurationMerger` and
+`ConfigurationGraphBuilder` are documented as *implicit* ports (handled by
+`ConfigurationPipeline` last-wins merging and `DocumentNormalizer` respectively) since no
+standalone interface exists yet.
+
+**F15 — DRY the `Provenance` copy methods.** `Provenance` gains a private
+`copy(array $overrides): self` helper reconstructing all twelve constructor arguments
+from `$this` with named overrides; `withProcessor()`, `asOverridden()`, `validated()`
+and `asSensitive()` are now one-liners delegating to it (idempotency guards preserved).
+Future discriminator/field changes now touch a single place. Existing mutator tests still
+pass unchanged.
+
+**Optional / not adopted:**
+- **F12 (property hooks)** — skipped: the affected classes implement interfaces
+  (`ProvenanceInterface`, `ConfigurationNodeInterface`) whose method names collide with the
+  proposed hook names (`resourceUri()`, `format()`, …); the roadmap itself warns this risks
+  interface conflicts, so the explicit getters are kept.
+- **F13 (Lazy / WeakMap)** — skipped: the roadmap scopes this to "only if profiling shows cost
+  at scale"; no benchmark indicates a leak or hot path, so the memoization is not introduced
+  preemptively (avoids speculative complexity).
+- **F14 (Fibers)** — DO NOT ADOPT (deterministic, synchronous resolution is a deliberate feature).
+
+**Gates after change:** `composer analyse` **OK (0 errors)**; `composer cs:check` **0 of 260
+files**; `composer test:unit` **267 tests / 620 assertions** (was 266/617; +1 test = +3
+assertions from the new `ConfigurationNodeTest::testDefaultProvenanceReportsUnknownFormatAndAdapter`).
+
+---
+
 ## Cross-cutting acceptance (run after every phase)
 
 ```bash
@@ -742,7 +809,7 @@ Per-phase hard gates:
 | 2 | F1, F2, F4 | Med | M | Yes (F1+F2+F4 share `ConfigurationBuilder`; one branch) | ✅ done (2026-08-22) |
 | 3 | F3 | Low | S | Yes | ✅ done (2026-08-22) |
 | 4 | F5, F6, F8 | Med | M | Yes (F6/F8 are tiny; F5 is the bulk) | ✅ done (2026-08-22) |
-| 5 | F7–F15 | Low | M | Yes (each finding its own commit) |
+| 5 | F7–F15 | Low | M | Yes (each finding its own commit) | ✅ done (2026-08-22) |
 
 All changes are additive/isolated; none block the existing feature set. Items 1–4 raise the
 codebase to "exemplary" against `AGENTS.md`; Phase 5 is polish only.

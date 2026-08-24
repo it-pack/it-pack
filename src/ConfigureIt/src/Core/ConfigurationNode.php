@@ -24,6 +24,12 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 final readonly class ConfigurationNode implements ConfigurationNodeInterface
 {
     /**
+     * Sentinel adapter name used when a node has no provenance of its own
+     * (the value was supplied programmatically rather than loaded by an adapter).
+     */
+    private const UNKNOWN_ADAPTER = 'unknown';
+
+    /**
      * @param mixed $value
      * @param array<string, mixed> $metadata free-form metadata (schema hints, origin, ...).
      * @param ProvenanceInterface|null $provenance explicit provenance; when null a minimal
@@ -71,8 +77,8 @@ final readonly class ConfigurationNode implements ConfigurationNodeInterface
     {
         return $this->provenance ?? new Provenance(
             resourceUri: $this->source,
-            format: Format::PHP,
-            adapter: 'unknown',
+            format: Format::UNKNOWN,
+            adapter: self::UNKNOWN_ADAPTER,
             priority: $this->priority,
             sourceKind: SourceKind::Programmatic,
         );

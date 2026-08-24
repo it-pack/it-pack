@@ -18,6 +18,9 @@ use ItPack\ConfigureIt\Exception\TypeException;
  */
 final class ScalarCaster
 {
+    /**
+     * @param mixed $value the (heterogeneous) configuration value to coerce to int.
+     */
     public static function toInt(mixed $value, string $path): int
     {
         if (\is_int($value)) {

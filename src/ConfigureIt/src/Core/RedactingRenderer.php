@@ -25,6 +25,10 @@ final class RedactingRenderer
         return $this->mask;
     }
 
+    /**
+     * @param mixed $value the (heterogeneous) configuration value to render; secrets
+     *        are masked by the caller via the `$sensitive` flag.
+     */
     public function render(mixed $value, bool $sensitive): string
     {
         if ($sensitive) {

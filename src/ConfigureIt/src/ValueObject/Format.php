@@ -24,6 +24,7 @@ enum Format: string
     case INI = 'ini';
     case XML = 'xml';
     case FRONTMATTER = 'frontmatter';
+    case UNKNOWN = 'unknown';
 
     /**
      * @throws \InvalidArgumentException when the format string is unknown.
