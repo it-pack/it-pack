@@ -54,7 +54,7 @@ uses readonly classes (a PHP 8.2 feature) and the README claims `>= 8.1`.
 |----|-----|------|------------------|
 | F-1 | 🟠 | Hexagonal / DIP | Core `Hasher` imports concrete `Adapter\NativeFilepathFileinfo`; no architecture test guards the boundary |
 | F-2 | 🟠 | Packaging | Missing `"php"` constraint; README floor (`>= 8.1`) contradicts readonly-class usage (≥ 8.2); monorepo convention is `^8.4`/`^8.5` |
-| F-3 | 🟡 | DRY / magic values | Default `'sha256'` duplicated 9× across 5 files although `HashAlgorithm::default()` exists |
+| F-3 | 🟡 | DRY / magic values | Default `'sha256'` duplicated 11× across 4 files although `HashAlgorithm::default()` exists |
 | F-4 | 🟡 | Interface backing | `Hasher` (the primary API) and `HashBuilder` have no interfaces; consumers bind to concrete classes |
 | F-5 | 🟡 | Performance | `hashFile()` loads whole files into memory (measured: 200 MiB file → +200 MiB peak) despite an existing streaming path |
 | F-6 | 🟡 | Contract robustness | Raw `ValueError`/`TypeError` leak through the public API; `HashContextInterface` lifecycle undocumented; non-seekable-stream semantics implicit |
@@ -142,8 +142,9 @@ would make the future bridge story symmetric with siblings that expose `Contract
 
 **DRY findings:**
 
-- **F-3 (🟡)** — `'sha256'` appears 9× across 5 files as the default algorithm literal
-  (`Hasher` ×6, `HashBuilder:22`, `HmacHasherInterface:9`, `NativeHmacHasher:14`) while
+- **F-3 (🟡)** — `'sha256'` appears 11× across 4 files as the default algorithm literal
+  (`Hasher` ×8 — lines 15, 24, 33, 49, 54, 64, 96, 112 — plus `HashBuilder:22`,
+  `HmacHasherInterface:9`, `NativeHmacHasher:14`) while
   `HashAlgorithm::default()` exists, is tested, and is never used by these defaults.
   Recommended: default parameters to `HashAlgorithm::SHA256` (backed-enum cases are valid
   parameter defaults since 8.1) and narrow signatures to `string|HashAlgorithm` where strings
@@ -234,7 +235,7 @@ None of these violate memory safety, and PHP's native messages are decent — bu
 |-------|----|----------|--------|
 | 1 | F-2 | 🟠 | Add `php` constraint (+ license/description); reconcile README floor |
 | 2 | F-1 | 🟠 | Remove core→adapter import in `Hasher` (port for path wrapping or directory listing); add deptrac rule |
-| 3 | F-3 | 🟡 | Replace 9× `'sha256'` defaults with `HashAlgorithm::SHA256`; name the chunk-size constant; dedupe exception message |
+| 3 | F-3 | 🟡 | Replace 11× `'sha256'` defaults with `HashAlgorithm::SHA256`; name the chunk-size constant; dedupe exception message |
 | 4 | F-5 | 🟡 | Route `hashFile` through the stream path |
 | 5 | F-6 | 🟡 | Document context lifecycle + stream semantics; normalize ValueError→package exceptions |
 | 6 | F-4 | 🟡 | Introduce `HasherInterface` (builder optional) and return it from the composition root |
