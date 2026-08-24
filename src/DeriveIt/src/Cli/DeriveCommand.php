@@ -328,7 +328,10 @@ final class DeriveCommand implements CommandInterface
      * (F-9 / RP-9). When no base dir is supplied the CLI keeps its documented
      * trusted-operator behavior and writes anywhere the process may. The check is
      * purely lexical (`..` / symlink-free canonicalization) so it works before the
-     * directories exist.
+     * directories exist — and therefore does NOT resolve symlinks in the target
+     * path: a symlink planted inside the base dir can still point out. This is a
+     * recorded, accepted trade-off under the trusted-operator model (F14 / R3-15);
+     * the same caveat is stated in `--help` and `docs/guide/usage.md`.
      */
     private function assertSafeOutputPath(string $out, ?string $baseDir): void
     {
@@ -443,6 +446,8 @@ final class DeriveCommand implements CommandInterface
             Security:
               The CLI autoloads the class names you pass, so run it only on code you
               trust (F13 / R.13).
+              --base-dir is a lexical guard: it does not resolve symlinks in the
+              target path. Point --out only at paths you control.
 
             Examples:
               derive 'App\Payments\Gateway'

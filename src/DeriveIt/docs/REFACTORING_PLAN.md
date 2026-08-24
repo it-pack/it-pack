@@ -14,11 +14,11 @@
 > otherwise. API surface changes are additions only (new enum/constants/helpers);
 > no public signature is removed or re-typed.
 >
-> **Status: Milestones A–D implemented (2026-08-24); Milestone E (doc-only) planned.**
-> Gates after Milestone D: `test:unit` **252 tests / 525 assertions**, `cs:check` 0,
+> **Status: Complete — Milestones A–E all implemented (2026-08-24).** Gates after
+> the final milestone: `test:unit` **252 tests / 525 assertions**, `cs:check` 0,
 > `analyse` 0, `architecture` 0 violations, `infection` MSI ≈ **99.8%**
-> (1200 mutants, 2 escaped, min-msi 80), goldens byte-stable. Update the
-> implementation-status table as steps land (see §Implementation status).
+> (1200 mutants, 2 escaped, min-msi 80), goldens byte-stable. `docs/REVIEW.md`
+> §11 carries the per-finding resolution table (Definition of Done item).
 
 ## Severity legend (mirrors `docs/REVIEW.md` §11)
 
@@ -86,7 +86,7 @@ the gates between them).
 | R3-12 | F-8 | ✅ Done | `FamilyDeriver::deriveMember()` forwards its `$reflectionCache` and Nette `$factory` into each member `InterfaceDeriver`, so family runs genuinely share the assembled set as documented on the composition root. No golden diffs; memoization behavior unchanged. |
 | R3-13 | F-10 | ✅ Done | `copyWith()` rejects unknown override keys with a `LogicException` naming the key and the fix; new test `testCopyWithRejectsUnknownOverrideKeys` exercises the guard via reflection. |
 | R3-14 | F-11 | ✅ Done | `WeakReflectionCache::get()` collapsed to `($this->items[$fqcn] ?? null)?->get();`. |
-| R3-15 | F-14 | ⬜ Planned | — |
+| R3-15 | F-14 | ✅ Done (doc-only) | Lexical-sandbox caveat recorded in `DeriveCommand::assertSafeOutputPath()` docblock, the `Security:` section of `--help`, and `docs/guide/usage.md`'s trust-model note; optional symlink-hardening intentionally not taken under the trusted-operator model. Bonus DoD fix: `docs/guide/usage.md` graph-traversal recipe updated from the removed static setter to instance-injected `ClassReflection::create(classResolver: …)`. |
 
 ---
 

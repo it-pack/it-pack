@@ -359,6 +359,31 @@ closed).
 **Priority order:** F-1 and F-2 before tagging v0.1.0; F-3…F-13 are a single
 afternoon of polish; F-14/F-15 informational.
 
+**Resolution (2026-08-24):** all findings closed via `docs/REFACTORING_PLAN.md`
+Milestones A–E.
+
+| ID | Resolution | Where |
+|----|------------|-------|
+| F-1 | ✅ Addressed | `psr/cache: ^1.0 \|\| ^2.0 \|\| ^3.0` declared; pool documented as optional consumer infrastructure (R3-1). |
+| F-2 | ✅ Addressed | `AGENTS.md` rewritten to post-Phase-12 reality with live gate baseline and `docs/` pointers + maintenance rule (R3-2). |
+| F-3 | ✅ Addressed | `DeriveConfig` is now `final readonly class` (R3-11). |
+| F-4 | ✅ Addressed | `Naming::INTERFACE_SUFFIX` / `ADAPTER_SUFFIX` / `interfaceShortName()` (unconditional per-trait append preserved) / `adapterShortName()` / `join()`; all call sites migrated (R3-4). |
+| F-5 | ✅ Addressed | `AbstractDeriver::signatureFor()`; the three collection loops rewired, single `cloneWithName` site (R3-5). |
+| F-6 | ✅ Addressed | Dead stacked docblock deleted from `FamilyDeriver` (R3-6). |
+| F-7 | ✅ Addressed | `Cli\Preset` backed enum drives parse/message/help; `VALUE_OPTIONS` → arity map; `DeriveCommand::FAMILY_ADAPTER_SOURCE_KEY` constant (R3-8). |
+| F-8 | ✅ Addressed | `FamilyDeriver::deriveMember()` forwards its cache + Nette factory to member derivers (R3-12). |
+| F-9 | ✅ Addressed | `TypeSubstitutor::selfFqcn()/parentFqcn()` accessors; `InterfaceDeriver::build()` reports from the substitutor without recomputing (R3-7). |
+| F-10 | ✅ Addressed | `copyWith()` rejects unknown override keys (`LogicException`) + test (R3-13). |
+| F-11 | ✅ Addressed | `WeakReflectionCache::get()` collapsed to a nullsafe expression (R3-14). |
+| F-12 | ✅ Addressed | Both resolvers marked `final`; all three consistent (R3-10). |
+| F-13 | ✅ Addressed | Unreachable root check removed from `DeriveCommand::validate()`; promotion intent documented; promotion test added (R3-9). |
+| F-14 | ✅ Addressed (doc-only) | Lexical-sandbox caveat recorded in `assertSafeOutputPath()` docblock, `--help`, and `docs/guide/usage.md`; hardening path intentionally not taken under the trusted-operator model (R3-15). |
+| F-15 | ✅ Addressed | `"license": "MIT"` declared + MIT `LICENSE` file; `composer validate` warning-free (R3-3). |
+
+Post-plan gates (2026-08-24): `test:unit` 252 tests / 525 assertions · `cs:check` 0 ·
+`analyse` 0 · `architecture` 0 violations · `infection` MSI ≈ 99.8% (1200 mutants,
+2 escaped) · golden files byte-stable throughout.
+
 ---
 
 ## 12. Out of Scope / Notes

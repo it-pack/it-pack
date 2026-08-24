@@ -139,15 +139,17 @@ flag toggled.
 
 ## Recipe: custom graph traversal
 
-Replace a resolver if you need non-default walking behaviour:
+Replace a resolver if you need non-default walking behaviour. Resolvers are
+instance-injected — there is no mutable static setter:
 
 ```php
-use ItPack\DeriveIt\Reflection\ClassReflection;
 use App\MyCustomClassResolver;
+use ItPack\DeriveIt\Reflection\ClassReflection;
 
-ClassReflection::setRecursiveClassResolver(new MyCustomClassResolver());
-
-$reflection = ClassReflection::create(\App\Widget::class);
+$reflection = ClassReflection::create(
+    \App\Widget::class,
+    classResolver: new MyCustomClassResolver(),
+);
 $reflection->getClassesRecursively();
 ```
 
@@ -165,6 +167,9 @@ derive --mode=family 'App\Payments\Gateway' --out=ports/
 > **Trust model (F13 / R.13):** the CLI *autoloads the class names you pass* (and
 > token-scans any file targets). Only run it against code you trust — do not point
 > it at untrusted class names or files.
+>
+> `--base-dir` is a lexical guard: it does not resolve symlinks in the target
+> path. Point `--out` only at paths you control.
 
 ## API reference — `DeriveIt` (facade)
 
