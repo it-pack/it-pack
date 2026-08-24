@@ -35,6 +35,27 @@ Health reporters (`CallbackHealthReporter`, `ErrorLogHealthReporter`) implement
 `InternalHealthReporterInterface`. They must never call the guarded publisher, so
 self-observation and fallback reporting can never loop.
 
+## Guard in the default stack
+
+The builder-composed stack (the one every consumer gets by default) carries its own
+reentrancy protection: `FailSafeArtifactPublisher` tracks an active publish depth and
+routes any nested publish to the health reporter as a
+`RecursivePublicationException` instead of executing it. The explicit
+`GuardedArtifactPublisher` remains available through `PublicationPipeline` for
+composed pipelines; the fail-safe guard guarantees the property holds even in the
+simple default wiring.
+
+## Health callbacks are contained
+
+Health callbacks are userland code, so they may throw. Every invocation site —
+the runner's publication-failure handler, `CallbackHealthReporter`, and the
+bounded-publisher drop callback — wraps the call: a handler fault plus the
+failure it was reporting land in a last-resort fallback sink
+(`FallbackErrorLogReporter`, one bounded error-log line) and never replace the
+business outcome or escape into publication flow. Setup faults before an
+execution materializes (identity allocation, start, scope assembly, attach) are
+reported once and then surfaced unchanged.
+
 ## Instrument batches, not every method
 
 Instrumentation is applied at the exporter boundary — batches and flushes — rather

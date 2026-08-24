@@ -26,6 +26,7 @@ use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -61,7 +62,7 @@ final class RunItTestKit
 
     public ContextStorageInterface $storage;
 
-    public InMemorySequenceAllocator $allocator;
+    public SequenceAllocatorInterface $allocator;
 
     public DefaultExecutionRunner $runner;
 
@@ -97,6 +98,7 @@ final class RunItTestKit
         ?SnapshotStoreInterface $snapshotStore = null,
         ?Closure $onSnapshotStoreFailure = null,
         ?ContextStorageInterface $storage = null,
+        ?SequenceAllocatorInterface $sequenceAllocator = null,
         ?ExecutionCompletionPolicyInterface $completionPolicy = null,
         ?ExecutionLifecycleCoordinatorInterface $coordinator = null,
         ?ThrowableMapperInterface $throwableMapper = null,
@@ -106,7 +108,7 @@ final class RunItTestKit
         $this->onPublicationFailure = $onPublicationFailure;
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
         $this->storage = $storage ?? new StackContextStorage();
-        $this->allocator = new InMemorySequenceAllocator();
+        $this->allocator = $sequenceAllocator ?? new InMemorySequenceAllocator();
         $this->hashCalculator = new DeterministicHashCalculator();
         $this->throwableMapper = $throwableMapper ?? new DefaultThrowableMapper();
 

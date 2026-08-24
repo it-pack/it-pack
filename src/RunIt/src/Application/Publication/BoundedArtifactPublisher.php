@@ -119,8 +119,16 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
 
     private function drop(string $reason, ExecutionArtifactInterface $artifact): void
     {
-        if ($this->onDropped !== null) {
+        if ($this->onDropped === null) {
+            return;
+        }
+
+        try {
             ($this->onDropped)($reason, $artifact);
+        } catch (\Throwable $handlerFault) {
+            // A throwing drop callback must never break publication flow: the
+            // drop notice plus the handler fault land in the fallback sink.
+            new FallbackErrorLogReporter()->report(BoundDropException::forReason($reason), $handlerFault);
         }
     }
 }

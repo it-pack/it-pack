@@ -10,9 +10,11 @@ use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
+use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
@@ -207,6 +209,101 @@ final class ResilienceTest extends Unit
         self::assertNotEmpty($failures, 'the completion-policy fault must be reported to the health path');
     }
 
+    public function testThrowingHealthCallbackPreservesResult(): void
+    {
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure): void {
+                throw new RuntimeException('handler is broken');
+            },
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): int => 42);
+
+        self::assertSame(42, $result, 'a throwing health callback must not replace the business result');
+    }
+
+    public function testThrowingHealthCallbackDuringStartupPublishDoesNotAbortOperation(): void
+    {
+        // Every publish faults at the adapter, and every report faults at the
+        // handler: the operation must still run and return its result.
+        $kit = new RunItTestKit(
+            publisher: new FailingArtifactPublisher(),
+            onPublicationFailure: static function (\Throwable $failure): void {
+                throw new RuntimeException('handler is broken');
+            },
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): int => 7);
+
+        self::assertSame(7, $result, 'a startup-publish fault plus handler fault must not abort the operation');
+    }
+
+    public function testThrowingHealthCallbackDuringFailurePathPreservesOriginalThrowable(): void
+    {
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure): void {
+                throw new RuntimeException('handler is broken');
+            },
+        );
+
+        $thrown = new RuntimeException('business broke');
+        $caught = null;
+
+        try {
+            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+                throw $thrown;
+            });
+        } catch (RuntimeException $exception) {
+            $caught = $exception;
+        }
+
+        self::assertSame($thrown, $caught, 'original business exception must survive a throwing health callback');
+    }
+
+    public function testSequenceAllocationFaultIsReportedBeforeSurfacing(): void
+    {
+        $failures = [];
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            sequenceAllocator: new ThrowingSequenceAllocator(),
+        );
+
+        $caught = null;
+
+        try {
+            $kit->runner->run($this->definition(), static fn (): int => 1);
+        } catch (RuntimeException $exception) {
+            $caught = $exception;
+        }
+
+        self::assertSame('sequence allocation is broken', $caught?->getMessage(), 'setup faults still surface to the caller');
+        self::assertCount(1, $failures, 'a setup fault must be reported exactly once before surfacing');
+    }
+
+    public function testContextAttachFaultIsReportedBeforeSurfacing(): void
+    {
+        $failures = [];
+        $kit = new RunItTestKit(
+            storage: new FailingAttachStorage(),
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+        );
+
+        $caught = null;
+
+        try {
+            $kit->runner->run($this->definition(), static fn (): int => 1);
+        } catch (RuntimeException $exception) {
+            $caught = $exception;
+        }
+
+        self::assertSame('context attach is broken', $caught?->getMessage());
+        self::assertCount(1, $failures, 'an attach fault must be reported exactly once before surfacing');
+    }
+
     public function testCompletionPolicyFailureDuringFailurePathPreservesOriginalThrowable(): void
     {
         $failures = [];
@@ -304,6 +401,31 @@ final class FailingArtifactPublisher implements ArtifactPublisherInterface
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         throw new RuntimeException('publisher is broken');
+    }
+}
+
+final class ThrowingSequenceAllocator implements SequenceAllocatorInterface
+{
+    public function allocate(ExecutionIdInterface $executionId): \ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface
+    {
+        throw new RuntimeException('sequence allocation is broken');
+    }
+}
+
+final class FailingAttachStorage implements ContextStorageInterface
+{
+    public function current(): ?ExecutionScopeInterface
+    {
+        return null;
+    }
+
+    public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
+    {
+        throw new RuntimeException('context attach is broken');
+    }
+
+    public function detach(ContextTokenInterface $token): void
+    {
     }
 }
 

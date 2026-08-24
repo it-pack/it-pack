@@ -89,6 +89,7 @@ services:
         src/Adapter/Psr/Log/ObservationRecordingLogger.php,
         src/Application/Publication/ArtifactRedactionConfig.php,
         src/Application/Publication/BufferConfiguration.php,
+        src/Application/Publication/FallbackErrorLogReporter.php,
         src/Application/Publication/PublicationRoute.php,
         src/Domain/Shared/SecurityLimits.php,
         src/SDK/Attribute/ExecutedAs.php,

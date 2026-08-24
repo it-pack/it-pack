@@ -19,6 +19,17 @@ No source has been modified yet.
 
 ## Phase 0 — P0: exception-preservation & observability holes
 
+> **Status: Complete (2026-08-24).** All health-callback sites are guarded — a throwing
+> handler lands in `FallbackErrorLogReporter` (one bounded line, primary + handler fault)
+> and never touches business flow; startup-publish faults no longer abort the operation;
+> setup faults (identity/start/scope/attach) are reported exactly once before surfacing.
+> The default stack now carries recursion protection (`FailSafeArtifactPublisher` depth
+> guard → health) and bound-exceeded drops are observable through the publication-failure
+> handler as `BoundDropException` notices. The builder consumes
+> `PublisherStackFactoryInterface` via a new `withPublisherStackFactory()` seam (baseline
+> refreshed). Green: Unit/Conformance/Integration suites incl. 9 new injection tests,
+> `analyse`, `cs:check`, `architecture`, `api:check`.
+
 Goal: make the ADR-008 guarantee hold against *any* collaborator behavior —
 including misbehaving health callbacks — and ensure every non-terminal
 execution and every bounded drop leaves an observable trace.

@@ -116,6 +116,10 @@ would add no semantic value, not because a contract is pending.
   `src/Behavior` (shared trait/behaviour helpers).
 - **PHP attributes**: `ExecutedAs` — attributes are metadata; a contract behind
   them has no consumer.
+- **Internal last-resort sinks**: `FallbackErrorLogReporter` — the safety net
+  that contains throwing health callbacks must never be swappable by
+  configuration, so exposing a contract would only undermine it (Phase 0, T0.1
+  of the 2026-08-24 plan).
 - **Transitively backed PSR-3 loggers**: `ExecutionAwareLogger`,
   `ObservationRecordingLogger` — both extend `AbstractLogger`, so they already
   satisfy `LoggerInterface`; a RunIt-specific marker would duplicate that.

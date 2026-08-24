@@ -21,11 +21,19 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  * report-to-fallback policy forwards the artifact elsewhere. Whatever the policy does,
  * the original business exception and business result are preserved.
  *
+ * The publisher also carries the default stack's recursion guard (Phase 0, T0.3): a
+ * publish arriving while this publisher is already publishing on the same path is
+ * routed to the internal health reporter as a {@see RecursivePublicationException}
+ * instead of executing, so self-instrumentation can never loop back through the
+ * pipeline.
+ *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class FailSafeArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final class FailSafeArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
 {
     use DelegatesPublisherLifecycleBehavior;
+
+    private int $publishDepth = 0;
 
     public function __construct(
         private ArtifactPublisherInterface        $inner,
@@ -36,11 +44,23 @@ final readonly class FailSafeArtifactPublisher implements ArtifactPublisherInter
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
+        if ($this->publishDepth > 0) {
+            $this->health?->report(RecursivePublicationException::forNestedPublish(), $artifact);
+
+            return;
+        }
+
+        ++$this->publishDepth;
+
         try {
-            $this->inner->publish($artifact);
-        } catch (\Throwable $publicationError) {
-            $this->policy->handle($publicationError, $artifact);
-            $this->health?->report($publicationError, $artifact);
+            try {
+                $this->inner->publish($artifact);
+            } catch (\Throwable $publicationError) {
+                $this->policy->handle($publicationError, $artifact);
+                $this->health?->report($publicationError, $artifact);
+            }
+        } finally {
+            --$this->publishDepth;
         }
     }
 

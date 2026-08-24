@@ -4738,6 +4738,97 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Publication\\BoundDropException": {
+        "kind": "class",
+        "final": true,
+        "extends": "RuntimeException",
+        "implements": {
+            "Throwable": "Throwable",
+            "Stringable": "Stringable",
+            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
+        },
+        "constants": [],
+        "methods": {
+            "forReason": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Application\\Publication\\BoundDropException",
+                "params": [
+                    {
+                        "name": "reason",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "code",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "previous",
+                        "type": "null|Throwable",
+                        "optional": true
+                    }
+                ]
+            },
+            "__wakeup": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": []
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Publication\\BoundedArtifactPublisher": {
         "kind": "class",
         "final": true,
@@ -5099,6 +5190,11 @@
                         "name": "callback",
                         "type": "Closure",
                         "optional": false
+                    },
+                    {
+                        "name": "fallback",
+                        "type": "null|ItPack\\RunIt\\Application\\Publication\\FallbackErrorLogReporter",
+                        "optional": true
                     }
                 ]
             },
@@ -5582,6 +5678,48 @@
                 "static": false,
                 "return": "void",
                 "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\FallbackErrorLogReporter": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "logTo",
+                        "type": "null|Closure",
+                        "optional": true
+                    }
+                ]
+            },
+            "report": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "primary",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "handlerFault",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
             }
         },
         "cases": []
@@ -6220,6 +6358,11 @@
         },
         "constants": [],
         "methods": {
+            "forNestedPublish": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Application\\Publication\\RecursivePublicationException",
+                "params": []
+            },
             "__construct": {
                 "static": false,
                 "return": null,
@@ -12599,6 +12742,17 @@
         "methods": [],
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Shared\\MediaTypes": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": {
+            "APPLICATION_JSON": "public"
+        },
+        "methods": [],
+        "cases": []
+    },
     "ItPack\\RunIt\\Domain\\Activity\\Activity": {
         "kind": "class",
         "final": true,
@@ -17092,7 +17246,9 @@
         "final": true,
         "extends": null,
         "implements": [],
-        "constants": [],
+        "constants": {
+            "DEFAULT_MAX_ATTRIBUTE_COUNT": "public"
+        },
         "methods": {
             "default": {
                 "static": true,
@@ -17408,7 +17564,9 @@
             "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
             "ItPack\\RunIt\\Contract\\Domain\\ExecutionSnapshotInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionSnapshotInterface"
         },
-        "constants": [],
+        "constants": {
+            "SCHEMA_VERSION": "public"
+        },
         "methods": {
             "create": {
                 "static": true,
@@ -18130,6 +18288,11 @@
         },
         "constants": [],
         "methods": {
+            "executionTerminal": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Snapshot\\SnapshotType",
+                "params": []
+            },
             "fromString": {
                 "static": true,
                 "return": "static",
@@ -18474,6 +18637,17 @@
                     }
                 ]
             },
+            "withPublisherStackFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "factory",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "build": {
                 "static": false,
                 "return": "ItPack\\RunIt\\SDK\\RunItInterface",
@@ -18710,6 +18884,17 @@
                     {
                         "name": "handler",
                         "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPublisherStackFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "factory",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface",
                         "optional": false
                     }
                 ]

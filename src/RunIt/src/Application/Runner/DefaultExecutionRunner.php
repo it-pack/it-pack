@@ -6,10 +6,12 @@ namespace ItPack\RunIt\Application\Runner;
 
 use Closure;
 use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
+use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
@@ -48,6 +50,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use Throwable;
@@ -128,7 +131,16 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         private SecurityLimits                         $limits = new SecurityLimits(),
     ) {
         $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
-        $bounded = new BoundedArtifactPublisher($this->limits, $this->publisher);
+        $bounded = new BoundedArtifactPublisher(
+            $this->limits,
+            $this->publisher,
+            function (string $reason, ExecutionArtifactInterface $artifact): void {
+                // Bound-exceeded drops become observable notices through the
+                // same guarded health path as every other internal fault
+                // (Phase 0, T0.3).
+                $this->reportFailure(BoundDropException::forReason($reason), $artifact);
+            },
+        );
         $this->safePublisher = new FailSafeArtifactPublisher($bounded, new FailOpenPolicy(), $health);
         $this->engine = $engine ?? new SynchronousExecutionEngine();
     }
@@ -167,48 +179,64 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         ExecutionDefinitionInterface $definition,
         callable $operation,
     ): mixed {
-        $parentId = ($mode === NestedExecutionMode::ChildExecution && $current !== null) ? $current->execution()->id() : null;
-        $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current !== null) ? [$current->execution()->id()] : [];
+        // Setup faults (definition resolution, identity allocation, start, scope
+        // assembly, attach) are genuine configuration errors and still surface to
+        // the caller — but they are always reported first, so no execution can
+        // fail to materialize silently (Phase 0, T0.2).
+        try {
+            $parentId = ($mode === NestedExecutionMode::ChildExecution && $current !== null) ? $current->execution()->id() : null;
+            $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current !== null) ? [$current->execution()->id()] : [];
 
-        $effectiveDefinition = ExecutionDefinition::create(
-            $definition->name(),
-            $definition->kind(),
-            $parentId,
-            $linkedIds,
-            $definition->context(),
-        );
+            $effectiveDefinition = ExecutionDefinition::create(
+                $definition->name(),
+                $definition->kind(),
+                $parentId,
+                $linkedIds,
+                $definition->context(),
+            );
 
-        $rawId = $this->executionIdFactory->build();
-        $id = ExecutionId::fromString($rawId->toString());
-        $startedAt = $this->now();
-        $sequence = $this->sequenceAllocator->allocate($id);
-        $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
-        $execution = $this->coordinator->start($created);
+            $rawId = $this->executionIdFactory->build();
+            $id = ExecutionId::fromString($rawId->toString());
+            $startedAt = $this->now();
+            $sequence = $this->sequenceAllocator->allocate($id);
+            $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
+            $execution = $this->coordinator->start($created);
 
-        $scope = new ExecutionScope(
-            $execution,
-            $id,
-            $effectiveDefinition->context(),
-            $this->sequenceAllocator,
-            $this->clock,
-            $this->safePublisher,
-            $this->serializer,
-            $this->throwableMapper,
-            $this->observationIdFactory,
-            $this->occurrenceIdFactory,
-            $this->snapshotIdFactory,
-            $this->activityIdFactory,
-            $this->hashCalculator,
-            $this->snapshotStore,
-            $this->onSnapshotStoreFailure,
-            $this->limits,
-        );
+            $scope = new ExecutionScope(
+                $execution,
+                $id,
+                $effectiveDefinition->context(),
+                $this->sequenceAllocator,
+                $this->clock,
+                $this->safePublisher,
+                $this->serializer,
+                $this->throwableMapper,
+                $this->observationIdFactory,
+                $this->occurrenceIdFactory,
+                $this->snapshotIdFactory,
+                $this->activityIdFactory,
+                $this->hashCalculator,
+                $this->snapshotStore,
+                $this->onSnapshotStoreFailure,
+                $this->limits,
+            );
 
-        $token = $this->contextStorage->attach($scope);
+            $token = $this->contextStorage->attach($scope);
+        } catch (Throwable $setupFault) {
+            $this->reportFailure($setupFault);
 
+            throw $setupFault;
+        }
+
+        // The startup publish is protected separately: an unexpected fault there
+        // is reported and the business operation still runs (Phase 0, T0.1).
         try {
             $this->safePublish($execution);
+        } catch (Throwable $failure) {
+            $this->reportFailure($failure);
+        }
 
+        try {
             $result = $this->engine->run($scope, $operation);
 
             $this->completeSuccess($execution, $scope);
@@ -330,10 +358,25 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
     }
 
-    private function reportFailure(Throwable $failure): void
+    private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
     {
-        if ($this->onPublicationFailure instanceof Closure) {
+        if (!$this->onPublicationFailure instanceof Closure) {
+            return;
+        }
+
+        try {
             ($this->onPublicationFailure)($failure);
+        } catch (Throwable $handlerFault) {
+            // A throwing health callback must never replace the business
+            // outcome: both faults land in the last-resort fallback sink.
+            $artifactId = null;
+
+            if ($artifact !== null) {
+                $id = $artifact->normalize()[ArtifactField::ID] ?? null;
+                $artifactId = is_string($id) ? $id : null;
+            }
+
+            new FallbackErrorLogReporter()->report($failure, $handlerFault, $artifactId);
         }
     }
 

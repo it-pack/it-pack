@@ -20,6 +20,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
@@ -121,6 +122,13 @@ interface RunItBuilderInterface
      * @param Closure(\Throwable): void|null $handler
      */
     public function withSnapshotStoreFailureHandler(?Closure $handler): RunItBuilderInterface;
+
+    /**
+     * Overrides how the redaction/sampling stack is composed around the base publisher.
+     * The default factory applies redaction closest to the sink and sampling outside it;
+     * an override must preserve that security ordering.
+     */
+    public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilderInterface;
 
     /**
      * Builds an interface-backed runtime facade, validating required dependencies first.

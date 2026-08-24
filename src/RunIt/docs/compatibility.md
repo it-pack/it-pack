@@ -82,6 +82,22 @@ enforced structurally by the aggregate:
   `\InvalidArgumentException`; the security-limit range check throws
   `InvalidSecurityLimitException`. Both preserve message text.
 
+### Refactoring plan Phase 0 (2026-08-24) additions
+
+- `RunItBuilderInterface` gained one additive seam:
+  `withPublisherStackFactory(PublisherStackFactoryInterface $factory)`. The
+  builder now consumes the interface (previously it instantiated the concrete
+  factory directly), so the factory port has a first-class consumer. Baseline
+  regenerated; additive only.
+- The default publisher stack gained recursion protection
+  (`FailSafeArtifactPublisher` routes nested publishes to the health channel)
+  and bound-exceeded drops are now reported through the configured publication
+  failure handler as `BoundDropException` notices. Both are behavior additions;
+  no signatures changed.
+- Health-callback faults are contained: a throwing handler can no longer affect
+  business flow; primary failure plus handler fault land in a bounded fallback
+  error-log line.
+
 
 ## Stable normalization schema
 

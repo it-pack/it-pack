@@ -12,12 +12,15 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
+use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -27,6 +30,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
@@ -222,6 +226,70 @@ final class RunItBuilderTest extends TestCase
             $base->withSnapshotStoreFailureHandler(static function (\Throwable $failure): void {
             }),
         );
+        self::assertNotSame($base, $base->withPublisherStackFactory(new SpyPublisherStackFactory()));
+    }
+
+    public function testPublisherStackFactorySeamIsConsumedByBuild(): void
+    {
+        $factory = new SpyPublisherStackFactory();
+
+        $runtime = RunItBuilder::create()
+            ->withPublisher(new InMemoryArtifactPublisher())
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withRedactor(new TaggingRedactor())
+            ->withPublisherStackFactory($factory)
+            ->build()
+        ;
+
+        $runtime->run($this->definition(), static fn (): int => 1);
+
+        self::assertTrue($factory->called, 'build() must compose the publisher stack through the configured factory');
+    }
+
+    public function testBoundExceededDropIsObservableThroughPublicationHandler(): void
+    {
+        $failures = [];
+
+        $runtime = RunItBuilder::create()
+            ->withPublisher(new InMemoryArtifactPublisher())
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator(new RandomIdentifierGenerator())
+            ->withSecurityLimits(new SecurityLimits(maxArtifactsPerExecution: 1))
+            ->withPublicationFailureHandler(static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            })
+            ->build()
+        ;
+
+        $result = $runtime->run(
+            $this->definition(),
+            static function (ExecutionScopeInterface $scope): int {
+                $scope->occurrences()->record(
+                    OccurrenceType::fromString('builder.test.v1'),
+                    'builder',
+                    ['n' => 1],
+                );
+
+                return 5;
+            },
+        );
+
+        self::assertSame(5, $result, 'a bounded drop must not affect the business result');
+        self::assertNotEmpty($failures, 'bound-exceeded drops must be observable through the publication handler');
+
+        foreach ($failures as $failure) {
+            self::assertInstanceOf(BoundDropException::class, $failure);
+            self::assertStringContainsString('artifact_count', $failure->getMessage());
+        }
+
+        // Startup execution + recorded occurrence + terminal publications all
+        // share the one-artifact budget in this configuration.
+        self::assertCount(3, $failures);
     }
 
     public function testSecurityLimitsPropagateToActivityDepthGate(): void
@@ -364,6 +432,25 @@ final class FailingSnapshotStore implements SnapshotStoreInterface
     public function store(SnapshotInterface $snapshot): void
     {
         throw new \RuntimeException('snapshot store is broken');
+    }
+}
+
+final class SpyPublisherStackFactory implements PublisherStackFactoryInterface
+{
+    public bool $called = false;
+
+    public function __construct(private readonly ?ArtifactPublisherInterface $override = null)
+    {
+    }
+
+    public function compose(
+        ArtifactPublisherInterface $base,
+        ?RedactorInterface $redactor,
+        ?SamplingPolicyInterface $samplingPolicy,
+    ): ArtifactPublisherInterface {
+        $this->called = true;
+
+        return $this->override ?? $base;
     }
 }
 

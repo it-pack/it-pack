@@ -18,4 +18,8 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
  */
 final class RecursivePublicationException extends \RuntimeException implements RunItExceptionInterface
 {
+    public static function forNestedPublish(): self
+    {
+        return new self('Publication re-entered while already publishing; artifact routed to the health path.');
+    }
 }

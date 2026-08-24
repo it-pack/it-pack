@@ -29,6 +29,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -84,6 +85,7 @@ final class RunItBuilder implements RunItBuilderInterface
         private ?SecurityLimits $limits = null,
         private ?Closure $onPublicationFailure = null,
         private ?Closure $onSnapshotStoreFailure = null,
+        private ?PublisherStackFactoryInterface $publisherStackFactory = null,
     ) {
     }
 
@@ -252,6 +254,19 @@ final class RunItBuilder implements RunItBuilderInterface
         return $clone;
     }
 
+    /**
+     * Overrides how the redaction/sampling stack is composed around the base
+     * publisher. The default factory applies redaction closest to the sink and
+     * sampling outside it; overriding must preserve that security ordering.
+     */
+    public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->publisherStackFactory = $factory;
+
+        return $clone;
+    }
+
     public function build(): RunItInterface
     {
         $publisher = $this->requirePublisher();
@@ -278,7 +293,9 @@ final class RunItBuilder implements RunItBuilderInterface
 
         $currentExecution = new CurrentExecution($contextStorage);
 
-        $composedPublisher = new PublisherStackFactory()
+        $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
+
+        $composedPublisher = $publisherStackFactory
             ->compose($publisher, $this->redactor, $this->samplingPolicy)
         ;
 
