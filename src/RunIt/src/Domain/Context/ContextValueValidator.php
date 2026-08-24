@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Context;
 
+use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
 use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
-use ItPack\RunIt\Contract\Shared\KeyPattern;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -37,20 +37,21 @@ final readonly class ContextValueValidator implements ContextValueValidatorInter
 
     public function assertValidKey(string $key): void
     {
-        if ($key === '') {
-            throw InvalidContextValueException::emptyKey();
-        }
+        $this->keyGuard()->assertValidKey($key);
+    }
 
-        $maxKey = $this->limits->maxAttributeKeyBytes;
-        $length = strlen($key);
-
-        if ($length > $maxKey) {
-            throw InvalidContextValueException::keyTooLong($length, $maxKey);
-        }
-
-        if (preg_match(KeyPattern::VALIDATED_KEY, $key) !== 1) {
-            throw InvalidContextValueException::unsupportedKeyCharacters();
-        }
+    /**
+     * The context key rule set shares the bounded key guard with the attribute
+     * rules; only the exception family differs.
+     */
+    private function keyGuard(): BoundedKeyGuard
+    {
+        return new BoundedKeyGuard(
+            $this->limits,
+            static fn (): InvalidContextValueException => InvalidContextValueException::emptyKey(),
+            static fn (int $length, int $maximum): InvalidContextValueException => InvalidContextValueException::keyTooLong($length, $maximum),
+            static fn (): InvalidContextValueException => InvalidContextValueException::unsupportedKeyCharacters(),
+        );
     }
 
     /**
@@ -79,6 +80,7 @@ final readonly class ContextValueValidator implements ContextValueValidatorInter
             static fn (int $length, int $maximum): InvalidContextValueException => InvalidContextValueException::valueTooLarge($length, $maximum),
             static fn (int $depth, int $maximum): InvalidContextValueException => InvalidContextValueException::valueTooDeep($depth, $maximum),
             static fn (): InvalidContextValueException => InvalidContextValueException::unsupportedValue(),
+            static fn (int $count, int $maximum): InvalidContextValueException => InvalidContextValueException::tooManyEntries($count, $maximum),
             rejectOversizedArrays: true,
         );
     }

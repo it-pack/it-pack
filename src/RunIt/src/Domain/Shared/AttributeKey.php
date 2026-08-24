@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Domain\Shared;
 
 use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
+use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Domain\AttributeKeyInterface;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;
 
@@ -60,7 +61,6 @@ final readonly class AttributeKey implements AttributeKeyInterface
 
     public function equals(StringValueInterface $other): bool
     {
-        return $other::class === static::class
-            && $other->toString() === $this->toString();
+        return StringValueEquality::equals($this, $other);
     }
 }

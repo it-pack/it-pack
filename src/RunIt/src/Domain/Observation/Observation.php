@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Observation;
 
+use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
@@ -31,6 +32,8 @@ use ItPack\RunIt\Domain\Shared\Instant;
  */
 final readonly class Observation implements ObservationInterface
 {
+    use SequencedBehavior;
+
     private function __construct(
         private ObservationIdInterface $id,
         private ExecutionIdInterface $executionId,
@@ -240,10 +243,6 @@ final readonly class Observation implements ObservationInterface
         return $this->sequence->value();
     }
 
-    public function count(): int
-    {
-        return $this->sequence->value();
-    }
 
     /**
      * @return array<string, mixed>

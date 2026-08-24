@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\Psr\Log;
 
 use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 
@@ -31,8 +32,8 @@ final class ExecutionAwareLogger extends AbstractLogger
         private readonly LoggerInterface $inner,
         private readonly CurrentExecutionInterface $current,
         private readonly LoggerCollisionPolicy $collisionPolicy = LoggerCollisionPolicy::PreserveCaller,
-        private readonly string $executionKey = 'execution_id',
-        private readonly string $activityKey = 'activity_id',
+        private readonly string $executionKey = ArtifactField::EXECUTION_ID,
+        private readonly string $activityKey = ArtifactField::ACTIVITY_ID,
         private readonly string $namespacedPrefix = 'runit.',
     ) {
     }

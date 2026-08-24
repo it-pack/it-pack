@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Snapshot;
 
+use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
+use ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
@@ -40,6 +42,8 @@ use ItPack\RunIt\Domain\Shared\Instant;
  */
 readonly class Snapshot implements SnapshotInterface
 {
+    use SequencedBehavior;
+
     protected function __construct(
         private readonly SnapshotIdInterface $id,
         private readonly ExecutionIdInterface $executionId,
@@ -71,8 +75,9 @@ readonly class Snapshot implements SnapshotInterface
         string $contentType = MediaTypes::APPLICATION_JSON,
         ?AttributeCollectionInterface $attributes = null,
         ?ArtifactSequenceInterface $sequence = null,
-    ): self {
-        new ContextValueValidator()->assertSupportedValue($payload);
+        ?ContextValueValidatorInterface $validator = null,
+    ): static {
+        ($validator ?? new ContextValueValidator())->assertSupportedValue($payload);
 
         $content = (string) json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $contentHash = $hashCalculator->calculate($content);
@@ -111,8 +116,12 @@ readonly class Snapshot implements SnapshotInterface
         ?SnapshotIdInterface $predecessorId,
         AttributeCollectionInterface $attributes,
         ArtifactSequenceInterface $sequence,
-    ): self {
-        return new self(
+    ): static {
+        // Safe: the only subclass (ExecutionSnapshot) inherits this protected
+        // constructor, so late-static binding can never hit an inaccessible or
+        // missing constructor. Rationale tracked in docs/QA.md.
+        return new static( // @phpstan-ignore new.static (extension-base factory; ctor inherited accessible)
+
             $id,
             $executionId,
             $activityId,
@@ -197,10 +206,6 @@ readonly class Snapshot implements SnapshotInterface
         return $this->sequence->value();
     }
 
-    public function count(): int
-    {
-        return $this->sequence->value();
-    }
 
     /**
      * @return array<string, mixed>

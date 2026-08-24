@@ -223,6 +223,20 @@ the default wiring; all gates green.
 
 ## Phase 2 — P2: DRY residue & contract hygiene
 
+> **Status: Complete (2026-08-24).** `SequencedBehavior` adopted by all six artifacts
+> (`count()` written once); `TimestampedBehavior` **deleted** — its `count()`→`timestamp()`
+> mapping was a semantic bug contradicting `Countable`, and the contract test pinning it
+> was corrected. Equality unified behind `StringValueEquality` (class check restored in
+> `ContextSource`). Validators share `BoundedKeyGuard`; snapshot construction collapsed:
+> `Snapshot::create()` is now the single template factory (`: static`, late-static
+> `new static`, optional validator threaded through) and `ExecutionSnapshot`'s duplicated
+> `create()`/`build()` overrides were removed outright — no caller ever passed the
+> injected validator. One scoped, rationale-documented `new.static` ignore added for the
+> extension-base factory (QA.md). Adapters read projections via `ArtifactField`
+> (incl. `ExecutionAwareLogger` defaults). All six drift corrections applied;
+> `PublicationPipelineTest` now constructs via named args. Green: 758 tests,
+> `analyse`, `cs:check`, `architecture`, `api:check`.
+
 ### T2.1 — Behavior traits and equality deduplication (REVIEW.md §3.3, §4 P2-7)
 - **Goal:** `SequencedBehavior`/`TimestampedBehavior` have zero production users
   while six artifacts hand-write identical `count()` bodies; `equals()` exists

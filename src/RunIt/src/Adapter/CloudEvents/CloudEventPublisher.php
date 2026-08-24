@@ -78,17 +78,17 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
 
         $id = $this->asString($normalized[ArtifactField::ID] ?? null, 'redacted');
         $source = $this->asString($normalized['source'] ?? null, 'runit://redacted');
-        $type = $this->asString($normalized['type'] ?? null, 'runit.artifact.redacted');
+        $type = $this->asString($normalized[ArtifactField::TYPE] ?? null, 'runit.artifact.redacted');
         $subject = $this->asStringOrNull($normalized['subject'] ?? null);
         $time = $this->asIntOrNull($normalized['time'] ?? null);
 
         $extensions = [
-            CloudEventExtensionKey::ExecutionId->value => $this->asString($normalized['execution_id'] ?? null, ''),
+            CloudEventExtensionKey::ExecutionId->value => $this->asString($normalized[ArtifactField::EXECUTION_ID] ?? null, ''),
             CloudEventExtensionKey::Sequence->value => $this->asInt($normalized['sequence'] ?? null),
             'redacted' => true,
         ];
 
-        $activityId = $this->asStringOrNull($normalized['activity_id'] ?? null);
+        $activityId = $this->asStringOrNull($normalized[ArtifactField::ACTIVITY_ID] ?? null);
         if ($activityId !== null) {
             $extensions[CloudEventExtensionKey::ActivityId->value] = $activityId;
         }

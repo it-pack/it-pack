@@ -68,10 +68,13 @@ final class PublicationPipelineTest extends Unit
     public function testPipelineFiltersRedactsAndPublishes(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator);
-        $pipeline->filter = new ArtifactTypeFilter([Observation::class]);
-        $pipeline->redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']));
-        $pipeline = $pipeline->build();
+        $pipeline = new PublicationPipeline(
+            sink: $sink,
+            clock: $this->clock,
+            byteEstimator: $this->estimator,
+            filter: new ArtifactTypeFilter([Observation::class]),
+            redactor: new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password'])),
+        )->build();
 
         $pipeline->publish($this->observation());
         $pipeline->publish($this->occurrence());
@@ -89,9 +92,12 @@ final class PublicationPipelineTest extends Unit
         $sink = new CallbackArtifactPublisher(static function (): void {
             throw new RuntimeException('transport down');
         });
-        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator);
-        $pipeline->failurePolicy = new FailClosedPolicy();
-        $pipeline = $pipeline->build();
+        $pipeline = new PublicationPipeline(
+            sink: $sink,
+            clock: $this->clock,
+            byteEstimator: $this->estimator,
+            failurePolicy: new FailClosedPolicy(),
+        )->build();
 
         $thrown = null;
         try {
@@ -116,9 +122,12 @@ final class PublicationPipelineTest extends Unit
     public function testPipelineSeverityFloorDropsNoiseBeforeSink(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $pipeline = new PublicationPipeline($sink, $this->clock, $this->estimator);
-        $pipeline->filter = new ObservationSeverityFilter(400);
-        $pipeline = $pipeline->build();
+        $pipeline = new PublicationPipeline(
+            sink: $sink,
+            clock: $this->clock,
+            byteEstimator: $this->estimator,
+            filter: new ObservationSeverityFilter(400),
+        )->build();
 
         $pipeline->publish(Observation::debug(ObservationId::fromString('d'), ExecutionId::fromString('exec-1'), 'noise'));
         $pipeline->publish(Observation::error(ObservationId::fromString('e'), ExecutionId::fromString('exec-1'), 'boom'));

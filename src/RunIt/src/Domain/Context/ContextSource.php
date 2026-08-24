@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Domain\Context;
 
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
+use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Domain\ContextSourceInterface;
 
@@ -57,6 +58,6 @@ final readonly class ContextSource implements ContextSourceInterface
 
     public function equals(ContextSourceInterface $other): bool
     {
-        return $other->toString() === $this->toString();
+        return StringValueEquality::equals($this, $other);
     }
 }

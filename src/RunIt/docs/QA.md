@@ -148,6 +148,17 @@ abstraction (AGENTS.md: "Do not create interfaces solely to duplicate another
 interface without semantic value"). Revisit if an adapter ever needs to supply
 its own mode/collision implementations.
 
+### Known safe `new static()` (Phase 2, T2.2)
+
+`Snapshot::build()` uses `new static()` so the inherited `Snapshot::create()`
+factory constructs the concrete subclass (`ExecutionSnapshot`). The
+`new.static` strict rule flags every `new static()` in a non-final class; here
+the usage is provably safe — `Snapshot` has exactly one subclass, which
+inherits the now-protected constructor from parent scope, so late-static
+binding can never hit an inaccessible or missing constructor. A single scoped
+inline ignore with that rationale sits on the construction line. Do not copy
+the pattern onto extension points with unknown subclass trees.
+
 ### Suite pipeline honesty (Phase 3, T3.4)
 
 The default `composer test` pipeline runs only suites that contain tests:

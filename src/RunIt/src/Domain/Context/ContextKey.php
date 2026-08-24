@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Domain\Context;
 
 use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
+use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Domain\ContextKeyInterface;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;
 
@@ -58,7 +59,6 @@ final readonly class ContextKey implements ContextKeyInterface
 
     public function equals(StringValueInterface $other): bool
     {
-        return $other::class === static::class
-            && $other->toString() === $this->toString();
+        return StringValueEquality::equals($this, $other);
     }
 }

@@ -25,13 +25,15 @@ final readonly class BoundedPrimitiveValueWalker
     /**
      * @param Closure(int $length, int $maximum): RunItExceptionInterface $valueTooLong
      * @param Closure(int $depth, int $maximum): RunItExceptionInterface $valueTooDeep
-     * @param Closure(): RunItExceptionInterface $unsupportedValue
+     * @param Closure(): RunItExceptionInterface                          $unsupportedValue
+     * @param Closure(int $count, int $maximum): RunItExceptionInterface  $oversizedArray raised when a nested array exceeds the entry bound (rule-set dependent)
      */
     public function __construct(
         private readonly SecurityLimits $limits,
         private readonly Closure $valueTooLong,
         private readonly Closure $valueTooDeep,
         private readonly Closure $unsupportedValue,
+        private readonly Closure $oversizedArray,
         private readonly bool $rejectOversizedArrays = false,
     ) {
     }
@@ -67,7 +69,7 @@ final readonly class BoundedPrimitiveValueWalker
             }
 
             if ($this->rejectOversizedArrays && count($value) > $this->limits->maxAttributeCount) {
-                throw ($this->unsupportedValue)();
+                throw ($this->oversizedArray)(count($value), $this->limits->maxAttributeCount);
             }
 
             foreach ($value as $member) {

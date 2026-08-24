@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Activity;
 
+use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
@@ -34,6 +35,8 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
  */
 final readonly class Activity implements ActivityInterface
 {
+    use SequencedBehavior;
+
     private function __construct(
         private ActivityIdInterface                     $id,
         private ExecutionIdInterface                    $executionId,
@@ -157,10 +160,6 @@ final readonly class Activity implements ActivityInterface
         return $this->sequence->value();
     }
 
-    public function count(): int
-    {
-        return $this->sequence->value();
-    }
 
     /**
      * @return array<string, mixed>

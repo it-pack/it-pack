@@ -9,10 +9,12 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 
 /**
- * Filter that accepts occurrences by their stable occurrence type.
+ * Filter that scopes a route to occurrences of specific stable occurrence types.
  *
- * Non-occurrence artifacts always pass, so a type allow-list scopes only
- * occurrence routing and never suppresses other artifact kinds.
+ * Only occurrences whose type is in the configured list are accepted; every
+ * other artifact kind — including other occurrences — is suppressed on the
+ * route. This makes the filter the tool for type-scoped routing (for example,
+ * a route dedicated to `checkout.completed.v1`).
  *
  * @see https://w3id.org/itpack/runit#occurrenceType
  */

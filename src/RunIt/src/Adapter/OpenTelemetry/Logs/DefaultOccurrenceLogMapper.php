@@ -146,9 +146,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         /** @var array<string, mixed> $attributes */
         $attributes = [
             AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null) ? $normalized[ArtifactField::ID] : 'redacted',
-            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
+            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
             AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized['source'] ?? null) ? $normalized['source'] : 'runit://redacted',
-            AttributeKeys::EXECUTION_ID => is_string($normalized['execution_id'] ?? null) ? $normalized['execution_id'] : '',
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null) ? $normalized['execution_id'] : '',
             'runit.redacted' => true,
         ];
 
@@ -157,7 +157,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[AttributeKeys::OCCURRENCE_SUBJECT] = $subject;
         }
 
-        $activityId = $normalized['activity_id'] ?? null;
+        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
         if (is_string($activityId)) {
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
         }
@@ -168,7 +168,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[$key] = $value;
         }
 
-        $this->emit('runit.occurrence', is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized['time'] ?? null) ? $normalized['time'] : null);
+        $this->emit('runit.occurrence', is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null);
     }
 
     public function mapRedactedSnapshot(array $normalized): void
@@ -176,13 +176,13 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         /** @var array<string, mixed> $attributes */
         $attributes = [
             AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null) ? $normalized[ArtifactField::ID] : 'redacted',
-            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
+            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
             AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized['classification'] ?? null) ? $normalized['classification'] : 'unknown',
-            AttributeKeys::EXECUTION_ID => is_string($normalized['execution_id'] ?? null) ? $normalized['execution_id'] : '',
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null) ? $normalized['execution_id'] : '',
             'runit.redacted' => true,
         ];
 
-        $activityId = $normalized['activity_id'] ?? null;
+        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
         if (is_string($activityId)) {
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
         }
@@ -192,7 +192,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[AttributeKeys::SNAPSHOT_HASH] = $hash;
         }
 
-        $this->emit('runit.snapshot', is_string($normalized['type'] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized['time'] ?? null) ? $normalized['time'] : null);
+        $this->emit('runit.snapshot', is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null);
     }
 
     /**

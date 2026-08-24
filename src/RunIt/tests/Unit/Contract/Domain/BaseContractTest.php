@@ -14,7 +14,6 @@ use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Contract\Domain\NormalizableInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use Tests\Support\Fixture\FixedSequencedArtifact;
-use Tests\Support\Fixture\FixedTimestampedArtifact;
 
 final class BaseContractTest extends Unit
 {
@@ -36,7 +35,6 @@ final class BaseContractTest extends Unit
             'b'],
     ];
 
-    public const int TIMESTAMP = 1_700_000_000;
     public const int SEQUENCE = 7;
 
     public function testExecutionArtifactIsNormalizable(): void
@@ -125,27 +123,14 @@ final class BaseContractTest extends Unit
         self::assertNull($artifact->activityId());
     }
 
-    public function testTimestampAndSequenceProjectPrimitives(): void
+    public function testSequenceProjectsOntoCountable(): void
     {
-        $timed = new FixedTimestampedArtifact(self::TIMESTAMP);
         $sequenced = new FixedSequencedArtifact(self::SEQUENCE);
-
-        verify(
-            $timed->timestamp()
-        )->equals(
-            self::TIMESTAMP
-        );
 
         verify(
             $sequenced->sequence()
         )->equals(
             self::SEQUENCE
-        );
-
-        verify(
-            $timed->count()
-        )->equals(
-            self::TIMESTAMP
         );
 
         verify(

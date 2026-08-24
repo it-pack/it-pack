@@ -6,7 +6,6 @@ namespace ItPack\RunIt\Behavior\Domain;
 
 use ItPack\RunIt\Contract\Domain\AttributeValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
-use ItPack\RunIt\Contract\Shared\KeyPattern;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -38,20 +37,21 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
 
     public function assertValidKey(string $key): void
     {
-        if ($key === '') {
-            throw InvalidAttributeException::emptyKey();
-        }
+        $this->keyGuard()->assertValidKey($key);
+    }
 
-        $maxKey = $this->limits->maxAttributeKeyBytes;
-        $length = strlen($key);
-
-        if ($length > $maxKey) {
-            throw InvalidAttributeException::keyTooLong($length, $maxKey);
-        }
-
-        if (preg_match(KeyPattern::VALIDATED_KEY, $key) !== 1) {
-            throw InvalidAttributeException::unsupportedKeyCharacters();
-        }
+    /**
+     * The attribute key rule set shares the bounded key guard with the context
+     * rules; only the exception family differs.
+     */
+    private function keyGuard(): BoundedKeyGuard
+    {
+        return new BoundedKeyGuard(
+            $this->limits,
+            static fn (): InvalidAttributeException => InvalidAttributeException::emptyKey(),
+            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::keyTooLong($length, $maximum),
+            static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedKeyCharacters(),
+        );
     }
 
     /**
@@ -87,6 +87,7 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
             static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooLong($length, $maximum),
             static fn (int $depth, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooDeep($depth, $maximum),
             static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedValue(),
+            static fn (int $count, int $maximum): InvalidAttributeException => InvalidAttributeException::tooManyAttributes($count, $maximum),
         );
     }
 }

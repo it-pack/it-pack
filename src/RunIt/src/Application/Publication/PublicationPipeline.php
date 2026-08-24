@@ -32,16 +32,16 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 final class PublicationPipeline implements PublicationPipelineInterface
 {
     public function __construct(
-        public ArtifactPublisherInterface $sink,
-        public MonotonicClockInterface $clock,
-        public ArtifactByteEstimatorInterface $byteEstimator,
-        public ?ArtifactFilterInterface $filter = null,
-        public ?RedactorInterface $redactor = null,
-        public ?SamplingPolicyInterface $sampling = null,
-        public ?BufferConfiguration $buffer = null,
-        public ?PublicationFailurePolicyInterface $failurePolicy = null,
-        public ?InternalHealthReporterInterface $health = null,
-        public ?PublicationGuardInterface $guard = null,
+        private readonly ArtifactPublisherInterface $sink,
+        private readonly MonotonicClockInterface $clock,
+        private readonly ArtifactByteEstimatorInterface $byteEstimator,
+        private readonly ?ArtifactFilterInterface $filter = null,
+        private readonly ?RedactorInterface $redactor = null,
+        private readonly ?SamplingPolicyInterface $sampling = null,
+        private readonly ?BufferConfiguration $buffer = null,
+        private readonly ?PublicationFailurePolicyInterface $failurePolicy = null,
+        private readonly ?InternalHealthReporterInterface $health = null,
+        private readonly ?PublicationGuardInterface $guard = null,
     ) {
     }
 

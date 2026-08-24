@@ -65,7 +65,6 @@ trait ValidatedStringValueBehavior
 
     public function equals(StringValueInterface $other): bool
     {
-        return $other::class === static::class
-            && $other->toString() === $this->toString();
+        return StringValueEquality::equals($this, $other);
     }
 }

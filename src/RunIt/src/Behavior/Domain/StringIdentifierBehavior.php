@@ -27,7 +27,6 @@ trait StringIdentifierBehavior
 
     public function equals(StringIdentifierInterface $other): bool
     {
-        return $other::class === static::class
-            && $other->toString() === $this->toString();
+        return StringValueEquality::equals($this, $other);
     }
 }

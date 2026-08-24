@@ -12913,14 +12913,14 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -14911,14 +14911,14 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -15671,11 +15671,6 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "attributes": {
                 "static": false,
                 "return": "array",
@@ -15684,6 +15679,11 @@
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -16343,14 +16343,14 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -16626,14 +16626,14 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -17589,85 +17589,9 @@
             "SCHEMA_VERSION": "public"
         },
         "methods": {
-            "create": {
-                "static": true,
-                "return": "ItPack\\RunIt\\Domain\\Snapshot\\ExecutionSnapshot",
-                "params": [
-                    {
-                        "name": "id",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotIdInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "executionId",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "type",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotTypeInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "schemaVersion",
-                        "type": "int",
-                        "optional": false
-                    },
-                    {
-                        "name": "payload",
-                        "type": "mixed",
-                        "optional": false
-                    },
-                    {
-                        "name": "hashCalculator",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "activityId",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "predecessorId",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotIdInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "classification",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotClassificationInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "createdAt",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "contentType",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "attributes",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\AttributeCollectionInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "sequence",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ArtifactSequenceInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "validator",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface",
-                        "optional": true
-                    }
-                ]
-            },
-            "build": {
-                "static": true,
-                "return": "ItPack\\RunIt\\Domain\\Snapshot\\ExecutionSnapshot",
+            "__construct": {
+                "static": false,
+                "return": null,
                 "params": [
                     {
                         "name": "id",
@@ -17736,9 +17660,85 @@
                     }
                 ]
             },
-            "__construct": {
-                "static": false,
-                "return": null,
+            "create": {
+                "static": true,
+                "return": "static",
+                "params": [
+                    {
+                        "name": "id",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotIdInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "type",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotTypeInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "schemaVersion",
+                        "type": "int",
+                        "optional": false
+                    },
+                    {
+                        "name": "payload",
+                        "type": "mixed",
+                        "optional": false
+                    },
+                    {
+                        "name": "hashCalculator",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "activityId",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ActivityIdInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "predecessorId",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotIdInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "classification",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotClassificationInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "createdAt",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "contentType",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "attributes",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\AttributeCollectionInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "sequence",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ArtifactSequenceInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "validator",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface",
+                        "optional": true
+                    }
+                ]
+            },
+            "build": {
+                "static": true,
+                "return": "static",
                 "params": [
                     {
                         "name": "id",
@@ -17872,14 +17872,14 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },
@@ -17974,7 +17974,7 @@
             },
             "create": {
                 "static": true,
-                "return": "ItPack\\RunIt\\Domain\\Snapshot\\Snapshot",
+                "return": "static",
                 "params": [
                     {
                         "name": "id",
@@ -18040,12 +18040,17 @@
                         "name": "sequence",
                         "type": "null|ItPack\\RunIt\\Contract\\Domain\\ArtifactSequenceInterface",
                         "optional": true
+                    },
+                    {
+                        "name": "validator",
+                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ContextValueValidatorInterface",
+                        "optional": true
                     }
                 ]
             },
             "build": {
                 "static": true,
-                "return": "ItPack\\RunIt\\Domain\\Snapshot\\Snapshot",
+                "return": "static",
                 "params": [
                     {
                         "name": "id",
@@ -18179,14 +18184,14 @@
                 "return": "int",
                 "params": []
             },
-            "count": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
                 "params": []
             }
         },

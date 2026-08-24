@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Execution;
 
-use InvalidArgumentException;
 use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
@@ -32,7 +31,7 @@ final readonly class ExecutionFailure implements ExecutionResultInterface
     }
 
     /**
-     * @throws InvalidArgumentException when the status is not terminal
+     * @throws InvalidLifecycleTransitionException when the status is not terminal
      */
     public static function of(ExecutionStatusInterface $status, ThrowableDescriptionInterface $description): ExecutionResultInterface
     {

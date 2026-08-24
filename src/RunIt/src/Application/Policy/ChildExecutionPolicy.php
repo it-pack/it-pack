@@ -22,10 +22,6 @@ final class ChildExecutionPolicy implements NestedExecutionPolicyInterface
 {
     public function resolve(?ExecutionScopeInterface $current, ExecutionDefinitionInterface $definition): NestedExecutionMode
     {
-        if ($current === null) {
-            return NestedExecutionMode::ChildExecution;
-        }
-
         return NestedExecutionMode::ChildExecution;
     }
 }

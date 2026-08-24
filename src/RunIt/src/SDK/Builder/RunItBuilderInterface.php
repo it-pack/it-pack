@@ -120,6 +120,11 @@ interface RunItBuilderInterface
      * business result or exception. Without a handler, publication failures follow the fail-open
      * default and are not observable.
      *
+     * The handler is invoked with exactly one argument (the fault). When the fault originates
+     * from a bound-exceeded drop, a `BoundDropException` notice carrying the drop reason is
+     * passed instead of a raw adapter error. Throwing from the handler is safe: the fault is
+     * contained by the fallback sink and never reaches business flow.
+     *
      * @param Closure(\Throwable): void|null $handler
      */
     public function withPublicationFailureHandler(?Closure $handler): RunItBuilderInterface;

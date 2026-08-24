@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Execution;
 
+use ItPack\RunIt\Behavior\Domain\SequencedBehavior;
 use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -31,6 +32,8 @@ use ItPack\RunIt\Domain\Shared\ArtifactSequence;
  */
 final readonly class Execution implements ExecutionInterface
 {
+    use SequencedBehavior;
+
     private function __construct(
         private ExecutionIdInterface         $id,
         private ExecutionDefinitionInterface $definition,
@@ -156,10 +159,6 @@ final readonly class Execution implements ExecutionInterface
         return $this->sequence->value();
     }
 
-    public function count(): int
-    {
-        return $this->sequence->value();
-    }
 
     /**
      * @return array<string, mixed>
