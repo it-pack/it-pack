@@ -67,12 +67,16 @@ convention (deferred until first release).
 
 ## 2. Milestone M0 — Baseline & safety net
 
-- [ ] **M0-T1** Record current gate output (four commands above) — expected:
+- [x] **M0-T1** Record current gate output (four commands above) — expected:
       PASS · no errors · 0 of 172 · OK (172, 431); coverage XML regenerated at
       **90.00 % (1089/1210)** with 18 files <95 % (table in REVIEW §11).
-- [ ] **M0-T2** No branch (mono-repo rule §0.4). Work lands as commits on `main`.
+      **Recorded (2026-08-25):** architecture ✅ no violations · PHPStan lvl 9
+      no errors · format 0 of 172 · unit OK (**172 tests / 431 assertions**) ·
+      coverage **90.00 % (1089/1210)**, 18 files <95 % — table byte-identical
+      to REVIEW §11. This is the regression baseline for the whole plan.
+- [x] **M0-T2** No branch (mono-repo rule §0.4). Work lands as commits on `main`.
 
-**Acceptance:** baseline numbers captured before M1 starts.
+**Acceptance:** baseline numbers captured before M1 starts. ✅
 
 ---
 
@@ -341,6 +345,22 @@ create-first style with the rule.
    a bespoke per-test pcov harness is stretch scope only.
 6. **No behavioral changes anywhere in this plan** except error-path exercises
    added by tests themselves.
+
+## Implementation log
+
+Dated record of what actually landed, per milestone. Checkboxes above mark task
+completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-25 — M0 closed, baseline recorded
+
+- All four gates green on `main` (`1c24d00` tree): architecture PASS · PHPStan
+  src lvl 9 clean · format 0 of 172 files · unit suite OK **172 tests / 431
+  assertions**.
+- Coverage regenerated via pcov (`--coverage-xml`): **90.00 % lines (1089/1210)**,
+  **18 files below the 95 % bar** — gap table byte-identical to REVIEW §11, so
+  M2/M3 file targets are confirmed as written.
+- No branch created (mono-repo rule); per-milestone commit granularity provides
+  isolation. No code touched; baseline-only milestone.
 
 ## Suggested execution order
 
