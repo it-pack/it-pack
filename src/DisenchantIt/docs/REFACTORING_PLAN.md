@@ -146,7 +146,7 @@ line coverage with behavior-asserting tests (not line-chasing).
 
 ### Tasks — each with named cases to add
 
-- [ ] **M2-T1 `RoleClassifier` (60.0 %, 21/35).** New cases in a dedicated
+- [x] **M2-T1 `RoleClassifier` (60.0 %, 21/35).** New cases in a dedicated
       `tests/Unit/RoleClassifierTest.php` (or extend existing):
       noise-function arguments classified non-candidate (`sprintf`, `printf`,
       `vsprintf`, `trigger_error` — the `NOISE_FUNCTIONS` set), regex-shaped
@@ -155,7 +155,7 @@ line coverage with behavior-asserting tests (not line-chasing).
       float handling. Enumerate the uncovered branch set from the coverage HTML
       (`tests/_output/coverage`) before writing, assert resulting
       `LiteralRole`/subkind per input.
-- [ ] **M2-T2 `LineBasedRewriter` (71.4 %, 90/126).** Extend the rewriter-focused
+- [x] **M2-T2 `LineBasedRewriter` (71.4 %, 90/126).** Extend the rewriter-focused
       suites with fixture-based cases: multi-line span replacement
       (`endLine > line`), needle-not-found fallback path (`$newSpan =
       $replacement`), stale-line skip paths (both defensive `continue`s),
@@ -164,19 +164,21 @@ line coverage with behavior-asserting tests (not line-chasing).
       return, dry-run no-op. Assert full output strings, not fragments, where
       practical — these are the idempotency-critical paths AGENTS.md flags for
       mutation priority.
-- [ ] **M2-T3 `NamingContextExtractor` (76.4 %, 42/55).** Cases: trailing
+- [x] **M2-T3 `NamingContextExtractor` (76.4 %, 42/55).** Cases: trailing
       unit-comment hints (`// ms`), variable-name alternation matching
       (`preg_match` hit and miss at `NamingContextExtractor.php:114`), empty
       match guard (`$m[1] !== ''`), comment-only context returns null,
       array-key contexts, property-name contexts.
-- [ ] **M2-T4 `DictionaryNameResolver` (23.1 %, 3/13).** New
+- [x] **M2-T4 `DictionaryNameResolver` (23.1 %, 3/13).** New
       `DictionaryNameResolverTest`: `create()` map resolution hit/miss,
       `resolve()` passthrough for unknown values, `fromFile()` happy path via
       temp-file fixture, not-found throw (`RuntimeException`, message match),
       invalid-JSON-object throw, JSON-scalar rejection.
 
-**Acceptance:** all four files ≥95 % lines in a fresh coverage run; aggregate
-rises accordingly; suite grows with zero assertion-free tests.
+**Acceptance (met):** all four files ≥95 % lines in a fresh coverage run
+(RoleClassifier 97.1 %, LineBasedRewriter 97.6 %, NamingContextExtractor 96.4 %,
+DictionaryNameResolver 100.0 % — aggregate of the four 97.4 %); suite grew from
+172 → 219 tests / 431 → 515 assertions with no assertion-free tests.
 
 ---
 
@@ -383,6 +385,41 @@ completion; this log captures outcomes, deviations, and API impact.
   class → port. Consumers referencing the old `Detector::…` etc. must retarget;
   tracked for M6 upgrade notes. No signature breakage for callers using the
   interface types.
+
+### 2026-08-25 — M2 closed (F1a, priority-file coverage)
+
+- Added four dedicated unit suites (no source changes — behavior-asserting
+  tests only):
+  - `tests/Unit/RoleClassifierTest.php` — every `classify()` branch (numeric,
+    exception-message, noise-function `FormatString`, plain function/method/
+    static-call args, unrecognized call-arg fallthrough, array key vs value,
+    array-dim-fetch key, comparison, match/case branch value, enum backing
+    value, class-const-value exclusion) plus the `looksIdentifierLike` shape
+    boundary.
+  - `tests/Unit/LineBasedRewriterTest.php` — idempotency-critical paths: empty
+    items, dry-run no-op, single-line replace (found / needle-not-found /
+    stale-line skip), multi-line span replace (found / fallback / stale span),
+    class-body insertion, duplicate-const skip, top-level enum insertion,
+    `enumAlreadyExists` skip, multi-class bottom-up ordering, unknown-class skip.
+  - `tests/Unit/NamingContextExtractorTest.php` — every `findVariableName`
+    branch (assign var / array-dim-fetch / property-fetch, array value+key,
+    typed property default, param default), `detectUnit` hit/miss, and
+    `findPrecedingComment` variants (present / code-line break / empty comment
+    / blank-line skip).
+  - `tests/Unit/DictionaryNameResolverTest.php` — `create()`/`resolve()`
+    hit+miss, `fromFile()` happy path (temp-file fixture), missing-file throw,
+    non-object JSON throw, array-JSON→empty-map, non-string-entry filtering.
+- Coverage of the four priority files (fresh pcov XML): **RoleClassifier
+  97.1 %** (was 60.0), **LineBasedRewriter 97.6 %** (was 71.4),
+  **NamingContextExtractor 96.4 %** (was 76.4), **DictionaryNameResolver
+  100.0 %** (was 23.1); aggregate of the four 97.4 %. All ≥95 % → M2
+  acceptance met.
+- Gates green: architecture 0 violations · PHPStan src lvl 9 clean ·
+  format 0/176 · unit **219 tests / 515 assertions** (was 172 / 431).
+- Test-expectation note: `RoleClassifier::looksIdentifierLike` accepts strings
+  containing `.` (the regex allows `.`); tests assert the *actual* behavior,
+  not the docblock's "sentence punctuation" wording. Flagged for a later
+  docstring/behavior reconciliation if desired (out of M2 scope).
 
 ### 2026-08-25 — M0 closed, baseline recorded
 
