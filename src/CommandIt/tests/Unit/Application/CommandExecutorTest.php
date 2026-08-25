@@ -16,6 +16,8 @@ use ItPack\CommandIt\Application\CommandExecutionCoordinator;
 use ItPack\CommandIt\Application\CommandExecutor;
 use ItPack\CommandIt\Application\CommandRegistry;
 use ItPack\CommandIt\Application\HandlerResolver;
+use ItPack\CommandIt\Contract\Application\CommandExecutionCoordinatorInterface;
+use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandMiddlewareInterface;
@@ -23,7 +25,10 @@ use ItPack\CommandIt\Contract\Command\CommandResultInterface;
 use ItPack\CommandIt\Contract\ContextEnricherInterface;
 use ItPack\CommandIt\Contract\Domain\Classification;
 use ItPack\CommandIt\Contract\Domain\CommandContextInterface;
+use ItPack\CommandIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
+use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
+use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 use ItPack\CommandIt\Domain\Command;
 use ItPack\CommandIt\Domain\CommandDefinition;
 use ItPack\CommandIt\Domain\CommandExecution;
@@ -347,6 +352,163 @@ final class CommandExecutorTest extends Unit
         self::assertNotSame('topsecret', $secret, 'secret never reaches the reporter in plaintext');
         self::assertStringContainsString('redacted', $secret);
         self::assertSame('abc123', $traceId, 'non-secret context entry is preserved');
+    }
+
+    public function testCoordinatorFailureDuringFailureRecordingStillRethrowsOriginalException(): void
+    {
+        $inner = new CommandExecutionCoordinator($this->reporter);
+
+        $coordinator = new class ($inner) implements CommandExecutionCoordinatorInterface {
+            public function __construct(
+                private readonly CommandExecutionCoordinatorInterface $inner,
+            ) {
+            }
+
+            public function begin(
+                CommandDefinitionInterface $definition,
+                CommandExecutionIdInterface $id,
+                int $startedAt,
+            ): ExecutionArtifactInterface {
+                return $this->inner->begin($definition, $id, $startedAt);
+            }
+
+            public function succeed(
+                ExecutionArtifactInterface $execution,
+                CommandResultInterface $result,
+                int $endedAt,
+                int $durationMs,
+            ): ExecutionArtifactInterface {
+                return $this->inner->succeed($execution, $result, $endedAt, $durationMs);
+            }
+
+            public function fail(
+                ExecutionArtifactInterface $execution,
+                \Throwable $error,
+                int $endedAt,
+                int $durationMs,
+            ): ExecutionArtifactInterface {
+                throw new \LogicException('coordinator could not record the failure');
+            }
+        };
+
+        $original = new \RuntimeException('boom');
+        $this->registerThrowing('demo:run', $original);
+
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            $coordinator,
+            $this->context,
+            $this->storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+        );
+
+        $thrown = null;
+
+        try {
+            $executor->dispatch($this->command('demo:run'));
+        } catch (\RuntimeException $error) {
+            $thrown = $error;
+        }
+
+        self::assertSame($original, $thrown, 'the original business exception survives a failing coordinator');
+        self::assertContains('command.received.v1', $this->occurrenceNames());
+    }
+
+    public function testStorageFailureIsSwallowedOnSuccessDispatch(): void
+    {
+        $executor = $this->executorWithStorage(new class () implements CommandExecutionStorageInterface {
+            public function store(CommandExecutionIdInterface $id, ExecutionArtifactInterface $execution): void
+            {
+                throw new \RuntimeException('storage down');
+            }
+
+            public function find(CommandExecutionIdInterface $id): ?ExecutionArtifactInterface
+            {
+                return null;
+            }
+        });
+
+        $this->register('demo:run', new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed('done');
+            }
+        });
+
+        $result = $executor->dispatch($this->command('demo:run'));
+
+        self::assertSame('succeeded', $result->status()->label());
+    }
+
+    public function testStorageFailureOnFailurePathPreservesOriginalException(): void
+    {
+        $executor = $this->executorWithStorage(new class () implements CommandExecutionStorageInterface {
+            public function store(CommandExecutionIdInterface $id, ExecutionArtifactInterface $execution): void
+            {
+                throw new \RuntimeException('storage down');
+            }
+
+            public function find(CommandExecutionIdInterface $id): ?ExecutionArtifactInterface
+            {
+                return null;
+            }
+        });
+
+        $original = new \RuntimeException('boom');
+        $this->registerThrowing('demo:run', $original);
+
+        $thrown = null;
+
+        try {
+            $executor->dispatch($this->command('demo:run'));
+        } catch (\RuntimeException $error) {
+            $thrown = $error;
+        }
+
+        self::assertSame($original, $thrown);
+    }
+
+    private function registerThrowing(string $name, \RuntimeException $thrown): void
+    {
+        $this->registry->register(
+            new CommandDefinition(CommandName::fromString($name)),
+            static fn () => new class ($thrown) implements CommandHandlerInterface {
+                public function __construct(
+                    private readonly \RuntimeException $thrown,
+                ) {
+                }
+
+                public function handles(): string
+                {
+                    return 'demo:run';
+                }
+
+                public function handle(CommandInterface $command): CommandResultInterface
+                {
+                    throw $this->thrown;
+                }
+            },
+        );
+    }
+
+    private function executorWithStorage(CommandExecutionStorageInterface $storage): CommandExecutor
+    {
+        return new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($this->reporter),
+            $this->context,
+            $storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+        );
     }
 
     /**

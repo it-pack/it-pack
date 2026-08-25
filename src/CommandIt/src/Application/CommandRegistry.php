@@ -8,9 +8,14 @@ use ItPack\CommandIt\Contract\Application\CommandRegistryInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
+use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
 
 /**
  * In-memory name → definition + handler-factory registry.
+ *
+ * Registering a duplicate command name fails fast with
+ * {@see InvalidCommandException::duplicateCommand()} — collisions are never
+ * silently overwritten (ADR 0004).
  *
  * @api
  */
@@ -26,7 +31,13 @@ final class CommandRegistry implements CommandRegistryInterface
      */
     public function register(CommandDefinitionInterface $definition, callable $handlerFactory): void
     {
-        $this->entries[$definition->name()->toString()] = [
+        $name = $definition->name()->toString();
+
+        if (\array_key_exists($name, $this->entries)) {
+            throw InvalidCommandException::duplicateCommand($name);
+        }
+
+        $this->entries[$name] = [
             'definition' => $definition,
             'factory' => $handlerFactory,
         ];

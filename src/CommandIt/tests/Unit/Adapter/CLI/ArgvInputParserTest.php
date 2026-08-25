@@ -75,4 +75,57 @@ final class ArgvInputParserTest extends Unit
 
         self::assertSame(['count' => 0], $input->arguments());
     }
+
+    public function testNegativeNumberIsAcceptedAsOptionValue(): void
+    {
+        $input = new ArgvInputParser()->parse($this->definition(), ['5', '--mode', '-7']);
+
+        self::assertSame(['mode' => '-7'], $input->options());
+    }
+
+    public function testEqualsFormAcceptsNegativeNumber(): void
+    {
+        $input = new ArgvInputParser()->parse($this->definition(), ['5', '--mode=-5']);
+
+        self::assertSame(['mode' => '-5'], $input->options());
+    }
+
+    public function testDoubleDashTerminatesOptionParsing(): void
+    {
+        $input = new ArgvInputParser()->parse($this->definition(), ['5', '--', '--not-an-option']);
+
+        self::assertSame(['count' => 5, 'name' => '--not-an-option'], $input->arguments());
+        self::assertFalse($input->hasOption('force'));
+    }
+
+    public function testNegativeNumberIsAcceptedAsPositionalArgument(): void
+    {
+        $input = new ArgvInputParser()->parse($this->definition(), ['-5']);
+
+        self::assertSame(['count' => -5], $input->arguments());
+    }
+
+    public function testUnknownOptionThrows(): void
+    {
+        $this->expectException(InvalidCommandException::class);
+        $this->expectExceptionMessage('unknown option "--forc"');
+
+        new ArgvInputParser()->parse($this->definition(), ['5', '--forc']);
+    }
+
+    public function testSurplusPositionalThrows(): void
+    {
+        $this->expectException(InvalidCommandException::class);
+        $this->expectExceptionMessage('unexpected argument "extra"');
+
+        new ArgvInputParser()->parse($this->definition(), ['5', 'x', 'extra']);
+    }
+
+    public function testShortFlagThrows(): void
+    {
+        $this->expectException(InvalidCommandException::class);
+        $this->expectExceptionMessage('short options are not supported: "-f"');
+
+        new ArgvInputParser()->parse($this->definition(), ['5', '-f']);
+    }
 }

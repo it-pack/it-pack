@@ -7,6 +7,7 @@ namespace Tests\Unit\Application;
 use Codeception\Test\Unit;
 use ItPack\CommandIt\Application\CommandRegistry;
 use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
+use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
 use ItPack\CommandIt\Domain\CommandDefinition;
 use ItPack\CommandIt\Domain\ValueObject\CommandName;
 
@@ -44,5 +45,19 @@ final class CommandRegistryTest extends Unit
 
         $this->expectException(HandlerNotFoundException::class);
         $registry->handlerFactory('missing');
+    }
+
+    public function testDuplicateRegistrationThrows(): void
+    {
+        $registry = new CommandRegistry();
+        $definition = new CommandDefinition(CommandName::fromString('demo:run'));
+        $factory = static fn () => throw new \LogicException('not constructed');
+
+        $registry->register($definition, $factory);
+
+        $this->expectException(InvalidCommandException::class);
+        $this->expectExceptionMessage('already registered');
+
+        $registry->register($definition, $factory);
     }
 }

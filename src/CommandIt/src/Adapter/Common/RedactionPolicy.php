@@ -14,7 +14,9 @@ use ItPack\CommandIt\Contract\Port\RedactionPolicyInterface;
  * redaction marker (the value's type/size is not leaked). Non-sensitive values
  * are bounded: strings longer than {@see self::$maxValueLength} are truncated,
  * arrays are capped at {@see self::$maxArrayEntries} entries (the remainder is
- * summarized), and nesting is limited to {@see self::$maxDepth}.
+ * summarized under a `_truncated` sentinel key, renamed `_truncated_N` when a
+ * kept entry already claims that name), and nesting is limited to
+ * {@see self::$maxDepth}.
  *
  * @api
  */
@@ -77,8 +79,17 @@ final class RedactionPolicy implements RedactionPolicyInterface
             }
 
             if (\count($value) > $this->maxArrayEntries) {
+                $originalCount = \count($value);
                 $value = \array_slice($value, 0, $this->maxArrayEntries, true);
-                $value['_truncated'] = \sprintf('%d entries omitted', \count($value) - $this->maxArrayEntries);
+
+                $sentinel = '_truncated';
+                $suffix = 2;
+                while (\array_key_exists($sentinel, $value)) {
+                    $sentinel = '_truncated_' . $suffix;
+                    ++$suffix;
+                }
+
+                $value[$sentinel] = \sprintf('%d entries omitted', $originalCount - $this->maxArrayEntries);
             }
 
             /** @var array<string, mixed> $value */

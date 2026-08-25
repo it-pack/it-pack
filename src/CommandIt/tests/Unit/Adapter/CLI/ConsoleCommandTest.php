@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\CommandIt\Adapter\CLI\ConsoleCommandBridge;
 use ItPack\CommandIt\Adapter\CLI\ConsoleCommandRegistry;
 use ItPack\CommandIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\CommandIt\Adapter\Common\SafeSerializer;
 use ItPack\CommandIt\Adapter\Common\SystemClock;
 use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Adapter\Memory\InMemoryCommandExecutionStorage;
@@ -150,6 +151,70 @@ final class ConsoleCommandTest extends Unit
 
         self::assertNotSame(0, $code);
         self::assertStringContainsString('boom', $output->fetch());
+    }
+
+    public function testObjectPayloadWithoutSerializerIsRefusedAndNeverDumpedRaw(): void
+    {
+        $this->register(static fn (): CommandResultInterface => CommandResult::succeed(new class () {
+            public string $secret = 'hunter2';
+        }));
+
+        $output = new BufferedOutput();
+        $code = $this->bridgeApp(serializer: null)->run(new StringInput('demo:run 7'), $output);
+
+        self::assertNotSame(0, $code);
+
+        $text = $output->fetch();
+        self::assertStringNotContainsString('hunter2', $text, 'raw object properties never reach the terminal');
+        self::assertStringContainsString('unserializable payload', $text);
+    }
+
+    public function testObjectPayloadWithSerializerEncodesNormalizedForm(): void
+    {
+        $this->register(static fn (): CommandResultInterface => CommandResult::succeed(new class () {
+            /** @return array{normalized: bool} */
+            public function toArray(): array
+            {
+                return ['normalized' => true];
+            }
+        }));
+
+        $output = new BufferedOutput();
+        $code = $this->bridgeApp(new SafeSerializer())->run(new StringInput('demo:run 7'), $output);
+
+        self::assertSame(0, $code);
+        self::assertStringContainsString('{"normalized":true}', $output->fetch());
+    }
+
+    public function testArrayContainingObjectWithoutSerializerIsRefused(): void
+    {
+        $this->register(static fn (): CommandResultInterface => CommandResult::succeed(['nested' => new \stdClass()]));
+
+        $output = new BufferedOutput();
+        $code = $this->bridgeApp(serializer: null)->run(new StringInput('demo:run 7'), $output);
+
+        self::assertNotSame(0, $code);
+        self::assertStringContainsString('unserializable payload', $output->fetch());
+    }
+
+    public function testUnencodablePayloadReturnsFailureInsteadOfSilentNull(): void
+    {
+        $this->register(static fn (): CommandResultInterface => CommandResult::succeed(['bad' => "\xB1\x31"]));
+
+        $output = new BufferedOutput();
+        $code = $this->bridgeApp(serializer: null)->run(new StringInput('demo:run 7'), $output);
+
+        self::assertNotSame(0, $code);
+        self::assertStringContainsString('unencodable payload', $output->fetch());
+    }
+
+    private function bridgeApp(?SafeSerializer $serializer): Application
+    {
+        $app = new Application();
+        $app->setAutoExit(false);
+        $app->addCommand(new ConsoleCommandBridge($this->definition(), $this->executor, $serializer));
+
+        return $app;
     }
 
     public function testMissingRequiredArgumentRejectedByConsole(): void

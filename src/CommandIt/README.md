@@ -14,13 +14,15 @@ declared for completeness yet not reachable from the executor until a
 
 ## Documentation
 
+- **[Examples](examples/README.md)** — runnable, narrated scripts that walk the
+  two axes (vertical lifecycle, horizontal cross-cutting concerns).
 - **[User Guide](docs/USER_GUIDE.md)** — task-oriented, with runnable examples:
   defining commands, input/coercion, handlers, middleware, context & isolation,
   reporting, the CLI adapter, custom ports, testing, and benchmarks.
 - [Architecture model](docs/architecture/MODEL.md) — the domain model.
 - [Architecture decisions](docs/adr/) — RunIt integration via ports, lazy handler
   resolution, and fiber-bound context.
-- [Milestone plan & confidence tooling](docs/archive/ROADMAP.md) (archived).
+- [Milestone plan & confidence tooling](docs/archive/ROADMAP_1.md) (archived).
 
 ## Installation
 

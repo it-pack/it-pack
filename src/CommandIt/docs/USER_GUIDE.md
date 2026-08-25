@@ -274,6 +274,16 @@ $input = (new ArgvInputParser())->parse($definition, ['redis', '--force', '--tim
 Positional tokens fill arguments in declaration order; `--name`, `--name=value`,
 and `--name value` fill options. `bool` options become flags.
 
+Token grammar:
+
+- Long options only (`--force`, not `-f` — short flags are rejected loudly).
+- A following token that looks like a negative number (`--limit -5`) is accepted
+  as the option value; `--limit=-5` works too.
+- `--` terminates option parsing; every later token is positional.
+- Negative numbers are valid positional arguments.
+- Unknown options (`--forc`) and surplus positionals throw
+  `InvalidCommandException`.
+
 ### Reading input in a handler
 
 `CommandInput` is immutable and already coerced:
@@ -341,6 +351,9 @@ it is normalized before storage (best-effort — see [§11](#11-storage--seriali
 ```php
 $ci->register($definition, static fn (): CommandHandlerInterface => new ClearCacheHandler());
 ```
+
+Registering the same command name twice throws `InvalidCommandException` —
+collisions fail fast instead of silently overwriting (ADR 0004).
 
 Handlers are resolved **lazily** (`HandlerResolver` + `LazyHandlerProxy`): the
 factory closure is stored, and the handler object is constructed only when the
@@ -663,11 +676,18 @@ $app->run(); // e.g. `php bin/console cache:clear redis --force --timeout=60`
   by the **shared coercion behavior**, so CLI input agrees exactly with the
   programmatic input adapters.
 - `execute()` dispatches through the `CommandBusInterface` and writes the
-  `CommandResult` payload to the output stream (JSON for arrays/objects, plain
-  text for scalars). Handler failures are written to stderr with a non-zero exit
-  code; the original exception is preserved by the core executor.
+  `CommandResult` payload to the output stream (JSON for arrays, plain text for
+  scalars). Objects and object-bearing arrays are **never dumped raw**: supply a
+  `SerializerInterface` to the bridge (e.g. `SafeSerializer`) to print their
+  normalized form; otherwise the command fails with `{"error":"unserializable
+  payload"}`. Handler failures are written to stderr when the output supports it,
+  with a non-zero exit code; the original exception is preserved by the core
+  executor.
 - `ArgvInputParser` covers the raw `$argv` → `CommandInput` path (validation +
-  coercion) when you build commands without a full Symfony `Application`.
+  coercion) when you build commands without a full Symfony `Application`. Its
+  token grammar rejects unknown options, surplus positionals, and short flags;
+  negative numbers are supported as option values and positionals (`--` ends
+  option parsing).
 
 ---
 

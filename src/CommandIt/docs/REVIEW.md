@@ -272,3 +272,20 @@ Negative-test coverage for the security-critical paths is otherwise genuinely go
 - **Magic strings/numbers?** Register in §12; worst offenders are the dual redaction sentinels, coercion type-name literals (incl. unreachable `'double'`), unconsted occurrence context keys, and health signal strings. Occurrence types themselves are properly centralized.
 - **Low complexity?** Yes — quantified: max method 41 lines, max nesting 4 (one site), guard-clause style pervasive, zero long-method clusters.
 - **SOLID / hexagonal / factories?** DIP and hexagonal direction are best-in-class for a pre-1.0 library; ISP and one LSP seam are the debt (§4); factories/builders follow named-constructor and safe-default discipline with one stylistic split (immutable definition builder vs mutable command builder).
+
+---
+
+## Follow-ups
+
+### 2026-08-25 — Refactoring plan milestones M1–M2 landed
+
+Implemented per `docs/REFACTORING_PLAN.md` (see its status table for task-level detail):
+
+- **F-02 fixed** — truncation summary now reports the true omitted count (pre-slice capture), and a colliding `_truncated` sentinel key is renamed `_truncated_N` instead of clobbering kept data (`src/Adapter/Common/RedactionPolicy.php`; 3 test cases).
+- **F-03 hardened** — failure recording in `CommandExecutor::dispatch()` is defensive; a throwing coordinator/storage can no longer replace the original business `Throwable` (`src/Application/CommandExecutor.php`; 3 injection tests).
+- **F-04 closed** — `ConsoleCommandBridge` routes errors to stderr when the output supports it (`ConsoleOutputInterface` guard), encodes with `JSON_THROW_ON_ERROR`, refuses raw objects and object-bearing arrays (depth-capped scan) unless a `SerializerInterface` normalizes them; refusal exits FAILURE with `{"error":"unserializable payload"}` / `"unencodable payload"` (`src/Adapter/CLI/ConsoleCommandBridge.php`; 4 new tests + serializer constructor param, additive).
+- **F-05 resolved** — duplicate command registration fails fast via `InvalidCommandException::duplicateCommand()` (ADR `docs/adr/0004-command-name-collision-policy.md`).
+- **F-18 resolved** — argv token grammar enforced: unknown options, surplus positionals, and short flags rejected loudly; negative numbers accepted as option values (`--limit -5`, `--limit=-5`) and positionals; `--` terminates option parsing (`src/Adapter/CLI/ArgvInputParser.php`; 7 new tests). Also removed three of the five repo-wide `else` branches.
+- Docs: USER_GUIDE argv grammar, registration policy, and CLI output sections updated.
+
+Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16→24 from the new Symfony interface reference — the F-01 gap, scheduled M3), cs-fixer clean, composer validate strict OK, full suite 166 tests / 391 assertions green, examples 01–06 exit 0. Not run: mutation (floors land in M4), benchmarks.

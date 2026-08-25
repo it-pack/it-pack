@@ -53,6 +53,34 @@ final class RedactionPolicyTest extends Unit
         $items = (array) $redacted['items'];
         self::assertCount(3, $items);
         self::assertArrayHasKey('_truncated', $items);
+        self::assertSame('2 entries omitted', $items['_truncated']);
+    }
+
+    public function testTruncationSummaryReportsOmittedCount(): void
+    {
+        $policy = new RedactionPolicy(maxArrayEntries: 64);
+
+        $items = [];
+        for ($i = 0; $i < 70; ++$i) {
+            $items[] = $i;
+        }
+
+        $redacted = $policy->redact(['items' => $items]);
+        $out = (array) $redacted['items'];
+
+        self::assertCount(65, $out, '64 kept entries plus the truncation sentinel');
+        self::assertSame('6 entries omitted', $out['_truncated']);
+    }
+
+    public function testTruncationSentinelCollidingWithKeptKeyIsRenamed(): void
+    {
+        $policy = new RedactionPolicy(maxArrayEntries: 2);
+
+        $redacted = $policy->redact(['items' => ['_truncated' => 'real', 'a', 'b', 'c', 'd']]);
+        $out = (array) $redacted['items'];
+
+        self::assertSame('real', $out['_truncated'], 'the kept entry is never overwritten');
+        self::assertSame('3 entries omitted', $out['_truncated_2']);
     }
 
     public function testNestedSensitiveKeyIsRedacted(): void

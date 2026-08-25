@@ -22,18 +22,18 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 
 ## Milestone Overview
 
-| ID | Milestone | Findings | Depends on | ADR | Size |
-|---|---|---|---|---|---|
-| M1 | Publication-path correctness hotfixes | F-02, F-03 | — | — | S |
-| M2 | CLI trustworthiness & registry policy | F-04, F-18, F-05 | — | 0004 | S/M |
-| M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M |
-| M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M |
-| M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M |
-| M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L |
-| M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L |
-| M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M |
-| M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M |
-| M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike, perf micro-opts, changelog | M7, M8 | — | M |
+| ID | Milestone | Findings | Depends on | ADR | Size | Status |
+|---|---|---|---|---|---|---|
+| M1 | Publication-path correctness hotfixes | F-02, F-03 | — | — | S | **Done (2026-08-25)** |
+| M2 | CLI trustworthiness & registry policy | F-04, F-18, F-05 | — | 0004 | S/M | **Done (2026-08-25)** |
+| M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M | Planned |
+| M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | Planned (storage/reporter stubs partially landed in M1) |
+| M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | Planned |
+| M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | Planned |
+| M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Planned |
+| M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Planned |
+| M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | Planned |
+| M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike, perf micro-opts, changelog | M7, M8 | — | M | Planned |
 
 ### Traceability — every REVIEW.md finding lands somewhere
 
@@ -55,7 +55,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | # | Decision | Options | Default recommendation | Blocks |
 |---|---|---|---|---|
 | D1 | Where Symfony-coupled CLI classes live | (a) keep `Adapter/CLI` namespaces, retarget DepTrac layers; (b) move to `src/Adapter/SymfonyConsole/` | (a) — zero consumer break; revisit at 1.0 | M3 |
-| D2 | Duplicate command registration | (a) throw; (b) document last-wins | (a) loud pre-1.0 | M2 |
+| D2 | Duplicate command registration | (a) throw; (b) document last-wins | **Resolved:** (a) — ADR 0004, `InvalidCommandException::duplicateCommand()` | M2 |
 | D3 | Wire `SafeSerializer` by default in Bootstrap | (a) yes, normalize-on-store default; (b) stay `null`, consumer-only | (a) matches safe-by-default ethos | M7 |
 | D4 | Transition matrix stance | (a) enforce legal predecessors; (b) document permissive aggregate | (a) enforce | M6 |
 | D5 | In-memory storage bound default | (a) bounded 1000/DropOldest; (b) unbounded + docs | (a) | M9 |
@@ -70,7 +70,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 
 ### Task 1.1 — Fix the truncation summary in `RedactionPolicy`
 
-- [ ] Capture the pre-slice count and compute the omitted delta from it:
+- [x] Capture the pre-slice count and compute the omitted delta from it:
 
 ```php
 if (\count($value) > $this->maxArrayEntries) {
@@ -80,7 +80,7 @@ if (\count($value) > $this->maxArrayEntries) {
 }
 ```
 
-- [ ] Guard the synthetic key against collision: if `'_truncated'` already exists among kept keys, fall back to `'_truncated_2'` (loop while occupied). Document the sentinel keys in the class docblock.
+- [x] Guard the synthetic key against collision: if `'_truncated'` already exists among kept keys, fall back to `'_truncated_2'` (loop while occupied). Document the sentinel keys in the class docblock.
 - Files: `src/Adapter/Common/RedactionPolicy.php`.
 - Tests (`tests/Unit/Adapter/Common/RedactionPolicyTest.php`):
   - 70-entry array ⇒ exactly 64 kept entries + `_truncated === '6 entries omitted'`.
@@ -89,7 +89,7 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 1.2 — Make the original `Throwable` unconditionally win in `CommandExecutor`
 
-- [ ] Wrap the failure-recording sequence inside the catch block defensively:
+- [x] Wrap the failure-recording sequence inside the catch block defensively:
 
 ```php
 } catch (\Throwable $thrown) {
@@ -123,12 +123,12 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 2.1 — Bridge output via the serializer port, errors on stderr
 
-- [ ] Add an optional constructor parameter `private ?SerializerInterface $serializer = null` to `ConsoleCommandBridge` (additive, BC-safe).
-- [ ] Rewrite `writeResult()`:
+- [x] Add an optional constructor parameter `private ?SerializerInterface $serializer = null` to `ConsoleCommandBridge` (additive, BC-safe).
+- [x] Rewrite `writeResult()`:
   - arrays **and objects**: if a serializer is present, `normalize()` first (catch `SerializationException` ⇒ render `{"error":"unserializable payload"}` and return FAILURE instead of dumping raw objects);
   - encode with `\json_encode($payload, \JSON_THROW_ON_ERROR)` inside try/catch; on `JsonException` render `'null'` plus a `<comment>` warning line — never silently;
   - scalars unchanged; `null` renders nothing.
-- [ ] Error path: replace `$output->writeln('<error>…</error>')` with `$output->getErrorOutput()->writeln(sprintf('<error>%s</error>', …))`; align the class docblock (stderr claim at lines 27–29 becomes true).
+- [x] Error path: replace `$output->writeln('<error>…</error>')` with `$output->getErrorOutput()->writeln(sprintf('<error>%s</error>', …))`; align the class docblock (stderr claim at lines 27–29 becomes true). *(Implemented via a `ConsoleOutputInterface` guard so `BufferedOutput`-based tests keep working; the error JSON is rendered through the same stderr-capable channel.)*
 - Files: `src/Adapter/CLI/ConsoleCommandBridge.php`; `src/Bootstrap/CommandItFactory.php` stays untouched (bridge construction lives with `ConsoleCommandRegistry` consumers).
 - Tests (`tests/Unit/Adapter/CLI/ConsoleCommandTest.php`):
   - handler throws ⇒ error text appears in **stderr buffer**, stdout empty, exit FAILURE;
@@ -139,14 +139,14 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 2.2 — Define and enforce the argv token grammar
 
-- [ ] Write the intended grammar down first (class docblock of `ArgvInputParser` + USER_GUIDE section):
+- [x] Write the intended grammar down first (class docblock of `ArgvInputParser` + USER_GUIDE section):
   - long options only (`--name`, `--name=value`, `--name value`);
   - a token beginning with `-` followed by a digit or `.`, when expected as an option value, **is** the value (`--limit -5` ⇒ `limit=-5`);
   - `--` terminates option parsing; all later tokens are positional;
   - unknown provided option names are rejected with `InvalidCommandException::malformed('Unknown option "--%s".')`;
   - surplus positionals beyond declared arguments are rejected (`Unexpected argument "%s".`);
   - single-dash short flags: explicitly unsupported, documented.
-- [ ] Implement in `split()`:
+- [x] Implement in `split()`:
   - collect `$providedOptions` while parsing; after the loop, diff against declared option names and throw on unknowns;
   - handle `--` by switching a `$optionsEnded` flag (and stop emitting `'' => true`);
   - value-lookahead accepts `-5`, `-5.5`, `-0.25` style tokens as values;
@@ -162,8 +162,8 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 2.3 — Registry collision policy (+ ADR 0004)
 
-- [ ] Per D2 (recommend: throw): in `CommandRegistry::register()`, if `has($name)` ⇒ `throw InvalidCommandException::malformed(sprintf('A command named "%s" is already registered.', $name))`.
-- [ ] Write `docs/adr/0004-command-name-collision-policy.md`: context (silent overwrite surprises CLI projection), decision (fail fast pre-1.0; explicit replacement API may come later), consequences.
+- [x] Per D2 (recommend: throw): in `CommandRegistry::register()`, if `has($name)` ⇒ `throw InvalidCommandException::duplicateCommand($name)` *(dedicated named constructor instead of `malformed()` so the message reads cleanly)*.
+- [x] Write `docs/adr/0004-command-name-collision-policy.md`: context (silent overwrite surprises CLI projection), decision (fail fast pre-1.0; explicit replacement API may come later), consequences.
 - Files: `src/Application/CommandRegistry.php`, `docs/adr/0004-*.md`.
 - Tests (`tests/Unit/Application/CommandRegistryTest.php`): duplicate register throws with the name in the message; re-registering after removing… (no remove API exists — assert throw only).
 - Acceptance: green; ADR linked from `CommandRegistryInterface::register` docblock (`@see`).

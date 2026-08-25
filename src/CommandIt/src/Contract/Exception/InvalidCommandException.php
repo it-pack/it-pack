@@ -31,4 +31,9 @@ final class InvalidCommandException extends \InvalidArgumentException implements
     {
         return new self(\sprintf('Malformed command value: %s', $reason));
     }
+
+    public static function duplicateCommand(string $name): self
+    {
+        return new self(\sprintf('A command named "%s" is already registered.', $name));
+    }
 }
