@@ -167,7 +167,7 @@ final class ObservedRepository implements Repository
 
     public function getWorkingTree(): WorkingTree
     {
-        return $this->inner->getWorkingTree();
+        return new ObservedWorkingTree($this->inner->getWorkingTree(), $this->observer);
     }
 
     /**

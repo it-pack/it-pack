@@ -8,7 +8,6 @@ use Codeception\Test\Unit;
 use CzProject\GitPhp\GitException;
 use ItPack\CommitIt\Adapter\Git\GitExceptionMap;
 use ItPack\CommitIt\Domain\Exception\DirtyWorkingTreeException;
-use ItPack\CommitIt\Domain\Exception\InvalidReferenceNameException;
 use ItPack\CommitIt\Domain\Exception\RepositoryNotFoundException;
 use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 
@@ -32,7 +31,7 @@ final class GitExceptionMapTest extends Unit
         $exception = new GitException("fatal: unknown revision 'abc'");
         $mapped = GitExceptionMap::map($exception);
 
-        self::assertInstanceOf(InvalidReferenceNameException::class, $mapped);
+        self::assertInstanceOf(VcsOperationException::class, $mapped);
         self::assertSame($exception, $mapped->getPrevious());
         self::assertSame(0, $mapped->getCode());
     }
@@ -102,7 +101,7 @@ final class GitExceptionMapTest extends Unit
                 'does not exist',
                 'no such file or directory',
             ],
-            InvalidReferenceNameException::class => [
+            VcsOperationException::class => [
                 'not a valid',
                 'unknown revision',
                 'ambiguous',

@@ -6,9 +6,12 @@ namespace Tests\Unit\Application;
 
 use Codeception\Test\Unit;
 use ItPack\CommitIt\Application\ObservedRepository;
+use ItPack\CommitIt\Application\ObservedWorkingTree;
 use ItPack\CommitIt\Contract\NullRepositoryObserver;
+use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use RuntimeException;
 
 /**
@@ -98,7 +101,7 @@ final class ObservedRepositoryTest extends Unit
         self::assertSame(['start:stageAll', 'success:stageAll'], $observer->sequence());
     }
 
-    public function testGetWorkingTreeIsNotObserved(): void
+    public function testGetWorkingTreeIsObserved(): void
     {
         $inner = new FakeRepository();
         $observer = new RecordingObserver();
@@ -106,7 +109,10 @@ final class ObservedRepositoryTest extends Unit
 
         $tree = $repository->getWorkingTree();
 
-        self::assertInstanceOf(FakeWorkingTree::class, $tree);
-        self::assertSame([], $observer->sequence());
+        self::assertInstanceOf(ObservedWorkingTree::class, $tree);
+
+        $tree->add(RepositoryPath::from('/wt'), BranchName::from('wt-branch'));
+
+        self::assertSame(['start:add', 'success:add'], $observer->sequence());
     }
 }

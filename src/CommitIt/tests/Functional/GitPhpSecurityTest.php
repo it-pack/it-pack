@@ -169,11 +169,10 @@ final class GitPhpSecurityTest extends Unit
             GitRepoFactory::initWorkingRepo($repo, 'main');
             $repository = $this->open($repo);
 
-            $sentinel = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'commitit-sentinel-' . bin2hex(random_bytes(8));
-            self::assertFileDoesNotExist($sentinel);
-
-            $this->expectException(VcsOperationException::class);
-            $repository->stage('../../' . basename($sentinel));
+            // An absolute path outside the repository must be rejected by CommitIt
+            // itself, independent of what git would do with it.
+            $this->expectException(\InvalidArgumentException::class);
+            $repository->stage('/abs/outside/repo/file.txt');
         } finally {
             GitRepoFactory::tearDown($repo);
         }

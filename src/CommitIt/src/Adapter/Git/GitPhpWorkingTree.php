@@ -92,7 +92,7 @@ final class GitPhpWorkingTree implements WorkingTree
                 }
 
                 $current = [
-                    'path' => substr($line, 9),
+                    'path' => substr($line, strlen('worktree ')),
                     'branch' => null,
                 ];
 
@@ -101,7 +101,7 @@ final class GitPhpWorkingTree implements WorkingTree
 
             if (str_starts_with($line, 'branch ') && $current !== null) {
                 /** @var string $branch */
-                $branch = (string) preg_replace('/^refs\/heads\//', '', substr($line, 7));
+                $branch = (string) preg_replace('/^refs\/heads\//', '', substr($line, strlen('branch ')));
                 $current['branch'] = $branch === '' ? null : $branch;
             }
         }
@@ -154,10 +154,6 @@ final class GitPhpWorkingTree implements WorkingTree
      */
     private function run(callable $operation)
     {
-        try {
-            return $operation();
-        } catch (GitException $e) {
-            throw GitExceptionMap::map($e, 'Worktree operation failed');
-        }
+        return GitExceptionRunner::run($operation, 'Worktree operation failed');
     }
 }

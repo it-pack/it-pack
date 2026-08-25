@@ -10,6 +10,6 @@ namespace ItPack\CommitIt\Contract\Exception;
  *
  * @api
  */
-interface InvalidReferenceNameException extends VcsOperationException
+interface InvalidReferenceNameException extends ValidationException
 {
 }

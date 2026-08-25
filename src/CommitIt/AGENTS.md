@@ -257,6 +257,13 @@ declare(strict_types=1);
 - Use `readonly` whenever controlled mutation is unnecessary.
 - Every concrete class must implement an appropriate interface.
 - Required exceptions must implement the relevant CommitIt exception marker interface.
+- **Interface-backing carve-out (intentional):** value objects (`Domain\Value\*`),
+  option builders (`Domain\Option\*`), and `@internal` adapters helpers such as
+  `GitExceptionMap`/`GitExceptionRunner`/`LocalePinningRunner` are deliberately
+  **not** interface-backed. An interface there would be YAGNI and contradict the
+  "do not create interfaces solely to duplicate" rule. Ports, decorators,
+  factories, and public exceptions remain interface-backed (which they already
+  are). See `docs/REVIEW.md` §5 for the audit.
 - Prefer composition over inheritance.
 - Keep interfaces small and focused.
 - Do not create interfaces solely to duplicate another interface without semantic value.

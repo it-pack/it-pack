@@ -7,6 +7,7 @@ namespace ItPack\CommitIt\Adapter\Git;
 use CzProject\GitPhp\Git;
 use CzProject\GitPhp\GitException;
 use CzProject\GitPhp\IRunner;
+use CzProject\GitPhp\Runners\CliRunner;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\RepositoryFactory;
 use ItPack\CommitIt\Domain\Exception\RepositoryNotFoundException;
@@ -30,7 +31,7 @@ final class GitPhpRepositoryFactory implements RepositoryFactory
 
     public function __construct(?IRunner $runner = null)
     {
-        $this->git = new Git($runner);
+        $this->git = new Git(new LocalePinningRunner($runner ?? new CliRunner()));
     }
 
     public function open(RepositoryPath $path): Repository

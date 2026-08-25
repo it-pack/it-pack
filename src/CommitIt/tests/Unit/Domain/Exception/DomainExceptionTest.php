@@ -10,6 +10,7 @@ use ItPack\CommitIt\Contract\Exception\DirtyWorkingTreeException as DirtyWorking
 use ItPack\CommitIt\Contract\Exception\InvalidCommitMessageException as InvalidCommitMessageExceptionMarker;
 use ItPack\CommitIt\Contract\Exception\InvalidReferenceNameException as InvalidReferenceNameExceptionMarker;
 use ItPack\CommitIt\Contract\Exception\RepositoryNotFoundException as RepositoryNotFoundExceptionMarker;
+use ItPack\CommitIt\Contract\Exception\ValidationException as ValidationExceptionMarker;
 use ItPack\CommitIt\Contract\Exception\VcsOperationException as VcsOperationExceptionMarker;
 use ItPack\CommitIt\Domain\Exception\DirtyWorkingTreeException;
 use ItPack\CommitIt\Domain\Exception\InvalidCommitMessageException;
@@ -54,5 +55,16 @@ final class DomainExceptionTest extends Unit
     {
         self::assertInstanceOf(\InvalidArgumentException::class, new InvalidReferenceNameException());
         self::assertInstanceOf(\InvalidArgumentException::class, new InvalidCommitMessageException());
+    }
+
+    public function testValidationExceptionsAreSeparateFromVcsOperation(): void
+    {
+        self::assertInstanceOf(ValidationExceptionMarker::class, new InvalidReferenceNameException());
+        self::assertInstanceOf(ValidationExceptionMarker::class, new InvalidCommitMessageException());
+
+        // Validation failures are pre-backend logic errors; they must not be
+        // caught by a `catch (VcsOperationException)` handler.
+        self::assertNotInstanceOf(VcsOperationExceptionMarker::class, new InvalidReferenceNameException());
+        self::assertNotInstanceOf(VcsOperationExceptionMarker::class, new InvalidCommitMessageException());
     }
 }

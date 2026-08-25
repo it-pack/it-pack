@@ -31,6 +31,8 @@ final class GitPhpRepository implements Repository
     {
     }
 
+    private ?GitPhpWorkingTree $workingTree = null;
+
     public function getPath(): RepositoryPath
     {
         return RepositoryPath::from($this->repository->getRepositoryPath());
@@ -43,6 +45,8 @@ final class GitPhpRepository implements Repository
 
     public function stage(string $file): void
     {
+        $this->assertWithinWorkingTree($file);
+
         $this->run(function () use ($file): void {
             $this->repository->addFile($file);
         });
@@ -86,15 +90,17 @@ final class GitPhpRepository implements Repository
 
     public function getLastCommit(): ?Commit
     {
+        // Detect "no commits yet" explicitly rather than by matching the command
+        // keyword in git's error text (which is locale-fragile, see REVIEW.md F7).
+        try {
+            $this->repository->execute('rev-parse', '--verify', 'HEAD');
+        } catch (GitException) {
+            return null;
+        }
+
         try {
             $commit = $this->repository->getLastCommit();
         } catch (GitException $e) {
-            // An empty repository has no commits to read; that is a normal state
-            // rather than an error, so surface it as "no last commit".
-            if (stripos($e->getMessage(), 'log') !== false) {
-                return null;
-            }
-
             throw GitExceptionMap::map($e, 'Failed to read last commit');
         }
 
@@ -244,7 +250,77 @@ final class GitPhpRepository implements Repository
 
     public function getWorkingTree(): WorkingTree
     {
-        return new GitPhpWorkingTree($this->repository);
+        return $this->workingTree ??= new GitPhpWorkingTree($this->repository);
+    }
+
+    /**
+     * Ensures a staged path resolves inside the repository working tree. The
+     * check is enforced by CommitIt (not delegated to git) so the scope
+     * invariant holds for every backend; it rejects absolute paths and `..`
+     * traversals that would escape the repository.
+     */
+    private function assertWithinWorkingTree(string $file): void
+    {
+        $repoRoot = $this->repository->getRepositoryPath();
+        $realRepoRoot = realpath($repoRoot);
+
+        if ($realRepoRoot === false) {
+            throw new \InvalidArgumentException('Repository working tree is not accessible.');
+        }
+
+        $target = $file;
+
+        if (!str_starts_with($target, DIRECTORY_SEPARATOR)) {
+            $target = $realRepoRoot . DIRECTORY_SEPARATOR . $target;
+        }
+
+        $realTarget = realpath($target);
+
+        if ($realTarget === false) {
+            // The path may point at a not-yet-tracked file; canonicalize by hand
+            // so traversal escapes are still detected without requiring existence.
+            $realTarget = $this->canonicalizePath($target);
+        }
+
+        $separator = DIRECTORY_SEPARATOR;
+        $inside = $realTarget === $realRepoRoot
+            || str_starts_with($realTarget . $separator, $realRepoRoot . $separator);
+
+        if (!$inside) {
+            throw new \InvalidArgumentException('Staged path must be located inside the repository working tree.');
+        }
+    }
+
+    /**
+     * Collapses `.` and `..` segments without touching the filesystem, so path
+     * scope can be verified even for files that do not exist yet.
+     */
+    private function canonicalizePath(string $path): string
+    {
+        $isAbsolute = str_starts_with($path, DIRECTORY_SEPARATOR);
+        $segments = preg_split('#[/\\\\]+#', $path, -1, PREG_SPLIT_NO_EMPTY);
+
+        if ($segments === false) {
+            $segments = [];
+        }
+
+        $stack = [];
+
+        foreach ($segments as $segment) {
+            if ($segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                array_pop($stack);
+
+                continue;
+            }
+
+            $stack[] = $segment;
+        }
+
+        return ($isAbsolute ? DIRECTORY_SEPARATOR : '') . implode(DIRECTORY_SEPARATOR, $stack);
     }
 
     public function execute(string $command, array $args = []): string
@@ -259,11 +335,7 @@ final class GitPhpRepository implements Repository
      */
     private function run(callable $operation)
     {
-        try {
-            return $operation();
-        } catch (GitException $e) {
-            throw GitExceptionMap::map($e, 'Git operation failed');
-        }
+        return GitExceptionRunner::run($operation, 'Git operation failed');
     }
 
     private static function mapCommit(GitCommit $commit): Commit

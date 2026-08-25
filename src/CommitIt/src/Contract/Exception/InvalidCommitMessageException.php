@@ -9,6 +9,6 @@ namespace ItPack\CommitIt\Contract\Exception;
  *
  * @api
  */
-interface InvalidCommitMessageException extends VcsOperationException
+interface InvalidCommitMessageException extends ValidationException
 {
 }

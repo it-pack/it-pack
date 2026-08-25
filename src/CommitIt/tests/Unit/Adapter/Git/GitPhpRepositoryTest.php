@@ -87,9 +87,32 @@ final class GitPhpRepositoryTest extends Unit
         self::assertSame($date, $commit->committerDate->format(\DateTimeInterface::ATOM));
     }
 
+    public function testGetCommitMapsEmptyEmailsToEmptyString(): void
+    {
+        $id = self::TEST_COMMIT_ID;
+        $date = '2024-01-02T03:04:05+00:00';
+
+        $repository = $this->buildRepository(function (MemoryRunner $runner) use ($id, $date): void {
+            $runner->setResult(['log', '-1', $id, '--format=%s'], [], 'Subject');
+            $runner->setResult(['log', '-1', $id, '--format=%b'], [], '');
+            $runner->setResult(['log', '-1', $id, '--format=%ae'], [], '');
+            $runner->setResult(['log', '-1', $id, '--format=%an'], [], 'Author');
+            $runner->setResult(['log', '-1', $id, '--pretty=format:%ad', '--date=iso-strict'], [], $date);
+            $runner->setResult(['log', '-1', $id, '--format=%ce'], [], '');
+            $runner->setResult(['log', '-1', $id, '--format=%cn'], [], 'Committer');
+            $runner->setResult(['log', '-1', $id, '--pretty=format:%cd', '--date=iso-strict'], [], $date);
+        });
+
+        $commit = $repository->getCommit(CommitId::from($id));
+
+        self::assertSame('', $commit->authorEmail);
+        self::assertSame('', $commit->committerEmail);
+    }
+
     public function testGetLastCommitReturnsNullWhenEmpty(): void
     {
         $repository = $this->buildRepository(function (MemoryRunner $runner): void {
+            $runner->setResult(['rev-parse', '--verify', 'HEAD'], [], '', 'fatal: ambiguous argument', 128);
             $runner->setResult(['log', '--pretty=format:%H', '-n', '1'], [], '', 'fatal: does not have any commits yet', 128);
         });
 
@@ -126,6 +149,24 @@ final class GitPhpRepositoryTest extends Unit
 
         $repository->stage('file.txt');
         $repository->stageAll();
+    }
+
+    public function testStageRejectsPathOutsideWorkingTree(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['add', '--end-of-options', 'file.txt'], [], ''));
+
+        // Absolute path outside the repository must be rejected by CommitIt
+        // without ever reaching the git backend.
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->stage('/abs/outside/repo/file.txt');
+    }
+
+    public function testStageRejectsTraversalOutsideWorkingTree(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['add', '--end-of-options', 'file.txt'], [], ''));
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->stage('../../etc/passwd');
     }
 
     public function testBranchOperations(): void

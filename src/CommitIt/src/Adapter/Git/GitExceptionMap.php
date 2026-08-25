@@ -7,7 +7,6 @@ namespace ItPack\CommitIt\Adapter\Git;
 use CzProject\GitPhp\GitException;
 use ItPack\CommitIt\Contract\Exception\VcsOperationException as VcsOperationExceptionContract;
 use ItPack\CommitIt\Domain\Exception\DirtyWorkingTreeException;
-use ItPack\CommitIt\Domain\Exception\InvalidReferenceNameException;
 use ItPack\CommitIt\Domain\Exception\RepositoryNotFoundException;
 use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 
@@ -42,7 +41,7 @@ final class GitExceptionMap
         }
 
         if (self::matchesInvalidReference($message)) {
-            return new InvalidReferenceNameException(
+            return new VcsOperationException(
                 self::prefixed($context, $message),
                 0,
                 $previous,

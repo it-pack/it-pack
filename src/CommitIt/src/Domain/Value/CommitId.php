@@ -7,9 +7,9 @@ namespace ItPack\CommitIt\Domain\Value;
 /**
  * Validated, opaque commit identifier.
  *
- * Skeleton for Milestone M1: opaque string (git: 40-hex SHA-1). Backend-specific
- * format validation is enforced by the adapter and the dedicated validators in
- * Milestone M2.
+ * The value is a non-empty opaque string. Its exact shape (git: 40-hex SHA-1) is
+ * enforced at the adapter boundary, not in the domain; the domain only guarantees
+ * non-emptiness and value equality.
  *
  * @api
  */
