@@ -205,3 +205,31 @@ None of these are release-blockers, but (2) is a security requirement per `AGENT
 CommitIt is **architecturally sound and production-shaped**. The hexagonal boundary is real and enforced, the domain is clean and pure, and the QA discipline (max PHPStan, DepTrac, Infection, audit) is well above average for a library at this stage. The highest-value work before `1.0.0` is **closing the two security gaps (F3, F4)** and **resolving the ISP/observation-completeness items (F1, F2)**. Everything else is incremental hardening.
 
 No release-blocking defects in core functionality were found; the exception taxonomy (F5) and locale coupling (F6) are correctness/robustness refinements rather than active bugs.
+
+---
+
+## 12. Resolution Status (post-refactoring plan)
+
+Every finding from this review has been addressed by `docs/REFACTORING_PLAN.md`.
+The implementation keeps all quality gates green (PHPStan `level: max`, DepTrac
+0 violations/0 skips, PHP-CS-Fixer, Unit + Functional suites). Public-contract
+changes ship behind accepted ADRs.
+
+| Finding | Status | Resolved by | Notes |
+|---|---|---|---|
+| **F1** — `Repository` ISP split | ✅ Resolved | ADR-006; `src/Contract/CommitPort.php`, `BranchPort.php`, `TagPort.php`, `RemotePort.php`; `Repository` is now a union of focused ports | New capability = new port composed into the union, not an edit to a god-interface. |
+| **F2** — `WorkingTree` not observed | ✅ Resolved | `src/Application/ObservedWorkingTree.php`; `ObservedRepository::getWorkingTree()` wraps the inner tree | `ObservedWorkingTreeTest` + `ObservedRepositoryTest::testGetWorkingTreeIsObserved` cover start/success/failure dispatch. |
+| **F3** — worktree scope prefix-escape | ✅ Resolved | `GitPhpWorkingTree::assertWithinRepositoryScope()` separator-aware ancestry check | Sibling-prefix negative test added (adapter-independent of git's own rejection). |
+| **F4** — `stage` path scope not enforced | ✅ Resolved | `GitPhpRepository::assertWithinWorkingTree()` called in `stage()` | Staging an out-of-scope path throws before any backend call; covered by `tests/Unit/Adapter/Git/GitPhpRepositoryTest.php` via `MemoryRunner`. |
+| **F5** — validation vs VCS-op taxonomy | ✅ Resolved | ADR-007; `src/Contract/Exception/ValidationException.php`; markers repointed | `InvalidReferenceNameException` / `InvalidCommitMessageException` are now `LogicException`-family; `VcsOperationException` no longer catches them. |
+| **F6** — locale/message-fragile mapping | ✅ Resolved | `src/Adapter/Git/LocalePinningRunner.php` (pins `LC_ALL`/`LANG=C` per git subprocess) wired in `GitPhpRepositoryFactory` | Complements F7; mapping no longer depends on host locale. |
+| **F7** — heuristic empty-repo detection | ✅ Resolved | `GitPhpRepository::getLastCommit()` uses `rev-parse --verify HEAD` probe | Removes the `'log'` substring match; both empty and populated states tested. |
+| **F8** — duplicated error-wrapper | ✅ Resolved | `src/Adapter/Git/GitExceptionRunner.php` (shared `final` helper, not a trait) | Both git adapters delegate; original `GitException` preserved as `previous`. |
+| **F9** — magic `substr` offsets | ✅ Resolved | `GitPhpWorkingTree::parseWorktreeList()` uses `strlen('worktree ')` / `strlen('branch ')` | Parsing output identical. |
+| **F10** — commit email null-handling | ✅ Resolved (N/A) | `mapCommit()` | `czproject/git-php` guarantees non-null author/committer email (PHPStan confirms); adding `?? ''` is flagged as redundant, so direct getters are used and no `TypeError` is possible. Names retain the pre-existing `?? ''`. |
+| **F11** — stale `CommitId` docblock | ✅ Resolved | `src/Domain/Value/CommitId.php` doc updated to final opaque/validated contract | No "Milestone" references remain. |
+| **F12** — `getWorkingTree()` rebuild | ✅ Resolved | `GitPhpRepository` memoizes the `GitPhpWorkingTree` wrapper (`??=`) | Wrapper is stateless, so memoization is safe. |
+| **§5** — interface-backing carve-out | ✅ Resolved | `AGENTS.md` "Classes and contracts" carve-out note | Value objects, option builders, and `@internal` mappers are intentionally not interface-backed (YAGNI); matches this audit §5. |
+
+All P0 (F3, F4), P1 (F1, F2, F5), P2 (F6, F7, F8), and P3 (F9–F12, §5) items are
+closed. `composer quality` is green on the resolved tree.
