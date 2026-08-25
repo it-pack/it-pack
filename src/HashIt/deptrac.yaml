@@ -1,0 +1,26 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Core
+      collectors:
+        - type: classNameRegex
+          value: '/^ItPack\\HashIt(?!\\Adapter)/'
+    - name: Adapter
+      collectors:
+        - type: classNameRegex
+          value: '/^ItPack\\HashIt\\Adapter(?!\\NativeHashIt$)/'
+    - name: CompositionRoot
+      collectors:
+        - type: classNameRegex
+          value: '/^ItPack\\HashIt\\Adapter\\NativeHashIt$/'
+  ruleset:
+    # The core depends on nothing but itself: ports it owns and the value object.
+    Core: ~
+    # Adapters may implement core ports and use core types — never the reverse.
+    Adapter:
+      - Core
+    # The composition root is the only place allowed to know every concrete adapter.
+    CompositionRoot:
+      - Core
+      - Adapter

@@ -16,7 +16,7 @@ final class NativeHashIt
 {
     public static function create(): Hasher
     {
-        return new Hasher(new NativeContextFactory());
+        return new Hasher(new NativeContextFactory(), new NativeDirectoryListing());
     }
 
     public static function hmacHasher(): HmacHasherInterface

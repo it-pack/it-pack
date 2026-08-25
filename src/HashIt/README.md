@@ -85,13 +85,20 @@ src/
   HashContextInterface.php           port
   ContextFactoryInterface.php        port
   FilepathInterface.php              port
+  DirectoryListingInterface.php      port
   Hasher.php                         core service (depends only on ports)
   Adapter/
     NativeHashContext.php            wraps PHP \HashContext
     NativeContextFactory.php         builds a NativeHashContext
     NativeFilepathFileinfo.php       SplFileInfo -> FilepathInterface
+    NativeDirectoryListing.php       enumerates regular files -> FilepathInterface
+    NativeHmacHasher.php             HMAC via hash_hmac()
     NativeHashIt.php                 composition root (binds the adapters)
 ```
+
+The core→adapter boundary is enforced by `composer architecture` (deptrac): the
+core namespace cannot reference `Adapter\*`, and `NativeHashIt` is the single
+allowed wiring point.
 
 ## Testing & quality gates
 

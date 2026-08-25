@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
-use DirectoryIterator;
 use InvalidArgumentException;
-use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use RuntimeException;
 
 final readonly class Hasher
 {
     private const int DEFAULT_CHUNK_SIZE_BYTES = 65536;
 
-    public function __construct(private ContextFactoryInterface $factory)
-    {
+    public function __construct(
+        private ContextFactoryInterface $factory,
+        private DirectoryListingInterface $listing,
+    ) {
     }
 
     public function hash(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
@@ -27,20 +27,28 @@ final readonly class Hasher
         return $this->hashString($data, $algorithm, true);
     }
 
+    /**
+     * @throws RuntimeException when the file cannot be read
+     * @throws InvalidArgumentException when the algorithm is unknown
+     */
     public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
         $file = (string) $path;
 
-        if (!is_file($file) || !is_readable($file)) {
+        if (!is_file($file)) {
             throw $this->unreadable($file);
         }
 
-        $contents = file_get_contents($file);
-        if ($contents === false) {
+        $handle = fopen($file, 'rb');
+        if ($handle === false) {
             throw $this->unreadable($file);
         }
 
-        return $this->hash($contents, $algorithm);
+        try {
+            return $this->hashStream($handle, $algorithm);
+        } finally {
+            fclose($handle);
+        }
     }
 
     public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
@@ -122,14 +130,7 @@ final readonly class Hasher
             throw new RuntimeException('Not a directory: ' . $directory);
         }
 
-        $paths = [];
-        foreach (new DirectoryIterator($directory) as $item) {
-            if ($item->isFile()) {
-                $paths[] = new NativeFilepathFileinfo($item->getFileInfo());
-            }
-        }
-
-        return $this->hashFiles($paths, $algorithm);
+        return $this->hashFiles($this->listing->regularFiles($directory), $algorithm);
     }
 
     private function hashString(string $data, string|HashAlgorithm $algorithm, bool $binary): HashInterface

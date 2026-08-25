@@ -145,7 +145,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M3 — Hexagonal repair + architectural enforcement (F-1, F-7 enforcement)
+## M3 — Hexagonal repair + architectural enforcement (F-1, F-7 enforcement) — ✅ DONE (2026-08-25; task 1 landed 2026-08-24)
 
 **Goal:** Remove the single core→adapter import (`Hasher.php:7`) behind a new owned port, and make the boundary mechanically enforced with deptrac so it cannot regress.
 
@@ -183,9 +183,11 @@ git status --porcelain   # var/ noise gone
 **Dependencies:** M0 (floor for dev-tool install), M1 (helpers).
 **Acceptance:** zero `Adapter\` references from core; deptrac green and wired as a composer script; README doctrine accurate.
 
+**Completion note (2026-08-25):** Landed in two waves — task 1 (the `DirectoryListingInterface` port) shipped 2026-08-24; the interruption left tasks 2–6 undone, and the committed interim state was **red** (shipmonk dead-code detector flagged the unused port method), so the remaining tasks were completed here before M4 could verify against a green baseline, as guardrail #6 requires. Tasks 2–4: `NativeDirectoryListing` (DirectoryIterator → `NativeFilepathFileinfo::of()`, sorted by path via `usort`), `Hasher` constructor gained `private DirectoryListingInterface $listing` and `hashDirectory()` now validates `is_dir()` then delegates; the `Adapter\` import is gone (grep gate clean). Task 5: `deptrac.yaml` uses classNameRegex layers (`Core`, `Adapter`, `CompositionRoot`) mirroring CommandIt's ruleset semantics — deptrac 4.6.2 arrives transitively via `just-bases/php-qa-base` exactly as in CommandIt, so no direct dev requirement was added; `composer architecture` reports 0 violations / 28 allowed. Task 6: README layout table updated (also adding the previously missing `NativeHmacHasher` row) with a boundary-enforcement paragraph. Tests: determinism test (insertion order ≠ alphabetical, two runs identical) and the fake-driven `testHashDirectoryDelegatesToInjectedPorts` — an *empty* real directory plus injected listing/factory fakes proves content comes from the port while digests come from the fake context, no native hashing involved. Two toolchain notes: cs-fixer auto-sorted the new test imports, and PHPStan rejected a short ternary in test cleanup (house pattern: explicit `if ($files === false)`). Gates: 42 tests / 178 assertions ✅ · php-cs-fixer 0 of 24 ✅ · PHPStan 0 errors ✅ · deptrac 0 violations ✅.
+
 ---
 
-## M4 — Memory-bounded hashFile (F-5)
+## M4 — Memory-bounded hashFile (F-5) — ✅ DONE (2026-08-25)
 
 **Goal:** Bound `hashFile()` memory to one chunk regardless of file size by routing it through the already-proven streaming path.
 
@@ -213,6 +215,8 @@ git status --porcelain   # var/ noise gone
 **Verification:** gates; re-run review benchmark C (`/tmp/kilo/hashit-bench.php` pattern) — peak-memory delta for `hashFile` must be ≈ chunk-sized rather than file-sized, digests unchanged.
 **Dependencies:** M1, M2.
 **Acceptance:** 200 MiB file hashes with ~64 KiB-scale memory; identical digest; gates green.
+
+**Completion note (2026-08-25):** `hashFile()` now keeps only the cheap `is_file()` pre-check (dropping the redundant TOCTOU-prone `is_readable()`), opens the file with `fopen('rb')`, maps an open failure to the shared `unreadable()` helper, and streams via `hashStream()` inside a `try/finally` that always closes the handle. Its docblock declares both throw types. The streaming-equivalence test (≈160 KiB payload spanning three 64 KiB chunks) was added; the existing missing-path test passes unchanged. Benchmark probe (100 MiB file): peak-memory delta **0.0 MiB** (was ~file-sized pre-change), digest equals both the stream path and native `hash_file()`. Gates: 43 tests / 179 assertions ✅ · php-cs-fixer 0 of 24 ✅ · PHPStan 0 errors ✅ · deptrac 0 violations ✅.
 
 ---
 

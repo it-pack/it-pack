@@ -7,7 +7,11 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\ContextFactoryInterface;
+use ItPack\HashIt\DirectoryListingInterface;
+use ItPack\HashIt\FilepathInterface;
 use ItPack\HashIt\HashAlgorithm;
+use ItPack\HashIt\HashContextInterface;
 use ItPack\HashIt\Hasher;
 
 class HasherTest extends Unit
@@ -65,6 +69,19 @@ class HasherTest extends Unit
         $this->hasher()->hashFile(
             new NativeFilepathFileinfo(new \SplFileInfo('/nonexistent/path/xyz')),
         );
+    }
+
+    public function testHashFileStreamsLargePayloadInChunks(): void
+    {
+        $payload = str_repeat('abcdefgh', 20000); // ~160 KiB, spans 3 chunks at 64 KiB
+        $tmp = tempnam(sys_get_temp_dir(), 'hashit');
+        file_put_contents($tmp, $payload);
+
+        $hash = $this->hasher()->hashFile(NativeFilepathFileinfo::of($tmp));
+
+        unlink($tmp);
+
+        verify($hash->value())->equals(hash('sha256', $payload));
     }
 
     public function testVerifyMatchesExpectedDigest(): void
@@ -190,5 +207,104 @@ class HasherTest extends Unit
         $this->expectException(\RuntimeException::class);
 
         $this->hasher()->hashDirectory('/nonexistent/path/xyz');
+    }
+
+    public function testHashDirectoryOrderIsDeterministic(): void
+    {
+        $dir = sys_get_temp_dir() . '/hashit_dir_' . uniqid();
+        mkdir($dir);
+        file_put_contents($dir . '/c.txt', 'c');
+        file_put_contents($dir . '/a.txt', 'a');
+        file_put_contents($dir . '/b.txt', 'b');
+
+        $first = array_keys($this->hasher()->hashDirectory($dir));
+        $second = array_keys($this->hasher()->hashDirectory($dir));
+
+        $files = glob($dir . '/*.txt');
+        if ($files === false) {
+            $files = [];
+        }
+        array_map('unlink', $files);
+        rmdir($dir);
+
+        verify($second)->equals($first);
+        verify($first)->equals([$dir . '/a.txt', $dir . '/b.txt', $dir . '/c.txt']);
+    }
+
+    public function testHashDirectoryDelegatesToInjectedPorts(): void
+    {
+        $dir = sys_get_temp_dir() . '/hashit_fake_' . uniqid();
+        mkdir($dir);
+        $a = tempnam(sys_get_temp_dir(), 'hashit');
+        $b = tempnam(sys_get_temp_dir(), 'hashit');
+
+        // The scanned directory is empty: both entries come from the injected
+        // listing port, and digests come from the injected context factory.
+        $hasher = new Hasher(self::fakeFactory(), self::fakeListing([
+            self::fakePath($a),
+            self::fakePath($b),
+        ]));
+
+        $map = $hasher->hashDirectory($dir);
+
+        rmdir($dir);
+        unlink($a);
+        unlink($b);
+
+        verify(count($map))->equals(2);
+        verify($map[$a]->value())->equals('fakedigest');
+        verify($map[$b]->value())->equals('fakedigest');
+    }
+
+    private static function fakePath(string $path): FilepathInterface
+    {
+        return new class ($path) implements FilepathInterface {
+            public function __construct(private readonly string $path)
+            {
+            }
+
+            public function __toString(): string
+            {
+                return $this->path;
+            }
+        };
+    }
+
+    private static function fakeFactory(): ContextFactoryInterface
+    {
+        return new class () implements ContextFactoryInterface {
+            public function build(string $algorithm): HashContextInterface
+            {
+                return new class () implements HashContextInterface {
+                    public function update(string $data): void
+                    {
+                    }
+
+                    public function finalize(bool $binary): string
+                    {
+                        return 'fakedigest';
+                    }
+
+                    public function copy(): HashContextInterface
+                    {
+                        return $this;
+                    }
+                };
+            }
+        };
+    }
+
+    private static function fakeListing(array $paths): DirectoryListingInterface
+    {
+        return new class ($paths) implements DirectoryListingInterface {
+            public function __construct(private readonly array $paths)
+            {
+            }
+
+            public function regularFiles(string $directory): array
+            {
+                return $this->paths;
+            }
+        };
     }
 }

@@ -22,6 +22,7 @@ coverage/
 .phpunit.result.cache
 tests/_output/
 var/
+.deptrac.cache
 
 # Environment
 .env
