@@ -74,6 +74,7 @@ meaningful for future comparisons on the same host, not absolute claims.
 | `benchRedaction` | 3.93 µs | ±9.7% |
 | `benchBoundedPublish` | 3.59 µs | ±4.5% |
 | `benchBuffering` | 44.10 µs | ±64.3% |
+| `benchOtelNullProviderRecord` | ≈0.29 µs | at noise floor (see T3.5 verdict below) |
 
 Phase 2 (T2.4) replaced the bounded publisher's per-publish
 `strlen(json_encode(...))` sizing — which encoded every occurrence/snapshot

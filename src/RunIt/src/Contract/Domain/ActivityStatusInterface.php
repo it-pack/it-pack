@@ -19,4 +19,14 @@ interface ActivityStatusInterface
     public function label(): string;
 
     public function isTerminal(): bool;
+
+    /**
+     * Returns whether this non-terminal status may legally move to `$to`.
+     *
+     * The activity matrix mirrors the execution matrix (`created` may move to
+     * `running` or `cancelled`; `running` may move to a terminal status).
+     * Terminal statuses never transition, so completing an activity to a
+     * non-terminal status is rejected by the aggregate.
+     */
+    public function canTransitionTo(ActivityStatusInterface $to): bool;
 }

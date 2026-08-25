@@ -17,6 +17,7 @@ use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Exception\ConflictingActivityCompletionException;
+use ItPack\RunIt\Domain\Exception\InvalidActivityTransitionException;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
@@ -81,6 +82,10 @@ final readonly class Activity implements ActivityInterface
     ): self {
         if ($this->status->isTerminal()) {
             throw ConflictingActivityCompletionException::forConflict($this->status);
+        }
+
+        if (!$this->status->canTransitionTo($status)) {
+            throw InvalidActivityTransitionException::forIllegalTarget($this->status, $status);
         }
 
         return new self(

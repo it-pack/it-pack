@@ -17,6 +17,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 
 /**
@@ -52,7 +53,7 @@ final class DefaultOccurrenceRecorder implements OccurrenceRecorderInterface
         ?string $subject = null,
         ?AttributeCollectionInterface $extensionAttributes = null,
         ?string $dataSchema = null,
-        string $contentType = 'application/json',
+        string $contentType = MediaTypes::APPLICATION_JSON,
     ): OccurrenceInterface {
         $occurrence = Occurrence::create(
             $this->occurrenceIdFactory->build(),

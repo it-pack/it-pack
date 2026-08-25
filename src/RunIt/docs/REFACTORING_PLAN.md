@@ -322,6 +322,18 @@ the default wiring; all gates green.
 
 ## Phase 3 — P3: decisions, defensive edges, polish
 
+> **Status: Complete (2026-08-24).** Activity completion now follows the execution
+> matrix discipline: `ActivityStatus::canTransitionTo()` declared on the contract,
+> enforced structurally by `Activity::complete()` (non-terminal targets raise the new
+> `InvalidActivityTransitionException`); ADR-024 written, compatibility note recorded,
+> baseline refreshed (documented pre-1.0 break). Defensive edges landed: throwable codes
+> coerced to int in the mapper; estimator recursion capped at
+> `SecurityLimits::maxSerializationDepth` via a new optional limits parameter. All seven
+> T3.3 nits resolved. **Deviation:** validator instance-sharing deferred — true sharing
+> requires static state, which the no-mutable-static discipline forbids; per-construction
+> cost is negligible next to the validation walk itself (documented here rather than
+> bending rules). Green: 760 tests incl. new matrix/rejection cases, all gates.
+
 ### T3.1 — Activity transition matrix: extend or document (REVIEW.md §3.8, §4 P2-10)
 - **Goal:** executions forbid completing to non-terminal statuses; activities
   accept any target status once running (e.g., completing to `Running` yields

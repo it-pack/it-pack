@@ -6082,6 +6082,17 @@
         },
         "constants": [],
         "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    }
+                ]
+            },
             "estimate": {
                 "static": false,
                 "return": "int",
@@ -9380,6 +9391,17 @@
                 "static": false,
                 "return": "bool",
                 "params": []
+            },
+            "canTransitionTo": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "to",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -13146,6 +13168,17 @@
                 "return": "string",
                 "params": []
             },
+            "canTransitionTo": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "to",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "cases": {
                 "static": true,
                 "return": "array",
@@ -13992,6 +14025,103 @@
                     {
                         "name": "attempted",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "message",
+                        "type": "string",
+                        "optional": true
+                    },
+                    {
+                        "name": "code",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "previous",
+                        "type": "null|Throwable",
+                        "optional": true
+                    }
+                ]
+            },
+            "__wakeup": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": []
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": []
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Domain\\Exception\\InvalidActivityTransitionException": {
+        "kind": "class",
+        "final": true,
+        "extends": "RuntimeException",
+        "implements": {
+            "Throwable": "Throwable",
+            "Stringable": "Stringable",
+            "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface",
+            "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
+        },
+        "constants": [],
+        "methods": {
+            "forIllegalTarget": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidActivityTransitionException",
+                "params": [
+                    {
+                        "name": "from",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "to",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface",
                         "optional": false
                     }
                 ]

@@ -11,7 +11,7 @@ The toolkit lives in `src/Conformance/`:
 
 ```text
 src/Conformance/
-├── Fixture/PortFixtureInterface.php   # the single contract a verifier depends on
+├── Contract/PortFixtureInterface.php  # the single contract a verifier depends on
 ├── Fixture/RunItPortFixture.php       # bundled fixture for the first-party ports
 ├── Verifier/                          # one verifier per port contract
 └── Result/                            # ConformanceResult / ConformanceViolation / ViolationSeverity

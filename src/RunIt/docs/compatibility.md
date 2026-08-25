@@ -118,6 +118,27 @@ enforced structurally by the aggregate:
 - `BoundedArtifactPublisher` releases an execution's artifact counter on every
   terminal-snapshot exit path, including count/payload-dropped ones.
 
+### Refactoring plan Phase 3 (2026-08-24) changes
+
+Per ADR-024, activity completion now follows the same matrix discipline as
+executions:
+
+- `ActivityStatusInterface` gained `canTransitionTo()`. **Breaking** for
+  third-party status implementations, mirroring the execution-status change.
+- `Activity::complete()` rejects completing a running activity to a
+  non-terminal status (`InvalidActivityTransitionException`, new, implements
+  `LifecycleExceptionInterface`). Valid flows (`Succeeded`/`Failed` from
+  `running`) are unaffected.
+- `DefaultThrowableMapper` coerces throwable codes to `int` defensively;
+  extension exceptions exposing non-int codes through shadowed properties no
+  longer risk a `TypeError` in the failure-normalization path.
+- `PayloadSectionByteEstimator` caps recursion at
+  `SecurityLimits::maxSerializationDepth` (defense-in-depth; constructor gained
+  an optional limits parameter with a safe default).
+- `OccurrenceTypeFilter` docblock corrected: the filter *suppresses* all
+  non-listed artifacts on its route (including non-occurrences); behavior is
+  unchanged from previous releases.
+
 
 ## Stable normalization schema
 

@@ -33,7 +33,7 @@ deptrac:
     - name: Common Adapter
       collectors:
         - type: directory
-          value: src/Adapter/(Null|Memory|Callback|Fiber|Common)/.*
+          value: src/Adapter/(Null|Memory|Fiber|Common)/.*
     - name: External Adapter
       collectors:
         - type: directory

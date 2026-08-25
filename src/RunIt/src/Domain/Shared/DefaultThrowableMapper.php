@@ -15,8 +15,10 @@ use Throwable;
  * without ever retaining the original exception. Capture is policy-driven:
  *
  *  - The message is truncated to {@see self::DEFAULT_MAX_MESSAGE_LENGTH} bytes.
- *  - The integer code is captured directly; `Throwable::getCode()` is typed
- *    `int`, so codes are always serializable in this model.
+ *  - The code is captured as an integer: `Throwable::getCode()` is declared
+ *    `int` for SPL exceptions, but extension-provided exceptions have
+ *    historically exposed non-int codes through shadowed properties, so the
+ *    value is coerced defensively rather than trusted.
  *  - Previous causes are captured recursively, up to
  *    {@see self::DEFAULT_MAX_CAUSE_DEPTH} levels.
  *  - The stack trace is included only when explicitly enabled, and then
@@ -72,7 +74,9 @@ final readonly class DefaultThrowableMapper implements ThrowableMapperInterface
             }
         }
 
-        $code = $throwable->getCode();
+        // Defensive coercion: extension exceptions (e.g. PDO-style) have
+        // historically surfaced non-int codes despite the native `int` hint.
+        $code = (int) $throwable->getCode();
         $message = $throwable->getMessage();
 
         if ($this->maxMessageLength >= 0 && strlen($message) > $this->maxMessageLength) {

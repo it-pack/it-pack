@@ -13,6 +13,7 @@ use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Exception\ConflictingActivityCompletionException;
+use ItPack\RunIt\Domain\Exception\InvalidActivityTransitionException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
@@ -97,6 +98,38 @@ final class ActivityTest extends Unit
             self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
             self::assertStringContainsString('"succeeded"', $exception->getMessage());
         }
+    }
+
+    public function testCompletingToANonTerminalStatusIsRejected(): void
+    {
+        $running = Activity::start(
+            ActivityId::fromString('act-1'),
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000),
+        );
+
+        try {
+            $running->complete(ActivityStatus::Running, null, Instant::of(2000));
+            self::fail('completing to a non-terminal status must be rejected');
+        } catch (InvalidActivityTransitionException $exception) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
+            self::assertStringContainsString('"running" to "running"', $exception->getMessage());
+        }
+    }
+
+    public function testTransitionMatrixMirrorsExecutionDiscipline(): void
+    {
+        self::assertTrue(ActivityStatus::Created->canTransitionTo(ActivityStatus::Running));
+        self::assertTrue(ActivityStatus::Created->canTransitionTo(ActivityStatus::Cancelled));
+        self::assertFalse(ActivityStatus::Created->canTransitionTo(ActivityStatus::Succeeded));
+
+        foreach ([ActivityStatus::Succeeded, ActivityStatus::Failed, ActivityStatus::Cancelled, ActivityStatus::TimedOut] as $terminal) {
+            self::assertTrue(ActivityStatus::Running->canTransitionTo($terminal), $terminal->label());
+            self::assertFalse($terminal->canTransitionTo(ActivityStatus::Running), 'terminal statuses cannot transition');
+        }
+
+        self::assertFalse(ActivityStatus::Running->canTransitionTo(ActivityStatus::Running));
     }
 
     public function testFailedActivityCarriesThrowableDescription(): void

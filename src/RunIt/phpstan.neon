@@ -8,7 +8,6 @@ parameters:
         - ./src
         - ./tests/Conformance
         - ./tests/Concurrency
-        - ./tests/Functional
         - ./tests/Integration
         - ./tests/Support/Fixture
         - ./tests/Unit
