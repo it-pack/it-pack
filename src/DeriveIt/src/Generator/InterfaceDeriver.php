@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEvents;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveMeasurements;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveUnits;
 use ItPack\DeriveIt\Exception\EmptyDerivationException;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
@@ -31,23 +34,29 @@ use ReflectionClass;
  *
  * Phase 10.15 (G15 / G18): {@see BuildMeta} replaces the untyped `build()` return;
  * substitutor seeding + skip filtering + reflection memoization live in the shared
- * {@see AbstractDeriver} base.
+ * {@see DerivationCore} collaborator.
  */
-final readonly class InterfaceDeriver extends AbstractDeriver
+final readonly class InterfaceDeriver
 {
+    private readonly DerivationCore $core;
+
     public function __construct(
-        ?MethodSignatureFactory       $signatureFactory = null,
         DeriveConfig                   $config = new DeriveConfig(),
         ?Factory                       $factory = null,
         ?ReflectionCacheInterface      $reflectionCache = null,
         ?DeriveEventSinkInterface      $eventSink = null,
     ) {
-        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache(), $eventSink);
+        $this->core = DerivationCore::create(
+            $config,
+            $reflectionCache ?? new InMemoryReflectionCache(),
+            $factory,
+            $eventSink,
+        );
     }
 
     public function derive(ReflectionClass|string $class): InterfaceType
     {
-        return $this->build($this->reflect($class))->interface;
+        return $this->build($this->core->reflect($class))->interface;
     }
 
     /**
@@ -64,11 +73,11 @@ final readonly class InterfaceDeriver extends AbstractDeriver
 
     public function deriveSource(ReflectionClass|string $class): string
     {
-        $reflection = $this->reflect($class);
+        $reflection = $this->core->reflect($class);
         $meta = $this->build($reflection);
 
-        $source = $this->renderer->render($meta->interface, $reflection->getNamespaceName());
-        $this->events->measured('source.bytes', strlen($source), 'By', ['target' => $reflection->getName()]);
+        $source = $this->core->renderer()->render($meta->interface, $reflection->getNamespaceName());
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SOURCE_BYTES, strlen($source), DeriveUnits::UNIT_BYTES, ['target' => $reflection->getName()]);
 
         return $source;
     }
@@ -78,11 +87,11 @@ final readonly class InterfaceDeriver extends AbstractDeriver
      */
     public function deriveWithResult(ReflectionClass|string $class): DerivationResult
     {
-        $reflection = $this->reflect($class);
+        $reflection = $this->core->reflect($class);
         $meta = $this->build($reflection);
 
-        $source = $this->renderer->render($meta->interface, $reflection->getNamespaceName());
-        $this->events->measured('source.bytes', strlen($source), 'By', ['target' => $reflection->getName()]);
+        $source = $this->core->renderer()->render($meta->interface, $reflection->getNamespaceName());
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SOURCE_BYTES, strlen($source), DeriveUnits::UNIT_BYTES, ['target' => $reflection->getName()]);
 
         return new DerivationResult(
             interface: $meta->interface,
@@ -102,7 +111,7 @@ final readonly class InterfaceDeriver extends AbstractDeriver
      */
     public function analyze(ReflectionClass|string $class): DerivationResult
     {
-        $reflection = $this->reflect($class);
+        $reflection = $this->core->reflect($class);
         $meta = $this->build($reflection);
 
         return new DerivationResult(
@@ -124,15 +133,15 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         Naming::assertNoCollision($reflection);
 
         $target = ['target' => $reflection->getName()];
-        $this->events->occurred('derivation.started', $target);
+        $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_STARTED, $target);
 
         if ($substitutor === null) {
             // Seed the map with the class itself and its parent so that `self`
             // (which reflection resolves to the concrete class name) and `parent`
             // are rewritten to their derived interface FQCNs (A1). Shared from the
             // AbstractDeriver base so flat + per-trait modes stay in lockstep.
-            $substitutor = $this->createTypeSubstitutor($reflection);
-            $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->seedTypeMap($reflection), []);
+            $substitutor = $this->core->createTypeSubstitutor($reflection);
+            $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->core->seedTypeMap($reflection), []);
         }
 
         $interface = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
@@ -144,9 +153,9 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         // entry is a configuration mistake worth surfacing rather than skipping
         // silently (first `observed()` emission site — CONSOLIDATION_PLAN §5.2).
         $implemented = $reflection->getInterfaceNames();
-        foreach ($this->config->reExposeOwnedInterfaces as $owned) {
+        foreach ($this->core->config()->reExposeOwnedInterfaces as $owned) {
             if (!in_array($owned, $implemented, true)) {
-                $this->events->observed(
+                $this->core->events()->observed(
                     sprintf('reExposeOwnedInterfaces entry "%s" is not implemented by "%s"; skipped.', $owned, $reflection->getName()),
                     DeriveObservationSeverity::WARNING,
                     ['target' => $reflection->getName(), 'interface' => $owned],
@@ -158,19 +167,19 @@ final readonly class InterfaceDeriver extends AbstractDeriver
             $interface->addExtend($owned);
         }
 
-        $this->events->activityStarted('surface.extract', $target);
-        $extracted = $this->extractor->extract($reflection);
+        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_SURFACE_EXTRACT, $target);
+        $extracted = $this->core->extractor()->extract($reflection);
         $collected = [];
         foreach ($extracted as $method) {
-            $signature = $this->signatureFor($method, $substitutor);
+            $signature = $this->core->signatureFor($method, $substitutor);
             if ($signature === null) {
                 continue;
             }
             $collected[] = $signature;
         }
-        $this->events->activityFinished('surface.extract');
-        $this->events->measured('methods.derived', count($collected), 'count', $target);
-        $this->events->measured('methods.dropped', max(0, count($extracted) - count($collected)), 'count', $target);
+        $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_SURFACE_EXTRACT);
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DERIVED, count($collected), DeriveUnits::UNIT_COUNT, $target);
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DROPPED, max(0, count($extracted) - count($collected)), DeriveUnits::UNIT_COUNT, $target);
 
         $methodNames = array_map(static fn (Method $m): string => $m->getName(), $collected);
 
@@ -178,28 +187,28 @@ final readonly class InterfaceDeriver extends AbstractDeriver
         $interface->setMethods($collected);
 
         $constants = [];
-        if ($this->config->includeConstants) {
+        if ($this->core->config()->includeConstants) {
             $constants = $this->addConstants($interface, $reflection);
-            $this->events->measured('constants.lifted', count($constants), 'count', $target);
+            $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_CONSTANTS_LIFTED, count($constants), DeriveUnits::UNIT_COUNT, $target);
         }
 
-        if ($this->config->failOnEmpty && $methodNames === [] && $constants === []) {
+        if ($this->core->config()->failOnEmpty && $methodNames === [] && $constants === []) {
             throw new EmptyDerivationException(sprintf(
                 'Derivation of "%s" produced an empty surface (no methods, no constants).',
                 $reflection->getName(),
             ));
         }
 
-        $this->events->activityStarted('leakage.audit', $target);
-        self::assertSelfContained($interface, $this->config->reExposeOwnedInterfaces);
+        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT, $target);
+        self::assertSelfContained($interface, $this->core->config()->reExposeOwnedInterfaces);
 
         new LeakageAuditor()->audit(
             $interface,
             $reflection->getNamespaceName(),
             $allowedNamespaces,
-            $this->config->auditLeakage,
+            $this->core->config()->auditLeakage,
         );
-        $this->events->activityFinished('leakage.audit');
+        $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT);
 
         // Report the effective map this substitutor actually applied (a full family
         // cross-reference map in family mode), plus the self/static/parent keyword
@@ -218,8 +227,8 @@ final readonly class InterfaceDeriver extends AbstractDeriver
             $substitutions['parent'] = $parentFqcn;
         }
 
-        $this->events->measured('substitutions.applied', count($substitutions), 'count', $target);
-        $this->events->occurred('derivation.completed', $target);
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SUBSTITUTIONS_APPLIED, count($substitutions), DeriveUnits::UNIT_COUNT, $target);
+        $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_COMPLETED, $target);
 
         return new BuildMeta($interface, $methodNames, $substitutions, $constants);
     }

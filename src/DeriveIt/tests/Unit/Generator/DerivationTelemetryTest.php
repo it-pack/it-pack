@@ -9,7 +9,9 @@ use _Fixture\Stubs\ClassA;
 use _Fixture\Stubs\ClassB;
 use _Fixture\UsesMultipleTraitsClass;
 use Codeception\Test\Unit;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEvents;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveMeasurements;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 use ItPack\DeriveIt\DeriveItFactory;
 use ItPack\DeriveIt\Generator\DeriveConfig;
@@ -84,16 +86,16 @@ final class DerivationTelemetryTest extends Unit
         $source = $this->factory->interfaceDeriver()->deriveSource(Collaborator::class);
 
         self::assertSame([
-            'occurred:derivation.started',
-            'activity.started:surface.extract',
-            'activity.finished:surface.extract',
+            'occurred:' . DeriveEvents::EVENT_DERIVATION_STARTED,
+            'activity.started:' . DeriveEvents::ACTIVITY_SURFACE_EXTRACT,
+            'activity.finished:' . DeriveEvents::ACTIVITY_SURFACE_EXTRACT,
             'measured:methods.derived',
             'measured:methods.dropped',
-            'activity.started:leakage.audit',
-            'activity.finished:leakage.audit',
-            'measured:substitutions.applied',
-            'occurred:derivation.completed',
-            'measured:source.bytes',
+            'activity.started:' . DeriveEvents::ACTIVITY_LEAKAGE_AUDIT,
+            'activity.finished:' . DeriveEvents::ACTIVITY_LEAKAGE_AUDIT,
+            'measured:' . DeriveMeasurements::MEASUREMENT_SUBSTITUTIONS_APPLIED,
+            'occurred:' . DeriveEvents::EVENT_DERIVATION_COMPLETED,
+            'measured:' . DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
         ], $this->sink->kinds());
 
         // The derived-method measurement matches the actual surface; rendering
@@ -114,12 +116,12 @@ final class DerivationTelemetryTest extends Unit
 
         $kinds = $this->sink->kinds();
 
-        self::assertSame('measured:family.members', $kinds[0]);
+        self::assertSame('measured:' . DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS, $kinds[0]);
         self::assertSame(['value' => 2, 'unit' => 'count', 'graph' => 'classes'], $this->sink->events[0][2]);
 
         // Two complete member lifecycles follow, one per input class.
-        $starts = array_keys($kinds, 'occurred:derivation.started', true);
-        $completes = array_keys($kinds, 'occurred:derivation.completed', true);
+        $starts = array_keys($kinds, 'occurred:' . DeriveEvents::EVENT_DERIVATION_STARTED, true);
+        $completes = array_keys($kinds, 'occurred:' . DeriveEvents::EVENT_DERIVATION_COMPLETED, true);
         self::assertCount(2, $starts);
         self::assertCount(2, $completes);
         self::assertSame(ClassA::class, $this->sink->events[$starts[0]][2]['target']);
@@ -134,9 +136,9 @@ final class DerivationTelemetryTest extends Unit
 
         // Lifecycle brackets the whole run; trait graph walk and both surface
         // extractions are distinguishable by their attributes.
-        self::assertSame('occurred:derivation.started', $kinds[0]);
-        self::assertContains('activity.started:graph.walk', $kinds);
-        self::assertContains('measured:family.members', $kinds);
+        self::assertSame('occurred:' . DeriveEvents::EVENT_DERIVATION_STARTED, $kinds[0]);
+        self::assertContains('activity.started:' . DeriveEvents::ACTIVITY_GRAPH_WALK, $kinds);
+        self::assertContains('measured:' . DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS, $kinds);
 
         $surfaces = array_values(array_filter(
             $this->sink->events,
@@ -146,7 +148,7 @@ final class DerivationTelemetryTest extends Unit
         self::assertSame('trait-interfaces', $surfaces[0][2]['surface']);
         self::assertSame('main', $surfaces[1][2]['surface']);
 
-        self::assertContains('occurred:derivation.completed', $kinds);
+        self::assertContains('occurred:' . DeriveEvents::EVENT_DERIVATION_COMPLETED, $kinds);
     }
 
     public function testUnimplementedReExposeEntryIsObservedAsWarning(): void
@@ -183,20 +185,20 @@ final class DerivationTelemetryTest extends Unit
         $kinds = $this->sink->kinds();
         // The diff's own activity wraps the nested derivation lifecycle emitted
         // by deriveSource().
-        self::assertContains('activity.started:diff.compute', $kinds);
-        self::assertContains('activity.finished:diff.compute', $kinds);
-        self::assertContains('occurred:drift.clean', $kinds);
-        self::assertNotContains('occurred:drift.detected', $kinds);
+        self::assertContains('activity.started:' . DeriveEvents::ACTIVITY_DIFF_COMPUTE, $kinds);
+        self::assertContains('activity.finished:' . DeriveEvents::ACTIVITY_DIFF_COMPUTE, $kinds);
+        self::assertContains('occurred:' . DeriveEvents::OCCURRENCE_DRIFT_CLEAN, $kinds);
+        self::assertNotContains('occurred:' . DeriveEvents::OCCURRENCE_DRIFT_DETECTED, $kinds);
     }
 
     public function testDiffEmitsDetectedWhenSourcesDiverge(): void
     {
         \ItPack\DeriveIt\DeriveIt::diff(Collaborator::class, "stale source\n", new DeriveConfig(), $this->sink);
 
-        self::assertContains('occurred:drift.detected', $this->sink->kinds());
+        self::assertContains('occurred:' . DeriveEvents::OCCURRENCE_DRIFT_DETECTED, $this->sink->kinds());
         self::assertSame(
             Collaborator::class,
-            $this->sink->events[array_search('occurred:drift.detected', $this->sink->kinds(), true)][2]['target'],
+            $this->sink->events[array_search('occurred:' . DeriveEvents::OCCURRENCE_DRIFT_DETECTED, $this->sink->kinds(), true)][2]['target'],
         );
     }
 }

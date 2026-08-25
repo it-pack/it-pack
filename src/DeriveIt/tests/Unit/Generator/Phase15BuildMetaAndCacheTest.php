@@ -24,12 +24,12 @@ use ReflectionClass;
 /**
  * Step 10.15 (G15 / G18): `InterfaceDeriver::build()` returns a typed {@see BuildMeta}
  * value object; substitutor seeding + skip filtering live in the shared
- * {@see \ItPack\DeriveIt\Generator\AbstractDeriver} base (so flat + per-trait modes
+ * {@see \ItPack\DeriveIt\Generator\DerivationCore} collaborator (so flat + per-trait modes
  * stay in lockstep); and an injectable {@see ReflectionCacheInterface} memoizes
  * ReflectionClass instances so whole-repo scans never re-reflect a type.
  *
  * @covers \ItPack\DeriveIt\Generator\BuildMeta
- * @covers \ItPack\DeriveIt\Generator\AbstractDeriver
+ * @covers \ItPack\DeriveIt\Generator\DerivationCore
  * @covers \ItPack\DeriveIt\Generator\InterfaceDeriver
  * @covers \ItPack\DeriveIt\Generator\PerTraitInterfaceDeriver
  * @covers \ItPack\DeriveIt\Reflection\InMemoryReflectionCache

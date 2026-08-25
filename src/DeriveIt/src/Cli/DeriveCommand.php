@@ -48,14 +48,26 @@ final class DeriveCommand implements CommandInterface
     private const EXIT_DERIVATION = 2;
     private const EXIT_OUTPUT = 3;
 
+    private readonly ArgParser $parser;
+    private readonly \Closure $verboseWriter;
+
     /**
-     * @param \Closure(string):void $output where derived source is written
-     * @param \Closure(string):void $error  where diagnostics is written
+     * @param \Closure(string):void $output       where derived source is written
+     * @param \Closure(string):void $error        where diagnostics is written
+     * @param ArgParser|null        $parser       injectable arg parser (R4-3 DI seam; defaults to a new one)
+     * @param \Closure(string):void|null $verboseWriter where --verbose diagnostics lines are written
+     *                                            (R4-3 DI seam; defaults to the error stream)
      */
     public function __construct(
         private readonly \Closure $output,
         private readonly \Closure $error,
+        ?ArgParser $parser = null,
+        ?\Closure $verboseWriter = null,
     ) {
+        $this->parser = $parser ?? new ArgParser();
+        $this->verboseWriter = $verboseWriter ?? function (string $line): void {
+            ($this->error)($line . "\n");
+        };
     }
 
     private function write(string $data): void
@@ -105,9 +117,7 @@ final class DeriveCommand implements CommandInterface
                 $root,
                 $input->namespacePrefixMap,
                 $input->wrapperMap,
-                $input->verbose ? new DeriveConsoleSink(function (string $line): void {
-                    $this->writeErr($line . "\n");
-                }) : null,
+                $input->verbose ? new DeriveConsoleSink($this->verboseWriter) : null,
             );
         } catch (\Throwable $e) {
             $this->writeErr('derive: ' . $e->getMessage() . "\n");
@@ -129,7 +139,7 @@ final class DeriveCommand implements CommandInterface
      */
     private function parse(array $args): DeriveCliInput
     {
-        return $this->validate(new ArgParser()->parse($args));
+        return $this->validate($this->parser->parse($args));
     }
 
     private function validate(DeriveCliInput $input): DeriveCliInput

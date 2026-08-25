@@ -10,9 +10,11 @@ use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DeriveConfig;
+use ItPack\DeriveIt\Generator\DeriveEventEmitter;
 use ItPack\DeriveIt\Generator\FamilyDeriver;
 use ItPack\DeriveIt\Generator\InterfaceDeriver;
 use ItPack\DeriveIt\Generator\PerTraitInterfaceDeriver;
+use ItPack\DeriveIt\Generator\SourceRenderer;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
@@ -55,6 +57,26 @@ final class DeriveItFactory
     public function familyDeriver(): FamilyDeriverInterface
     {
         return new FamilyDeriver($this->config, $this->factory, $this->reflectionCache, $this->eventSink);
+    }
+
+    /**
+     * The single shared {@see SourceRenderer} (R4-3): callers needing to render a
+     * derived {@see InterfaceType} should obtain it here rather than `new`-ing one,
+     * so the composition root owns the collaborator.
+     */
+    public function sourceRenderer(): SourceRenderer
+    {
+        return new SourceRenderer();
+    }
+
+    /**
+     * The shared {@see DeriveEventEmitter} bound to this factory's telemetry sink
+     * (R4-3): callers emit derivation facts through this rather than constructing
+     * their own emitter.
+     */
+    public function eventEmitter(): DeriveEventEmitter
+    {
+        return new DeriveEventEmitter($this->eventSink);
     }
 
     /**

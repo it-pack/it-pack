@@ -14,10 +14,10 @@ Entry        DeriveIt (public facade) + DeriveItFactory (composition root)
 Cli          DeriveCommand, ArgParser, DeriveConsoleSink (--verbose diagnostics)
   │          depends on Entry + Generator + Contract
   ▼
-Generator    InterfaceDeriver, PerTraitInterfaceDeriver,
-  │           FamilyDeriver, AdapterGenerator, MethodExtractor,
-  │           MethodSignatureFactory, TypeSubstitutor, DeriveConfig,
-  │           DeriveEventEmitter, filters
+ Generator    InterfaceDeriver, PerTraitInterfaceDeriver,
+   │           FamilyDeriver, AdapterGenerator, MethodExtractor,
+   │           MethodSignatureFactory, TypeSubstitutor, DeriveConfig,
+   │           DerivationCore, DeriveEventEmitter, filters
   │
 Resolver     RecursiveClassResolver, RecursiveInterfaceResolver,
   │           RecursiveTraitResolver
@@ -156,7 +156,13 @@ in-memory `InterfaceType` objects and rendered source agree. See
   used trait, then composes the main interface so it `extends` exactly those
   derived trait interfaces (conflict resolution: first trait in
   `getTraitsRecursively()` order owns a shared method name). Enforces
-  `assertPerTraitSelfContained()`.
+   `assertPerTraitSelfContained()`.
+- **`DerivationCore`** (REVIEW.md F-4 / R4-2) — the former `AbstractDeriver` base,
+   dissolved into a `final readonly` collaborator composed into both derivers. Owns
+   the four cross-mode concerns (reflection memoization, skip/allow filtering,
+   substitutor seeding with `self`/`static`/`parent` + explicit map, and the
+   signature pipeline) plus the `SourceRenderer` and `DeriveEventEmitter` accessors,
+   so `InterfaceDeriver` / `PerTraitInterfaceDeriver` stay pure assembly logic.
 - **`FamilyDeriver`** — batch mode. Builds the substitution map
   automatically from the supplied classes, then derives each with that map so
   cross-referencing types point at derived interfaces.

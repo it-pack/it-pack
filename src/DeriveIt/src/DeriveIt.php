@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace ItPack\DeriveIt;
 
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEvents;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
 use ItPack\DeriveIt\Generator\AdapterGenerator;
 use ItPack\DeriveIt\Generator\DerivationResult;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveIt\Generator\DeriveDiff;
-use ItPack\DeriveIt\Generator\DeriveEventEmitter;
 use ItPack\DeriveIt\Generator\Naming;
-use ItPack\DeriveIt\Generator\SourceRenderer;
 use Nette\PhpGenerator\InterfaceType;
 use Nette\PhpGenerator\PhpFile;
 use Nette\PhpGenerator\PhpNamespace;
@@ -95,7 +94,7 @@ final class DeriveIt
         foreach ($classes as $class) {
             $reflection = new ReflectionClass($class);
             $interface = $derived[$reflection->getName()];
-            $result[$reflection->getName()] = new SourceRenderer()->render($interface, $reflection->getNamespaceName());
+            $result[$reflection->getName()] = self::factory($config)->sourceRenderer()->render($interface, $reflection->getNamespaceName());
         }
 
         return $result;
@@ -172,7 +171,7 @@ final class DeriveIt
         $result = [];
         foreach ($derived as $fqcn => $interface) {
             $reflection = new ReflectionClass($fqcn);
-            $result[$fqcn] = new SourceRenderer()->render($interface, $reflection->getNamespaceName());
+            $result[$fqcn] = self::factory($config)->sourceRenderer()->render($interface, $reflection->getNamespaceName());
         }
 
         return $result;
@@ -293,14 +292,19 @@ final class DeriveIt
     ): DeriveDiff {
         $reflection = is_string($class) ? new ReflectionClass($class) : $class;
         $target = ['target' => $reflection->getName()];
-        $events = new DeriveEventEmitter($eventSink);
+        $events = self::factory($config, $eventSink)->eventEmitter();
 
-        $events->activityStarted('diff.compute', $target);
+        $events->activityStarted(DeriveEvents::ACTIVITY_DIFF_COMPUTE, $target);
         $generated = self::factory($config)->interfaceDeriver()->deriveSource($reflection);
         $result = DeriveDiff::compute($existingSource, $generated);
-        $events->activityFinished('diff.compute');
+        $events->activityFinished(DeriveEvents::ACTIVITY_DIFF_COMPUTE);
 
-        $events->occurred($result->drift ? 'drift.detected' : 'drift.clean', $target);
+        $events->occurred(
+            $result->drift
+                ? DeriveEvents::OCCURRENCE_DRIFT_DETECTED
+                : DeriveEvents::OCCURRENCE_DRIFT_CLEAN,
+            $target,
+        );
 
         return $result;
     }

@@ -20,8 +20,8 @@
 > factories-only instantiation rule; framework lifecycle methods (`setUp` /
 > `_before`) are exempt from public-first ordering once documented (R4-8).
 >
-> **Status: Planned — nothing below has been implemented yet.** Update the
-> implementation-status table as steps land.
+> **Status: Milestone A (R4-1 … R4-3) implemented and gated green; Milestones B/C
+> (R4-4 … R4-9) still planned.** Update the implementation-status table as steps land.
 
 ## Severity legend (mirrors REVIEW.md §14)
 
@@ -66,17 +66,17 @@ gate battery on both packages.
 
 ## Implementation status
 
-| Step | Finding | Status | What shipped |
-|------|---------|--------|--------------|
-| R4-1 | F-3 | ⬜ Planned | — |
-| R4-2 | F-4, F-7 | ⬜ Planned | — |
-| R4-3 | F-7 | ⬜ Planned | — |
-| R4-4 | F-1 | ⬜ Planned | — |
-| R4-5 | F-2, F-10 | ⬜ Planned | — |
-| R4-6 | F-12 | ⬜ Planned | — |
-| R4-7 | F-5 | ⬜ Planned | — |
-| R4-8 | F-6 | ⬜ Planned | — |
-| R4-9 | F-8 | ⬜ Planned ◐ | — |
+ | Step | Finding | Status | What shipped |
+ |------|---------|--------|--------------|
+ | R4-1 | F-3 | ✅ Done | `Contract/Telemetry/{DeriveEvents,DeriveMeasurements,DeriveUnits}.php` (typed const string) hold every emitted event/measurement/unit/attribute-value name; all emission sites (InterfaceDeriver, PerTraitInterfaceDeriver, FamilyDeriver, DeriveIt) and the bridge `RunItDerivationEventSink` `match` arms reference them. `DerivationTelemetryTest` kinds assertions reference the constants; AGENTS.md telemetry convention added. |
+ | R4-2 | F-4, F-7 | ✅ Done | `AbstractDeriver` deleted; new `final readonly Generator\DerivationCore` owns reflection memoization, skip/allow filtering, substitutor seeding (`self`/`static`/`parent` + explicit map), the signature pipeline, plus `sourceRenderer()`/`eventEmitter()`/`config()` accessors. InterfaceDeriver + PerTraitInterfaceDeriver compose a `DerivationCore` (via `DerivationCore::create()`); FamilyDeriver still assembles members through the composite builder. |
+ | R4-3 | F-7 | ✅ Done | `DeriveItFactory::sourceRenderer()` + `eventEmitter()` accessors; facade `deriveFamily*` render loops and `diff()` route through them; `DeriveCommand` ctor accepts optional injectable `ArgParser` + verbose-writer closure (DI seams); `FamilyDeriver::deriveMember()` documented as the composite builder; AGENTS.md instantiation-discipline line added. |
+ | R4-4 | F-1 | ⬜ Planned | — |
+ | R4-5 | F-2, F-10 | ⬜ Planned | — |
+ | R4-6 | F-12 | ⬜ Planned | — |
+ | R4-7 | F-5 | ⬜ Planned | — |
+ | R4-8 | F-6 | ⬜ Planned | — |
+ | R4-9 | F-8 | ⬜ Planned ◐ | — |
 
 ---
 

@@ -92,7 +92,7 @@ src/
                                         #   SourceRenderer, LeakageAuditor, Naming,
                                         #   DeriveConfig (+ strict()/forAdapter()/forFamily()),
                                         #   DeriveMode, Visibility, BuildMeta,
-                                        #   DerivationResult, DeriveDiff, AbstractDeriver
+                                        #   DerivationResult, DeriveDiff, DerivationCore
   Reflection/                           # ClassReflection facade + InMemory / PsrCache /
                                         #   Weak reflection caches
   Resolver/                             # RecursiveClass / Interface / TraitResolver
@@ -143,11 +143,20 @@ Namespace roots (composer.json): `ItPack\DeriveIt\` → `src/`,
 - **No mutable global/static state.** Caches and resolvers are instance-scoped and
   injected (`DeriveItFactory`, `ClassReflection::create()`); static singletons are
   forbidden (they leak across tests and mask Infection mutants).
+- **Instantiation discipline.** Long-lived services and shared collaborators
+  (derivers, `SourceRenderer`, `DeriveEventEmitter`, `DerivationCore`) come from
+  the composition root (`DeriveItFactory`) or are assembled by the composite
+  builder (`FamilyDeriver::deriveMember()`); value objects, Nette AST nodes, and
+  exceptions are constructed at the point of use. CLI entrypoints accept their
+  parser/stream collaborators as constructor-injected optional seams (R4-3).
 - **Telemetry is facts-only and opt-in.** The pipeline emits activities,
   measurements, observations, and occurrences through the injectable
   `DeriveEventSinkInterface` (default `NullDeriveEventSink`): scalar attributes,
   no timing/identity (host concerns), failures still throw — see
-  `docs/CONSOLIDATION_PLAN.md` before adding emission sites.
+  `docs/CONSOLIDATION_PLAN.md` before adding emission sites. Event, measurement,
+  and unit names MUST come from the vocabulary interfaces
+  (`Contract/Telemetry/DeriveEvents|DeriveMeasurements|DeriveUnits`) — never
+  inline strings; add a constant there first.
 - **Golden files are contracts.** Never edit `tests/_expected/*` by hand; if a
   deliberate output change is intended, regenerate via `scripts/regenerate_goldens.php`
   and review the full diff.
@@ -188,8 +197,8 @@ Namespace roots (composer.json): `ItPack\DeriveIt\` → `src/`,
   → `docs/ROADMAP.md` (phase history & post-v1 backlog).
 - "How is the graph walked?" → `src/Resolver/*` and `src/Reflection/ClassReflection.php`.
 - "How does derivation/generation work?" → `docs/guide/architecture.md`, then
-  `src/Generator/` (`AbstractDeriver` → derivers → `MethodSignatureFactory` /
-  `TypeSubstitutor`).
+   `src/Generator/` (`DerivationCore` composed into the derivers → `MethodSignatureFactory` /
+   `TypeSubstitutor`; `FamilyDeriver` assembles members via the composite builder).
 - "What are the quality gates?" → §2 above; enforcement in `.github/workflows/ci.yml`
   and `infection.json5`.
 - "Where are the design decisions?" → `docs/architecture/decisions/ADR-0001 … 0004`.

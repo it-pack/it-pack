@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEvents;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveMeasurements;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveUnits;
 use ItPack\DeriveIt\Exception\LeakageDetectedException;
 use ItPack\DeriveIt\Exception\NamingCollisionException;
 use ItPack\DeriveIt\Reflection\ClassReflection;
@@ -26,18 +29,24 @@ use ReflectionClass;
  * method declaration can occur across the extended interfaces.
  *
  * Phase 10.15 (G15 / G18): substitutor seeding + skip filtering + reflection
- * memoization live in the shared {@see AbstractDeriver} base.
+ * memoization live in the shared {@see DerivationCore} collaborator.
  */
-final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
+final readonly class PerTraitInterfaceDeriver
 {
+    private readonly DerivationCore $core;
+
     public function __construct(
-        ?MethodSignatureFactory       $signatureFactory = null,
         DeriveConfig                   $config = new DeriveConfig(),
         ?Factory                       $factory = null,
         ?ReflectionCacheInterface      $reflectionCache = null,
         ?DeriveEventSinkInterface      $eventSink = null,
     ) {
-        parent::__construct($signatureFactory, $config, $factory, $reflectionCache ?? new InMemoryReflectionCache(), $eventSink);
+        $this->core = DerivationCore::create(
+            $config,
+            $reflectionCache ?? new InMemoryReflectionCache(),
+            $factory,
+            $eventSink,
+        );
     }
 
     /**
@@ -45,7 +54,7 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
      */
     public function deriveTraitInterfaces(ReflectionClass $reflection): array
     {
-        $substitutor = $this->createTypeSubstitutor($reflection);
+        $substitutor = $this->core->createTypeSubstitutor($reflection);
 
         $claimed = [];
         $interfaces = [];
@@ -55,16 +64,16 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
 
         $allowedNamespaces = LeakageAuditor::allowedNamespaces(
             $reflection->getNamespaceName(),
-            $this->config->typeSubstitutionMap,
+            $this->core->config()->typeSubstitutionMap,
             [],
         );
 
-        $this->events->activityStarted('graph.walk', $adaptee);
+        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_GRAPH_WALK, $adaptee);
         $traits = ClassReflection::create($reflection->getName())->getTraitsRecursively();
-        $this->events->activityFinished('graph.walk');
-        $this->events->measured('family.members', count($traits), 'count', ['graph' => 'traits']);
+        $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_GRAPH_WALK);
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS, count($traits), DeriveUnits::UNIT_COUNT, ['graph' => DeriveMeasurements::GRAPH_TRAITS]);
 
-        $this->events->activityStarted('surface.extract', $adaptee + ['surface' => 'trait-interfaces']);
+        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_SURFACE_EXTRACT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_TRAIT_INTERFACES]);
         foreach ($traits as $trait) {
             $shortName = Naming::interfaceShortName($trait->getShortName());
             $fqcn = Naming::derivedInterfaceFqcn($trait);
@@ -79,12 +88,12 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             Naming::assertNoCollision($trait);
 
             $methods = [];
-            foreach ($this->extractor->extract($trait) as $method) {
+            foreach ($this->core->extractor()->extract($trait) as $method) {
                 $name = $method->getName();
                 if (isset($claimed[$name])) {
                     continue;
                 }
-                $signature = $this->signatureFor($method, $substitutor);
+                $signature = $this->core->signatureFor($method, $substitutor);
                 if ($signature === null) {
                     continue;
                 }
@@ -100,31 +109,31 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             Naming::assertMethodNamesUnique($interface->getName(), $methods);
             $interface->setMethods($methods);
 
-            $this->events->activityStarted('leakage.audit', ['target' => $trait->getName()]);
+            $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT, ['target' => $trait->getName()]);
             new LeakageAuditor()->audit(
                 $interface,
                 $trait->getNamespaceName(),
                 $allowedNamespaces,
-                $this->config->auditLeakage,
+                $this->core->config()->auditLeakage,
             );
-            $this->events->activityFinished('leakage.audit');
+            $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT);
 
             $interfaces[$trait->getShortName()] = $interface;
             $totalTraitMethods += count($methods);
         }
-        $this->events->activityFinished('surface.extract');
-        $this->events->measured('methods.derived', $totalTraitMethods, 'count', $adaptee + ['surface' => 'trait-interfaces']);
+        $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_SURFACE_EXTRACT);
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DERIVED, $totalTraitMethods, DeriveUnits::UNIT_COUNT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_TRAIT_INTERFACES]);
 
         return $interfaces;
     }
 
     public function derive(ReflectionClass|string $class): InterfaceType
     {
-        $reflection = $this->reflect($class);
+        $reflection = $this->core->reflect($class);
         Naming::assertNoCollision($reflection);
-        $this->events->occurred('derivation.started', ['target' => $reflection->getName()]);
+        $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_STARTED, ['target' => $reflection->getName()]);
         $main = $this->assemble($reflection, $this->deriveTraitInterfaces($reflection));
-        $this->events->occurred('derivation.completed', ['target' => $reflection->getName()]);
+        $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_COMPLETED, ['target' => $reflection->getName()]);
 
         return $main;
     }
@@ -155,35 +164,35 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
             }
         }
 
-        $substitutor = $this->createTypeSubstitutor($reflection);
+        $substitutor = $this->core->createTypeSubstitutor($reflection);
         $adaptee = ['adaptee' => $reflection->getName()];
 
         $mainMethods = [];
-        $this->events->activityStarted('surface.extract', $adaptee + ['surface' => 'main']);
-        foreach ($this->extractor->extract($reflection) as $method) {
+        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_SURFACE_EXTRACT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_MAIN]);
+        foreach ($this->core->extractor()->extract($reflection) as $method) {
             if (isset($traitMethodNames[$method->getName()])) {
                 continue;
             }
-            $signature = $this->signatureFor($method, $substitutor);
+            $signature = $this->core->signatureFor($method, $substitutor);
             if ($signature === null) {
                 continue;
             }
             $mainMethods[] = $signature;
         }
-        $this->events->activityFinished('surface.extract');
-        $this->events->measured('methods.derived', count($mainMethods), 'count', $adaptee + ['surface' => 'main']);
+        $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_SURFACE_EXTRACT);
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DERIVED, count($mainMethods), DeriveUnits::UNIT_COUNT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_MAIN]);
 
         Naming::assertMethodNamesUnique($main->getName(), $mainMethods);
         $main->setMethods($mainMethods);
 
-        $this->events->activityStarted('leakage.audit', $adaptee);
+        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT, $adaptee);
         new LeakageAuditor()->audit(
             $main,
             $reflection->getNamespaceName(),
-            LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->config->typeSubstitutionMap, []),
-            $this->config->auditLeakage,
+            LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->core->config()->typeSubstitutionMap, []),
+            $this->core->config()->auditLeakage,
         );
-        $this->events->activityFinished('leakage.audit');
+        $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT);
 
         self::assertPerTraitSelfContained($main, $traitInterfaces);
 
@@ -192,9 +201,9 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
 
     public function deriveSource(ReflectionClass|string $class): string
     {
-        $reflection = $this->reflect($class);
+        $reflection = $this->core->reflect($class);
         Naming::assertNoCollision($reflection);
-        $this->events->occurred('derivation.started', ['target' => $reflection->getName()]);
+        $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_STARTED, ['target' => $reflection->getName()]);
 
         // Derive the trait graph exactly once and reuse it for both the composed
         // main interface and the rendered output (REVIEW_3 §4 DRY note; telemetry
@@ -202,9 +211,9 @@ final readonly class PerTraitInterfaceDeriver extends AbstractDeriver
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
         $main = $this->assemble($reflection, $traitInterfaces);
 
-        $source = $this->renderer->renderMany([...array_values($traitInterfaces), $main], $reflection->getNamespaceName());
-        $this->events->measured('source.bytes', strlen($source), 'By', ['target' => $reflection->getName()]);
-        $this->events->occurred('derivation.completed', ['target' => $reflection->getName()]);
+        $source = $this->core->renderer()->renderMany([...array_values($traitInterfaces), $main], $reflection->getNamespaceName());
+        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SOURCE_BYTES, strlen($source), DeriveUnits::UNIT_BYTES, ['target' => $reflection->getName()]);
+        $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_COMPLETED, ['target' => $reflection->getName()]);
 
         return $source;
     }

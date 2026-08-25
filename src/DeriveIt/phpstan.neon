@@ -31,4 +31,12 @@ parameters:
         -
             identifier: shipmonk.deadProperty.neverRead
             path: src/Generator/DerivationResult.php
+        # The telemetry vocabulary in Contract/Telemetry is a shared contract:
+        # UNIT_MILLISECONDS / UNIT_PERCENT are consumed by the sibling bridge
+        # package (DeriveItRunit), which is out of this package's analysis scope,
+        # so the dead-constant detector would otherwise flag them.
+        -
+            identifier: shipmonk.deadConstant
+            message: '#\bUNIT_MILLISECONDS\b|\bUNIT_PERCENT\b#'
+            path: src/Contract/Telemetry/DeriveUnits.php
 

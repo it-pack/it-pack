@@ -6,7 +6,10 @@ namespace ItPack\DeriveIt\Generator;
 
 use ItPack\DeriveIt\Contract\Generator\FamilyDeriverInterface;
 use ItPack\DeriveIt\Contract\Reflection\ReflectionCacheInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveEvents;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveEventSinkInterface;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveMeasurements;
+use ItPack\DeriveIt\Contract\Telemetry\DeriveUnits;
 use ItPack\DeriveIt\Reflection\InMemoryReflectionCache;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\InterfaceType;
@@ -170,7 +173,7 @@ final class FamilyDeriver implements FamilyDeriverInterface
         $map = $this->transitiveClosure($map);
         $configHash = $this->configHash($map, $namespacePrefixMap);
 
-        $this->events->measured('family.members', count($reflections), 'count', ['graph' => 'classes']);
+        $this->events->measured(DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS, count($reflections), DeriveUnits::UNIT_COUNT, ['graph' => DeriveMeasurements::GRAPH_CLASSES]);
 
         $result = [];
         foreach ($reflections as $reflection) {
@@ -183,6 +186,14 @@ final class FamilyDeriver implements FamilyDeriverInterface
         return $result;
     }
 
+    /**
+     * Builds one member interface via the {@see InterfaceDeriver} composite
+     * builder (R4-3): constructs the deriver with the family-scoped
+     * {@see MethodSignatureFactory}, {@see TypeSubstitutor}, and
+     * {@see LeakageAuditor} inputs, then delegates to
+     * {@see InterfaceDeriver::deriveWithSubstitutor()} — the assembly point where
+     * the flat pipeline is reused for a single family member.
+     */
     private function deriveMember(ReflectionClass $reflection, array $map, array $namespacePrefixMap): InterfaceType
     {
         Naming::assertNoCollision($reflection);
@@ -201,7 +212,6 @@ final class FamilyDeriver implements FamilyDeriverInterface
         // sink so the assembled set is genuinely shared across members, as
         // documented on the composition root (G18 / E5 / R3-12).
         return new InterfaceDeriver(
-            signatureFactory: new MethodSignatureFactory(factory: $this->factory, config: $memberConfig),
             config: $memberConfig,
             factory: $this->factory,
             reflectionCache: $this->reflectionCache,
@@ -255,7 +265,7 @@ final class FamilyDeriver implements FamilyDeriverInterface
         // (O(n²) -> O(n) for large families). `count($queue)` is re-read each
         // iteration because members are appended during the walk.
         $i = 0;
-        $this->events->activityStarted('graph.walk', ['root' => $rootClass]);
+        $this->events->activityStarted(DeriveEvents::ACTIVITY_GRAPH_WALK, ['root' => $rootClass]);
         while ($i < count($queue)) {
             $reflection = $queue[$i++];
             $name = $reflection->getName();
@@ -298,7 +308,7 @@ final class FamilyDeriver implements FamilyDeriverInterface
                 }
             }
         }
-        $this->events->activityFinished('graph.walk');
+        $this->events->activityFinished(DeriveEvents::ACTIVITY_GRAPH_WALK);
 
         return $seen;
     }
