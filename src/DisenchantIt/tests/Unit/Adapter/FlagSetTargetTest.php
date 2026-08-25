@@ -160,6 +160,33 @@ final class FlagSetTargetTest extends Unit
         $this->assertSame(TargetKind::FlagSet, $composite->build($group)->kind);
     }
 
+    public function testSupportsFalseWhenNoSharedNamingContext(): void
+    {
+        $this->assertFalse($this->target()->supports($this->flagGroup(
+            $this->flagOccurrence(1, 5, null),
+            $this->flagOccurrence(2, 6, null),
+        )));
+    }
+
+    public function testBuildEmptyReturnsNoop(): void
+    {
+        $artifact = $this->target()->build(new GroupedCandidate(new Candidate('x', 'FLAG', [])));
+
+        $this->assertSame(TargetKind::FlagSet, $artifact->kind);
+        $this->assertSame([], $artifact->insertions);
+    }
+
+    public function testBuildSkipsDuplicateValue(): void
+    {
+        $artifact = $this->target()->build($this->flagGroup(
+            $this->flagOccurrence(1, 5),
+            $this->flagOccurrence(1, 6),
+        ));
+
+        $source = implode("\n", $artifact->insertions[0]->lines);
+        $this->assertSame(1, substr_count($source, 'public const int Mode1 = 1;'));
+    }
+
     public function testEndToEndRewritePromotesFlagsAndIsIdempotent(): void
     {
         $disenchanter = DisenchanterFactory::create()->build();

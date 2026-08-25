@@ -90,4 +90,59 @@ final class BackedEnumTargetTest extends Unit
         $this->assertStringContainsString("case RoleAdmin = 'role:admin';", $enumSource);
         $this->assertStringContainsString("case RoleUser = 'role-user';", $enumSource);
     }
+
+    private function candidateWithValues(array $values): Candidate
+    {
+        $occurrences = [];
+        $line = 10;
+        foreach ($values as $value) {
+            $occurrences[] = new StringLiteral(
+                value: $value,
+                line: $line++,
+                role: LiteralRole::Unclassified,
+                className: 'StatusMachine',
+                methodName: 'label',
+                raw: "'" . $value . "'",
+                namingContext: new NamingContext(variableName: 'status'),
+            );
+        }
+
+        return new Candidate($values[0], 'STATUS', $occurrences);
+    }
+
+    public function testBuildEmptyOccurrencesReturnsNoop(): void
+    {
+        $artifact = $this->target()->build(new GroupedCandidate(new Candidate('x', 'STATUS', [])));
+
+        $this->assertSame(TargetKind::Enum, $artifact->kind);
+        $this->assertSame([], $artifact->insertions);
+        $this->assertSame([], $artifact->replacements);
+    }
+
+    public function testDuplicateValueSkipsSecondCase(): void
+    {
+        $artifact = $this->target()->build(new GroupedCandidate($this->candidateWithValues(['new', 'new'])));
+
+        $enumSource = implode("\n", $artifact->insertions[0]->lines);
+        $this->assertSame(1, substr_count($enumSource, "= 'new';"));
+    }
+
+    public function testCaseNameCollisionGetsNumericSuffix(): void
+    {
+        // 'foo-bar' and 'foo_bar' both slugify to 'FooBar' → second gets a suffix.
+        $artifact = $this->target()->build(new GroupedCandidate($this->candidateWithValues(['foo-bar', 'foo_bar'])));
+
+        $enumSource = implode("\n", $artifact->insertions[0]->lines);
+        $this->assertStringContainsString("case FooBar = 'foo-bar';", $enumSource);
+        $this->assertStringContainsString("case FooBar2 = 'foo_bar';", $enumSource);
+    }
+
+    public function testEnumNameDefaultsToDisenchantedWhenProposedEmpty(): void
+    {
+        $group = new GroupedCandidate($this->candidateWithValues(['a', 'b']), true, null);
+        $artifact = $this->target()->build($group);
+
+        $enumSource = implode("\n", $artifact->insertions[0]->lines);
+        $this->assertStringContainsString('enum Disenchanted: string {', $enumSource);
+    }
 }

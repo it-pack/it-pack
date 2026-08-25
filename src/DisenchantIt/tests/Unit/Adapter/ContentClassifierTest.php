@@ -184,4 +184,18 @@ final class ContentClassifierTest extends Unit
 
         $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit, true));
     }
+
+    public function testEmptyStringIsUnknown(): void
+    {
+        $lit = new StringLiteral('', 1, LiteralRole::Unclassified, 'C', 'm');
+
+        $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit));
+    }
+
+    public function testRegexDelimitedButWithInternalSpaceIsNotRegex(): void
+    {
+        $lit = new StringLiteral('~foo bar~', 1, LiteralRole::Unclassified, 'C', 'm');
+
+        $this->assertSame(LiteralSubkind::Unknown, $this->classifier->classify($lit));
+    }
 }

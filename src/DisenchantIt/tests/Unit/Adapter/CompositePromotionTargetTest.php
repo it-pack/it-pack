@@ -72,4 +72,16 @@ final class CompositePromotionTargetTest extends Unit
 
         $this->assertFalse($composite->supports($group));
     }
+
+    public function testBuildWithNoSupportingTargetReturnsConstArtifact(): void
+    {
+        $composite = new CompositePromotionTarget([]);
+        $group = new GroupedCandidate($this->stringCandidate('x', 'v'));
+
+        $artifact = $composite->build($group);
+
+        $this->assertSame(TargetKind::Const, $artifact->kind);
+        $this->assertSame([], $artifact->insertions);
+        $this->assertSame([], $artifact->replacements);
+    }
 }

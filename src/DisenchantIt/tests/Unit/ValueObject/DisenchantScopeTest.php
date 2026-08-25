@@ -55,4 +55,55 @@ final class DisenchantScopeTest extends Unit
         $this->assertSame(['x'], $scope->getExcludeLiteralValues());
         $this->assertTrue($scope->isIgnoreTests());
     }
+
+    public function testAllGettersReflectConfiguredValues(): void
+    {
+        $scope = DisenchantScope::fromConfig([
+            'includePaths' => ['/a'],
+            'excludePaths' => ['/b'],
+            'includeNamespaces' => ['App'],
+            'excludeNamespaces' => ['Vendor'],
+            'excludeLiteralValues' => ['x'],
+            'ignoreTests' => true,
+            'maxHeredocBodyChars' => 2048,
+            'convertFqcnToClassConst' => true,
+        ]);
+
+        $this->assertSame(['/a'], $scope->getIncludePaths());
+        $this->assertSame(['/b'], $scope->getExcludePaths());
+        $this->assertSame(['App'], $scope->getIncludeNamespaces());
+        $this->assertSame(['Vendor'], $scope->getExcludeNamespaces());
+        $this->assertSame(2048, $scope->getMaxHeredocBodyChars());
+        $this->assertTrue($scope->isConvertFqcnToClassConst());
+    }
+
+    public function testStringListNonArrayFallsBackToEmpty(): void
+    {
+        $scope = DisenchantScope::fromConfig(['includePaths' => 'not-array']);
+
+        $this->assertSame([], $scope->getIncludePaths());
+    }
+
+    public function testIntConfigNonNumericFallsBackToDefault(): void
+    {
+        $scope = DisenchantScope::fromConfig(['maxHeredocBodyChars' => 'abc']);
+
+        $this->assertSame(4096, $scope->getMaxHeredocBodyChars());
+    }
+
+    public function testIntConfigNumericStringIsCast(): void
+    {
+        $scope = DisenchantScope::fromConfig(['maxHeredocBodyChars' => '1024']);
+
+        $this->assertSame(1024, $scope->getMaxHeredocBodyChars());
+    }
+
+    public function testWithConvertFqcnToClassConstIsImmutable(): void
+    {
+        $scope = DisenchantScope::default();
+        $next = $scope->withConvertFqcnToClassConst(true);
+
+        $this->assertFalse($scope->isConvertFqcnToClassConst());
+        $this->assertTrue($next->isConvertFqcnToClassConst());
+    }
 }
