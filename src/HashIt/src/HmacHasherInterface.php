@@ -6,5 +6,5 @@ namespace ItPack\HashIt;
 
 interface HmacHasherInterface
 {
-    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = 'sha256'): HashInterface;
+    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
 }

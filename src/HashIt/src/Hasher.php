@@ -4,54 +4,50 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
+use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
+use RuntimeException;
 
 final readonly class Hasher
 {
+    private const int DEFAULT_CHUNK_SIZE_BYTES = 65536;
+
     public function __construct(private ContextFactoryInterface $factory)
     {
     }
 
-    public function hash(string $data, string|HashAlgorithm $algorithm = 'sha256'): HashInterface
+    public function hash(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
-        $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
-        $context = $this->factory->build($algorithm);
-        $context->update($data);
-
-        return new Hash($context->finalize(false), $algorithm, false);
+        return $this->hashString($data, $algorithm, false);
     }
 
-    public function hashBinary(string $data, string|HashAlgorithm $algorithm = 'sha256'): HashInterface
+    public function hashBinary(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
-        $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
-        $context = $this->factory->build($algorithm);
-        $context->update($data);
-
-        return new Hash($context->finalize(true), $algorithm, true);
+        return $this->hashString($data, $algorithm, true);
     }
 
-    public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = 'sha256'): HashInterface
+    public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
         $file = (string) $path;
 
         if (!is_file($file) || !is_readable($file)) {
-            throw new \RuntimeException('Unable to read file: ' . $file);
+            throw $this->unreadable($file);
         }
 
         $contents = file_get_contents($file);
         if ($contents === false) {
-            throw new \RuntimeException('Unable to read file: ' . $file);
+            throw $this->unreadable($file);
         }
 
         return $this->hash($contents, $algorithm);
     }
 
-    public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = 'sha256'): bool
+    public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
         return $this->hash($data, $algorithm)->equals($expected);
     }
 
-    public function verifyBinary(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = 'sha256'): bool
+    public function verifyBinary(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
         return $this->hashBinary($data, $algorithm)->equals($expected);
     }
@@ -61,10 +57,10 @@ final readonly class Hasher
      *
      * @param resource $stream
      */
-    public function hashStream($stream, string|HashAlgorithm $algorithm = 'sha256', int $chunkSize = 65536): HashInterface
+    public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES): HashInterface
     {
         if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
-            throw new \InvalidArgumentException('hashStream() expects a stream resource');
+            throw new InvalidArgumentException('hashStream() expects a stream resource');
         }
 
         $builder = HashBuilder::start($this->factory, $algorithm);
@@ -93,7 +89,7 @@ final readonly class Hasher
      * @param iterable<FilepathInterface> $paths
      * @return array<string, HashInterface>
      */
-    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = 'sha256'): array
+    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): array
     {
         $result = [];
 
@@ -109,10 +105,10 @@ final readonly class Hasher
      *
      * @return array<string, HashInterface>
      */
-    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = 'sha256'): array
+    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): array
     {
         if (!is_dir($directory)) {
-            throw new \RuntimeException('Not a directory: ' . $directory);
+            throw new RuntimeException('Not a directory: ' . $directory);
         }
 
         $paths = [];
@@ -123,5 +119,19 @@ final readonly class Hasher
         }
 
         return $this->hashFiles($paths, $algorithm);
+    }
+
+    private function hashString(string $data, string|HashAlgorithm $algorithm, bool $binary): HashInterface
+    {
+        $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
+        $context = $this->factory->build($algorithm);
+        $context->update($data);
+
+        return new Hash($context->finalize($binary), $algorithm, $binary);
+    }
+
+    private function unreadable(string $file): \RuntimeException
+    {
+        return new RuntimeException('Unable to read file: ' . $file);
     }
 }

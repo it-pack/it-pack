@@ -83,7 +83,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M1 — DRY & constants (F-3)
+## M1 — DRY & constants (F-3) — ✅ DONE (2026-08-24)
 
 **Goal:** Collapse the eleven-fold `'sha256'` default duplication onto the enum, name the chunk-size literal, and deduplicate the paired-method bodies and error message.
 
@@ -107,6 +107,8 @@ git status --porcelain   # var/ noise gone
 **Verification:** gates (guardrail #6) + the grep above.
 **Dependencies:** none (can run parallel to M0 conceptually, sequenced after it for clean commits).
 **Acceptance:** `'sha256'` literal exists exactly once (the enum case); `65536` appears only as the named constant; gates green.
+
+**Completion note (2026-08-24):** All five tasks landed in `src/Hasher.php`, `src/HashBuilder.php`, `src/HmacHasherInterface.php`, `src/Adapter/NativeHmacHasher.php`. All eleven defaults now use `HashAlgorithm::SHA256`; chunk size is `private const DEFAULT_CHUNK_SIZE_BYTES`; both unreadable-file throw sites route through a private `unreadable(string $file): \RuntimeException` helper; the duplicated `hash()`/`hashBinary()` bodies collapsed into private `hashString(…, bool $binary)` (`verify()`/`verifyBinary()` already deduplicated by delegating to the public pair, so no separate helper was added — noted here against plan task 4's "same treatment" phrasing). Behavior verified unchanged: Codeception 37 tests / 168 assertions ✅ · php-cs-fixer 0 of 22 ✅ · PHPStan 0 errors ✅ · grep gate: `'sha256'` matches only `HashAlgorithm.php:39`, `65536` only the constant. No `else` introduced (guardrail #3).
 
 ---
 

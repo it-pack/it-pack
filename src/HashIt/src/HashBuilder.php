@@ -8,18 +8,18 @@ namespace ItPack\HashIt;
  * Immutable incremental hashing builder. Each append returns a new builder with
  * a copied context, so the original is never mutated — safe to share and reuse.
  */
-final class HashBuilder
+final readonly class HashBuilder
 {
     private function __construct(
-        private readonly HashContextInterface $context,
-        private readonly string $algorithm,
-        private readonly bool $binary,
+        private HashContextInterface $context,
+        private string               $algorithm,
+        private bool                 $binary,
     ) {
     }
 
     public static function start(
         ContextFactoryInterface $factory,
-        string|HashAlgorithm $algorithm = 'sha256',
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
         bool $binary = false,
     ): self {
         $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
