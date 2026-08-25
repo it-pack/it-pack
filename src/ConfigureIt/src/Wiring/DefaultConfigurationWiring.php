@@ -8,11 +8,21 @@ use ItPack\ConfigureIt\Adapter\CompositeReader;
 use ItPack\ConfigureIt\Adapter\Decryption\DecryptingReader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
+use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface;
+use ItPack\ConfigureIt\Core\CachingResolver;
+use ItPack\ConfigureIt\Core\ConfigurationCompiler;
+use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
 /**
  * Default composition root.
@@ -47,5 +57,44 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
         }
 
         return new OpenTelemetryReporter($base, $sink, $context);
+    }
+
+    public function baseReporter(): ResolutionReporterInterface
+    {
+        return new ResolutionReporter();
+    }
+
+    public function baseExecutionContext(): ExecutionContextInterface
+    {
+        return new ExecutionContext();
+    }
+
+    /**
+     * @param list<ConfigurationSourceInterface>    $defaultSources
+     * @param list<ConfigurationProcessorInterface> $processors
+     * @param list<ConfigurationReaderInterface>    $readers
+     * @param list<ConfigurationLoaderInterface>    $loaders
+     */
+    public function cachingResolver(
+        ConfigurationResolverInterface $inner,
+        ConfigurationCacheInterface $cache,
+        array $defaultSources,
+        ?ConfigurationSchemaInterface $schema,
+        array $processors,
+        array $readers,
+        array $loaders,
+        ?ExecutionContextInterface $executionContext,
+    ): ConfigurationResolverInterface {
+        return new CachingResolver(
+            inner: $inner,
+            cache: $cache,
+            compiler: new ConfigurationCompiler(),
+            defaultSources: $defaultSources,
+            schema: $schema,
+            processors: $processors,
+            readers: $readers,
+            loaders: $loaders,
+            executionContext: $executionContext,
+        );
     }
 }

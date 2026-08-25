@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
@@ -46,7 +47,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
     public function __construct(
         private ConfigurationReaderInterface          $reader,
         private ConfigurationLoaderFactoryInterface   $loaders,
-        private ConfigurationPipeline                 $pipeline,
+        private ConfigurationPipelineInterface       $pipeline,
         private ?ConfigurationSchemaInterface         $schema = null,
         private ?ResolutionReporterInterface          $reporter = null,
         private iterable                              $sources = [],

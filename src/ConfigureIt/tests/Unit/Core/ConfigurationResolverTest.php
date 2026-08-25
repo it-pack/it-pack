@@ -10,8 +10,18 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Core\ConfigurationGraph;
+use ItPack\ConfigureIt\Core\ConfigurationResolver;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\Format;
 use Nette\Schema\Expect;
 
 class ConfigurationResolverTest extends Unit
@@ -57,6 +67,39 @@ class ConfigurationResolverTest extends Unit
         verify(in_array('ConfigurationLoaded', $occurrences, true))->true();
         verify(in_array('ConfigurationResolved', $occurrences, true))->true();
         verify(in_array('SnapshotCreated', $occurrences, true))->true();
+    }
+
+    public function testAcceptsPipelineInterfaceImplementation(): void
+    {
+        $pipeline = new class () implements ConfigurationPipelineInterface {
+            public function run(iterable $documents): ConfigurationGraphInterface
+            {
+                return new ConfigurationGraph([]);
+            }
+        };
+
+        $reader = new class () implements ConfigurationReaderInterface {
+            public function read(ConfigurationResourceInterface $resource): string
+            {
+                return '{}';
+            }
+
+            public function supports(ConfigurationResourceInterface $resource): bool
+            {
+                return true;
+            }
+        };
+
+        $loaders = new class () implements ConfigurationLoaderFactoryInterface {
+            public function build(Format $format): ConfigurationLoaderInterface
+            {
+                return new JsonLoader();
+            }
+        };
+
+        $resolver = new ConfigurationResolver($reader, $loaders, $pipeline);
+
+        verify($resolver->resolve([]))->instanceOf(ConfigurationSnapshotInterface::class);
     }
 
     public function testThrowsWhenNoLoaderSupportsFormat(): void

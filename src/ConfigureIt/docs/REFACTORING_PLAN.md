@@ -188,7 +188,21 @@ matching the Phase-2 composition-root pattern. The optional R8 caching step is t
 moderate sub-task.
 
 ### Status
-⬜ Pending.
+✅ done (2026-08-25). **R7** — `ConfigurationResolver` depends on
+`ConfigurationPipelineInterface` (constructor param typed
+`private ConfigurationPipelineInterface $pipeline`); `ConfigurationFactory::build()` still
+passes the concrete `ConfigurationPipeline`, which satisfies the contract, so no caller change
+was needed. **R8** — `ConfigurationBuilder::build()` no longer `new`s the `Execution` concretes:
+`new ResolutionReporter()` → `$this->wiring->baseReporter()` and `new ExecutionContext()` (in
+`resolveSources()`) → `$this->wiring->baseExecutionContext()`; both methods added to
+`ConfigurationWiringInterface` and implemented in `DefaultConfigurationWiring` (the only `new`-site
+for `ExecutionContext` / `ResolutionReporter`). The optional R8 completeness step was also taken:
+`CachingResolver` + `ConfigurationCompiler` construction moved into the wiring via a new
+`cachingResolver()` method, so the builder is now a pure collector of configuration. Gates:
+`composer analyse` 0 errors (PHPStan L9), `composer cs:check` 0/260,
+`composer test:unit` 271 tests / 625 assertions. The behavior is locked by
+`ConfigurationResolverTest::testAcceptsPipelineInterfaceImplementation` and
+`DefaultConfigurationWiringTest::testCachingResolverWrapsInnerResolverInCachingResolver`.
 
 ---
 

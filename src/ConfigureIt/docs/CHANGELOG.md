@@ -49,6 +49,23 @@ and `ROADMAP.md`).
 
 ### Changed
 
+- **Milestone 2 — DIP purity in the composition root (R7 + R8)**
+  - `src/Core/ConfigurationResolver` — constructor now depends on
+    `ConfigurationPipelineInterface` instead of the concrete `ConfigurationPipeline` (R7), in
+    line with AGENTS.md ("Core depends on Contracts, not concrete classes").
+  - `src/Contract/Wiring/ConfigurationWiringInterface` — added `baseReporter()` and
+    `baseExecutionContext()` (R8), plus `cachingResolver(...)` (optional R8 completeness) so the
+    composition root owns all `Execution` / caching concretes.
+  - `src/Wiring/DefaultConfigurationWiring` — implements the three new methods; it is now the
+    only `new`-site for `ResolutionReporter`, `ExecutionContext`, `CachingResolver`, and
+    `ConfigurationCompiler`.
+  - `src/Core/ConfigurationBuilder` — no longer instantiates `Execution` concretes:
+    `new ResolutionReporter()` → `wiring->baseReporter()` and `new ExecutionContext()` →
+    `wiring->baseExecutionContext()`; the `CachingResolver` wrapper is delegated to
+    `wiring->cachingResolver(...)`. The builder is now a pure collector of configuration.
+  - Tests: `ConfigurationResolverTest::testAcceptsPipelineInterfaceImplementation` and
+    `DefaultConfigurationWiringTest::testCachingResolverWrapsInnerResolverInCachingResolver`.
+
 - `src/ConfigureIt/docs/IMPLEMENTATION_PLAN.md` — added authoritative build plan
   (context, package layout, step-by-step sequence, risks, definition of done).
 

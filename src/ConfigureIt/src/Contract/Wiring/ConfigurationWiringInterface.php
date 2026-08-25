@@ -5,7 +5,13 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Contract\Wiring;
 
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
@@ -41,4 +47,39 @@ interface ConfigurationWiringInterface
         ?TelemetrySinkInterface $sink,
         ?ExecutionContextInterface $context,
     ): ResolutionReporterInterface;
+
+    /**
+     * The default (base) resolution reporter, used when the builder supplies none.
+     */
+    public function baseReporter(): ResolutionReporterInterface;
+
+    /**
+     * The default execution context, used when the builder supplies none and a
+     * layer/context-aware processor needs one.
+     */
+    public function baseExecutionContext(): ExecutionContextInterface;
+
+    /**
+     * Wrap a resolver in the opt-in compiled-artifact caching decorator.
+     *
+     * Mirrors {@see self::composeReader()}/{@see self::composeReporter()}: the
+     * builder stays a pure collector of configuration while the composition root
+     * owns construction of the concrete {@see \ItPack\ConfigureIt\Core\CachingResolver}
+     * (and its {@see \ItPack\ConfigureIt\Core\ConfigurationCompiler}).
+     *
+     * @param list<ConfigurationSourceInterface>    $defaultSources
+     * @param list<ConfigurationProcessorInterface> $processors
+     * @param list<ConfigurationReaderInterface>    $readers
+     * @param list<ConfigurationLoaderInterface>    $loaders
+     */
+    public function cachingResolver(
+        ConfigurationResolverInterface $inner,
+        ConfigurationCacheInterface $cache,
+        array $defaultSources,
+        ?ConfigurationSchemaInterface $schema,
+        array $processors,
+        array $readers,
+        array $loaders,
+        ?ExecutionContextInterface $executionContext,
+    ): ConfigurationResolverInterface;
 }

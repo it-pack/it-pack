@@ -19,8 +19,6 @@ use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
 use ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface;
-use ItPack\ConfigureIt\Execution\ExecutionContext;
-use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
 
 /**
@@ -206,7 +204,7 @@ final class ConfigurationBuilder
 
     public function build(?ResolutionReporterInterface $reporter = null): ConfigurationResolverInterface
     {
-        $reporter ??= new ResolutionReporter();
+        $reporter ??= $this->wiring->baseReporter();
 
         $reporter = $this->wiring->composeReporter(
             $reporter,
@@ -243,10 +241,9 @@ final class ConfigurationBuilder
         );
 
         if ($this->cache instanceof ConfigurationCacheInterface) {
-            return new CachingResolver(
+            return $this->wiring->cachingResolver(
                 inner: $resolver,
                 cache: $this->cache,
-                compiler: new ConfigurationCompiler(),
                 defaultSources: $sources,
                 schema: $this->schema,
                 processors: $processors,
@@ -275,7 +272,7 @@ final class ConfigurationBuilder
             return $this->sources;
         }
 
-        $context = $this->executionContext ?? new ExecutionContext();
+        $context = $this->executionContext ?? $this->wiring->baseExecutionContext();
 
         $active = array_filter(
             $this->layers,

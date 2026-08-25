@@ -9,8 +9,12 @@ use ItPack\ConfigureIt\Adapter\CompositeReader;
 use ItPack\ConfigureIt\Adapter\Decryption\DecryptingReader;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\InMemoryTelemetrySink;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
+use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Core\CachingResolver;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
 
@@ -70,5 +74,31 @@ final class DefaultConfigurationWiringTest extends Unit
 
         verify($reporter)->instanceOf(ResolutionReporterInterface::class);
         verify($reporter)->instanceOf(OpenTelemetryReporter::class);
+    }
+
+    public function testCachingResolverWrapsInnerResolverInCachingResolver(): void
+    {
+        $inner = new class () implements ConfigurationResolverInterface {
+            public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
+            {
+                throw new \LogicException('not used');
+            }
+        };
+
+        $cache = new class () implements ConfigurationCacheInterface {
+            public function get(string $key): ?ConfigurationSnapshotInterface
+            {
+                return null;
+            }
+
+            public function set(string $key, ConfigurationSnapshotInterface $snapshot): void
+            {
+            }
+        };
+
+        $resolver = $this->wiring->cachingResolver($inner, $cache, [], null, [], [], [], null);
+
+        verify($resolver)->instanceOf(ConfigurationResolverInterface::class);
+        verify($resolver)->instanceOf(CachingResolver::class);
     }
 }
