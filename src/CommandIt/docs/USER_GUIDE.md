@@ -2,7 +2,7 @@
 
 This guide is the practical, task-oriented companion to the architecture docs
 (`docs/architecture/MODEL.md`), the load-bearing decisions (`docs/adr/`), and the
-milestone plan (now in `docs/archive/ROADMAP.md`). It assumes PHP `>= 8.4` and a
+milestone plan (now in `docs/archive/ROADMAP_1.md`). It assumes PHP `>= 8.4` and a
 basic familiarity with PHP, but no prior knowledge of CommandIt.
 
 CommandIt is a **command creation and execution library**: you define commands
@@ -791,7 +791,7 @@ composer benchmark
 `benchmarks/CommandDispatchBench.php` measures `benchDispatch` (full
 `register → dispatch`) and `benchHandlerResolution` (lazy resolve only). Expect
 sub-millisecond dispatch (low hundreds of microseconds) on commodity hardware.
-Wire this as a CI job to catch regressions (see `docs/archive/ROADMAP.md` / the
+Wire this as a CI job to catch regressions (see `docs/archive/ROADMAP_1.md` / the
 repository CI config).
 
 ---
@@ -837,9 +837,9 @@ a new, composed interface.
 - `docs/architecture/MODEL.md` — the domain model in depth.
 - `docs/adr/` — load-bearing decisions: RunIt integration via ports (0001),
   lazy handler resolution (0002), fiber-bound context (0003).
-- `docs/archive/ROADMAP.md` — the milestone plan (M0–M12) and confidence tooling.
-- `docs/archive/REFACTORING_PLAN.md`, `docs/archive/REVIEW.md`,
-  `docs/archive/IMPLEMENTATION_PLAN.md` — historical working docs.
+- `docs/archive/ROADMAP_1.md` — the milestone plan (M0–M12) and confidence tooling.
+- `docs/archive/REFACTORING_PLAN_1.md`, `docs/archive/REVIEW_1.md`,
+  `docs/archive/IMPLEMENTATION_PLAN_1.md` — historical working docs.
 
 When extending CommandIt, follow the dependency direction
 `Domain → Contract`, `Application → Contract/Domain`, `SDK → Application`, and

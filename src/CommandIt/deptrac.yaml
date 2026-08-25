@@ -2,10 +2,6 @@ deptrac:
   paths:
     - ./src
   layers:
-    - name: Common
-      collectors:
-        - type: directory
-          value: src/Common/.*
     - name: Contract
       collectors:
         - type: directory
@@ -27,7 +23,7 @@ deptrac:
     - name: Adapter
       collectors:
         - type: directory
-          value: src/Adapter/(?!SymfonyConsole/).*
+          value: src/Adapter/(?!SymfonyConsole/|CLI/).*
     - name: Bootstrap
       collectors:
         - type: directory
@@ -39,36 +35,29 @@ deptrac:
     - name: SymfonyConsole
       collectors:
         - type: classNameRegex
-          value: '/^Symfony\\Console/'
+          value: '/^Symfony\\Component\\Console\\/'
         - type: directory
-          value: src/Adapter/SymfonyConsole/.*
+          value: src/Adapter/CLI/.*
     - name: RunIt
       collectors:
         - type: classNameRegex
           value: '/^ItPack\\RunIt/'
   ruleset:
-    Common: ~
-    Contract:
-      - Common
+    Contract: ~
     Domain:
-      - Common
       - Contract
     Port:
-      - Common
       - Contract
     Application:
-      - Common
       - Contract
       - Domain
       - Port
     SDK:
-      - Common
       - Contract
       - Domain
       - Application
       - Port
     Bootstrap:
-      - Common
       - Contract
       - Domain
       - Application
@@ -76,10 +65,18 @@ deptrac:
       - Adapter
       - Port
     Adapter:
-      - Common
       - Contract
       - Domain
       - Port
-    # SymfonyConsole and RunIt are intentionally omitted from every allowed
-    # list below, so any dependency on them from an internal layer is a
-    # violation. CommandIt must remain RunIt-agnostic and Symfony-free in core.
+    SymfonyConsole:
+      - Contract
+      - Domain
+      - Port
+    # The SymfonyConsole layer owns BOTH the vendor namespace and the CLI
+    # adapter directory (src/Adapter/CLI/*): the vendor bridge may use
+    # contracts, domain types, and ports, and vendor classes are actually
+    # collected now, so any Symfony\Component\Console dependency from an
+    # internal layer (Contract, Domain, Application, SDK, Adapter, Bootstrap)
+    # is a violation. RunIt is intentionally absent from every allowed list —
+    # any dependency on it from any first-party layer is a violation;
+    # CommandIt must remain RunIt-agnostic and Symfony-free in core.

@@ -289,3 +289,25 @@ Implemented per `docs/REFACTORING_PLAN.md` (see its status table for task-level 
 - Docs: USER_GUIDE argv grammar, registration policy, and CLI output sections updated.
 
 Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16→24 from the new Symfony interface reference — the F-01 gap, scheduled M3), cs-fixer clean, composer validate strict OK, full suite 166 tests / 391 assertions green, examples 01–06 exit 0. Not run: mutation (floors land in M4), benchmarks.
+
+### 2026-08-25 — Refactoring plan milestone M3 landed
+
+- **F-01 closed — the architecture gate now enforces the Symfony-free core.** `deptrac.yaml` fixes:
+  vendor regex corrected to `/^Symfony\\Component\\Console\\/` (previously unmatchable, so vendor
+  tokens were invisible and counted as "uncovered", never violations); the `SymfonyConsole` layer
+  now owns both that namespace **and** `src/Adapter/CLI/*` (decision D1 option a — namespaces and
+  consumer imports unchanged) with allowances Contract/Domain/Port; the dead `Common` layer and all
+  its ruleset references were removed; the explanatory comment now describes real enforcement.
+- Evidence: JSON report `Uncovered` dropped **24 → 0** with 0 violations; negative probe (scratch
+  `Domain` class importing `Symfony\Component\Console\Output\NullOutput`) failed the gate with exit 1
+  and 2 violations; clean tree passes again. Note: `debug:unassigned` was *not* a usable regression
+  signal (it only lists tokens inside configured paths) — recorded in the plan.
+- **F-19 fixed** — six stale `docs/archive/*.md` citations updated to the real `_1` filenames
+  (README 1×, USER_GUIDE 5×).
+- **Config rot cleared** — `tests/Acceptance` path removed from `phpstan.neon`; dead Acceptance
+  scaffolding deleted (`Acceptance.suite.yml`, empty dir, `AcceptanceTester.php` + generated actions,
+  actors regenerated); CI lockfile policy made honest: `composer.lock` stays gitignored (library
+  convention) and the fictional `locked` matrix leg became `highest`, preserving a truthful
+  highest-vs-lowest matrix.
+- Verification: composer validate strict OK · phpstan max clean (139 files) · DepTrac 0 violations /
+  0 uncovered · full suite 166 tests / 391 assertions green · cs-fixer clean.

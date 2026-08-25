@@ -208,4 +208,4 @@ $reporter = new GuardedExecutionReporter($reporter, $healthReporter);
 See [docs/USER_GUIDE.md](docs/USER_GUIDE.md) for the task-oriented guide,
 `docs/architecture/MODEL.md` for the domain model, `docs/adr/` for the
 load-bearing decisions (RunIt integration, lazy handler resolution, fiber-bound
-context), and `docs/archive/ROADMAP.md` for the milestone plan.
+context), and `docs/archive/ROADMAP_1.md` for the milestone plan.

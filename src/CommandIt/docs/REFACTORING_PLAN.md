@@ -26,7 +26,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 |---|---|---|---|---|---|---|
 | M1 | Publication-path correctness hotfixes | F-02, F-03 | — | — | S | **Done (2026-08-25)** |
 | M2 | CLI trustworthiness & registry policy | F-04, F-18, F-05 | — | 0004 | S/M | **Done (2026-08-25)** |
-| M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M | Planned |
+| M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M | **Done (2026-08-25)** |
 | M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | Planned (storage/reporter stubs partially landed in M1) |
 | M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | Planned |
 | M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | Planned |
@@ -54,7 +54,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 
 | # | Decision | Options | Default recommendation | Blocks |
 |---|---|---|---|---|
-| D1 | Where Symfony-coupled CLI classes live | (a) keep `Adapter/CLI` namespaces, retarget DepTrac layers; (b) move to `src/Adapter/SymfonyConsole/` | (a) — zero consumer break; revisit at 1.0 | M3 |
+| D1 | Where Symfony-coupled CLI classes live | (a) keep `Adapter/CLI` namespaces, retarget DepTrac layers; (b) move to `src/Adapter/SymfonyConsole/` | **Resolved:** (a) — zero consumer break; revisit at 1.0 | M3 |
 | D2 | Duplicate command registration | (a) throw; (b) document last-wins | **Resolved:** (a) — ADR 0004, `InvalidCommandException::duplicateCommand()` | M2 |
 | D3 | Wire `SafeSerializer` by default in Bootstrap | (a) yes, normalize-on-store default; (b) stay `null`, consumer-only | (a) matches safe-by-default ethos | M7 |
 | D4 | Transition matrix stance | (a) enforce legal predecessors; (b) document permissive aggregate | (a) enforce | M6 |
@@ -178,11 +178,11 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 3.1 — Fix the DepTrac Symfony layer (D1, recommend option a)
 
-- [ ] Change the vendor regex to match real FQCNs: `classNameRegex: '/^Symfony\\Component\\Console\\/'`.
-- [ ] Give the `SymfonyConsole` layer a ruleset mirroring Adapter's allowances (Common, Contract, Domain, Port) so its own classes may use contracts and vendor types.
-- [ ] Retarget layer membership (option a): remove `src/Adapter/CLI/.*` from the Adapter layer collector (`value: src/Adapter/(?!SymfonyConsole/|CLI/).*`) and add `directory: src/Adapter/CLI/.*` to the `SymfonyConsole` layer. Namespaces stay `ItPack\CommandIt\Adapter\CLI\...` — zero consumer impact.
-- [ ] Delete the dead `Common` layer (no `src/Common/`). Keep the `RunIt` regex layer.
-- [ ] Update the explanatory comment (lines 83–85) to describe what is now actually enforced.
+- [x] Change the vendor regex to match real FQCNs: `classNameRegex: '/^Symfony\\Component\\Console\\/'`.
+- [x] Give the `SymfonyConsole` layer a ruleset mirroring Adapter's allowances so its own classes may use contracts and vendor types. *(Implemented as Contract/Domain/Port — the dead `Common` allowance was dropped with the layer.)*
+- [x] Retarget layer membership (option a): remove `src/Adapter/CLI/.*` from the Adapter layer collector (`value: src/Adapter/(?!SymfonyConsole/|CLI/).*`) and add `directory: src/Adapter/CLI/.*` to the `SymfonyConsole` layer. Namespaces stay `ItPack\CommandIt\Adapter\CLI\...` — zero consumer impact.
+- [x] Delete the dead `Common` layer (no `src/Common/`, plus every ruleset reference). Keep the `RunIt` regex layer.
+- [x] Update the explanatory comment to describe what is now actually enforced.
 - Files: `deptrac.yaml` only.
 - Verification (three-step proof):
   1. `composer architecture` ⇒ 0 violations.
@@ -192,15 +192,15 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 3.2 — Static-analysis and suite scaffolding cleanup
 
-- [ ] Remove `./tests/Acceptance` from `phpstan.neon` paths.
-- [ ] Delete dead Acceptance scaffolding: `tests/Acceptance.suite.yml`, generated Acceptance actor(s), and the `codeception.yml` suite entry; regenerate actors if the Codeception build requires it.
-- [ ] Reconcile lockfile policy: either stop ignoring `composer.lock` (library repos commonly ignore it — then drop the "locked" leg from the CI matrix in `.github/workflows/quality.yml`) or commit the lockfile and keep both legs. Pick one; document the choice in the PR.
+- [x] Remove `./tests/Acceptance` from `phpstan.neon` paths.
+- [x] Delete dead Acceptance scaffolding: `tests/Acceptance.suite.yml` + empty dir, `AcceptanceTester.php` + its `_generated` actions; regenerated actors via `codecept build`. *(No codeception.yml suite entry existed — suites auto-discover from `*.suite.yml`.)*
+- [x] Reconcile lockfile policy — resolved: keep ignoring `composer.lock` (library convention), rename the fictional CI leg `locked` → `highest` with an explanatory comment, keeping a truthful highest-vs-lowest matrix.
 - Files: `phpstan.neon`, `tests/Acceptance*`, `codeception.yml`, `.github/workflows/quality.yml`, `.gitignore`.
 - Acceptance: `composer analyse` and `composer test` green; CI workflow YAML valid (matrix legs reference real files).
 
 ### Task 3.3 — Repair archive links (F-19)
 
-- [ ] Fix citations to archived docs to their real `_1` filenames: `README.md:211`, `USER_GUIDE.md:5,774,820–822` (`ROADMAP_1.md`, `REFACTORING_PLAN_1.md`, `REVIEW_1.md`, `IMPLEMENTATION_PLAN_1.md`). Keep `README.md:25` (already correct) as the canonical pattern.
+- [x] Fix citations to archived docs to their real `_1` filenames (README 1×, USER_GUIDE 5×). Verification grep yields only existing filenames.
 - Acceptance: `grep -rn "archive/[A-Z_]*\.md" README.md docs/USER_GUIDE.md` yields only existing filenames.
 
 ---
