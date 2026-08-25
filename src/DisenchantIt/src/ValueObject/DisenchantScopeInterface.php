@@ -47,6 +47,13 @@ interface DisenchantScopeInterface
     public function isIgnoreTests(): bool;
 
     /**
+     * Default cap (in characters) for heredoc/nowdoc bodies collected as
+     * candidate strings. Keeps the opt-in string-coverage scan bounded; a 50 KB
+     * prose heredoc is skipped by default.
+     */
+    public const int DEFAULT_MAX_HEREDOC_BODY_CHARS = 4096;
+
+    /**
      * Maximum accepted length (in characters) of a heredoc/nowdoc body that
      * DisenchantIt will collect as a candidate string. Larger bodies are skipped
      * at detection time (opt-in string coverage, bounded cost). 0 means "no

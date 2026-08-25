@@ -8,6 +8,8 @@ use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Adapter\Detector;
 use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
 use ItPack\DisenchantIt\Adapter\RoleClassifier;
+use ItPack\DisenchantIt\Contract\ParsedSourceCacheInterface;
+use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Exception\InvalidCacheConfigurationException;
 use ItPack\DisenchantIt\Exception\SourceTooLargeException;
 use ItPack\DisenchantIt\Factory\MagicStringVisitorFactory;
@@ -100,7 +102,7 @@ final class DetectorCacheTest extends Unit
 
     public function testMaxEntriesConstantIsSane(): void
     {
-        $this->assertSame(32, ParsedSourceCache::DEFAULT_MAX_ENTRIES);
+        $this->assertSame(32, ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES);
     }
 
     /**
@@ -112,7 +114,7 @@ final class DetectorCacheTest extends Unit
     {
         $cache = new ParsedSourceCache();
         $sources = [];
-        $count = ParsedSourceCache::DEFAULT_MAX_ENTRIES + 3;
+        $count = ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES + 3;
 
         for ($i = 0; $i < $count; ++$i) {
             $sources[$i] = new SourceCode('<?php class C' . $i . ' {}');
@@ -208,6 +210,6 @@ final class DetectorCacheTest extends Unit
 
     public function testMaxSourceBytesConstantIsSane(): void
     {
-        $this->assertSame(1_000_000, Detector::MAX_SOURCE_BYTES);
+        $this->assertSame(1_000_000, StringLiteralDetectorInterface::MAX_SOURCE_BYTES);
     }
 }

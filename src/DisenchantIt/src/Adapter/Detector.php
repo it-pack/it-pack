@@ -52,14 +52,6 @@ final class Detector implements StringLiteralDetectorInterface
      */
     private ?object $parser = null;
 
-    /**
-     * Maximum accepted source size in bytes. A single source larger than this
-     * is rejected before parsing (see scanSource) to bound memory use of the
-     * parse+traverse step. Overridable via the constructor for callers that know
-     * their inputs are legitimately large.
-     */
-    public const int MAX_SOURCE_BYTES = 1_000_000;
-
     public function __construct(
         private readonly RoleClassifierInterface $classifier,
         private readonly ParserFactoryInterface $parsers,

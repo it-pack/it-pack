@@ -87,7 +87,7 @@ tunable constants onto their ports, typed consistently.
 
 ### Tasks
 
-- [ ] **M1-T1 Remove inline default (F5).** In
+- [x] **M1-T1 Remove inline default (F5).** In
       `src/Adapter/MagicLiteralVisitor.php:47`: drop
       `= new ContentClassifier()` from the promoted parameter. Make the
       constructor argument required; in
@@ -96,39 +96,42 @@ tunable constants onto their ports, typed consistently.
       share the instance across visitor builds if the factory builds several).
       Update direct constructions in tests if any exist
       (`grep -rn "new MagicLiteralVisitor" tests/`).
-- [ ] **M1-T2 Host `MAX_SOURCE_BYTES` on its port (F3).** Declare
+- [x] **M1-T2 Host `MAX_SOURCE_BYTES` on its port (F3).** Declare
       `public const int MAX_SOURCE_BYTES = 1_000_000;` on
       `Contract\StringLiteralDetectorInterface`; delete it from
       `Adapter\Detector` (constructor default becomes `self::MAX_SOURCE_BYTES`,
       which resolves through the interface). Update references:
       `tests/Unit/DetectorCacheTest.php:211`, docblock `@see` in
       `Exception/SourceTooLargeException.php:14`.
-- [ ] **M1-T3 Host `DEFAULT_MAX_ENTRIES` on its port (F3+F7).** Declare
+- [x] **M1-T3 Host `DEFAULT_MAX_ENTRIES` on its port (F3+F7).** Declare
       `public const int DEFAULT_MAX_ENTRIES = 32;` on
       `Contract\ParsedSourceCacheInterface`; delete from
       `Adapter\ParsedSourceCache` (ctor default keeps working via inheritance);
       update `DetectorCacheTest.php:103,115` and the `@see` in
       `InvalidCacheConfigurationException.php:14`. Note the explicit `int`
       type fixes F7 in the same stroke.
-- [ ] **M1-T4 Host SemConv defaults (F3).** Move
+- [x] **M1-T4 Host SemConv defaults (F3).** Move
       `DEFAULT_INTERFACE_NAME = 'SemConv'` and `DEFAULT_NAMESPACE = 'Generated'`
       from `ValueObject/SemConvConfig.php:39-40` onto
       `ValueObject\SemConvConfigInterface`; update
       `Factory/SemConvConfigFactory.php:19-20`. Keep the private `DOT` /
       `PHP_FILE_EXTENSION` consts where they are (implementation detail).
-- [ ] **M1-T5 Host heredoc cap (F3).** Move `DEFAULT_MAX_HEREDOC_BODY_CHARS =
+- [x] **M1-T5 Host heredoc cap (F3).** Move `DEFAULT_MAX_HEREDOC_BODY_CHARS =
       4096` from `ValueObject/DisenchantScope.php:50` onto
       `ValueObject\DisenchantScopeInterface`; update consumers
       (`Adapter/MagicLiteralVisitor.php:48`,
       `Factory/MagicStringVisitorFactory.php:22,31`, internal use at
       `DisenchantScope.php:67`). This also removes the misplaced const found by
       the declaration-order scan (part of F4-d) for free.
-- [ ] **M1-T6 Sweep:** `grep -rn "public const" src/Adapter src/Core` — expected
+- [x] **M1-T6 Sweep:** `grep -rn "public const" src/Adapter src/Core` — expected
       residue: none (only `private const` implementation details remain on
       classes; vocabularies live on ports/enums/interfaces).
 
-**Verification:** full gates + coverage XML unchanged at 90.00 %; new coverage
-report identical modulo moved lines.
+**Verification (done):** full gates green — architecture 0 violations;
+PHPStan `src` level 9 clean; `format:check` 0/172; unit suite 172 tests /
+431 assertions. Coverage XML unchanged at 90.00 % (1089/1210); moved lines
+only. `MagicLiteralVisitorTest.php:100` already passed `$contentClassifier`
+explicitly, so the required-param change compiled clean.
 
 **API impact (pre-1.0, deliberate):** the four public constants change
 host-type (`Detector::…` → `StringLiteralDetectorInterface::…`, etc.).
@@ -350,6 +353,36 @@ create-first style with the rule.
 
 Dated record of what actually landed, per milestone. Checkboxes above mark task
 completion; this log captures outcomes, deviations, and API impact.
+
+### 2026-08-25 — M1 closed (F5, F3, F7)
+
+- Removed the only inline collaborator instantiation: `MagicLiteralVisitor`
+  ctor param `$contentClassifier` is now required; `MagicStringVisitorFactory`
+  constructs and passes it explicitly (composition root). No other inline `new`
+  of collaborators remains in `src/Adapter` / `src/Core` (factory `new`s are
+  sanctioned by §0.3).
+- Hoisted four public tunable constants onto their owning ports, each `int`-typed
+  where numeric (fixes F7 for `DEFAULT_MAX_ENTRIES`):
+  - `StringLiteralDetectorInterface::MAX_SOURCE_BYTES = 1_000_000`
+  - `ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES = 32` (was untyped)
+  - `SemConvConfigInterface::DEFAULT_INTERFACE_NAME = 'SemConv'`,
+    `DEFAULT_NAMESPACE = 'Generated'`
+  - `DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS = 4096`
+  Impls (`Detector`, `ParsedSourceCache`, `SemConvConfig`, `DisenchantScope`)
+  reference via `self::` through inheritance; consumers (`MagicLiteralVisitor`,
+  `MagicStringVisitorFactory`, `DetectorCacheTest`) retargeted to the ports.
+  Docblock `@see` in `SourceTooLargeException` / `InvalidCacheConfigurationException`
+  repointed at the new hosts. Stale WeakMap port docblock on
+  `ParsedSourceCacheInterface` rewritten to bounded/content-key wording.
+- M1-T5 also removed the misplaced const that the declaration-order scan had
+  flagged (part of F4-d) for free.
+- Gates green: architecture 0 violations · PHPStan src lvl 9 clean ·
+  `format:check` 0/172 · unit 172 tests / 431 assertions · coverage unchanged
+  90.00 % (1089/1210). New coverage report identical modulo the moved lines.
+- **API impact (pre-1.0, deliberate):** four constants changed host-type from
+  class → port. Consumers referencing the old `Detector::…` etc. must retarget;
+  tracked for M6 upgrade notes. No signature breakage for callers using the
+  interface types.
 
 ### 2026-08-25 — M0 closed, baseline recorded
 

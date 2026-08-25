@@ -8,7 +8,7 @@ use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
 use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
-use ItPack\DisenchantIt\ValueObject\DisenchantScope;
+use ItPack\DisenchantIt\ValueObject\DisenchantScopeInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\LiteralKind;
 use ItPack\DisenchantIt\ValueObject\NumberLiteral;
@@ -44,8 +44,8 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         private readonly RoleClassifierInterface $classifier,
         private readonly NamingContextExtractorInterface $extractor,
         string $code,
-        private readonly ContentClassifierInterface $contentClassifier = new ContentClassifier(),
-        private readonly int $maxHeredocBodyChars = DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS,
+        private readonly ContentClassifierInterface $contentClassifier,
+        private readonly int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS,
     ) {
         $this->code = $code;
     }

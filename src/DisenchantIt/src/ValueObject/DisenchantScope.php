@@ -43,13 +43,6 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
     }
 
     /**
-     * Default cap (in characters) for heredoc/nowdoc bodies collected as
-     * candidate strings. Keeps the opt-in string-coverage scan bounded; a 50 KB
-     * prose heredoc is skipped by default.
-     */
-    public const int DEFAULT_MAX_HEREDOC_BODY_CHARS = 4096;
-
-    /**
      * Build a scope from a flat config array (keys optional, all defaulting to
      * empty / false except where noted).
      *

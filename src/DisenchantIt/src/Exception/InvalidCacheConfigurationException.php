@@ -11,7 +11,7 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  * The cache must always be able to hold at least the single source being
  * scanned; anything smaller is a configuration error, fail-closed.
  *
- * @see \ItPack\DisenchantIt\Adapter\ParsedSourceCache::DEFAULT_MAX_ENTRIES
+ * @see \ItPack\DisenchantIt\Contract\ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES
  */
 final class InvalidCacheConfigurationException extends \InvalidArgumentException implements DisenchantItExceptionInterface
 {

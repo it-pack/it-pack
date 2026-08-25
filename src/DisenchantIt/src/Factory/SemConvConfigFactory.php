@@ -16,8 +16,8 @@ final readonly class SemConvConfigFactory implements SemConvConfigFactoryInterfa
         ?string $outputPath = null,
     ): SemConvConfigInterface {
         return new SemConvConfig(
-            interfaceName: $interfaceName ?? SemConvConfig::DEFAULT_INTERFACE_NAME,
-            namespace: $namespace ?? SemConvConfig::DEFAULT_NAMESPACE,
+            interfaceName: $interfaceName ?? SemConvConfigInterface::DEFAULT_INTERFACE_NAME,
+            namespace: $namespace ?? SemConvConfigInterface::DEFAULT_NAMESPACE,
             outputPath: $outputPath,
         );
     }

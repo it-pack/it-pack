@@ -11,4 +11,11 @@ namespace ItPack\DisenchantIt\Contract;
  */
 interface StringLiteralDetectorInterface extends LiteralDetectorInterface
 {
+    /**
+     * Maximum accepted source size in bytes. A single source larger than this
+     * is rejected before parsing to bound memory use of the parse+traverse step.
+     * Overridable via the detector constructor for callers that know their
+     * inputs are legitimately large.
+     */
+    public const int MAX_SOURCE_BYTES = 1_000_000;
 }

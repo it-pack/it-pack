@@ -10,6 +10,12 @@ namespace ItPack\DisenchantIt\ValueObject;
  */
 interface SemConvConfigInterface
 {
+    /** Default name of the generated shared-constants interface. */
+    public const string DEFAULT_INTERFACE_NAME = 'SemConv';
+
+    /** Default namespace of the generated shared-constants interface. */
+    public const string DEFAULT_NAMESPACE = 'Generated';
+
     public string $interfaceName { get; }
 
     public ?string $namespace { get; }

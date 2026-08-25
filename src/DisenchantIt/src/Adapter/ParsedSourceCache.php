@@ -27,8 +27,6 @@ use ItPack\DisenchantIt\ValueObject\SourceCodeInterface;
  */
 final class ParsedSourceCache implements ParsedSourceCacheInterface
 {
-    public const DEFAULT_MAX_ENTRIES = 32;
-
     /** @var array<string, list<LiteralInterface>> */
     private array $store = [];
 

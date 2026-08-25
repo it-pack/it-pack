@@ -36,8 +36,6 @@ namespace ItPack\DisenchantIt\ValueObject;
  */
 final class SemConvConfig implements SemConvConfigInterface
 {
-    public const string DEFAULT_INTERFACE_NAME = 'SemConv';
-    public const string DEFAULT_NAMESPACE = 'Generated';
     private const string DOT = '.';
     private const string PHP_FILE_EXTENSION = 'php';
 

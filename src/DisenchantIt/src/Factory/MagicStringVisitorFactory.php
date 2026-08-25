@@ -12,14 +12,14 @@ use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
 use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
 use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
 use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
-use ItPack\DisenchantIt\ValueObject\DisenchantScope;
+use ItPack\DisenchantIt\ValueObject\DisenchantScopeInterface;
 
 final readonly class MagicStringVisitorFactory implements MagicStringVisitorFactoryInterface
 {
     public function __construct(
         private readonly NamingContextExtractorInterface $extractor = new NamingContextExtractor(),
         private readonly ContentClassifierInterface $contentClassifier = new ContentClassifier(),
-        private readonly int $maxHeredocBodyChars = DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS,
+        private readonly int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS,
     ) {
     }
 
@@ -28,7 +28,7 @@ final readonly class MagicStringVisitorFactory implements MagicStringVisitorFact
         return new MagicLiteralVisitor($classifier, $this->extractor, $code, $this->contentClassifier, $this->maxHeredocBodyChars);
     }
 
-    public static function create(int $maxHeredocBodyChars = DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS): self
+    public static function create(int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS): self
     {
         return new self(maxHeredocBodyChars: $maxHeredocBodyChars);
     }
