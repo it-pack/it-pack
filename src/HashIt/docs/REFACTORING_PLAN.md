@@ -112,7 +112,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M2 — Contract documentation & exception taxonomy (F-6)
+## M2 — Contract documentation & exception taxonomy (F-6) — ✅ DONE (2026-08-24)
 
 **Goal:** Make the ports specify what the native adapter actually does, and route predictable native failures into the package's `InvalidArgumentException` taxonomy instead of leaking `ValueError`.
 
@@ -140,6 +140,8 @@ git status --porcelain   # var/ noise gone
 **Verification:** gates; re-run the review probes (`§8` table) — every stimulus must now yield a package-taxonomy exception or documented behavior.
 **Dependencies:** M1 (exception-message helper).
 **Acceptance:** no public code path lets `ValueError`/`TypeError` escape un-normalized where the cause is caller input; lifecycle and stream semantics written down on the ports.
+
+**Completion note (2026-08-24):** All six tasks landed. Pre-verified by probe that `copy()`-after-`finalize()` also fails (TypeError, same family as update/finalize-after-finalize) before documenting the lifecycle on `HashContextInterface`; branching via pre-finalize `copy()` confirmed correct. `NativeContextFactory` now catches the native `ValueError` and rethrows `InvalidArgumentException('Unknown hashing algorithm: …', previous: $e)`; `NativeHmacHasher` normalizes unknown strings through a private `normalize()` helper using `tryFrom()` + throw-expression. `Hasher::hashStream()` gained the positive-chunk-size guard and its docblock now states the seek/restore semantics. README gained the legacy-algorithm caution. Three tests added (factory taxonomy incl. `getPrevious()`, HMAC unknown string, chunk-size guard) → suite grew to 40 tests / 173 assertions. Two PHPStan findings surfaced during verification and were fixed: unqualified `@throws InvalidArgumentException` in the core namespace resolves against `ItPack\HashIt` (fixed with an explicit import in `ContextFactoryInterface`), and phpstan-strict-rules rejects `$this->fail()`/`$this->assertInstanceOf()` as dynamic static calls (fixed with `self::` calls, matching DeriveIt's convention). Probe re-run: all caller-input stimuli yield package exceptions; post-finalize misuse remains an engine error as documented. Gates: 40 tests / 173 assertions ✅ · php-cs-fixer 0 of 23 ✅ · PHPStan 0 errors ✅.
 
 ---
 

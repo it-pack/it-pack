@@ -41,4 +41,20 @@ class NativeHashContextTest extends Unit
         $md5->update('abc');
         verify($md5->finalize(false))->equals(md5('abc'));
     }
+
+    public function testFactoryNormalizesUnknownAlgorithmToPackageException(): void
+    {
+        $factory = new NativeContextFactory();
+
+        $thrown = null;
+        try {
+            $factory->build('not-an-algorithm');
+        } catch (\InvalidArgumentException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(\InvalidArgumentException::class, $thrown);
+        verify(str_contains($thrown->getMessage(), 'not-an-algorithm'))->true();
+        self::assertInstanceOf(\ValueError::class, $thrown->getPrevious());
+    }
 }

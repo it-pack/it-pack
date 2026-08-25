@@ -15,7 +15,7 @@ final class NativeHmacHasher implements HmacHasherInterface
     public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
         if (!$algorithm instanceof HashAlgorithm) {
-            $algorithm = HashAlgorithm::from($algorithm);
+            $algorithm = $this->normalize($algorithm);
         }
 
         if (!$algorithm->isHmacSafe()) {
@@ -23,5 +23,11 @@ final class NativeHmacHasher implements HmacHasherInterface
         }
 
         return new Hash(hash_hmac($algorithm->value, $data, $key, false), $algorithm->value, false);
+    }
+
+    private function normalize(string $algorithm): HashAlgorithm
+    {
+        return HashAlgorithm::tryFrom($algorithm)
+            ?? throw new InvalidArgumentException('Unknown hash algorithm: ' . $algorithm);
     }
 }

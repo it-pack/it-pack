@@ -11,6 +11,10 @@ final class NativeContextFactory implements ContextFactoryInterface
 {
     public function build(string $algorithm): HashContextInterface
     {
-        return new NativeHashContext($algorithm);
+        try {
+            return new NativeHashContext($algorithm);
+        } catch (\ValueError $e) {
+            throw new \InvalidArgumentException('Unknown hashing algorithm: ' . $algorithm, previous: $e);
+        }
     }
 }

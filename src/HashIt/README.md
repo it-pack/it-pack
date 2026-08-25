@@ -56,6 +56,10 @@ HashAlgorithm::CRC32->isHmacSafe();         // false
 HashAlgorithm::hmacSafeAlgorithms();        // list<HashAlgorithm> (44 cases)
 ```
 
+> **Legacy algorithms:** MD2/MD4/MD5/SHA1 (and other legacy digests) remain selectable for
+> interoperability with formats that require them. For security-sensitive use, prefer
+> SHA-256 or stronger.
+
 ## Why ports — and why the core never sees `HashContext`
 
 The hashing state type (`\HashContext`) is a PHP implementation detail, not part of the

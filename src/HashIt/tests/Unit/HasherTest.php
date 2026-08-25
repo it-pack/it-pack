@@ -129,6 +129,18 @@ class HasherTest extends Unit
         $this->hasher()->hashStream($closed);
     }
 
+    public function testHashStreamRejectsNonPositiveChunkSize(): void
+    {
+        $stream = fopen('php://memory', 'rb');
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->hasher()->hashStream($stream, 'sha256', 0);
+        } finally {
+            fclose($stream);
+        }
+    }
+
     public function testHashFilesReturnsPathMap(): void
     {
         $a = tempnam(sys_get_temp_dir(), 'hashit');

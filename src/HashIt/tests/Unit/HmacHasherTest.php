@@ -34,6 +34,13 @@ class HmacHasherTest extends Unit
         new NativeHmacHasher()->hmac('message', 'secret', HashAlgorithm::CRC32);
     }
 
+    public function testHmacRejectsUnknownAlgorithmString(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new NativeHmacHasher()->hmac('message', 'secret', 'bogus');
+    }
+
     public function testCompositionRootExposesHmacHasher(): void
     {
         $hmac = NativeHashIt::hmacHasher();

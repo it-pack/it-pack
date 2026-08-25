@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
+use DirectoryIterator;
 use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use RuntimeException;
@@ -55,12 +56,22 @@ final readonly class Hasher
     /**
      * Hash a readable stream in fixed chunks without loading it fully into memory.
      *
+     * Seekable streams are rewound to position 0 before reading and restored to
+     * their prior position afterwards; non-seekable streams are hashed from the
+     * current position and left where reading stopped.
+     *
      * @param resource $stream
+     *
+     * @throws InvalidArgumentException when $stream is not a stream resource or $chunkSize is not positive
      */
     public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES): HashInterface
     {
         if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
             throw new InvalidArgumentException('hashStream() expects a stream resource');
+        }
+
+        if ($chunkSize < 1) {
+            throw new InvalidArgumentException('Chunk size must be at least 1 byte');
         }
 
         $builder = HashBuilder::start($this->factory, $algorithm);
@@ -112,7 +123,7 @@ final readonly class Hasher
         }
 
         $paths = [];
-        foreach (new \DirectoryIterator($directory) as $item) {
+        foreach (new DirectoryIterator($directory) as $item) {
             if ($item->isFile()) {
                 $paths[] = new NativeFilepathFileinfo($item->getFileInfo());
             }
@@ -130,7 +141,7 @@ final readonly class Hasher
         return new Hash($context->finalize($binary), $algorithm, $binary);
     }
 
-    private function unreadable(string $file): \RuntimeException
+    private function unreadable(string $file): RuntimeException
     {
         return new RuntimeException('Unable to read file: ' . $file);
     }
