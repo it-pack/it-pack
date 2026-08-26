@@ -30,5 +30,14 @@
         "open-telemetry/api": "^1.9",
         "open-telemetry/sdk": "^1.0",
         "infection/codeception-adapter": "^0.4"
+    },
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "dantleech/what-changed": true,
+            "tbachert/spi": false,
+            "phpstan/extension-installer": true
+        }
     }
 }
