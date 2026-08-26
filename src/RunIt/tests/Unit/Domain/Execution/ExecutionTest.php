@@ -7,6 +7,8 @@ namespace Tests\Unit\Domain\Execution;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
+use ItPack\RunIt\Domain\Context\ContextEntry;
+use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
 use ItPack\RunIt\Domain\Exception\ConflictingCompletionException;
 use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
@@ -19,6 +21,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 
 final class ExecutionTest extends Unit
 {
@@ -44,7 +47,7 @@ final class ExecutionTest extends Unit
     {
         $failure = ExecutionFailure::of(
             ExecutionStatus::Failed,
-            \ItPack\RunIt\Domain\Shared\ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
         );
 
         self::assertSame(ExecutionStatus::Failed, $failure->status());
@@ -59,8 +62,8 @@ final class ExecutionTest extends Unit
             null,
             [],
             ExecutionContext::empty()->with(
-                \ItPack\RunIt\Domain\Context\ContextEntry::public(
-                    \ItPack\RunIt\Domain\Context\ContextKey::fromString('tenant.id'),
+                ContextEntry::public(
+                    ContextKey::fromString('tenant.id'),
                     'acme',
                 ),
             ),
@@ -106,7 +109,7 @@ final class ExecutionTest extends Unit
             $terminal->complete(
                 ExecutionFailure::of(
                     ExecutionStatus::Failed,
-                    \ItPack\RunIt\Domain\Shared\ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+                    ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
                 ),
                 Instant::of(3000),
             );
@@ -191,7 +194,7 @@ final class ExecutionTest extends Unit
 
         ExecutionFailure::of(
             ExecutionStatus::Running,
-            \ItPack\RunIt\Domain\Shared\ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
         );
     }
 

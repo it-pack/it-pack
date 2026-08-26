@@ -27,6 +27,8 @@ final readonly class ExecutionKindSamplePolicy implements SamplingPolicyInterfac
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param array<string, bool>                                     $decisions kind name => keep?
      */
+    private ArtifactPredicateInterface $predicate;
+
     public function __construct(Closure $resolver, array $decisions)
     {
         $this->predicate = new ExecutionKindPredicate(
@@ -34,8 +36,6 @@ final readonly class ExecutionKindSamplePolicy implements SamplingPolicyInterfac
             static fn (ExecutionKindInterface $kind): bool => $decisions[$kind->toString()] ?? false,
         );
     }
-
-    private ArtifactPredicateInterface $predicate;
 
     public function sample(ExecutionArtifactInterface $artifact): bool
     {

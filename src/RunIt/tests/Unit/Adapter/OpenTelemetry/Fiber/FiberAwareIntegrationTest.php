@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\OpenTelemetry\Fiber;
 
 use Codeception\Test\Unit;
+use Fiber;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use OpenTelemetry\Context\Context;
@@ -35,12 +36,12 @@ final class FiberAwareIntegrationTest extends Unit
 
         $initialContext = Context::getCurrent();
 
-        $fiberA = new \Fiber(function () use ($publisher, $initialContext): void {
+        $fiberA = new Fiber(function () use ($publisher, $initialContext): void {
             Context::storage()->attach($initialContext);
             $publisher->publish(RunItArtifactFactory::execution('exec-a', 'root-a', 'internal', 'succeeded'));
             $publisher->publish(RunItArtifactFactory::activity('act-a', 'exec-a', 'parse', 'internal', 'succeeded'));
         });
-        $fiberB = new \Fiber(function () use ($publisher, $initialContext): void {
+        $fiberB = new Fiber(function () use ($publisher, $initialContext): void {
             Context::storage()->attach($initialContext);
             $publisher->publish(RunItArtifactFactory::execution('exec-b', 'root-b', 'internal', 'succeeded'));
             $publisher->publish(RunItArtifactFactory::activity('act-b', 'exec-b', 'parse', 'internal', 'succeeded'));

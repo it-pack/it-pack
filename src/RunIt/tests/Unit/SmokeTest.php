@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
-final class SmokeTest extends \Codeception\Test\Unit
+use Codeception\Test\Unit;
+
+final class SmokeTest extends Unit
 {
     public function testCodeceptionIsConfigured(): void
     {

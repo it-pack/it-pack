@@ -18,6 +18,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
@@ -74,7 +75,7 @@ final class ExecutionScopeTest extends Unit
             static function ($scope) {
                 $scope->occurrences()->record(OccurrenceType::fromString('itpack.thing.done.v1'), 'app');
                 $scope->snapshots()->record(
-                    \ItPack\RunIt\Domain\Snapshot\SnapshotType::fromString('itpack.state.v1'),
+                    SnapshotType::fromString('itpack.state.v1'),
                     ['ok' => true]
                 );
 

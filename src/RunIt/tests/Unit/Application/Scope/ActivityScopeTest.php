@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Scope;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -33,7 +36,7 @@ final class ActivityScopeTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) use (&$seen) {
                 return $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                    ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
@@ -51,7 +54,7 @@ final class ActivityScopeTest extends Unit
         );
 
         self::assertSame('load', $seen['activityName']);
-        self::assertInstanceOf(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface::class, $seen['parentScope']);
+        self::assertInstanceOf(ExecutionScopeInterface::class, $seen['parentScope']);
         self::assertTrue($seen['sameExecution']);
         self::assertTrue($seen['sameContext']);
         self::assertTrue($seen['sameMeasurements']);
@@ -63,7 +66,7 @@ final class ActivityScopeTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) {
                 $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                    ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
@@ -80,7 +83,7 @@ final class ActivityScopeTest extends Unit
 
         $measurements = array_values(array_filter(
             $this->kit->artifacts(),
-            static fn ($artifact): bool => $artifact instanceof \ItPack\RunIt\Contract\Domain\MeasurementInterface,
+            static fn ($artifact): bool => $artifact instanceof MeasurementInterface,
         ));
 
         self::assertCount(1, $measurements);

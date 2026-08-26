@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Support\Fixture\OpenTelemetry;
 
+use ArrayObject;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;
 use OpenTelemetry\SDK\Logs\Exporter\InMemoryExporter as LogInMemoryExporter;
@@ -98,7 +99,7 @@ final class OtelTestKit
     }
 
     /**
-     * @return \OpenTelemetry\SDK\Metrics\Data\Metric[]
+     * @return Metricc[]
      */
     public function collectMetrics(): array
     {
@@ -108,9 +109,9 @@ final class OtelTestKit
     }
 
     /**
-     * @return \ArrayObject<int, \OpenTelemetry\SDK\Logs\ReadableLogRecord>
+     * @return \ArrayObject<int, ReadableLogRecordd>
      */
-    public function logs(): \ArrayObject
+    public function logs(): ArrayObject
     {
         return $this->logExporter->getStorage();
     }

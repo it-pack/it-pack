@@ -25,9 +25,8 @@ final class ExecutedCallable implements ExecutedCallableInterface
 {
     private readonly Closure $operation;
 
-    /**
-     * @param Closure(array<mixed>): ExecutionDefinitionInterface|null $definitionFactory produces the definition from invocation arguments
-     */
+    private readonly ?Closure $definitionFactory;
+
     public function __construct(
         private readonly ExecutionRunnerInterface $runner,
         callable $operation,
@@ -37,9 +36,6 @@ final class ExecutedCallable implements ExecutedCallableInterface
         $this->operation = Closure::fromCallable($operation);
         $this->definitionFactory = $definitionFactory;
     }
-
-    /** @var Closure(array<mixed>): ExecutionDefinitionInterface|null */
-    private readonly ?Closure $definitionFactory;
 
     public function __invoke(mixed ...$args): mixed
     {

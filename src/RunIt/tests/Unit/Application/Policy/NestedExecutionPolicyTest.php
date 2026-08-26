@@ -11,6 +11,7 @@ use ItPack\RunIt\Application\Policy\DetachedExecutionPolicy;
 use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Contract\Application\NestedExecutionMode;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Domain\Context\ExecutionContext;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -40,7 +41,7 @@ final class NestedExecutionPolicyTest extends Unit
     public function testChildExecutionPolicyYieldsChildWhenParentActive(): void
     {
         $kit = new RunItTestKit();
-        $current = $kit->buildScope($this->running(), \ItPack\RunIt\Domain\Context\ExecutionContext::empty());
+        $current = $kit->buildScope($this->running(), ExecutionContext::empty());
         $policy = new ChildExecutionPolicy();
         self::assertSame(NestedExecutionMode::ChildExecution, $policy->resolve($current, $this->definition()));
     }
@@ -48,7 +49,7 @@ final class NestedExecutionPolicyTest extends Unit
     public function testActivityOnlyPolicyYieldsActivityWhenParentActive(): void
     {
         $kit = new RunItTestKit();
-        $current = $kit->buildScope($this->running(), \ItPack\RunIt\Domain\Context\ExecutionContext::empty());
+        $current = $kit->buildScope($this->running(), ExecutionContext::empty());
         $policy = new ActivityOnlyPolicy();
         self::assertSame(NestedExecutionMode::ActivityOnly, $policy->resolve($current, $this->definition()));
     }
@@ -56,7 +57,7 @@ final class NestedExecutionPolicyTest extends Unit
     public function testDetachedPolicyYieldsDetachedWhenParentActive(): void
     {
         $kit = new RunItTestKit();
-        $current = $kit->buildScope($this->running(), \ItPack\RunIt\Domain\Context\ExecutionContext::empty());
+        $current = $kit->buildScope($this->running(), ExecutionContext::empty());
         $policy = new DetachedExecutionPolicy();
         self::assertSame(NestedExecutionMode::DetachedExecution, $policy->resolve($current, $this->definition()));
     }
@@ -64,7 +65,7 @@ final class NestedExecutionPolicyTest extends Unit
     public function testRejectPolicyRejectsWhenParentActive(): void
     {
         $kit = new RunItTestKit();
-        $current = $kit->buildScope($this->running(), \ItPack\RunIt\Domain\Context\ExecutionContext::empty());
+        $current = $kit->buildScope($this->running(), ExecutionContext::empty());
         $policy = new RejectNestedPolicy();
         self::assertSame(NestedExecutionMode::RejectNested, $policy->resolve($current, $this->definition()));
     }

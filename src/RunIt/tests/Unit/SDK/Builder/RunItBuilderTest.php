@@ -27,6 +27,7 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -53,6 +54,7 @@ use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingSnapshotStore;
+use Throwable;
 
 #[CoversClass(RunItBuilder::class)]
 #[CoversClass(MissingBuilderDependencyException::class)]
@@ -282,12 +284,12 @@ final class RunItBuilderTest extends TestCase
         self::assertNotSame($base, $base->withSecurityLimits(new SecurityLimits()));
         self::assertNotSame(
             $base,
-            $base->withPublicationFailureHandler(static function (\Throwable $failure): void {
+            $base->withPublicationFailureHandler(static function (Throwable $failure): void {
             }),
         );
         self::assertNotSame(
             $base,
-            $base->withSnapshotStoreFailureHandler(static function (\Throwable $failure): void {
+            $base->withSnapshotStoreFailureHandler(static function (Throwable $failure): void {
             }),
         );
         self::assertNotSame($base, $base->withPublisherStackFactory(new SpyPublisherStackFactory()));
@@ -324,7 +326,7 @@ final class RunItBuilderTest extends TestCase
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
             ->withIdentifierGenerator(new RandomIdentifierGenerator())
             ->withSecurityLimits(new SecurityLimits(maxArtifactsPerExecution: 1))
-            ->withPublicationFailureHandler(static function (\Throwable $failure) use (&$failures): void {
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             })
             ->build()
@@ -402,12 +404,12 @@ final class RunItBuilderTest extends TestCase
             $runtime->run($this->definition(), static function (): int {
                 throw new RuntimeException('raw observation source');
             });
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
 
         $observations = array_filter(
             $spy->published,
-            static fn ($a) => $a instanceof \ItPack\RunIt\Contract\Domain\ObservationInterface,
+            static fn ($a) => $a instanceof ObservationInterface,
         );
         self::assertNotEmpty($observations, 'an explicit withRedactor(null) opt-out publishes raw observations');
         self::assertEmpty(
@@ -458,7 +460,7 @@ final class RunItBuilderTest extends TestCase
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
             ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withPublicationFailureHandler(static function (\Throwable $failure) use (&$failures): void {
+            ->withPublicationFailureHandler(static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             })
             ->build()
@@ -475,7 +477,7 @@ final class RunItBuilderTest extends TestCase
         $storeFailures = [];
         $runtime = $this->builder()
             ->withSnapshotStore(new ThrowingSnapshotStore())
-            ->withSnapshotStoreFailureHandler(static function (\Throwable $failure) use (&$storeFailures): void {
+            ->withSnapshotStoreFailureHandler(static function (Throwable $failure) use (&$storeFailures): void {
                 $storeFailures[] = $failure;
             })
             ->build()

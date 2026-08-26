@@ -17,6 +17,7 @@ use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
+use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Verifier\ArtifactPublisherVerifier;
 use ItPack\RunIt\Conformance\Verifier\ContextStorageVerifier;
 use ItPack\RunIt\Conformance\Verifier\ExecutionEngineVerifier;
@@ -133,7 +134,7 @@ final class RunItPortConformanceTest extends Unit
         self::assertTrue($result->isConformant(), $this->describe($result));
     }
 
-    private function describe(\ItPack\RunIt\Conformance\Result\ConformanceResult $result): string
+    private function describe(ConformanceResult $result): string
     {
         $lines = [$result->summary()];
         foreach ($result->violations as $violation) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Fiber;
 
 use Codeception\Test\Unit;
+use Fiber;
 use ItPack\RunIt\Adapter\Fiber\FiberRuntimeDetector;
 
 /**
@@ -25,7 +26,7 @@ final class FiberRuntimeDetectorTest extends Unit
         $detector = new FiberRuntimeDetector();
         $inside = null;
 
-        $fiber = new \Fiber(static function () use ($detector, &$inside): void {
+        $fiber = new Fiber(static function () use ($detector, &$inside): void {
             $inside = $detector->inFiber();
         });
         $fiber->start();

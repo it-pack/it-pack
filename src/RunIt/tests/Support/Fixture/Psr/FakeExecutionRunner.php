@@ -6,6 +6,10 @@ namespace Tests\Support\Fixture\Psr;
 
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Domain\Context\ExecutionContext;
+use ItPack\RunIt\Domain\Execution\Execution;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Shared\Instant;
 
 /**
  * Test double for {@see ExecutionRunnerInterface} that runs the operation inside a
@@ -29,10 +33,10 @@ final class FakeExecutionRunner implements ExecutionRunnerInterface
         $this->counter++;
         $this->definitions[$key] = $definition;
 
-        $execution = \ItPack\RunIt\Domain\Execution\Execution::start(
-            \ItPack\RunIt\Domain\Execution\ExecutionId::fromString($key),
+        $execution = Execution::start(
+            ExecutionId::fromString($key),
             $definition,
-            \ItPack\RunIt\Domain\Shared\Instant::now(),
+            Instant::now(),
         );
 
         $recorder = new RecordingObservationRecorder();
@@ -40,7 +44,7 @@ final class FakeExecutionRunner implements ExecutionRunnerInterface
 
         $scope = new FakeExecutionScope(
             $execution,
-            \ItPack\RunIt\Domain\Context\ExecutionContext::empty(),
+            ExecutionContext::empty(),
             $recorder,
         );
 

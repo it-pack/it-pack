@@ -7,6 +7,7 @@ namespace Tests\Unit\Application\Propagation;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Domain\Context\ExecutionContext;
 use ItPack\RunIt\Domain\Exception\NoActiveExecutionException;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -43,7 +44,7 @@ final class CurrentExecutionTest extends Unit
                 ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
                 Instant::of(1)
             ),
-            \ItPack\RunIt\Domain\Context\ExecutionContext::empty(),
+            ExecutionContext::empty(),
         );
 
         $token = $storage->attach($scope);

@@ -6,6 +6,8 @@ namespace Tests\Unit\Application\Propagation;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Domain\Context\ExecutionContext;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -17,7 +19,7 @@ use Tests\Support\Fixture\RunItTestKit;
 
 final class StackContextStorageTest extends Unit
 {
-    private function scope(RunItTestKit $kit, string $id): \ItPack\RunIt\Contract\Application\ExecutionScopeInterface
+    private function scope(RunItTestKit $kit, string $id): ExecutionScopeInterface
     {
         return $kit->buildScope(
             Execution::start(
@@ -25,7 +27,7 @@ final class StackContextStorageTest extends Unit
                 ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
                 Instant::of(1)
             ),
-            \ItPack\RunIt\Domain\Context\ExecutionContext::empty(),
+            ExecutionContext::empty(),
         );
     }
 

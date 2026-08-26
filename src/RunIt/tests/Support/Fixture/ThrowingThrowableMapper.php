@@ -7,6 +7,7 @@ namespace Tests\Support\Fixture;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use RuntimeException;
+use Throwable;
 
 /**
  * Throwable mapper that always throws, for exercising normalization-failure handling.
@@ -15,7 +16,7 @@ use RuntimeException;
  */
 final class ThrowingThrowableMapper implements ThrowableMapperInterface
 {
-    public function describe(\Throwable $throwable): ThrowableDescriptionInterface
+    public function describe(Throwable $throwable): ThrowableDescriptionInterface
     {
         throw new RuntimeException('throwable mapper is broken');
     }

@@ -5,14 +5,22 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Measurement;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Exception\InvalidMeasurementValueException;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Measurement\Measurement;
+use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use Tests\Support\Fixture\RunItTestKit;
 
 final class MeasurementTest extends Unit
 {
@@ -26,7 +34,7 @@ final class MeasurementTest extends Unit
             Instant::of(1000),
         );
 
-        self::assertSame(\ItPack\RunIt\Domain\Measurement\MeasurementKind::Counter, $measurement->kind());
+        self::assertSame(MeasurementKind::Counter, $measurement->kind());
         self::assertSame(42, $measurement->value());
         self::assertSame(1000, $measurement->timestamp());
     }
@@ -73,16 +81,16 @@ final class MeasurementTest extends Unit
 
     public function testSizeAndRatioRecordersProduceMeasurementsWithTheirUnits(): void
     {
-        $kit = new \Tests\Support\Fixture\RunItTestKit();
+        $kit = new RunItTestKit();
         $sizes = [];
         $ratios = [];
 
         $kit->runner->run(
-            \ItPack\RunIt\Domain\Execution\ExecutionDefinition::create(
-                \ItPack\RunIt\Domain\Execution\ExecutionName::fromString('units'),
-                \ItPack\RunIt\Domain\Execution\ExecutionKind::fromString('task'),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('units'),
+                ExecutionKind::fromString('task'),
             ),
-            static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope) use (
+            static function (ExecutionScopeInterface $scope) use (
                 $kit,
                 &$sizes,
                 &$ratios
@@ -91,7 +99,7 @@ final class MeasurementTest extends Unit
                 $scope->measurements()->ratio('hit_rate', 0.75);
 
                 foreach ($kit->artifacts() as $artifact) {
-                    if ($artifact instanceof \ItPack\RunIt\Contract\Domain\MeasurementInterface) {
+                    if ($artifact instanceof MeasurementInterface) {
                         $unit = $artifact->unit()->label();
 
                         if ($unit === 'bytes') {
@@ -116,7 +124,7 @@ final class MeasurementTest extends Unit
             MeasurementName::fromString('latency'),
             ExecutionId::fromString('exec-1'),
             3.5,
-            \ItPack\RunIt\Domain\Activity\ActivityId::fromString('act-1'),
+            ActivityId::fromString('act-1'),
             Instant::of(1000),
         );
 

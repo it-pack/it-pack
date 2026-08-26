@@ -10,6 +10,7 @@ use ItPack\RunIt\Application\Publication\PublicationGuard;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use RuntimeException;
 use stdClass;
+use Stringable;
 use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 
 final class ObservationRecordingLoggerTest extends Unit
@@ -95,7 +96,7 @@ final class ObservationRecordingLoggerTest extends Unit
         $recorder = new RecordingObservationRecorder();
         $logger = new ObservationRecordingLogger($recorder);
 
-        $logger->log(new class () implements \Stringable {
+        $logger->log(new class () implements Stringable {
             public function __toString(): string
             {
                 return 'error';

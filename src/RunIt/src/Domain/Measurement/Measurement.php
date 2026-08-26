@@ -37,17 +37,6 @@ final readonly class Measurement implements MeasurementInterface
 {
     use SequencedBehavior;
 
-    /**
-     * @param MeasurementNameInterface $name
-     * @param MeasurementKindInterface $kind
-     * @param MeasurementUnitInterface $unit
-     * @param int|float $value
-     * @param ExecutionIdInterface $executionId
-     * @param ActivityIdInterface|null $activityId
-     * @param InstantInterface $instant
-     * @param AttributeCollectionInterface $attributes
-     * @param ArtifactSequenceInterface $sequence
-     */
     private function __construct(
         private MeasurementNameInterface $name,
         private MeasurementKindInterface $kind,
@@ -59,38 +48,6 @@ final readonly class Measurement implements MeasurementInterface
         private AttributeCollectionInterface $attributes,
         private ArtifactSequenceInterface $sequence,
     ) {
-    }
-
-    /**
-     * The single kind-parameterized construction path behind every named
-     * constructor: defaults are applied once and the record is assembled once.
-     */
-    private static function record(
-        MeasurementKindInterface $kind,
-        MeasurementUnitInterface $unit,
-        MeasurementNameInterface $name,
-        ExecutionIdInterface $executionId,
-        int|float $value,
-        ?ActivityIdInterface $activityId,
-        ?InstantInterface $instant,
-        ?ArtifactSequenceInterface $sequence,
-        ?AttributeCollectionInterface $attributes,
-    ): self {
-        if (is_float($value)) {
-            self::assertFinite($value);
-        }
-
-        return new self(
-            $name,
-            $kind,
-            $unit,
-            $value,
-            $executionId,
-            $activityId,
-            $instant ?? Instant::now(),
-            $attributes ?? AttributeCollection::empty(),
-            $sequence ?? ArtifactSequence::initial()
-        );
     }
 
     public static function counter(
@@ -208,11 +165,32 @@ final readonly class Measurement implements MeasurementInterface
         );
     }
 
-    private static function assertFinite(float $value): void
-    {
-        if (!is_finite($value)) {
-            throw InvalidMeasurementValueException::forNonFiniteValue();
+    private static function record(
+        MeasurementKindInterface $kind,
+        MeasurementUnitInterface $unit,
+        MeasurementNameInterface $name,
+        ExecutionIdInterface $executionId,
+        int|float $value,
+        ?ActivityIdInterface $activityId,
+        ?InstantInterface $instant,
+        ?ArtifactSequenceInterface $sequence,
+        ?AttributeCollectionInterface $attributes,
+    ): self {
+        if (is_float($value)) {
+            self::assertFinite($value);
         }
+
+        return new self(
+            $name,
+            $kind,
+            $unit,
+            $value,
+            $executionId,
+            $activityId,
+            $instant ?? Instant::now(),
+            $attributes ?? AttributeCollection::empty(),
+            $sequence ?? ArtifactSequence::initial()
+        );
     }
 
     public function name(): MeasurementNameInterface
@@ -255,18 +233,11 @@ final readonly class Measurement implements MeasurementInterface
         return $this->sequence->value();
     }
 
-
-    /**
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
-     */
     public function attributes(): array
     {
         return $this->attributes->toArray();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function normalize(): array
     {
         return [
@@ -280,5 +251,12 @@ final readonly class Measurement implements MeasurementInterface
             ArtifactField::SEQUENCE => $this->sequence->value(),
             ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
         ];
+    }
+
+    private static function assertFinite(float $value): void
+    {
+        if (!is_finite($value)) {
+            throw InvalidMeasurementValueException::forNonFiniteValue();
+        }
     }
 }

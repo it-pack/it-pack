@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
+use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
@@ -63,7 +64,7 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('it-pack/test', $record->getAttributes()->get('runit.occurrence.source'));
 
         $spans = $spanExporter->getSpans();
-        /** @var \OpenTelemetry\SDK\Trace\SpanDataInterface $spanData */
+        /** @var SpanDataInterfacee $spanData */
         $spanData = $spans[0];
         $events = $spanData->getEvents();
         self::assertCount(1, $events);
@@ -198,7 +199,7 @@ final class OccurrenceLogMapperTest extends Unit
             'it-pack/test',
             Instant::of(1_600),
             null,
-            \ItPack\RunIt\Domain\Activity\ActivityId::fromString('act-7'),
+            ActivityId::fromString('act-7'),
             'user-42',
             null,
             MediaTypes::APPLICATION_JSON,
@@ -232,12 +233,12 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('on', $attributes['tenantflag']);
 
         $spans = $spanExporter->getSpans();
-        /** @var \OpenTelemetry\SDK\Trace\SpanDataInterface $spanData */
+        /** @var SpanDataInterfacee $spanData */
         $spanData = $spans[0];
         $events = $spanData->getEvents();
         self::assertCount(1, $events);
 
-        /** @var \OpenTelemetry\SDK\Trace\Event $event */
+        /** @var Eventt $event */
         $event = $events[0];
         self::assertSame('user-42', $event->getAttributes()->get('runit.occurrence.subject'));
         self::assertSame('act-7', $event->getAttributes()->get('runit.activity.id'));

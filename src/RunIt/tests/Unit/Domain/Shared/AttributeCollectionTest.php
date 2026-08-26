@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use stdClass;
 
 final class AttributeCollectionTest extends Unit
 {
@@ -141,7 +142,7 @@ final class AttributeCollectionTest extends Unit
         $this->expectException(InvalidAttributeException::class);
 
         // @phpstan-ignore argument.type (Deliberate invalid value to assert rejection.)
-        AttributeCollection::fromArray(['obj' => new \stdClass()]);
+        AttributeCollection::fromArray(['obj' => new stdClass()]);
     }
 
     public function testResourceValueIsRejected(): void
@@ -158,6 +159,6 @@ final class AttributeCollectionTest extends Unit
         $this->expectException(InvalidAttributeException::class);
 
         // @phpstan-ignore argument.type (Deliberate invalid value to assert rejection.)
-        AttributeCollection::fromArray(['list' => [new \stdClass()]]);
+        AttributeCollection::fromArray(['list' => [new stdClass()]]);
     }
 }

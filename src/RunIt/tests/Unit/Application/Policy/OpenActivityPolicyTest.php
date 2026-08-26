@@ -12,6 +12,7 @@ use ItPack\RunIt\Application\Policy\WarnAndIgnoreOpenActivitiesPolicy;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
@@ -65,7 +66,7 @@ final class OpenActivityPolicyTest extends Unit
         $activity = Activity::start(
             ActivityId::fromString('a1'),
             $execution->id(),
-            \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+            ActivityDefinition::create(
                 ActivityName::fromString('load'),
                 ActivityKind::fromString('io')
             ),

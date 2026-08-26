@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
+use Throwable;
 
 final class DefaultExecutionRunnerTest extends Unit
 {
@@ -157,7 +158,7 @@ final class DefaultExecutionRunnerTest extends Unit
         $captured = null;
         $kit = new RunItTestKit(
             publisher: new ThrowingArtifactPublisher(),
-            onPublicationFailure: static function (\Throwable $e) use (&$captured): void {
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
                 $captured = $e;
             },
         );
@@ -166,7 +167,7 @@ final class DefaultExecutionRunnerTest extends Unit
 
         self::assertSame('business-value', $result, 'The business result must be preserved.');
         self::assertInstanceOf(
-            \Throwable::class,
+            Throwable::class,
             $captured,
             'The health callback must receive the publication failure.'
         );

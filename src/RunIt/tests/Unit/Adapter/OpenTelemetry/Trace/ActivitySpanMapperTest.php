@@ -11,6 +11,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultActivitySpanMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
 use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
@@ -49,17 +50,17 @@ final class ActivitySpanMapperTest extends Unit
     }
 
     /**
-     * @return \OpenTelemetry\SDK\Trace\SpanDataInterface[]
+     * @return SpanDataInterfacee[]
      */
     private function spans(): array
     {
-        /** @var \OpenTelemetry\SDK\Trace\SpanDataInterface[] $spans */
+        /** @var SpanDataInterfacee[] $spans */
         $spans = $this->spanExporter->getSpans();
 
         return $spans;
     }
 
-    private function span(int $index): \OpenTelemetry\SDK\Trace\SpanDataInterface
+    private function span(int $index): SpanDataInterface
     {
         return $this->spans()[$index];
     }

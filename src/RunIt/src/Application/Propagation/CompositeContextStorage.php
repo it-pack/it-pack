@@ -30,19 +30,6 @@ final readonly class CompositeContextStorage implements ContextStorageInterface
     ) {
     }
 
-    private function active(): ContextStorageInterface
-    {
-        if ($this->detector->inCoroutine()) {
-            return $this->coroutine;
-        }
-
-        if ($this->detector->inFiber()) {
-            return $this->fiber;
-        }
-
-        return $this->synchronous;
-    }
-
     public function current(): ?ExecutionScopeInterface
     {
         return $this->active()->current();
@@ -62,5 +49,18 @@ final readonly class CompositeContextStorage implements ContextStorageInterface
         }
 
         $token->owner->detach($token->inner);
+    }
+
+    private function active(): ContextStorageInterface
+    {
+        if ($this->detector->inCoroutine()) {
+            return $this->coroutine;
+        }
+
+        if ($this->detector->inFiber()) {
+            return $this->fiber;
+        }
+
+        return $this->synchronous;
     }
 }

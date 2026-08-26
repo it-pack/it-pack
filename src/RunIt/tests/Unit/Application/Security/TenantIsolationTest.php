@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Security;
 
 use Codeception\Test\Unit;
+use Fiber;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
 use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
@@ -13,6 +14,11 @@ use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use OpenSwoole\Coroutine as OpenSwooleCoroutine;
+use Swoole\Coroutine;
+
+use function Swoole\Coroutine\run;
+
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
@@ -116,12 +122,12 @@ final class TenantIsolationTest extends Unit
         $b = $this->definition('b');
         $ids = [];
 
-        $first = new \Fiber(static function () use ($kit, $a, &$ids): void {
+        $first = new Fiber(static function () use ($kit, $a, &$ids): void {
             $kit->runner->run($a, static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['first'] = $scope->execution()->id()->toString();
             });
         });
-        $second = new \Fiber(static function () use ($kit, $b, &$ids): void {
+        $second = new Fiber(static function () use ($kit, $b, &$ids): void {
             $kit->runner->run($b, static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['second'] = $scope->execution()->id()->toString();
             });
@@ -138,7 +144,7 @@ final class TenantIsolationTest extends Unit
 
     public function testCoroutineIsolationWhenSwooleAvailable(): void
     {
-        if (!class_exists(\Swoole\Coroutine::class) && !class_exists(\OpenSwoole\Coroutine::class)) {
+        if (!class_exists(Coroutine::class) && !class_exists(OpenSwooleCoroutine::class)) {
             self::markTestSkipped('Swoole/OpenSwoole extension not available.');
         }
 
@@ -147,7 +153,7 @@ final class TenantIsolationTest extends Unit
         $b = $this->definition('b');
         $ids = [];
 
-        \Swoole\Coroutine\run(static function () use ($kit, $a, $b, &$ids): void {
+        run(static function () use ($kit, $a, $b, &$ids): void {
             $kit->runner->run($a, static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['first'] = $scope->execution()->id()->toString();
             });

@@ -13,6 +13,7 @@ use ItPack\RunIt\SDK\Decorator\ExecutedCallable;
 use ItPack\RunIt\SDK\Exception\MissingExecutionDefinitionException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
 #[CoversClass(ExecutedCallable::class)]
@@ -141,6 +142,6 @@ final class Concatenator
     }
 }
 
-final class DecoratorFailure extends \RuntimeException
+final class DecoratorFailure extends RuntimeException
 {
 }

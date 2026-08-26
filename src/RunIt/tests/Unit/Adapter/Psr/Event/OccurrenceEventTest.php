@@ -11,14 +11,20 @@ use ItPack\RunIt\Adapter\Psr\Event\OccurrenceEvent;
 use ItPack\RunIt\Adapter\Psr\Event\OccurrenceEventWrapper;
 use ItPack\RunIt\Adapter\Psr\Event\OccurrencePublisher;
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Observation\Observation;
+use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\Instant;
+use LogicException;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\Psr\RecordingEventDispatcher;
+use Throwable;
 
 final class OccurrenceEventTest extends Unit
 {
@@ -54,8 +60,8 @@ final class OccurrenceEventTest extends Unit
         $publisher = new OccurrencePublisher($dispatcher);
 
         $publisher->publish(
-            \ItPack\RunIt\Domain\Observation\Observation::info(
-                \ItPack\RunIt\Domain\Observation\ObservationId::fromString('o1'),
+            Observation::info(
+                ObservationId::fromString('o1'),
                 ExecutionId::fromString('e1'),
                 'msg',
             ),
@@ -73,7 +79,7 @@ final class OccurrenceEventTest extends Unit
             $event->stopPropagation();
         });
         $dispatcher->addListener(static function (): void {
-            throw new \LogicException('must not run');
+            throw new LogicException('must not run');
         });
 
         $publisher->publish($this->occurrence());
@@ -89,8 +95,8 @@ final class OccurrenceEventTest extends Unit
             private array $errors = [];
 
             public function handle(
-                \Throwable $error,
-                \ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface $artifact
+                Throwable $error,
+                ExecutionArtifactInterface $artifact
             ): void {
                 $this->errors[] = $error;
             }
@@ -163,7 +169,7 @@ final class OccurrenceEventTest extends Unit
             static fn (object $event): array => ['extracted' => true],
         );
 
-        $occurrence = $mapper->map(new \stdClass());
+        $occurrence = $mapper->map(new stdClass());
 
         self::assertSame(['extracted' => true], $occurrence->data());
     }
@@ -182,7 +188,7 @@ final class OccurrenceEventTest extends Unit
 
             public function __construct()
             {
-                $this->entity = new \stdClass();
+                $this->entity = new stdClass();
             }
         };
 
@@ -199,7 +205,7 @@ final class OccurrenceEventTest extends Unit
             new RandomIdentifierGenerator(),
         );
 
-        $occurrence = $mapper->map(new \stdClass(), 'itpack.override.v2');
+        $occurrence = $mapper->map(new stdClass(), 'itpack.override.v2');
 
         self::assertSame('itpack.override.v2', $occurrence->type()->toString());
     }

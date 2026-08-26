@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Activity\ActivityStatus;
@@ -34,9 +36,9 @@ final class DefaultActivityRunnerTest extends Unit
         return ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task'));
     }
 
-    private function activityDefinition(): \ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface
+    private function activityDefinition(): ActivityDefinitionInterface
     {
-        return \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+        return ActivityDefinition::create(
             ActivityName::fromString('load'),
             ActivityKind::fromString('io')
         );

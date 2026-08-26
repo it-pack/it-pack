@@ -8,6 +8,8 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Contract\Exception\SerializationException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use JsonSerializable;
+use stdClass;
 
 /**
  * @group adapter
@@ -85,7 +87,7 @@ final class JsonSnapshotSerializerTest extends Unit
     {
         $serializer = new JsonSnapshotSerializer();
 
-        $value = new class () implements \JsonSerializable {
+        $value = new class () implements JsonSerializable {
             /** @return array<string, bool> */
             public function jsonSerialize(): array
             {
@@ -100,7 +102,7 @@ final class JsonSnapshotSerializerTest extends Unit
     {
         $serializer = new JsonSnapshotSerializer();
 
-        $value = new class () implements \JsonSerializable {
+        $value = new class () implements JsonSerializable {
             /** @return array<string, object> */
             public function jsonSerialize(): array
             {
@@ -118,7 +120,7 @@ final class JsonSnapshotSerializerTest extends Unit
     {
         $serializer = new JsonSnapshotSerializer(new SecurityLimits(maxSerializationDepth: 2));
 
-        $value = new class () implements \JsonSerializable {
+        $value = new class () implements JsonSerializable {
             /** @return array<string, mixed> */
             public function jsonSerialize(): array
             {
@@ -136,7 +138,7 @@ final class JsonSnapshotSerializerTest extends Unit
     {
         $serializer = new JsonSnapshotSerializer();
 
-        $shared = new class () implements \JsonSerializable {
+        $shared = new class () implements JsonSerializable {
             /** @return array<string, int> */
             public function jsonSerialize(): array
             {
@@ -155,7 +157,7 @@ final class JsonSnapshotSerializerTest extends Unit
         $serializer = new JsonSnapshotSerializer();
 
         try {
-            $serializer->normalize(['entity' => new \stdClass()]);
+            $serializer->normalize(['entity' => new stdClass()]);
             self::fail('arbitrary objects must be rejected, never serialized');
         } catch (SerializationException $exception) {
             self::assertStringContainsString('unsupported object of type stdClass', $exception->getMessage());
@@ -166,7 +168,7 @@ final class JsonSnapshotSerializerTest extends Unit
     {
         $serializer = new JsonSnapshotSerializer(new SecurityLimits(maxSerializationDepth: 3));
 
-        $leaf = new class () implements \JsonSerializable {
+        $leaf = new class () implements JsonSerializable {
             /**
              * @return array<string, mixed>
              */

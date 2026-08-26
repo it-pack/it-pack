@@ -27,6 +27,8 @@ final readonly class ExecutionKindFilter implements ArtifactFilterInterface
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param list<string>                                           $allowedKinds
      */
+    private ArtifactPredicateInterface $predicate;
+
     public function __construct(Closure $resolver, array $allowedKinds)
     {
         $this->predicate = new ExecutionKindPredicate(
@@ -34,8 +36,6 @@ final readonly class ExecutionKindFilter implements ArtifactFilterInterface
             static fn (ExecutionKindInterface $kind): bool => in_array($kind->toString(), $allowedKinds, true),
         );
     }
-
-    private ArtifactPredicateInterface $predicate;
 
     public function accepts(ExecutionArtifactInterface $artifact): bool
     {

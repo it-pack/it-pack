@@ -22,25 +22,41 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
     /**
      * PSR-3/monolog-compatible numeric levels; `trace` extends below `debug`.
      */
-    private const int LEVEL_TRACE = 50;
-    private const int LEVEL_DEBUG = 100;
-    private const int LEVEL_INFO = 200;
-    private const int LEVEL_NOTICE = 250;
-    private const int LEVEL_WARNING = 300;
-    private const int LEVEL_ERROR = 400;
-    private const int LEVEL_CRITICAL = 500;
-    private const int LEVEL_ALERT = 550;
-    private const int LEVEL_EMERGENCY = 600;
-
     case Trace = 'trace';
+
     case Debug = 'debug';
+
     case Info = 'info';
+
     case Notice = 'notice';
+
     case Warning = 'warning';
+
     case Error = 'error';
+
     case Critical = 'critical';
+
     case Alert = 'alert';
+
     case Emergency = 'emergency';
+
+    private const int LEVEL_TRACE = 50;
+
+    private const int LEVEL_DEBUG = 100;
+
+    private const int LEVEL_INFO = 200;
+
+    private const int LEVEL_NOTICE = 250;
+
+    private const int LEVEL_WARNING = 300;
+
+    private const int LEVEL_ERROR = 400;
+
+    private const int LEVEL_CRITICAL = 500;
+
+    private const int LEVEL_ALERT = 550;
+
+    private const int LEVEL_EMERGENCY = 600;
 
     public function label(): string
     {

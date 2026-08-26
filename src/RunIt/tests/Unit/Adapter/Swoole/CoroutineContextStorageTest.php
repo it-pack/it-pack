@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\Swoole;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
 use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
+use ItPack\RunIt\Adapter\Swoole\CoroutineContextToken;
 use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
@@ -14,6 +15,9 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+
+use function Swoole\Coroutine\run;
+
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
@@ -69,7 +73,7 @@ final class CoroutineContextStorageTest extends Unit
 
         $foreign = $storage->attach($this->captureScope());
         // simulate a token issued for a different coroutine id
-        $rogue = new \ItPack\RunIt\Adapter\Swoole\CoroutineContextToken(99, $this->captureScope());
+        $rogue = new CoroutineContextToken(99, $this->captureScope());
 
         $this->expectException(InvalidContextTokenException::class);
         $storage->detach($rogue);
@@ -81,7 +85,7 @@ final class CoroutineContextStorageTest extends Unit
         $kit = new RunItTestKit(storage: new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
         $ids = [];
 
-        \Swoole\Coroutine\run(static function () use ($kit, &$ids): void {
+        run(static function () use ($kit, &$ids): void {
             $kit->runner->run(ExecutionDefinition::create(
                 ExecutionName::fromString('request-a'),
                 ExecutionKind::fromString('coroutine')
@@ -89,7 +93,7 @@ final class CoroutineContextStorageTest extends Unit
                 $ids['a'] = $scope->execution()->id()->toString();
             });
         });
-        \Swoole\Coroutine\run(static function () use ($kit, &$ids): void {
+        run(static function () use ($kit, &$ids): void {
             $kit->runner->run(ExecutionDefinition::create(
                 ExecutionName::fromString('request-b'),
                 ExecutionKind::fromString('coroutine')

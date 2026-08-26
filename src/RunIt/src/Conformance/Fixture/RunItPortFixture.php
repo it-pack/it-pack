@@ -41,11 +41,13 @@ final readonly class RunItPortFixture implements PortFixtureInterface
 {
     private const int FIXED_INSTANT_NANOS = 1_700_000_000;
 
+    private const string FIXED_EXECUTION_ID = 'exec-0001';
+
     public function safeObservation(): ObservationInterface
     {
         return Observation::info(
             ObservationId::fromString('obs-0001'),
-            ExecutionId::fromString('exec-0001'),
+            ExecutionId::fromString(self::FIXED_EXECUTION_ID),
             'Service started',
             attributes: AttributeCollection::fromArray(['component' => 'bootstrap']),
             instant: Instant::of(self::FIXED_INSTANT_NANOS),
@@ -56,7 +58,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
     {
         return Observation::info(
             ObservationId::fromString('obs-secret'),
-            ExecutionId::fromString('exec-0001'),
+            ExecutionId::fromString(self::FIXED_EXECUTION_ID),
             'Connected to upstream',
             attributes: AttributeCollection::fromArray(['password' => $this->sensitiveAttributeValue()]),
             instant: Instant::of(self::FIXED_INSTANT_NANOS),
@@ -72,7 +74,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
     {
         return Measurement::counter(
             MeasurementName::fromString('items.processed'),
-            ExecutionId::fromString('exec-0001'),
+            ExecutionId::fromString(self::FIXED_EXECUTION_ID),
             3,
             instant: Instant::of(self::FIXED_INSTANT_NANOS),
         );
@@ -82,7 +84,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
     {
         return Occurrence::create(
             OccurrenceId::fromString('occ-0001'),
-            ExecutionId::fromString('exec-0001'),
+            ExecutionId::fromString(self::FIXED_EXECUTION_ID),
             OccurrenceType::fromString('system.boot.v1'),
             'runit.runtime',
             Instant::of(self::FIXED_INSTANT_NANOS),
@@ -94,7 +96,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
     {
         return Snapshot::create(
             SnapshotId::fromString('snap-0001'),
-            ExecutionId::fromString('exec-0001'),
+            ExecutionId::fromString(self::FIXED_EXECUTION_ID),
             SnapshotType::fromString('configuration.snapshot'),
             1,
             ['feature_flags' => ['beta' => true]],

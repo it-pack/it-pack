@@ -25,13 +25,10 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
  */
 final class ErrorLogHealthReporter implements InternalHealthReporterInterface
 {
-    private readonly Closure $logTo;
-
     private const string LOG_PREFIX = '[runit] publication health: ';
 
-    /**
-     * @param Closure(string): void|null $logTo injectable destination for the formatted line; defaults to the PHP error log
-     */
+    private readonly Closure $logTo;
+
     public function __construct(
         private readonly ThrowableMapperInterface $throwableMapper = new DefaultThrowableMapper(),
         ?Closure $logTo = null,

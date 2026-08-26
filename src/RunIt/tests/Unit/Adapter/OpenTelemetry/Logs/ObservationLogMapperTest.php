@@ -106,7 +106,7 @@ final class ObservationLogMapperTest extends Unit
         }
 
         $spans = $spanExporter->getSpans();
-        /** @var \OpenTelemetry\SDK\Trace\SpanDataInterface $spanData */
+        /** @var SpanDataInterfacee $spanData */
         $spanData = $spans[0];
         $events = $spanData->getEvents();
         self::assertCount(1, $events);

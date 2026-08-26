@@ -40,29 +40,6 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
         $this->keyGuard()->assertValidKey($key);
     }
 
-    /**
-     * The attribute key rule set shares the bounded key guard with the context
-     * rules; only the exception family differs.
-     */
-    private function keyGuard(): BoundedKeyGuard
-    {
-        return new BoundedKeyGuard(
-            $this->limits,
-            static fn (): InvalidAttributeException => InvalidAttributeException::emptyKey(),
-            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::keyTooLong(
-                $length,
-                $maximum
-            ),
-            static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedKeyCharacters(),
-        );
-    }
-
-    /**
-     * Asserts that a collection of attributes is within the bounds and that
-     * every value is a supported recursively-primitive type.
-     *
-     * @param array<string, mixed> $attributes
-     */
     public function assertValidAttributes(array $attributes): void
     {
         $maxCount = $this->limits->maxAttributeCount;
@@ -78,11 +55,19 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
         }
     }
 
-    /**
-     * The attribute rule set shares the bounded primitive walk with the context
-     * rules; per-array entry counts are not checked here because the
-     * collection-wide count bound is asserted above with its own violation.
-     */
+    private function keyGuard(): BoundedKeyGuard
+    {
+        return new BoundedKeyGuard(
+            $this->limits,
+            static fn (): InvalidAttributeException => InvalidAttributeException::emptyKey(),
+            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::keyTooLong(
+                $length,
+                $maximum
+            ),
+            static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedKeyCharacters(),
+        );
+    }
+
     private function walker(): BoundedPrimitiveValueWalker
     {
         return new BoundedPrimitiveValueWalker(

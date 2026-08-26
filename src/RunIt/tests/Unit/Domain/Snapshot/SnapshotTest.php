@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use stdClass;
 
 final class SnapshotTest extends Unit
 {
@@ -142,7 +143,7 @@ final class SnapshotTest extends Unit
             ExecutionId::fromString('exec-1'),
             SnapshotType::fromString('execution.snapshot'),
             1,
-            ['obj' => new \stdClass()],
+            ['obj' => new stdClass()],
             $this->calculator(),
             ActivityId::fromString('act-1'),
         );

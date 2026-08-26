@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Psr\Clock;
 
 use Codeception\Test\Unit;
+use DateTimeImmutable;
 use ItPack\RunIt\Adapter\Psr\Clock\Psr20Clock;
 use Psr\Clock\ClockInterface;
 
@@ -17,9 +18,9 @@ final class Psr20ClockTest extends Unit
             {
             }
 
-            public function now(): \DateTimeImmutable
+            public function now(): DateTimeImmutable
             {
-                return new \DateTimeImmutable('@' . $this->epoch);
+                return new DateTimeImmutable('@' . $this->epoch);
             }
         };
     }

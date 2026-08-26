@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\StringValueValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
 use Throwable;
 
 final class StringValueValidatorTest extends Unit
@@ -66,7 +67,7 @@ final class StringValueValidatorTest extends Unit
             );
         }
 
-        self::assertSame($value, \ItPack\RunIt\Domain\Execution\ExecutionName::fromString($value)->toString());
+        self::assertSame($value, ExecutionName::fromString($value)->toString());
     }
 
     /**

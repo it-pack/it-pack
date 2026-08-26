@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Fiber;
 
 use Codeception\Test\Unit;
+use Fiber;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Fiber\FiberContextToken;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -13,7 +14,9 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use stdClass;
 use Tests\Support\Fixture\RunItTestKit;
+use WeakReference;
 
 /**
  * M11.1 — per-Fiber execution context storage.
@@ -60,7 +63,7 @@ final class FiberContextStorageTest extends Unit
 
         $storage->attach($scope);
 
-        $foreign = new FiberContextToken(new \stdClass(), $scope);
+        $foreign = new FiberContextToken(new stdClass(), $scope);
         $this->expectException(InvalidContextTokenException::class);
         $storage->detach($foreign);
     }
@@ -70,12 +73,12 @@ final class FiberContextStorageTest extends Unit
         $kit = $this->kit();
         $ids = [];
 
-        $first = new \Fiber(function () use ($kit, &$ids): void {
+        $first = new Fiber(function () use ($kit, &$ids): void {
             $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['first'] = $scope->execution()->id()->toString();
             });
         });
-        $second = new \Fiber(function () use ($kit, &$ids): void {
+        $second = new Fiber(function () use ($kit, &$ids): void {
             $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['second'] = $scope->execution()->id()->toString();
             });
@@ -97,7 +100,7 @@ final class FiberContextStorageTest extends Unit
         $innerId = null;
         $outerScope = null;
 
-        $outer = new \Fiber(function () use ($kit, &$outerId, &$innerId, &$outerScope): void {
+        $outer = new Fiber(function () use ($kit, &$outerId, &$innerId, &$outerScope): void {
             $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use (
                 $kit,
                 &$outerId,
@@ -107,7 +110,7 @@ final class FiberContextStorageTest extends Unit
                 $outerId = $scope->execution()->id()->toString();
                 $outerScope = $scope;
 
-                $inner = new \Fiber(static function () use ($kit, &$innerId): void {
+                $inner = new Fiber(static function () use ($kit, &$innerId): void {
                     $kit->runner->run(ExecutionDefinition::create(
                         ExecutionName::fromString('inner'),
                         ExecutionKind::fromString('fiber')
@@ -132,11 +135,11 @@ final class FiberContextStorageTest extends Unit
         $storage = new FiberContextStorage();
         $ref = null;
 
-        $fiber = new \Fiber(function () use ($storage): void {
+        $fiber = new Fiber(function () use ($storage): void {
             $kit = new RunItTestKit(storage: $storage);
             $kit->runner->run($this->definition(), static fn (): null => null);
         });
-        $ref = \WeakReference::create($fiber);
+        $ref = WeakReference::create($fiber);
 
         $fiber->start();
         $fiber = null;
@@ -151,7 +154,7 @@ final class FiberContextStorageTest extends Unit
         $mainScope = $this->captureScope();
         $mainToken = $storage->attach($mainScope);
 
-        $fiber = new \Fiber(function () use ($storage): void {
+        $fiber = new Fiber(function () use ($storage): void {
             $kit = new RunItTestKit(storage: $storage);
             $kit->runner->run(ExecutionDefinition::create(
                 ExecutionName::fromString('fiber'),

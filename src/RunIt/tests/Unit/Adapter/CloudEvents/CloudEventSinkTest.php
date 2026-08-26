@@ -12,6 +12,8 @@ use ItPack\RunIt\Adapter\CloudEvents\Sink\Psr18CloudEventSink;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Nyholm\Psr7\Response;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
 use Tests\Support\Fixture\Psr\RecordingHttpClient;
 
@@ -65,8 +67,8 @@ final class CloudEventSinkTest extends Unit
     {
         $failing = new class () implements ClientInterface {
             public function sendRequest(
-                \Psr\Http\Message\RequestInterface $request,
-            ): \Psr\Http\Message\ResponseInterface {
+                RequestInterface $request,
+            ): ResponseInterface {
                 throw new RuntimeException('downstream unavailable');
             }
         };

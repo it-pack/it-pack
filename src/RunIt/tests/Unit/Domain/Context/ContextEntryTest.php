@@ -9,7 +9,10 @@ use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextClassification;
 use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
+use ItPack\RunIt\Domain\Context\ContextSource;
 use ItPack\RunIt\Domain\Shared\Instant;
+use stdClass;
+use TypeError;
 
 final class ContextEntryTest extends Unit
 {
@@ -51,7 +54,7 @@ final class ContextEntryTest extends Unit
             ContextKey::fromString('k'),
             'v',
             $expiry,
-            \ItPack\RunIt\Domain\Context\ContextSource::fromString('header'),
+            ContextSource::fromString('header'),
         );
 
         self::assertSame(2000, $entry->expiresAt()?->epochSeconds());
@@ -86,15 +89,15 @@ final class ContextEntryTest extends Unit
 
     public function testObjectValueIsRejected(): void
     {
-        $this->expectException(\TypeError::class);
+        $this->expectException(TypeError::class);
 
         // @phpstan-ignore argument.type (Deliberate object value to assert rejection.)
-        ContextEntry::public(ContextKey::fromString('k'), new \stdClass());
+        ContextEntry::public(ContextKey::fromString('k'), new stdClass());
     }
 
     public function testResourceValueIsRejected(): void
     {
-        $this->expectException(\TypeError::class);
+        $this->expectException(TypeError::class);
 
         $resource = fopen('php://memory', 'rb');
         // @phpstan-ignore argument.type (Deliberate resource value to assert rejection.)
@@ -106,7 +109,7 @@ final class ContextEntryTest extends Unit
         $this->expectException(InvalidContextValueException::class);
 
         // @phpstan-ignore argument.type (Deliberate nested object value to assert rejection.)
-        ContextEntry::public(ContextKey::fromString('k'), ['nested' => new \stdClass()]);
+        ContextEntry::public(ContextKey::fromString('k'), ['nested' => new stdClass()]);
     }
 
     public function testOversizedStringValueIsRejected(): void

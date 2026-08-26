@@ -20,12 +20,12 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  */
 final readonly class SeveritySamplePolicy implements SamplingPolicyInterface
 {
+    private ArtifactPredicateInterface $predicate;
+
     public function __construct(int $minLevel)
     {
         $this->predicate = new ObservationSeverityPredicate($minLevel);
     }
-
-    private ArtifactPredicateInterface $predicate;
 
     public function sample(ExecutionArtifactInterface $artifact): bool
     {

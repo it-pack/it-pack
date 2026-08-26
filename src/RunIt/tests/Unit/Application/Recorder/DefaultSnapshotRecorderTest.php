@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\Memory\InMemorySnapshotStore;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -13,6 +14,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
+use Throwable;
 
 /**
  * @group application
@@ -66,7 +68,7 @@ final class DefaultSnapshotRecorderTest extends Unit
 
     public function testSnapshotIsPersistedWhenStoreConfigured(): void
     {
-        $store = new \ItPack\RunIt\Adapter\Memory\InMemorySnapshotStore();
+        $store = new InMemorySnapshotStore();
         $kit = new RunItTestKit(publisher: null, snapshotStore: $store);
 
         $kit->runner->run(
@@ -96,7 +98,7 @@ final class DefaultSnapshotRecorderTest extends Unit
         $kit = new RunItTestKit(
             publisher: null,
             snapshotStore: $throwingStore,
-            onSnapshotStoreFailure: static function (\Throwable $error) use (&$captured): void {
+            onSnapshotStoreFailure: static function (Throwable $error) use (&$captured): void {
                 $captured = $error;
             },
         );

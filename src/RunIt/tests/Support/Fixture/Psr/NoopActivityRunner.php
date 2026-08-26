@@ -14,6 +14,10 @@ use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Domain\Activity\Activity;
+use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Shared\Instant;
 
 /**
  * Minimal activity runner that runs the operation inside an {@see ActivityScopeInterface}.
@@ -26,11 +30,11 @@ final class NoopActivityRunner implements ActivityRunnerInterface
 
     public function run(ActivityDefinitionInterface $definition, callable $operation): mixed
     {
-        $activity = \ItPack\RunIt\Domain\Activity\Activity::start(
-            \ItPack\RunIt\Domain\Activity\ActivityId::fromString('activity-' . spl_object_id($this)),
+        $activity = Activity::start(
+            ActivityId::fromString('activity-' . spl_object_id($this)),
             $this->parent->execution()->executionId(),
             $definition,
-            \ItPack\RunIt\Domain\Shared\Instant::now(),
+            Instant::now(),
         );
 
         $scope = new class ($this->parent, $activity) implements ActivityScopeInterface {
@@ -50,7 +54,7 @@ final class NoopActivityRunner implements ActivityRunnerInterface
                 return $this->parent;
             }
 
-            public function execution(): \ItPack\RunIt\Contract\Domain\ExecutionInterface
+            public function execution(): ExecutionInterface
             {
                 return $this->parent->execution();
             }

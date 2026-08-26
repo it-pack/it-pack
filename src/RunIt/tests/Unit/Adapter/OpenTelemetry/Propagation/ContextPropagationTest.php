@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Propagation;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Propagation\DefaultContextToOtelMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Propagation\DefaultOtelToContextExtractor;
+use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use OpenTelemetry\API\Baggage\Propagation\BaggagePropagator;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\Context\Propagation\MultiTextMapPropagator;
@@ -104,6 +105,6 @@ final class ContextPropagationTest extends Unit
         $otelContext = $this->extractor->extractContext($carrier, $this->propagator);
         $recovered = $this->extractor->toRunItContext($otelContext);
 
-        self::assertInstanceOf(\ItPack\RunIt\Contract\Domain\ExecutionContextInterface::class, $recovered);
+        self::assertInstanceOf(ExecutionContextInterface::class, $recovered);
     }
 }

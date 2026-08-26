@@ -8,9 +8,11 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventToOccurrenceMapper;
+use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
 use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 
 /**
  * M10.3 — CloudEvent to occurrence mapping, validation, and round trip.
@@ -125,8 +127,8 @@ final class CloudEventToOccurrenceMapperTest extends Unit
 
     public function testRoundTripPreservesSupportedSemantics(): void
     {
-        $forward = new \ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper();
-        $occurrence = \Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory::occurrence(
+        $forward = new DefaultOccurrenceToCloudEventMapper();
+        $occurrence = RunItArtifactFactory::occurrence(
             'occ-rt',
             'exec-rt',
             'itpack.job.finished.v1',

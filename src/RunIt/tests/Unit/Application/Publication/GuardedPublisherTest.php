@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use Throwable;
 
 /**
  * @group application
@@ -46,7 +47,7 @@ final class GuardedPublisherTest extends Unit
         $realSink = new InMemoryArtifactPublisher();
         $healthReports = [];
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
                 $healthReports[] = $artifact;
             }
         );

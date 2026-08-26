@@ -36,21 +36,6 @@ final class FiberContextStorage implements ContextStorageInterface
         $this->main = new \stdClass();
     }
 
-    private function anchor(): object
-    {
-        $current = Fiber::getCurrent();
-
-        return $current ?? $this->main;
-    }
-
-    /**
-     * @return list<FiberContextToken>
-     */
-    private function stack(): array
-    {
-        return $this->stacks[$this->anchor()] ?? [];
-    }
-
     public function current(): ?ExecutionScopeInterface
     {
         $stack = $this->stack();
@@ -93,5 +78,17 @@ final class FiberContextStorage implements ContextStorageInterface
         }
 
         $this->stacks[$anchor] = $stack;
+    }
+
+    private function anchor(): object
+    {
+        $current = Fiber::getCurrent();
+
+        return $current ?? $this->main;
+    }
+
+    private function stack(): array
+    {
+        return $this->stacks[$this->anchor()] ?? [];
     }
 }

@@ -8,12 +8,15 @@ use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
+use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use Throwable;
 
 /**
@@ -65,7 +68,7 @@ final class RecordingObservationRecorder implements ObservationRecorderInterface
         ?Throwable $throwable,
         ?string $diagnosticCode,
     ): ObservationInterface {
-        $id = \ItPack\RunIt\Domain\Observation\ObservationId::fromString('obs-' . $this->count());
+        $id = ObservationId::fromString('obs-' . $this->count());
         $executionId = ExecutionId::fromString('recorder-execution');
         $description = $throwable instanceof Throwable ? $this->describe($throwable) : null;
         $arguments = [
@@ -93,9 +96,9 @@ final class RecordingObservationRecorder implements ObservationRecorderInterface
         };
     }
 
-    private function describe(Throwable $throwable): \ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface
+    private function describe(Throwable $throwable): ThrowableDescriptionInterface
     {
-        return \ItPack\RunIt\Domain\Shared\ThrowableDescription::create(
+        return ThrowableDescription::create(
             $throwable::class,
             $throwable->getMessage(),
             (int) $throwable->getCode(),

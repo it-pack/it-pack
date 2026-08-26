@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use Throwable;
 
 /**
  * The fail-safe publisher carries the default stack's recursion guard (Phase 0,
@@ -38,7 +39,7 @@ final class FailSafeRecursionTest extends Unit
             {
             }
 
-            public function report(\Throwable $error, ExecutionArtifactInterface $artifact): void
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $sink = &$this->sink;
                 $sink[] = [$error, $artifact];

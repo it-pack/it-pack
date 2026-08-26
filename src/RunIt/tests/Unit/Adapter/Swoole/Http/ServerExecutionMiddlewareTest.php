@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
@@ -41,7 +42,7 @@ final class ServerExecutionMiddlewareTest extends Unit
             }
         };
 
-        $result = $middleware->handle(new \stdClass(), static fn (mixed $request, $scope) => $response);
+        $result = $middleware->handle(new stdClass(), static fn (mixed $request, $scope) => $response);
 
         self::assertSame($response, $result);
 
@@ -78,7 +79,7 @@ final class ServerExecutionMiddlewareTest extends Unit
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('request failed');
 
-        $middleware->handle(new \stdClass(), static function (): void {
+        $middleware->handle(new stdClass(), static function (): void {
             throw new RuntimeException('request failed');
         });
     }

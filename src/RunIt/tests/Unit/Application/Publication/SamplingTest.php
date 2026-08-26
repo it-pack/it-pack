@@ -35,7 +35,7 @@ final class SamplingTest extends Unit
         $inner = new NeverSamplePolicy();
         $policy = new HeadBasedSamplingPolicy($inner);
 
-        $idless = new class () implements \ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface {
+        $idless = new class () implements ExecutionArtifactInterface {
             public function normalize(): array
             {
                 return ['sequence' => 1];

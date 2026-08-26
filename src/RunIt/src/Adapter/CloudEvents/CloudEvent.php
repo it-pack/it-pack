@@ -34,9 +34,6 @@ final readonly class CloudEvent
 
     private const string EXTENSION_KEY_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
-    /**
-     * @param array<string, mixed> $extensions
-     */
     private function __construct(
         public string $specVersion,
         public string $id,
@@ -51,11 +48,6 @@ final readonly class CloudEvent
     ) {
     }
 
-    /**
-     * @param array<string, mixed> $extensions
-     *
-     * @throws InvalidCloudEventException when any field violates the CloudEvents envelope rules
-     */
     public static function create(
         string $id,
         string $source,
@@ -120,23 +112,6 @@ final readonly class CloudEvent
         );
     }
 
-    /**
-     * Returns whether a key is a valid CloudEvents extension attribute name.
-     *
-     * Extension names are lower-case letters, digits, and optional hyphens.
-     */
-    public static function isValidExtensionKey(string $key): bool
-    {
-        return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
-    }
-
-    /**
-     * Returns a copy with the given extension attributes merged in.
-     *
-     * Existing keys are overwritten; the receiver is never mutated.
-     *
-     * @param array<string, mixed> $extensions
-     */
     public function withExtensions(array $extensions): self
     {
         return new self(
@@ -153,12 +128,6 @@ final readonly class CloudEvent
         );
     }
 
-    /**
-     * Returns the structured representation: the standard attributes followed by
-     * any extension attributes as sibling keys.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(): array
     {
         $event = [
@@ -194,5 +163,10 @@ final readonly class CloudEvent
         }
 
         return $event;
+    }
+
+    public static function isValidExtensionKey(string $key): bool
+    {
+        return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
     }
 }

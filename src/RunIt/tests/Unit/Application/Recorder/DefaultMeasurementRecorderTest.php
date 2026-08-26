@@ -6,6 +6,7 @@ namespace Tests\Unit\Application\Recorder;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -65,7 +66,7 @@ final class DefaultMeasurementRecorderTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) {
                 $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                    ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),

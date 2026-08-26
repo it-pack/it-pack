@@ -7,7 +7,10 @@ namespace Tests\Unit\Domain\Shared;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use ReflectionNamedType;
+use ReflectionObject;
 use RuntimeException;
+use Throwable;
 
 final class DefaultThrowableMapperTest extends Unit
 {
@@ -89,12 +92,12 @@ final class DefaultThrowableMapperTest extends Unit
         $mapper = new DefaultThrowableMapper(includeTrace: true);
         $description = $mapper->describe(new RuntimeException('boom', 9));
 
-        $reflection = new \ReflectionObject($description);
+        $reflection = new ReflectionObject($description);
         foreach ($reflection->getProperties() as $property) {
             $type = $property->getType();
-            if ($type instanceof \ReflectionNamedType) {
+            if ($type instanceof ReflectionNamedType) {
                 self::assertFalse(
-                    is_a($type->getName(), \Throwable::class, true),
+                    is_a($type->getName(), Throwable::class, true),
                     'Property ' . $property->getName() . ' must not retain a Throwable.',
                 );
             }

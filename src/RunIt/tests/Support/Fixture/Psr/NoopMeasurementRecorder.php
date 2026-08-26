@@ -8,6 +8,10 @@ use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementNameInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
+use ItPack\RunIt\Domain\Measurement\Measurement;
+use ItPack\RunIt\Domain\Measurement\MeasurementName;
 
 final class NoopMeasurementRecorder implements MeasurementRecorderInterface
 {
@@ -17,53 +21,53 @@ final class NoopMeasurementRecorder implements MeasurementRecorderInterface
 
     private function measurement(): MeasurementInterface
     {
-        return \ItPack\RunIt\Domain\Measurement\Measurement::counter(
-            \ItPack\RunIt\Domain\Measurement\MeasurementName::fromString('noop'),
+        return Measurement::counter(
+            MeasurementName::fromString('noop'),
             $this->executionId,
             0,
         );
     }
 
     public function counter(
-        string|\ItPack\RunIt\Contract\Domain\MeasurementNameInterface $name,
+        string|MeasurementNameInterface $name,
         int $value,
-        ?\ItPack\RunIt\Contract\Domain\MeasurementUnitInterface $unit = null,
+        ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
         return $this->measurement();
     }
 
     public function gauge(
-        string|\ItPack\RunIt\Contract\Domain\MeasurementNameInterface $name,
+        string|MeasurementNameInterface $name,
         float $value,
-        ?\ItPack\RunIt\Contract\Domain\MeasurementUnitInterface $unit = null,
+        ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
         return $this->measurement();
     }
 
     public function duration(
-        string|\ItPack\RunIt\Contract\Domain\MeasurementNameInterface $name,
+        string|MeasurementNameInterface $name,
         float $value,
-        ?\ItPack\RunIt\Contract\Domain\MeasurementUnitInterface $unit = null,
+        ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
         return $this->measurement();
     }
 
     public function size(
-        string|\ItPack\RunIt\Contract\Domain\MeasurementNameInterface $name,
+        string|MeasurementNameInterface $name,
         int $value,
-        ?\ItPack\RunIt\Contract\Domain\MeasurementUnitInterface $unit = null,
+        ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
         return $this->measurement();
     }
 
     public function ratio(
-        string|\ItPack\RunIt\Contract\Domain\MeasurementNameInterface $name,
+        string|MeasurementNameInterface $name,
         float $value,
-        ?\ItPack\RunIt\Contract\Domain\MeasurementUnitInterface $unit = null,
+        ?MeasurementUnitInterface $unit = null,
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface {
         return $this->measurement();

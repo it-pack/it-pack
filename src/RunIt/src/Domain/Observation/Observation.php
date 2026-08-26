@@ -49,36 +49,6 @@ final readonly class Observation implements ObservationInterface
     ) {
     }
 
-    /**
-     * The single severity-parameterized construction path behind every named
-     * constructor: defaults are applied once and the record is assembled once.
-     */
-    private static function atSeverity(
-        ObservationSeverityInterface $severity,
-        ObservationIdInterface $id,
-        ExecutionIdInterface $executionId,
-        string $message,
-        ?ActivityIdInterface $activityId,
-        ?string $diagnosticCode,
-        ?AttributeCollectionInterface $attributes,
-        ?ThrowableDescriptionInterface $throwableDescription,
-        ?InstantInterface $instant,
-        ?ArtifactSequenceInterface $sequence,
-    ): self {
-        return new self(
-            $id,
-            $executionId,
-            $activityId,
-            $severity,
-            $message,
-            $diagnosticCode,
-            $attributes ?? AttributeCollection::empty(),
-            $throwableDescription,
-            $instant ?? Instant::now(),
-            $sequence ?? ArtifactSequence::initial()
-        );
-    }
-
     public static function debug(
         ObservationIdInterface $id,
         ExecutionIdInterface $executionId,
@@ -279,6 +249,32 @@ final readonly class Observation implements ObservationInterface
         );
     }
 
+    private static function atSeverity(
+        ObservationSeverityInterface $severity,
+        ObservationIdInterface $id,
+        ExecutionIdInterface $executionId,
+        string $message,
+        ?ActivityIdInterface $activityId,
+        ?string $diagnosticCode,
+        ?AttributeCollectionInterface $attributes,
+        ?ThrowableDescriptionInterface $throwableDescription,
+        ?InstantInterface $instant,
+        ?ArtifactSequenceInterface $sequence,
+    ): self {
+        return new self(
+            $id,
+            $executionId,
+            $activityId,
+            $severity,
+            $message,
+            $diagnosticCode,
+            $attributes ?? AttributeCollection::empty(),
+            $throwableDescription,
+            $instant ?? Instant::now(),
+            $sequence ?? ArtifactSequence::initial()
+        );
+    }
+
     public function id(): ObservationIdInterface
     {
         return $this->id;
@@ -314,9 +310,6 @@ final readonly class Observation implements ObservationInterface
         return $this->throwableDescription;
     }
 
-    /**
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
-     */
     public function attributes(): array
     {
         return $this->attributes->toArray();
@@ -332,10 +325,6 @@ final readonly class Observation implements ObservationInterface
         return $this->sequence->value();
     }
 
-
-    /**
-     * @return array<string, mixed>
-     */
     public function normalize(): array
     {
         return [

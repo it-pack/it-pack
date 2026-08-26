@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\CloudEvents;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventPublisher;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventsBridgeConfig;
+use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper;
 use ItPack\RunIt\Adapter\CloudEvents\Sink\CallbackCloudEventSink;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -79,7 +81,7 @@ final class CloudEventPublisherTest extends Unit
 
     public function testRequiresSinkInBuilder(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         CloudEventsBridgeConfig::builder()->build();
     }
@@ -91,7 +93,7 @@ final class CloudEventPublisherTest extends Unit
             ->withSink(new CallbackCloudEventSink(static function (CloudEvent $event) use (&$captured): void {
                 $captured = $event;
             }))
-            ->withPolicy(new \ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy(specVersion: '1.0'))
+            ->withPolicy(new CloudEventMappingPolicy(specVersion: '1.0'))
             ->withMapper(new DefaultOccurrenceToCloudEventMapper())
             ->build()
         ;

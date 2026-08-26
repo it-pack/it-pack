@@ -72,19 +72,19 @@ final class RunItTestKit
 
     private ThrowableMapperInterface $throwableMapper;
 
-    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ExecutionIdInterface> */
+    /** @var StringIdentifierFactoryInterface<ExecutionIdInterfacee> */
     private StringIdentifierFactoryInterface $executionIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
+    /** @var StringIdentifierFactoryInterface<ActivityIdInterfacee> */
     private StringIdentifierFactoryInterface $activityIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ObservationIdInterface> */
+    /** @var StringIdentifierFactoryInterface<ObservationIdInterfacee> */
     private StringIdentifierFactoryInterface $observationIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\OccurrenceIdInterface> */
+    /** @var StringIdentifierFactoryInterface<OccurrenceIdInterfacee> */
     private StringIdentifierFactoryInterface $occurrenceIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\SnapshotIdInterface> */
+    /** @var StringIdentifierFactoryInterface<SnapshotIdInterfacee> */
     private StringIdentifierFactoryInterface $snapshotIdFactory;
 
     /** @var array<string, SequenceIdentifierGenerator> */
@@ -192,7 +192,7 @@ final class RunItTestKit
     }
 
     /**
-     * @return list<\ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface>
+     * @return list<ExecutionArtifactInterfacee>
      */
     public function artifacts(): array
     {
@@ -204,7 +204,7 @@ final class RunItTestKit
     }
 
     /**
-     * @return list<\ItPack\RunIt\Contract\Domain\SnapshotInterface>
+     * @return list<SnapshotInterfacee>
      */
     public function storedSnapshots(): array
     {

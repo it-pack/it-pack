@@ -55,15 +55,6 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
     ) {
     }
 
-    /**
-     * Reports which OpenTelemetry signals this publisher can emit for the bound
-     * configuration. A signal is enabled only when its provider is present.
-     */
-    public function capability(): BridgeCapability
-    {
-        return BridgeCapability::detect($this->config);
-    }
-
     public static function fromConfig(BridgeConfig $config, ?ExecutionSpanStoreInterface $store = null): self
     {
         $store ??= new InMemoryExecutionSpanStore();
@@ -90,6 +81,11 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
                 $config->occurrenceLogAttributeAllowList,
             ),
         );
+    }
+
+    public function capability(): BridgeCapability
+    {
+        return BridgeCapability::detect($this->config);
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void

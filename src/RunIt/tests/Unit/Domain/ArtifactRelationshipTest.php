@@ -31,6 +31,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use ReflectionClass;
 
 /**
  * @phpstan-type Artifact ExecutionArtifactInterface&ExecutionOwnedInterface&SequencedInterface&TimestampedInterface
@@ -145,7 +146,7 @@ final class ArtifactRelationshipTest extends Unit
     {
         foreach ($this->artifacts() as $artifact) {
             /** @var Artifact $artifact */
-            self::assertTrue(new \ReflectionClass($artifact)->isReadOnly());
+            self::assertTrue(new ReflectionClass($artifact)->isReadOnly());
         }
     }
 

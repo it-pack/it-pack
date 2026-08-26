@@ -21,6 +21,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use Tests\Support\Fixture\Psr\FakeCurrentExecution;
 use Tests\Support\Fixture\Psr\FakeExecutionScope;
 use Tests\Support\Fixture\Psr\InMemoryLogger;
+use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 
 final class ExecutionAwareLoggerTest extends Unit
 {
@@ -35,7 +36,7 @@ final class ExecutionAwareLoggerTest extends Unit
         return new FakeExecutionScope(
             $execution,
             ExecutionContext::empty(),
-            new \Tests\Support\Fixture\Psr\RecordingObservationRecorder()
+            new RecordingObservationRecorder()
         );
     }
 

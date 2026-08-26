@@ -19,6 +19,8 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use Tests\Support\Fixture\DeterministicMonotonicClock;
+use Throwable;
 
 /**
  * @group application
@@ -262,7 +264,7 @@ final class BufferingTest extends Unit
             {
             }
 
-            public function report(\Throwable $error, ExecutionArtifactInterface $artifact): void
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
             {
                 $sink = &$this->sink;
                 $sink[] = [$error, $artifact];
@@ -321,7 +323,7 @@ final class BufferingTest extends Unit
 
     public function testPublishAutoFlushesWhenTheFlushIntervalHasElapsed(): void
     {
-        $clock = new \Tests\Support\Fixture\DeterministicMonotonicClock(1_000, 0);
+        $clock = new DeterministicMonotonicClock(1_000, 0);
         $sink = new InMemoryArtifactPublisher();
         $buffer = new BufferedArtifactPublisher(
             $this->config(10, OverflowStrategy::DropOldest),
@@ -392,12 +394,12 @@ final class BufferingTest extends Unit
             /** @var list<\Throwable> */
             public array $reported = [];
 
-            public function report(\Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
+            public function report(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
             {
                 $this->reported[] = $failure;
             }
         };
-        $clock = new \Tests\Support\Fixture\DeterministicMonotonicClock(1_000, 0);
+        $clock = new DeterministicMonotonicClock(1_000, 0);
         $sink = new InMemoryArtifactPublisher();
         $config = new BufferConfiguration(
             maxItems: 10,

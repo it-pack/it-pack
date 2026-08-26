@@ -34,21 +34,6 @@ final class CoroutineContextStorage implements ContextStorageInterface
     ) {
     }
 
-    private function key(): string
-    {
-        $cid = $this->coroutines->currentCoroutineId();
-
-        return $cid >= 0 ? 'cid:' . $cid : 'main';
-    }
-
-    /**
-     * @return list<CoroutineContextToken>
-     */
-    private function stack(): array
-    {
-        return $this->stacks[$this->key()] ?? [];
-    }
-
     public function current(): ?ExecutionScopeInterface
     {
         $stack = $this->stack();
@@ -96,5 +81,17 @@ final class CoroutineContextStorage implements ContextStorageInterface
         }
 
         $this->stacks[$key] = $stack;
+    }
+
+    private function key(): string
+    {
+        $cid = $this->coroutines->currentCoroutineId();
+
+        return $cid >= 0 ? 'cid:' . $cid : 'main';
+    }
+
+    private function stack(): array
+    {
+        return $this->stacks[$this->key()] ?? [];
     }
 }

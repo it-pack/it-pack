@@ -40,10 +40,11 @@ final readonly class ContextValueValidator implements ContextValueValidatorInter
         $this->keyGuard()->assertValidKey($key);
     }
 
-    /**
-     * The context key rule set shares the bounded key guard with the attribute
-     * rules; only the exception family differs.
-     */
+    public function assertSupportedValue(mixed $value): void
+    {
+        $this->walker()->assertSupported($value);
+    }
+
     private function keyGuard(): BoundedKeyGuard
     {
         return new BoundedKeyGuard(
@@ -60,25 +61,6 @@ final readonly class ContextValueValidator implements ContextValueValidatorInter
         );
     }
 
-    /**
-     * Asserts that a value is a supported recursively-primitive type and within
-     * the size bounds.
-     *
-     * @param mixed $value
-     *
-     * @throws InvalidContextValueException when the value is not a scalar, null,
-     *                                      or a list/map of scalars, or exceeds a bound
-     */
-    public function assertSupportedValue(mixed $value): void
-    {
-        $this->walker()->assertSupported($value);
-    }
-
-    /**
-     * The context rule set shares the bounded primitive walk with the attribute
-     * rules and additionally rejects arrays that exceed the per-array entry
-     * bound at any nesting level.
-     */
     private function walker(): BoundedPrimitiveValueWalker
     {
         return new BoundedPrimitiveValueWalker(

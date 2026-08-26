@@ -8,12 +8,16 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\RejectNestedPolicy;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Exception\ActivityDepthExceededException;
 use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
@@ -33,15 +37,15 @@ final class NestedBoundariesTest extends Unit
         try {
             $kit->runner->run($definition, static function (ExecutionScopeInterface $scope): void {
                 $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
-                        \ItPack\RunIt\Domain\Activity\ActivityName::fromString('outer'),
-                        \ItPack\RunIt\Domain\Activity\ActivityKind::fromString('task'),
+                    ActivityDefinition::create(
+                        ActivityName::fromString('outer'),
+                        ActivityKind::fromString('task'),
                     ),
                     static function () use ($scope): void {
                         $scope->activities()->run(
-                            \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
-                                \ItPack\RunIt\Domain\Activity\ActivityName::fromString('inner'),
-                                \ItPack\RunIt\Domain\Activity\ActivityKind::fromString('task'),
+                            ActivityDefinition::create(
+                                ActivityName::fromString('inner'),
+                                ActivityKind::fromString('task'),
                             ),
                             static fn (): string => 'never',
                         );
@@ -76,14 +80,14 @@ final class NestedBoundariesTest extends Unit
 
         $result = $kit->runner->run($definition, static function (ExecutionScopeInterface $scope): string {
             return $scope->activities()->run(
-                \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
-                    \ItPack\RunIt\Domain\Activity\ActivityName::fromString('outer'),
-                    \ItPack\RunIt\Domain\Activity\ActivityKind::fromString('task'),
+                ActivityDefinition::create(
+                    ActivityName::fromString('outer'),
+                    ActivityKind::fromString('task'),
                 ),
                 static function (ExecutionScopeInterface $innerScope): string {
                     // Delegates through the activity scope back to the execution scope.
                     $innerScope->snapshots()->record(
-                        \ItPack\RunIt\Domain\Snapshot\SnapshotType::fromString('stage.snapshot'),
+                        SnapshotType::fromString('stage.snapshot'),
                         ['stage' => 'nested'],
                     );
 

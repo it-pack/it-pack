@@ -6,12 +6,14 @@ namespace Tests\Unit\Domain\Occurrence;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
+use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use stdClass;
 
 final class OccurrenceTest extends Unit
 {
@@ -25,7 +27,7 @@ final class OccurrenceTest extends Unit
 
     public function testClassNamesAreRejectedAsTypes(): void
     {
-        $this->expectException(\ItPack\RunIt\Contract\Exception\InvalidStringValueException::class);
+        $this->expectException(InvalidStringValueException::class);
 
         // A PHP class name is not a stable, versioned occurrence type.
         OccurrenceType::fromString('RuntimeException');
@@ -66,7 +68,7 @@ final class OccurrenceTest extends Unit
             OccurrenceType::fromString('itpack.system.event.v2'),
             'svc',
             Instant::of(1),
-            ['nested' => new \stdClass()],
+            ['nested' => new stdClass()],
         );
     }
 

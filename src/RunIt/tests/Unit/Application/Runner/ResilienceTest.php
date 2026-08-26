@@ -8,10 +8,21 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\FailOpenPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
 use Tests\Support\Fixture\EmptyArtifact;
 use Tests\Support\Fixture\RunItTestKit;
@@ -23,6 +34,7 @@ use Tests\Support\Fixture\ThrowingSequenceAllocator;
 use Tests\Support\Fixture\ThrowingSnapshotStore;
 use Tests\Support\Fixture\ThrowingThrowableMapper;
 use Tests\Support\Fixture\TransitionFailingCoordinator;
+use Throwable;
 
 /**
  * M12.7 — resilience under injected port and collaborator failures.
@@ -42,7 +54,7 @@ final class ResilienceTest extends Unit
         $failures = [];
         $kit = new RunItTestKit(
             publisher: new ThrowingArtifactPublisher(),
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
         );
@@ -79,7 +91,7 @@ final class ResilienceTest extends Unit
         $failures = [];
         $kit = new RunItTestKit(
             storage: new ThrowingDetachContextStorage(),
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
         );
@@ -113,14 +125,14 @@ final class ResilienceTest extends Unit
         $storeFailures = [];
         $kit = new RunItTestKit(
             snapshotStore: new ThrowingSnapshotStore(),
-            onSnapshotStoreFailure: static function (\Throwable $failure) use (&$storeFailures): void {
+            onSnapshotStoreFailure: static function (Throwable $failure) use (&$storeFailures): void {
                 $storeFailures[] = $failure;
             },
         );
 
         $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): int {
             $scope->snapshots()->record(
-                \ItPack\RunIt\Domain\Snapshot\SnapshotType::fromString('test.snapshot'),
+                SnapshotType::fromString('test.snapshot'),
                 ['state' => 'captured'],
             );
 
@@ -142,7 +154,7 @@ final class ResilienceTest extends Unit
         $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): int {
             // A non-finite value makes the snapshot serializer reject the payload.
             $scope->snapshots()->record(
-                \ItPack\RunIt\Domain\Snapshot\SnapshotType::fromString('test.snapshot'),
+                SnapshotType::fromString('test.snapshot'),
                 ['value' => INF],
             );
 
@@ -154,7 +166,7 @@ final class ResilienceTest extends Unit
 
     public function testRedactorFailureIsIsolatedByFailSafePublisher(): void
     {
-        $redactor = new class () implements \ItPack\RunIt\Contract\Application\Publication\RedactorInterface {
+        $redactor = new class () implements RedactorInterface {
             public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
             {
                 throw new RuntimeException('redactor is broken');
@@ -162,9 +174,9 @@ final class ResilienceTest extends Unit
         };
 
         $inner = new InMemoryArtifactPublisher();
-        $safe = new \ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher(
-            new \ItPack\RunIt\Application\Publication\RedactingArtifactPublisher($redactor, $inner),
-            new \ItPack\RunIt\Application\Publication\FailOpenPolicy(),
+        $safe = new FailSafeArtifactPublisher(
+            new RedactingArtifactPublisher($redactor, $inner),
+            new FailOpenPolicy(),
         );
 
         $safe->publish(new EmptyArtifact());
@@ -174,7 +186,7 @@ final class ResilienceTest extends Unit
 
     public function testSamplingPolicyFailureIsIsolatedByFailSafePublisher(): void
     {
-        $policy = new class () implements \ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface {
+        $policy = new class () implements SamplingPolicyInterface {
             public function sample(ExecutionArtifactInterface $artifact): bool
             {
                 throw new RuntimeException('sampling policy is broken');
@@ -182,9 +194,9 @@ final class ResilienceTest extends Unit
         };
 
         $inner = new InMemoryArtifactPublisher();
-        $safe = new \ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher(
-            new \ItPack\RunIt\Application\Publication\SamplingArtifactPublisher($policy, $inner),
-            new \ItPack\RunIt\Application\Publication\FailOpenPolicy(),
+        $safe = new FailSafeArtifactPublisher(
+            new SamplingArtifactPublisher($policy, $inner),
+            new FailOpenPolicy(),
         );
 
         $safe->publish(new EmptyArtifact());
@@ -200,7 +212,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             completionPolicy: new ThrowingCompletionPolicy(),
@@ -215,7 +227,7 @@ final class ResilienceTest extends Unit
     public function testThrowingHealthCallbackPreservesResult(): void
     {
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure): void {
+            onPublicationFailure: static function (Throwable $failure): void {
                 throw new RuntimeException('handler is broken');
             },
         );
@@ -231,7 +243,7 @@ final class ResilienceTest extends Unit
         // handler: the operation must still run and return its result.
         $kit = new RunItTestKit(
             publisher: new ThrowingArtifactPublisher(),
-            onPublicationFailure: static function (\Throwable $failure): void {
+            onPublicationFailure: static function (Throwable $failure): void {
                 throw new RuntimeException('handler is broken');
             },
         );
@@ -244,7 +256,7 @@ final class ResilienceTest extends Unit
     public function testThrowingHealthCallbackDuringFailurePathPreservesOriginalThrowable(): void
     {
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure): void {
+            onPublicationFailure: static function (Throwable $failure): void {
                 throw new RuntimeException('handler is broken');
             },
         );
@@ -267,7 +279,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             sequenceAllocator: new ThrowingSequenceAllocator(),
@@ -294,7 +306,7 @@ final class ResilienceTest extends Unit
         $failures = [];
         $kit = new RunItTestKit(
             storage: new ThrowingAttachContextStorage(),
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
         );
@@ -315,7 +327,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             completionPolicy: new ThrowingCompletionPolicy(),
@@ -339,9 +351,9 @@ final class ResilienceTest extends Unit
     public function testTransitionFailureDuringFailurePathPreservesOriginalThrowable(): void
     {
         $failures = [];
-        $coordinator = new \ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator();
+        $coordinator = new ExecutionLifecycleCoordinator();
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             coordinator: new TransitionFailingCoordinator($coordinator),
@@ -366,7 +378,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             throwableMapper: new ThrowingThrowableMapper(),
@@ -398,7 +410,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             limits: new SecurityLimits(maxOccurrencePayloadBytes: 5),
@@ -406,7 +418,7 @@ final class ResilienceTest extends Unit
 
         $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): string {
             $scope->occurrences()->record(
-                \ItPack\RunIt\Domain\Occurrence\OccurrenceType::fromString('test.big.v1'),
+                OccurrenceType::fromString('test.big.v1'),
                 'source',
                 ['big' => str_repeat('x', 1000)],
             );
@@ -416,7 +428,7 @@ final class ResilienceTest extends Unit
 
         self::assertSame('ok', $result);
         self::assertNotEmpty(
-            array_filter($failures, static fn (\Throwable $failure): bool => $failure instanceof BoundDropException),
+            array_filter($failures, static fn (Throwable $failure): bool => $failure instanceof BoundDropException),
             'a bound-exceeded drop must surface as a BoundDropException notice',
         );
     }
@@ -432,7 +444,7 @@ final class ResilienceTest extends Unit
 
         $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): string {
             $scope->occurrences()->record(
-                \ItPack\RunIt\Domain\Occurrence\OccurrenceType::fromString('test.big.v1'),
+                OccurrenceType::fromString('test.big.v1'),
                 'source',
                 ['big' => str_repeat('x', 1000)],
             );
@@ -448,7 +460,7 @@ final class ResilienceTest extends Unit
         $failures = [];
         $coordinator = new TransitionFailingCoordinator(new ExecutionLifecycleCoordinator());
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+            onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
             coordinator: $coordinator,
@@ -458,7 +470,7 @@ final class ResilienceTest extends Unit
 
         self::assertSame('value', $result);
         self::assertNotEmpty(
-            array_filter($failures, static fn (\Throwable $failure): bool => str_contains(
+            array_filter($failures, static fn (Throwable $failure): bool => str_contains(
                 $failure->getMessage(),
                 'transition is broken'
             )),
@@ -466,11 +478,11 @@ final class ResilienceTest extends Unit
         );
     }
 
-    private function definition(): \ItPack\RunIt\Domain\Execution\ExecutionDefinition
+    private function definition(): ExecutionDefinition
     {
-        return \ItPack\RunIt\Domain\Execution\ExecutionDefinition::create(
-            \ItPack\RunIt\Domain\Execution\ExecutionName::fromString('op'),
-            \ItPack\RunIt\Domain\Execution\ExecutionKind::fromString('task'),
+        return ExecutionDefinition::create(
+            ExecutionName::fromString('op'),
+            ExecutionKind::fromString('task'),
         );
     }
 }

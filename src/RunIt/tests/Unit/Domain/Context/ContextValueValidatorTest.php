@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use stdClass;
 
 /**
  * T0.3 (REVIEW S3): context value recursion must be depth-bounded so a deeply
@@ -40,7 +41,7 @@ final class ContextValueValidatorTest extends Unit
     {
         $this->expectException(InvalidContextValueException::class);
 
-        new ContextValueValidator()->assertSupportedValue(new \stdClass());
+        new ContextValueValidator()->assertSupportedValue(new stdClass());
     }
 
     public function testShallowNestingIsAccepted(): void

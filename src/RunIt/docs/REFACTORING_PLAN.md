@@ -42,9 +42,35 @@ phase below starts from the committed baseline.
 
 ## Phase 1 — Mechanical normalization (behavior-free)
 
-> **Status: Pending**
+> **Status: Completed (2026-08-26)**
 > Closes the raw material behind REVIEW R-1 (imports), R-3 (ordering), R-12 (fixture
 > constants). Purely textual; every diff must be reproducible by a scanner.
+>
+> Implementation notes:
+> - **T1.2** (imports): `tests/**` leading-backslash class/function FQCNs normalized to
+>   `use` imports via a php-parser script; docblocks included. Two sanctioned Swoole/
+>   OpenSwoole runtime probes (`src/Adapter/Swoole/*`) and single-segment global built-ins
+>   (`\Throwable`, `\ArrayObject`) are preserved. `use function Swoole\Coroutine\run;` added
+>   where a global function call was shortened. Result: 0 leading-backslash FQCN in
+>   non-generated tests except the sanctioned globals.
+> - **T1.1** (member order): `src/**` class-like members reordered to the canonical order
+>   (trait use → constants → properties → constructor → factory statics → instance methods →
+>   other statics; public-before-private within each method section). Implemented by
+>   verbatim text-block extraction (preserves docblocks and multi-line signatures), so only
+>   member order changes — 17 files touched (matches the 17 order sites in R-3).
+> - **T1.3** (fixture constant): `RunItPortFixture` hoists `'exec-0001'` to
+>   `FIXED_EXECUTION_ID`, referenced via `self::FIXED_EXECUTION_ID`.
+>
+> Verification (after T1.1 + T1.2 + T1.3):
+> - `vendor/bin/codecept run Unit,Conformance,Integration,Concurrency` → **OK (872 tests,
+>   5876 assertions)**.
+> - `vendor/bin/php-cs-fixer fix --dry-run` → **0 files** to fix.
+> - `composer lint:length` → **0 violations**.
+> - `vendor/bin/phpstan analyse` on `src/**` → **0 errors** (the 125 reported errors are all
+>   in `tests/**` and pre-exist this work — docblock typos such as
+>   `ExecutionArtifactInterfacee`; out of scope for Phase 1).
+> - `vendor/bin/deptrac --config-file=deptrac.yaml` → see run output (no new violations
+>   expected; Phase 1 changes no dependencies).
 
 ### T1.1 — Member-declaration-order normalization (R-3)
 - **Goal:** every class/interface/trait declares members in the required order:

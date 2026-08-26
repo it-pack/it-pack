@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\Swoole\Worker;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Swoole\Worker\WorkerLifecycleReporter;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
@@ -69,7 +70,7 @@ final class WorkerLifecycleReporterTest extends Unit
 
         $executionIds = [];
         foreach ($kit->artifacts() as $artifact) {
-            if ($artifact instanceof \ItPack\RunIt\Contract\Domain\ExecutionInterface) {
+            if ($artifact instanceof ExecutionInterface) {
                 $executionIds[$artifact->id()->toString()] = true;
             }
         }

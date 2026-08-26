@@ -6,6 +6,7 @@ namespace Tests\Support\Fixture\Psr;
 
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Domain\Exception\NoActiveExecutionException;
 
 /**
  * Test double for {@see CurrentExecutionInterface} returning a configured scope.
@@ -24,7 +25,7 @@ final class FakeCurrentExecution implements CurrentExecutionInterface
     public function require(): ExecutionScopeInterface
     {
         if ($this->scope === null) {
-            throw \ItPack\RunIt\Domain\Exception\NoActiveExecutionException::instance();
+            throw NoActiveExecutionException::instance();
         }
 
         return $this->scope;

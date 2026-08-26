@@ -18,6 +18,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use RuntimeException;
+use Throwable;
 
 /**
  * @group application
@@ -70,7 +71,7 @@ final class FailureHandlingTest extends Unit
     {
         $collected = [];
         $policy = new CollectAndContinuePolicy(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$collected): void {
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$collected): void {
                 $collected[] = [$error, $artifact];
             }
         );
@@ -108,7 +109,7 @@ final class FailureHandlingTest extends Unit
         });
 
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
                 $healthReports[] = $error;
             }
         );
