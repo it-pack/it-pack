@@ -2550,7 +2550,7 @@ above.
 - [ ] Review escaped mutants.
 - [ ] Add tests for meaningful escaped mutants.
 - [ ] Document justified ignored mutations (blocker + timeout tuning documented; per-mutant justification pending a completed pass).
-- [x] Add a full nightly mutation job (`.github/workflows/quality.yml` `mutation` job, `schedule` + `workflow_dispatch`).
+- [x] Add mutation CI jobs (`.github/workflows/mutation.yml`: PR critical-branching gate + nightly full profile, both publishing the MSI summary artifact). Replaces the inline `mutation` job previously in `quality.yml`.
 
 ### Status audit (M13.5)
 
@@ -2571,6 +2571,21 @@ above.
 - PSR-4 blocker fixed: `FakeExecutionRunner` and four `Noop*` recorder doubles
   were moved into their own files so Infection's strict initial-test run passes.
   Unit suite remains green (661 tests).
+- **Phase 4 (REVIEW R-4) — mutation CI + ratchet.** A dedicated
+  `.github/workflows/mutation.yml` runs the critical-branching profile
+  (`composer mutation:p0`) as a PR gate on `src/**` changes and the full profile
+  (`composer mutation`) nightly; both upload `var/infection*.summary.json` as an
+  artifact and print the MSI to the job log. The inline `mutation` job was removed
+  from `quality.yml` to avoid a duplicate nightly run. `minMsi` / `minCoveredMsi`
+  are the ratchet gate: they start at `0` so the first run captures the baseline
+  without failing, then are set to `(baseline - ~5)` once recorded here. Infection
+  fails only on floor breach; timed-out mutants are excluded from MSI by default.
+- Local evidence (Phase 4 spike): with `--only-covering-test-cases`, a single-file
+  run of the critical profile (`src/Domain/Context/ContextEntry.php`, 20 mutants)
+  completed in ~64s and reported 95% covered-code MSI — confirming covering-test
+  selection works in this environment, so the T4.3 PHPUnit-driven mutant-runner
+  spike is **not triggered** (the local "full Unit suite per mutant" symptom does
+  not reproduce).
 
 **Measured baseline (interactive, lifecycle coordinator only)**
 
@@ -2603,8 +2618,13 @@ and are the hardening targets below.
     `infection.json5` (it remains omitted pending the remaining follow-ups).
 3. **Adapter-mapping mutation** requires a separate Infection run scoped to the
     `Integration`/`Functional` suites (current config is Unit-only).
-4. After 1–3, run a full `src` pass, review escaped mutants, add tests for
-   genuine gaps, and ratchet `minMsi`/`minCoveredMsi` upward from 0.
+ 4. After 1–3, run a full `src` pass, review escaped mutants, add tests for
+    genuine gaps, and ratchet `minMsi`/`minCoveredMsi` upward from 0.
+ 5. **Phase 4 CI capture.** `.github/workflows/mutation.yml` records the full-profile
+    MSI nightly (artifact `infection-full-summary`). Use that run's
+    `var/infection.summary.json` to set the floors to `(baseline - ~5)` in
+    `infection.json5` / `infection.s1s6.json5`; the PR `mutation:p0` gate enforces the
+    critical profile against the same ratchet.
 
 ## M13.6 Backward compatibility
 

@@ -44,19 +44,9 @@ jobs:
       - uses: ramsey/composer-install@v3
       - run: composer cs:check
 
-  mutation:
-    name: Mutation testing (nightly)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: pcov
-          extensions: pcov
-      - uses: ramsey/composer-install@v3
-      - run: composer mutation
+  # Mutation testing moved to its own workflow (`.github/workflows/mutation.yml`):
+  # a PR gate on the critical-branching profile plus a nightly full-profile run,
+  # both publishing the MSI summary as an artifact. See REVIEW R-4 / plan Phase 4.
 
   api-compat:
     name: API compatibility

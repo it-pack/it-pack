@@ -22,10 +22,11 @@
     },
     // Critical-branching profile (state transitions, failure policies, context
     // restoration, redaction, sampling, validators, adapter mappings per AGENTS.md).
-    // MSI floors are intentionally provisional (0) until CI captures the baseline; in
-    // this environment Infection times out per mutant (full Unit suite per mutant under
-    // the Codeception adapter), so a clean MSI cannot be measured locally. Set these to
-    // (baseline - small epsilon) once CI reports it. See REVIEW §3 P1-2 / plan T1.2.
+    // MSI floors are the ratchet gate (REVIEW R-4 / plan Phase 4 T4.2). They start at 0
+    // so the first CI run of `.github/workflows/mutation.yml` can capture the baseline
+    // without failing. Once this profile's MSI is recorded in docs/ROADMAP.md M13.5,
+    // replace these with (baseline - ~5 points). Infection fails the job only when a
+    // floor is breached; timed-out mutants are excluded from MSI by default.
     "minMsi": 0,
     "minCoveredMsi": 0,
     "logs": {

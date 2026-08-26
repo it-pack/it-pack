@@ -13,12 +13,12 @@
     "mutators": {
         "@default": true
     },
-    // MSI floors are intentionally provisional (0) until CI captures the full-profile
-    // baseline. In this environment Infection runs the full Unit suite per mutant
-    // (the Codeception adapter's covering-test selection does not narrow under the
-    // local pcov setup), so every mutant times out and a clean MSI cannot be measured
-    // locally. Once CI reports the `infection.json5` baseline, set these to
-    // (baseline - small epsilon). See REVIEW §3 P1-2 / plan T1.2.
+    // MSI floors are the ratchet gate (REVIEW R-4 / plan Phase 4 T4.2). They start at 0
+    // so the first CI run of `.github/workflows/mutation.yml` can capture the baseline
+    // without failing. Once the full-profile MSI is recorded in docs/ROADMAP.md M13.5,
+    // replace these with (baseline - ~5 points). Infection fails the job only when a
+    // floor is breached; timed-out mutants are excluded from MSI by default, so timeout
+    // noise never fails the job. (Local runs confirm covering-test selection works.)
     "minMsi": 0,
     "minCoveredMsi": 0,
     "logs": {
