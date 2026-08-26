@@ -6,6 +6,26 @@ Milestone M13 ("Conformance Tooling and QA Completion") static-analysis work.
 
 ## Gate overview
 
+### Statement coverage (Phase 0, T0.4 of the 2026-08-25 plan)
+
+Statement coverage over `src`, measured by the shipped pipeline
+(`Unit,Conformance,Integration,Concurrency` with pcov via
+`codeception.yml`), is **95.24% (3278/3442 statements)** as of 2026-08-25 —
+the review bar of ≥95% is met and becomes the new floor for future changes.
+The residual uncovered statements are concentrated in Conformance verifiers
+(self-exercise is Phase 2 of the plan), Swoole adapter branches that require
+ext-swoole, and documented defensive-only paths (e.g. the serializer's decode
+failure catch, whose encode side is guarded by prior validation).
+
+### Suite-leakage rule (Phase 0, T0.5)
+
+Suites mirror namespaces: Unit tests target Domain/Application/SDK/Behavior/
+Adapter units in isolation; Integration exercises cross-layer wiring;
+Conformance owns the verifier fixtures; Concurrency owns Fiber/coroutine
+isolation. Shared fakes live in `tests/Support/Fixture`. A Unit test that
+needs an Integration-only bootstrap or performs network/filesystem I/O is
+misplaced — move it in the same PR that adds it.
+
 `composer analyse` runs PHPStan at the highest configured level (`max`) with:
 
 1. **PHPStan core, level `max`** — the project's baseline.

@@ -72,6 +72,44 @@ final class ObservationRecordingLoggerTest extends Unit
         self::assertFalse($attributes->has('exception'));
     }
 
+    public function testConfiguredGuardIsEnteredAndLeftAroundNormalRecording(): void
+    {
+        $recorder = new RecordingObservationRecorder();
+        $logger = new ObservationRecordingLogger($recorder, new PublicationGuard());
+
+        $logger->log('info', 'guarded message', []);
+
+        self::assertSame(1, $recorder->count());
+    }
+
+    public function testStringableObjectLevelIsUsedVerbatimAndUnknownLevelsFallBackToDebug(): void
+    {
+        $recorder = new RecordingObservationRecorder();
+        $logger = new ObservationRecordingLogger($recorder);
+
+        $logger->log(new class () implements \Stringable {
+            public function __toString(): string
+            {
+                return 'error';
+            }
+        }, 'stringable level');
+
+        $logger->log([], 'unusable level falls back to debug');
+
+        self::assertSame('error', $recorder->recorded()[0]['severity']?->label());
+        self::assertSame('debug', $recorder->recorded()[1]['severity']?->label());
+    }
+
+    public function testScalarMapContainingAnObjectIsDroppedEntirely(): void
+    {
+        $recorder = new RecordingObservationRecorder();
+        $logger = new ObservationRecordingLogger($recorder);
+
+        $logger->log('info', 'with nested object', ['nested' => ['entity' => new stdClass()]]);
+
+        self::assertNull($recorder->recorded()[0]['attributes']?->get('nested'));
+    }
+
     public function testRecursionGuardPreventsNestedRecording(): void
     {
         $recorder = new RecordingObservationRecorder();

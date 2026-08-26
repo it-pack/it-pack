@@ -6,6 +6,8 @@ namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
+use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -22,6 +24,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
@@ -385,6 +388,75 @@ final class ResilienceTest extends Unit
             'execution must still reach its terminal snapshot when the mapper fails',
         );
         self::assertNotEmpty($failures, 'the mapper fault must be reported to the health path');
+    }
+
+    public function testBoundDropIsReportedThroughTheHealthPathDuringExecution(): void
+    {
+        $failures = [];
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            limits: new SecurityLimits(maxOccurrencePayloadBytes: 5),
+        );
+
+        $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): string {
+            $scope->occurrences()->record(
+                \ItPack\RunIt\Domain\Occurrence\OccurrenceType::fromString('test.big.v1'),
+                'source',
+                ['big' => str_repeat('x', 1000)],
+            );
+
+            return 'ok';
+        });
+
+        self::assertSame('ok', $result);
+        self::assertNotEmpty(
+            array_filter($failures, static fn (\Throwable $failure): bool => $failure instanceof BoundDropException),
+            'a bound-exceeded drop must surface as a BoundDropException notice',
+        );
+    }
+
+    public function testThrowingHealthCallbackOnABoundDropPreservesTheResult(): void
+    {
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (): never {
+                throw new RuntimeException('handler boom');
+            },
+            limits: new SecurityLimits(maxOccurrencePayloadBytes: 5),
+        );
+
+        $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): string {
+            $scope->occurrences()->record(
+                \ItPack\RunIt\Domain\Occurrence\OccurrenceType::fromString('test.big.v1'),
+                'source',
+                ['big' => str_repeat('x', 1000)],
+            );
+
+            return 'ok';
+        });
+
+        self::assertSame('ok', $result, 'a throwing health callback must never replace the business result');
+    }
+
+    public function testTransitionFailureOnTheSuccessPathIsReportedAndResultPreserved(): void
+    {
+        $failures = [];
+        $coordinator = new TransitionFailingCoordinator(new ExecutionLifecycleCoordinator());
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+            coordinator: $coordinator,
+        );
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
+        self::assertNotEmpty(
+            array_filter($failures, static fn (\Throwable $failure): bool => str_contains($failure->getMessage(), 'transition is broken')),
+            'the transition fault on the success path must be reported',
+        );
     }
 
     private function definition(): \ItPack\RunIt\Domain\Execution\ExecutionDefinition

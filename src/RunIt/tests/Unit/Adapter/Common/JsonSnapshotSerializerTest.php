@@ -149,4 +149,38 @@ final class JsonSnapshotSerializerTest extends Unit
             $serializer->normalize(['first' => $shared, 'second' => $shared]),
         );
     }
+
+    public function testPlainObjectPayloadIsRejected(): void
+    {
+        $serializer = new JsonSnapshotSerializer();
+
+        try {
+            $serializer->normalize(['entity' => new \stdClass()]);
+            self::fail('arbitrary objects must be rejected, never serialized');
+        } catch (SerializationException $exception) {
+            self::assertStringContainsString('unsupported object of type stdClass', $exception->getMessage());
+        }
+    }
+
+    public function testJsonSerializableBeyondTheDepthLimitIsRejected(): void
+    {
+        $serializer = new JsonSnapshotSerializer(new SecurityLimits(maxSerializationDepth: 3));
+
+        $leaf = new class () implements \JsonSerializable {
+            /**
+             * @return array<string, mixed>
+             */
+            public function jsonSerialize(): array
+            {
+                return ['leaf' => true];
+            }
+        };
+
+        try {
+            $serializer->normalize([[[$leaf]]]);
+            self::fail('a JsonSerializable below the depth floor must be rejected');
+        } catch (SerializationException $exception) {
+            self::assertStringContainsString('maximum depth 3 exceeded', $exception->getMessage());
+        }
+    }
 }

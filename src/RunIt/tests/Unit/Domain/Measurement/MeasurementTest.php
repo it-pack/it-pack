@@ -71,6 +71,41 @@ final class MeasurementTest extends Unit
         }
     }
 
+    public function testSizeAndRatioRecordersProduceMeasurementsWithTheirUnits(): void
+    {
+        $kit = new \Tests\Support\Fixture\RunItTestKit();
+        $sizes = [];
+        $ratios = [];
+
+        $kit->runner->run(
+            \ItPack\RunIt\Domain\Execution\ExecutionDefinition::create(
+                \ItPack\RunIt\Domain\Execution\ExecutionName::fromString('units'),
+                \ItPack\RunIt\Domain\Execution\ExecutionKind::fromString('task'),
+            ),
+            static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope) use ($kit, &$sizes, &$ratios): void {
+                $scope->measurements()->size('payload', 2048);
+                $scope->measurements()->ratio('hit_rate', 0.75);
+
+                foreach ($kit->artifacts() as $artifact) {
+                    if ($artifact instanceof \ItPack\RunIt\Contract\Domain\MeasurementInterface) {
+                        $unit = $artifact->unit()->label();
+
+                        if ($unit === 'bytes') {
+                            $sizes[] = $artifact;
+                        }
+
+                        if ($unit === 'ratio') {
+                            $ratios[] = $artifact;
+                        }
+                    }
+                }
+            },
+        );
+
+        self::assertCount(1, $sizes);
+        self::assertCount(1, $ratios);
+    }
+
     public function testActivityBoundMeasurementReportsActivityId(): void
     {
         $measurement = Measurement::duration(

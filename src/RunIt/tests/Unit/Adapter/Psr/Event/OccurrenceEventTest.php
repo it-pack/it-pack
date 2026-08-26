@@ -150,6 +150,45 @@ final class OccurrenceEventTest extends Unit
         self::assertSame(2, $data['count']);
     }
 
+    public function testCustomDataExtractorOverridesTheDefaultProjection(): void
+    {
+        $mapper = new DefaultPsrEventToOccurrenceMapper(
+            OccurrenceType::fromString('itpack.psr.event.v1'),
+            ExecutionId::fromString('e-bound'),
+            new RandomIdentifierGenerator(),
+            'psr.event',
+            null,
+            static fn (object $event): array => ['extracted' => true],
+        );
+
+        $occurrence = $mapper->map(new \stdClass());
+
+        self::assertSame(['extracted' => true], $occurrence->data());
+    }
+
+    public function testObjectAndResourceEventPropertiesAreSkippedInDefaultProjection(): void
+    {
+        $mapper = new DefaultPsrEventToOccurrenceMapper(
+            OccurrenceType::fromString('itpack.psr.event.v1'),
+            ExecutionId::fromString('e-bound'),
+            new RandomIdentifierGenerator(),
+        );
+
+        $event = new class () {
+            public string $name = 'kept';
+            public object $entity;
+
+            public function __construct()
+            {
+                $this->entity = new \stdClass();
+            }
+        };
+
+        $data = $mapper->map($event)->data();
+
+        self::assertSame(['name' => 'kept'], $data);
+    }
+
     public function testMapperHonoursPerCallTypeOverride(): void
     {
         $mapper = new DefaultPsrEventToOccurrenceMapper(

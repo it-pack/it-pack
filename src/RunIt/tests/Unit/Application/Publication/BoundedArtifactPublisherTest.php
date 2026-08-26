@@ -19,6 +19,7 @@ use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use RuntimeException;
 
 /**
  * @group application
@@ -176,6 +177,64 @@ final class BoundedArtifactPublisherTest extends Unit
         $publisher->publish($this->occurrence(['big' => str_repeat('x', 1000)]));
 
         self::assertSame(['occurrence_payload'], $dropped);
+    }
+
+    public function testCountDroppedTerminalSnapshotStillReleasesItsExecutionCounter(): void
+    {
+        $dropped = [];
+        $publisher = new BoundedArtifactPublisher(
+            new SecurityLimits(maxArtifactsPerExecution: 1),
+            $this->inner,
+            static function (string $reason, ExecutionArtifactInterface $artifact) use (&$dropped): void {
+                $dropped[] = $reason;
+            },
+        );
+
+        $publisher->publish($this->occurrence(['n' => 1]));
+        $publisher->publish($this->terminalSnapshot());
+        $publisher->publish($this->occurrence(['n' => 2]));
+
+        self::assertSame(['artifact_count'], $dropped);
+        self::assertCount(2, $this->inner->published(), 'the released counter lets a later artifact for the same execution publish');
+    }
+
+    public function testOldestTrackedExecutionIsEvictedWhenTheCacheIsFull(): void
+    {
+        $publisher = new BoundedArtifactPublisher(
+            new SecurityLimits(maxArtifactsPerExecution: 1, maxTrackedExecutions: 1),
+            $this->inner,
+        );
+
+        $numberedOccurrence = static fn (string $id, string $executionId, int $n): Occurrence => Occurrence::create(
+            OccurrenceId::fromString($id),
+            ExecutionId::fromString($executionId),
+            OccurrenceType::fromString('test.event.v1'),
+            'source',
+            Instant::of(1000),
+            ['n' => $n],
+        );
+
+        $publisher->publish($numberedOccurrence('occ-a1', 'exec-a', 1));
+        $publisher->publish($numberedOccurrence('occ-a2', 'exec-a', 2));
+        $publisher->publish($numberedOccurrence('occ-b1', 'exec-b', 1));
+        $publisher->publish($numberedOccurrence('occ-a3', 'exec-a', 3));
+
+        self::assertCount(3, $this->inner->published(), 'evicting the oldest execution resets its counter');
+    }
+
+    public function testThrowingDropHandlerDoesNotBreakPublicationFlow(): void
+    {
+        $publisher = new BoundedArtifactPublisher(
+            new SecurityLimits(maxOccurrencePayloadBytes: 5),
+            $this->inner,
+            static function (): never {
+                throw new RuntimeException('handler boom');
+            },
+        );
+
+        $publisher->publish($this->occurrence(['big' => str_repeat('x', 1000)]));
+
+        self::assertCount(0, $this->inner->published());
     }
 }
 

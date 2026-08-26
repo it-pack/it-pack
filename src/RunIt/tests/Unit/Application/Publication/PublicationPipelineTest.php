@@ -10,13 +10,18 @@ use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\ArtifactTypeFilter;
+use ItPack\RunIt\Application\Publication\BufferConfiguration;
 use ItPack\RunIt\Application\Publication\CallbackArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\FailClosedPolicy;
+use ItPack\RunIt\Application\Publication\GuardedArtifactPublisher;
+use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\ObservationSeverityFilter;
+use ItPack\RunIt\Application\Publication\OverflowStrategy;
 use ItPack\RunIt\Application\Publication\PublicationPipeline;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
+use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
@@ -63,6 +68,35 @@ final class PublicationPipelineTest extends Unit
             'source',
             Instant::of(1000),
         );
+    }
+
+    public function testBuildWrapsTheSinkWithBufferAndSamplingWhenConfigured(): void
+    {
+        $pipeline = new PublicationPipeline(
+            new InMemoryArtifactPublisher(),
+            $this->clock,
+            $this->estimator,
+            sampling: new NeverSamplePolicy(),
+            buffer: new BufferConfiguration(
+                maxItems: 8,
+                maxEstimatedBytes: 10_000,
+                maxAgeSeconds: 60,
+                batchSize: 4,
+                flushIntervalSeconds: 0,
+                shutdownFlushBudget: 1024,
+                overflow: OverflowStrategy::DropOldest,
+            ),
+        );
+
+        $publisher = $pipeline->build();
+
+        self::assertInstanceOf(GuardedArtifactPublisher::class, $publisher, 'the guard is the outermost stage');
+        self::assertInstanceOf(FlushablePublisherInterface::class, $publisher);
+
+        $publisher->publish($this->observation());
+        $publisher->flush();
+
+        self::assertSame([], new InMemoryArtifactPublisher()->published(), 'sampling dropped everything before the sink');
     }
 
     public function testPipelineFiltersRedactsAndPublishes(): void

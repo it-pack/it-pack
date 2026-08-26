@@ -30,6 +30,21 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  */
 final class SamplingTest extends Unit
 {
+    public function testHeadBasedSamplingFallsBackToAnEmptyKeyWhenTheArtifactHasNoStringId(): void
+    {
+        $inner = new NeverSamplePolicy();
+        $policy = new HeadBasedSamplingPolicy($inner);
+
+        $idless = new class () implements \ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return ['sequence' => 1];
+            }
+        };
+
+        self::assertFalse($policy->sample($idless), 'an id-less artifact keys on an empty string and follows the inner policy');
+    }
+
     private function observation(string $severity = 'info', string $execution = 'exec-1'): ExecutionArtifactInterface
     {
         $id = ObservationId::fromString('obs');

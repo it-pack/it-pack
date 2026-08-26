@@ -120,6 +120,34 @@ final class TelemetryPublisherTest extends Unit
         self::assertTrue($redactedLogged, 'The suppressed delivery is marked runit.redacted.');
     }
 
+    public function testRedactedSnapshotIsDeliveredThroughTheSnapshotLogPath(): void
+    {
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['secret'],
+            redactSnapshotPayloads: true,
+        ));
+
+        $snapshot = RunItArtifactFactory::snapshot('snap-red', 'exec-1', ['secret' => 'value']);
+        $redacted = $redactor->redact($snapshot);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+
+        $publisher = $this->publisher();
+        $publisher->publish($redacted);
+
+        $delivered = false;
+        foreach ($this->kit->logs() as $record) {
+            $attributes = $record->getAttributes()->toArray();
+
+            if (($attributes['runit.snapshot.classification'] ?? null) !== null) {
+                $delivered = true;
+                self::assertTrue($attributes['runit.redacted']);
+            }
+        }
+
+        self::assertTrue($delivered, 'A redacted snapshot routes through the snapshot log mapper, not the occurrence path.');
+    }
+
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void
     {
         $publisher = TelemetryPublisher::fromConfig(BridgeConfig::default());

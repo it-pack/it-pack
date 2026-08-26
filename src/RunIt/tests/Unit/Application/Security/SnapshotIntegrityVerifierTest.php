@@ -107,4 +107,24 @@ final class SnapshotIntegrityVerifierTest extends Unit
 
         new SnapshotIntegrityVerifier($calculator)->verifyChain($second, $firstLater);
     }
+
+    public function testChainWithUnexpectedPredecessorIsRejected(): void
+    {
+        $snapshot = $this->snapshot('snap-root', ['status' => 'ok'], new DeterministicHashCalculator());
+        $predecessor = $this->snapshot('snap-older', ['status' => 'ok'], new DeterministicHashCalculator());
+
+        $this->expectException(SnapshotIntegrityException::class);
+        $this->expectExceptionMessageMatches('/predecessor/i');
+
+        new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($snapshot, $predecessor);
+    }
+
+    public function testRootSnapshotWithoutPredecessorPassesTheChainCheck(): void
+    {
+        $snapshot = $this->snapshot('snap-root', ['status' => 'ok'], new DeterministicHashCalculator());
+
+        new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($snapshot, null);
+
+        self::expectNotToPerformAssertions();
+    }
 }

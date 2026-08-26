@@ -9,11 +9,18 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
+use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
+use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
+use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Contract\Application\EngineCapability;
+use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
+use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -32,6 +39,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
@@ -211,6 +219,55 @@ final class RunItBuilderTest extends TestCase
         self::assertNotSame($base, $base->withExecutionFactory($executionFactory));
         self::assertNotSame($base, $base->withLifecycleCoordinator($coordinator));
         self::assertNotSame($base, $base->withSnapshotFactory($snapshotFactory));
+        self::assertNotSame($base, $base->withThrowableMapper(new DefaultThrowableMapper()));
+        self::assertNotSame($base, $base->withNestedExecutionPolicy(new ChildExecutionPolicy()));
+        self::assertNotSame($base, $base->withCompletionPolicy(new AutoFailOpenActivitiesPolicy()));
+        self::assertNotSame($base, $base->withExecutionEngine(new SynchronousExecutionEngine()));
+    }
+
+    public function testWithExecutionEngineInstallsTheInjectedEngine(): void
+    {
+        $runtime = $this->builder()
+            ->withExecutionEngine(new class () implements ExecutionEngineInterface {
+                public function run(ExecutionScopeInterface $scope, callable $operation): mixed
+                {
+                    return 'engine-installed';
+                }
+
+                public function capability(): EngineCapabilityInterface
+                {
+                    return new EngineCapability(false, false, false);
+                }
+            })
+            ->build()
+        ;
+
+        self::assertSame('engine-installed', $runtime->run($this->definition(), static fn (): string => 'ignored'));
+    }
+
+    public function testWithNestedExecutionPolicyDrivesNestedRunSemantics(): void
+    {
+        $runtime = $this->builder()->withNestedExecutionPolicy(new ActivityOnlyPolicy())->build();
+
+        $inner = null;
+
+        /** @var string $outer */
+        $outer = $runtime->run(
+            $this->definition(),
+            static function () use ($runtime, &$inner): string {
+                /** @var string $resolved */
+                $resolved = $runtime->run(
+                    ExecutionDefinition::create(ExecutionName::fromString('nested'), ExecutionKind::fromString('step')),
+                    static fn (): string => 'activity',
+                );
+                $inner = $resolved;
+
+                return 'outer';
+            },
+        );
+
+        self::assertSame('outer', $outer);
+        self::assertSame('activity', $inner);
     }
 
     public function testSecurityLimitsAndHandlerSeamsReturnNewBuilderInstances(): void

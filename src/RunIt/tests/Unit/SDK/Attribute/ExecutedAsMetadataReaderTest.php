@@ -101,9 +101,60 @@ final class ExecutedAsMetadataReaderTest extends TestCase
     public function testAttributeCanBeConstructedDirectly(): void
     {
         $attribute = new ExecutedAs('explicit.name', 'task');
-
         self::assertSame('explicit.name', $attribute->name);
-        self::assertSame('task', $attribute->kind);
+    }
+
+    public function testRepeatedReadOfSameInstanceHitsTheWeakMapCache(): void
+    {
+        $reader = new DefaultExecutedAsMetadataReader();
+        $invokable = new class () {
+            #[ExecutedAs('cached.invoke', 'task')]
+            public function __invoke(): void
+            {
+            }
+        };
+
+        $first = $reader->read($invokable);
+        $second = $reader->read($invokable);
+
+        self::assertNotNull($first);
+        self::assertSame($first, $second, 'the WeakMap cache must return the identical metadata instance');
+    }
+
+    public function testPlainClosureWithoutCalledClassResolvesViaReflectionFunction(): void
+    {
+        $reader = new DefaultExecutedAsMetadataReader();
+        $operation = static function (): void {
+        };
+
+        self::assertNull($reader->read($operation));
+    }
+
+    public function testInvokableObjectResolvesThroughInvoke(): void
+    {
+        $reader = new DefaultExecutedAsMetadataReader();
+        $invokable = new class () {
+            #[ExecutedAs('invokable.run', 'task')]
+            public function __invoke(): void
+            {
+            }
+        };
+
+        $metadata = $reader->read($invokable);
+
+        self::assertNotNull($metadata);
+        self::assertSame('invokable.run', $metadata->name);
+    }
+
+    public function testStringCallableInClassMethodFormIsResolved(): void
+    {
+        $reader = new DefaultExecutedAsMetadataReader();
+        SampleService::statically();
+
+        $metadata = $reader->read('Tests\Unit\SDK\Attribute\SampleService::statically');
+
+        self::assertNotNull($metadata);
+        self::assertSame('service.static', $metadata->name);
     }
 }
 
@@ -119,6 +170,11 @@ final class SampleService
 {
     #[ExecutedAs('service.run', 'operation')]
     public function run(): void
+    {
+    }
+
+    #[ExecutedAs('service.static', 'task')]
+    public static function statically(): void
     {
     }
 

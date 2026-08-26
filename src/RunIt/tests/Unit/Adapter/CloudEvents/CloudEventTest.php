@@ -59,6 +59,20 @@ final class CloudEventTest extends Unit
         CloudEvent::create('', '/source', 'com.example.thing.happened.v1');
     }
 
+    public function testRejectsEmptySpecVersion(): void
+    {
+        $this->expectException(InvalidCloudEventException::class);
+
+        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', null, null, null, null, null, [], '');
+    }
+
+    public function testRejectsEmptyType(): void
+    {
+        $this->expectException(InvalidCloudEventException::class);
+
+        CloudEvent::create('id-1', '/source', '');
+    }
+
     public function testRejectsEmptySource(): void
     {
         $this->expectException(InvalidCloudEventException::class);

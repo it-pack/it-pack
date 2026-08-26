@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultCloudEventToOccurrenceMapper;
+use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 
@@ -21,6 +22,28 @@ final class CloudEventToOccurrenceMapperTest extends Unit
     protected function _before(): void
     {
         $this->mapper = new DefaultCloudEventToOccurrenceMapper();
+    }
+
+    /**
+     * @param array<string, mixed> $extensions
+     */
+    private function eventWith(array $extensions, ?string $time = '2026-08-20T14:05:47Z'): CloudEvent
+    {
+        return CloudEvent::create(
+            'occ-' . md5((string) json_encode($extensions)),
+            'it-pack/test',
+            'itpack.configuration.loaded.v1',
+            ['outcome' => 'ok'],
+            'subject-1',
+            $time,
+            'application/json',
+            null,
+            $extensions + [
+                CloudEventExtensionKey::ExecutionId->value => 'exec-1',
+                'tenantflag' => 'acme',
+            ],
+            '1.0',
+        );
     }
 
     private function event(): CloudEvent
@@ -59,6 +82,25 @@ final class CloudEventToOccurrenceMapperTest extends Unit
         self::assertSame(['outcome' => 'ok'], $occurrence->data());
         self::assertSame('application/json', $occurrence->contentType());
         self::assertSame('https://schema.example/config', $occurrence->dataSchema());
+    }
+
+    public function testStringSequenceValuesAreCoercedAndMissingSequencesStartAtInitial(): void
+    {
+        $withSequence = $this->eventWith(['sequence' => '7']);
+        self::assertSame(7, $this->mapper->map($withSequence)->sequence());
+
+        $withoutSequence = $this->eventWith([]);
+        self::assertSame(0, $this->mapper->map($withoutSequence)->sequence());
+    }
+
+    public function testMissingTimeFallsBackToNowAndMalformedTimeIsRejected(): void
+    {
+        $noTime = $this->eventWith([], time: null);
+        $mapped = $this->mapper->map($noTime);
+        self::assertInstanceOf(InstantInterface::class, $mapped->time());
+
+        $this->expectException(InvalidCloudEventException::class);
+        $this->mapper->map($this->eventWith([], time: 'definitely-not-a-timestamp'));
     }
 
     public function testPreservesUnknownExtensionsAndCorrelation(): void

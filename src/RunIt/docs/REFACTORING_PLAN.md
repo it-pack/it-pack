@@ -39,7 +39,31 @@ and targeted deep reads). No source has been modified yet.
 
 ## Phase 0 — Verification gap: raise statement coverage to ≥95% (REVIEW §3 P1-1)
 
-> **Status: Pending**
+> **Status: Complete (2026-08-25).** Statement coverage is **95.24%
+> (3278/3442)**, up from 90.50% — +163 covered statements via 69 new tests
+> (813 Unit tests; 829 across the shipped pipeline). Closed by task:
+> T0.1 publication branches (Routing lifecycle incl. fallback flush/close,
+> BoundDrop factories via count-dropped terminal snapshots + eviction +
+> throwing drop-handler, decorator lifecycle delegation trait); T0.2
+> MeasurementUnit label+symbol truth table (labels are the lowercase
+> vocabulary, symbols are the short forms — both now pinned); T0.3 depth and
+> rejection boundaries exercised through the runner (`NestedBoundariesTest`)
+> plus a success-path nesting case reaching ActivityScope delegations;
+> T0.4 long-tail batches: runner bound-drop→health path with artifact-id
+> fallback, ActivityOnly nesting semantics (runner + builder seams), OTel log
+> mapper subject/activity/span-event/redacted paths, builder engine/nested/
+> completion/mapper withers, serializer object+depth rejections, buffered
+> publisher auto-flush/max-age/low-priority-fallback/default-sleep, PSR event
+> extractor+projection skips, CloudEvent sequence/time coercion and envelope
+> rejections, SeverityMap/SpanKindMap truth tables, ConformanceResult query
+> API, SecurityLimits wither table, snapshot-chain predecessor cases,
+> redacted-snapshot routing. `RunItTestKit` gained additive `limits` and
+> `nestedPolicy` seams. **Deviation:** the two defensive catch blocks around
+> `safePublish()` in the runner remain uncovered — nothing can escape
+> `FailSafeArtifactPublisher` by design (guarded health + fail-open policy),
+> so they are unreachable without contortion; recorded here rather than
+> faked. The conformance-verifier gaps (~105 stmts) are deliberately left for
+> Phase 2. QA.md records the new floor and the T0.5 leakage rule.
 
 Goal: close the measured gap from **90.50% (3115/3442)** to **≥95%**
 (≥3270 statements, i.e. **+155**) following the review's table order —

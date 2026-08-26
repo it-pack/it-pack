@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
@@ -30,6 +31,38 @@ final class DefaultExecutionRunnerTest extends Unit
         $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
 
         self::assertSame('value', $result);
+    }
+
+    public function testActivityOnlyModeWithoutCurrentExecutionRunsAFullExecution(): void
+    {
+        $kit = new RunItTestKit(nestedPolicy: new ActivityOnlyPolicy());
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'root');
+
+        self::assertSame('root', $result);
+        $executions = $this->executions($kit);
+        self::assertCount(1, $executions);
+        self::assertSame(ExecutionStatus::Succeeded, $executions[0]->status());
+    }
+
+    public function testActivityOnlyModeInsideAnExecutionDelegatesToTheActivityScope(): void
+    {
+        $kit = new RunItTestKit(nestedPolicy: new ActivityOnlyPolicy());
+        $innerResult = null;
+
+        $outer = $kit->runner->run($this->definition(), static function () use ($kit, &$innerResult): string {
+            /** @var string $inner */
+            $inner = $kit->runner->run(
+                ExecutionDefinition::create(ExecutionName::fromString('inner'), ExecutionKind::fromString('step')),
+                static fn (): string => 'activity-result',
+            );
+            $innerResult = $inner;
+
+            return 'outer';
+        });
+
+        self::assertSame('outer', $outer);
+        self::assertSame('activity-result', $innerResult);
     }
 
     public function testSuccessfulExecutionReachesSucceededStatusExactlyOnce(): void

@@ -10,6 +10,8 @@ use ItPack\RunIt\Adapter\Null\NullArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CompositeArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -114,5 +116,43 @@ final class BasicPublisherTest extends Unit
         $composite->flush();
 
         self::assertSame(1, $flushed);
+    }
+
+    public function testCallbackPublisherInvokesItsCloseCallback(): void
+    {
+        $closed = 0;
+        $publisher = new CallbackArtifactPublisher(
+            static function (): void {
+            },
+            onClose: static function () use (&$closed): void {
+                $closed++;
+            },
+        );
+
+        $publisher->close();
+
+        self::assertSame(1, $closed);
+    }
+
+    public function testCloseForwardsOnlyToCloseablePublishers(): void
+    {
+        $closeable = new class () implements ArtifactPublisherInterface, CloseablePublisherInterface {
+            public int $closes = 0;
+
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+            }
+
+            public function close(): void
+            {
+                ++$this->closes;
+            }
+        };
+        $plain = new InMemoryArtifactPublisher();
+
+        $composite = new CompositeArtifactPublisher([$closeable, $plain]);
+        $composite->close();
+
+        self::assertSame(1, $closeable->closes);
     }
 }

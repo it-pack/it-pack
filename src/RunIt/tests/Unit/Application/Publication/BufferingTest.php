@@ -52,6 +52,13 @@ final class BufferingTest extends Unit
         };
     }
 
+    private function idOf(ExecutionArtifactInterface $artifact): string
+    {
+        $id = $artifact->normalize()['id'] ?? null;
+
+        return is_string($id) ? $id : '';
+    }
+
     private function config(int $maxItems, OverflowStrategy $overflow, int $batchSize = 1024, int $budget = 4096, int $maxBytes = 10_000_000): BufferConfiguration
     {
         return new BufferConfiguration(
@@ -259,5 +266,87 @@ final class BufferingTest extends Unit
         $buffer->flush();
 
         self::assertCount(1, $sink->published());
+    }
+
+    public function testPublishAutoFlushesWhenTheFlushIntervalHasElapsed(): void
+    {
+        $clock = new \Tests\Support\Fixture\DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest), $sink, $clock, $this->estimator);
+
+        $buffer->publish($this->artifact('info', 'obs-1'));
+        self::assertSame([], $sink->published(), 'within the interval nothing drains');
+
+        $clock->advanceSeconds(6);
+        $buffer->publish($this->artifact('info', 'obs-2'));
+
+        self::assertCount(2, $sink->published(), 'crossing the flush interval drains the buffer');
+        self::assertSame(0, $buffer->bufferedCount());
+    }
+
+    public function testDropLowPriorityFallsBackToDroppingOldestWhenEverythingIsHighPriority(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropLowPriority), $sink, $this->clock, $this->estimator);
+
+        $buffer->publish($this->artifact('warning', 'obs-high-1'));
+        $buffer->publish($this->artifact('error', 'obs-high-2'));
+        $buffer->publish($this->artifact('critical', 'obs-high-3'));
+
+        self::assertSame(2, $buffer->bufferedCount());
+        self::assertSame(1, $buffer->droppedCount(), 'the oldest high-priority item is dropped when no low-priority item exists');
+
+        $buffer->flush();
+
+        self::assertSame('obs-high-2', $this->idOf($sink->published()[0]), 'the newest high-priority items are retained');
+    }
+
+    public function testBlockWithTimeoutUsesTheDefaultSleepWhenNoSeamIsInjected(): void
+    {
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, OverflowStrategy::BlockWithTimeout),
+            new InMemoryArtifactPublisher(),
+            $this->clock,
+            $this->estimator,
+        );
+
+        $buffer->publish($this->artifact('info', 'obs-1'));
+        $buffer->publish($this->artifact('info', 'obs-2'));
+
+        self::assertSame(1, $buffer->droppedCount(), 'the default wait still respects the blocking budget');
+    }
+
+    public function testDrainDropsItemsOlderThanMaxAgeAndReportsThem(): void
+    {
+        $drops = [];
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<\Throwable> */
+            public array $reported = [];
+
+            public function report(\Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                $this->reported[] = $failure;
+            }
+        };
+        $clock = new \Tests\Support\Fixture\DeterministicMonotonicClock(1_000, 0);
+        $sink = new InMemoryArtifactPublisher();
+        $config = new BufferConfiguration(
+            maxItems: 10,
+            maxEstimatedBytes: 10_000_000,
+            maxAgeSeconds: 60,
+            batchSize: 1024,
+            flushIntervalSeconds: 0,
+            shutdownFlushBudget: 4096,
+            overflow: OverflowStrategy::DropOldest,
+        );
+        $buffer = new BufferedArtifactPublisher($config, $sink, $clock, $this->estimator, $health);
+
+        $buffer->publish($this->artifact('info', 'obs-stale'));
+        $clock->advanceSeconds(61);
+        $buffer->flush();
+
+        self::assertSame([], $sink->published(), 'an item past its max age must never reach the inner publisher');
+        self::assertSame(1, $buffer->droppedCount());
+        self::assertCount(1, $health->reported);
     }
 }

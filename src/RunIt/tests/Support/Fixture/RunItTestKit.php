@@ -23,6 +23,7 @@ use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
+use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
@@ -39,6 +40,7 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 
 /**
@@ -102,6 +104,8 @@ final class RunItTestKit
         ?ExecutionCompletionPolicyInterface $completionPolicy = null,
         ?ExecutionLifecycleCoordinatorInterface $coordinator = null,
         ?ThrowableMapperInterface $throwableMapper = null,
+        ?SecurityLimits $limits = null,
+        ?NestedExecutionPolicyInterface $nestedPolicy = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->snapshotStore = $snapshotStore;
@@ -126,7 +130,7 @@ final class RunItTestKit
             new ExecutionFactory(),
             $coordinator ?? new ExecutionLifecycleCoordinator(),
             new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
-            new ChildExecutionPolicy(),
+            $nestedPolicy ?? new ChildExecutionPolicy(),
             $completionPolicy ?? new AutoFailOpenActivitiesPolicy(),
             $this->clock,
             $this->allocator,
@@ -140,6 +144,8 @@ final class RunItTestKit
             $onPublicationFailure,
             $snapshotStore,
             $onSnapshotStoreFailure,
+            null,
+            $limits ?? new SecurityLimits(),
         );
     }
 

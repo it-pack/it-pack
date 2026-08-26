@@ -14,6 +14,7 @@ use ItPack\RunIt\Application\Publication\ObservationSeverityFilter;
 use ItPack\RunIt\Application\Publication\OccurrenceTypeFilter;
 use ItPack\RunIt\Application\Publication\PublicationRoute;
 use ItPack\RunIt\Application\Publication\RoutingArtifactPublisher;
+use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -38,6 +39,33 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
  */
 final class FilteringPublisherTest extends Unit
 {
+    public function testCompositeFilterWithoutFiltersAcceptsEverything(): void
+    {
+        $filter = new CompositeArtifactFilter([]);
+
+        self::assertTrue($filter->accepts($this->observation()));
+    }
+
+    public function testAnyMatchCompositeAcceptsWhenASingleFilterAccepts(): void
+    {
+        $reject = new class () implements ArtifactFilterInterface {
+            public function accepts(ExecutionArtifactInterface $artifact): bool
+            {
+                return false;
+            }
+        };
+        $accept = new class () implements ArtifactFilterInterface {
+            public function accepts(ExecutionArtifactInterface $artifact): bool
+            {
+                return true;
+            }
+        };
+
+        $anyMatch = new CompositeArtifactFilter([$reject, $accept], requireAll: false);
+
+        self::assertTrue($anyMatch->accepts($this->observation()));
+    }
+
     private function observation(string $severity = 'info', string $execution = 'exec-1'): ExecutionArtifactInterface
     {
         $id = ObservationId::fromString('obs');

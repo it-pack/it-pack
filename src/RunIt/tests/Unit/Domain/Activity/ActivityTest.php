@@ -36,6 +36,29 @@ final class ActivityTest extends Unit
         );
     }
 
+    public function testDefinitionNormalizesWithAndWithoutAParentActivity(): void
+    {
+        $root = ActivityDefinition::create(
+            ActivityName::fromString('http.call'),
+            ActivityKind::fromString('client'),
+        );
+
+        $nested = ActivityDefinition::create(
+            ActivityName::fromString('db.query'),
+            ActivityKind::fromString('client'),
+            ActivityId::fromString('act-parent'),
+        );
+
+        self::assertSame(
+            ['name' => 'http.call', 'kind' => 'client', 'parent_activity_id' => null],
+            $root->normalize(),
+        );
+        self::assertSame(
+            ['name' => 'db.query', 'kind' => 'client', 'parent_activity_id' => 'act-parent'],
+            $nested->normalize(),
+        );
+    }
+
     public function testStartProducesRunningActivityWithOwnIdentities(): void
     {
         $activity = Activity::start(
