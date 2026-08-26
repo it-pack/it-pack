@@ -83,6 +83,23 @@ and `ROADMAP.md`).
     snapshot and records exactly one `warning` observation when a reporter is wired in (none
     when absent).
 
+- **Milestone 4 — Optional DRY & extensibility (R17, R18)**
+  - **R18 — extracted `src/Core/AbstractNodeRewritingProcessor`** (new `abstract readonly`
+    base implementing `ConfigurationProcessorInterface` + `ProvenanceAwareProcessorInterface`). It
+    owns the immutable-graph rewrite loop (`before()` hook → `new ConfigurationGraph()` →
+    `foreach nodes → put(rewrite($node))`) and `stageName()` (via a `protected ProcessorStage
+    $stage`). `CastingProcessor` and `ValidationProcessor` now `extend` it and implement only the
+    node-level `rewrite()`; `ValidationProcessor` additionally overrides `before()` to run schema
+    validation and throw `ValidationException` (preserving the exact pre-loop behavior). Both
+    subclasses gained an optional `$stage` constructor parameter that defaults to their stage, so
+    all existing positional call-sites are unchanged. Removes the duplicated clone/loop/put
+    boilerplate.
+  - **R17 — deferred (per the milestone's condition).** The plan adds `ScalarCasterInterface` /
+    `RedactingRendererInterface` *only if external customization is required*; no such requirement
+    exists here, and `ScalarCaster` is consumed by `ConfigurationSnapshot` / `TypedSnapshot` rather
+    than `CastingProcessor` (the plan's note is stale). Both remain internal `final readonly` helpers;
+    R17 is tracked as a mechanical follow-up if extension points are later wanted.
+
 - `src/ConfigureIt/docs/IMPLEMENTATION_PLAN.md` — added authoritative build plan
   (context, package layout, step-by-step sequence, risks, definition of done).
 

@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
-use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
-use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Exception\CastException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 
@@ -22,35 +20,27 @@ use ItPack\ConfigureIt\ValueObject\ProcessorStage;
  *
  * @see docs/architecture/PIPELINE.md "Casting"
  */
-final readonly class CastingProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
+final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
 {
     /**
      * @param array<string, string> $casts flat dotted-key → target type.
      */
     public function __construct(
         private array $casts,
+        ProcessorStage $stage = ProcessorStage::Casting,
     ) {
+        parent::__construct($stage);
     }
 
-    public function stageName(): string
+    protected function rewrite(ConfigurationNodeInterface $node): ConfigurationNodeInterface
     {
-        return ProcessorStage::Casting->value;
-    }
+        $type = $this->casts[$node->key()] ?? null;
 
-    public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
-    {
-        $next = new ConfigurationGraph($graph->nodes());
-
-        foreach ($this->casts as $key => $type) {
-            if (!$next->has($key)) {
-                continue;
-            }
-
-            $node = $next->node($key);
-            $next->put($node->withValue($this->cast($node->value(), $type, $key)));
+        if ($type === null) {
+            return $node;
         }
 
-        return $next;
+        return $node->withValue($this->cast($node->value(), $type, $node->key()));
     }
 
     /**

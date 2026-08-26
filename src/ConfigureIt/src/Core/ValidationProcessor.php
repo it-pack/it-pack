@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
-use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
-use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 use ItPack\ConfigureIt\ValueObject\ValidationMessage;
@@ -23,32 +22,21 @@ use ItPack\ConfigureIt\ValueObject\ValidationMessage;
  *
  * @see docs/architecture/PIPELINE.md "Validation"
  */
-final readonly class ValidationProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
+final readonly class ValidationProcessor extends AbstractNodeRewritingProcessor
 {
     public function __construct(
         private ConfigurationSchemaInterface $schema,
+        ProcessorStage $stage = ProcessorStage::Validation,
     ) {
+        parent::__construct($stage);
     }
 
-    public function stageName(): string
-    {
-        return ProcessorStage::Validation->value;
-    }
-
-    public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
+    protected function before(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
     {
         $result = $this->schema->validate($graph);
 
         if ($result->valid()) {
-            $stage = ProcessorStage::Validation->value;
-
-            $validated = new ConfigurationGraph();
-
-            foreach ($graph->nodes() as $node) {
-                $validated->put($node->withProvenance($node->provenance()->validated($stage)));
-            }
-
-            return $validated;
+            return $graph;
         }
 
         $lines = ['Configuration validation failed:'];
@@ -60,5 +48,10 @@ final readonly class ValidationProcessor implements ConfigurationProcessorInterf
         }
 
         throw new ValidationException(\implode("\n", $lines), messages: $messages);
+    }
+
+    protected function rewrite(ConfigurationNodeInterface $node): ConfigurationNodeInterface
+    {
+        return $node->withProvenance($node->provenance()->validated($this->stage->value));
     }
 }

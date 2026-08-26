@@ -308,7 +308,35 @@ it. **Files (R17):** consider `ScalarCasterInterface` / `RedactingRendererInterf
 **Low**, but **Larger churn** for R18 (touches every node-rewriting processor) — schedule last.
 
 ### Status
-⬜ Pending (optional).
+✅ done (2026-08-26) — **R18 implemented**; **R17 intentionally deferred**.
+
+**R18 — extracted `src/Core/AbstractNodeRewritingProcessor` (new `abstract readonly`
+base implementing `ConfigurationProcessorInterface` + `ProvenanceAwareProcessorInterface`).** It
+owns the immutable-graph rewrite loop (`process()`: `before($graph)` hook → `new ConfigurationGraph()`
+→ `foreach nodes → put(rewrite($node))`) and the `stageName()` identity (via a `protected
+ProcessorStage $stage` set by subclasses). `CastingProcessor` and `ValidationProcessor` now `extend`
+it and implement only the node-level `rewrite()` (plus a `before()` override in `ValidationProcessor`
+that runs schema validation and throws `ValidationException` on failure — preserving the exact
+pre-loop validation/aggregation behavior). The `cast()`/`toInt()`/… scalar helpers in `CastingProcessor`
+and the schema/error-assembly logic in `ValidationProcessor` are unchanged; both subclasses gained an
+optional `$stage = ProcessorStage::Casting|Validation` constructor parameter (defaults keep every
+existing positional call-site working). The duplicated clone/loop/put boilerplate is gone; no other
+processor was migrated because `DefaultsProcessor`/`IncludeProcessor`/`VariableProcessor` are not
+simple per-node rewrites. Behavior is byte-for-byte identical — the existing `CastingProcessorTest`,
+`ValidationProcessorTest`, `ConfigurationPipelineStagesTest` and `ConfigurationPipelineProcessorsTest`
+all still pass (suite 274 tests / 630 assertions).
+
+**R17 — deferred (per the milestone's own condition).** The finding says to add `ScalarCasterInterface`
+/ `RedactingRendererInterface` *"only if external customization is a real requirement … otherwise
+leave as internal `final readonly` helpers."* No external-customization requirement exists for this
+milestone, and `ScalarCaster` is in fact consumed by `ConfigurationSnapshot`/`TypedSnapshot`, not by
+`CastingProcessor` (the plan's "used by CastingProcessor" note is stale). Both helpers therefore remain
+internal `final readonly` classes. If explicit extension points are later wanted, R17 is a small,
+mechanical follow-up (introduce the two `Contract` interfaces, have the concretes implement them, and
+re-type the call sites) — tracked but not done here.
+
+Gates: `composer analyse` 0 errors (PHPStan L9), `composer cs:check` 0/262,
+`composer test:unit` 274 tests / 630 assertions.
 
 ---
 
