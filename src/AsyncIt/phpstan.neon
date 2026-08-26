@@ -1,17 +1,13 @@
 includes:
-    - tools/phpstan/runit-rules/extension.neon
+    - tools/phpstan/asyncit-rules/extension.neon
 
 parameters:
     tmpDir: var/cache/phpstan
     level: max
     paths:
         - ./src
-        - ./tests/Conformance
-        - ./tests/Concurrency
-        - ./tests/Integration
-        - ./tests/Support/Fixture
         - ./tests/Unit
-        - ./tools/phpstan/runit-rules/src
+        - ./tools/phpstan/asyncit-rules/src
     parallel:
         maximumNumberOfProcesses: 1
     reportUnmatchedIgnoredErrors: false

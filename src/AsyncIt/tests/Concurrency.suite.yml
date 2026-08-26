@@ -1,0 +1,10 @@
+# Codeception Test Suite Configuration
+#
+# Concurrency suite: fiber/coroutine isolation, persistent-worker reuse, and the
+# cooperative timeout/cancellation classification paths that runtime adapters rely on.
+
+actor: ConcurrencyTester
+modules:
+    enabled:
+        - Asserts
+step_decorators: ~

@@ -1,0 +1,10 @@
+# Codeception Test Suite Configuration
+#
+# Suite for integration tests wiring multiple AsyncIt components together
+# (scheduler + poller + cancellation scope) without a full runtime adapter.
+
+actor: IntegrationTester
+modules:
+    enabled:
+        - Asserts
+step_decorators: ~

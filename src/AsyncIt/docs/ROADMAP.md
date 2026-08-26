@@ -75,10 +75,11 @@ Each rule lists its enforcement mechanism and the first milestone it is required
 - No line exceeds 120 characters; multi-line parameters/arguments one per line when needed. **(M0)**
 - Class declaration order: `trait use` → `constants` → `properties` (+ hooks) → `constructor` → `factory methods` → `non-static methods (public before protected/private)` → `static methods (public before protected/private)`. **(M0)**
 - All referenced types/functions imported at top; no fully-qualified inline references. **(M0)**
-- No `else` / `elseif` — use early return / guard clauses. **(M0, custom fixer)**
-- No Yoda conditions (`if (true === $x)` is forbidden; write `if ($x === true)`). **(M0, custom fixer)**
+- No `else` / `elseif` — use early return / guard clauses. **(M0, ForbidElseRule)**
+- No Yoda conditions (`if (true === $x)` is forbidden; write `if ($x === true)`). **(M0, php-cs-fixer `yoda_style`)**
 - No magic strings/numbers — constants or enums; vocabularies live in interfaces. **(M1)**
 - Every concrete class `final`; implements an interface; exceptions implement a marker interface. **(M1, per RunIt ADR-015)**
+- The M0 custom rules are implemented in `tools/phpstan/asyncit-rules/` (`ForbidElseRule`, `RequireFinalRule`, `ForbidNewOutsideFactoryBuilderRule`) and loaded through `tools/phpstan/asyncit-rules/extension.neon`; the 120-char and one-type-per-file checks are `tools/lint/line-length.php` and `tools/lint/single-type-per-file.php` (composer `lint:length` / `lint:types`). **(M0)**
 
 ### Testing, conformance & mutation
 - `AsyncRuntimeVerifier` (A: context isolation; B: monotonic precision via `MonotonicClockVerifier`; C: deterministic cleanup) green on reference runtime **and** every adapter. **(M2–M5)**
@@ -109,19 +110,25 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 ### Phase 0 — Foundations (M0–M2 tail)
 
-**Status:** *Nothing implemented yet. This phase establishes the guardrails so every later line is reviewable.*
+**Status:** *Complete. Guardrails and the conformance skeleton are in place; every later line is reviewable. All Phase 0 gates are green (`composer quality` exits 0).*
 
 **Goal:** tooling, architecture enforcement, and the conformance skeleton.
 
 **Tasks**
-- [ ] Confirm `composer.json` scripts (`analyse`, `architecture`, `test`, `coding-style`, `mutation`) exist; add missing ones.
-- [ ] Fix `deptrac.yaml` adapter layers to AsyncIt's runtimes (`Adapter/(Revolt|Swoole|Swow|Native|Select)/.*`); remove the copied RunIt adapter names.
-- [ ] Add `php-cs-fixer` rules for: 120-char limit, one-type-per-file, declaration order, no `else`/`elseif`, no Yoda, import ordering, `final`/`readonly` encouragement.
-- [ ] Add a custom PHPStan rule forbidding `new` outside `*\Factory\*` / `*\Builder\*` namespaces.
-- [ ] Create `src/Conformance/` skeleton mirroring RunIt: `Contract/PortFixtureInterface`, `Result/{ConformanceResult,ConformanceViolation,ViolationSeverity}`.
-- [ ] Add `@see` vocabulary references: `async-it#*` / `async-it-taxonomy#*` for AsyncIt-owned terms, and `run-it#*` / `run-it-taxonomy#*` where AsyncIt maps RunIt terms.
+- [x] `composer.json` scripts added: `analyse`, `analyse:bleeding-edge`, `architecture`, `test` (+ `test:unit`/`integration`/`conformance`/`concurrency`), `cs:check`/`cs:fix`, `lint:length`, `lint:types`, `mutation`, `security:audit`, and a composite `quality`. Also added `"php": "^8.4"` and an `autoload-dev` mapping for `Tests\` and `Tools\PhpStan\AsyncItRules\`.
+- [x] `deptrac.yaml` adapter layers rewritten to AsyncIt's runtimes — a single `Adapter` layer matching `src/Adapter/(Revolt|Swoole|Swow|Native|Select)/.*`; the copied RunIt adapter names (`Null|Memory|Fiber|Common`, `OpenTelemetry|CloudEvents|Psr|Swoole`) are gone. `Test Support` now maps to `src/Conformance/.*`.
+- [x] `.php-cs-fixer.php` extended with `yoda_style` (forbidden) and `ordered_class_elements`. The 120-char limit and one-type-per-file are enforced by `tools/lint/line-length.php` and `tools/lint/single-type-per-file.php` (composer `lint:length` / `lint:types`); `final` and no-`else` are enforced by the custom PHPStan rules below. (The invalid `no_superfluous_else` fixer was dropped — `else` removal is the `ForbidElseRule` concern.)
+- [x] Custom PHPStan rules added under `tools/phpstan/asyncit-rules/` and registered in `tools/phpstan/asyncit-rules/extension.neon`: `RequireFinalRule`, `ForbidElseRule`, and `ForbidNewOutsideFactoryBuilderRule` (forbids `new` of named types outside `*\Factory\*` / `*\Builder\*` namespaces; `self`/`static` construction and the `ItPack\AsyncIt\Conformance` namespace are exempt).
+- [x] `src/Conformance/` skeleton created mirroring RunIt: `Contract/VerifierInterface`, `Contract/PortFixtureInterface`, `Result/ViolationSeverity`, `Result/ConformanceViolation`, `Result/ConformanceResult`.
+- [x] `@see` vocabulary references added to the conformance skeleton: `async-it#ConformanceResult` / `async-it#ConformanceViolation` / `async-it#ViolationSeverity` for AsyncIt-owned terms, and `run-it#Execution` where AsyncIt maps the RunIt execution it consumes (see §3 "Vocabulary alignment").
 
-**Gates:** `composer architecture` clean; CS + PHPStan baseline green; `src/Conformance/` compiles; no domain code yet.
+**Implementation notes (Phase 0)**
+- The custom rules follow the RunIt pattern: a shared `AbstractSrcRule` base restricts them to `src/`, and they are loaded via `phpstan`'s extension mechanism (`tools/phpstan/asyncit-rules/extension.neon`), referenced from `phpstan.neon`. The `Tools\PhpStan\AsyncItRules\` namespace is autoloaded through `autoload-dev`.
+- `tests/Unit` is included in the PHPStan analysis paths (matching RunIt), so tests act as usage sources for the dead-code detector. Two contract tests (`ConformanceResultTest`, `ContractInterfacesTest`, 7 assertions) exercise the conformance toolkit and keep `shipmonk/dead-code-detector` quiet **without** `ignoreErrors` suppressions.
+- Conformance / Integration / Concurrency Codeception suites were created (`.suite.yml` + `*Tester` actors + `codecept build`) so `composer test` runs all four suites; the three new suites currently contain 0 tests.
+- `security:audit` uses `composer audit --abandoned=report`: it fails only on real vulnerability advisories, not on abandoned transitive dev packages (e.g. `doctrine/annotations`). This keeps the gate meaningful without blocking on upstream abandonments.
+
+**Gates:** `composer architecture` clean (0 violations); `cs:check` + `analyse` green; `src/Conformance/` compiles and is unit-tested; no domain code yet. Verified via `composer quality` → exit 0.
 
 ---
 

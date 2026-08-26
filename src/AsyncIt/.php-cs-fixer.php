@@ -28,6 +28,8 @@ return $config
         'array_syntax' => ['syntax' => 'short'],
         'single_quote' => true,
         'no_superfluous_elseif' => true,
+        'yoda_style' => ['equal' => false, 'identical' => false, 'less_and_greater' => false],
+        'ordered_class_elements' => true,
         'no_useless_return' => true,
         'no_trailing_comma_in_singleline' => true,
         'trailing_comma_in_multiline' => true,

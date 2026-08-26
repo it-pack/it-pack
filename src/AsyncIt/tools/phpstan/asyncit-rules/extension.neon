@@ -1,0 +1,12 @@
+services:
+    # require-final: every concrete class must be `final`.
+    - { class: Tools\PhpStan\AsyncItRules\Rule\RequireFinalRule, arguments: { srcRoot: %currentWorkingDirectory%/src, exemptFiles: [] }, tags: [phpstan.rules.rule] }
+
+    # forbid-else: prefer guard clauses / match over else / elseif.
+    - { class: Tools\PhpStan\AsyncItRules\Rule\ForbidElseRule, arguments: { nodeType: PhpParser\Node\Stmt\Else_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+    - { class: Tools\PhpStan\AsyncItRules\Rule\ForbidElseRule, arguments: { nodeType: PhpParser\Node\Stmt\ElseIf_, srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }
+
+    # forbid-new-outside-factory-builder: collaborators are built through injected
+    # factories/builders; direct `new` of named types elsewhere is forbidden.
+    # Conformance fixtures legitimately construct port doubles, so they are exempt.
+    - { class: Tools\PhpStan\AsyncItRules\Rule\ForbidNewOutsideFactoryBuilderRule, arguments: { exemptNamespaces: ['ItPack\AsyncIt\Conformance'], srcRoot: %currentWorkingDirectory%/src }, tags: [phpstan.rules.rule] }

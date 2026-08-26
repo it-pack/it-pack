@@ -1,0 +1,14 @@
+# Codeception Test Suite Configuration
+#
+# Suite for port conformance verification.
+#
+# Runs the framework-agnostic port verifiers (src/Conformance/Verifier) against
+# the bundled first-party adapters through the AsyncIt port fixtures, satisfying
+# the Phase 2+ acceptance gate "All first-party adapters pass their own
+# conformance suites".
+
+actor: ConformanceTester
+modules:
+    enabled:
+        - Asserts
+step_decorators: ~

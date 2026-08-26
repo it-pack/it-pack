@@ -18,26 +18,18 @@ deptrac:
       collectors:
         - type: directory
           value: src/Domain/.*
-        - type: directory
-          value: src/Behavior/Domain/.*
     - name: Application
       collectors:
         - type: directory
           value: src/Application/.*
-        - type: directory
-          value: src/Behavior/Application/.*
     - name: SDK
       collectors:
         - type: directory
           value: src/SDK/.*
-    - name: Common Adapter
+    - name: Adapter
       collectors:
         - type: directory
-          value: src/Adapter/(Null|Memory|Fiber|Common)/.*
-    - name: External Adapter
-      collectors:
-        - type: directory
-          value: src/Adapter/(OpenTelemetry|CloudEvents|Psr|Swoole)/.*
+          value: src/Adapter/(Revolt|Swoole|Swow|Native|Select)/.*
     - name: Test Support
       collectors:
         - type: directory
@@ -64,12 +56,7 @@ deptrac:
       - Port
       - Domain
       - Application
-    Common Adapter:
-      - Common
-      - Contract
-      - Port
-      - Domain
-    External Adapter:
+    Adapter:
       - Common
       - Contract
       - Port
@@ -81,5 +68,4 @@ deptrac:
       - Domain
       - Application
       - SDK
-      - Common Adapter
-      - External Adapter
+      - Adapter

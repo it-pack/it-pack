@@ -1,9 +1,17 @@
 {
     "name": "it-pack/async-it",
     "description": "Portable, Capability-Oriented Asynchronous Execution and Scheduling for the ItPack Semantic Stack.",
+    "type": "library",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "ItPack\\AsyncIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Tools\\PhpStan\\AsyncItRules\\": "tools/phpstan/asyncit-rules/src/"
         }
     },
     "authors": [
@@ -12,7 +20,9 @@
             "email": "timomichna@yahoo.de"
         }
     ],
-    "require": {},
+    "require": {
+        "php": "^8.4"
+    },
     "require-dev": {
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
@@ -30,6 +40,37 @@
         "open-telemetry/api": "^1.9",
         "open-telemetry/sdk": "^1.0",
         "infection/codeception-adapter": "^0.4"
+    },
+    "scripts": {
+        "test": [
+            "@test:unit",
+            "@test:integration",
+            "@test:conformance",
+            "@test:concurrency"
+        ],
+        "test:unit": "vendor/bin/codecept run Unit",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:conformance": "vendor/bin/codecept run Conformance",
+        "test:concurrency": "vendor/bin/codecept run Concurrency",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse",
+        "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
+        "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
+        "lint:length": "php tools/lint/line-length.php",
+        "lint:types": "php tools/lint/single-type-per-file.php",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
+        "security:audit": "composer audit --abandoned=report",
+        "quality": [
+            "@composer validate --strict",
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@lint:length",
+            "@lint:types",
+            "@test",
+            "@security:audit"
+        ]
     },
     "config": {
         "allow-plugins": {
