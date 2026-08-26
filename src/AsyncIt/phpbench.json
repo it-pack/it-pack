@@ -1,0 +1,4 @@
+{
+    "$schema": "https://phpbench.github.io/phpbench/schema.json",
+    "runner.bootstrap": "vendor/autoload.php"
+}

@@ -1,0 +1,85 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: Common
+      collectors:
+        - type: directory
+          value: src/Common/.*
+    - name: Contract
+      collectors:
+        - type: directory
+          value: src/Contract/(?!Port/).*
+    - name: Port
+      collectors:
+        - type: directory
+          value: src/Contract/Port/.*
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/Domain/.*
+        - type: directory
+          value: src/Behavior/Domain/.*
+    - name: Application
+      collectors:
+        - type: directory
+          value: src/Application/.*
+        - type: directory
+          value: src/Behavior/Application/.*
+    - name: SDK
+      collectors:
+        - type: directory
+          value: src/SDK/.*
+    - name: Common Adapter
+      collectors:
+        - type: directory
+          value: src/Adapter/(Null|Memory|Fiber|Common)/.*
+    - name: External Adapter
+      collectors:
+        - type: directory
+          value: src/Adapter/(OpenTelemetry|CloudEvents|Psr|Swoole)/.*
+    - name: Test Support
+      collectors:
+        - type: directory
+          value: src/Conformance/.*
+  ruleset:
+    Common: ~
+    Contract:
+      - Common
+    Port:
+      - Common
+      - Contract
+    Domain:
+      - Common
+      - Contract
+      - Port
+    Application:
+      - Common
+      - Contract
+      - Port
+      - Domain
+    SDK:
+      - Common
+      - Contract
+      - Port
+      - Domain
+      - Application
+    Common Adapter:
+      - Common
+      - Contract
+      - Port
+      - Domain
+    External Adapter:
+      - Common
+      - Contract
+      - Port
+      - Domain
+    Test Support:
+      - Common
+      - Contract
+      - Port
+      - Domain
+      - Application
+      - SDK
+      - Common Adapter
+      - External Adapter
