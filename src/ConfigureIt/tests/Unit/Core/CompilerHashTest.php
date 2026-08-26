@@ -5,10 +5,19 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
+use ItPack\ConfigureIt\Adapter\FileReader;
+use ItPack\ConfigureIt\Adapter\PhpLoader;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
+use ItPack\ConfigureIt\Contract\DeclaresScalarTypesInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\Core\ConfigurationCompiler;
+use ItPack\ConfigureIt\Core\DefaultsProcessor;
+use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
+use ItPack\ConfigureIt\ValueObject\ValidationResult;
 
 /**
  * F16 — {@see ConfigurationCompiler::hash()} must treat non-file resources
@@ -107,6 +116,126 @@ final class CompilerHashTest extends Unit
             public function discover(): iterable
             {
                 return [new ConfigurationResource($this->uri, Format::PHP)];
+            }
+        };
+    }
+
+    /**
+     * A schema that also declares scalar types must fold those declarations into
+     * the key: tightening a type changes the resolution result (typed snapshot),
+     * so it must invalidate the artifact.
+     */
+    public function testDeclaredScalarTypesArePartOfTheKey(): void
+    {
+        $sources = [$this->sourceWith('/nonexistent-cfg/opaque.php')];
+
+        $withInt = $this->compiler->hash($sources, $this->typedSchema(['port' => 'int']), [], [], [], null);
+        $withString = $this->compiler->hash($sources, $this->typedSchema(['port' => 'string']), [], [], [], null);
+        $withNone = $this->compiler->hash($sources, $this->typedSchema([]), [], [], [], null);
+        $plain = $this->compiler->hash($sources, $this->plainSchema(), [], [], [], null);
+        $none = $this->compiler->hash($sources, null, [], [], [], null);
+
+        verify($withInt)->notEquals($withString);
+        verify($withInt)->notEquals($withNone);
+        verify($withNone)->notEquals($plain);
+        verify($plain)->notEquals($none);
+
+        // Stable for identical declarations.
+        verify($withInt)->equals(
+            $this->compiler->hash($sources, $this->typedSchema(['port' => 'int']), [], [], [], null),
+        );
+    }
+
+    public function testExecutionContextEnvironmentAndAttributesArePartOfTheKey(): void
+    {
+        $sources = [$this->sourceWith('/nonexistent-cfg/opaque.php')];
+
+        $none = $this->compiler->hash($sources, null, [], [], [], null);
+        $prod = $this->compiler->hash($sources, null, [], [], [], new ExecutionContext(environment: 'prod'));
+        $dev = $this->compiler->hash($sources, null, [], [], [], new ExecutionContext(environment: 'dev'));
+        $prodTenant = $this->compiler->hash(
+            $sources,
+            null,
+            [],
+            [],
+            [],
+            new ExecutionContext(environment: 'prod', attributes: ['tenant' => 'acme']),
+        );
+
+        verify($none)->notEquals($prod);
+        verify($prod)->notEquals($dev);
+        verify($prod)->notEquals($prodTenant);
+
+        verify($prod)->equals(
+            $this->compiler->hash($sources, null, [], [], [], new ExecutionContext(environment: 'prod')),
+        );
+    }
+
+    public function testPipelineComponentClassesArePartOfTheKey(): void
+    {
+        $sources = [$this->sourceWith('/nonexistent-cfg/opaque.php')];
+
+        $bare = $this->compiler->hash($sources, null, [], [], [], null);
+        $withReader = $this->compiler->hash($sources, null, [], [new FileReader()], [], null);
+        $withLoader = $this->compiler->hash($sources, null, [], [], [new PhpLoader()], null);
+        $withProcessor = $this->compiler->hash($sources, null, [new DefaultsProcessor([])], [], [], null);
+
+        verify(count(array_unique([$bare, $withReader, $withLoader, $withProcessor])))->equals(4);
+    }
+
+    public function testDiscoveryOrderDoesNotChangeTheKey(): void
+    {
+        $forward = [$this->sourceWith('/nonexistent-cfg/a.php'), $this->sourceWith('/nonexistent-cfg/b.php')];
+        $reverse = [$this->sourceWith('/nonexistent-cfg/b.php'), $this->sourceWith('/nonexistent-cfg/a.php')];
+
+        verify($this->compiler->hash($forward, null, [], [], [], null))
+            ->equals($this->compiler->hash($reverse, null, [], [], [], null))
+        ;
+    }
+
+    public function testEmptySourceSetStillProducesAStableKey(): void
+    {
+        $first = $this->compiler->hash([], null, [], [], [], null);
+        $second = $this->compiler->hash([], null, [], [], [], null);
+
+        verify($first)->equals($second);
+        verify(strlen($first))->equals(64);
+    }
+
+    /**
+     * @param array<string, string> $types
+     */
+    private function typedSchema(array $types): ConfigurationSchemaInterface
+    {
+        return new class ($types) implements ConfigurationSchemaInterface, DeclaresScalarTypesInterface {
+            /**
+             * @param array<string, string> $types
+             */
+            public function __construct(private array $types)
+            {
+            }
+
+            public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
+            {
+                return new ValidationResult(true);
+            }
+
+            /**
+             * @return array<string, string>
+             */
+            public function scalarTypes(): array
+            {
+                return $this->types;
+            }
+        };
+    }
+
+    private function plainSchema(): ConfigurationSchemaInterface
+    {
+        return new class () implements ConfigurationSchemaInterface {
+            public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
+            {
+                return new ValidationResult(true);
             }
         };
     }

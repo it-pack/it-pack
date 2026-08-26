@@ -34,6 +34,13 @@ class JsonLoaderTest extends Unit
 
         new JsonLoader()->load('{not json');
     }
+
+    public function testThrowsOnNonArrayJson(): void
+    {
+        $this->expectException(ParseException::class);
+
+        new JsonLoader()->load('"just a scalar"');
+    }
 }
 
 class PhpLoaderTest extends Unit

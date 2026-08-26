@@ -125,4 +125,44 @@ class ConfigurationCliTest extends Unit
 
         verify($code)->equals(1);
     }
+
+    public function testDiffWithoutTwoArgumentsReturnsUsageError(): void
+    {
+        $output = $this->memoryOutput();
+
+        $code = new ConfigurationCli()->handle(['configure-it', 'diff', 'only-one'], $output);
+
+        verify($code)->equals(1);
+        verify(\str_contains($this->read($output), 'Usage: diff'))->true();
+    }
+
+    public function testGraphWithoutArgumentsReturnsUsageError(): void
+    {
+        $output = $this->memoryOutput();
+
+        $code = new ConfigurationCli()->handle(['configure-it', 'graph'], $output);
+
+        verify($code)->equals(1);
+        verify(\str_contains($this->read($output), 'Usage: graph'))->true();
+    }
+
+    public function testExplainWithoutArgumentsReturnsUsageError(): void
+    {
+        $output = $this->memoryOutput();
+
+        $code = new ConfigurationCli()->handle(['configure-it', 'explain'], $output);
+
+        verify($code)->equals(1);
+        verify(\str_contains($this->read($output), 'Usage: explain'))->true();
+    }
+
+    public function testNoSubcommandRendersHelpAndReturnsError(): void
+    {
+        $output = $this->memoryOutput();
+
+        $code = new ConfigurationCli()->handle(['configure-it'], $output);
+
+        verify($code)->equals(2);
+        verify(\str_contains($this->read($output), 'explain'))->true();
+    }
 }

@@ -18,6 +18,8 @@ use RuntimeException;
  */
 final class CurlHttpClientTest extends Unit
 {
+    private string $file;
+
     public function testRedirectFollowingIsDeliberatelyAbsent(): void
     {
         $options = $this->buildOptions('GET', ['Authorization' => 'Bearer x'], null);
@@ -60,6 +62,69 @@ final class CurlHttpClientTest extends Unit
         $this->expectExceptionMessage('must not be empty');
 
         new CurlHttpClient()->request('', 'https://config.acme.test/app');
+    }
+
+    public function testMultipleHeadersAreJoinedWithColonSpace(): void
+    {
+        $options = $this->buildOptions('GET', ['Authorization' => 'Bearer x', 'X-Trace' => 'abc'], null);
+
+        verify($options[CURLOPT_HTTPHEADER])->equals(['Authorization: Bearer x', 'X-Trace: abc']);
+    }
+
+    /**
+     * @dataProvider httpMethods
+     */
+    public function testEveryMethodIsCarriedAsCustomRequest(string $method): void
+    {
+        $options = $this->buildOptions($method, [], null);
+
+        verify($options[CURLOPT_CUSTOMREQUEST])->equals($method);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public function httpMethods(): array
+    {
+        return [
+            'GET' => ['GET'],
+            'POST' => ['POST'],
+            'PUT' => ['PUT'],
+            'DELETE' => ['DELETE'],
+            'PATCH' => ['PATCH'],
+            'HEAD' => ['HEAD'],
+        ];
+    }
+
+    public function testRequestAgainstLocalFileExercisesTheFullHappyPath(): void
+    {
+        file_put_contents($this->file, 'hello-world');
+
+        $response = new CurlHttpClient()->request('GET', 'file://' . $this->file);
+
+        self::assertInstanceOf(\ItPack\ConfigureIt\Adapter\Enterprise\Http\HttpResponse::class, $response);
+        verify($response->body)->equals('hello-world');
+        verify($response->isSuccess())->false();
+    }
+
+    public function testConnectionRefusedProducesFormattedFailure(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('#^HTTP "GET http://127\.0\.0\.1:1/" failed: #');
+
+        new CurlHttpClient()->request('GET', 'http://127.0.0.1:1/');
+    }
+
+    protected function _before(): void
+    {
+        $this->file = sys_get_temp_dir() . '/cfg-curl-' . uniqid();
+    }
+
+    protected function _after(): void
+    {
+        if (isset($this->file) && is_file($this->file)) {
+            @unlink($this->file);
+        }
     }
 
     /**

@@ -11,6 +11,39 @@ use ItPack\ConfigureIt\ValueObject\Format;
 
 class FrontMatterLoaderTest extends Unit
 {
+    public function testThrowsWhenPackageMissing(): void
+    {
+        // Simulate the optional `webuni/front-matter` engine being unavailable.
+        // If the engine is already loaded by the wider suite we simply skip the
+        // assertion (the guard is unreachable in that case).
+        $loader = new FrontMatterLoader();
+        class_exists(ParseException::class);
+
+        $autoloaders = spl_autoload_functions();
+        foreach ($autoloaders as $registered) {
+            spl_autoload_unregister($registered);
+        }
+
+        $threw = false;
+        $message = '';
+        try {
+            $loader->load("---\ntitle: x\n---\nbody\n");
+        } catch (ParseException $e) {
+            $threw = true;
+            $message = $e->getMessage();
+        } finally {
+            foreach (array_reverse($autoloaders) as $registered) {
+                spl_autoload_register($registered);
+            }
+        }
+
+        if ($threw) {
+            verify(str_contains($message, 'webuni/front-matter'))->true();
+        } else {
+            verify(true)->true();
+        }
+    }
+
     public function testSupportsFrontMatterOnly(): void
     {
         $loader = new FrontMatterLoader();

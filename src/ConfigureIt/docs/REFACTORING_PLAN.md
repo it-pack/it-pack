@@ -338,6 +338,25 @@ work; mitigated by the per-file task table below (≈395 uncovered statements, i
 ### Docs
 CHANGELOG (tests); CONTRIBUTING: suite-placement rule; REVIEW: NV1, NV11 → Resolved.
 
+### Status
+
+✅ done (2026-08-26).
+
+- Coverage is now an enforced gate: `scripts/coverage_check.php` fails below 95 %
+  statements **and** elements; wired as `composer coverage:check`. `composer coverage`
+  runs `Unit,Integration`; `composer test:integration` runs the new Integration suite.
+- Suite split implemented: `tests/Integration.suite.yml` + `IntegrationTester`; the
+  stack-level tests `ConfigurationResolverTest`, `ConfigurationLoadersTest`,
+  `Wiring/DefaultConfigurationWiringTest` and the OTel reporter test (real sink) moved
+  out of Unit. Unit = one SUT + fakes; Integration = real collaborators.
+- Conformance verifiers seeded (RunIt-style, parameterized over implementations):
+  `tests/Integration/Conformance/CommandRunnerVerifierTest` and
+  `DecrypterVerifierTest`; binary adapters are skipped when their engine is absent.
+- New unit tests closed the zero-covered files and lifted the worst partials.
+- Final bar (per `composer coverage && composer coverage:check`):
+  **98.07 % statements / 97.35 % elements**; **889 tests** (868 Unit + 21 Integration);
+  `composer analyse` **0 errors** (PHPStan level 9); `composer cs:check` **0 files**.
+
 ---
 
 ## Milestone 4 — Mechanize the house style, then sweep
@@ -575,7 +594,7 @@ if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
 |---|-----------|------------------|------|--------|--------|
 | 1 | Transport & storage security hardening | NV2–NV6, NV17½ | M | M | ✅ Done (2026-08-26) |
 | 2 | Mutation testing online (Infection × Codeception adapter) | NV19 | L-M | S | ✅ Done (2026-08-26; MSI baseline pending CI) |
-| 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ⬜ Pending |
+| 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ✅ Done (2026-08-26) |
 | 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ⬜ Pending |
 | 5 | Contracts completion (no abstract, interfaces, vocabularies, R10) | NV7, NV8, NV13, NV16 | M | L | ⬜ Pending |
 | 6 | Composition-root & DI-policy purity | NV9, NV10 | M | M | ⬜ Pending |

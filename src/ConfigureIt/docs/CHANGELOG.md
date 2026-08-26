@@ -19,7 +19,41 @@ and `ROADMAP.md`).
     constraint as on RunIt).
   - Composer scripts `mutation` and `mutation:changed`
     (`--only-covering-test-cases --no-interaction`; the latter adds
-    `--git-diff-lines --ignore-msi-with-no-mutations` for cheap per-PR feedback).
+     `--git-diff-lines --ignore-msi-with-no-mutations` for cheap per-PR feedback).
+
+- **Milestone 3 — Coverage ≥ 95 % + suite split + conformance seeds (REVIEW NV1, NV11)**
+  - Coverage is now an enforced gate. `scripts/coverage_check.php` parses
+    `tests/_output/coverage.xml` (from `composer coverage`) and fails when covered
+    statements **or** elements fall below 95 % (methods reported informationally);
+    wired as `composer coverage:check`.
+  - Composer scripts: `test:integration` → `codecept run Integration`; `coverage`
+    now runs `Unit,Integration`; `coverage:check` runs the threshold script.
+  - **Suite split (Unit = one SUT + fakes; Integration = real collaborators):** added
+    `tests/Integration.suite.yml` + `tests/Support/IntegrationTester.php`; moved the
+    stack-level tests `ConfigurationResolverTest`, `ConfigurationLoadersTest`,
+    `Wiring/DefaultConfigurationWiringTest` and the OTel reporter test (real sink) out
+    of Unit into Integration.
+  - **Conformance verifiers (RunIt-style, parameterized over implementations):**
+    `tests/Integration/Conformance/CommandRunnerVerifierTest` and
+    `DecrypterVerifierTest` exercise the `CommandRunnerInterface` / `DecrypterInterface`
+    contracts; binary-dependent adapters (`age`, `sops`) are skipped when their engine
+    is absent.
+  - **New unit tests close the zero-covered files and lift the worst partials:**
+    `FileSystemDocumentCache`, `MessageFactory`/`Message`, `FeatureFlagSchema`,
+    `CreatableBehavior`, `ProcessorStage`, `ConfigurationDiff`, `DiagnosticsReport`,
+    `TypedSnapshot`, `Provenance`, `FlagDefinition`, `SemanticConventions`, `Schema`,
+    `Processor`, `ScalarCaster`, `RedactingRenderer`, `CastingProcessor`, `FsWatcher`,
+    `PollingWatcher`, `ReloadableConfiguration`, `ConfigurationDriftDetector`,
+    `IncludeProcessor`, `NativeConfigurationSchema`, `ConfigurationCompiler`,
+    `ConsulClient`, `EtcdClient`, `CurlHttpClient`, `VolumeReader`, `HttpReader`,
+    `RemoteJsonReader`, the loaders (Json/Toml/Yaml/Xml/FrontMatter/Php/Env),
+    `FileReader`, `CompositeReader`, `FileModificationProbe`,
+    `ConfigurationLoaderFactory`, `ConfigDtoHydrator`, `ConfigurationDocumentFactory`,
+    and the CLI commands `DiffCommand`/`GraphCommand`/`ExplainCommand`/`Output`/
+    `TempFileFactory`/`SchemaModelBuilder`.
+  - Coverage: **98.07 % statements / 97.35 % elements** (was 86.54 % / 84.44 %);
+    **889 tests** (868 Unit + 21 Integration), PHPStan level 9 **0 errors**,
+    `php-cs-fixer` **0 files to fix**.
 
 ### Security
 

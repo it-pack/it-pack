@@ -33,4 +33,11 @@ class YamlLoaderTest extends Unit
 
         new YamlLoader()->load("a: [unclosed\n");
     }
+
+    public function testThrowsOnNonArrayYaml(): void
+    {
+        $this->expectException(ParseException::class);
+
+        new YamlLoader()->load('just a scalar');
+    }
 }

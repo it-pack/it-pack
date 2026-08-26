@@ -52,4 +52,15 @@ class XmlLoaderTest extends Unit
 
         new XmlLoader()->load('<a><b></a>');
     }
+
+    public function testLoadsRootAttributesAlongsideChildren(): void
+    {
+        $document = new XmlLoader()->load('<root id="x"><child>v</child></root>');
+
+        verify($document->toArray())->equals([
+            'child' => 'v',
+            '@attributes' => ['id' => 'x'],
+        ]);
+        verify($document->format())->equals(Format::XML);
+    }
 }

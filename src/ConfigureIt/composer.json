@@ -37,7 +37,9 @@
     },
     "scripts": {
         "test:unit": "vendor/bin/codecept run Unit",
-        "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "coverage": "vendor/bin/codecept run Unit,Integration --coverage --coverage-xml --coverage-html",
+        "coverage:check": "php scripts/coverage_check.php",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "analyse": "vendor/bin/phpstan analyse",

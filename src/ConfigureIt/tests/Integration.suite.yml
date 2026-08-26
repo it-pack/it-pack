@@ -1,0 +1,11 @@
+# Codeception Test Suite Configuration
+#
+# Integration suite: stack-level tests that assemble multiple real adapters
+# (readers + loaders + schemas + clients) rather than a single SUT with fakes.
+# Unit = one SUT + fakes only; everything that wires real collaborators lives here.
+
+actor: IntegrationTester
+modules:
+    enabled:
+        - Asserts
+    step_decorators: ~

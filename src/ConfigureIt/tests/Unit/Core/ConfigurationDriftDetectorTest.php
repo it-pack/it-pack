@@ -149,4 +149,131 @@ class ConfigurationDriftDetectorTest extends Unit
         // diverged on the third check inside the loop.
         verify(\count($reporter->occurrences()))->equals(1);
     }
+
+    /**
+     * A steady divergence keeps answering "drifted" without re-emitting the
+     * occurrence: the short-circuit on an unchanged live hash replays the last
+     * verdict instead of re-diffing.
+     */
+    public function testUnchangedLiveGraphReplaysTheLastVerdictWithoutReporting(): void
+    {
+        $reporter = new ResolutionReporter();
+        $detector = new ConfigurationDriftDetector(
+            liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
+            baseline: self::graphA(),
+            reporter: $reporter,
+        );
+
+        verify($detector->check())->true();  // transition -> reported
+        verify($detector->check())->true();  // same hash -> replayed verdict
+        verify($detector->check())->true();
+
+        verify(\count($reporter->occurrences()))->equals(1);
+        verify(\count($reporter->observations()))->equals(1);
+    }
+
+    public function testUnchangedMatchingGraphKeepsAnsweringNoDrift(): void
+    {
+        $reporter = new ResolutionReporter();
+        $detector = new ConfigurationDriftDetector(
+            liveProvider: static fn (): ConfigurationGraphInterface => self::graphA(),
+            reporter: $reporter,
+        );
+
+        verify($detector->check())->false(); // pins the baseline
+        verify($detector->check())->false(); // unchanged hash -> replayed verdict
+        verify($detector->check())->false();
+
+        verify($reporter->occurrences())->equals([]);
+        verify($reporter->observations())->equals([]);
+    }
+
+    /**
+     * pin() re-anchors the baseline to whatever is live *now*, so a deliberate
+     * change is accepted instead of being reported as drift forever.
+     */
+    public function testPinRebaselinesTheLiveGraphAndClearsReportedDrift(): void
+    {
+        $reporter = new ResolutionReporter();
+        $live = self::graphA();
+
+        $detector = new ConfigurationDriftDetector(
+            liveProvider: static function () use (&$live): ConfigurationGraphInterface {
+                return $live;
+            },
+            baseline: self::graphA(),
+            reporter: $reporter,
+        );
+
+        $live = self::graphB();
+        verify($detector->check())->true();
+        verify(\count($reporter->occurrences()))->equals(1);
+
+        // Accept the new shape as the reference.
+        $detector->pin();
+
+        verify($detector->check())->false();
+        verify(\count($reporter->occurrences()))->equals(1);
+        // No "drift resolved" observation: the drift was pinned away, not undone.
+        verify(\count($reporter->observations()))->equals(1);
+    }
+
+    public function testPinBeforeAnyCheckMakesTheFirstCheckSilent(): void
+    {
+        $reporter = new ResolutionReporter();
+        $detector = new ConfigurationDriftDetector(
+            liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
+            reporter: $reporter,
+        );
+
+        $detector->pin();
+
+        verify($detector->check())->false();
+        verify($reporter->occurrences())->equals([]);
+        verify($reporter->observations())->equals([]);
+    }
+
+    public function testDriftIsDetectedWithoutAReporter(): void
+    {
+        $detector = new ConfigurationDriftDetector(
+            liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
+            baseline: self::graphA(),
+        );
+
+        $diffs = [];
+        $detector->onDrift(static function ($diff) use (&$diffs): void {
+            $diffs[] = $diff;
+        });
+
+        verify($detector->check())->true();
+        verify(\count($diffs))->equals(1);
+        verify($diffs[0]->empty())->false();
+    }
+
+    public function testDriftResolutionIsSilentWhenNoDriftWasEverReported(): void
+    {
+        $reporter = new ResolutionReporter();
+        $live = self::graphA();
+
+        $detector = new ConfigurationDriftDetector(
+            liveProvider: static function () use (&$live): ConfigurationGraphInterface {
+                return $live;
+            },
+            baseline: self::graphA(),
+            reporter: $reporter,
+        );
+
+        verify($detector->check())->false();
+
+        // A different-but-equivalent graph: the hash changes, the diff does not.
+        $live = new ConfigurationGraph([
+            self::node('b', 2, 'base.json', 11),
+            self::node('a', 1, 'base.json', 11),
+        ]);
+
+        verify($detector->check())->false();
+        verify($reporter->occurrences())->equals([]);
+        // Nothing was ever reported, so there is nothing to "resolve".
+        verify($reporter->observations())->equals([]);
+    }
 }
