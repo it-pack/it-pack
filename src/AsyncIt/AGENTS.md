@@ -454,15 +454,23 @@ Utility
 
 ## Vocabulary Alignment
 
-`vocab/run-it.ttl` is the canonical OWL vocabulary for the ItPack execution concepts that AsyncIt consumes (Execution, Context, Occurrence, Measurement, Observation, Snapshot). AsyncIt does not own these terms; it maps scheduler events into them.
+AsyncIt maintains its own RDF vocabulary, distinct from the execution-semantics vocabulary it consumes:
 
-When adding or materially changing a public scheduling contract, value object, serialized field, standard name, or its documentation, reference the corresponding vocabulary resource:
+- `vocab/async-it.ttl` — the **AsyncIt Scheduling Ontology** (OWL). The canonical source for AsyncIt-owned scheduling concepts: `Task`, `Scheduler`, `Awaitable`, `CancellationScope`, `Timer`, `TaskChannel`, `Poller`, `StreamPollHandle`, `RuntimeAdapter`, `CapabilityDescriptor`/`Capability`/`CapabilityStatus`, `ConformanceResult`/`ConformanceViolation`/`ViolationSeverity`, and their properties. Closed sets are modelled as controlled individuals (`TaskStatus`, `CapabilityStatus`, `ViolationSeverity`, `CapabilityKind`).
+- `vocab/async-it-taxonomy.ttl` — the **AsyncIt Scheduling Taxonomy** (SKOS). Extensible concept schemes for kinds and keys: `TaskKinds`, `CapabilityKeys`, `OccurrenceTypes`, `RuntimeAdapterKinds`, `PollerKinds`.
+- `vocab/run-it.ttl` (and `run-it-taxonomy.ttl`) — the **RunIt Execution Ontology/Taxonomy** that AsyncIt *consumes*. AsyncIt does not own terms like `Execution`, `Context`, `Occurrence`, `Measurement`, `Observation`, `Snapshot`; it maps scheduler events into them.
 
-- In implementation code, use a PHPDoc `@see` reference to the canonical term IRI where a corresponding term exists.
+During implementation, every public scheduling contract, enum, value object, serialized field, standard name, kind, capability key, or occurrence type **must** carry a PHPDoc `@see` to the matching vocabulary resource:
+
+- **Closed sets** (enums/interfaces such as `TaskStatus`, `CapabilityStatus`, `ViolationSeverity`, `CapabilityKind`) map to ontology controlled individuals — reference the individual IRI in `async-it.ttl` (e.g. `@see https://w3id.org/itpack/asyncit#TaskStatus`).
+- **Extensible kinds/keys/types** (task kinds, capability keys, scheduler occurrence types, adapter/poller kinds) map to taxonomy `skos:Concept` notations — reference the taxonomy concept (e.g. `@see https://w3id.org/itpack/asyncit/taxonomy#occ-task-spawned`).
+- **Consumed RunIt terms** carry `@see run-it#*` / `run-it-taxonomy#*` where AsyncIt maps onto them (e.g. `belongsToExecution` → `runit:Execution`).
+
+Rules:
+
 - In public documentation, link to the relevant local vocabulary file and, when useful, its canonical IRI or taxonomy scheme.
 - Keep the reference adjacent to the defining contract or concept; do not add RDF concerns to the runtime model or make the vocabulary a runtime dependency.
-
-If no suitable term exists, coordinate the addition with RunIt's vocabulary in the same change before using a new public term. Taxonomy entries are recommended and extensible unless the ontology explicitly defines them as a closed set.
+- If no suitable term exists, add the term to `vocab/async-it.ttl` (closed set) or `vocab/async-it-taxonomy.ttl` (extensible) in the same change before using a new public term, and reference it. Taxonomy entries are recommended and extensible unless the ontology explicitly defines them as a closed set.
 
 ---
 

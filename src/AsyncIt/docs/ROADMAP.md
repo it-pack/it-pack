@@ -54,6 +54,13 @@ Each rule lists its enforcement mechanism and the first milestone it is required
 - No `new` of adapter/concrete types outside `Factory`/`Builder` namespaces; classes receive factories via DI. **(M1, custom PHPStan rule + review)**
 - Vocabulary constants/enums live in interfaces; consumer code references the interface constant, never a literal. **(M1, PHPStan + CS)**
 
+### Vocabulary alignment (ontology & taxonomy)
+- AsyncIt owns `vocab/async-it.ttl` (OWL, closed sets) and `vocab/async-it-taxonomy.ttl` (SKOS, extensible kinds); it consumes `vocab/run-it.ttl` / `run-it-taxonomy.ttl`. Every public scheduling contract, enum, value object, serialized field, standard name, kind, capability key, or occurrence type **must** carry a PHPDoc `@see` to the matching IRI. **(M1, PHPStan + review)**
+- **Closed sets** (`TaskStatus`, `CapabilityStatus`, `ViolationSeverity`, `CapabilityKind`) map to ontology controlled individuals → reference the individual in `async-it.ttl` (e.g. `@see https://w3id.org/itpack/asyncit#TaskStatus`). **(M1)**
+- **Extensible kinds/keys/types** (`TaskKinds`, `CapabilityKeys`, scheduler `OccurrenceTypes`, `RuntimeAdapterKinds`, `PollerKinds`) map to taxonomy `skos:Concept` notations → reference the taxonomy concept (e.g. `@see https://w3id.org/itpack/asyncit/taxonomy#occ-task-spawned`). **(M1)**
+- **Consumed RunIt terms** (`Execution`, `Context`, `Occurrence`, `Measurement`, `Observation`, `Snapshot`) carry `@see run-it#*` / `run-it-taxonomy#*`. **(M1)**
+- New public terms without a matching vocabulary entry require adding the term to `async-it.ttl` (closed set) or `async-it-taxonomy.ttl` (extensible) in the same change before use. **(M1)**
+
 ### Modern PHP leverage
 - `readonly` for all value objects (descriptors, identities, statuses carrying data). **(M1)**
 - Enums for closed internal state sets (`TaskStatus`, `CapabilityStatus`, `ViolationSeverity`, nesting mode). **(M1)**
@@ -112,7 +119,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - [ ] Add `php-cs-fixer` rules for: 120-char limit, one-type-per-file, declaration order, no `else`/`elseif`, no Yoda, import ordering, `final`/`readonly` encouragement.
 - [ ] Add a custom PHPStan rule forbidding `new` outside `*\Factory\*` / `*\Builder\*` namespaces.
 - [ ] Create `src/Conformance/` skeleton mirroring RunIt: `Contract/PortFixtureInterface`, `Result/{ConformanceResult,ConformanceViolation,ViolationSeverity}`.
-- [ ] Add `@see run-it#*` vocabulary references where AsyncIt maps RunIt terms.
+- [ ] Add `@see` vocabulary references: `async-it#*` / `async-it-taxonomy#*` for AsyncIt-owned terms, and `run-it#*` / `run-it-taxonomy#*` where AsyncIt maps RunIt terms.
 
 **Gates:** `composer architecture` clean; CS + PHPStan baseline green; `src/Conformance/` compiles; no domain code yet.
 
@@ -123,7 +130,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 **Goal:** freeze the contract surface; stand up the verifier scaffold as *failing* tests; prove the rules compile.
 
 **Tasks**
-- [ ] Define vocabulary interfaces (constants/enums live here), e.g. `CapabilityVocabulary`, `TaskStatusVocabulary`, `ViolationVocabulary`.
+- [ ] Define vocabulary interfaces (constants/enums live here), e.g. `CapabilityVocabulary`, `TaskStatusVocabulary`, `ViolationVocabulary`. Each closed-set enum/interface carries a PHPDoc `@see` to its `async-it.ttl` individual; each extensible kind/key/occurrence type carries `@see` to its `async-it-taxonomy.ttl` concept.
 - [ ] `TaskStatus` enum (closed matrix) with `canTransitionTo()`; `TaskStatusInterface` exposes it.
 - [ ] `Task` domain entity (`final`, `readonly` where possible): `TaskId`, owning execution id, `CancellationScope` ref; `complete()` enforces the matrix (illegal → `InvalidLifecycleTransitionException`; conflicting terminal → `ConflictingCompletionException`). Idempotent same-status repeat handled by the coordinator.
 - [ ] `Scheduler` interface; `PollerPort` interface + `StreamPollHandle` value object; `CancellationScopeInterface`; `CapabilityDescriptor` (`readonly`); `RuntimeDiscovery` interface.
@@ -221,6 +228,15 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract\Port;
 
+/**
+ * Vocabulary constants for capability statuses.
+ *
+ * @see https://w3id.org/itpack/asyncit#CapabilityStatus
+ * @see https://w3id.org/itpack/asyncit#CapabilitySupported
+ * @see https://w3id.org/itpack/asyncit#CapabilityEmulated
+ * @see https://w3id.org/itpack/asyncit#CapabilityAdapterOnly
+ * @see https://w3id.org/itpack/asyncit#CapabilityUnavailable
+ */
 interface CapabilityVocabulary
 {
     public const STATUS_SUPPORTED = 'supported';
@@ -238,6 +254,11 @@ namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\Port\CapabilityVocabulary;
 
+/**
+ * Closed set of negotiated capability statuses.
+ *
+ * @see https://w3id.org/itpack/asyncit#CapabilityStatus
+ */
 enum CapabilityStatus: string
 {
     case Supported = CapabilityVocabulary::STATUS_SUPPORTED;
@@ -317,7 +338,7 @@ Note the absence of `else`, the early-return guard, `final` + interface, injecte
 - Coverage ≥95%, no cross-test leakage, Infection clean.
 - Every concrete class `final`, interface-backed, one type per file; no abstract classes; no `else`/Yoda/magic literals; vocabularies in interfaces; factories/builder-only instantiation via DI.
 - `examples/conformance/third-party-adapter.php` runs unmodified for each shipped adapter.
-- Docs (`README.md`, `AGENTS.md`, `BRAINSTORM.md`, `IMPLEMENTATION_PLAN.md`, this roadmap) reflect the built reality and reference `run-it#*` vocabulary.
+- Docs (`README.md`, `AGENTS.md`, `BRAINSTORM.md`, `IMPLEMENTATION_PLAN.md`, this roadmap) reflect the built reality; public contracts carry `@see` references to `async-it#*` / `async-it-taxonomy#*` (AsyncIt-owned) and `run-it#*` / `run-it-taxonomy#*` (consumed).
 
 ---
 
