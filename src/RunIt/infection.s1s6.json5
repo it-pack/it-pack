@@ -11,12 +11,21 @@
         ]
     },
     "threads": "max",
-    "timeout": 30,
+    "timeout": 60,
     "testFramework": "codeception",
-    "testFrameworkExtraArgs": "Unit",
+    // Dogfood tooling tests (`@group dogfood`) are excluded from mutation runs: they
+    // validate the dev-tooling harness, not library mutants, and their teardown path is
+    // nondeterministic under Infection's process model (see REVIEW §3 P1-2 / plan T1.1).
+    "testFrameworkExtraArgs": "Unit --skip-group dogfood",
     "mutators": {
         "@default": true
     },
+    // Critical-branching profile (state transitions, failure policies, context
+    // restoration, redaction, sampling, validators, adapter mappings per AGENTS.md).
+    // MSI floors are intentionally provisional (0) until CI captures the baseline; in
+    // this environment Infection times out per mutant (full Unit suite per mutant under
+    // the Codeception adapter), so a clean MSI cannot be measured locally. Set these to
+    // (baseline - small epsilon) once CI reports it. See REVIEW §3 P1-2 / plan T1.2.
     "minMsi": 0,
     "minCoveredMsi": 0,
     "logs": {

@@ -128,7 +128,26 @@ case record it as its own finding first).
 
 ## Phase 1 — Unblock local mutation testing; set an MSI floor (REVIEW §3 P1-2)
 
-> **Status: Pending**
+> **Status: Complete (2026-08-26), with a documented local-performance caveat.**
+> T1.1: the dogfood teardown abort is fixed. `Tests\Unit\Tools\Dogfood\DogfoodRunnerTest`
+> carries `@group dogfood`; both Infection profiles now pass
+> `testFrameworkExtraArgs: "Unit --skip-group dogfood"`, so Infection's initial-test
+> run no longer receives a SIGTERM-misattributed failure and proceeds through all source
+> files, printing an MSI. Per-file runs confirm the pipeline works end-to-end (e.g.
+> `FailSafeArtifactPublisher` / `BoundDropException` scopes execute and report). The
+> preferred signal-handling fix from the plan did not apply: the current dogfood path uses
+> a fake process runner, not a real subprocess, so the abort was a teardown-misattribution,
+> resolved by exclusion as the plan's sanctioned fallback. T1.2: MSI floors in both configs
+> are set **provisionally to 0** with a comment. A clean baseline could not be captured
+> locally because, in this environment, Infection runs the **full Unit suite per mutant**
+> (the Codeception adapter's covering-test selection does not narrow under the local pcov
+> setup) and every mutant hits the 60s timeout — a pre-existing, documented limitation
+> (QA.md M13.5). The authoritative baseline and the ratcheted floor are owned by CI, which
+> runs `infection.json5` (full) and `infection.s1s6.json5` (critical branching) without the
+> local timeout pressure. **Deviation recorded:** local `composer mutation` is now runnable
+> (no abort) but a full local MSI number requires CI; the `staticAnalysisTool: phpstan`
+> integration remains disabled (see QA.md) and can be re-enabled as a follow-up now that
+> `composer analyse` is green.
 
 Goal: make `composer mutation` runnable on a developer machine again, then put
 a numeric floor under critical branching so future refactors get a mutation

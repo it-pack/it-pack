@@ -375,15 +375,16 @@ The configuration (`infection.json5`) is finalized:
   (`testFrameworkExtraArgs: "Unit"`).
 - **Per-mutant execution** — the `mutation` / `mutation:changed` scripts pass
   `--only-covering-test-cases` so each mutant reruns only its covering Unit
-  tests instead of the full suite. This is essential: running the full 661-test
-  Unit suite per mutant exceeded Infection's timeout and produced mass timeouts.
+  tests instead of the full suite. This is essential: running the full Unit
+  suite per mutant exceeds Infection's timeout and produces mass timeouts.
 - **PHPStan integration** — intended as `staticAnalysisTool: phpstan` to kill
   escaped mutants that PHPStan can prove invalid (e.g. type errors), reducing
-  false escapes without new tests. It is **currently disabled** because the
-  repository's own `composer analyse` is red with 12 pre-existing errors
-  (see the M13.5 status audit in `docs/ROADMAP.md`). Infection aborts whenever
-  PHPStan reports any error, so the integration can only be re-enabled after
-  that debt is cleared. PHPStan still runs as a separate `composer analyse` gate.
+  false escapes without new tests. It is **currently disabled**. As of the
+  Phase 0 coverage work `composer analyse` is green (zero PHPStan errors across
+  `src` and `tests`), so the integration can be re-enabled in a follow-up; it is
+  left disabled here to keep local mutation runs stable and to avoid coupling the
+  mutation gate to PHPStan's per-mutant cost. PHPStan still runs as a separate
+  `composer analyse` gate.
 - **Coverage** — Infection auto-detects the `pcov` driver; the Unit suite is run
   once for initial coverage, then each mutant reruns only its covering tests.
 - **Mutators** — `@default` profile (the standard, non-risky mutator set).
@@ -409,7 +410,23 @@ Infection's initial-test run failed with `Class not found`. The five classes wer
 extracted into their own PSR-4-compliant files
 (`FakeExecutionRunner.php`, `NoopActivityRunner.php`, `NoopMeasurementRecorder.php`,
 `NoopOccurrenceRecorder.php`, `NoopSnapshotRecorder.php`), which unblocked the
-pipeline. The Unit suite remains green (661 tests).
+pipeline. The Unit suite remains green (813 tests / 829 across the shipped pipeline).
+
+### Dogfood teardown abort fixed (REVIEW §3 P1-2, plan T1.1)
+
+A second blocker prevented `composer mutation` from completing: Infection's
+initial-test run aborted on `Tests\Unit\Tools\Dogfood\DogfoodRunnerTest` (the
+`runit.dogfood.fail` scenario). The Codeception subprocess receives a SIGTERM
+during teardown and `Codeception\Subscriber\GracefulTermination` converts it into a
+bare `RuntimeException` ("TESTS EXECUTION TERMINATED"), which Infection attributes to
+the in-flight test and aborts before any mutant runs. The dogfood tests exercise the
+dev-tooling harness, not library mutants, so they are excluded from both Infection
+profiles via `@group dogfood` + `testFrameworkExtraArgs: "Unit --skip-group dogfood"`
+(see `infection.json5` / `infection.s1s6.json5`). After this change Infection processes
+all source files and prints an MSI; the full-profile run is still CI-scoped because the
+Codeception adapter runs the full Unit suite per mutant in this environment (each
+mutant times out), so a clean local MSI cannot be captured here — the baseline is owned
+by CI.
 
 ### Reviewing escaped mutants
 
