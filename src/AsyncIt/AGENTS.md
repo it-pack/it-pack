@@ -2,11 +2,13 @@
 
 ## Purpose
 
-This file guides AI coding agents working on **RunIt** (`it-pack/run-it`).
+This file guides AI coding agents working on **AsyncIt** (`it-pack/async-it`).
 
-RunIt provides the vendor-neutral execution model and runtime backbone for the ItPack ecosystem.
+AsyncIt provides the portable, capability-oriented **scheduling and progression engine** for the ItPack ecosystem. It defines *how* work progresses within an execution, strictly decoupled from operating-system multiplexers, polling engines, vendor runtimes, and telemetry frameworks.
 
-Use these instructions when implementing, reviewing, refactoring, testing, or documenting the project. Keep changes small, explicit, and consistent with the execution model.
+AsyncIt is the **Scheduling/Progress tier** of the ItPack execution stack and is designed to be the canonical implementation of RunIt's `ExecutionEngineInterface`. It consumes RunIt's execution model (identity, immutable context, artifacts) and never redefines it.
+
+Use these instructions when implementing, reviewing, refactoring, testing, or documenting the project. Keep changes small, explicit, and consistent with the execution model and the architectural decisions recorded under `docs/background/`.
 
 ---
 
@@ -29,37 +31,43 @@ Do not silently resolve significant ambiguity. State the issue and request clari
 
 ## Project Mission
 
-RunIt models **execution itself**:
+AsyncIt models **the progression of work**:
 
 ```text
-Execution
-├── Context
-├── Activity
-├── Measurement
-├── Observation
-├── Occurrence
-└── Snapshot
+Execution (RunIt owns identity & semantics)
+└── Scheduling (AsyncIt owns progression)
+    ├── Task
+    ├── Scheduler
+    ├── Awaiting
+    ├── Suspension / Resumption
+    ├── Synchronization
+    └── Cancellation
 ```
 
 The governing principles are:
 
-> Everything happens within an execution.  
-> Execution carries context.  
-> Activities perform work.  
-> Measurements quantify work.  
-> Observations describe work.  
-> Occurrences record work.  
-> Snapshots preserve work.
+> Everything happens within an execution (RunIt).  
+> AsyncIt moves work forward, it does not define what an execution is.  
+> Polling is not scheduling; scheduling is not execution semantics.  
+> Capabilities are negotiated, never assumed from vendor names.  
+> Cancellation is an observed state change, not a preemptive kill.  
+> Context is immutable and must never leak across concurrent tasks.
+
+AsyncIt enforces a strict mechanical split that keeps higher tiers (Spindle, AExO, RunIt) durable across engine evolution:
+
+```text
+Semantics (RunIt)  ≠  Scheduling (AsyncIt)  ≠  Polling (Engine / Io\Poll)
+```
 
 External technologies implement or transport parts of this model:
 
-- OpenTelemetry is an adapter.
-- CloudEvents is an adapter.
-- PSR-3 is an adapter.
-- PSR-14 is an adapter.
-- Swoole and OpenSwoole are runtime adapters.
+- PHP 8.1+ Fibers are the unit of suspended work.
+- PHP 8.6 `Io\Poll` is a poll provider (an adapter slot), not a scheduler.
+- Revolt, Swoole, and Swow are runtime adapters.
+- RunIt is the execution-semantics backbone (consumed, not reimplemented).
+- OpenTelemetry / CloudEvents / PSR-3 / PSR-14 are telemetry adapters in the broader stack.
 
-Never redefine RunIt domain semantics in terms of an external standard.
+Never redefine RunIt domain semantics in terms of an external runtime or async engine.
 
 ---
 
@@ -67,15 +75,15 @@ Never redefine RunIt domain semantics in terms of an external standard.
 
 Before making architectural changes, read the smallest relevant set of:
 
-1. `EXECUTION.md`
-2. `README.md`
-3. Relevant files under `docs/architecture/`
-4. Relevant Architecture Decision Records under `docs/adr/`
-5. Public contracts under `src/Contract/`
-6. Tests covering the affected behavior
-7. `composer.json`
-8. `deptrac.yaml`
-9. `phpstan.neon.dist`
+1. `docs/EXECUTION.md` (shared ItPack execution model).
+2. `README.md`.
+3. `docs/background/` — briefing docs, capability spec, and ADRs (`adr-AI-001`, `adr-itp-002`).
+4. Public contracts under `src/Contract/` and ports under `src/Contract/Port/`.
+5. The conformance harness under `src/Conformance/` (`AsyncRuntimeVerifier`).
+6. Tests covering the affected behavior.
+7. `composer.json`.
+8. `deptrac.yaml`.
+9. `phpstan.neon` / `phpstan-bleeding-edge.neon`.
 
 If a listed file does not exist, do not invent its contents. Use the available sources and mention the missing artifact when it blocks the task.
 
@@ -93,12 +101,13 @@ Agents with any context-window size should work incrementally.
 2. Inspect the requested area and its immediate dependencies.
 3. Find existing contracts, implementations, tests, and documentation.
 4. Identify whether the change affects:
-    - Domain semantics.
+    - Scheduling semantics.
     - Public API.
+    - Capability negotiation.
     - Serialization.
     - Adapter mapping.
-    - Security.
-    - Performance.
+    - Security (context isolation / handle leaks).
+    - Performance (scheduler hot path).
     - Backward compatibility.
 5. Form a short implementation plan.
 
@@ -124,11 +133,11 @@ Do not load the entire repository unless the task genuinely requires it.
 
 If context is limited, prioritize correctness in this order:
 
-1. Domain invariants.
+1. Scheduling invariants (lifecycle, cancellation, context isolation).
 2. Public contracts.
-3. Tests.
-4. Security.
-5. Architecture boundaries.
+3. Tests (especially conformance assertions).
+4. Security (no request leakage, no handle leaks).
+5. Architecture boundaries (DepTrac).
 6. Documentation.
 7. Internal cleanup.
 
@@ -136,18 +145,19 @@ If context is limited, prioritize correctness in this order:
 
 ## Architectural Boundaries
 
-RunIt uses hexagonal ports-and-adapters architecture.
+AsyncIt uses hexagonal ports-and-adapters architecture. AsyncIt is itself an **infrastructure port** under RunIt's semantic backbone: it occupies the scheduling slot that RunIt's `ExecutionEngineInterface` reserves.
 
 ```text
-SDK / Consumer Adapters
+SDK / Consumer Adapters (Revolt, Swoole, Swow, Native Poller)
           │
           ▼
-Application
+Application (Scheduler, Runtime Discovery)
           │
           ▼
-Domain
+Domain (Task, Timer, Channel, Cancellation, Await)
 
 Infrastructure Adapters ──► Ports ◄── Application
+        (pollers, runtime bindings)
 ```
 
 Expected dependency direction:
@@ -156,35 +166,34 @@ Expected dependency direction:
 Domain       → Contracts
 Application  → Contracts, Domain, Ports
 SDK          → Contracts, Domain, Application, Ports
-Adapters     → Contracts, Domain, Ports, external APIs
+Adapters     → Contracts, Domain, Ports, external runtimes
+Conformance  → Contracts, Domain, Application, SDK, Adapters
 ```
 
 ### Domain must not depend on
 
 - Application services.
 - SDK conveniences.
-- Infrastructure adapters.
-- OpenTelemetry.
-- CloudEvents.
-- PSR interfaces.
+- Infrastructure adapters (Revolt, Swoole, Swow, poller backends).
+- RunIt semantics implementation (it consumes RunIt contracts/ports only).
+- OpenTelemetry, CloudEvents, PSR interfaces.
 - Frameworks.
-- Swoole or OpenSwoole.
-- Containers.
-- Filesystems.
-- Network clients.
+- Swoole/Swow/Revolt process models.
+- Containers or global state.
+- Filesystems or network clients (beyond poll-provider contracts).
 
 ### Application must not depend on
 
 - SDK facades.
-- Concrete external adapters.
+- Concrete external runtime adapters.
 - Framework service providers.
-- Vendor-specific telemetry implementations.
+- Vendor-specific scheduling implementations.
 
 ### Adapter rules
 
-Adapters may translate RunIt concepts but must not change their meaning.
+Adapters may translate runtime concepts (coroutine suspension, poller readiness) but must not change AsyncIt scheduling semantics.
 
-Keep mapping logic inside the relevant adapter. Do not add vendor-specific fields to core domain objects solely to satisfy an adapter.
+Keep mapping logic inside the relevant adapter. Do not add vendor-specific fields to core domain objects solely to satisfy a runtime.
 
 DepTrac rules are architectural requirements, not optional style guidance.
 
@@ -194,65 +203,67 @@ DepTrac rules are architectural requirements, not optional style guidance.
 
 Preserve these invariants unless an accepted ADR explicitly changes them.
 
-### Execution
+### Polling ≠ Scheduling ≠ Semantics
 
-- An execution represents one logical runtime operation.
-- Every artifact belongs to exactly one execution.
-- An execution has at most one terminal outcome.
-- Terminal executions cannot transition again.
-- Nested executions use explicit parent or link identities.
-- Ownership is represented by identity and relationships, not mandatory in-memory collections.
+- The poll provider (`Io\Poll`, `stream_select` fallback, etc.) only signals resource readiness.
+- AsyncIt owns task queues, timers, Fiber suspension/resumption, and cancellation mechanics.
+- RunIt owns execution identity, context, and artifacts.
+- Adapters must slot cleanly: changing the poll backend never changes scheduling behavior or semantics.
 
-### Context
+### Task
 
-- Execution context is immutable.
-- Changes produce a new context.
-- Context values have explicit classification and propagation policy.
-- Secret values are never exported.
-- Ambient context is convenience infrastructure, not the canonical domain API.
-- Global mutable execution state is prohibited.
+- A task is the micro-unit of scheduled work within an execution.
+- A task is distinct from the engine's internal Fiber; a task wraps a Fiber.
+- A task belongs to exactly one execution.
+- An execution may contain many tasks coordinated via the scheduler.
+- A task has at most one terminal outcome.
+- Terminal tasks cannot transition again.
+- Nested/structured tasks use explicit parent or link identities.
 
-### Activity
+### Scheduling
 
-- Activities are bounded units of work.
-- An activity belongs to one execution.
-- A nested activity references its parent activity explicitly.
-- A completed activity cannot be reopened.
-- Open activities must be resolved according to an explicit completion policy.
+- Schedulers coordinate task queues, priority, and Fiber suspension/resumption.
+- Suspension detaches the active RunIt context from the Fiber scope.
+- Resumption re-attaches the matching context before continuing.
+- Schedulers never forcibly kill a running Fiber.
 
-### Measurement
+### Awaiting
 
-- Measurements are quantitative.
-- Each measurement has a name, numeric value, and unit.
-- High-cardinality values must not become metric dimensions by default.
-- Duration uses monotonic time.
+- Awaiting yields control while waiting for a resource, without blocking the reactor.
+- Await boundaries (e.g., awaitReadable, delay) are the cooperation points where cancellation is observed.
+- Await resolution must release any OS-level poll handles it registered.
 
-### Observation
+### Suspension & Resumption (Fiber-Safe Context)
 
-- Observations are qualitative.
-- Prefer stable message templates and structured attributes.
-- Throwable data must be safely normalized.
-- Observations must not become occurrences merely because they are important.
+- Context is immutable (RunIt owns it; AsyncIt consumes it via `ContextStorageInterface`).
+- On suspension, the context is detached and locked away from the ambient Fiber scope.
+- While suspended, the task's context is not ambient and cannot be read by interleaved tasks.
+- On resumption, the exact context is re-attached via a `finally` guard.
+- Global mutable scheduling state is prohibited.
 
-### Occurrence
+### Synchronization
 
-- Occurrences are immutable facts.
-- Occurrence types are stable, lowercase, and versioned.
-- Occurrence types are independent of PHP class names.
-- CloudEvents is a representation of occurrences, not their domain definition.
+- Channels and other coordination primitives may be native or emulated, negotiated by capability.
+- Synchronization must remain bounded and must not introduce hidden global state.
 
-### Snapshot
+### Observed Cooperative Cancellation
 
-- Snapshots are immutable.
-- Snapshot serialization is explicit and deterministic.
-- Arbitrary PHP object serialization is prohibited.
-- Snapshot persistence is delegated to a port.
+- Cancellation and timeout are observed state changes, not preemptive interruptions.
+- A running task checks its cancellation status at cooperation points and unwinds gracefully.
+- On cancellation, a task must explicitly release OS-level file watchers (`StreamPollHandle`) back to the poll context.
+- Conflicting terminal transitions (e.g., succeeding an already `timed_out` task) raise a `ConflictingCompletionException`.
+- In structured concurrency, cancellation cascades from parent to children unless explicitly detached.
+
+### Time
+
+- Durations and timers use monotonic clocks (`hrtime()`), never wall-clock time.
+- Telemetry derived from scheduling (durations) must be free of wall-clock skew.
 
 ---
 
-## Execution Lifecycle
+## Task Lifecycle
 
-Preserve the execution state machine:
+Preserve the task state machine:
 
 ```text
 CREATED
@@ -273,15 +284,15 @@ Lifecycle behavior must be:
 - Safe during exceptions.
 - Testable without external infrastructure.
 
-When an operation throws:
+When a task throws:
 
-1. Record failure safely.
-2. Resolve active activities according to policy.
-3. Complete the execution as failed.
+1. Record failure safely (publish a RunIt Occurrence/Observation via the publication port).
+2. Release poll handles and timers.
+3. Complete the task as failed.
 4. Restore prior context in `finally`.
 5. Rethrow the original `Throwable`.
 
-A telemetry or adapter exception must not replace the original business exception.
+A runtime or adapter exception must not replace the original business exception.
 
 ---
 
@@ -302,7 +313,7 @@ declare(strict_types=1);
 - Every concrete class must be `final`.
 - Use `readonly` whenever controlled mutation is unnecessary.
 - Every concrete class must implement an appropriate interface.
-- Exceptions must implement the relevant RunIt exception marker interface.
+- Exceptions must implement the relevant AsyncIt exception marker interface.
 - Prefer composition over inheritance.
 - Keep interfaces small and focused.
 - Do not create interfaces solely to duplicate another interface without semantic value.
@@ -315,11 +326,11 @@ declare(strict_types=1);
 - Avoid implicit `mixed`.
 - Add PHPDoc generics where native PHP cannot express a relationship.
 - Do not use PHPDoc to contradict native types.
-- Use dedicated value objects for identifiers, names, units, and validated concepts.
+- Use dedicated value objects for identifiers, names, units, capability keys, and validated concepts.
 - Use `null` for optional values.
 - Use property hooks for value objects and back them with respective contracts.
 - Prefer extensible validated strings over closed enums for user-defined names and kinds.
-- Use enums for genuinely closed internal state sets.
+- Use enums for genuinely closed internal state sets (e.g., task lifecycle states, capability statuses).
 - Ensure interfaces only depend on interfaces/traits and no concrete classes.
 - Use `never` for exceptions that should never be thrown.
 - Use `object` for untyped objects.
@@ -330,7 +341,7 @@ declare(strict_types=1);
 - Use `bool` for untyped booleans.
 - Use `resource` for untyped resources.
 - Use `callable` for untyped callables.
-- Use Stringable for untyped stringable objects.
+- Use `Stringable` for untyped stringable objects.
 - Use `iterable` for untyped iterable objects.
 - Use `Traversable` for untyped traversable objects.
 - Use `Generator` for untyped generator objects.
@@ -347,9 +358,9 @@ Use modern features only when they improve clarity:
 
 - Property hooks for clear validation or computed properties.
 - Virtual properties for intentional projections.
-- Lazy objects for expensive optional infrastructure.
-- Fibers through runtime adapters.
-- `WeakMap` for object-keyed, non-owning runtime associations.
+- Lazy objects for expensive optional runtime adapters.
+- Fibers through runtime adapters for task suspension.
+- `WeakMap` for object-keyed, non-owning runtime associations (e.g., per-task metadata).
 - `WeakReference` only where correctness does not depend on object lifetime.
 
 Do not use a language feature merely because it is available.
@@ -358,7 +369,7 @@ Do not use a language feature merely because it is available.
 
 ## API Design
 
-RunIt is a library and SDK for both ItPack and third-party consumers.
+AsyncIt is a library and SDK for both ItPack and third-party consumers.
 
 Public APIs must be:
 
@@ -372,15 +383,15 @@ Public APIs must be:
 
 ### Prefer
 
-- Interfaces at architectural boundaries.
+- Interfaces at architectural boundaries (Task, Scheduler, Poller, RuntimeAdapter).
 - Immutable definitions and artifacts.
-- Named constructors.
-- Factories for infrastructure assembly.
-- Immutable builders for ergonomic configuration.
+- Named constructors (e.g., capability descriptors, discovery results).
+- Factories for runtime/adapter assembly (`RuntimeDiscovery`).
+- Immutable builders for ergonomic scheduling configuration.
 - Decorators for non-intrusive instrumentation.
 - Explicit scope arguments.
-- Narrow recorder interfaces.
-- Ports for time, identity, serialization, publication, and storage.
+- Narrow recorder/publisher interfaces.
+- Ports for time (monotonic clock), identity, context storage, publication, and polling.
 
 ### Avoid
 
@@ -389,11 +400,11 @@ Public APIs must be:
 - Hidden container access.
 - Mandatory inheritance.
 - Reflection on hot paths.
-- Generic “manager” or “helper” classes.
+- Generic "manager" or "helper" classes.
 - Large configuration arrays without typed builders.
 - Boolean parameters with unclear meaning.
-- Public APIs coupled to one adapter.
-- Proprietary promises or schedulers.
+- Public APIs coupled to one runtime adapter.
+- Proprietary promises or schedulers that bypass the contract.
 
 Do not add a public extension point until there is a concrete consumer or adapter use case.
 
@@ -405,109 +416,93 @@ Use domain terminology consistently:
 
 | Use | Avoid as a synonym |
 |---|---|
-| Execution | Trace, transaction, request |
-| Activity | Span, operation step |
-| Measurement | Metric value |
-| Observation | Log |
-| Occurrence | Event |
-| Snapshot | Serialized result |
-| Context | Baggage, metadata bag |
+| Task | Span, coroutine, job |
+| Scheduler | Event loop, reactor |
+| Awaiting | Wait, sleep |
+| Poller | Event loop, multiplexer |
+| Cancellation | Kill, abort |
+| Suspension | Pause, stop |
+| Execution (RunIt) | Trace, transaction, request |
+| Context (RunIt) | Baggage, metadata bag |
 
-Adapter documentation may explain mappings, but core APIs must retain RunIt vocabulary.
+Adapter documentation may explain runtime mappings, but core APIs must retain AsyncIt vocabulary.
 
 Names should communicate one responsibility:
 
 ```text
-ExecutionRunner
-ActivityRunner
-ArtifactPublisher
-ContextStorage
-SamplingPolicy
-Redactor
-SnapshotStore
+RuntimeDiscovery
+CapabilityDescriptor
+TaskScheduler
+PollerPort
+StreamPollHandle
+CancellationContext
+TaskChannel
+AsyncRuntimeVerifier
 ```
 
 Avoid vague names such as:
 
 ```text
-ExecutionManager
-TelemetryHelper
-DataProcessor
+AsyncManager
+SchedulerHelper
+RuntimeProcessor
 CommonService
 Utility
 ```
 
+---
+
 ## Vocabulary Alignment
 
-`vocab/run-it.ttl` is the canonical OWL vocabulary for RunIt domain concepts.
-`vocab/run-it-taxonomy.ttl` is the companion SKOS taxonomy for extensible kinds,
-context keys, occurrence types, and other recommended controlled values.
+`vocab/run-it.ttl` is the canonical OWL vocabulary for the ItPack execution concepts that AsyncIt consumes (Execution, Context, Occurrence, Measurement, Observation, Snapshot). AsyncIt does not own these terms; it maps scheduler events into them.
 
-When adding or materially changing a public domain contract, value object,
-serialized field, standard name, kind, context key, occurrence type, or its
-documentation, reference the corresponding vocabulary resource:
+When adding or materially changing a public scheduling contract, value object, serialized field, standard name, or its documentation, reference the corresponding vocabulary resource:
 
-- In implementation code, use a PHPDoc `@see` reference to the canonical term
-  IRI where a corresponding term exists.
-- In public documentation, link to the relevant local vocabulary file and,
-  when useful, its canonical IRI or taxonomy scheme.
-- Keep the reference adjacent to the defining contract or concept; do not add
-  RDF concerns to the runtime model or make the vocabulary a runtime dependency.
+- In implementation code, use a PHPDoc `@see` reference to the canonical term IRI where a corresponding term exists.
+- In public documentation, link to the relevant local vocabulary file and, when useful, its canonical IRI or taxonomy scheme.
+- Keep the reference adjacent to the defining contract or concept; do not add RDF concerns to the runtime model or make the vocabulary a runtime dependency.
 
-If no suitable term exists, add or revise the vocabulary and its documentation
-in the same change before using a new public term. Taxonomy entries are
-recommended and extensible unless the ontology explicitly defines them as a
-closed set.
+If no suitable term exists, coordinate the addition with RunIt's vocabulary in the same change before using a new public term. Taxonomy entries are recommended and extensible unless the ontology explicitly defines them as a closed set.
 
 ---
 
 ## External Adapter Rules
 
-### OpenTelemetry
+### Runtime Adapters (Revolt, Swoole, Swow, Native 8.6, Select fallback)
 
-- Keep OpenTelemetry dependencies optional.
-- Library code must not configure global providers.
-- Do not select an exporter from core code.
-- Map executions and activities without equating them to traces and spans.
-- Apply redaction and cardinality controls before export.
-- Test mapping with in-memory providers or exporters.
-- Preserve original execution identities where possible.
-
-### CloudEvents
-
-- Map occurrences through a dedicated mapper.
-- Preserve unknown extension attributes when reading events.
-- Validate required attributes.
-- Keep event data serialization explicit.
-- Do not export unrestricted execution context.
-- Provide bidirectional mapping tests.
-
-### PSR-3
-
-- Map observations to logger messages and context.
-- Keep message templates stable.
-- Put the throwable under the expected exception context key where appropriate.
-- Do not turn every log into an occurrence.
-
-### PSR-14
-
-- Account for synchronous dispatch and listener exceptions.
-- Apply the configured publication failure policy.
-- Do not allow PSR event mutability to mutate immutable RunIt occurrences.
-
-### Swoole, OpenSwoole, and Fibers
-
-- Store context per Fiber or coroutine.
-- Never store request context in process-global mutable state.
+- Negotiate capabilities at the process boundary; never branch on `extension_loaded(...)`.
+- Map suspension/resumption to the runtime's coroutine or Fiber model without changing AsyncIt semantics.
+- Store context per Fiber/coroutine; never store request context in process-global mutable state.
 - Restore or clear context in `finally`.
-- Test repeated executions in persistent workers.
+- On terminal transition, release every registered poll handle and timer.
 - Keep runtime-specific APIs out of domain and application contracts.
+
+### Polling (Io\Poll and SelectPoller)
+
+- `Io\Poll` is a readiness notifier only; it does not manage tasks, timers, or Fiber lifecycles.
+- `SelectPoller` is a reference/development fallback honoring the same behavioral contract within the legacy `stream_select` descriptor ceiling.
+- The fallback must never pretend to be the native Poll API; it is an AsyncIt poller implementation with weaker characteristics.
+- Adapter slots must allow the poll backend to change without touching scheduling or semantics.
+
+### Capability Negotiation
+
+- Query functional questions: *"Can you run Fibers natively? Do you support edge-triggered polling? Do you have native channels?"*
+- Categorize each capability as `Supported`, `Emulated`, `Adapter-Only`, or `Unavailable`.
+- The resulting `CapabilityDescriptor` is the single source of truth for the active environment.
+- Never guess performance characteristics; select scheduling policy from the negotiated descriptor.
+
+### RunIt Integration
+
+- Publish scheduler events (task spawn, resume, complete) as RunIt Occurrences.
+- Record task durations (monotonic) as RunIt Measurements.
+- Record anomalies as RunIt Observations.
+- Consume RunIt's `ContextStorageInterface` for fiber-safe context; never invent a parallel context system.
 
 ---
 
 ## Publication and Failure Policy
 
-Artifact publication follows this conceptual pipeline:
+Scheduler artifacts are published into the RunIt artifact stream through a port. Publication follows this conceptual pipeline:
 
 ```text
 Validation
@@ -521,7 +516,7 @@ Validation
 
 Requirements:
 
-- Redact before external publication.
+- Redact before external publication (context classification is owned by RunIt).
 - Bound buffers and queues.
 - Define overflow behavior.
 - Prevent recursive publication.
@@ -537,65 +532,63 @@ Never catch and silently discard a publication failure without applying the conf
 
 ## Security Requirements
 
-Treat context, observations, occurrences, and snapshots as potential data-exfiltration paths.
+Treat context propagation, poll handles, and scheduler state as potential data-exfiltration and resource-exhaustion paths.
 
 Do not:
 
-- Export secrets.
-- Capture all environment variables.
-- Serialize arbitrary objects.
-- Export unlimited stack traces.
-- Create unbounded attributes or payloads.
-- Use user-controlled values as metric names.
-- Use high-cardinality values as metric dimensions by default.
+- Export secrets (classification is owned by RunIt; AsyncIt must respect deny-by-default).
 - Retain execution context between persistent-worker requests.
+- Leak `StreamPollHandle` or timer descriptors across task boundaries.
+- Use global or static state for request-specific scheduling metadata.
+- Serialize arbitrary objects as scheduling state.
+- Create unbounded queues, channels, or payloads.
+- Use user-controlled values as metric names.
 
 When adding fields or mappings, consider:
 
-1. Classification.
+1. Classification (delegated to RunIt context model).
 2. Redaction.
 3. Maximum size.
 4. Cardinality.
 5. Serialization safety.
-6. Tenant isolation.
+6. Tenant isolation (persistent-worker request leakage).
 7. Propagation boundaries.
 
-Security-sensitive behavior requires negative tests.
+Security-sensitive behavior requires negative tests (e.g., context-bleed, handle-leak).
 
 ---
 
 ## Performance Requirements
 
-Assume execution and activity APIs may run on hot paths.
+Assume scheduler and await boundaries may run on hot paths.
 
 Avoid:
 
-- Network or filesystem operations in core services.
+- Network or filesystem operations in core scheduling services.
 - Reflection during normal execution.
 - Eager serialization.
 - Eager stack-trace generation.
-- Retaining all artifacts by default.
+- Retaining all task artifacts by default.
 - Unbounded recursion, nesting, or buffering.
-- Per-artifact initialization of expensive adapters.
+- Per-task initialization of expensive adapters.
 
 Prefer:
 
-- Monotonic clocks for durations.
+- Monotonic clocks for durations (`hrtime()`).
 - Deferred normalization.
-- Streaming publication.
-- Reusable immutable mappers and policies.
 - Bounded buffering.
+- Reusable immutable mappers and policies.
 - Sampling and filtering before expensive work.
+- Negotiated capability selection over runtime probing.
 
 Performance changes require benchmarks when they affect:
 
-- Execution start or completion.
-- Activity start or completion.
-- Context storage.
-- Artifact creation.
+- Task spawn or completion.
+- Fiber suspension or resumption.
+- Scheduler queue throughput.
+- Poll-handle registration/teardown.
 - Publication.
 - Serialization.
-- Fiber or coroutine switching.
 
 Do not claim a performance improvement without measurements.
 
@@ -603,37 +596,47 @@ Do not claim a performance improvement without measurements.
 
 ## Self-Instrumentation
 
-RunIt should use its own model for operational activities, but it must not recursively observe publication.
+AsyncIt should publish its operational activity into RunIt artifacts, but it must not recursively observe publication.
 
 Preserve these rules:
 
 - Use a publication recursion guard.
 - Send nested publication failures to a separate health reporter.
 - Do not route health reporting back through the failing publisher.
-- Instrument exporter batches or flushes rather than every internal method.
-- Keep the bootstrap path intentionally uninstrumented.
+- Instrument batch/flush boundaries rather than every internal scheduler method.
+- Keep the bootstrap and discovery path intentionally uninstrumented.
 - Avoid self-instrumentation that materially changes hot-path behavior.
 
 ---
 
 ## Testing Requirements
 
-Every behavior change requires tests at the narrowest appropriate level.
+Every behavior change requires tests at the narrowest appropriate level. Conformance is proven by **behavior**, not by interface shape alone.
 
 ### Test categories
 
 - Domain invariant tests.
-- Lifecycle tests.
-- Application service tests.
-- Port contract tests.
-- Adapter integration tests.
-- Serialization round-trip tests.
+- Task lifecycle tests.
+- Application service tests (scheduler, discovery).
+- Port contract tests (clock, context storage, poller, publication).
+- Adapter integration tests (Revolt, Swoole, Swow, Native, Select).
+- Serialization round-trip tests (capability descriptors, task state).
 - Failure-injection tests.
 - Property-based tests where useful.
 - Fiber or coroutine isolation tests.
 - Persistent-worker leak tests.
 - Mutation tests for critical branching.
 - Benchmarks for hot-path changes.
+
+### Conformance (AsyncRuntimeVerifier)
+
+Adapters are valid only when they pass the `AsyncRuntimeVerifier` suite. Mandatory assertions:
+
+- **Assertion A — Context Isolation:** Interleave concurrent tasks and prove zero context bleed across suspension/resumption cycles (detach at yield, re-attach on resume).
+- **Assertion B — Temporal Precision:** Verify monotonic-clock integration; durations must be free of wall-clock skew.
+- **Assertion C — Deterministic Cleanup:** Prove no dangling watchers; every `StreamPollHandle` and timer is released immediately after timeout or cancellation.
+
+A single leaked descriptor or one context-bleed is a conformance failure.
 
 ### Test-framework neutrality
 
@@ -653,16 +656,15 @@ Always test relevant combinations of:
 
 - Success.
 - Original operation failure.
-- Adapter failure.
-- Nested execution.
-- Nested activities.
-- Context restoration.
-- Repeated completion.
-- Cancellation or timeout.
-- Redaction.
-- Buffer overflow.
+- Adapter/poller failure.
+- Nested/structured tasks.
+- Context restoration (detach/re-attach).
+- Repeated completion (idempotent terminal transition).
+- Cancellation and timeout (observed, cooperative).
+- Conflicting completion (`ConflictingCompletionException`).
+- Handle/poll-descriptor overflow.
 - Recursive publication.
-- Concurrency isolation.
+- Concurrency isolation (persistent-worker leakage).
 
 A test should verify observable behavior, not private implementation details.
 
@@ -716,10 +718,10 @@ Do not assume these scripts exist. Verify them first.
 Prioritize mutation coverage for:
 
 - State transitions.
-- Failure policies.
+- Cancellation and timeout handling.
 - Context restoration.
-- Redaction.
-- Sampling.
+- Handle cleanup.
+- Capability selection.
 - Validators.
 - Adapter mappings.
 
@@ -730,11 +732,11 @@ Prioritize mutation coverage for:
 Update documentation when changing:
 
 - Public APIs.
-- Domain semantics.
-- Lifecycle behavior.
-- Context fields.
+- Scheduling semantics.
+- Task lifecycle behavior.
+- Context propagation mechanics.
 - Serialization.
-- Occurrence naming.
+- Capability naming.
 - Adapter mappings.
 - Failure policy.
 - Security defaults.
@@ -747,11 +749,11 @@ Examples must:
 - Include `declare(strict_types=1)`.
 - Be minimal but executable where practical.
 - Avoid imaginary framework setup.
-- Demonstrate RunIt terminology rather than adapter terminology.
+- Demonstrate AsyncIt terminology rather than runtime/adapter terminology.
 
-Create or update an ADR when a change affects:
+Create or update an ADR (under `docs/background/`) when a change affects:
 
-- Aggregate boundaries.
+- Aggregate boundaries (Task, Scheduler).
 - Dependency direction.
 - Public extension points.
 - Lifecycle semantics.
@@ -769,11 +771,11 @@ Before `1.0.0`, breaking changes may be necessary but must be deliberate and doc
 
 After `1.0.0`, treat these as compatibility-sensitive:
 
-- Public interfaces and signatures.
-- Public classes and enums.
+- Public interfaces and signatures (Task, Scheduler, PollerPort, RuntimeAdapter).
+- Public classes and enums (task states, capability statuses).
 - Artifact normalization fields.
-- Serialized schemas marked stable.
-- Occurrence type conventions.
+- Serialized schemas marked stable (capability descriptors).
+- Capability type conventions.
 - Adapter extension contracts.
 - Exception types exposed to consumers.
 
@@ -789,10 +791,10 @@ Prefer introducing a new focused interface and composing it into new APIs.
 
 - Solve the requested problem directly.
 - Reuse established domain language.
-- Add tests before or with behavior changes.
+- Add tests (including conformance assertions) before or with behavior changes.
 - Preserve original exceptions.
-- Keep adapters optional.
-- Use ports for external effects.
+- Keep adapters optional and capability-negotiated.
+- Use ports for external effects (clock, context storage, polling, publication).
 - Explain non-obvious decisions.
 - Update affected documentation.
 
@@ -800,7 +802,7 @@ Prefer introducing a new focused interface and composing it into new APIs.
 
 - Rewrite unrelated code.
 - Add dependencies without justification.
-- introduce a framework requirement.
+- Introduce a framework requirement.
 - Introduce global mutable state.
 - Expose adapter types from domain contracts.
 - Add speculative abstractions.
@@ -817,14 +819,14 @@ Prefer introducing a new focused interface and composing it into new APIs.
 
 Request clarification before proceeding when:
 
-- `EXECUTION.md`, an ADR, and public code disagree materially.
+- `docs/EXECUTION.md`, an ADR, and public code disagree materially.
 - A change would break a stable public contract.
 - Required security or data-classification behavior is unknown.
-- Delivery guarantees are unclear.
+- Delivery guarantees (at-most-once, ordering) are unclear.
 - A new dependency or package split is required.
-- The task requires choosing between incompatible execution semantics.
+- The task requires choosing between incompatible scheduling semantics.
 - Existing tests encode contradictory behavior.
-- The requested change would couple the domain to an external adapter.
+- The requested change would couple the domain to an external runtime adapter.
 - Required project files or specifications are missing.
 
 If clarification is unavailable, present:
@@ -855,18 +857,21 @@ Do not include large code dumps when the changes already exist in the working tr
 
 Before considering a change complete, verify:
 
-- [ ] The change follows the RunIt execution vocabulary.
-- [ ] Domain semantics remain vendor-neutral.
-- [ ] Dependency direction is correct.
+- [ ] The change follows the AsyncIt scheduling vocabulary (Task, Scheduler, Poller, Cancellation).
+- [ ] Polling, scheduling, and execution semantics remain cleanly separated.
+- [ ] Capabilities are negotiated, not assumed from vendor names.
+- [ ] Dependency direction is correct (DepTrac).
 - [ ] Concrete classes are `final`.
 - [ ] Eligible classes are `readonly`.
 - [ ] Concrete classes implement appropriate interfaces.
-- [ ] Context and artifacts remain immutable.
+- [ ] Context remains immutable and is detached/re-attached around suspension.
+- [ ] Cancellation is observed, never preemptive.
+- [ ] Poll handles and timers are released on terminal transition.
 - [ ] Original business exceptions are preserved.
 - [ ] External effects use ports.
-- [ ] Sensitive data is classified and redacted.
+- [ ] Sensitive data is classified and redacted (via RunIt context model).
 - [ ] Buffers, payloads, and cardinality are bounded.
-- [ ] Relevant tests were added or updated.
+- [ ] Relevant conformance assertions (A/B/C) pass or were extended.
 - [ ] Architecture and static-analysis checks pass where available.
 - [ ] Documentation reflects public behavior.
 - [ ] No unrelated changes were introduced.

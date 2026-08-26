@@ -40,3 +40,4 @@ packages/
 # deptrac
 /.deptrac.cache
 .deptrac.cache
+/docs/INITIAL_BRIEFING.md
