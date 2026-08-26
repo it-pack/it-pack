@@ -6,6 +6,21 @@ and `ROADMAP.md`).
 
 ## [Unreleased]
 
+### Added
+
+- **Milestone 2 — Mutation testing wired onto Codeception (REVIEW NV19)**
+  - `infection/codeception-adapter` (dev, v0.4.7) — Infection now drives
+    `codecept run Unit` through the published adapter, mirroring the sibling `RunIt`
+    setup. Codeception remains the only test framework; no test files were touched.
+  - `infection.json5` — `testFramework: codeception`, suite passed via
+    `testFrameworkExtraArgs: "Unit"`, `@default` mutators, logs in `var/infection.*`;
+    `minMsi` / `minCoveredMsi` provisional at 0 until a CI baseline exists (locally the
+    adapter runs the full Unit suite per mutant under this pcov setup — same documented
+    constraint as on RunIt).
+  - Composer scripts `mutation` and `mutation:changed`
+    (`--only-covering-test-cases --no-interaction`; the latter adds
+    `--git-diff-lines --ignore-msi-with-no-mutations` for cheap per-PR feedback).
+
 ### Security
 
 - **Milestone 1 — Secure transport & storage defaults (REVIEW NV2–NV6, NV17; ADR-0011)**

@@ -191,62 +191,78 @@ PORTS.md: `RemoteKeyValueClient` TLS/auth recipe; ADR-000X “Secure transport d
 
 ---
 
-## Milestone 2 — Test harness modernization → mutation testing online
+## Milestone 2 — Mutation testing online (Infection × Codeception adapter)
 
-**Goal:** make the suite runnable by plain PHPUnit so Infection works, configure Infection,
-and publish a first measured MSI baseline. This unlocks mutation-driven verification for
-every later milestone.
+**Goal:** make mutation testing a first-class, repeatable gate **without changing the test
+framework**: Codeception stays the only test runner, unit tests stay on
+`Codeception\Test\Unit`, and `composer test:unit` remains untouched. Infection drives
+Codeception through its published adapter package — the exact strategy already proven in
+the sibling project `RunIt`.
 
-**Findings:** NV19 (M). **Branch:** `refactor/mutation-harness`. **Risk:** L-M — wide but
-mechanical; zero behavior code touched.
+> **Framework decision (binding):** substituting PHPUnit for Codeception was evaluated and
+> **rejected** — it would rewrite ~73 test files for tooling reasons alone. An initial
+> investigation concluded Infection could not drive Codeception because
+> `infection/li-adapter` is unpublished; that conclusion was **wrong in one respect**: the
+> maintained package is `infection/codeception-adapter` (0.4.x, verified installable), used
+> productively by `RunIt`. This milestone adopts it verbatim-in-spirit instead of building
+> house tooling.
+
+**Findings:** NV19 (M). **Branch:** `refactor/mutation-harness`. **Risk:** L-M — dev-only
+tooling; zero production-code or test-file changes.
 
 ### Tasks
 
-1. **Decouple leaf tests from Codeception (mechanical, ~70 files)**
-   - Audit first: `rg -l "Codeception\\\\Test\\\\Unit" tests/Unit` (70 files);
-     confirm no actor usage (`rg -n "\\\$this->tester|\\\$I->" tests/Unit` → 0 today).
-   - Per file: `use Codeception\Test\Unit;` → `use PHPUnit\Framework\TestCase;`,
-     `_before()` → `setUp(): void` (+ `parent::setUp()`), `_after()` → `tearDown(): void`
-     (+ `parent::tearDown()`). `Codeception\Verify` (`verify()->...`) and `Codeception\Stub`
-     keep working — they are standalone libraries independent of the runner.
-   - Scriptable via targeted `sed`; review the diff per directory rather than blind-replace.
-   - Codeception keeps running these files natively (it executes PHPUnit-based tests),
-     so `composer test:unit` is unchanged.
+1. **Install the adapter:** `composer require --dev infection/codeception-adapter:^0.4 -W`.
+   It registers itself through the already-enabled `infection/extension-installer`
+   plugin, so `--test-framework=codeception` becomes fully functional.
+2. **Add `infection.json5`** mirroring RunIt's configuration, adapted to this repo:
+   `source.directories: ["src"]`, `threads: "max"`, `timeout: 60`,
+   `"testFramework": "codeception"`, `"testFrameworkExtraArgs": "Unit"` (suite passed
+   through to `codecept run`), `@default` mutators, logs at
+   `var/infection.log` + `var/infection.summary.json` (`var/` is gitignored).
+3. **Composer scripts** (RunIt parity):
+   - `"mutation"` → `vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction`
+   - `"mutation:changed"` → same plus `--git-diff-lines --ignore-msi-with-no-mutations`
+     for cheap per-PR feedback.
+4. **Known local constraint (documented on RunIt, applies here too):** under this
+   environment's pcov setup the adapter executes the full Unit suite per mutant —
+   covering-test selection does not narrow locally — so mutants can time out and a clean
+   full-profile MSI is not measurable on this machine. Therefore:
+   - `minMsi` / `minCoveredMsi` stay **provisional at 0**, with an inline comment
+     explaining why;
+   - validate wiring locally with a **scoped spike config** (e.g. `var/infection.spike.json5`
+     limiting `source` to one small directory, deleted after validation — `var/` is ignored);
+   - capture the authoritative full-profile baseline in CI, then raise both floors to
+     `(baseline − small ε)` in a follow-up commit.
+5. **Guard rails:** no thresholds enforced until the CI baseline exists; unit tests and
+   `codeception.yml` must remain byte-identical throughout.
 
-2. **Plain-PHPUnit entry point**
-   - Add `phpunit.xml.dist` (suite = `tests/Unit`, bootstrap = `vendor/autoload.php`,
-     colors, `failOnWarning`). Verify: `vendor/bin/phpunit --testsuite Unit` green.
-
-3. **Infection configuration**
-   - Add `infection.json5`:
-     ```json5
-     {
-         "$schema": "vendor/infection/infection/resources/schema.json",
-         "source": { "directories": ["src"] },
-         "timeout": 20,
-         "logs": { "text": "tests/_output/infection.log", "summary": "tests/_output/infection.summary.json" },
-         "mutators": { "@default": true }
-     }
-     ```
-   - Add `"mutation": "vendor/bin/infection --threads=max --no-progress"` to composer.
-   - First run records the baseline MSI into the PR description (expect a low number —
-     that is the point of measuring it; the five 0 %-covered files will dominate).
-
-4. **Guard rails**
-   - Do **not** set thresholds yet — thresholds land in Milestone 3 once coverage holes
-     stop dominating the score. Note the staged plan in `infection.json5` comments.
-
-### Gates
+### Acceptance
 
 | Gate | Expected |
 |------|----------|
-| `vendor/bin/phpunit` | green (same count as `composer test:unit`) |
-| `composer test:unit` | green, unchanged 276+ tests |
-| `composer mutation` | completes; baseline MSI recorded in docs |
-| `composer analyse` / `cs:check` | untouched, green |
+| `rg -c "Codeception\\Test\\Unit" tests/Unit -g "*.php"` | unchanged (73 files — untouched) |
+| Spike run (`--configuration=var/infection.spike.json5 …`) | initial tests pass through the adapter; mutants generated & classified; report written |
+| `composer test:unit` | green with unchanged counts |
+| `composer cs:check` / `composer analyse` | untouched, green |
 
 ### Docs
-CHANGELOG (tooling); CONTRIBUTING.md: how to run plain phpunit + infection locally.
+
+CHANGELOG `[Unreleased] → Added`; CONTRIBUTING.md: how to run `composer mutation` /
+`mutation:changed` and read `var/infection.log`; REVIEW NV19 → Resolved (leveraged);
+this plan's status/register update.
+
+### Status
+
+✅ done (2026-08-26).
+
+- `infection/codeception-adapter` **v0.4.7** installed (dev); `infection.json5` +
+  `mutation` / `mutation:changed` scripts added exactly as specified above.
+- Local spike (scoped to `src/ValueObject`) validated the pipeline end-to-end: the
+  adapter drove `codecept run Unit`, the initial pass was green, mutants were generated
+  and classified — see the milestone PR for the captured output.
+- Full-profile MSI remains **pending CI** per the documented local constraint; floors
+  stay at 0 until that baseline lands (identical posture to RunIt).
 
 ---
 
@@ -558,7 +574,7 @@ if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
 | # | Milestone | Findings retired | Risk | Effort | Status |
 |---|-----------|------------------|------|--------|--------|
 | 1 | Transport & storage security hardening | NV2–NV6, NV17½ | M | M | ✅ Done (2026-08-26) |
-| 2 | Mutation harness (PHPUnit decoupling + Infection) | NV19 | L-M | M | ⬜ Pending |
+| 2 | Mutation testing online (Infection × Codeception adapter) | NV19 | L-M | S | ✅ Done (2026-08-26; MSI baseline pending CI) |
 | 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ⬜ Pending |
 | 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ⬜ Pending |
 | 5 | Contracts completion (no abstract, interfaces, vocabularies, R10) | NV7, NV8, NV13, NV16 | M | L | ⬜ Pending |
@@ -582,3 +598,6 @@ from 5.1). Milestone 1 is independent — start immediately.
 - **Performance benchmarking** — `phpbench` is installed but no benchmarks exist;
   scheduling benchmarks is premature until the caching/watcher features show real-world
   load. The M1 timeout work is the only performance-adjacent change.
+- **Upstream watch:** if Infection ships native Codeception support (its `li-adapter`
+  slot is currently unpublished on Packagist — verified 2026-08-26), evaluate migrating
+  the Milestone-2 harness onto it and retiring the house tooling.
