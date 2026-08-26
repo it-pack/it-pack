@@ -8,6 +8,8 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Mapper\DefaultCancellationMapper;
 use ItPack\RunIt\Application\Mapper\DefaultTimeoutMapper;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
 use ItPack\RunIt\Domain\Execution\Cancellation;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -65,11 +67,14 @@ final class TimeoutCancellationLifecycleTest extends Unit
         );
     }
 
-    private function completeRunningExecution(\ItPack\RunIt\Contract\Domain\ExecutionResultInterface $failure): \ItPack\RunIt\Contract\Domain\ExecutionInterface
+    private function completeRunningExecution(ExecutionResultInterface $failure): ExecutionInterface
     {
         $running = Execution::start(
             ExecutionId::fromString('exec-ttl'),
-            ExecutionDefinition::create(ExecutionName::fromString('worker.iteration'), ExecutionKind::fromString('worker')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('worker.iteration'),
+                ExecutionKind::fromString('worker')
+            ),
             Instant::of(1000),
         );
 

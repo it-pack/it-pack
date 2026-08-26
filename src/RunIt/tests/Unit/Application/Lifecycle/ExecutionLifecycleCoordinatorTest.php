@@ -33,7 +33,11 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testCreatedMayTransitionToRunning(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $created = Execution::create(ExecutionId::fromString('exec-1'), ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')), Instant::of(1));
+        $created = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            Instant::of(1)
+        );
         self::assertSame(ExecutionStatus::Created, $created->status());
 
         $running = $coordinator->start($created);
@@ -53,7 +57,10 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testRunningToFailedIsAllowed(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $result = ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'boom', 0, null, null));
+        $result = ExecutionFailure::of(
+            ExecutionStatus::Failed,
+            ThrowableDescription::create('X', 'boom', 0, null, null)
+        );
         $completed = $coordinator->transition($this->running(), $result, Instant::of(2000));
 
         self::assertSame(ExecutionStatus::Failed, $completed->status());
@@ -62,7 +69,10 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testRunningToCancelledIsAllowed(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $result = ExecutionFailure::of(ExecutionStatus::Cancelled, ThrowableDescription::create('X', 'cancelled', 0, null, null));
+        $result = ExecutionFailure::of(
+            ExecutionStatus::Cancelled,
+            ThrowableDescription::create('X', 'cancelled', 0, null, null)
+        );
         $completed = $coordinator->transition($this->running(), $result, Instant::of(2000));
 
         self::assertSame(ExecutionStatus::Cancelled, $completed->status());
@@ -71,7 +81,10 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testRunningToTimedOutIsAllowed(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $result = ExecutionFailure::of(ExecutionStatus::TimedOut, ThrowableDescription::create('X', 'timeout', 0, null, null));
+        $result = ExecutionFailure::of(
+            ExecutionStatus::TimedOut,
+            ThrowableDescription::create('X', 'timeout', 0, null, null)
+        );
         $completed = $coordinator->transition($this->running(), $result, Instant::of(2000));
 
         self::assertSame(ExecutionStatus::TimedOut, $completed->status());
@@ -80,8 +93,15 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testCreatedMayTransitionToCancelled(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $created = Execution::create(ExecutionId::fromString('exec-3'), ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')), Instant::of(1));
-        $result = ExecutionFailure::of(ExecutionStatus::Cancelled, ThrowableDescription::create('X', 'cancelled', 0, null, null));
+        $created = Execution::create(
+            ExecutionId::fromString('exec-3'),
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            Instant::of(1)
+        );
+        $result = ExecutionFailure::of(
+            ExecutionStatus::Cancelled,
+            ThrowableDescription::create('X', 'cancelled', 0, null, null)
+        );
         $completed = $coordinator->transition($created, $result, Instant::of(2));
 
         self::assertSame(ExecutionStatus::Cancelled, $completed->status());
@@ -94,7 +114,11 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
 
         $this->expectException(ConflictingCompletionException::class);
         // A terminal execution cannot transition to a different terminal status.
-        $coordinator->transition($completed, ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, null, null)), Instant::of(3000));
+        $coordinator->transition(
+            $completed,
+            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, null, null)),
+            Instant::of(3000)
+        );
     }
 
     public function testRepeatedSameCompletionIsIdempotent(): void
@@ -112,7 +136,11 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         $succeeded = $coordinator->transition($this->running(), ExecutionSuccess::create(), Instant::of(2000));
 
         $this->expectException(ConflictingCompletionException::class);
-        $coordinator->transition($succeeded, ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, null, null)), Instant::of(3000));
+        $coordinator->transition(
+            $succeeded,
+            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, null, null)),
+            Instant::of(3000)
+        );
     }
 
     public function testIllegalTransitionRejected(): void
@@ -121,7 +149,11 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
 
         $this->expectException(InvalidLifecycleTransitionException::class);
         // created -> succeeded is illegal because it skips running
-        $created = Execution::create(ExecutionId::fromString('exec-2'), ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')), Instant::of(1));
+        $created = Execution::create(
+            ExecutionId::fromString('exec-2'),
+            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            Instant::of(1)
+        );
         $coordinator->transition($created, ExecutionSuccess::create(), Instant::of(2));
     }
     public function testTransitionMatrix(): void
@@ -130,20 +162,40 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
 
         // From Created only Running is allowed.
         self::assertTrue(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Created, ExecutionStatus::Running));
-        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Created, ExecutionStatus::Succeeded));
+        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(
+            ExecutionStatus::Created,
+            ExecutionStatus::Succeeded
+        ));
 
         // From Running every terminal outcome is allowed.
-        foreach ([ExecutionStatus::Succeeded, ExecutionStatus::Failed, ExecutionStatus::Cancelled, ExecutionStatus::TimedOut] as $terminal) {
-            self::assertTrue(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Running, $terminal), $terminal->label());
+        foreach ([
+            ExecutionStatus::Succeeded,
+            ExecutionStatus::Failed,
+            ExecutionStatus::Cancelled,
+            ExecutionStatus::TimedOut,
+        ] as $terminal) {
+            self::assertTrue(
+                ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Running, $terminal),
+                $terminal->label()
+            );
         }
 
         // Terminal statuses cannot transition further.
-        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Succeeded, ExecutionStatus::Failed));
-        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Failed, ExecutionStatus::Succeeded));
+        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(
+            ExecutionStatus::Succeeded,
+            ExecutionStatus::Failed
+        ));
+        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(
+            ExecutionStatus::Failed,
+            ExecutionStatus::Succeeded
+        ));
 
         // The matrix excludes idempotent repeats: they are coordinator no-ops,
         // not transitions. transition() still treats them as idempotent.
-        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Succeeded, ExecutionStatus::Succeeded));
+        self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(
+            ExecutionStatus::Succeeded,
+            ExecutionStatus::Succeeded
+        ));
         self::assertFalse(ExecutionLifecycleCoordinator::isAllowed(ExecutionStatus::Failed, ExecutionStatus::Failed));
 
         $terminal = Execution::start(
@@ -151,7 +203,11 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             Instant::of(1),
         )->complete(ExecutionSuccess::create(), Instant::of(2));
-        self::assertSame($terminal, $coordinator->transition($terminal, ExecutionSuccess::create(), Instant::of(3)), 'same-status repeat is an idempotent no-op');
+        self::assertSame(
+            $terminal,
+            $coordinator->transition($terminal, ExecutionSuccess::create(), Instant::of(3)),
+            'same-status repeat is an idempotent no-op'
+        );
     }
 
 }

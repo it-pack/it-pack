@@ -82,7 +82,11 @@ final class MeasurementTest extends Unit
                 \ItPack\RunIt\Domain\Execution\ExecutionName::fromString('units'),
                 \ItPack\RunIt\Domain\Execution\ExecutionKind::fromString('task'),
             ),
-            static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope) use ($kit, &$sizes, &$ratios): void {
+            static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope) use (
+                $kit,
+                &$sizes,
+                &$ratios
+            ): void {
                 $scope->measurements()->size('payload', 2048);
                 $scope->measurements()->ratio('hit_rate', 0.75);
 

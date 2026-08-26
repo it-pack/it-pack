@@ -42,7 +42,10 @@ final class SamplingTest extends Unit
             }
         };
 
-        self::assertFalse($policy->sample($idless), 'an id-less artifact keys on an empty string and follows the inner policy');
+        self::assertFalse(
+            $policy->sample($idless),
+            'an id-less artifact keys on an empty string and follows the inner policy'
+        );
     }
 
     private function observation(string $severity = 'info', string $execution = 'exec-1'): ExecutionArtifactInterface

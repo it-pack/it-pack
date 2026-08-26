@@ -88,8 +88,10 @@ final class OccurrenceEventTest extends Unit
             /** @var list<\Throwable> */
             private array $errors = [];
 
-            public function handle(\Throwable $error, \ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface $artifact): void
-            {
+            public function handle(
+                \Throwable $error,
+                \ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface $artifact
+            ): void {
                 $this->errors[] = $error;
             }
 

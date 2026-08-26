@@ -98,12 +98,20 @@ final class FiberContextStorageTest extends Unit
         $outerScope = null;
 
         $outer = new \Fiber(function () use ($kit, &$outerId, &$innerId, &$outerScope): void {
-            $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use ($kit, &$outerId, &$innerId, &$outerScope): void {
+            $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use (
+                $kit,
+                &$outerId,
+                &$innerId,
+                &$outerScope
+            ): void {
                 $outerId = $scope->execution()->id()->toString();
                 $outerScope = $scope;
 
                 $inner = new \Fiber(static function () use ($kit, &$innerId): void {
-                    $kit->runner->run(ExecutionDefinition::create(ExecutionName::fromString('inner'), ExecutionKind::fromString('fiber')), static function (ExecutionScopeInterface $scope) use (&$innerId): void {
+                    $kit->runner->run(ExecutionDefinition::create(
+                        ExecutionName::fromString('inner'),
+                        ExecutionKind::fromString('fiber')
+                    ), static function (ExecutionScopeInterface $scope) use (&$innerId): void {
                         $innerId = $scope->execution()->id()->toString();
                     });
                 });
@@ -145,7 +153,10 @@ final class FiberContextStorageTest extends Unit
 
         $fiber = new \Fiber(function () use ($storage): void {
             $kit = new RunItTestKit(storage: $storage);
-            $kit->runner->run(ExecutionDefinition::create(ExecutionName::fromString('fiber'), ExecutionKind::fromString('fiber')), static fn (): null => null);
+            $kit->runner->run(ExecutionDefinition::create(
+                ExecutionName::fromString('fiber'),
+                ExecutionKind::fromString('fiber')
+            ), static fn (): null => null);
         });
         $fiber->start();
 

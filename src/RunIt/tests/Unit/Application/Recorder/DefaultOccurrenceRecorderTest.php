@@ -97,7 +97,10 @@ final class DefaultOccurrenceRecorderTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) {
                 $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
+                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                        ActivityName::fromString('load'),
+                        ActivityKind::fromString('io')
+                    ),
                     function ($activityScope) {
                         $activityScope->occurrences()->record(
                             OccurrenceType::fromString('itpack.thing.done.v1'),

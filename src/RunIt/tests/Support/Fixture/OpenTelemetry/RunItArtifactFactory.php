@@ -150,15 +150,96 @@ final class RunItArtifactFactory
         $attributesCollection = AttributeCollection::fromArray($attributes);
 
         return match ($severity) {
-            'debug' => Observation::debug(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'info' => Observation::info(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'notice' => Observation::notice(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'warning' => Observation::warning(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'error' => Observation::error(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'critical' => Observation::critical(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'alert' => Observation::alert(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            'emergency' => Observation::emergency(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
-            default => Observation::debug(ObservationId::fromString($id), ExecutionId::fromString($executionId), $message, $activityIdValue, null, $attributesCollection, null, Instant::of(1_800)),
+            'debug' => Observation::debug(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'info' => Observation::info(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'notice' => Observation::notice(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'warning' => Observation::warning(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'error' => Observation::error(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'critical' => Observation::critical(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'alert' => Observation::alert(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            'emergency' => Observation::emergency(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
+            default => Observation::debug(
+                ObservationId::fromString($id),
+                ExecutionId::fromString($executionId),
+                $message,
+                $activityIdValue,
+                null,
+                $attributesCollection,
+                null,
+                Instant::of(1_800)
+            ),
         };
     }
 

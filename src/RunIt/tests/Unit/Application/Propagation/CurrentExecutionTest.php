@@ -38,7 +38,11 @@ final class CurrentExecutionTest extends Unit
         $storage = new StackContextStorage();
         $current = new CurrentExecution($storage);
         $scope = $kit->buildScope(
-            Execution::start(ExecutionId::fromString('exec-1'), ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')), Instant::of(1)),
+            Execution::start(
+                ExecutionId::fromString('exec-1'),
+                ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+                Instant::of(1)
+            ),
             \ItPack\RunIt\Domain\Context\ExecutionContext::empty(),
         );
 

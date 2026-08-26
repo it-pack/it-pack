@@ -20,5 +20,8 @@ use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
  */
 interface NestedExecutionPolicyInterface
 {
-    public function resolve(?ExecutionScopeInterface $current, ExecutionDefinitionInterface $definition): NestedExecutionMode;
+    public function resolve(
+        ?ExecutionScopeInterface $current,
+        ExecutionDefinitionInterface $definition
+    ): NestedExecutionMode;
 }

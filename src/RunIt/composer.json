@@ -92,6 +92,7 @@
         "analyse": "vendor/bin/phpstan analyse",
         "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
         "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
+        "lint:length": "php tools/lint/line-length.php",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction",
         "mutation:p0": "vendor/bin/infection --configuration=infection.s1s6.json5 --only-covering-test-cases --no-interaction",
@@ -104,6 +105,7 @@
             "@cs:check",
             "@analyse",
             "@architecture",
+            "@lint:length",
             "@test",
             "@security:audit"
         ]

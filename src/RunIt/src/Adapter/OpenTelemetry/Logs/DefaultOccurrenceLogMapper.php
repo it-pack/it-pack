@@ -64,7 +64,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         foreach ($occurrence->extensionAttributes() as $key => $value) {
-            if ($this->occurrenceLogAttributeAllowList !== [] && !in_array($key, $this->occurrenceLogAttributeAllowList, true)) {
+            if ($this->occurrenceLogAttributeAllowList !== []
+                && !in_array($key, $this->occurrenceLogAttributeAllowList, true)
+            ) {
                 continue;
             }
 
@@ -145,10 +147,18 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null) ? $normalized[ArtifactField::ID] : 'redacted',
-            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
-            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized['source'] ?? null) ? $normalized['source'] : 'runit://redacted',
-            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null) ? $normalized['execution_id'] : '',
+            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null)
+                ? $normalized[ArtifactField::ID]
+                : 'redacted',
+            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
+                ? $normalized['type']
+                : 'runit.artifact.redacted',
+            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized['source'] ?? null)
+                ? $normalized['source']
+                : 'runit://redacted',
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
+                ? $normalized['execution_id']
+                : '',
             'runit.redacted' => true,
         ];
 
@@ -168,17 +178,30 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[$key] = $value;
         }
 
-        $this->emit('runit.occurrence', is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null);
+        $this->emit(
+            'runit.occurrence',
+            is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
+            $attributes,
+            is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null
+        );
     }
 
     public function mapRedactedSnapshot(array $normalized): void
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null) ? $normalized[ArtifactField::ID] : 'redacted',
-            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
-            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized['classification'] ?? null) ? $normalized['classification'] : 'unknown',
-            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null) ? $normalized['execution_id'] : '',
+            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
+                ? $normalized[ArtifactField::ID]
+                : 'redacted',
+            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
+                ? $normalized['type']
+                : 'runit.artifact.redacted',
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized['classification'] ?? null)
+                ? $normalized['classification']
+                : 'unknown',
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
+                ? $normalized['execution_id']
+                : '',
             'runit.redacted' => true,
         ];
 
@@ -192,7 +215,12 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[AttributeKeys::SNAPSHOT_HASH] = $hash;
         }
 
-        $this->emit('runit.snapshot', is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted', $attributes, is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null);
+        $this->emit(
+            'runit.snapshot',
+            is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
+            $attributes,
+            is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null
+        );
     }
 
     /**
@@ -200,7 +228,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
      */
     private function emit(string $eventName, string $body, array $attributes, ?int $timeEpochSeconds): void
     {
-        $timeNanos = $timeEpochSeconds !== null ? $timeEpochSeconds * Duration::NANOS_PER_SECOND : (int) (microtime(true) * Duration::NANOS_PER_SECOND);
+        $timeNanos = $timeEpochSeconds !== null
+            ? $timeEpochSeconds * Duration::NANOS_PER_SECOND
+            : (int) (microtime(true) * Duration::NANOS_PER_SECOND);
 
         if ($this->mapOccurrencesToLogs && $this->loggerProvider !== null) {
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);

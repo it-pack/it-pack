@@ -23,7 +23,9 @@ use RuntimeException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ConflictingCompletionException extends RuntimeException implements InvalidValueExceptionInterface, LifecycleExceptionInterface
+final class ConflictingCompletionException extends RuntimeException implements
+    InvalidValueExceptionInterface,
+    LifecycleExceptionInterface
 {
     public static function forConflict(ExecutionStatusInterface $existing, ExecutionStatusInterface $attempted): self
     {

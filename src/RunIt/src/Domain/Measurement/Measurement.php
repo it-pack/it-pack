@@ -103,7 +103,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Count,
     ): self {
-        return self::record(MeasurementKind::Counter, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
+        return self::record(
+            MeasurementKind::Counter,
+            $unit,
+            $name,
+            $executionId,
+            $value,
+            $activityId,
+            $instant,
+            $sequence,
+            $attributes
+        );
     }
 
     public static function gauge(
@@ -116,7 +126,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Percent,
     ): self {
-        return self::record(MeasurementKind::Gauge, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
+        return self::record(
+            MeasurementKind::Gauge,
+            $unit,
+            $name,
+            $executionId,
+            $value,
+            $activityId,
+            $instant,
+            $sequence,
+            $attributes
+        );
     }
 
     public static function duration(
@@ -129,7 +149,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Milliseconds,
     ): self {
-        return self::record(MeasurementKind::Duration, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
+        return self::record(
+            MeasurementKind::Duration,
+            $unit,
+            $name,
+            $executionId,
+            $value,
+            $activityId,
+            $instant,
+            $sequence,
+            $attributes
+        );
     }
 
     public static function size(
@@ -142,7 +172,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Bytes,
     ): self {
-        return self::record(MeasurementKind::Size, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
+        return self::record(
+            MeasurementKind::Size,
+            $unit,
+            $name,
+            $executionId,
+            $value,
+            $activityId,
+            $instant,
+            $sequence,
+            $attributes
+        );
     }
 
     public static function ratio(
@@ -155,7 +195,17 @@ final readonly class Measurement implements MeasurementInterface
         ?AttributeCollectionInterface $attributes = null,
         MeasurementUnitInterface $unit = MeasurementUnit::Ratio,
     ): self {
-        return self::record(MeasurementKind::Ratio, $unit, $name, $executionId, $value, $activityId, $instant, $sequence, $attributes);
+        return self::record(
+            MeasurementKind::Ratio,
+            $unit,
+            $name,
+            $executionId,
+            $value,
+            $activityId,
+            $instant,
+            $sequence,
+            $attributes
+        );
     }
 
     private static function assertFinite(float $value): void

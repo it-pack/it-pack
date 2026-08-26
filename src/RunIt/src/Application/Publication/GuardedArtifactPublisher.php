@@ -26,7 +26,10 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class GuardedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final readonly class GuardedArtifactPublisher implements
+    ArtifactPublisherInterface,
+    FlushablePublisherInterface,
+    CloseablePublisherInterface
 {
     use DelegatesPublisherLifecycleBehavior;
 

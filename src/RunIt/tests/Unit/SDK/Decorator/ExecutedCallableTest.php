@@ -28,7 +28,10 @@ final class ExecutedCallableTest extends TestCase
 
     private function definition(): ExecutionDefinition
     {
-        return ExecutionDefinition::create(ExecutionName::fromString('decorator.spec'), ExecutionKind::fromString('operation'));
+        return ExecutionDefinition::create(
+            ExecutionName::fromString('decorator.spec'),
+            ExecutionKind::fromString('operation')
+        );
     }
 
     public function testClosurePreservesResultAndArguments(): void
@@ -105,7 +108,10 @@ final class ExecutedCallableTest extends TestCase
             function (array $args): ExecutionDefinition {
                 self::assertSame(['world'], $args);
 
-                return ExecutionDefinition::create(ExecutionName::fromString('factory.op'), ExecutionKind::fromString('operation'));
+                return ExecutionDefinition::create(
+                    ExecutionName::fromString('factory.op'),
+                    ExecutionKind::fromString('operation')
+                );
             },
         );
 

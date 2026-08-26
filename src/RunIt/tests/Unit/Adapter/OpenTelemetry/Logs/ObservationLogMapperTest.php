@@ -33,7 +33,14 @@ final class ObservationLogMapperTest extends Unit
     public function testMapsObservationToLogRecordWithCorrelation(): void
     {
         $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), false);
-        $observation = RunItArtifactFactory::observation('obs-1', 'exec-1', 'info', 'starting', 'act-1', ['step' => 'init']);
+        $observation = RunItArtifactFactory::observation(
+            'obs-1',
+            'exec-1',
+            'info',
+            'starting',
+            'act-1',
+            ['step' => 'init']
+        );
 
         $mapper->map($observation);
 

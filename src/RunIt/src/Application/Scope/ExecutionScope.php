@@ -105,11 +105,52 @@ final class ExecutionScope implements ExecutionScopeInterface
     ) {
         $activityId = $currentActivityId ?? (fn (): ?ActivityIdInterface => $this->currentActivityId);
 
-        $this->measurementRecorder = new DefaultMeasurementRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher);
-        $this->observationRecorder = new DefaultObservationRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->observationIdFactory);
-        $this->occurrenceRecorder = new DefaultOccurrenceRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->occurrenceIdFactory);
-        $this->snapshotRecorder = new DefaultSnapshotRecorder($executionId, $activityId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->serializer, $this->snapshotIdFactory, $this->hashCalculator, $this->snapshotStore, $this->onSnapshotStoreFailure);
-        $this->activityRunner = new DefaultActivityRunner($this, $executionId, $this->sequenceAllocator, $this->clock, $this->publisher, $this->throwableMapper, $this->activityIdFactory, $this->limits);
+        $this->measurementRecorder = new DefaultMeasurementRecorder(
+            $executionId,
+            $activityId,
+            $this->sequenceAllocator,
+            $this->clock,
+            $this->publisher
+        );
+        $this->observationRecorder = new DefaultObservationRecorder(
+            $executionId,
+            $activityId,
+            $this->sequenceAllocator,
+            $this->clock,
+            $this->publisher,
+            $this->throwableMapper,
+            $this->observationIdFactory
+        );
+        $this->occurrenceRecorder = new DefaultOccurrenceRecorder(
+            $executionId,
+            $activityId,
+            $this->sequenceAllocator,
+            $this->clock,
+            $this->publisher,
+            $this->occurrenceIdFactory
+        );
+        $this->snapshotRecorder = new DefaultSnapshotRecorder(
+            $executionId,
+            $activityId,
+            $this->sequenceAllocator,
+            $this->clock,
+            $this->publisher,
+            $this->serializer,
+            $this->snapshotIdFactory,
+            $this->hashCalculator,
+            $this->snapshotStore,
+            $this->onSnapshotStoreFailure
+        );
+        $this->activityRunner = new DefaultActivityRunner(
+            $this,
+            $executionId,
+            $this->sequenceAllocator,
+            $this->clock,
+            $this->publisher,
+            $this->throwableMapper,
+            $this->activityIdFactory,
+            $this->limits
+        );
     }
 
     public function execution(): ExecutionInterface

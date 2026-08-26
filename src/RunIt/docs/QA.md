@@ -363,6 +363,33 @@ CI (`.github/workflows/quality.yml`) runs `composer cs:check` inside the
 `quality` matrix (PHP 8.4/8.5 × locked/lowest) and also as a dedicated
 `coding-style` job. Both are check-only; the workflow never modifies the tree.
 
+### One-type-per-file rule scope
+
+Every file under `src` declares exactly one type. In `tests`, a `*Test` class
+must be the only declared type in its file (PSR-4 requirement — a test class
+declared inside another test's file is autoloaded from the wrong path and is a
+real breakage, e.g. the historical `HmacSnapshotSignerTest` case). The allowed
+exception is **single-file helper types**: subject-coupled fixtures, spies, and
+fixture classes may stay inline directly below their only consumer when moving
+them out would obscure the test's subject or invite speculative reuse. Genuinely
+shared doubles live in `tests/Support/Fixture` instead and must be extracted on
+first reuse. As of the Phase 3 hygiene pass the inline allowance applies to:
+`RunItBuilderTest` (builder-seam spies), `ExecutedCallableTest`,
+`ExecutedAsMetadataReaderTest`, `FailSafeRecursionTest`,
+`CompositeContextStorageTest` (storage-selection fakes), `DogfoodRunnerTest`
+(`FakeProcessRunner`), and `CoroutineContextStorageTest`
+(`FixedCoroutineIdProvider`). Anonymous classes are expressions, not declared
+types, and are always acceptable.
+
+### Line-length guard (≤120 columns)
+
+`composer lint:length` (`tools/lint/line-length.php`) fails on any code line
+longer than 120 columns in `src` and `tests`; it runs as part of
+`composer quality`. Docblock/comment lines are exempt, and Codeception's
+generated actor artifacts (`tests/Support/_generated`) are ignored. The plan's
+preferred PHPStan `FileRule` variant is not available against the phar-based
+PHPStan build, so the documented `composer lint:length` alternative was chosen.
+
 ## Mutation testing (M13.5)
 
 `composer mutation` runs Infection (PHP Mutation Testing Framework 0.33) against

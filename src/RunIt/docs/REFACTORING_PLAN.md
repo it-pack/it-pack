@@ -235,7 +235,27 @@ the public conformance contract cannot regress silently
 
 ## Phase 3 — Mechanical hygiene passes (REVIEW §3 P2-1..P2-3)
 
-> **Status: Pending**
+> **Status: Complete (2026-08-26), scan-driven (site counts drifted from the plan).**
+> **T3.1 — inline FQCNs:** the scripted scan found 11 executable-line sites plus 3
+> generic `@var` annotations (14 total, matching the plan's count after drift); all are
+> imported now and the scan returns zero hits. No aliasing was required.
+> **T3.2 — test PSR-4:** `HmacSnapshotSignerTest` was split into its own file (true PSR-4
+> breakage). Reusable doubles were extracted to `tests/Support/Fixture` with dedupe:
+> four recording publishers → one `RecordingArtifactPublisher`, two lifecycle spies → one
+> `LifecycleSpy`, two failing stores → one `ThrowingSnapshotStore`, two failing publishers
+> → the existing `ThrowingArtifactPublisher`, `NeverSamplePolicySpy` → shipped
+> `NeverSamplePolicy`, plus new failure-injection doubles (`Throwing*` family,
+> `EmptyArtifact`, `FakeContextToken`). The one-type-per-file allowance scope is documented
+> in `docs/QA.md`; test counts unchanged (813 Unit / 865 with Conformance).
+> **T3.3 — ≤120 columns:** 332 offending code lines across ~120 files were wrapped
+> (signatures one parameter per line, parent lists alphabetically one interface per line,
+> long literals split or hoisted). The guard ships as `composer lint:length`
+> (`tools/lint/line-length.php`) wired into `composer quality`; the preferred PHPStan
+> `FileRule` variant is unavailable against the phar-based PHPStan build, so the plan's
+> sanctioned script alternative was chosen. **Incident note:** an intermediate automated
+> wrapper produced silent truncations; it was reverted wholesale from git and redone with
+> a constrained transformer plus per-file manual passes, verified by lint, full suites,
+> PHPStan, PHP-CS-Fixer, and diff audits for dropped tails/parents.
 
 Goal: eliminate the noise categories a reviewer must re-check every cycle.
 These are behavior-preserving, diff-verifiable passes.

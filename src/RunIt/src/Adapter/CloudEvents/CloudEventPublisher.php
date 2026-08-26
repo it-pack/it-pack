@@ -83,7 +83,10 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
         $time = $this->asIntOrNull($normalized['time'] ?? null);
 
         $extensions = [
-            CloudEventExtensionKey::ExecutionId->value => $this->asString($normalized[ArtifactField::EXECUTION_ID] ?? null, ''),
+            CloudEventExtensionKey::ExecutionId->value => $this->asString(
+                $normalized[ArtifactField::EXECUTION_ID] ?? null,
+                ''
+            ),
             CloudEventExtensionKey::Sequence->value => $this->asInt($normalized['sequence'] ?? null),
             'redacted' => true,
         ];

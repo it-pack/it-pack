@@ -40,11 +40,17 @@ final class IdentifierGeneratorVerifier implements VerifierInterface
             try {
                 $value = $generator->generate();
             } catch (Throwable $e) {
-                return $result->add(new ConformanceViolation('generate.throws', sprintf('generate() threw: %s', $e->getMessage())));
+                return $result->add(new ConformanceViolation('generate.throws', sprintf(
+                    'generate() threw: %s',
+                    $e->getMessage()
+                )));
             }
 
             if ($value === '') {
-                $result = $result->add(new ConformanceViolation('generate.empty', 'generate() returned an empty or non-string value'));
+                $result = $result->add(new ConformanceViolation(
+                    'generate.empty',
+                    'generate() returned an empty or non-string value'
+                ));
 
                 continue;
             }
@@ -52,11 +58,18 @@ final class IdentifierGeneratorVerifier implements VerifierInterface
             try {
                 $validator->validate($value);
             } catch (Throwable $e) {
-                $result = $result->add(new ConformanceViolation('generate.invalid-format', sprintf('generated value "%s" violates identifier rules: %s', $value, $e->getMessage())));
+                $result = $result->add(new ConformanceViolation('generate.invalid-format', sprintf(
+                    'generated value "%s" violates identifier rules: %s',
+                    $value,
+                    $e->getMessage()
+                )));
             }
 
             if (isset($seen[$value])) {
-                $result = $result->add(new ConformanceViolation('generate.not-unique', sprintf('generate() returned the duplicate value "%s"', $value)));
+                $result = $result->add(new ConformanceViolation('generate.not-unique', sprintf(
+                    'generate() returned the duplicate value "%s"',
+                    $value
+                )));
             }
 
             $seen[$value] = true;

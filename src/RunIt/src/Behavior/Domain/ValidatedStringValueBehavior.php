@@ -40,7 +40,7 @@ trait ValidatedStringValueBehavior
      */
     private function __construct(
         string $value,
-        StringValueValidatorInterface $validator = new \ItPack\RunIt\Behavior\Domain\StringValueValidator(),
+        StringValueValidatorInterface $validator = new StringValueValidator(),
     ) {
         $validator->validate($value);
 

@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
@@ -89,7 +90,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Debug, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Debug,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function info(
@@ -103,7 +115,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Info, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Info,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function notice(
@@ -117,7 +140,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Notice, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Notice,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function warning(
@@ -131,7 +165,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Warning, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Warning,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function error(
@@ -145,7 +190,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Error, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Error,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function critical(
@@ -159,7 +215,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Critical, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Critical,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function alert(
@@ -173,7 +240,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Alert, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Alert,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public static function emergency(
@@ -187,7 +265,18 @@ final readonly class Observation implements ObservationInterface
         ?InstantInterface $instant = null,
         ?ArtifactSequenceInterface $sequence = null,
     ): self {
-        return self::atSeverity(ObservationSeverity::Emergency, $id, $executionId, $message, $activityId, $diagnosticCode, $attributes, $throwableDescription, $instant, $sequence);
+        return self::atSeverity(
+            ObservationSeverity::Emergency,
+            $id,
+            $executionId,
+            $message,
+            $activityId,
+            $diagnosticCode,
+            $attributes,
+            $throwableDescription,
+            $instant,
+            $sequence
+        );
     }
 
     public function id(): ObservationIdInterface
@@ -195,12 +284,12 @@ final readonly class Observation implements ObservationInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
+    public function executionId(): ExecutionIdInterface
     {
         return $this->executionId;
     }
 
-    public function activityId(): ?\ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function activityId(): ?StringIdentifierInterface
     {
         return $this->activityId;
     }

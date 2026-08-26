@@ -39,7 +39,12 @@ final class DogfoodRunnerTest extends Unit
     private function buildRunner(ProcessRunnerInterface $processRunner): DogfoodRunner
     {
         $this->recorder = new InMemoryArtifactPublisher();
-        $publisher = new BufferedArtifactPublisher(BufferConfiguration::default(), $this->recorder, new SystemMonotonicClock(), new DefaultArtifactByteEstimator());
+        $publisher = new BufferedArtifactPublisher(
+            BufferConfiguration::default(),
+            $this->recorder,
+            new SystemMonotonicClock(),
+            new DefaultArtifactByteEstimator()
+        );
 
         $runIt = RunItBuilder::create()
             ->withPublisher($publisher)
@@ -57,7 +62,13 @@ final class DogfoodRunnerTest extends Unit
     {
         $single = $this->buildRunner(new FakeProcessRunner());
         $single->runAll([
-            new DevTool('runit.dogfood.unit', 'echo unit', 'cli.command', 'runit.dogfood.unit', 'runit.dogfood.unit.summary'),
+            new DevTool(
+                'runit.dogfood.unit',
+                'echo unit',
+                'cli.command',
+                'runit.dogfood.unit',
+                'runit.dogfood.unit.summary'
+            ),
         ]);
 
         $executionsPerTool = $this->countArtifacts(ExecutionInterface::class);
@@ -68,14 +79,24 @@ final class DogfoodRunnerTest extends Unit
         // Bounded emission per tool proves the dogfooding path does not recurse:
         // the Execution artifact is emitted a small, fixed number of times per run.
         self::assertGreaterThanOrEqual(1, $executionsPerTool);
-        self::assertLessThanOrEqual(4, $executionsPerTool, 'Execution emission per tool must stay bounded (no recursion).');
+        self::assertLessThanOrEqual(
+            4,
+            $executionsPerTool,
+            'Execution emission per tool must stay bounded (no recursion).'
+        );
         self::assertSame(2, $measurementsPerTool, 'Two measurements per tool (duration, exit code).');
         self::assertSame(1, $occurrencesPerTool, 'One completion occurrence per tool.');
         self::assertSame(2, $snapshotsPerTool, 'SDK completion snapshot plus the dogfood summary snapshot.');
 
         $runner = $this->buildRunner(new FakeProcessRunner());
         $report = $runner->runAll([
-            new DevTool('runit.dogfood.unit', 'echo unit', 'cli.command', 'runit.dogfood.unit', 'runit.dogfood.unit.summary'),
+            new DevTool(
+                'runit.dogfood.unit',
+                'echo unit',
+                'cli.command',
+                'runit.dogfood.unit',
+                'runit.dogfood.unit.summary'
+            ),
             new DevTool('runit.dogfood.cs', 'echo cs', 'cli.command', 'runit.dogfood.cs', 'runit.dogfood.cs.summary'),
         ]);
 
@@ -115,7 +136,13 @@ final class DogfoodRunnerTest extends Unit
         $runner = $this->buildRunner($fake);
 
         $report = $runner->runAll([
-            new DevTool('runit.dogfood.fail', 'echo fail', 'cli.command', 'runit.dogfood.fail', 'runit.dogfood.fail.summary'),
+            new DevTool(
+                'runit.dogfood.fail',
+                'echo fail',
+                'cli.command',
+                'runit.dogfood.fail',
+                'runit.dogfood.fail.summary'
+            ),
         ]);
 
         self::assertSame(1, $report->exitCode());

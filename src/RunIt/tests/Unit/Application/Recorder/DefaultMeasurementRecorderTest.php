@@ -65,7 +65,10 @@ final class DefaultMeasurementRecorderTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) {
                 $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
+                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                        ActivityName::fromString('load'),
+                        ActivityKind::fromString('io')
+                    ),
                     function ($activityScope) {
                         $activityScope->measurements()->gauge('latency', 12.5);
 

@@ -33,8 +33,10 @@ final readonly class ExecutionFailure implements ExecutionResultInterface
     /**
      * @throws InvalidLifecycleTransitionException when the status is not terminal
      */
-    public static function of(ExecutionStatusInterface $status, ThrowableDescriptionInterface $description): ExecutionResultInterface
-    {
+    public static function of(
+        ExecutionStatusInterface $status,
+        ThrowableDescriptionInterface $description
+    ): ExecutionResultInterface {
         if (!$status->isTerminal()) {
             throw InvalidLifecycleTransitionException::forNonTerminalFailure($status);
         }

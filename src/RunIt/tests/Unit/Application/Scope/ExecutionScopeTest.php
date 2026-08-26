@@ -47,7 +47,12 @@ final class ExecutionScopeTest extends Unit
         $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             static function ($scope) {
-                $scope->observations()->record('cache miss', ObservationSeverity::Warning, null, new RuntimeException('no entry'));
+                $scope->observations()->record(
+                    'cache miss',
+                    ObservationSeverity::Warning,
+                    null,
+                    new RuntimeException('no entry')
+                );
 
                 return null;
             },
@@ -68,7 +73,10 @@ final class ExecutionScopeTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             static function ($scope) {
                 $scope->occurrences()->record(OccurrenceType::fromString('itpack.thing.done.v1'), 'app');
-                $scope->snapshots()->record(\ItPack\RunIt\Domain\Snapshot\SnapshotType::fromString('itpack.state.v1'), ['ok' => true]);
+                $scope->snapshots()->record(
+                    \ItPack\RunIt\Domain\Snapshot\SnapshotType::fromString('itpack.state.v1'),
+                    ['ok' => true]
+                );
 
                 return null;
             },

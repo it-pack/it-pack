@@ -43,10 +43,18 @@ final class ErrorLogHealthReporterTest extends Unit
         self::assertCount(1, $this->lines);
         $logged = $this->lines[0];
 
-        self::assertStringContainsString('[RuntimeException]', $logged, 'the exception class is structural context and stays');
+        self::assertStringContainsString(
+            '[RuntimeException]',
+            $logged,
+            'the exception class is structural context and stays'
+        );
         self::assertStringContainsString('publication health', $logged);
         self::assertStringContainsString('SECRET-BLOCK-00-', $logged, 'the truncated head of the message may appear');
-        self::assertStringNotContainsString('SECRET-BLOCK-59-', $logged, 'the unbounded raw message must not reach the log');
+        self::assertStringNotContainsString(
+            'SECRET-BLOCK-59-',
+            $logged,
+            'the unbounded raw message must not reach the log'
+        );
         self::assertLessThanOrEqual(4096, strlen($logged), 'a logged health line stays bounded even for huge messages');
     }
 

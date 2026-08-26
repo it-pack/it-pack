@@ -9,9 +9,8 @@ use ItPack\RunIt\Application\Publication\PublicationRoute;
 use ItPack\RunIt\Application\Publication\RoutingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
-use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use Tests\Support\Fixture\LifecycleSpy;
+use Tests\Support\Fixture\RecordingArtifactPublisher;
 
 /**
  * @group application
@@ -21,8 +20,8 @@ final class RoutingArtifactPublisherTest extends Unit
 {
     public function testMatchingRouteReceivesTheArtifact(): void
     {
-        $route = new RecordingSink();
-        $fallback = new RecordingSink();
+        $route = new RecordingArtifactPublisher();
+        $fallback = new RecordingArtifactPublisher();
         $router = new RoutingArtifactPublisher(
             [new PublicationRoute($this->acceptAll(), $route)],
             $fallback,
@@ -36,8 +35,8 @@ final class RoutingArtifactPublisherTest extends Unit
 
     public function testUnmatchedArtifactGoesToTheFallbackWhenConfigured(): void
     {
-        $route = new RecordingSink();
-        $fallback = new RecordingSink();
+        $route = new RecordingArtifactPublisher();
+        $fallback = new RecordingArtifactPublisher();
         $router = new RoutingArtifactPublisher(
             [new PublicationRoute($this->acceptNone(), $route)],
             $fallback,
@@ -51,7 +50,7 @@ final class RoutingArtifactPublisherTest extends Unit
 
     public function testUnmatchedArtifactWithoutFallbackIsSilentlyIgnored(): void
     {
-        $route = new RecordingSink();
+        $route = new RecordingArtifactPublisher();
         $router = new RoutingArtifactPublisher(
             [new PublicationRoute($this->acceptNone(), $route)],
         );
@@ -64,7 +63,7 @@ final class RoutingArtifactPublisherTest extends Unit
     public function testFlushAndCloseAreForwardedToSupportingPublishersOnly(): void
     {
         $flushableRoute = new LifecycleSpy();
-        $plainFallback = new RecordingSink();
+        $plainFallback = new RecordingArtifactPublisher();
         $router = new RoutingArtifactPublisher(
             [new PublicationRoute($this->acceptAll(), $flushableRoute)],
             $plainFallback,
@@ -78,7 +77,7 @@ final class RoutingArtifactPublisherTest extends Unit
 
     public function testFlushAndCloseReachASupportingFallback(): void
     {
-        $plainRoute = new RecordingSink();
+        $plainRoute = new RecordingArtifactPublisher();
         $fallback = new LifecycleSpy();
         $router = new RoutingArtifactPublisher(
             [new PublicationRoute($this->acceptAll(), $plainRoute)],
@@ -119,36 +118,5 @@ final class RoutingArtifactPublisherTest extends Unit
                 return ['kind' => 'test.artifact'];
             }
         };
-    }
-}
-
-final class RecordingSink implements ArtifactPublisherInterface
-{
-    /** @var list<ExecutionArtifactInterface> */
-    public array $published = [];
-
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-        $this->published[] = $artifact;
-    }
-}
-
-final class LifecycleSpy implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
-{
-    /** @var list<string> */
-    public array $calls = [];
-
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-    }
-
-    public function flush(): void
-    {
-        $this->calls[] = 'flush';
-    }
-
-    public function close(): void
-    {
-        $this->calls[] = 'close';
     }
 }

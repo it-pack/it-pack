@@ -58,7 +58,10 @@ final class ArtifactPublisherVerifierNegativeTest extends Unit
 
     public function testThrowingFlushIsReportedAsWarningAndStaysConformant(): void
     {
-        $publisher = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface {
+        $publisher = new class () implements
+            ArtifactPublisherInterface,
+            FlushablePublisherInterface,
+            CloseablePublisherInterface {
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
@@ -83,7 +86,10 @@ final class ArtifactPublisherVerifierNegativeTest extends Unit
 
     public function testThrowingCloseIsReportedAsWarningAndStaysConformant(): void
     {
-        $publisher = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface {
+        $publisher = new class () implements
+            ArtifactPublisherInterface,
+            FlushablePublisherInterface,
+            CloseablePublisherInterface {
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }
@@ -108,7 +114,10 @@ final class ArtifactPublisherVerifierNegativeTest extends Unit
 
     public function testThrowingFlushAndCloseAreBothReported(): void
     {
-        $publisher = new class () implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface {
+        $publisher = new class () implements
+            ArtifactPublisherInterface,
+            FlushablePublisherInterface,
+            CloseablePublisherInterface {
             public function publish(ExecutionArtifactInterface $artifact): void
             {
             }

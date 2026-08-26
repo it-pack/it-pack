@@ -112,14 +112,19 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         if ($value instanceof \JsonSerializable) {
             if ($depth > $this->limits->maxSerializationDepth) {
                 throw new SerializationException(
-                    sprintf('Unable to serialize snapshot payload: maximum depth %d exceeded.', $this->limits->maxSerializationDepth),
+                    sprintf(
+                        'Unable to serialize snapshot payload: maximum depth %d exceeded.',
+                        $this->limits->maxSerializationDepth
+                    ),
                 );
             }
 
             $ancestors ??= new \WeakMap();
 
             if (isset($ancestors[$value])) {
-                throw new SerializationException('Unable to serialize snapshot payload: cyclic object reference detected.');
+                throw new SerializationException(
+                    'Unable to serialize snapshot payload: cyclic object reference detected.'
+                );
             }
 
             $ancestors[$value] = true;
@@ -134,17 +139,26 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         }
 
         if (is_object($value)) {
-            throw new SerializationException('Unable to serialize snapshot payload: unsupported object of type ' . get_debug_type($value) . '.');
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: unsupported object of type '
+                . get_debug_type($value)
+                . '.'
+            );
         }
 
         if (is_float($value) && !is_finite($value)) {
-            throw new SerializationException('Unable to serialize snapshot payload: non-finite floats are not allowed.');
+            throw new SerializationException(
+                'Unable to serialize snapshot payload: non-finite floats are not allowed.'
+            );
         }
 
         if (is_array($value)) {
             if ($depth > $this->limits->maxSerializationDepth) {
                 throw new SerializationException(
-                    sprintf('Unable to serialize snapshot payload: maximum depth %d exceeded.', $this->limits->maxSerializationDepth),
+                    sprintf(
+                        'Unable to serialize snapshot payload: maximum depth %d exceeded.',
+                        $this->limits->maxSerializationDepth
+                    ),
                 );
             }
 

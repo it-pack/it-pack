@@ -40,29 +40,52 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
 
         $changed = false;
 
-        if ($this->config->sensitiveAttributeKeys !== [] && isset($normalized[ArtifactField::ATTRIBUTES]) && is_array($normalized[ArtifactField::ATTRIBUTES])) {
-            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskKeys($normalized[ArtifactField::ATTRIBUTES], $this->config->sensitiveAttributeKeys);
+        if ($this->config->sensitiveAttributeKeys !== []
+            && isset($normalized[ArtifactField::ATTRIBUTES])
+            && is_array($normalized[ArtifactField::ATTRIBUTES])
+        ) {
+            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskKeys(
+                $normalized[ArtifactField::ATTRIBUTES],
+                $this->config->sensitiveAttributeKeys
+            );
             if ($masked) {
                 $changed = true;
             }
         }
 
-        if ($this->config->redactThrowableMessages && isset($normalized[ArtifactField::THROWABLE]) && is_array($normalized[ArtifactField::THROWABLE])) {
-            [$normalized[ArtifactField::THROWABLE], $masked] = $this->maskThrowable($normalized[ArtifactField::THROWABLE]);
+        if ($this->config->redactThrowableMessages
+            && isset($normalized[ArtifactField::THROWABLE])
+            && is_array($normalized[ArtifactField::THROWABLE])
+        ) {
+            [$normalized[ArtifactField::THROWABLE], $masked] = $this->maskThrowable(
+                $normalized[ArtifactField::THROWABLE],
+            );
             if ($masked) {
                 $changed = true;
             }
         }
 
-        if ($this->config->redactOccurrenceData && $artifact instanceof OccurrenceInterface && isset($normalized[ArtifactField::DATA])) {
-            [$normalized[ArtifactField::DATA], $masked] = $this->maskKeysRecursive($normalized[ArtifactField::DATA], $this->config->sensitiveDataKeys);
+        if ($this->config->redactOccurrenceData
+            && $artifact instanceof OccurrenceInterface
+            && isset($normalized[ArtifactField::DATA])
+        ) {
+            [$normalized[ArtifactField::DATA], $masked] = $this->maskKeysRecursive(
+                $normalized[ArtifactField::DATA],
+                $this->config->sensitiveDataKeys
+            );
             if ($masked) {
                 $changed = true;
             }
         }
 
-        if ($this->config->redactSnapshotPayloads && $artifact instanceof SnapshotInterface && isset($normalized[ArtifactField::PAYLOAD])) {
-            [$normalized[ArtifactField::PAYLOAD], $masked] = $this->maskKeysRecursive($normalized[ArtifactField::PAYLOAD], $this->config->sensitiveDataKeys);
+        if ($this->config->redactSnapshotPayloads
+            && $artifact instanceof SnapshotInterface
+            && isset($normalized[ArtifactField::PAYLOAD])
+        ) {
+            [$normalized[ArtifactField::PAYLOAD], $masked] = $this->maskKeysRecursive(
+                $normalized[ArtifactField::PAYLOAD],
+                $this->config->sensitiveDataKeys
+            );
             if ($masked) {
                 $changed = true;
             }

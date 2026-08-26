@@ -31,8 +31,11 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
  */
 final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinatorInterface
 {
-    public function transition(ExecutionInterface $execution, ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface
-    {
+    public function transition(
+        ExecutionInterface $execution,
+        ExecutionResultInterface $result,
+        InstantInterface $endedAt
+    ): ExecutionInterface {
         $from = $execution->status();
         $to = $result->status();
 

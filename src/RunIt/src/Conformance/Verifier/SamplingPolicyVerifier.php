@@ -38,15 +38,25 @@ final class SamplingPolicyVerifier implements VerifierInterface
                 $first = $policy->sample($artifact);
                 $second = $policy->sample($artifact);
             } catch (Throwable $e) {
-                return $result->add(new ConformanceViolation('sample.throws', sprintf('sample() threw for %s: %s', $artifact::class, $e->getMessage())));
+                return $result->add(new ConformanceViolation('sample.throws', sprintf(
+                    'sample() threw for %s: %s',
+                    $artifact::class,
+                    $e->getMessage()
+                )));
             }
 
             if ($first !== $second) {
-                $result = $result->add(new ConformanceViolation('sample.not-deterministic', sprintf('sample() was not deterministic for %s', $artifact::class)));
+                $result = $result->add(new ConformanceViolation('sample.not-deterministic', sprintf(
+                    'sample() was not deterministic for %s',
+                    $artifact::class
+                )));
             }
 
             if ($artifact->normalize() !== $before) {
-                $result = $result->add(new ConformanceViolation('sample.mutates', sprintf('sample() mutated the artifact %s', $artifact::class)));
+                $result = $result->add(new ConformanceViolation('sample.mutates', sprintf(
+                    'sample() mutated the artifact %s',
+                    $artifact::class
+                )));
             }
         }
 

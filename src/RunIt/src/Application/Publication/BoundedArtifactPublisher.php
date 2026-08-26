@@ -37,7 +37,10 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class BoundedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final class BoundedArtifactPublisher implements
+    ArtifactPublisherInterface,
+    FlushablePublisherInterface,
+    CloseablePublisherInterface
 {
     use DelegatesPublisherLifecycleBehavior;
 
@@ -88,7 +91,9 @@ final class BoundedArtifactPublisher implements ArtifactPublisherInterface, Flus
             }
         }
 
-        if ($artifact instanceof OccurrenceInterface && $this->byteEstimator->estimate($artifact) > $this->limits->maxOccurrencePayloadBytes) {
+        if ($artifact instanceof OccurrenceInterface
+            && $this->byteEstimator->estimate($artifact) > $this->limits->maxOccurrencePayloadBytes
+        ) {
             $this->drop(self::DROP_REASON_OCCURRENCE_PAYLOAD, $artifact);
 
             return;

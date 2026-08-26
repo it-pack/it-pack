@@ -15,7 +15,11 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-interface ExecutionInterface extends ExecutionArtifactInterface, ExecutionOwnedInterface, TimestampedInterface, SequencedInterface
+interface ExecutionInterface extends
+    ExecutionArtifactInterface,
+    ExecutionOwnedInterface,
+    TimestampedInterface,
+    SequencedInterface
 {
     public function id(): ExecutionIdInterface;
 

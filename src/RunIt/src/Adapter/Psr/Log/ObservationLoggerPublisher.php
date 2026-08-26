@@ -91,7 +91,9 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
         $normalized = $artifact->normalize();
 
         $message = $normalized[ArtifactField::MESSAGE] ?? null;
-        $message = is_string($message) ? $message : (is_string($normalized['kind'] ?? null) ? $normalized['kind'] : 'artifact');
+        $message = is_string($message)
+            ? $message
+            : (is_string($normalized['kind'] ?? null) ? $normalized['kind'] : 'artifact');
         $level = $normalized['level'] ?? null;
         $level = is_int($level) ? $level : 200;
         $attributes = $normalized[ArtifactField::ATTRIBUTES] ?? null;

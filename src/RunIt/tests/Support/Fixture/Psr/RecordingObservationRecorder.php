@@ -68,7 +68,17 @@ final class RecordingObservationRecorder implements ObservationRecorderInterface
         $id = \ItPack\RunIt\Domain\Observation\ObservationId::fromString('obs-' . $this->count());
         $executionId = ExecutionId::fromString('recorder-execution');
         $description = $throwable instanceof Throwable ? $this->describe($throwable) : null;
-        $arguments = [$id, $executionId, $message, null, $diagnosticCode, $attributes ?? AttributeCollection::empty(), $description, Instant::now(), ArtifactSequence::initial()];
+        $arguments = [
+            $id,
+            $executionId,
+            $message,
+            null,
+            $diagnosticCode,
+            $attributes ?? AttributeCollection::empty(),
+            $description,
+            Instant::now(),
+            ArtifactSequence::initial(),
+        ];
 
         return match ($severity->label()) {
             'trace', 'debug' => Observation::debug(...$arguments),

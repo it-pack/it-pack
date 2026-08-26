@@ -15,7 +15,13 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
-interface ActivityInterface extends ExecutionArtifactInterface, ExecutionOwnedInterface, ActivityOwnedInterface, TimestampedInterface, SequencedInterface, AttributedInterface
+interface ActivityInterface extends
+    ExecutionArtifactInterface,
+    ExecutionOwnedInterface,
+    ActivityOwnedInterface,
+    TimestampedInterface,
+    SequencedInterface,
+    AttributedInterface
 {
     public function id(): ActivityIdInterface;
 

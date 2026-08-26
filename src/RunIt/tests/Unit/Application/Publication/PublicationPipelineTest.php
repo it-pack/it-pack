@@ -96,7 +96,11 @@ final class PublicationPipelineTest extends Unit
         $publisher->publish($this->observation());
         $publisher->flush();
 
-        self::assertSame([], new InMemoryArtifactPublisher()->published(), 'sampling dropped everything before the sink');
+        self::assertSame(
+            [],
+            new InMemoryArtifactPublisher()->published(),
+            'sampling dropped everything before the sink'
+        );
     }
 
     public function testPipelineFiltersRedactsAndPublishes(): void
@@ -163,8 +167,16 @@ final class PublicationPipelineTest extends Unit
             filter: new ObservationSeverityFilter(400),
         )->build();
 
-        $pipeline->publish(Observation::debug(ObservationId::fromString('d'), ExecutionId::fromString('exec-1'), 'noise'));
-        $pipeline->publish(Observation::error(ObservationId::fromString('e'), ExecutionId::fromString('exec-1'), 'boom'));
+        $pipeline->publish(Observation::debug(
+            ObservationId::fromString('d'),
+            ExecutionId::fromString('exec-1'),
+            'noise'
+        ));
+        $pipeline->publish(Observation::error(
+            ObservationId::fromString('e'),
+            ExecutionId::fromString('exec-1'),
+            'boom'
+        ));
 
         self::assertCount(1, $sink->published());
     }

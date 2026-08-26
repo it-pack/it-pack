@@ -20,6 +20,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
+use Throwable;
 
 /**
  * Default measurement recorder.
@@ -46,29 +47,103 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
     ) {
     }
 
-    public function counter(string|MeasurementNameInterface $name, int $value, ?MeasurementUnitInterface $unit = null, ?AttributeCollectionInterface $attributes = null): MeasurementInterface
-    {
-        return $this->publish(Measurement::counter($this->name($name), $this->executionId, $value, $this->activityId(), $this->now(), $this->sequence(), $attributes, $unit ?? MeasurementUnit::Count));
+    public function counter(
+        string|MeasurementNameInterface $name,
+        int $value,
+        ?MeasurementUnitInterface $unit = null,
+        ?AttributeCollectionInterface $attributes = null
+    ): MeasurementInterface {
+        return $this->publish(Measurement::counter(
+            $this->name($name),
+            $this->executionId,
+            $value,
+            $this->activityId(),
+            $this->now(),
+            $this->sequence(),
+            $attributes,
+            $unit ?? MeasurementUnit::Count
+        ));
     }
 
-    public function gauge(string|MeasurementNameInterface $name, float $value, ?MeasurementUnitInterface $unit = null, ?AttributeCollectionInterface $attributes = null): MeasurementInterface
-    {
-        return $this->publish(Measurement::gauge($this->name($name), $this->executionId, $value, $this->activityId(), $this->now(), $this->sequence(), $attributes, $unit ?? MeasurementUnit::Percent));
+    public function gauge(
+        string|MeasurementNameInterface $name,
+        float $value,
+        ?MeasurementUnitInterface $unit = null,
+        ?AttributeCollectionInterface $attributes = null
+    ): MeasurementInterface {
+        return $this->publish(Measurement::gauge(
+            $this->name($name),
+            $this->executionId,
+            $value,
+            $this->activityId(),
+            $this->now(),
+            $this->sequence(),
+            $attributes,
+            $unit ?? MeasurementUnit::Percent
+        ));
     }
 
-    public function duration(string|MeasurementNameInterface $name, float $value, ?MeasurementUnitInterface $unit = null, ?AttributeCollectionInterface $attributes = null): MeasurementInterface
-    {
-        return $this->publish(Measurement::duration($this->name($name), $this->executionId, $value, $this->activityId(), $this->now(), $this->sequence(), $attributes, $unit ?? MeasurementUnit::Milliseconds));
+    /**
+     * @throws Throwable
+     */
+    public function duration(
+        string|MeasurementNameInterface $name,
+        float $value,
+        ?MeasurementUnitInterface $unit = null,
+        ?AttributeCollectionInterface $attributes = null
+    ): MeasurementInterface {
+        return $this->publish(Measurement::duration(
+            $this->name($name),
+            $this->executionId,
+            $value,
+            $this->activityId(),
+            $this->now(),
+            $this->sequence(),
+            $attributes,
+            $unit ?? MeasurementUnit::Milliseconds
+        ));
     }
 
-    public function size(string|MeasurementNameInterface $name, int $value, ?MeasurementUnitInterface $unit = null, ?AttributeCollectionInterface $attributes = null): MeasurementInterface
-    {
-        return $this->publish(Measurement::size($this->name($name), $this->executionId, $value, $this->activityId(), $this->now(), $this->sequence(), $attributes, $unit ?? MeasurementUnit::Bytes));
+    /**
+     * @throws Throwable
+     */
+    public function size(
+        string|MeasurementNameInterface $name,
+        int $value,
+        ?MeasurementUnitInterface $unit = null,
+        ?AttributeCollectionInterface $attributes = null
+    ): MeasurementInterface {
+        return $this->publish(Measurement::size(
+            $this->name($name),
+            $this->executionId,
+            $value,
+            $this->activityId(),
+            $this->now(),
+            $this->sequence(),
+            $attributes,
+            $unit ?? MeasurementUnit::Bytes
+        ));
     }
 
-    public function ratio(string|MeasurementNameInterface $name, float $value, ?MeasurementUnitInterface $unit = null, ?AttributeCollectionInterface $attributes = null): MeasurementInterface
-    {
-        return $this->publish(Measurement::ratio($this->name($name), $this->executionId, $value, $this->activityId(), $this->now(), $this->sequence(), $attributes, $unit ?? MeasurementUnit::Ratio));
+    /**
+     * @throws Throwable
+     */
+    public function ratio(
+        string|MeasurementNameInterface $name,
+        float $value,
+        ?MeasurementUnitInterface $unit = null,
+        ?AttributeCollectionInterface $attributes = null
+    ): MeasurementInterface {
+        return $this->publish(Measurement::ratio(
+            $this->name($name),
+            $this->executionId,
+            $value,
+            $this->activityId(),
+            $this->now(),
+            $this->sequence(),
+            $attributes,
+            $unit ?? MeasurementUnit::Ratio
+        ));
     }
 
     private function name(string|MeasurementNameInterface $name): MeasurementNameInterface
@@ -87,7 +162,7 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     private function publish(MeasurementInterface $measurement): MeasurementInterface
     {

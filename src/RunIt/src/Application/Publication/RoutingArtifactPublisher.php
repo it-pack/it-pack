@@ -19,7 +19,10 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class RoutingArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final readonly class RoutingArtifactPublisher implements
+    ArtifactPublisherInterface,
+    FlushablePublisherInterface,
+    CloseablePublisherInterface
 {
     /**
      * @param list<PublicationRoute>          $routes

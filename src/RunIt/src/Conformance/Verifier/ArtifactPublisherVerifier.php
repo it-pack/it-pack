@@ -37,7 +37,12 @@ final class ArtifactPublisherVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        $artifacts = [$fixture->safeObservation(), $fixture->occurrence(), $fixture->measurement(), $fixture->snapshot()];
+        $artifacts = [
+            $fixture->safeObservation(),
+            $fixture->occurrence(),
+            $fixture->measurement(),
+            $fixture->snapshot(),
+        ];
 
         foreach ($artifacts as $artifact) {
             $before = $artifact->normalize();

@@ -64,7 +64,13 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         int $schemaVersion = 1,
         ?AttributeCollectionInterface $attributes = null,
     ): SnapshotInterface {
-        $snapshot = $this->build($type, $payload, $classification ?? SnapshotClassification::Checkpoint, $schemaVersion, $attributes);
+        $snapshot = $this->build(
+            $type,
+            $payload,
+            $classification ?? SnapshotClassification::Checkpoint,
+            $schemaVersion,
+            $attributes
+        );
 
         $this->publisher->publish($snapshot);
         $this->persist($snapshot);

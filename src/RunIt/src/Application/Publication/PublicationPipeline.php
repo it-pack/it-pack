@@ -50,7 +50,13 @@ final class PublicationPipeline implements PublicationPipelineInterface
         $publisher = $this->sink;
 
         if ($this->buffer instanceof BufferConfiguration) {
-            $publisher = new BufferedArtifactPublisher($this->buffer, $publisher, $this->clock, $this->byteEstimator, $this->health);
+            $publisher = new BufferedArtifactPublisher(
+                $this->buffer,
+                $publisher,
+                $this->clock,
+                $this->byteEstimator,
+                $this->health
+            );
         }
 
         if ($this->sampling instanceof SamplingPolicyInterface) {

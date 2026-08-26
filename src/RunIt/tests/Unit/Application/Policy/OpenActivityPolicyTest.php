@@ -46,7 +46,11 @@ final class OpenActivityPolicyTest extends Unit
         yield 'auto-fail' => [new AutoFailOpenActivitiesPolicy(), ObservationSeverity::Warning, 'auto-resolved'];
         yield 'auto-cancel' => [new AutoCancelOpenActivitiesPolicy(), ObservationSeverity::Warning, 'auto-cancelled'];
         yield 'warn-and-ignore' => [new WarnAndIgnoreOpenActivitiesPolicy(), ObservationSeverity::Info, 'ignored'];
-        yield 'fail-execution' => [new FailExecutionOnOpenActivitiesPolicy(), ObservationSeverity::Critical, 'flagged as failed'];
+        yield 'fail-execution' => [
+            new FailExecutionOnOpenActivitiesPolicy(),
+            ObservationSeverity::Critical,
+            'flagged as failed',
+        ];
     }
 
     private function openActivityObservation(ExecutionCompletionPolicyInterface $policy): ObservationInterface
@@ -61,7 +65,10 @@ final class OpenActivityPolicyTest extends Unit
         $activity = Activity::start(
             ActivityId::fromString('a1'),
             $execution->id(),
-            \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
+            \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                ActivityName::fromString('load'),
+                ActivityKind::fromString('io')
+            ),
             Instant::of(1),
         );
         $scope->trackOpenActivity($activity);

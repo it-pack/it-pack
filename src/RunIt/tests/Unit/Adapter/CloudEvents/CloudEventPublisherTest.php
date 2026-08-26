@@ -121,14 +121,27 @@ final class CloudEventPublisherTest extends Unit
             redactOccurrenceData: true,
         ));
 
-        $occurrence = RunItArtifactFactory::occurrence('occ-red', 'exec-1', 'itpack.test.event.v1', ['password' => 'hunter2']);
+        $occurrence = RunItArtifactFactory::occurrence(
+            'occ-red',
+            'exec-1',
+            'itpack.test.event.v1',
+            ['password' => 'hunter2']
+        );
         $redacted = $redactor->redact($occurrence);
 
-        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted, 'A redacted artifact is marked as suppressed.');
+        self::assertInstanceOf(
+            RedactedArtifactInterface::class,
+            $redacted,
+            'A redacted artifact is marked as suppressed.'
+        );
 
         $publisher->publish($redacted);
 
-        self::assertInstanceOf(CloudEvent::class, $captured, 'A redacted occurrence is still delivered, not silently dropped.');
+        self::assertInstanceOf(
+            CloudEvent::class,
+            $captured,
+            'A redacted occurrence is still delivered, not silently dropped.'
+        );
         self::assertSame('occ-red', $captured->id);
         self::assertSame('itpack.test.event.v1', $captured->type);
         self::assertTrue($captured->extensions['redacted'], 'The suppressed delivery declares redacted=true.');

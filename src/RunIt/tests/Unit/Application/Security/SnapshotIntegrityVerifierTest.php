@@ -21,8 +21,13 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
  */
 final class SnapshotIntegrityVerifierTest extends Unit
 {
-    private function snapshot(string $id, mixed $payload, HashCalculatorInterface $calculator, ?string $predecessorId = null, ?int $createdAt = null): Snapshot
-    {
+    private function snapshot(
+        string $id,
+        mixed $payload,
+        HashCalculatorInterface $calculator,
+        ?string $predecessorId = null,
+        ?int $createdAt = null
+    ): Snapshot {
         return Snapshot::create(
             SnapshotId::fromString($id),
             ExecutionId::fromString('exec-1'),

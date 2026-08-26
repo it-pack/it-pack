@@ -43,7 +43,12 @@ final class OccurrenceLogMapperTest extends Unit
         $scope = $span->activate();
 
         try {
-            $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, true);
+            $mapper = new DefaultOccurrenceLogMapper(
+                $this->kit->loggerProvider,
+                SnapshotPayloadPolicy::HashOnly,
+                true,
+                true
+            );
             $mapper->mapOccurrence(RunItArtifactFactory::occurrence('occ-1', 'exec-1', 'execution.started.v1'));
         } finally {
             $scope->detach();
@@ -67,7 +72,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testOccurrenceSkipsLoggingWhenDisabled(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, false, false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            false,
+            false
+        );
         $mapper->mapOccurrence(RunItArtifactFactory::occurrence('occ-2', 'exec-1', 'execution.started.v1'));
 
         self::assertCount(0, $this->kit->logs());
@@ -75,7 +85,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testSnapshotExportsHashButNotPayloadByDefault(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            true,
+            false
+        );
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['key' => str_repeat('x', 1024)]));
 
         $record = $this->kit->log(0);
@@ -130,7 +145,12 @@ final class OccurrenceLogMapperTest extends Unit
             AttributeCollection::fromArray(['tenantflag' => 'on', 'otherflag' => 'off']),
         );
 
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            true,
+            false
+        );
         $mapper->mapOccurrence($occurrence);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -194,7 +214,12 @@ final class OccurrenceLogMapperTest extends Unit
         $scope = $span->activate();
 
         try {
-            $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, true);
+            $mapper = new DefaultOccurrenceLogMapper(
+                $this->kit->loggerProvider,
+                SnapshotPayloadPolicy::HashOnly,
+                true,
+                true
+            );
             $mapper->mapOccurrence($occurrence);
         } finally {
             $scope->detach();
@@ -221,7 +246,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testRedactedOccurrenceUsesFallbacksForMissingFields(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            true,
+            false
+        );
         $mapper->mapRedactedOccurrence([]);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -243,7 +273,12 @@ final class OccurrenceLogMapperTest extends Unit
             'time' => 1_600,
         ];
 
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            true,
+            false
+        );
         $mapper->mapRedactedOccurrence($normalized);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -256,7 +291,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testRedactedSnapshotFallsBackWhenFieldsAreMissing(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            true,
+            false
+        );
         $mapper->mapRedactedSnapshot(['classification' => 'terminal', 'content_hash' => 'sha-256:abc']);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();

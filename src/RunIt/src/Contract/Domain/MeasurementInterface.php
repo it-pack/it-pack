@@ -15,7 +15,13 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#measurement
  */
-interface MeasurementInterface extends ExecutionArtifactInterface, ExecutionOwnedInterface, ActivityOwnedInterface, TimestampedInterface, SequencedInterface, AttributedInterface
+interface MeasurementInterface extends
+    ExecutionArtifactInterface,
+    ExecutionOwnedInterface,
+    ActivityOwnedInterface,
+    TimestampedInterface,
+    SequencedInterface,
+    AttributedInterface
 {
     public function name(): MeasurementNameInterface;
 

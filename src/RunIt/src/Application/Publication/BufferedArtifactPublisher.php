@@ -33,7 +33,10 @@ use ItPack\RunIt\Domain\Shared\Duration;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class BufferedArtifactPublisher implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
+final class BufferedArtifactPublisher implements
+    ArtifactPublisherInterface,
+    FlushablePublisherInterface,
+    CloseablePublisherInterface
 {
     private const int BLOCK_BUDGET_MICROSECONDS = 2000;
 
@@ -95,7 +98,9 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
         $this->estimatedBytes += $item['bytes'];
 
         $now = $this->clock->nowSeconds();
-        if ($this->config->flushIntervalSeconds > 0 && $now - $this->lastFlushEpoch >= $this->config->flushIntervalSeconds) {
+        if ($this->config->flushIntervalSeconds > 0
+            && $now - $this->lastFlushEpoch >= $this->config->flushIntervalSeconds
+        ) {
             $this->flush();
         }
     }
@@ -245,7 +250,8 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
      */
     private function blockWithTimeoutThenAppend(array $incoming): void
     {
-        $deadline = $this->clock->monotonicNanoseconds() + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
+        $deadline = $this->clock->monotonicNanoseconds()
+            + self::BLOCK_BUDGET_MICROSECONDS * Duration::NANOS_PER_MICROSECOND;
 
         while ($this->isFull() && $this->clock->monotonicNanoseconds() < $deadline) {
             ($this->sleep)(self::SLEEP_QUANTUM_MICROSECONDS);
@@ -333,7 +339,10 @@ final class BufferedArtifactPublisher implements ArtifactPublisherInterface, Flu
             return;
         }
 
-        $durationMicroseconds = max(0, (int) (($this->clock->monotonicNanoseconds() - $startedAtNanoseconds) / Duration::NANOS_PER_MICROSECOND));
+        $durationMicroseconds = max(
+            0,
+            (int) (($this->clock->monotonicNanoseconds() - $startedAtNanoseconds) / Duration::NANOS_PER_MICROSECOND)
+        );
         $this->observer->onFlush($flushed, $durationMicroseconds, count($this->buffer));
     }
 

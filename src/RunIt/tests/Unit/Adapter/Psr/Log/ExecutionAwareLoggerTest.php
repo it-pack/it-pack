@@ -32,7 +32,11 @@ final class ExecutionAwareLoggerTest extends Unit
             Instant::now(),
         );
 
-        return new FakeExecutionScope($execution, ExecutionContext::empty(), new \Tests\Support\Fixture\Psr\RecordingObservationRecorder());
+        return new FakeExecutionScope(
+            $execution,
+            ExecutionContext::empty(),
+            new \Tests\Support\Fixture\Psr\RecordingObservationRecorder()
+        );
     }
 
     public function testEnrichesLogWithExecutionId(): void

@@ -147,9 +147,17 @@ final class ActivityTest extends Unit
         self::assertTrue(ActivityStatus::Created->canTransitionTo(ActivityStatus::Cancelled));
         self::assertFalse(ActivityStatus::Created->canTransitionTo(ActivityStatus::Succeeded));
 
-        foreach ([ActivityStatus::Succeeded, ActivityStatus::Failed, ActivityStatus::Cancelled, ActivityStatus::TimedOut] as $terminal) {
+        foreach ([
+            ActivityStatus::Succeeded,
+            ActivityStatus::Failed,
+            ActivityStatus::Cancelled,
+            ActivityStatus::TimedOut,
+        ] as $terminal) {
             self::assertTrue(ActivityStatus::Running->canTransitionTo($terminal), $terminal->label());
-            self::assertFalse($terminal->canTransitionTo(ActivityStatus::Running), 'terminal statuses cannot transition');
+            self::assertFalse(
+                $terminal->canTransitionTo(ActivityStatus::Running),
+                'terminal statuses cannot transition'
+            );
         }
 
         self::assertFalse(ActivityStatus::Running->canTransitionTo(ActivityStatus::Running));

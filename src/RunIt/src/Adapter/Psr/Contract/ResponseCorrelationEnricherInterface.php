@@ -13,5 +13,9 @@ use Psr\Http\Message\ResponseInterface;
  */
 interface ResponseCorrelationEnricherInterface
 {
-    public function enrich(ResponseInterface $response, string $executionId, ?string $correlationId = null): ResponseInterface;
+    public function enrich(
+        ResponseInterface $response,
+        string $executionId,
+        ?string $correlationId = null
+    ): ResponseInterface;
 }

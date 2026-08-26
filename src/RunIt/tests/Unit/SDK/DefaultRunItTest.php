@@ -40,7 +40,10 @@ final class DefaultRunItTest extends TestCase
 
     private function definition(): ExecutionDefinition
     {
-        return ExecutionDefinition::create(ExecutionName::fromString('facade.spec'), ExecutionKind::fromString('operation'));
+        return ExecutionDefinition::create(
+            ExecutionName::fromString('facade.spec'),
+            ExecutionKind::fromString('operation')
+        );
     }
 
     public function testBuildReturnsInterfaceBackedRuntime(): void

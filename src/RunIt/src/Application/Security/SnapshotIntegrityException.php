@@ -21,7 +21,10 @@ final class SnapshotIntegrityException extends RuntimeException implements RunIt
 {
     public static function tampered(string $snapshotId): self
     {
-        return new self(sprintf('Snapshot "%s" content hash does not match its payload (tamper detected).', $snapshotId));
+        return new self(sprintf(
+            'Snapshot "%s" content hash does not match its payload (tamper detected).',
+            $snapshotId
+        ));
     }
 
     public static function missingPredecessor(string $snapshotId, string $predecessorId): self
@@ -36,7 +39,12 @@ final class SnapshotIntegrityException extends RuntimeException implements RunIt
 
     public static function predecessorMismatch(string $snapshotId, string $expected, string $actual): self
     {
-        return new self(sprintf('Snapshot "%s" predecessor mismatch: expected "%s", got "%s".', $snapshotId, $expected, $actual));
+        return new self(sprintf(
+            'Snapshot "%s" predecessor mismatch: expected "%s", got "%s".',
+            $snapshotId,
+            $expected,
+            $actual
+        ));
     }
 
     public static function predecessorOrder(string $snapshotId, string $predecessorId): self

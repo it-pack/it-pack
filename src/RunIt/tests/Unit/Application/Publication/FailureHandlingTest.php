@@ -69,9 +69,11 @@ final class FailureHandlingTest extends Unit
     public function testCollectAndContinueCapturesOriginalError(): void
     {
         $collected = [];
-        $policy = new CollectAndContinuePolicy(static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$collected): void {
-            $collected[] = [$error, $artifact];
-        });
+        $policy = new CollectAndContinuePolicy(
+            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$collected): void {
+                $collected[] = [$error, $artifact];
+            }
+        );
 
         $sink = $this->throwingSink();
         $artifact = $this->artifact();
@@ -85,9 +87,11 @@ final class FailureHandlingTest extends Unit
     public function testReportToFallbackForwardsArtifact(): void
     {
         $fallbackSeen = [];
-        $fallback = new CallbackArtifactPublisher(static function (ExecutionArtifactInterface $artifact) use (&$fallbackSeen): void {
-            $fallbackSeen[] = $artifact;
-        });
+        $fallback = new CallbackArtifactPublisher(
+            static function (ExecutionArtifactInterface $artifact) use (&$fallbackSeen): void {
+                $fallbackSeen[] = $artifact;
+            }
+        );
 
         $artifact = $this->artifact();
         $policy = new ReportToFallbackPolicy($fallback);
@@ -103,9 +107,11 @@ final class FailureHandlingTest extends Unit
             throw new RuntimeException('fallback also down');
         });
 
-        $health = new CallbackHealthReporter(static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
-            $healthReports[] = $error;
-        });
+        $health = new CallbackHealthReporter(
+            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
+                $healthReports[] = $error;
+            }
+        );
 
         $policy = new ReportToFallbackPolicy($failingFallback, $health);
 

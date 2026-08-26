@@ -123,7 +123,11 @@ final class HttpAdaptersTest extends Unit
     {
         $runner = new FakeExecutionRunner();
         $handler = $this->handler(200);
-        $middleware = new ExecutionMiddleware($runner, new Psr7RequestContextExtractor(), new Psr7ResponseCorrelationEnricher());
+        $middleware = new ExecutionMiddleware(
+            $runner,
+            new Psr7RequestContextExtractor(),
+            new Psr7ResponseCorrelationEnricher()
+        );
 
         $request = new ServerRequest('GET', '/users/42', ['X-Correlation-Id' => ['corr-xyz']]);
         $response = $middleware->process($request, $handler);
@@ -138,7 +142,11 @@ final class HttpAdaptersTest extends Unit
     public function testMiddlewareRecordsServerErrorObservation(): void
     {
         $runner = new FakeExecutionRunner();
-        $middleware = new ExecutionMiddleware($runner, new Psr7RequestContextExtractor(), new Psr7ResponseCorrelationEnricher());
+        $middleware = new ExecutionMiddleware(
+            $runner,
+            new Psr7RequestContextExtractor(),
+            new Psr7ResponseCorrelationEnricher()
+        );
 
         $middleware->process(new ServerRequest('GET', '/boom'), $this->handler(500));
 
@@ -150,7 +158,11 @@ final class HttpAdaptersTest extends Unit
     public function testMiddlewareRecordsClientErrorObservation(): void
     {
         $runner = new FakeExecutionRunner();
-        $middleware = new ExecutionMiddleware($runner, new Psr7RequestContextExtractor(), new Psr7ResponseCorrelationEnricher());
+        $middleware = new ExecutionMiddleware(
+            $runner,
+            new Psr7RequestContextExtractor(),
+            new Psr7ResponseCorrelationEnricher()
+        );
 
         $middleware->process(new ServerRequest('GET', '/missing'), $this->handler(404));
 
@@ -162,7 +174,11 @@ final class HttpAdaptersTest extends Unit
     public function testMiddlewareRecordsRequestFailureAndRethrows(): void
     {
         $runner = new FakeExecutionRunner();
-        $middleware = new ExecutionMiddleware($runner, new Psr7RequestContextExtractor(), new Psr7ResponseCorrelationEnricher());
+        $middleware = new ExecutionMiddleware(
+            $runner,
+            new Psr7RequestContextExtractor(),
+            new Psr7ResponseCorrelationEnricher()
+        );
 
         $this->expectException(RuntimeException::class);
 

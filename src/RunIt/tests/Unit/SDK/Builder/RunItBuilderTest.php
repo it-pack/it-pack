@@ -17,6 +17,7 @@ use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
@@ -26,10 +27,8 @@ use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
-use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
-use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
 use ItPack\RunIt\Domain\Activity\ActivityName;
@@ -51,6 +50,9 @@ use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use Tests\Support\Fixture\RecordingArtifactPublisher;
+use Tests\Support\Fixture\ThrowingArtifactPublisher;
+use Tests\Support\Fixture\ThrowingSnapshotStore;
 
 #[CoversClass(RunItBuilder::class)]
 #[CoversClass(MissingBuilderDependencyException::class)]
@@ -69,7 +71,10 @@ final class RunItBuilderTest extends TestCase
 
     private function definition(): ExecutionDefinition
     {
-        return ExecutionDefinition::create(ExecutionName::fromString('builder.spec'), ExecutionKind::fromString('operation'));
+        return ExecutionDefinition::create(
+            ExecutionName::fromString('builder.spec'),
+            ExecutionKind::fromString('operation')
+        );
     }
 
     public function testCreateReturnsBuilderInterface(): void
@@ -168,14 +173,14 @@ final class RunItBuilderTest extends TestCase
 
     public function testSamplingPolicyDropsArtifacts(): void
     {
-        $spy = new SpyPublisher();
+        $spy = new RecordingArtifactPublisher();
         $runtime = RunItBuilder::create()
             ->withPublisher($spy)
             ->withClock(new SystemMonotonicClock())
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
             ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withSamplingPolicy(new NeverSamplePolicySpy())
+            ->withSamplingPolicy(new NeverSamplePolicy())
             ->build()
         ;
 
@@ -186,7 +191,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testRedactorWrapsPublishedArtifacts(): void
     {
-        $spy = new SpyPublisher();
+        $spy = new RecordingArtifactPublisher();
         $runtime = RunItBuilder::create()
             ->withPublisher($spy)
             ->withClock(new SystemMonotonicClock())
@@ -353,7 +358,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testRedactionIsDenyByDefault(): void
     {
-        $spy = new SpyPublisher();
+        $spy = new RecordingArtifactPublisher();
 
         $runtime = RunItBuilder::create()
             ->withPublisher($spy)
@@ -381,7 +386,7 @@ final class RunItBuilderTest extends TestCase
 
     public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
     {
-        $spy = new SpyPublisher();
+        $spy = new RecordingArtifactPublisher();
 
         $runtime = RunItBuilder::create()
             ->withPublisher($spy)
@@ -424,7 +429,10 @@ final class RunItBuilderTest extends TestCase
                     ActivityDefinition::create(ActivityName::fromString('outer'), ActivityKind::fromString('task')),
                     static function () use ($scope): void {
                         $scope->activities()->run(
-                            ActivityDefinition::create(ActivityName::fromString('inner'), ActivityKind::fromString('task')),
+                            ActivityDefinition::create(
+                                ActivityName::fromString('inner'),
+                                ActivityKind::fromString('task')
+                            ),
                             static fn (): string => 'never reached',
                         );
                     },
@@ -433,7 +441,11 @@ final class RunItBuilderTest extends TestCase
 
             self::fail('configured maxActivityDepth must be enforced by the built runtime');
         } catch (ActivityDepthExceededException $exception) {
-            self::assertStringContainsString('2', $exception->getMessage(), 'depth 2 must exceed the configured limit of 1');
+            self::assertStringContainsString(
+                '2',
+                $exception->getMessage(),
+                'depth 2 must exceed the configured limit of 1'
+            );
         }
     }
 
@@ -441,7 +453,7 @@ final class RunItBuilderTest extends TestCase
     {
         $failures = [];
         $runtime = RunItBuilder::create()
-            ->withPublisher(new FailingPublisher())
+            ->withPublisher(new ThrowingArtifactPublisher())
             ->withClock(new SystemMonotonicClock())
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
@@ -462,7 +474,7 @@ final class RunItBuilderTest extends TestCase
     {
         $storeFailures = [];
         $runtime = $this->builder()
-            ->withSnapshotStore(new FailingSnapshotStore())
+            ->withSnapshotStore(new ThrowingSnapshotStore())
             ->withSnapshotStoreFailureHandler(static function (\Throwable $failure) use (&$storeFailures): void {
                 $storeFailures[] = $failure;
             })
@@ -522,7 +534,10 @@ final class RunItBuilderTest extends TestCase
         $result = $runtime->run($this->definition(), static fn (): string => 'all-seams');
 
         self::assertSame('all-seams', $result);
-        self::assertTrue($spy->called, 'configured hash calculator must be invoked through the custom snapshot factory');
+        self::assertTrue(
+            $spy->called,
+            'configured hash calculator must be invoked through the custom snapshot factory'
+        );
     }
 }
 
@@ -535,22 +550,6 @@ final class SpyHashCalculator implements HashCalculatorInterface
         $this->called = true;
 
         return hash('sha256', $content);
-    }
-}
-
-final class FailingPublisher implements ArtifactPublisherInterface
-{
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-        throw new \RuntimeException('publisher is broken');
-    }
-}
-
-final class FailingSnapshotStore implements SnapshotStoreInterface
-{
-    public function store(SnapshotInterface $snapshot): void
-    {
-        throw new \RuntimeException('snapshot store is broken');
     }
 }
 
@@ -570,25 +569,6 @@ final class SpyPublisherStackFactory implements PublisherStackFactoryInterface
         $this->called = true;
 
         return $this->override ?? $base;
-    }
-}
-
-final class SpyPublisher implements ArtifactPublisherInterface
-{
-    /** @var list<ExecutionArtifactInterface> */
-    public array $published = [];
-
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-        $this->published[] = $artifact;
-    }
-}
-
-final class NeverSamplePolicySpy implements \ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface
-{
-    public function sample(ExecutionArtifactInterface $artifact): bool
-    {
-        return false;
     }
 }
 

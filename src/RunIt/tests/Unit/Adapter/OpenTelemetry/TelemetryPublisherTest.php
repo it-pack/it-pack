@@ -98,15 +98,28 @@ final class TelemetryPublisherTest extends Unit
             redactOccurrenceData: true,
         ));
 
-        $occurrence = RunItArtifactFactory::occurrence('occ-red', 'exec-1', 'execution.started.v1', ['password' => 'hunter2']);
+        $occurrence = RunItArtifactFactory::occurrence(
+            'occ-red',
+            'exec-1',
+            'execution.started.v1',
+            ['password' => 'hunter2']
+        );
         $redacted = $redactor->redact($occurrence);
 
-        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted, 'A redacted artifact is marked as suppressed.');
+        self::assertInstanceOf(
+            RedactedArtifactInterface::class,
+            $redacted,
+            'A redacted artifact is marked as suppressed.'
+        );
 
         $publisher = $this->publisher();
         $publisher->publish($redacted);
 
-        self::assertGreaterThanOrEqual(1, $this->kit->logs()->count(), 'A redacted occurrence is still delivered, not silently dropped.');
+        self::assertGreaterThanOrEqual(
+            1,
+            $this->kit->logs()->count(),
+            'A redacted occurrence is still delivered, not silently dropped.'
+        );
 
         $redactedLogged = false;
         foreach ($this->kit->logs() as $record) {
@@ -145,7 +158,10 @@ final class TelemetryPublisherTest extends Unit
             }
         }
 
-        self::assertTrue($delivered, 'A redacted snapshot routes through the snapshot log mapper, not the occurrence path.');
+        self::assertTrue(
+            $delivered,
+            'A redacted snapshot routes through the snapshot log mapper, not the occurrence path.'
+        );
     }
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void

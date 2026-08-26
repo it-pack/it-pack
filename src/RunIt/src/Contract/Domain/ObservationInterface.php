@@ -15,7 +15,13 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-interface ObservationInterface extends ExecutionArtifactInterface, ExecutionOwnedInterface, ActivityOwnedInterface, TimestampedInterface, SequencedInterface, AttributedInterface
+interface ObservationInterface extends
+    ExecutionArtifactInterface,
+    ExecutionOwnedInterface,
+    ActivityOwnedInterface,
+    TimestampedInterface,
+    SequencedInterface,
+    AttributedInterface
 {
     public function id(): ObservationIdInterface;
 

@@ -32,7 +32,10 @@ final class RunItFactoriesTest extends TestCase
 
         self::assertInstanceOf(RunItInterface::class, $runtime);
         self::assertSame(42, $runtime->run(
-            ExecutionDefinition::create(ExecutionName::fromString('memory.spec'), ExecutionKind::fromString('operation')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('memory.spec'),
+                ExecutionKind::fromString('operation')
+            ),
             static fn (): int => 42,
         ));
     }

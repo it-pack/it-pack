@@ -203,7 +203,10 @@ final class RedactingPublisherTest extends Unit
         );
 
         $sink = new InMemoryArtifactPublisher();
-        $publisher = new RedactingArtifactPublisher(new DefaultArtifactRedactor(ArtifactRedactionConfig::disabled()), $sink);
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(ArtifactRedactionConfig::disabled()),
+            $sink
+        );
         $publisher->publish($original);
 
         self::assertSame($original, $sink->published()[0], 'With no redaction the same instance is published.');

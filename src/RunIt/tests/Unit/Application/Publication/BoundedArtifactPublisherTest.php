@@ -7,7 +7,6 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
@@ -20,6 +19,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
+use Tests\Support\Fixture\RecordingArtifactPublisher;
 
 /**
  * @group application
@@ -27,11 +27,11 @@ use RuntimeException;
  */
 final class BoundedArtifactPublisherTest extends Unit
 {
-    private RecordingPublisher $inner;
+    private RecordingArtifactPublisher $inner;
 
     protected function setUp(): void
     {
-        $this->inner = new RecordingPublisher();
+        $this->inner = new RecordingArtifactPublisher();
     }
 
     private function occurrence(mixed $data): Occurrence
@@ -121,7 +121,11 @@ final class BoundedArtifactPublisherTest extends Unit
         $publisher->publish($this->terminalSnapshotOversized());
         $publisher->publish($this->occurrence(['n' => 2]));
 
-        self::assertCount(2, $this->inner->published(), 'oversized terminal snapshot is dropped but must still release the counter');
+        self::assertCount(
+            2,
+            $this->inner->published(),
+            'oversized terminal snapshot is dropped but must still release the counter'
+        );
     }
 
     private function terminalSnapshotOversized(): Snapshot
@@ -195,7 +199,11 @@ final class BoundedArtifactPublisherTest extends Unit
         $publisher->publish($this->occurrence(['n' => 2]));
 
         self::assertSame(['artifact_count'], $dropped);
-        self::assertCount(2, $this->inner->published(), 'the released counter lets a later artifact for the same execution publish');
+        self::assertCount(
+            2,
+            $this->inner->published(),
+            'the released counter lets a later artifact for the same execution publish'
+        );
     }
 
     public function testOldestTrackedExecutionIsEvictedWhenTheCacheIsFull(): void
@@ -235,22 +243,5 @@ final class BoundedArtifactPublisherTest extends Unit
         $publisher->publish($this->occurrence(['big' => str_repeat('x', 1000)]));
 
         self::assertCount(0, $this->inner->published());
-    }
-}
-
-final class RecordingPublisher implements ArtifactPublisherInterface
-{
-    /** @var list<ExecutionArtifactInterface> */
-    private array $published = [];
-
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-        $this->published[] = $artifact;
-    }
-
-    /** @return list<ExecutionArtifactInterface> */
-    public function published(): array
-    {
-        return $this->published;
     }
 }

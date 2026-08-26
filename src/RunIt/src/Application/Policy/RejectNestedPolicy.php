@@ -20,8 +20,10 @@ use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
  */
 final class RejectNestedPolicy implements NestedExecutionPolicyInterface
 {
-    public function resolve(?ExecutionScopeInterface $current, ExecutionDefinitionInterface $definition): NestedExecutionMode
-    {
+    public function resolve(
+        ?ExecutionScopeInterface $current,
+        ExecutionDefinitionInterface $definition
+    ): NestedExecutionMode {
         if ($current === null) {
             return NestedExecutionMode::ChildExecution;
         }

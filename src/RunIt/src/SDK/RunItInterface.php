@@ -48,5 +48,8 @@ interface RunItInterface
      *
      * @param ExecutionDefinitionInterface|callable(array<mixed>): ExecutionDefinitionInterface|null $definition
      */
-    public function wrap(callable $operation, ExecutionDefinitionInterface|callable|null $definition = null): ExecutedCallableInterface;
+    public function wrap(
+        callable $operation,
+        ExecutionDefinitionInterface|callable|null $definition = null
+    ): ExecutedCallableInterface;
 }

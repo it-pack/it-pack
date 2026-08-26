@@ -16,6 +16,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
@@ -143,12 +144,12 @@ readonly class Snapshot implements SnapshotInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
+    public function executionId(): ExecutionIdInterface
     {
         return $this->executionId;
     }
 
-    public function activityId(): ?\ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function activityId(): ?StringIdentifierInterface
     {
         return $this->activityId;
     }

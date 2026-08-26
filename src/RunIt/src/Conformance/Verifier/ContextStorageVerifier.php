@@ -37,45 +37,69 @@ final class ContextStorageVerifier implements VerifierInterface
         try {
             $token = $storage->attach($scope);
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('attach.throws', sprintf('attach() threw: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('attach.throws', sprintf(
+                'attach() threw: %s',
+                $e->getMessage()
+            )));
         }
 
         $top = $storage->current();
         if ($top !== $scope) {
-            $result = $result->add(new ConformanceViolation('current.after-attach', 'current() did not return the attached scope'));
+            $result = $result->add(new ConformanceViolation(
+                'current.after-attach',
+                'current() did not return the attached scope'
+            ));
         }
 
         try {
             $secondToken = $storage->attach($scope);
         } catch (Throwable $e) {
             $secondToken = null;
-            $result = $result->add(new ConformanceViolation('attach.throws', sprintf('attach() threw: %s', $e->getMessage())));
+            $result = $result->add(new ConformanceViolation('attach.throws', sprintf(
+                'attach() threw: %s',
+                $e->getMessage()
+            )));
         }
 
         if ($secondToken !== null) {
             if ($storage->current() !== $scope) {
-                $result = $result->add(new ConformanceViolation('current.not-lifo', 'a second attach did not become the current scope'));
+                $result = $result->add(new ConformanceViolation(
+                    'current.not-lifo',
+                    'a second attach did not become the current scope'
+                ));
             }
 
             try {
                 $storage->detach($secondToken);
             } catch (Throwable $e) {
-                $result = $result->add(new ConformanceViolation('detach.throws', sprintf('detach() threw: %s', $e->getMessage())));
+                $result = $result->add(new ConformanceViolation('detach.throws', sprintf(
+                    'detach() threw: %s',
+                    $e->getMessage()
+                )));
             }
 
             if ($storage->current() !== $scope) {
-                $result = $result->add(new ConformanceViolation('detach.wrong-scope', 'detaching the inner scope did not restore the outer scope'));
+                $result = $result->add(new ConformanceViolation(
+                    'detach.wrong-scope',
+                    'detaching the inner scope did not restore the outer scope'
+                ));
             }
         }
 
         try {
             $storage->detach($token);
         } catch (Throwable $e) {
-            $result = $result->add(new ConformanceViolation('detach.throws', sprintf('detach() threw: %s', $e->getMessage())));
+            $result = $result->add(new ConformanceViolation('detach.throws', sprintf(
+                'detach() threw: %s',
+                $e->getMessage()
+            )));
         }
 
         if ($storage->current() !== null) {
-            $result = $result->add(new ConformanceViolation('detach.incomplete', 'current() still returned a scope after detaching the last one'));
+            $result = $result->add(new ConformanceViolation(
+                'detach.incomplete',
+                'current() still returned a scope after detaching the last one'
+            ));
         }
 
         return $result;

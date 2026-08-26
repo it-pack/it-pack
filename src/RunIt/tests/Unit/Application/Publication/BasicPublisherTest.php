@@ -50,9 +50,11 @@ final class BasicPublisherTest extends Unit
     public function testCallbackPublisherForwards(): void
     {
         $seen = [];
-        $publisher = new CallbackArtifactPublisher(static function (ExecutionArtifactInterface $artifact) use (&$seen): void {
-            $seen[] = $artifact;
-        });
+        $publisher = new CallbackArtifactPublisher(
+            static function (ExecutionArtifactInterface $artifact) use (&$seen): void {
+                $seen[] = $artifact;
+            }
+        );
 
         $artifact = $this->artifact();
         $publisher->publish($artifact);

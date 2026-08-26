@@ -43,7 +43,15 @@ final class ObservationRecordingLoggerTest extends Unit
 
         $names = array_map(static fn ($r) => $r['severity']?->label(), $recorder->recorded());
         self::assertSame(
-            [ObservationSeverity::Emergency->label(), ObservationSeverity::Alert->label(), ObservationSeverity::Critical->label(), ObservationSeverity::Warning->label(), ObservationSeverity::Notice->label(), ObservationSeverity::Info->label(), ObservationSeverity::Debug->label()],
+            [
+                ObservationSeverity::Emergency->label(),
+                ObservationSeverity::Alert->label(),
+                ObservationSeverity::Critical->label(),
+                ObservationSeverity::Warning->label(),
+                ObservationSeverity::Notice->label(),
+                ObservationSeverity::Info->label(),
+                ObservationSeverity::Debug->label(),
+            ],
             $names,
         );
     }

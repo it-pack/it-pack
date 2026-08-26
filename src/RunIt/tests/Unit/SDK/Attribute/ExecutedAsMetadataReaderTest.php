@@ -82,7 +82,10 @@ final class ExecutedAsMetadataReaderTest extends TestCase
         gc_collect_cycles();
 
         $b = static fn (): int => 1;
-        self::assertNull($this->reader->read($b), 'A fresh unattributed closure must not inherit freed closure A metadata.');
+        self::assertNull(
+            $this->reader->read($b),
+            'A fresh unattributed closure must not inherit freed closure A metadata.'
+        );
     }
 
     public function testObjectCacheDoesNotGrowUnboundedAcrossManyCallables(): void

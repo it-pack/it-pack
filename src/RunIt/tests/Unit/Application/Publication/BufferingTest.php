@@ -59,8 +59,13 @@ final class BufferingTest extends Unit
         return is_string($id) ? $id : '';
     }
 
-    private function config(int $maxItems, OverflowStrategy $overflow, int $batchSize = 1024, int $budget = 4096, int $maxBytes = 10_000_000): BufferConfiguration
-    {
+    private function config(
+        int $maxItems,
+        OverflowStrategy $overflow,
+        int $batchSize = 1024,
+        int $budget = 4096,
+        int $maxBytes = 10_000_000
+    ): BufferConfiguration {
         return new BufferConfiguration(
             maxItems: $maxItems,
             maxEstimatedBytes: $maxBytes,
@@ -75,7 +80,12 @@ final class BufferingTest extends Unit
     public function testDropNewestBoundsBuffer(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropNewest), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(2, OverflowStrategy::DropNewest),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('info', 'a'));
         $buffer->publish($this->artifact('info', 'b'));
@@ -91,34 +101,55 @@ final class BufferingTest extends Unit
     public function testDropOldestBoundsBuffer(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropOldest), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(2, OverflowStrategy::DropOldest),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('info', 'a'));
         $buffer->publish($this->artifact('info', 'b'));
         $buffer->publish($this->artifact('info', 'c'));
 
         $buffer->flush();
-        self::assertSame(['b', 'c'], [$sink->published()[0]->normalize()['id'], $sink->published()[1]->normalize()['id']]);
+        self::assertSame(
+            ['b', 'c'],
+            [$sink->published()[0]->normalize()['id'], $sink->published()[1]->normalize()['id']]
+        );
         self::assertSame(1, $buffer->droppedCount());
     }
 
     public function testDropLowPriorityKeepsHighPriority(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropLowPriority), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(2, OverflowStrategy::DropLowPriority),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('info', 'low-1'));
         $buffer->publish($this->artifact('info', 'low-2'));
         $buffer->publish($this->artifact('error', 'high-1'));
 
         $buffer->flush();
-        self::assertSame(['low-2', 'high-1'], [$sink->published()[0]->normalize()['id'], $sink->published()[1]->normalize()['id']]);
+        self::assertSame(
+            ['low-2', 'high-1'],
+            [$sink->published()[0]->normalize()['id'], $sink->published()[1]->normalize()['id']]
+        );
     }
 
     public function testDropLowPriorityDropsIncomingLow(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::DropLowPriority), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, OverflowStrategy::DropLowPriority),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('info', 'low-1'));
         $buffer->publish($this->artifact('info', 'low-2'));
@@ -130,7 +161,12 @@ final class BufferingTest extends Unit
     public function testFailStrategyThrows(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(1, OverflowStrategy::Fail), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, OverflowStrategy::Fail),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('info', 'a'));
         $thrown = null;
@@ -174,7 +210,12 @@ final class BufferingTest extends Unit
     public function testFlushRespectsBatchSize(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 2), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropOldest, batchSize: 2),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         for ($i = 0; $i < 5; $i++) {
             $buffer->publish($this->artifact('info', (string) $i));
@@ -191,7 +232,12 @@ final class BufferingTest extends Unit
     public function testCloseRespectsShutdownBudgetAndDropsRest(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest, batchSize: 1024, budget: 1), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropOldest, batchSize: 1024, budget: 1),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         for ($i = 0; $i < 3; $i++) {
             $buffer->publish($this->artifact('info', (string) $i));
@@ -246,7 +292,12 @@ final class BufferingTest extends Unit
     public function testMemoryStaysBoundedUnderSustainedLoad(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropOldest),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         for ($i = 0; $i < 1000; $i++) {
             $buffer->publish($this->artifact('info', (string) $i));
@@ -272,7 +323,12 @@ final class BufferingTest extends Unit
     {
         $clock = new \Tests\Support\Fixture\DeterministicMonotonicClock(1_000, 0);
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(10, OverflowStrategy::DropOldest), $sink, $clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropOldest),
+            $sink,
+            $clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('info', 'obs-1'));
         self::assertSame([], $sink->published(), 'within the interval nothing drains');
@@ -287,18 +343,31 @@ final class BufferingTest extends Unit
     public function testDropLowPriorityFallsBackToDroppingOldestWhenEverythingIsHighPriority(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $buffer = new BufferedArtifactPublisher($this->config(2, OverflowStrategy::DropLowPriority), $sink, $this->clock, $this->estimator);
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(2, OverflowStrategy::DropLowPriority),
+            $sink,
+            $this->clock,
+            $this->estimator
+        );
 
         $buffer->publish($this->artifact('warning', 'obs-high-1'));
         $buffer->publish($this->artifact('error', 'obs-high-2'));
         $buffer->publish($this->artifact('critical', 'obs-high-3'));
 
         self::assertSame(2, $buffer->bufferedCount());
-        self::assertSame(1, $buffer->droppedCount(), 'the oldest high-priority item is dropped when no low-priority item exists');
+        self::assertSame(
+            1,
+            $buffer->droppedCount(),
+            'the oldest high-priority item is dropped when no low-priority item exists'
+        );
 
         $buffer->flush();
 
-        self::assertSame('obs-high-2', $this->idOf($sink->published()[0]), 'the newest high-priority items are retained');
+        self::assertSame(
+            'obs-high-2',
+            $this->idOf($sink->published()[0]),
+            'the newest high-priority items are retained'
+        );
     }
 
     public function testBlockWithTimeoutUsesTheDefaultSleepWhenNoSeamIsInjected(): void

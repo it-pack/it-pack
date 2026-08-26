@@ -61,7 +61,9 @@ final class ObservationRecordingLogger extends AbstractLogger
         $token = $this->guard instanceof PublicationGuardInterface ? $this->guard->enter() : null;
 
         try {
-            $throwable = isset($context['exception']) && $context['exception'] instanceof Throwable ? $context['exception'] : null;
+            $throwable = isset($context['exception']) && $context['exception'] instanceof Throwable
+                ? $context['exception']
+                : null;
             $attributes = $this->attributesFromContext($context);
 
             $this->recorder->record(

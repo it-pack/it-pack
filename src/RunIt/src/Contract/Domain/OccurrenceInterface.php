@@ -18,7 +18,12 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-interface OccurrenceInterface extends ExecutionArtifactInterface, ExecutionOwnedInterface, ActivityOwnedInterface, TimestampedInterface, SequencedInterface
+interface OccurrenceInterface extends
+    ExecutionArtifactInterface,
+    ExecutionOwnedInterface,
+    ActivityOwnedInterface,
+    TimestampedInterface,
+    SequencedInterface
 {
     public function id(): OccurrenceIdInterface;
 

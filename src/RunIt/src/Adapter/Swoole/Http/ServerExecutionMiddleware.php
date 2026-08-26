@@ -41,7 +41,10 @@ final class ServerExecutionMiddleware implements ServerExecutionMiddlewareInterf
         $context = $this->contextExtractor?->extract($request) ?? ExecutionContext::empty();
         $definition = ExecutionDefinition::create($this->name, $this->kind, null, [], $context);
 
-        return $this->runner->run($definition, function (ExecutionScopeInterface $scope) use ($request, $handler): mixed {
+        return $this->runner->run($definition, function (ExecutionScopeInterface $scope) use (
+            $request,
+            $handler
+        ): mixed {
             $startedAt = $this->clock?->nowSeconds();
 
             try {

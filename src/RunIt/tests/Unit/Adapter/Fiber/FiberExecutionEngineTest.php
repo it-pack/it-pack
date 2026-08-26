@@ -37,9 +37,15 @@ final class FiberExecutionEngineTest extends Unit
         $kit = $this->kit();
         $engine = new FiberExecutionEngine();
 
-        $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use ($engine): mixed {
-            return $engine->run($scope, static fn (ExecutionScopeInterface $s): string => $s === $scope ? 'ok' : 'mismatch');
-        });
+        $result = $kit->runner->run(
+            $this->definition(),
+            static function (ExecutionScopeInterface $scope) use ($engine): mixed {
+                return $engine->run(
+                    $scope,
+                    static fn (ExecutionScopeInterface $s): string => $s === $scope ? 'ok' : 'mismatch'
+                );
+            }
+        );
 
         self::assertSame('ok', $result);
     }

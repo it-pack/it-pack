@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Adapter\CloudEvents\Mapping;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -34,7 +35,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
  */
 final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenceMapperInterface
 {
-    public function map(CloudEvent $event): \ItPack\RunIt\Contract\Domain\OccurrenceInterface
+    public function map(CloudEvent $event): OccurrenceInterface
     {
         $executionIdValue = $event->extensions[CloudEventExtensionKey::ExecutionId->value] ?? null;
         if (!is_string($executionIdValue) || $executionIdValue === '') {

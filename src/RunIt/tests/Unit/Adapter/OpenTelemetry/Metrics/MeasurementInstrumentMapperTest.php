@@ -72,7 +72,16 @@ final class MeasurementInstrumentMapperTest extends Unit
     public function testGaugeBecomesGaugeInstrument(): void
     {
         $mapper = new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, new InstrumentCache(64), []);
-        $gauge = Measurement::gauge(MeasurementName::fromString('cpu'), ExecutionId::fromString('exec-1'), 0.42, null, Instant::of(1_500), null, null, MeasurementUnit::Percent);
+        $gauge = Measurement::gauge(
+            MeasurementName::fromString('cpu'),
+            ExecutionId::fromString('exec-1'),
+            0.42,
+            null,
+            Instant::of(1_500),
+            null,
+            null,
+            MeasurementUnit::Percent
+        );
 
         $mapper->record($gauge);
         $metric = $this->kit->metric('cpu');
@@ -92,7 +101,11 @@ final class MeasurementInstrumentMapperTest extends Unit
     public function testDurationBecomesHistogram(): void
     {
         $mapper = new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, new InstrumentCache(64), []);
-        $duration = Measurement::duration(MeasurementName::fromString('latency'), ExecutionId::fromString('exec-1'), 12.5);
+        $duration = Measurement::duration(
+            MeasurementName::fromString('latency'),
+            ExecutionId::fromString('exec-1'),
+            12.5
+        );
 
         $mapper->record($duration);
         $metric = $this->kit->metric('latency');
@@ -172,7 +185,11 @@ final class MeasurementInstrumentMapperTest extends Unit
     public function testMissingMeterProviderRecordsNothing(): void
     {
         $mapper = new DefaultMeasurementInstrumentMapper(null, new InstrumentCache(64), []);
-        $mapper->record(Measurement::counter(MeasurementName::fromString('items'), ExecutionId::fromString('exec-1'), 5));
+        $mapper->record(Measurement::counter(
+            MeasurementName::fromString('items'),
+            ExecutionId::fromString('exec-1'),
+            5
+        ));
 
         self::assertCount(0, $this->kit->collectMetrics());
     }

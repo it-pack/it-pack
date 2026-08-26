@@ -34,8 +34,18 @@ final class ActivitySpanMapperTest extends Unit
         $this->spanExporter = new InMemoryExporter();
         $tracerProvider = new TracerProvider(new SimpleSpanProcessor($this->spanExporter));
         $this->store = new InMemoryExecutionSpanStore();
-        $this->mapper = new DefaultActivitySpanMapper($tracerProvider, $this->store, new SpanStatusMap(), new SpanKindMap());
-        $this->executionMapper = new DefaultExecutionSpanMapper($tracerProvider, $this->store, new SpanStatusMap(), new SpanKindMap());
+        $this->mapper = new DefaultActivitySpanMapper(
+            $tracerProvider,
+            $this->store,
+            new SpanStatusMap(),
+            new SpanKindMap()
+        );
+        $this->executionMapper = new DefaultExecutionSpanMapper(
+            $tracerProvider,
+            $this->store,
+            new SpanStatusMap(),
+            new SpanKindMap()
+        );
     }
 
     /**

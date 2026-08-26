@@ -8,25 +8,21 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Publication\BoundDropException;
-use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
-use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
-use ItPack\RunIt\Contract\Domain\InstantInterface;
-use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
-use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
-use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Contract\Port\ContextStorageInterface;
-use ItPack\RunIt\Contract\Port\ContextTokenInterface;
-use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use RuntimeException;
+use Tests\Support\Fixture\EmptyArtifact;
 use Tests\Support\Fixture\RunItTestKit;
+use Tests\Support\Fixture\ThrowingArtifactPublisher;
+use Tests\Support\Fixture\ThrowingAttachContextStorage;
+use Tests\Support\Fixture\ThrowingCompletionPolicy;
+use Tests\Support\Fixture\ThrowingDetachContextStorage;
+use Tests\Support\Fixture\ThrowingSequenceAllocator;
+use Tests\Support\Fixture\ThrowingSnapshotStore;
+use Tests\Support\Fixture\ThrowingThrowableMapper;
+use Tests\Support\Fixture\TransitionFailingCoordinator;
 
 /**
  * M12.7 — resilience under injected port and collaborator failures.
@@ -45,7 +41,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            publisher: new FailingArtifactPublisher(),
+            publisher: new ThrowingArtifactPublisher(),
             onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
@@ -62,7 +58,7 @@ final class ResilienceTest extends Unit
 
     public function testPublisherFailurePreservesOriginalThrowable(): void
     {
-        $kit = new RunItTestKit(publisher: new FailingArtifactPublisher());
+        $kit = new RunItTestKit(publisher: new ThrowingArtifactPublisher());
 
         $thrown = new RuntimeException('business broke');
         $caught = null;
@@ -82,7 +78,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            storage: new FailingContextStorage(),
+            storage: new ThrowingDetachContextStorage(),
             onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
@@ -96,7 +92,7 @@ final class ResilienceTest extends Unit
 
     public function testContextDetachFailurePreservesOriginalThrowable(): void
     {
-        $kit = new RunItTestKit(storage: new FailingContextStorage());
+        $kit = new RunItTestKit(storage: new ThrowingDetachContextStorage());
 
         $thrown = new RuntimeException('business broke');
         $caught = null;
@@ -116,7 +112,7 @@ final class ResilienceTest extends Unit
     {
         $storeFailures = [];
         $kit = new RunItTestKit(
-            snapshotStore: new FailingSnapshotStore(),
+            snapshotStore: new ThrowingSnapshotStore(),
             onSnapshotStoreFailure: static function (\Throwable $failure) use (&$storeFailures): void {
                 $storeFailures[] = $failure;
             },
@@ -141,7 +137,7 @@ final class ResilienceTest extends Unit
 
     public function testSerializerFailureDoesNotAbortOperation(): void
     {
-        $kit = new RunItTestKit(snapshotStore: new FailingSnapshotStore());
+        $kit = new RunItTestKit(snapshotStore: new ThrowingSnapshotStore());
 
         $result = $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope): int {
             // A non-finite value makes the snapshot serializer reject the payload.
@@ -171,7 +167,7 @@ final class ResilienceTest extends Unit
             new \ItPack\RunIt\Application\Publication\FailOpenPolicy(),
         );
 
-        $safe->publish(new FakeArtifact());
+        $safe->publish(new EmptyArtifact());
 
         self::assertCount(0, $inner->published(), 'redactor failure must be swallowed by the fail-safe boundary');
     }
@@ -191,9 +187,13 @@ final class ResilienceTest extends Unit
             new \ItPack\RunIt\Application\Publication\FailOpenPolicy(),
         );
 
-        $safe->publish(new FakeArtifact());
+        $safe->publish(new EmptyArtifact());
 
-        self::assertCount(0, $inner->published(), 'sampling policy failure must be swallowed by the fail-safe boundary');
+        self::assertCount(
+            0,
+            $inner->published(),
+            'sampling policy failure must be swallowed by the fail-safe boundary'
+        );
     }
 
     public function testCompletionPolicyFailureOnSuccessPathPreservesResult(): void
@@ -230,7 +230,7 @@ final class ResilienceTest extends Unit
         // Every publish faults at the adapter, and every report faults at the
         // handler: the operation must still run and return its result.
         $kit = new RunItTestKit(
-            publisher: new FailingArtifactPublisher(),
+            publisher: new ThrowingArtifactPublisher(),
             onPublicationFailure: static function (\Throwable $failure): void {
                 throw new RuntimeException('handler is broken');
             },
@@ -281,7 +281,11 @@ final class ResilienceTest extends Unit
             $caught = $exception;
         }
 
-        self::assertSame('sequence allocation is broken', $caught?->getMessage(), 'setup faults still surface to the caller');
+        self::assertSame(
+            'sequence allocation is broken',
+            $caught?->getMessage(),
+            'setup faults still surface to the caller'
+        );
         self::assertCount(1, $failures, 'a setup fault must be reported exactly once before surfacing');
     }
 
@@ -289,7 +293,7 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            storage: new FailingAttachStorage(),
+            storage: new ThrowingAttachContextStorage(),
             onPublicationFailure: static function (\Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
@@ -454,7 +458,10 @@ final class ResilienceTest extends Unit
 
         self::assertSame('value', $result);
         self::assertNotEmpty(
-            array_filter($failures, static fn (\Throwable $failure): bool => str_contains($failure->getMessage(), 'transition is broken')),
+            array_filter($failures, static fn (\Throwable $failure): bool => str_contains(
+                $failure->getMessage(),
+                'transition is broken'
+            )),
             'the transition fault on the success path must be reported',
         );
     }
@@ -465,109 +472,5 @@ final class ResilienceTest extends Unit
             \ItPack\RunIt\Domain\Execution\ExecutionName::fromString('op'),
             \ItPack\RunIt\Domain\Execution\ExecutionKind::fromString('task'),
         );
-    }
-}
-
-final class FailingArtifactPublisher implements ArtifactPublisherInterface
-{
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-        throw new RuntimeException('publisher is broken');
-    }
-}
-
-final class ThrowingSequenceAllocator implements SequenceAllocatorInterface
-{
-    public function allocate(ExecutionIdInterface $executionId): \ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface
-    {
-        throw new RuntimeException('sequence allocation is broken');
-    }
-}
-
-final class FailingAttachStorage implements ContextStorageInterface
-{
-    public function current(): ?ExecutionScopeInterface
-    {
-        return null;
-    }
-
-    public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
-    {
-        throw new RuntimeException('context attach is broken');
-    }
-
-    public function detach(ContextTokenInterface $token): void
-    {
-    }
-}
-
-final class ThrowingCompletionPolicy implements ExecutionCompletionPolicyInterface
-{
-    public function resolveOpenActivities(ExecutionScopeInterface $scope, array $openActivities): void
-    {
-        throw new RuntimeException('completion policy is broken');
-    }
-}
-
-final class TransitionFailingCoordinator implements ExecutionLifecycleCoordinatorInterface
-{
-    public function __construct(private readonly ExecutionLifecycleCoordinatorInterface $inner)
-    {
-    }
-
-    public function transition(ExecutionInterface $execution, ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface
-    {
-        throw new RuntimeException('transition is broken');
-    }
-
-    public function start(ExecutionInterface $execution): ExecutionInterface
-    {
-        return $this->inner->start($execution);
-    }
-}
-
-final class ThrowingThrowableMapper implements ThrowableMapperInterface
-{
-    public function describe(\Throwable $throwable): ThrowableDescriptionInterface
-    {
-        throw new RuntimeException('throwable mapper is broken');
-    }
-}
-
-final class FailingSnapshotStore implements SnapshotStoreInterface
-{
-    public function store(SnapshotInterface $snapshot): void
-    {
-        throw new RuntimeException('snapshot store is broken');
-    }
-}
-
-final class FailingContextStorage implements ContextStorageInterface
-{
-    public function current(): ?ExecutionScopeInterface
-    {
-        return null;
-    }
-
-    public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
-    {
-        return new FakeContextToken();
-    }
-
-    public function detach(ContextTokenInterface $token): void
-    {
-        throw new RuntimeException('context detach is broken');
-    }
-}
-
-final class FakeContextToken implements ContextTokenInterface
-{
-}
-
-final class FakeArtifact implements ExecutionArtifactInterface
-{
-    public function normalize(): array
-    {
-        return [];
     }
 }

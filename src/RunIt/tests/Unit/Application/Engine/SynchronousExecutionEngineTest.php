@@ -76,6 +76,9 @@ final class SynchronousExecutionEngineTest extends Unit
 
     public function testDefinitionHelperCompiles(): void
     {
-        self::assertInstanceOf(ExecutionDefinitionInterface::class, ExecutionDefinition::create(ExecutionName::fromString('x'), ExecutionKind::fromString('y')));
+        self::assertInstanceOf(
+            ExecutionDefinitionInterface::class,
+            ExecutionDefinition::create(ExecutionName::fromString('x'), ExecutionKind::fromString('y'))
+        );
     }
 }

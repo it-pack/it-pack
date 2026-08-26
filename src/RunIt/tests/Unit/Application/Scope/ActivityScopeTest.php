@@ -33,7 +33,10 @@ final class ActivityScopeTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) use (&$seen) {
                 return $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
+                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                        ActivityName::fromString('load'),
+                        ActivityKind::fromString('io')
+                    ),
                     function ($activityScope) use (&$seen, $scope) {
                         $seen['activityName'] = $activityScope->activity()->definition()->name()->toString();
                         $seen['parentScope'] = $activityScope->parentScope();
@@ -60,7 +63,10 @@ final class ActivityScopeTest extends Unit
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) {
                 $scope->activities()->run(
-                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
+                    \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+                        ActivityName::fromString('load'),
+                        ActivityKind::fromString('io')
+                    ),
                     function ($activityScope) {
                         $activityScope->measurements()->counter('inside', 7);
 
@@ -78,6 +84,9 @@ final class ActivityScopeTest extends Unit
         ));
 
         self::assertCount(1, $measurements);
-        self::assertNotNull($measurements[0]->activityId(), 'Recordings through the activity scope must bind to the activity.');
+        self::assertNotNull(
+            $measurements[0]->activityId(),
+            'Recordings through the activity scope must bind to the activity.'
+        );
     }
 }

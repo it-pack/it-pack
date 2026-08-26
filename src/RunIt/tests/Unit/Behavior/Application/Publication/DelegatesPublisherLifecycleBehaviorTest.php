@@ -8,9 +8,8 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\FilteringArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
-use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use Tests\Support\Fixture\LifecycleSpy;
+use Tests\Support\Fixture\RecordingArtifactPublisher;
 
 /**
  * Verifies the shared decorator lifecycle delegation through a real decorator
@@ -35,7 +34,7 @@ final class DelegatesPublisherLifecycleBehaviorTest extends Unit
 
     public function testAPlainInnerIsLeftUntouched(): void
     {
-        $inner = new PlainSink();
+        $inner = new RecordingArtifactPublisher();
         $decorator = new FilteringArtifactPublisher($this->acceptAll(), $inner);
 
         $decorator->flush();
@@ -52,36 +51,5 @@ final class DelegatesPublisherLifecycleBehaviorTest extends Unit
                 return true;
             }
         };
-    }
-}
-
-final class LifecycleSpy implements ArtifactPublisherInterface, FlushablePublisherInterface, CloseablePublisherInterface
-{
-    /** @var list<string> */
-    public array $calls = [];
-
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-    }
-
-    public function flush(): void
-    {
-        $this->calls[] = 'flush';
-    }
-
-    public function close(): void
-    {
-        $this->calls[] = 'close';
-    }
-}
-
-final class PlainSink implements ArtifactPublisherInterface
-{
-    /** @var list<ExecutionArtifactInterface> */
-    public array $published = [];
-
-    public function publish(ExecutionArtifactInterface $artifact): void
-    {
-        $this->published[] = $artifact;
     }
 }

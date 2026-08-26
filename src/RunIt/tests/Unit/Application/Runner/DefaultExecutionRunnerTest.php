@@ -165,7 +165,11 @@ final class DefaultExecutionRunnerTest extends Unit
         $result = $kit->runner->run($this->definition(), static fn (): string => 'business-value');
 
         self::assertSame('business-value', $result, 'The business result must be preserved.');
-        self::assertInstanceOf(\Throwable::class, $captured, 'The health callback must receive the publication failure.');
+        self::assertInstanceOf(
+            \Throwable::class,
+            $captured,
+            'The health callback must receive the publication failure.'
+        );
         self::assertSame('publisher down', $captured->getMessage());
     }
 

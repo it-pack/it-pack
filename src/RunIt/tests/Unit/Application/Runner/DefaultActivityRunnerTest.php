@@ -36,7 +36,10 @@ final class DefaultActivityRunnerTest extends Unit
 
     private function activityDefinition(): \ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface
     {
-        return \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io'));
+        return \ItPack\RunIt\Domain\Activity\ActivityDefinition::create(
+            ActivityName::fromString('load'),
+            ActivityKind::fromString('io')
+        );
     }
 
     /**

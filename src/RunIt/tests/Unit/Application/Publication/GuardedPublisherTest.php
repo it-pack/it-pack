@@ -30,8 +30,11 @@ final class GuardedPublisherTest extends Unit
      * Two guarded publishers that share one guard: publishing through the outer one re-enters
      * the same path when the inner (the exporter) tries to publish again.
      */
-    private function sharedGuardChain(PublicationGuard $guard, InMemoryArtifactPublisher $realSink, ?CallbackHealthReporter $health): GuardedArtifactPublisher
-    {
+    private function sharedGuardChain(
+        PublicationGuard $guard,
+        InMemoryArtifactPublisher $realSink,
+        ?CallbackHealthReporter $health
+    ): GuardedArtifactPublisher {
         $inner = new GuardedArtifactPublisher($guard, $realSink, $health);
         $outer = new GuardedArtifactPublisher($guard, $inner);
 
@@ -42,9 +45,11 @@ final class GuardedPublisherTest extends Unit
     {
         $realSink = new InMemoryArtifactPublisher();
         $healthReports = [];
-        $health = new CallbackHealthReporter(static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
-            $healthReports[] = $artifact;
-        });
+        $health = new CallbackHealthReporter(
+            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$healthReports): void {
+                $healthReports[] = $artifact;
+            }
+        );
 
         $guard = new PublicationGuard();
         $guarded = $this->sharedGuardChain($guard, $realSink, $health);
@@ -76,12 +81,18 @@ final class GuardedPublisherTest extends Unit
         // The exporter sink records the artifact it receives and, as a side effect, publishes an
         // observation about its own export through the same guarded pipeline. That self-observation
         // must be suppressed, but the original artifact still reaches the sink.
-        $exporter = new CallbackArtifactPublisher(static function (ExecutionArtifactInterface $artifact) use (&$recorded, &$guarded): void {
-            $recorded[] = $artifact;
-            if ($guarded !== null) {
-                $guarded->publish(Observation::info(ObservationId::fromString('self'), ExecutionId::fromString('exec-1'), 'exported'));
+        $exporter = new CallbackArtifactPublisher(
+            static function (ExecutionArtifactInterface $artifact) use (&$recorded, &$guarded): void {
+                $recorded[] = $artifact;
+                if ($guarded !== null) {
+                    $guarded->publish(Observation::info(
+                        ObservationId::fromString('self'),
+                        ExecutionId::fromString('exec-1'),
+                        'exported'
+                    ));
+                }
             }
-        });
+        );
 
         $guarded = new GuardedArtifactPublisher($guard, $exporter);
 

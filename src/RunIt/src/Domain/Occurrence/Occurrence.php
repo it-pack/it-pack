@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
@@ -95,12 +96,12 @@ final readonly class Occurrence implements OccurrenceInterface
         return $this->id;
     }
 
-    public function executionId(): \ItPack\RunIt\Contract\Domain\ExecutionIdInterface
+    public function executionId(): ExecutionIdInterface
     {
         return $this->executionId;
     }
 
-    public function activityId(): ?\ItPack\RunIt\Contract\Domain\StringIdentifierInterface
+    public function activityId(): ?StringIdentifierInterface
     {
         return $this->activityId;
     }

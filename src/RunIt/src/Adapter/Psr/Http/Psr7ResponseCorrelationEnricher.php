@@ -24,8 +24,11 @@ final readonly class Psr7ResponseCorrelationEnricher implements ResponseCorrelat
     ) {
     }
 
-    public function enrich(ResponseInterface $response, string $executionId, ?string $correlationId = null): ResponseInterface
-    {
+    public function enrich(
+        ResponseInterface $response,
+        string $executionId,
+        ?string $correlationId = null
+    ): ResponseInterface {
         $response = $response->withHeader($this->executionHeader, $executionId);
 
         if ($correlationId !== null) {

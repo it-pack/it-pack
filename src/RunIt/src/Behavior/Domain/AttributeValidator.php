@@ -49,7 +49,10 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
         return new BoundedKeyGuard(
             $this->limits,
             static fn (): InvalidAttributeException => InvalidAttributeException::emptyKey(),
-            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::keyTooLong($length, $maximum),
+            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::keyTooLong(
+                $length,
+                $maximum
+            ),
             static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedKeyCharacters(),
         );
     }
@@ -84,10 +87,22 @@ final readonly class AttributeValidator implements AttributeValidatorInterface
     {
         return new BoundedPrimitiveValueWalker(
             $this->limits,
-            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooLong($length, $maximum),
-            static fn (int $depth, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooDeep($depth, $maximum),
+            static fn (int $length, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooLong(
+                $length,
+                $maximum
+            ),
+            static fn (int $depth, int $maximum): InvalidAttributeException => InvalidAttributeException::valueTooDeep(
+                $depth,
+                $maximum
+            ),
             static fn (): InvalidAttributeException => InvalidAttributeException::unsupportedValue(),
-            static fn (int $count, int $maximum): InvalidAttributeException => InvalidAttributeException::tooManyAttributes($count, $maximum),
+            static fn (
+                $count,
+                $maximum,
+            ): InvalidAttributeException => InvalidAttributeException::tooManyAttributes(
+                $count,
+                $maximum,
+            ),
         );
     }
 }

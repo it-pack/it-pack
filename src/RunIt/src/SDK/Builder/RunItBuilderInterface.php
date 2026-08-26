@@ -100,7 +100,9 @@ interface RunItBuilderInterface
     /**
      * Overrides the lifecycle coordinator that owns the execution state machine.
      */
-    public function withLifecycleCoordinator(ExecutionLifecycleCoordinatorInterface $coordinator): RunItBuilderInterface;
+    public function withLifecycleCoordinator(
+        ExecutionLifecycleCoordinatorInterface $coordinator,
+    ): RunItBuilderInterface;
 
     /**
      * Overrides the snapshot factory that builds execution snapshots.

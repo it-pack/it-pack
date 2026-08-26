@@ -80,6 +80,12 @@ final readonly class ConformanceResult implements IteratorAggregate, Countable
         $errors = count($this->errors());
         $warnings = count($this->warnings());
 
-        return sprintf('%s: %s (%d errors, %d warnings)', $this->port, $this->isConformant() ? 'PASS' : 'FAIL', $errors, $warnings);
+        return sprintf(
+            '%s: %s (%d errors, %d warnings)',
+            $this->port,
+            $this->isConformant() ? 'PASS' : 'FAIL',
+            $errors,
+            $warnings
+        );
     }
 }

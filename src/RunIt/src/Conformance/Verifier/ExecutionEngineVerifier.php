@@ -38,29 +38,47 @@ final class ExecutionEngineVerifier implements VerifierInterface
             $value = $engine->run($scope, static fn (): int => 42);
             $again = $engine->run($scope, static fn (): int => 42);
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('run.throws', sprintf('run() threw for a plain operation: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('run.throws', sprintf(
+                'run() threw for a plain operation: %s',
+                $e->getMessage()
+            )));
         }
 
         if ($value !== 42) {
-            $result = $result->add(new ConformanceViolation('run.wrong-value', 'run() did not return the operation result'));
+            $result = $result->add(new ConformanceViolation(
+                'run.wrong-value',
+                'run() did not return the operation result'
+            ));
         }
         if ($value !== $again) {
-            $result = $result->add(new ConformanceViolation('run.not-deterministic', 'run() returned different results for identical operations'));
+            $result = $result->add(new ConformanceViolation(
+                'run.not-deterministic',
+                'run() returned different results for identical operations'
+            ));
         }
 
         try {
             $null = $engine->run($scope, static fn (): ?int => null);
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('run.null.throws', sprintf('run() threw for a null-returning operation: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('run.null.throws', sprintf(
+                'run() threw for a null-returning operation: %s',
+                $e->getMessage()
+            )));
         }
         if ($null !== null) {
-            $result = $result->add(new ConformanceViolation('run.null.wrong-value', 'run() did not return null for a null-returning operation'));
+            $result = $result->add(new ConformanceViolation(
+                'run.null.wrong-value',
+                'run() did not return null for a null-returning operation'
+            ));
         }
 
         try {
             $engine->capability();
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('capability.throws', sprintf('capability() threw: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('capability.throws', sprintf(
+                'capability() threw: %s',
+                $e->getMessage()
+            )));
         }
 
         return $result;

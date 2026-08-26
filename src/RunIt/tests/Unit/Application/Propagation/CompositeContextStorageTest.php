@@ -16,6 +16,7 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use Tests\Support\Fixture\FakeContextToken;
 use Tests\Support\Fixture\RunItTestKit;
 
 /**
@@ -99,7 +100,7 @@ final class CompositeContextStorageTest extends Unit
         [, , , $composite] = $this->build(new FakeDetector(false, false));
 
         $this->expectException(InvalidContextTokenException::class);
-        $composite->detach(new FakeToken());
+        $composite->detach(new FakeContextToken());
     }
 }
 
@@ -116,19 +117,12 @@ final class FakeStorage implements ContextStorageInterface
     {
         $this->currentScope = $scope;
 
-        return new FakeToken();
+        return new FakeContextToken();
     }
 
     public function detach(ContextTokenInterface $token): void
     {
         $this->currentScope = null;
-    }
-}
-
-final class FakeToken implements ContextTokenInterface
-{
-    public function __construct()
-    {
     }
 }
 

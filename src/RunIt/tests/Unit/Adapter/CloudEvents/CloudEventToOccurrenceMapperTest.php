@@ -73,7 +73,10 @@ final class CloudEventToOccurrenceMapperTest extends Unit
 
         self::assertSame('occ-1', $occurrence->id()->toString());
         self::assertSame('itpack.configuration.loaded.v1', $occurrence->type()->toString());
-        self::assertSame(OccurrenceType::fromString('itpack.configuration.loaded.v1')->toString(), $occurrence->type()->toString());
+        self::assertSame(
+            OccurrenceType::fromString('itpack.configuration.loaded.v1')->toString(),
+            $occurrence->type()->toString()
+        );
         self::assertSame('it-pack/test', $occurrence->source());
         self::assertSame('subject-1', $occurrence->subject());
         self::assertSame('exec-1', $occurrence->executionId()->toString());

@@ -31,7 +31,9 @@ final class PublicationGuard implements PublicationGuardInterface
     public function enter(): PublicationGuardTokenInterface
     {
         if ($this->depth > 0) {
-            throw new RecursivePublicationException('Recursive artifact publication detected on the active execution path.');
+            throw new RecursivePublicationException(
+                'Recursive artifact publication detected on the active execution path.'
+            );
         }
 
         $this->depth++;

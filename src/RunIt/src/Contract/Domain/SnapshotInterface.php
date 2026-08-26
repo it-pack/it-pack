@@ -16,7 +16,12 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-interface SnapshotInterface extends ExecutionArtifactInterface, ExecutionOwnedInterface, ActivityOwnedInterface, TimestampedInterface, AttributedInterface
+interface SnapshotInterface extends
+    ExecutionArtifactInterface,
+    ExecutionOwnedInterface,
+    ActivityOwnedInterface,
+    TimestampedInterface,
+    AttributedInterface
 {
     public function id(): SnapshotIdInterface;
 

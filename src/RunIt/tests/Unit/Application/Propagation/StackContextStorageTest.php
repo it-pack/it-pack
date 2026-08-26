@@ -20,7 +20,11 @@ final class StackContextStorageTest extends Unit
     private function scope(RunItTestKit $kit, string $id): \ItPack\RunIt\Contract\Application\ExecutionScopeInterface
     {
         return $kit->buildScope(
-            Execution::start(ExecutionId::fromString($id), ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')), Instant::of(1)),
+            Execution::start(
+                ExecutionId::fromString($id),
+                ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+                Instant::of(1)
+            ),
             \ItPack\RunIt\Domain\Context\ExecutionContext::empty(),
         );
     }

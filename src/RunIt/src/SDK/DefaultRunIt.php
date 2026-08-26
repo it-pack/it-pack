@@ -56,8 +56,10 @@ final class DefaultRunIt implements RunItInterface
         return $this->runner;
     }
 
-    public function wrap(callable $operation, ExecutionDefinitionInterface|callable|null $definition = null): ExecutedCallableInterface
-    {
+    public function wrap(
+        callable $operation,
+        ExecutionDefinitionInterface|callable|null $definition = null
+    ): ExecutedCallableInterface {
         $static = null;
         $factory = null;
 

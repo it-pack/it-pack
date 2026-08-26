@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\Swoole;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
 use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
+use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
@@ -77,16 +78,22 @@ final class CoroutineContextStorageTest extends Unit
 
     public function testSequentialCoroutinesStayIsolated(): void
     {
-        $kit = new RunItTestKit(storage: new CoroutineContextStorage(new \ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider()));
+        $kit = new RunItTestKit(storage: new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
         $ids = [];
 
         \Swoole\Coroutine\run(static function () use ($kit, &$ids): void {
-            $kit->runner->run(ExecutionDefinition::create(ExecutionName::fromString('request-a'), ExecutionKind::fromString('coroutine')), static function (ExecutionScopeInterface $scope) use (&$ids): void {
+            $kit->runner->run(ExecutionDefinition::create(
+                ExecutionName::fromString('request-a'),
+                ExecutionKind::fromString('coroutine')
+            ), static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['a'] = $scope->execution()->id()->toString();
             });
         });
         \Swoole\Coroutine\run(static function () use ($kit, &$ids): void {
-            $kit->runner->run(ExecutionDefinition::create(ExecutionName::fromString('request-b'), ExecutionKind::fromString('coroutine')), static function (ExecutionScopeInterface $scope) use (&$ids): void {
+            $kit->runner->run(ExecutionDefinition::create(
+                ExecutionName::fromString('request-b'),
+                ExecutionKind::fromString('coroutine')
+            ), static function (ExecutionScopeInterface $scope) use (&$ids): void {
                 $ids['b'] = $scope->execution()->id()->toString();
             });
         });

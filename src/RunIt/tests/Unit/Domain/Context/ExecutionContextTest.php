@@ -132,8 +132,12 @@ final class ExecutionContextTest extends Unit
         ;
 
         $expected = [
-            'alpha' => ['key' => 'alpha', 'value' => 2, 'classification' => 'public', 'expires_at' => null, 'source' => null],
-            'zeta' => ['key' => 'zeta', 'value' => 1, 'classification' => 'public', 'expires_at' => null, 'source' => null],
+            'alpha' => [
+                'key' => 'alpha', 'value' => 2, 'classification' => 'public', 'expires_at' => null, 'source' => null,
+            ],
+            'zeta' => [
+                'key' => 'zeta', 'value' => 1, 'classification' => 'public', 'expires_at' => null, 'source' => null,
+            ],
         ];
 
         self::assertSame($expected, $context->toArray());

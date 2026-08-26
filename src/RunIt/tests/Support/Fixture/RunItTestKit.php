@@ -118,8 +118,14 @@ final class RunItTestKit
 
         $this->executionIdFactory = new StringIdentifierFactory(ExecutionId::fromString(...), $this->generator('exec'));
         $this->activityIdFactory = new StringIdentifierFactory(ActivityId::fromString(...), $this->generator('act'));
-        $this->observationIdFactory = new StringIdentifierFactory(ObservationId::fromString(...), $this->generator('obs'));
-        $this->occurrenceIdFactory = new StringIdentifierFactory(OccurrenceId::fromString(...), $this->generator('occ'));
+        $this->observationIdFactory = new StringIdentifierFactory(
+            ObservationId::fromString(...),
+            $this->generator('obs')
+        );
+        $this->occurrenceIdFactory = new StringIdentifierFactory(
+            OccurrenceId::fromString(...),
+            $this->generator('occ')
+        );
         $this->snapshotIdFactory = new StringIdentifierFactory(SnapshotId::fromString(...), $this->generator('snap'));
 
         $this->runner = new DefaultExecutionRunner(

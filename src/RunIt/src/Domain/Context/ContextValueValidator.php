@@ -49,7 +49,13 @@ final readonly class ContextValueValidator implements ContextValueValidatorInter
         return new BoundedKeyGuard(
             $this->limits,
             static fn (): InvalidContextValueException => InvalidContextValueException::emptyKey(),
-            static fn (int $length, int $maximum): InvalidContextValueException => InvalidContextValueException::keyTooLong($length, $maximum),
+            static fn (
+                int $length,
+                int $maximum,
+            ): InvalidContextValueException => InvalidContextValueException::keyTooLong(
+                $length,
+                $maximum,
+            ),
             static fn (): InvalidContextValueException => InvalidContextValueException::unsupportedKeyCharacters(),
         );
     }
@@ -77,10 +83,28 @@ final readonly class ContextValueValidator implements ContextValueValidatorInter
     {
         return new BoundedPrimitiveValueWalker(
             $this->limits,
-            static fn (int $length, int $maximum): InvalidContextValueException => InvalidContextValueException::valueTooLarge($length, $maximum),
-            static fn (int $depth, int $maximum): InvalidContextValueException => InvalidContextValueException::valueTooDeep($depth, $maximum),
+            static fn (
+                int $length,
+                int $maximum,
+            ): InvalidContextValueException => InvalidContextValueException::valueTooLarge(
+                $length,
+                $maximum,
+            ),
+            static fn (
+                int $depth,
+                int $maximum,
+            ): InvalidContextValueException => InvalidContextValueException::valueTooDeep(
+                $depth,
+                $maximum,
+            ),
             static fn (): InvalidContextValueException => InvalidContextValueException::unsupportedValue(),
-            static fn (int $count, int $maximum): InvalidContextValueException => InvalidContextValueException::tooManyEntries($count, $maximum),
+            static fn (
+                int $count,
+                int $maximum,
+            ): InvalidContextValueException => InvalidContextValueException::tooManyEntries(
+                $count,
+                $maximum,
+            ),
             rejectOversizedArrays: true,
         );
     }

@@ -9,6 +9,7 @@ use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -46,7 +47,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         private MonotonicClockInterface          $clock,
         private ArtifactPublisherInterface       $publisher,
         private ThrowableMapperInterface         $throwableMapper,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\ActivityIdInterface> */
+        /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
         private StringIdentifierFactoryInterface $activityIdFactory,
         private SecurityLimits                   $limits = new SecurityLimits(),
     ) {

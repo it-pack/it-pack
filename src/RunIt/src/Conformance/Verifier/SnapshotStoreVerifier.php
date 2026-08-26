@@ -38,18 +38,27 @@ final class SnapshotStoreVerifier implements VerifierInterface
             $store->store($snapshot);
             $store->store($snapshot);
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('store.throws', sprintf('store() threw: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('store.throws', sprintf(
+                'store() threw: %s',
+                $e->getMessage()
+            )));
         }
 
         if ($snapshot->normalize() !== $before) {
-            $result = $result->add(new ConformanceViolation('store.mutates-snapshot', 'store() mutated the supplied snapshot'));
+            $result = $result->add(new ConformanceViolation(
+                'store.mutates-snapshot',
+                'store() mutated the supplied snapshot'
+            ));
         }
 
         $patched = $fixture->snapshotPatcher()($snapshot);
         try {
             $store->store($patched);
         } catch (Throwable $e) {
-            $result = $result->add(new ConformanceViolation('store.patched.throws', sprintf('store() threw for a re-stored snapshot: %s', $e->getMessage())));
+            $result = $result->add(new ConformanceViolation('store.patched.throws', sprintf(
+                'store() threw for a re-stored snapshot: %s',
+                $e->getMessage()
+            )));
         }
 
         return $result;

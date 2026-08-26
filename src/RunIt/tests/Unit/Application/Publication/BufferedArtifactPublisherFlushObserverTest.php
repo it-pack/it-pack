@@ -39,7 +39,14 @@ final class BufferedArtifactPublisherFlushObserverTest extends Unit
         $inner = new InMemoryArtifactPublisher();
         $observer = new RecordingBatchFlushObserver();
 
-        $publisher = new BufferedArtifactPublisher(BufferConfiguration::default(), $inner, $this->clock, $this->estimator, null, $observer);
+        $publisher = new BufferedArtifactPublisher(
+            BufferConfiguration::default(),
+            $inner,
+            $this->clock,
+            $this->estimator,
+            null,
+            $observer
+        );
 
         for ($i = 0; $i < 3; $i++) {
             $publisher->publish($this->execution());
@@ -60,7 +67,14 @@ final class BufferedArtifactPublisherFlushObserverTest extends Unit
         $inner = new InMemoryArtifactPublisher();
         $observer = new RecordingBatchFlushObserver();
 
-        $publisher = new BufferedArtifactPublisher(BufferConfiguration::default(), $inner, $this->clock, $this->estimator, null, $observer);
+        $publisher = new BufferedArtifactPublisher(
+            BufferConfiguration::default(),
+            $inner,
+            $this->clock,
+            $this->estimator,
+            null,
+            $observer
+        );
 
         for ($i = 0; $i < 2; $i++) {
             $publisher->publish($this->execution());
@@ -77,7 +91,12 @@ final class BufferedArtifactPublisherFlushObserverTest extends Unit
     {
         $inner = new InMemoryArtifactPublisher();
 
-        $publisher = new BufferedArtifactPublisher(BufferConfiguration::default(), $inner, $this->clock, $this->estimator);
+        $publisher = new BufferedArtifactPublisher(
+            BufferConfiguration::default(),
+            $inner,
+            $this->clock,
+            $this->estimator
+        );
 
         $publisher->publish($this->execution());
         $publisher->flush();

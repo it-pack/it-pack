@@ -21,7 +21,9 @@ use RuntimeException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class InvalidLifecycleTransitionException extends RuntimeException implements InvalidValueExceptionInterface, LifecycleExceptionInterface
+final class InvalidLifecycleTransitionException extends RuntimeException implements
+    InvalidValueExceptionInterface,
+    LifecycleExceptionInterface
 {
     public static function forTransition(ExecutionStatusInterface $from, ExecutionStatusInterface $to): self
     {

@@ -34,7 +34,11 @@ interface ExecutionLifecycleCoordinatorInterface
      *        transition is illegal, or when a terminal execution is completed again
      *        with a different terminal status
      */
-    public function transition(ExecutionInterface $execution, ExecutionResultInterface $result, InstantInterface $endedAt): ExecutionInterface;
+    public function transition(
+        ExecutionInterface $execution,
+        ExecutionResultInterface $result,
+        InstantInterface $endedAt
+    ): ExecutionInterface;
 
     /**
      * Moves a created execution into the running state, returning the new record.

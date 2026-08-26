@@ -65,7 +65,10 @@ final class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterf
         }
 
         if ($predecessor === null) {
-            throw SnapshotIntegrityException::missingPredecessor($snapshot->id()->toString(), $predecessorId->toString());
+            throw SnapshotIntegrityException::missingPredecessor(
+                $snapshot->id()->toString(),
+                $predecessorId->toString()
+            );
         }
 
         if (!$predecessor->id()->equals($predecessorId)) {
@@ -77,7 +80,10 @@ final class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterf
         }
 
         if ($predecessor->timestamp() > $snapshot->timestamp()) {
-            throw SnapshotIntegrityException::predecessorOrder($snapshot->id()->toString(), $predecessor->id()->toString());
+            throw SnapshotIntegrityException::predecessorOrder(
+                $snapshot->id()->toString(),
+                $predecessor->id()->toString()
+            );
         }
     }
 }

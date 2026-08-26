@@ -37,7 +37,10 @@ final class MonotonicClockVerifier implements VerifierInterface
         try {
             $wall = $clock->nowSeconds();
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('nowSeconds.throws', sprintf('nowSeconds() threw: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('nowSeconds.throws', sprintf(
+                'nowSeconds() threw: %s',
+                $e->getMessage()
+            )));
         }
 
         $previous = null;
@@ -45,10 +48,16 @@ final class MonotonicClockVerifier implements VerifierInterface
             try {
                 $reading = $clock->monotonicNanoseconds();
             } catch (Throwable $e) {
-                return $result->add(new ConformanceViolation('monotonicNanoseconds.throws', sprintf('monotonicNanoseconds() threw: %s', $e->getMessage())));
+                return $result->add(new ConformanceViolation('monotonicNanoseconds.throws', sprintf(
+                    'monotonicNanoseconds() threw: %s',
+                    $e->getMessage()
+                )));
             }
             if ($previous !== null && $reading < $previous) {
-                $result = $result->add(new ConformanceViolation('monotonicNanoseconds.not-monotonic', 'monotonicNanoseconds() decreased between readings'));
+                $result = $result->add(new ConformanceViolation(
+                    'monotonicNanoseconds.not-monotonic',
+                    'monotonicNanoseconds() decreased between readings'
+                ));
                 break;
             }
             $previous = $reading;
@@ -58,13 +67,22 @@ final class MonotonicClockVerifier implements VerifierInterface
             $zero = $clock->measure(100, 100)->nanoseconds();
             $forward = $clock->measure(100, 250)->nanoseconds();
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('measure.throws', sprintf('measure() threw: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('measure.throws', sprintf(
+                'measure() threw: %s',
+                $e->getMessage()
+            )));
         }
         if ($zero !== 0) {
-            $result = $result->add(new ConformanceViolation('measure.zero', 'measure(a, a) did not produce a zero duration'));
+            $result = $result->add(new ConformanceViolation(
+                'measure.zero',
+                'measure(a, a) did not produce a zero duration'
+            ));
         }
         if ($forward < 0) {
-            $result = $result->add(new ConformanceViolation('measure.negative', 'measure(lower, higher) produced a negative duration'));
+            $result = $result->add(new ConformanceViolation(
+                'measure.negative',
+                'measure(lower, higher) produced a negative duration'
+            ));
         }
 
         return $result;

@@ -7,6 +7,7 @@ namespace Tests\Unit\Application\Security;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Swoole\CoroutineContextStorage;
+use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -39,12 +40,18 @@ final class TenantIsolationTest extends Unit
         $first = null;
         $second = null;
 
-        $kit->runner->run($this->definition('first'), static function (ExecutionScopeInterface $scope) use (&$first): void {
-            $first = $scope->execution()->id()->toString();
-        });
-        $kit->runner->run($this->definition('second'), static function (ExecutionScopeInterface $scope) use (&$second): void {
-            $second = $scope->execution()->id()->toString();
-        });
+        $kit->runner->run(
+            $this->definition('first'),
+            static function (ExecutionScopeInterface $scope) use (&$first): void {
+                $first = $scope->execution()->id()->toString();
+            }
+        );
+        $kit->runner->run(
+            $this->definition('second'),
+            static function (ExecutionScopeInterface $scope) use (&$second): void {
+                $second = $scope->execution()->id()->toString();
+            }
+        );
 
         self::assertNotNull($first);
         self::assertNotNull($second);
@@ -58,14 +65,20 @@ final class TenantIsolationTest extends Unit
         $first = null;
         $second = null;
 
-        $kit->runner->run($this->definition('first'), static function (ExecutionScopeInterface $scope) use (&$first): void {
-            $first = $scope->execution()->id()->toString();
-            $scope->observations()->record('first-observation', null);
-        });
-        $kit->runner->run($this->definition('second'), static function (ExecutionScopeInterface $scope) use (&$second): void {
-            $second = $scope->execution()->id()->toString();
-            $scope->observations()->record('second-observation', null);
-        });
+        $kit->runner->run(
+            $this->definition('first'),
+            static function (ExecutionScopeInterface $scope) use (&$first): void {
+                $first = $scope->execution()->id()->toString();
+                $scope->observations()->record('first-observation', null);
+            }
+        );
+        $kit->runner->run(
+            $this->definition('second'),
+            static function (ExecutionScopeInterface $scope) use (&$second): void {
+                $second = $scope->execution()->id()->toString();
+                $scope->observations()->record('second-observation', null);
+            }
+        );
 
         $ownedByFirst = 0;
         $ownedBySecond = 0;
@@ -120,7 +133,7 @@ final class TenantIsolationTest extends Unit
             self::markTestSkipped('Swoole/OpenSwoole extension not available.');
         }
 
-        $kit = new RunItTestKit(storage: new CoroutineContextStorage(new \ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider()));
+        $kit = new RunItTestKit(storage: new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
         $a = $this->definition('a');
         $b = $this->definition('b');
         $ids = [];

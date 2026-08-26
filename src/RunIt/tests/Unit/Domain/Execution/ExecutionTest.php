@@ -145,7 +145,10 @@ final class ExecutionTest extends Unit
     public function testLifecycleExceptionsRemainCatchableAsInvalidValue(): void
     {
         $conflict = ConflictingCompletionException::forConflict(ExecutionStatus::Succeeded, ExecutionStatus::Failed);
-        $transition = InvalidLifecycleTransitionException::forTransition(ExecutionStatus::Created, ExecutionStatus::Running);
+        $transition = InvalidLifecycleTransitionException::forTransition(
+            ExecutionStatus::Created,
+            ExecutionStatus::Running
+        );
 
         self::assertInstanceOf(InvalidValueExceptionInterface::class, $conflict);
         self::assertInstanceOf(InvalidValueExceptionInterface::class, $transition);
@@ -164,9 +167,20 @@ final class ExecutionTest extends Unit
         self::assertTrue(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::TimedOut));
         self::assertFalse(ExecutionStatus::Running->canTransitionTo(ExecutionStatus::Running));
 
-        foreach ([ExecutionStatus::Succeeded, ExecutionStatus::Failed, ExecutionStatus::Cancelled, ExecutionStatus::TimedOut] as $terminal) {
-            self::assertFalse($terminal->canTransitionTo(ExecutionStatus::Running), 'terminal statuses cannot transition');
-            self::assertFalse($terminal->canTransitionTo($terminal), 'idempotent repeats are handled above the aggregate, not in the matrix');
+        foreach ([
+            ExecutionStatus::Succeeded,
+            ExecutionStatus::Failed,
+            ExecutionStatus::Cancelled,
+            ExecutionStatus::TimedOut,
+        ] as $terminal) {
+            self::assertFalse(
+                $terminal->canTransitionTo(ExecutionStatus::Running),
+                'terminal statuses cannot transition'
+            );
+            self::assertFalse(
+                $terminal->canTransitionTo($terminal),
+                'idempotent repeats are handled above the aggregate, not in the matrix'
+            );
         }
     }
 
@@ -195,7 +209,12 @@ final class ExecutionTest extends Unit
             'parent_execution_id' => null,
             'linked_execution_ids' => [],
             'sequence' => 0,
-            'context' => ['tenant.id' => ['key' => 'tenant.id', 'value' => 'acme', 'classification' => 'public', 'expires_at' => null, 'source' => null]],
+            'context' => [
+                'tenant.id' => [
+                    'key' => 'tenant.id', 'value' => 'acme', 'classification' => 'public',
+                    'expires_at' => null, 'source' => null,
+                ],
+            ],
             'result' => null,
         ];
 
@@ -215,6 +234,9 @@ final class ExecutionTest extends Unit
         $execution = Execution::start(ExecutionId::fromString('exec-2'), $definition, Instant::of(1));
 
         self::assertSame('parent-1', $execution->definition()->parentExecutionId()?->toString());
-        self::assertSame(['linked-1'], array_map(static fn ($id) => $id->toString(), $execution->definition()->linkedExecutionIds()));
+        self::assertSame(['linked-1'], array_map(
+            static fn ($id) => $id->toString(),
+            $execution->definition()->linkedExecutionIds()
+        ));
     }
 }

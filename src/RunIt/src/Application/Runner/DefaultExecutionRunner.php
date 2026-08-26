@@ -43,6 +43,8 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
 use ItPack\RunIt\Domain\Exception\RejectedNestedExecutionException;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -159,15 +161,18 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         };
     }
 
-    private function runAsActivity(?ExecutionScopeInterface $current, ExecutionDefinitionInterface $definition, callable $operation): mixed
-    {
+    private function runAsActivity(
+        ?ExecutionScopeInterface $current,
+        ExecutionDefinitionInterface $definition,
+        callable $operation
+    ): mixed {
         if ($current === null) {
             return $this->runExecution(NestedExecutionMode::ChildExecution, null, $definition, $operation);
         }
 
         $activityDefinition = ActivityDefinition::create(
-            \ItPack\RunIt\Domain\Activity\ActivityName::fromString($definition->name()->toString()),
-            \ItPack\RunIt\Domain\Activity\ActivityKind::fromString($definition->kind()->toString()),
+            ActivityName::fromString($definition->name()->toString()),
+            ActivityKind::fromString($definition->kind()->toString()),
         );
 
         return $current->activities()->run($activityDefinition, $operation);
@@ -184,8 +189,12 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         // the caller — but they are always reported first, so no execution can
         // fail to materialize silently (Phase 0, T0.2).
         try {
-            $parentId = ($mode === NestedExecutionMode::ChildExecution && $current !== null) ? $current->execution()->id() : null;
-            $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current !== null) ? [$current->execution()->id()] : [];
+            $parentId = ($mode === NestedExecutionMode::ChildExecution && $current !== null)
+                ? $current->execution()->id()
+                : null;
+            $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current !== null)
+                ? [$current->execution()->id()]
+                : [];
 
             $effectiveDefinition = ExecutionDefinition::create(
                 $definition->name(),

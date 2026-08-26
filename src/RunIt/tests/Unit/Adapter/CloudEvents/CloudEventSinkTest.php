@@ -64,8 +64,9 @@ final class CloudEventSinkTest extends Unit
     public function testPsr18SinkPropagatesDeliveryFailure(): void
     {
         $failing = new class () implements ClientInterface {
-            public function sendRequest(\Psr\Http\Message\RequestInterface $request): \Psr\Http\Message\ResponseInterface
-            {
+            public function sendRequest(
+                \Psr\Http\Message\RequestInterface $request,
+            ): \Psr\Http\Message\ResponseInterface {
                 throw new RuntimeException('downstream unavailable');
             }
         };

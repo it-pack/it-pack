@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
@@ -41,7 +42,7 @@ final class DefaultOccurrenceRecorder implements OccurrenceRecorderInterface
         private readonly SequenceAllocatorInterface $sequenceAllocator,
         private readonly MonotonicClockInterface $clock,
         private readonly ArtifactPublisherInterface $publisher,
-        /** @var StringIdentifierFactoryInterface<\ItPack\RunIt\Contract\Domain\OccurrenceIdInterface> */
+        /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
         private readonly StringIdentifierFactoryInterface $occurrenceIdFactory,
     ) {
     }

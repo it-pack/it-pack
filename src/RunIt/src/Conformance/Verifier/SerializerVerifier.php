@@ -36,10 +36,16 @@ final class SerializerVerifier implements VerifierInterface
         try {
             $contentType = $serializer->contentType();
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation('contentType.throws', sprintf('contentType() threw: %s', $e->getMessage())));
+            return $result->add(new ConformanceViolation('contentType.throws', sprintf(
+                'contentType() threw: %s',
+                $e->getMessage()
+            )));
         }
         if ($contentType === '') {
-            $result = $result->add(new ConformanceViolation('contentType.empty', 'contentType() did not return a non-empty string'));
+            $result = $result->add(new ConformanceViolation(
+                'contentType.empty',
+                'contentType() did not return a non-empty string'
+            ));
         }
 
         $samples = [
@@ -55,21 +61,35 @@ final class SerializerVerifier implements VerifierInterface
         return $result;
     }
 
-    private function checkNormalize(SerializerInterface $serializer, string $label, mixed $data, ConformanceResult $result): ConformanceResult
-    {
+    private function checkNormalize(
+        SerializerInterface $serializer,
+        string $label,
+        mixed $data,
+        ConformanceResult $result
+    ): ConformanceResult {
         try {
             $first = $serializer->normalize($data);
             $second = $serializer->normalize($data);
         } catch (Throwable $e) {
-            return $result->add(new ConformanceViolation(sprintf('normalize.%s.throws', $label), sprintf('normalize() threw for %s: %s', $label, $e->getMessage())));
+            return $result->add(new ConformanceViolation(sprintf('normalize.%s.throws', $label), sprintf(
+                'normalize() threw for %s: %s',
+                $label,
+                $e->getMessage()
+            )));
         }
 
         if (!$this->isRecursivelyPrimitive($first)) {
-            $result = $result->add(new ConformanceViolation(sprintf('normalize.%s.not-primitive', $label), 'normalize() returned a structure containing PHP objects, resources, or closures'));
+            $result = $result->add(new ConformanceViolation(sprintf(
+                'normalize.%s.not-primitive',
+                $label
+            ), 'normalize() returned a structure containing PHP objects, resources, or closures'));
         }
 
         if (json_encode($first) !== json_encode($second)) {
-            $result = $result->add(new ConformanceViolation(sprintf('normalize.%s.not-deterministic', $label), 'normalize() was not deterministic for the same input'));
+            $result = $result->add(new ConformanceViolation(sprintf(
+                'normalize.%s.not-deterministic',
+                $label
+            ), 'normalize() was not deterministic for the same input'));
         }
 
         return $result;

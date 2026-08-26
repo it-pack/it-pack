@@ -58,7 +58,9 @@ final class ServerExecutionMiddlewareTest extends Unit
                 $handledObservation = true;
             }
 
-            if ($artifact instanceof MeasurementInterface && $artifact->name()->toString() === 'http.request.duration') {
+            if ($artifact instanceof MeasurementInterface
+                && $artifact->name()->toString() === 'http.request.duration'
+            ) {
                 $durationRecorded = true;
             }
         }

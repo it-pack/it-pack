@@ -144,7 +144,10 @@ final class FilteringPublisherTest extends Unit
     public function testObservationSeverityFilterDropsNoise(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $publisher = new FilteringArtifactPublisher(new ObservationSeverityFilter(ObservationSeverity::Warning->level()), $sink);
+        $publisher = new FilteringArtifactPublisher(
+            new ObservationSeverityFilter(ObservationSeverity::Warning->level()),
+            $sink
+        );
 
         $publisher->publish($this->observation('debug'));
         $publisher->publish($this->observation('info'));
@@ -206,7 +209,10 @@ final class FilteringPublisherTest extends Unit
     public function testSnapshotPassesGenericFilters(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $publisher = new FilteringArtifactPublisher(new ObservationSeverityFilter(ObservationSeverity::Warning->level()), $sink);
+        $publisher = new FilteringArtifactPublisher(
+            new ObservationSeverityFilter(ObservationSeverity::Warning->level()),
+            $sink
+        );
 
         $publisher->publish($this->snapshot());
 
