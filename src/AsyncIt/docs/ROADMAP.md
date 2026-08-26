@@ -192,15 +192,24 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 ### Phase 3 — RunIt integration (M5)
 
+**Status:** *Complete. `AsyncRuntime` is a first-party RunIt execution engine and passes RunIt's `ExecutionEngineVerifier`; the reused RunIt verifiers (clock, context storage, artifact publisher) are green through RunIt first-party adapters, and Assertion A/C remain green.*
+
 **Goal:** the formal gate — `AsyncRuntime` passes RunIt's `ExecutionEngineVerifier`.
 
 **Tasks**
-- [ ] Swap `MemoryContextStorage`/`NullArtifactPublisher` for RunIt first-party adapters (`FailSafeArtifactPublisher`, `onPublicationFailure` health callback, recursion guard — ADR-014).
-- [ ] Use RunIt `SystemMonotonicClock`.
-- [ ] `AsyncRuntime` SDK class implements `ExecutionEngineInterface`; `AsyncRuntime::discover()` returns it with the negotiated descriptor.
-- [ ] Validate detach/reattach under real per-fiber/per-coroutine context storage.
+- [x] Swap `MemoryContextStorage`/`NullArtifactPublisher` for RunIt first-party adapters (`FailSafeArtifactPublisher`, `onPublicationFailure` health callback, recursion guard — ADR-014).
+- [x] Use RunIt `SystemMonotonicClock`.
+- [x] `AsyncRuntime` SDK class implements `ExecutionEngineInterface`; `AsyncRuntime::discover()` returns it with the negotiated descriptor.
+- [x] Validate detach/reattach under real per-fiber/per-coroutine context storage.
 
-**Gates:** `ExecutionEngineVerifier` green; all reused RunIt verifiers green through real RunIt adapters; Assertion A/C still green.
+**Implementation notes (Phase 3)**
+- `SDK\AsyncRuntime` (`final`, implements `RunIt\ExecutionEngineInterface`): `run(ExecutionScopeInterface, callable)` builds a task (generated `ExecutionId` + observed `CancellationScope`), asks a `SchedulerFactory` for a scheduler bound to the *caller's* scope, and `dispatch()`es the operation, returning its value. `capability()` returns the negotiated `EngineCapability`. `discover()` delegates assembly to `SDK\Factory\AsyncRuntimeFactory`.
+- `EngineSchedulerInterface` (`Contract`) extends `SchedulerInterface` with a focused `dispatch(TaskInterface, callable): mixed`, so the shared scheduling contract is extended rather than modified. `FiberTaskScheduler` now implements it: `run()` captures each terminated Fiber's return value into a `results` map, and `dispatch()` returns it.
+- `Application\Factory\SchedulerFactory` builds the reference `FiberTaskScheduler` with a `PerRunExecutionScopeFactory` that yields exactly the scope the engine wants attached around each resume — real per-call-stack context storage (Assertion A) on `MemoryContextStorage`, which implements RunIt's `ContextStorageInterface` and passes `ContextStorageVerifier`.
+- `SDK\Factory\AsyncRuntimeFactory` assembles the runtime from RunIt first-party adapters: `SystemMonotonicClock`, `FailSafeArtifactPublisher` (wrapping `InMemoryArtifactPublisher` with `FailOpenPolicy` and a `CallbackHealthReporter` recursion/health sink — ADR-014), `MemoryContextStorage`, and `SelectPoller`. The `CapabilityDescriptor` (keyed by `CapabilityKind` value, since backed enums cannot be PHP array keys) drives an `EngineCapability` (`supportsFibers = true`).
+- Defects fixed along the way: `CapabilityDescriptor` could not key its map by enum case (PHP 8.5 forbids enum array keys at read/write) — it now normalises to scalar-value keys while keeping the typed `CapabilityKind` surface; `AsyncRuntime` imported `AsyncRuntimeFactory` and `ExecutionId` from the wrong namespaces (corrected to `SDK\Factory` and `RunIt\Domain\Execution\ExecutionId`).
+
+**Gates:** `ExecutionEngineVerifier` green against `AsyncRuntime::discover()`; `MonotonicClockVerifier`/`ContextStorageVerifier`/`ArtifactPublisherVerifier` green against the real RunIt adapters; `AsyncRuntimeVerifier` (A+C) still green via `ReferenceRuntimeFixture`. Validated via standalone execution (the project `composer test`/`analyse`/`architecture` could not run here — the pre-existing `rector`/`php-parser` autoload conflict — so Deptrac/PHPStan/coverage must be confirmed in a clean checkout).
 
 ---
 
@@ -237,6 +246,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - **After Phase 0:** Tooling and architecture guards are in place; the package is buildable and enforceable, but no behavior exists yet. Next: contract freeze (M3). Blocker: none.
 - **After Phase 1:** The contract surface is frozen and the verifier scaffold is wired. `AsyncRuntimeVerifier` composes Assertion A (context isolation) and Assertion C (deterministic cleanup); both are validated by negative + positive unit tests, and the RunIt port interfaces are reused verbatim through `AsyncRuntimeFixtureInterface`. The authoritative green run against a real runtime is deferred to Phase 2 (no impl yet). Next: reference runtime (M4). Blocker: none.
 - **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green (Assertion A + C). `FiberTaskScheduler` runs tasks to completion and handles observed failures; `SelectPoller`/`MemoryContextStorage`/`NullArtifactPublisher`/`DeterministicMonotonicClock` back it. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable. (Note: `composer test`/`analyse`/`architecture` could not be executed in the build environment used — a pre-existing `rector`/`php-parser` autoload conflict — so coverage/Deptrac/PHPStan gating must be confirmed in a clean checkout.)
+- **After Phase 3:** `AsyncRuntime` is a first-party RunIt execution engine (`implements ExecutionEngineInterface`) and passes RunIt's `ExecutionEngineVerifier`. It is assembled by `AsyncRuntimeFactory` from RunIt first-party adapters — `SystemMonotonicClock`, a recursion-guarded `FailSafeArtifactPublisher` (with `CallbackHealthReporter` health sink) over `InMemoryArtifactPublisher`, and `MemoryContextStorage` (validated by `ContextStorageVerifier`) — and returns the negotiated `EngineCapability` via `discover()`. Assertion A/C stay green through `ReferenceRuntimeFixture`. Next: core runtime adapters (M6–M8). Blocker: none. (Same `composer test`/`analyse`/`architecture` caveat as Phase 2 — validated via standalone execution of the verifiers and engine behavior.)
 - **After Phase 4:** Every major runtime adapter conforms to the same `AsyncRuntimeVerifier`. Next: native `Io\Poll` and interop. Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm).
 
 ---

@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\AsyncIt\Application\Factory;
+
+use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+
+/**
+ * Assembles the reference {@see FiberTaskScheduler} for one execution scope.
+ *
+ * Every collaborator is injected; the only value the factory binds per call is
+ * the RunIt {@see ExecutionScopeInterface} the engine wants attached around each
+ * resume (real per-fiber/per-coroutine context storage, Assertion A).
+ *
+ * @see https://w3id.org/itpack/asyncit#Scheduler
+ * @see https://w3id.org/itpack/runit#Execution
+ */
+final class SchedulerFactory implements SchedulerFactoryInterface
+{
+    public function __construct(
+        private readonly TaskFactoryInterface $taskFactory,
+        private readonly FiberFactoryInterface $fiberFactory,
+        private readonly PollerPortInterface $poller,
+        private readonly MonotonicClockInterface $clock,
+        private readonly ContextStorageInterface $contextStorage,
+        private readonly CancellationScopeFactoryInterface $cancellationScopeFactory,
+        private readonly ArtifactPublisherInterface $publisher,
+    ) {
+    }
+
+    public function create(ExecutionScopeInterface $scope): EngineSchedulerInterface
+    {
+        return new FiberTaskScheduler(
+            $this->taskFactory,
+            $this->fiberFactory,
+            $this->poller,
+            $this->clock,
+            $this->contextStorage,
+            $this->cancellationScopeFactory,
+            new PerRunExecutionScopeFactory($scope),
+            $this->publisher,
+        );
+    }
+}

@@ -15,12 +15,16 @@ use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
  * feature ({@see CapabilityStatus}). Schedulers and discovery select policy
  * from this descriptor rather than probing or branching on runtime names.
  *
+ * The map is keyed by each {@see CapabilityKind} scalar value (backed enum
+ * cases cannot be used as PHP array keys), and {@see self::statusFor()} accepts
+ * the typed kind.
+ *
  * @see https://w3id.org/itpack/asyncit#CapabilityDescriptor
  */
 final readonly class CapabilityDescriptor
 {
     /**
-     * @param array<CapabilityKind, CapabilityStatus> $capabilities
+     * @param array<string, CapabilityStatus> $capabilities keyed by CapabilityKind value
      */
     public function __construct(public array $capabilities)
     {
@@ -28,10 +32,6 @@ final readonly class CapabilityDescriptor
 
     public function statusFor(CapabilityKind $kind): CapabilityStatus
     {
-        if (!isset($this->capabilities[$kind])) {
-            return CapabilityStatus::Unavailable;
-        }
-
-        return $this->capabilities[$kind];
+        return $this->capabilities[$kind->value] ?? CapabilityStatus::Unavailable;
     }
 }

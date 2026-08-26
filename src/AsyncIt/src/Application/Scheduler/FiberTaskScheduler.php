@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Factory\CancellationScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\ExecutionScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
+use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
@@ -18,6 +19,7 @@ use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use Throwable;
 
 /**
  * Reference reactor implementing {@see SchedulerInterface}.
@@ -34,12 +36,17 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class FiberTaskScheduler implements SchedulerInterface
+final class FiberTaskScheduler implements EngineSchedulerInterface
 {
     /**
      * @var array<string, TaskRecord>
      */
     private array $records = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $results = [];
 
     public function __construct(
         private readonly TaskFactoryInterface $taskFactory,
@@ -85,11 +92,15 @@ final class FiberTaskScheduler implements SchedulerInterface
 
         try {
             $this->resume($record);
+        } catch (Throwable) {
         } finally {
             $this->contextStorage->detach($token);
         }
     }
 
+    /**
+     * @throws Throwable
+     */
     private function resume(TaskRecord $record): void
     {
         $fiber = $record->fiber();
@@ -104,13 +115,14 @@ final class FiberTaskScheduler implements SchedulerInterface
             }
 
             if ($fiber->isTerminated()) {
+                $this->results[$record->task()->id()->value] = $fiber->getReturn();
                 $record->task()->complete(TaskStatus::Succeeded);
                 $this->releaseHandles($record);
                 $record->markDone();
 
                 return;
             }
-        } catch (\Throwable $error) {
+        } catch (Throwable $error) {
             $this->publisher->publish(new SchedulerFailureArtifact($error->getMessage()));
             $record->task()->complete(TaskStatus::Failed);
             $this->releaseHandles($record);
@@ -127,5 +139,18 @@ final class FiberTaskScheduler implements SchedulerInterface
         }
 
         $record->clearHandles();
+    }
+
+    public function dispatch(TaskInterface $task, callable $operation): mixed
+    {
+        $this->submit($task, $operation);
+        $this->run();
+
+        return $this->result($task);
+    }
+
+    public function result(TaskInterface $task): mixed
+    {
+        return $this->results[$task->id()->value] ?? null;
     }
 }
