@@ -5,7 +5,8 @@
         "extends": null,
         "implements": [],
         "constants": {
-            "SPEC_VERSION_1_0": "public"
+            "SPEC_VERSION_1_0": "public",
+            "SPEC_VERSION_KEY": "public"
         },
         "methods": {
             "create": {
@@ -1770,6 +1771,91 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SeverityMapInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "toSeverity": {
+                "static": false,
+                "return": "OpenTelemetry\\API\\Logs\\Severity",
+                "params": [
+                    {
+                        "name": "severity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "toNumber": {
+                "static": false,
+                "return": "int",
+                "params": [
+                    {
+                        "name": "severity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "toText": {
+                "static": false,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "severity",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "toSpanKind": {
+                "static": false,
+                "return": "int",
+                "params": [
+                    {
+                        "name": "kind",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanStatusMapInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "map": {
+                "static": false,
+                "return": "array",
+                "params": [
+                    {
+                        "name": "status",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ActivityStatusInterface|ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\OpenTelemetry\\InMemoryExecutionSpanStore": {
         "kind": "class",
         "final": true,
@@ -1856,7 +1942,7 @@
                     },
                     {
                         "name": "severityMap",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SeverityMap",
+                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SeverityMapInterface",
                         "optional": false
                     },
                     {
@@ -2203,11 +2289,6 @@
                     }
                 ]
             },
-            "capability": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeCapability",
-                "params": []
-            },
             "fromConfig": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\TelemetryPublisher",
@@ -2223,6 +2304,11 @@
                         "optional": true
                     }
                 ]
+            },
+            "capability": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeCapability",
+                "params": []
             },
             "publish": {
                 "static": false,
@@ -2272,7 +2358,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SeverityMapInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SeverityMapInterface"
+        },
         "constants": [],
         "methods": {
             "toSeverity": {
@@ -2363,7 +2451,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface"
+        },
         "constants": [],
         "methods": {
             "toSpanKind": {
@@ -2384,7 +2474,9 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanStatusMapInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanStatusMapInterface"
+        },
         "constants": [],
         "methods": {
             "map": {
@@ -2437,12 +2529,12 @@
                     },
                     {
                         "name": "statusMap",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SpanStatusMap",
+                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanStatusMapInterface",
                         "optional": false
                     },
                     {
                         "name": "kindMap",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SpanKindMap",
+                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface",
                         "optional": false
                     }
                 ]
@@ -2486,12 +2578,12 @@
                     },
                     {
                         "name": "statusMap",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SpanStatusMap",
+                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanStatusMapInterface",
                         "optional": false
                     },
                     {
                         "name": "kindMap",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SpanKindMap",
+                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SpanKindMapInterface",
                         "optional": false
                     }
                 ]
@@ -4137,6 +4229,22 @@
         },
         "constants": [],
         "methods": {
+            "isAllowed": {
+                "static": true,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "from",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "to",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "transition": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
@@ -4165,22 +4273,6 @@
                     {
                         "name": "execution",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "isAllowed": {
-                "static": true,
-                "return": "bool",
-                "params": [
-                    {
-                        "name": "from",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "to",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionStatusInterface",
                         "optional": false
                     }
                 ]
@@ -4269,7 +4361,9 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface": "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface"
         },
-        "constants": [],
+        "constants": {
+            "OPEN_ACTIVITY_MESSAGE_PREFIX": "public"
+        },
         "methods": {
             "resolveOpenActivities": {
                 "static": false,
@@ -4297,7 +4391,9 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface": "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface"
         },
-        "constants": [],
+        "constants": {
+            "OPEN_ACTIVITY_MESSAGE_PREFIX": "public"
+        },
         "methods": {
             "resolveOpenActivities": {
                 "static": false,
@@ -4381,7 +4477,9 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface": "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface"
         },
-        "constants": [],
+        "constants": {
+            "OPEN_ACTIVITY_MESSAGE_PREFIX": "public"
+        },
         "methods": {
             "resolveOpenActivities": {
                 "static": false,
@@ -4437,7 +4535,9 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface": "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface"
         },
-        "constants": [],
+        "constants": {
+            "OPEN_ACTIVITY_MESSAGE_PREFIX": "public"
+        },
         "methods": {
             "resolveOpenActivities": {
                 "static": false,
@@ -6229,6 +6329,11 @@
                     {
                         "name": "guard",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\PublicationGuardInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "stackFactory",
+                        "type": "null|ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface",
                         "optional": true
                     }
                 ]
@@ -8181,7 +8286,9 @@
         "final": false,
         "extends": null,
         "implements": [],
-        "constants": [],
+        "constants": {
+            "OPEN_ACTIVITY_MESSAGE_PREFIX": "public"
+        },
         "methods": {
             "resolveOpenActivities": {
                 "static": false,
@@ -17224,7 +17331,9 @@
         "implements": {
             "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface": "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface"
         },
-        "constants": [],
+        "constants": {
+            "ALGORITHM_SHA256": "public"
+        },
         "methods": {
             "calculate": {
                 "static": false,
@@ -17401,11 +17510,6 @@
             "DEFAULT_MAX_ATTRIBUTE_COUNT": "public"
         },
         "methods": {
-            "default": {
-                "static": true,
-                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
-                "params": []
-            },
             "__construct": {
                 "static": false,
                 "return": null,
@@ -17466,6 +17570,11 @@
                         "optional": true
                     }
                 ]
+            },
+            "default": {
+                "static": true,
+                "return": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                "params": []
             },
             "withMaxAttributeCount": {
                 "static": false,
@@ -17602,8 +17711,8 @@
             "MAX_LENGTH": "public"
         },
         "methods": {
-            "validate": {
-                "static": false,
+            "assertValid": {
+                "static": true,
                 "return": "void",
                 "params": [
                     {
@@ -17613,8 +17722,8 @@
                     }
                 ]
             },
-            "assertValid": {
-                "static": true,
+            "validate": {
+                "static": false,
                 "return": "void",
                 "params": [
                     {

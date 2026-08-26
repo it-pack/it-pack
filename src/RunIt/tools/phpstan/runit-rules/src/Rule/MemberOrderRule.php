@@ -181,7 +181,11 @@ final class MemberOrderRule extends AbstractSrcRule implements Rule
         if ($member instanceof Node\Stmt\Property) {
             $first = $member->props[0] ?? null;
 
-            return $first instanceof Node\PropertyProperty ? $first->name->toString() : 'property'; // @phpstan-ignore-line
+            if ($first instanceof Node\Stmt\PropertyProperty) {
+                return $first->name->toString();
+            }
+
+            return 'property';
         }
 
         if ($member instanceof Node\Stmt\ClassMethod) {

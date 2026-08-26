@@ -199,10 +199,31 @@ phase below starts from the committed baseline.
 
 ## Phase 3 — Structural decisions: interface backing & vocabulary homes
 
-> **Status: Pending**
-> Resolves REVIEW R-2 and R-7/R-11. Requires an ADR amendment because AGENTS'
-> "every concrete class implements an appropriate interface" needs a precise, auditable
-> reading.
+> **Status: Done**
+> Resolves REVIEW R-2, R-7 and R-11. Splits the interface-backing rule into two
+> lawful categories (seam-backed vs private-leaf), consolidates recurring
+> vocabulary literals, and unifies the publisher-stack wrapping authority.
+>
+> Completion notes:
+> - **T3.1** — `SeverityMapInterface` / `SpanKindMapInterface` / `SpanStatusMapInterface`
+>   added under `Adapter/OpenTelemetry/Contract`; the three maps now implement them and
+>   their injection sites (`DefaultObservationLogMapper`, `TraceBehavior`) type-hint the
+>   contracts. `ExecutionAwareLogger` and `ObservationRecordingLogger` now declare
+>   `implements \Psr\Log\LoggerInterface`. These five classes were removed from
+>   `RequireInterfaceRule`'s `exemptFiles`; `ADR-015` was amended to define the
+>   seam-backed / private-leaf split and `docs/QA.md` updated. `FallbackErrorLogReporter`
+>   stays a permanent private-leaf exemption (its own design forbids being swappable).
+> - **T3.2** — Added `DeterministicHashCalculator::ALGORITHM_SHA256` (adopted by
+>   `HmacSnapshotSigner` and `ConfigurableHashCalculator`), `CloudEvent::SPEC_VERSION_KEY`
+>   (adopted in `CloudEvent` and `DefaultCloudEventJsonSerializer`), and reused the
+>   existing `MediaTypes::APPLICATION_JSON` across `JsonSnapshotSerializer`,
+>   `DefaultCloudEventToOccurrenceMapper`, `CloudEventPublisher` and
+>   `OccurrenceRecorderInterface`. Status-word literals in `SpanStatusMap` now use
+>   `ExecutionStatus::*->value`. The broader magic-literal frequency sweep (R-7) remains
+>   a mechanical follow-up; the plan-enumerated homes are consolidated.
+> - **T3.3** — `PublicationPipeline::build()` now delegates its redact/sample wrapping to
+>   the injected `PublisherStackFactoryInterface` (constructor param, default
+>   `PublisherStackFactory`), mirroring the SDK builder so there is one wrapping authority.
 
 ### T3.1 — Interface backing: split the rule, then close the gaps (R-2)
 - **Decision artifact:** amend `docs/adr/ADR-015-final-interface-backed-classes.md`

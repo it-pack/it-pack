@@ -26,7 +26,7 @@ use Psr\Log\LoggerInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ExecutionAwareLogger extends AbstractLogger
+final class ExecutionAwareLogger extends AbstractLogger implements LoggerInterface
 {
     public function __construct(
         private readonly LoggerInterface $inner,

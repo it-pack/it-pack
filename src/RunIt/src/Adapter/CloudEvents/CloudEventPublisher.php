@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
@@ -103,7 +104,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
             [],
             $subject,
             $time !== null ? gmdate('Y-m-d\TH:i:s\Z', $time) : null,
-            'application/json',
+            MediaTypes::APPLICATION_JSON,
             null,
             $extensions,
             $this->policy->specVersion,

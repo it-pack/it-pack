@@ -72,27 +72,25 @@ services:
     #   * Pure data carriers consumed only inside their adapter/config namespace
     #     (`CloudEvent`, maps, caches) expose value semantics, not behavior.
     - { class: Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule, arguments: { srcRoot: %currentWorkingDirectory%/src, exemptDirectories: [src/Conformance, src/Behavior], exemptFiles: [
-        src/Adapter/CloudEvents/CloudEvent.php,
-        src/Adapter/CloudEvents/CloudEventsBridgeConfig.php,
-        src/Adapter/CloudEvents/CloudEventsBridgeConfigBuilder.php,
-        src/Adapter/CloudEvents/Mapping/CloudEventMappingPolicy.php,
-        src/Adapter/OpenTelemetry/BridgeCapability.php,
-        src/Adapter/OpenTelemetry/BridgeConfig.php,
-        src/Adapter/OpenTelemetry/BridgeConfigBuilder.php,
-        src/Adapter/OpenTelemetry/Metrics/InstrumentCache.php,
-        src/Adapter/OpenTelemetry/Telemetry/AttributeKeys.php,
-        src/Adapter/OpenTelemetry/Telemetry/SeverityMap.php,
-        src/Adapter/OpenTelemetry/Telemetry/SpanKindMap.php,
-        src/Adapter/OpenTelemetry/Telemetry/SpanStatusMap.php,
-        src/Adapter/Psr/Event/OccurrenceEventWrapper.php,
-        src/Adapter/Psr/Log/ExecutionAwareLogger.php,
-        src/Adapter/Psr/Log/ObservationRecordingLogger.php,
-        src/Application/Publication/ArtifactRedactionConfig.php,
-        src/Application/Publication/BufferConfiguration.php,
-        src/Application/Publication/FallbackErrorLogReporter.php,
-        src/Application/Publication/PublicationRoute.php,
-        src/Domain/Shared/SecurityLimits.php,
-        src/SDK/Attribute/ExecutedAs.php,
+        # Seam-backed classes (below) are promoted to interface-backed and removed
+        # from this list; the entries that remain are permanent private-leaf
+        # exemptions (see docs/adr/ADR-015-final-interface-backed-classes.md).
+        src/Adapter/CloudEvents/CloudEvent.php, # value-object
+        src/Adapter/CloudEvents/CloudEventsBridgeConfig.php, # config
+        src/Adapter/CloudEvents/CloudEventsBridgeConfigBuilder.php, # builder
+        src/Adapter/CloudEvents/Mapping/CloudEventMappingPolicy.php, # policy
+        src/Adapter/OpenTelemetry/BridgeCapability.php, # config
+        src/Adapter/OpenTelemetry/BridgeConfig.php, # config
+        src/Adapter/OpenTelemetry/BridgeConfigBuilder.php, # builder
+        src/Adapter/OpenTelemetry/Metrics/InstrumentCache.php, # cache
+        src/Adapter/OpenTelemetry/Telemetry/AttributeKeys.php, # constants
+        src/Adapter/Psr/Event/OccurrenceEventWrapper.php, # wrapper
+        src/Application/Publication/ArtifactRedactionConfig.php, # config
+        src/Application/Publication/BufferConfiguration.php, # config
+        src/Application/Publication/FallbackErrorLogReporter.php, # safety-net
+        src/Application/Publication/PublicationRoute.php, # config
+        src/Domain/Shared/SecurityLimits.php, # value-object
+        src/SDK/Attribute/ExecutedAs.php, # attribute
     ] }, tags: [phpstan.rules.rule] }
 
     # T2.1 additions ---------------------------------------------------------

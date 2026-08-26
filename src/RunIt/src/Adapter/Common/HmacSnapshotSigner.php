@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Common;
 
 use ItPack\RunIt\Contract\Port\SnapshotSignerInterface;
+use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 
 /**
  * HMAC-SHA256 implementation of the optional snapshot signer port.
@@ -23,7 +24,7 @@ final readonly class HmacSnapshotSigner implements SnapshotSignerInterface
 {
     public function __construct(
         private string $key,
-        private string $algorithm = 'sha256',
+        private string $algorithm = DeterministicHashCalculator::ALGORITHM_SHA256,
     ) {
     }
 

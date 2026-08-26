@@ -127,12 +127,26 @@ Both are tracked debt: `Instant::now()` should accept the `MonotonicClockInterfa
 and the buffer should receive an injected clock. They are allowlisted so the rule
 stays meaningful for every other layer.
 
-### Interface-backing exemptions
+### Interface-backing: seam-backed vs private-leaf
 
 `require-interface` enforces AGENTS.md's "every concrete class implements an
-appropriate interface". The exemption set below is **permanent and
-rationale-backed** (Phase 3, T3.2): each entry exists because an interface
-would add no semantic value, not because a contract is pending.
+appropriate interface". The rule is split into two lawful categories (ADR-015):
+
+- **Seam-backed** — any class consumed across a boundary (another namespace, a
+  port, a builder, or injected collaborators) MUST implement an interface. The
+  rule enforces this directly. Examples promoted in Phase 3, T3.1:
+  - PSR-3 loggers `ExecutionAwareLogger`, `ObservationRecordingLogger` declare
+    `implements \Psr\Log\LoggerInterface`.
+  - OpenTelemetry lookup maps `SeverityMap`, `SpanKindMap`, `SpanStatusMap`
+    declare `implements SeverityMapInterface` / `SpanKindMapInterface` /
+    `SpanStatusMapInterface`; the mappers that inject them depend on the
+    contract, not the concrete map.
+- **Private leaf** — `final` adapter-private value/config/lookup/constants/
+  wrapper types, builders, attributes, and the safety-net reporter MAY omit an
+  interface; they are recorded as permanent exemptions. Each entry exists because
+  an interface would add no semantic value, not because a contract is pending.
+
+Permanent private-leaf exemptions:
 
 - Whole directories: `src/Conformance` (test-harness verifiers/fixtures),
   `src/Behavior` (shared trait/behaviour helpers).
@@ -140,21 +154,16 @@ would add no semantic value, not because a contract is pending.
   them has no consumer.
 - **Internal last-resort sinks**: `FallbackErrorLogReporter` — the safety net
   that contains throwing health callbacks must never be swappable by
-  configuration, so exposing a contract would only undermine it (Phase 0, T0.1
-  of the 2026-08-24 plan).
-- **Transitively backed PSR-3 loggers**: `ExecutionAwareLogger`,
-  `ObservationRecordingLogger` — both extend `AbstractLogger`, so they already
-  satisfy `LoggerInterface`; a RunIt-specific marker would duplicate that.
+  configuration, so exposing a contract would only undermine it.
 - **Builders of their own config type**: `CloudEventsBridgeConfigBuilder`,
   `BridgeConfigBuilder` — the built VO is the contract.
-- **Pure data carriers / lookup maps inside their adapter or config namespace**:
+- **Pure data carriers / lookups inside their adapter or config namespace**:
   `CloudEvent`, `CloudEventsBridgeConfig`, `CloudEventMappingPolicy`,
-  `BridgeConfig`, `BridgeCapability`, `InstrumentCache`, `SeverityMap`,
-  `SpanKindMap`, `SpanStatusMap`, `AttributeKeys`, `OccurrenceEventWrapper`,
-  `SecurityLimits`, `ArtifactRedactionConfig`, `BufferConfiguration`,
-  `PublicationRoute`.
+  `BridgeConfig`, `BridgeCapability`, `InstrumentCache`, `AttributeKeys`,
+  `OccurrenceEventWrapper`, `SecurityLimits`, `ArtifactRedactionConfig`,
+  `BufferConfiguration`, `PublicationRoute`.
 
-Stale entries were pruned in T3.2: `PublicationPipeline` and
+Stale entries were pruned in Phase 3, T3.1: `PublicationPipeline` and
 `SnapshotIntegrityVerifier` implement interfaces today and
 `HttpContextExtractorInterface` was listed although it *is* an interface.
 

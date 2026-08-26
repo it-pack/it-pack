@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterf
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Contract\Shared\CorrelationKeys;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
@@ -88,7 +89,7 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
             $activityId,
             $event->subject,
             $event->dataSchema,
-            $event->dataContentType ?? 'application/json',
+            $event->dataContentType ?? MediaTypes::APPLICATION_JSON,
             AttributeCollection::fromArray($finalAttributes),
             $sequence,
         );

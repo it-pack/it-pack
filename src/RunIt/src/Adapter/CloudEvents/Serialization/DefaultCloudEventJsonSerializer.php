@@ -27,7 +27,7 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
     public const string CONTENT_TYPE = 'application/cloudevents+json';
 
     private const array STANDARD_FIELDS = [
-        'specversion',
+        CloudEvent::SPEC_VERSION_KEY,
         'id',
         'source',
         'type',
@@ -84,7 +84,7 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
         /** @var array<string, mixed> $fields */
         $fields = $decoded;
 
-        foreach (['specversion', 'id', 'source', 'type'] as $required) {
+        foreach ([CloudEvent::SPEC_VERSION_KEY, 'id', 'source', 'type'] as $required) {
             if (!isset($fields[$required]) || !is_string($fields[$required]) || $fields[$required] === '') {
                 throw InvalidCloudEventException::missingField($required);
             }
@@ -110,7 +110,7 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
             $this->optionalString($fields, 'datacontenttype'),
             $this->optionalString($fields, 'dataschema'),
             $extensions,
-            $fields['specversion'],
+            $fields[CloudEvent::SPEC_VERSION_KEY],
         );
     }
 

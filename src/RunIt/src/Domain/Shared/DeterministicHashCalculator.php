@@ -19,8 +19,10 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
  */
 final readonly class DeterministicHashCalculator implements HashCalculatorInterface
 {
+    public const string ALGORITHM_SHA256 = 'sha256';
+
     public function calculate(string $content): string
     {
-        return hash('sha256', $content);
+        return hash(self::ALGORITHM_SHA256, $content);
     }
 }

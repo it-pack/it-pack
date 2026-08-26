@@ -30,6 +30,8 @@ final readonly class CloudEvent
 {
     public const string SPEC_VERSION_1_0 = '1.0';
 
+    public const string SPEC_VERSION_KEY = 'specversion';
+
     private const string TIME_PATTERN = '/^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/';
 
     private const string EXTENSION_KEY_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
@@ -61,7 +63,7 @@ final readonly class CloudEvent
         string $specVersion = self::SPEC_VERSION_1_0,
     ): self {
         if ($specVersion === '') {
-            throw InvalidCloudEventException::emptyField('specversion');
+            throw InvalidCloudEventException::emptyField(self::SPEC_VERSION_KEY);
         }
 
         if ($id === '') {
@@ -136,7 +138,7 @@ final readonly class CloudEvent
     public function toArray(): array
     {
         $event = [
-            'specversion' => $this->specVersion,
+            self::SPEC_VERSION_KEY => $this->specVersion,
             'id' => $this->id,
             'source' => $this->source,
             'type' => $this->type,

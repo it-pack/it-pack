@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
 
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
 use OpenTelemetry\API\Logs\Severity;
 
@@ -16,7 +17,7 @@ use OpenTelemetry\API\Logs\Severity;
  *
  * @see https://w3id.org/itpack/runit#ObservationSeverity
  */
-final class SeverityMap
+final class SeverityMap implements SeverityMapInterface
 {
     public function toSeverity(ObservationSeverityInterface $severity): Severity
     {

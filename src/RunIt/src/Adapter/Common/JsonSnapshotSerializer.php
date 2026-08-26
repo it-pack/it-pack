@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Adapter\Common;
 use Closure;
 use ItPack\RunIt\Contract\Exception\SerializationException;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use JsonException;
 
@@ -82,7 +83,7 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
 
     public function contentType(): string
     {
-        return 'application/json';
+        return MediaTypes::APPLICATION_JSON;
     }
 
     /**

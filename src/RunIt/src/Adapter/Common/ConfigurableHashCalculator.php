@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\Common;
 
 use InvalidArgumentException;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 
 /**
  * Configurable deterministic content-hash calculator for snapshot payloads.
@@ -22,7 +23,7 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 final readonly class ConfigurableHashCalculator implements HashCalculatorInterface
 {
     public function __construct(
-        private string $algorithm = 'sha256',
+        private string $algorithm = DeterministicHashCalculator::ALGORITHM_SHA256,
     ) {
         if (!in_array($this->algorithm, hash_algos(), true)) {
             throw new InvalidArgumentException(sprintf('Unsupported hash algorithm "%s".', $this->algorithm));

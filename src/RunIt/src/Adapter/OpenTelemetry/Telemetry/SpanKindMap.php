@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
 
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanKindMapInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 
 /**
@@ -16,7 +17,7 @@ use OpenTelemetry\API\Trace\SpanKind;
  *
  * @see https://w3id.org/itpack/runit#executionKind
  */
-final class SpanKindMap
+final class SpanKindMap implements SpanKindMapInterface
 {
     /**
      * @param string $kind

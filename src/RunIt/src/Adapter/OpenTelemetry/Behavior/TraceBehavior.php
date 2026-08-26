@@ -6,8 +6,8 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Behavior;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanKindMapInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanStatusMapInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
@@ -18,10 +18,10 @@ use OpenTelemetry\Context\ContextInterface;
 trait TraceBehavior
 {
     public function __construct(
-        private readonly ?TracerProviderInterface    $tracerProvider,
-        private readonly ExecutionSpanStoreInterface $store,
-        private readonly SpanStatusMap               $statusMap,
-        private readonly SpanKindMap                 $kindMap,
+        private readonly ?TracerProviderInterface     $tracerProvider,
+        private readonly ExecutionSpanStoreInterface  $store,
+        private readonly SpanStatusMapInterface      $statusMap,
+        private readonly SpanKindMapInterface        $kindMap,
     ) {
     }
 

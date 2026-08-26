@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
 
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanStatusMapInterface;
 use ItPack\RunIt\Contract\Domain\ActivityStatusInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionStatusInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use OpenTelemetry\API\Trace\StatusCode;
 
 /**
@@ -18,7 +20,7 @@ use OpenTelemetry\API\Trace\StatusCode;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class SpanStatusMap
+final class SpanStatusMap implements SpanStatusMapInterface
 {
     /**
      * @return array{code: 'Unset'|'Ok'|'Error', description: string}
@@ -27,9 +29,9 @@ final class SpanStatusMap
     {
         return match ($status->label()) {
             'succeeded' => ['code' => StatusCode::STATUS_OK, 'description' => ''],
-            'failed' => ['code' => StatusCode::STATUS_ERROR, 'description' => 'failed'],
-            'cancelled' => ['code' => StatusCode::STATUS_ERROR, 'description' => 'cancelled'],
-            'timed_out' => ['code' => StatusCode::STATUS_ERROR, 'description' => 'timed_out'],
+            'failed' => ['code' => StatusCode::STATUS_ERROR, 'description' => ExecutionStatus::Failed->value],
+            'cancelled' => ['code' => StatusCode::STATUS_ERROR, 'description' => ExecutionStatus::Cancelled->value],
+            'timed_out' => ['code' => StatusCode::STATUS_ERROR, 'description' => ExecutionStatus::TimedOut->value],
             default => ['code' => StatusCode::STATUS_UNSET, 'description' => ''],
         };
     }

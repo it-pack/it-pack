@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Contract\Application;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
+use ItPack\RunIt\Contract\Shared\MediaTypes;
 
 /**
  * Contract for recording occurrences bound to the ambient execution (and activity).
@@ -37,6 +38,6 @@ interface OccurrenceRecorderInterface
         ?string $subject = null,
         ?AttributeCollectionInterface $extensionAttributes = null,
         ?string $dataSchema = null,
-        string $contentType = 'application/json',
+        string $contentType = MediaTypes::APPLICATION_JSON,
     ): OccurrenceInterface;
 }

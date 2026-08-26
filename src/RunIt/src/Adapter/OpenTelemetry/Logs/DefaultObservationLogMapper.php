@@ -6,8 +6,8 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
@@ -28,7 +28,7 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
 {
     public function __construct(
         private ?LoggerProviderInterface $loggerProvider,
-        private SeverityMap              $severityMap,
+        private SeverityMapInterface     $severityMap,
         private bool                     $mapToSpanEvents = false,
     ) {
     }
