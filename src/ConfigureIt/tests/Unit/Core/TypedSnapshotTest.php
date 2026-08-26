@@ -13,21 +13,10 @@ use ItPack\ConfigureIt\Exception\TypeException;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
+use stdClass;
 
 class TypedSnapshotTest extends Unit
 {
-    private function inner(): ConfigurationSnapshot
-    {
-        $graph = new ConfigurationGraph([
-            new ConfigurationNode('app.port', 8080, 'base', 10),
-            new ConfigurationNode('app.debug', true, 'base', 10),
-            new ConfigurationNode('app.tags', ['a', 'b'], 'base', 10),
-            new ConfigurationNode('app.config', ['host' => 'localhost'], 'base', 10),
-        ]);
-
-        return ConfigurationSnapshot::fromGraph($graph);
-    }
-
     public function testConformingTreeValidatesAtFreeze(): void
     {
         $snapshot = new TypedSnapshot($this->inner(), [
@@ -225,11 +214,22 @@ class TypedSnapshotTest extends Unit
 
     public function testAnEmptyTypeMapValidatesNothing(): void
     {
-        $graph = new ConfigurationGraph([new ConfigurationNode('k', new \stdClass(), 'base', 10)]);
+        $graph = new ConfigurationGraph([new ConfigurationNode('k', new stdClass(), 'base', 10)]);
 
         $snapshot = new TypedSnapshot(ConfigurationSnapshot::fromGraph($graph), []);
 
         verify($snapshot->scalarTypes())->equals([]);
         verify($snapshot->has('k'))->true();
+    }
+    private function inner(): ConfigurationSnapshot
+    {
+        $graph = new ConfigurationGraph([
+            new ConfigurationNode('app.port', 8080, 'base', 10),
+            new ConfigurationNode('app.debug', true, 'base', 10),
+            new ConfigurationNode('app.tags', ['a', 'b'], 'base', 10),
+            new ConfigurationNode('app.config', ['host' => 'localhost'], 'base', 10),
+        ]);
+
+        return ConfigurationSnapshot::fromGraph($graph);
     }
 }

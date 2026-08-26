@@ -21,21 +21,6 @@ class ConfigurationPipelineStagesTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-stages-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-        file_put_contents($this->dir . '/db.yaml', "host: localhost\nport: 5432\n");
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-        rmdir($this->dir);
-    }
-
     public function testStagesComposeIncludeVariableCastDefaults(): void
     {
         $document = new ConfigurationDocumentFactory()->build([
@@ -67,5 +52,20 @@ class ConfigurationPipelineStagesTest extends Unit
                 'host' => 'default-host',
             ],
         ]);
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-stages-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+        file_put_contents($this->dir . '/db.yaml', "host: localhost\nport: 5432\n");
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+        rmdir($this->dir);
     }
 }

@@ -14,19 +14,6 @@ class FileModificationProbeTest extends Unit
 {
     private string $file;
 
-    protected function _before(): void
-    {
-        $this->file = sys_get_temp_dir() . '/cfg-probe-' . uniqid();
-        file_put_contents($this->file, 'data');
-    }
-
-    protected function _after(): void
-    {
-        if (is_file($this->file)) {
-            @unlink($this->file);
-        }
-    }
-
     public function testSignatureChangesWhenContentChanges(): void
     {
         $probe = new FileModificationProbe([$this->file]);
@@ -44,6 +31,19 @@ class FileModificationProbeTest extends Unit
         $withoutMissing = new FileModificationProbe([$this->file])->__invoke();
 
         verify($withMissing === $withoutMissing)->false();
-        verify(ctype_xdigit($withMissing) && strlen($withMissing) === 32)->true();
+        verify(ctype_xdigit($withMissing) && 32 === strlen($withMissing))->true();
+    }
+
+    protected function _before(): void
+    {
+        $this->file = sys_get_temp_dir() . '/cfg-probe-' . uniqid();
+        file_put_contents($this->file, 'data');
+    }
+
+    protected function _after(): void
+    {
+        if (is_file($this->file)) {
+            @unlink($this->file);
+        }
     }
 }

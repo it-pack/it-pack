@@ -4,24 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Unit\ValueObject;
 
+use function array_unique;
+
 use Codeception\Test\Unit;
+
+use function count;
+
+use InvalidArgumentException;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\FlagDefinition;
+use stdClass;
 
 /**
  * M7 / E8.2 — flag definition parsing and per-context evaluation.
  */
 class FlagDefinitionTest extends Unit
 {
-    /**
-     * @param array<string, string> $attributes
-     */
-    private function ctx(string $environment = 'production', array $attributes = []): ExecutionContextInterface
-    {
-        return new ExecutionContext($environment, $attributes);
-    }
-
     public function testBoolShortcutEnablesAndDisables(): void
     {
         self::assertTrue(FlagDefinition::fromArray('x', true)->isEnabledFor($this->ctx()));
@@ -117,21 +116,21 @@ class FlagDefinitionTest extends Unit
 
     public function testInvalidBucketByThrows(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         FlagDefinition::fromArray('x', ['enabled' => true, 'bucketBy' => 'nope']);
     }
 
     public function testInvalidRolloutThrows(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         FlagDefinition::fromArray('x', ['enabled' => true, 'rollout' => 150]);
     }
 
     public function testMalformedDataThrows(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         FlagDefinition::fromArray('x', 42);
     }
@@ -249,7 +248,7 @@ class FlagDefinitionTest extends Unit
         try {
             FlagDefinition::fromArray('x', $data);
             self::fail('Expected the malformed flag definition to be rejected.');
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             verify(str_contains($e->getMessage(), $expectedMessageFragment))->true();
         }
     }
@@ -269,11 +268,11 @@ class FlagDefinitionTest extends Unit
             'scalar tenants'          => [['tenants' => 'acme'], 'must be a list of strings'],
             'nested environment'      => [['environments' => [['nested']]], 'must be a list of scalars'],
             'nested tenant'           => [['tenants' => [['nested']]], 'must be a list of scalars'],
-            'object environment'      => [['environments' => [new \stdClass()]], 'must be a list of scalars'],
+            'object environment'      => [['environments' => [new stdClass()]], 'must be a list of scalars'],
 
             'scalar attributes'       => [['attributes' => 'plan=enterprise'], 'must be a map of string => string'],
             'nested attribute value'  => [['attributes' => ['plan' => ['a']]], 'attribute values must be scalars'],
-            'object attribute value'  => [['attributes' => ['plan' => new \stdClass()]], 'attribute values must be scalars'],
+            'object attribute value'  => [['attributes' => ['plan' => new stdClass()]], 'attribute values must be scalars'],
 
             'invalid bucketBy'        => [['bucketBy' => 'nope'], 'invalid bucketBy'],
             'non-string bucketBy'     => [['bucketBy' => 5], 'invalid bucketBy'],
@@ -359,7 +358,7 @@ class FlagDefinitionTest extends Unit
 
         // The (unit, flag) pair is hashed, so one tenant does not get an
         // all-or-nothing experience across independent flags.
-        verify(\count(\array_unique($decisions)))->equals(2);
+        verify(count(array_unique($decisions)))->equals(2);
     }
 
     public function testGatesAreEvaluatedInDeclaredOrder(): void
@@ -378,5 +377,12 @@ class FlagDefinitionTest extends Unit
         verify($def->isEnabledFor($this->ctx('staging', ['tenant' => 'other', 'plan' => 'enterprise'])))->false();
         verify($def->isEnabledFor($this->ctx('staging', ['tenant' => 'acme', 'plan' => 'free'])))->false();
         verify($def->isEnabledFor($this->ctx('staging', ['tenant' => 'acme'])))->false();
+    }
+    /**
+     * @param array<string, string> $attributes
+     */
+    private function ctx(string $environment = 'production', array $attributes = []): ExecutionContextInterface
+    {
+        return new ExecutionContext($environment, $attributes);
     }
 }

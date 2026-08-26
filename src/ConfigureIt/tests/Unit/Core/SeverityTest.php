@@ -26,44 +26,6 @@ class SeverityTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-sev-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-        file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "local-host"]];');
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-
-        rmdir($this->dir);
-    }
-
-    private function warningSchema(): NativeConfigurationSchema
-    {
-        return new NativeConfigurationSchema(
-            Expect::structure([
-                'db' => Expect::structure([
-                    'host' => Expect::string()->deprecated('use db.endpoint instead'),
-                ])->otherItems(Expect::mixed()),
-            ])->otherItems(Expect::mixed())->castTo('array'),
-        );
-    }
-
-    private function errorSchema(): NativeConfigurationSchema
-    {
-        return new NativeConfigurationSchema(
-            Expect::structure([
-                'db' => Expect::structure([
-                    'host' => Expect::int(),
-                ])->otherItems(Expect::mixed()),
-            ])->otherItems(Expect::mixed())->castTo('array'),
-        );
-    }
-
     public function testWarningOnlyIsReportedWithWarningSeverity(): void
     {
         $graph = new ConfigurationGraph([
@@ -111,7 +73,7 @@ class SeverityTest extends Unit
 
         $warnings = array_values(array_filter(
             $reporter->observations(),
-            static fn ($o) => $o->level() === 'warning',
+            static fn ($o) => 'warning' === $o->level(),
         ));
 
         verify($warnings)->notEmpty();
@@ -153,5 +115,43 @@ class SeverityTest extends Unit
         $this->expectException(\ItPack\ConfigureIt\Exception\ValidationException::class);
 
         $resolver->resolve();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-sev-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+        file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "local-host"]];');
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+
+        rmdir($this->dir);
+    }
+
+    private function warningSchema(): NativeConfigurationSchema
+    {
+        return new NativeConfigurationSchema(
+            Expect::structure([
+                'db' => Expect::structure([
+                    'host' => Expect::string()->deprecated('use db.endpoint instead'),
+                ])->otherItems(Expect::mixed()),
+            ])->otherItems(Expect::mixed())->castTo('array'),
+        );
+    }
+
+    private function errorSchema(): NativeConfigurationSchema
+    {
+        return new NativeConfigurationSchema(
+            Expect::structure([
+                'db' => Expect::structure([
+                    'host' => Expect::int(),
+                ])->otherItems(Expect::mixed()),
+            ])->otherItems(Expect::mixed())->castTo('array'),
+        );
     }
 }

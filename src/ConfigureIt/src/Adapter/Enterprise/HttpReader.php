@@ -52,7 +52,7 @@ final readonly class HttpReader implements ConfigurationReaderInterface
     {
         $uri = $resource->uri();
 
-        return $resource->format() === Format::JSON
+        return Format::JSON === $resource->format()
             && (str_starts_with($uri, 'http://') || str_starts_with($uri, 'https://'));
     }
 }

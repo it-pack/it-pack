@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Cache;
 
 use ItPack\ConfigureIt\Contract\RemoteDocumentCacheInterface;
+use Throwable;
 
 /**
  * Filesystem-backed raw-document cache for remote configuration backends.
@@ -86,14 +87,14 @@ final class FileSystemDocumentCache implements RemoteDocumentCacheInterface
         $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
 
         $payload = [
-            'expires' => $ttlSeconds === null ? null : time() + $ttlSeconds,
+            'expires' => null === $ttlSeconds ? null : time() + $ttlSeconds,
             'document' => $document,
         ];
 
         try {
             file_put_contents($tmp, '<?php return ' . var_export($payload, true) . ';');
             rename($tmp, $file);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Best-effort: a failed write must not break resolution.
         } finally {
             if (is_file($tmp)) {

@@ -393,6 +393,32 @@ Avoid:
 
 ---
 
+## Declaration order
+
+Within a class, members follow a fixed, enforceable order (mirrors the
+`ordered_class_elements` php-cs-fixer rule):
+
+1. `use` traits
+2. constants
+3. properties
+4. constructor
+5. public static factories / helpers
+6. public instance methods
+7. protected static
+8. protected instance methods
+9. private static
+10. private instance methods
+
+The enforceable approximation is **public statics first, then instance methods,
+then protected, then private** — named constructors (factories) therefore sit
+with the other public statics, above instance methods. Keep it consistent.
+
+Global symbols (`\count`, `\sprintf`, `\is_string`, …) are imported via
+`use function` (`global_namespace_import`), so they are referenced unqualified
+and alphabetically ordered with the other imports.
+
+Yoda conditions (`5 === $x`, not `$x === 5`) are enforced.
+
 ## Naming
 
 Prefer domain language.

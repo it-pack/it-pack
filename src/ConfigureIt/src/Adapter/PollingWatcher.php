@@ -79,7 +79,7 @@ final class PollingWatcher implements ConfigurationWatcherInterface
     {
         $signature = ($this->probe)();
 
-        if ($this->lastSignature === null) {
+        if (null === $this->lastSignature) {
             $this->lastSignature = $signature;
 
             return;

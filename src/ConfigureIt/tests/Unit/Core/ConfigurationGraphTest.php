@@ -12,11 +12,6 @@ use ItPack\ConfigureIt\Exception\ConfigurationException;
 
 class ConfigurationGraphTest extends Unit
 {
-    private function node(string $key, mixed $value, string $source, int $priority): ConfigurationNodeInterface
-    {
-        return new ConfigurationNode($key, $value, $source, $priority);
-    }
-
     public function testHigherPriorityWinsOnConflict(): void
     {
         $graph = new ConfigurationGraph([
@@ -67,5 +62,9 @@ class ConfigurationGraphTest extends Unit
         $this->expectException(ConfigurationException::class);
 
         $graph->node('missing');
+    }
+    private function node(string $key, mixed $value, string $source, int $priority): ConfigurationNodeInterface
+    {
+        return new ConfigurationNode($key, $value, $source, $priority);
     }
 }

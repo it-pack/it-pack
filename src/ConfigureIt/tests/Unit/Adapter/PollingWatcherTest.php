@@ -13,19 +13,6 @@ class PollingWatcherTest extends Unit
 {
     private string $file;
 
-    protected function _before(): void
-    {
-        $this->file = sys_get_temp_dir() . '/poll-watch-' . uniqid() . '.json';
-        file_put_contents($this->file, '{"v":1}');
-    }
-
-    protected function _after(): void
-    {
-        if (is_file($this->file)) {
-            unlink($this->file);
-        }
-    }
-
     public function testDoesNotDispatchOnBaselineTick(): void
     {
         $reporter = new ResolutionReporter();
@@ -126,7 +113,7 @@ class PollingWatcherTest extends Unit
         $reporter = new ResolutionReporter();
         $calls = 0;
         $probe = static function () use (&$calls): string {
-            return $calls++ === 0 ? 'baseline' : 'changed';
+            return 0 === $calls++ ? 'baseline' : 'changed';
         };
 
         $watcher = new PollingWatcher([$this->file], $reporter, 0, $probe);
@@ -169,7 +156,7 @@ class PollingWatcherTest extends Unit
         $reporter = new ResolutionReporter();
         $calls = 0;
         $probe = static function () use (&$calls): string {
-            return $calls++ === 0 ? 'a' : 'b';
+            return 0 === $calls++ ? 'a' : 'b';
         };
 
         $watcher = new PollingWatcher([$this->file, $this->file . '.bak'], $reporter, 10, $probe);
@@ -212,5 +199,18 @@ class PollingWatcherTest extends Unit
 
         verify($fired)->equals(2);
         verify(count($reporter->occurrences()))->equals(2);
+    }
+
+    protected function _before(): void
+    {
+        $this->file = sys_get_temp_dir() . '/poll-watch-' . uniqid() . '.json';
+        file_put_contents($this->file, '{"v":1}');
+    }
+
+    protected function _after(): void
+    {
+        if (is_file($this->file)) {
+            unlink($this->file);
+        }
     }
 }

@@ -41,81 +41,6 @@ class M2ExitTest extends Unit
 
     private string $plain;
 
-    protected function _before(): void
-    {
-        $this->baseDir = sys_get_temp_dir() . '/cfg-m2-base-' . uniqid();
-        $this->overrideDir = sys_get_temp_dir() . '/cfg-m2-override-' . uniqid();
-        $this->inc = sys_get_temp_dir() . '/cfg-m2-inc-' . uniqid();
-        $this->plain = sys_get_temp_dir() . '/cfg-m2-plain-' . uniqid();
-        mkdir($this->baseDir, 0o777, true);
-        mkdir($this->overrideDir, 0o777, true);
-        mkdir($this->inc, 0o777, true);
-        mkdir($this->plain, 0o777, true);
-
-        // base layer: provides db.host + a conditionally-included feature.
-        file_put_contents(
-            $this->baseDir . '/base.php',
-            <<<'PHP'
-                <?php return [
-                    'db' => ['host' => 'base-host'],
-                    'feature' => '@include extra.php @if env=prod',
-                ];
-                PHP
-        );
-
-        // override layer: wins on db.host (higher precedence).
-        file_put_contents($this->overrideDir . '/override.php', '<?php return ["db" => ["host" => "override-host"]];');
-
-        // included only when env=prod.
-        file_put_contents($this->inc . '/extra.php', '<?php return ["name" => "prod-feature"];');
-
-        // single-file source used to prove no behaviour change without layers.
-        file_put_contents(
-            $this->plain . '/base.php',
-            <<<'PHP'
-                <?php return [
-                    'db' => ['host' => 'base-host'],
-                    'feature' => '@include extra.php @if env=prod',
-                ];
-                PHP
-        );
-    }
-
-    protected function _after(): void
-    {
-        foreach ([$this->baseDir, $this->overrideDir, $this->inc, $this->plain] as $dir) {
-            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
-                unlink($dir . '/' . $item);
-            }
-            rmdir($dir);
-        }
-    }
-
-    private function build(string $env): ConfigurationBuilder
-    {
-        return new ConfigurationBuilder()
-            ->addReader(new FileReader())
-            ->addLoader(new PhpLoader())
-            ->addProcessor(new IncludeProcessor(
-                new FileReader(),
-                new ConfigurationLoaderFactory([new PhpLoader()]),
-                new DocumentNormalizer(),
-                $this->inc,
-            ))
-            ->addLayer(new ConfigurationLayer(
-                [new FileSource($this->baseDir)],
-                precedence: 10,
-                id: 'base',
-            ))
-            ->addLayer(new ConfigurationLayer(
-                [new FileSource($this->overrideDir)],
-                precedence: 20,
-                id: 'override',
-            ))
-            ->withExecutionContext(new ExecutionContext(environment: $env))
-        ;
-    }
-
     public function testLayerOrderingAndConditionalIncludeComposeUnderProd(): void
     {
         $snapshot = $this->build('prod')->build()->resolve();
@@ -181,5 +106,80 @@ class M2ExitTest extends Unit
         $out = new ConfigurationInspector()->explain($graph, 'db.host');
 
         verify($out)->stringContainsString('layer       : override');
+    }
+
+    protected function _before(): void
+    {
+        $this->baseDir = sys_get_temp_dir() . '/cfg-m2-base-' . uniqid();
+        $this->overrideDir = sys_get_temp_dir() . '/cfg-m2-override-' . uniqid();
+        $this->inc = sys_get_temp_dir() . '/cfg-m2-inc-' . uniqid();
+        $this->plain = sys_get_temp_dir() . '/cfg-m2-plain-' . uniqid();
+        mkdir($this->baseDir, 0o700, true);
+        mkdir($this->overrideDir, 0o700, true);
+        mkdir($this->inc, 0o700, true);
+        mkdir($this->plain, 0o700, true);
+
+        // base layer: provides db.host + a conditionally-included feature.
+        file_put_contents(
+            $this->baseDir . '/base.php',
+            <<<'PHP'
+                <?php return [
+                    'db' => ['host' => 'base-host'],
+                    'feature' => '@include extra.php @if env=prod',
+                ];
+                PHP
+        );
+
+        // override layer: wins on db.host (higher precedence).
+        file_put_contents($this->overrideDir . '/override.php', '<?php return ["db" => ["host" => "override-host"]];');
+
+        // included only when env=prod.
+        file_put_contents($this->inc . '/extra.php', '<?php return ["name" => "prod-feature"];');
+
+        // single-file source used to prove no behaviour change without layers.
+        file_put_contents(
+            $this->plain . '/base.php',
+            <<<'PHP'
+                <?php return [
+                    'db' => ['host' => 'base-host'],
+                    'feature' => '@include extra.php @if env=prod',
+                ];
+                PHP
+        );
+    }
+
+    protected function _after(): void
+    {
+        foreach ([$this->baseDir, $this->overrideDir, $this->inc, $this->plain] as $dir) {
+            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
+                unlink($dir . '/' . $item);
+            }
+            rmdir($dir);
+        }
+    }
+
+    private function build(string $env): ConfigurationBuilder
+    {
+        return new ConfigurationBuilder()
+            ->addReader(new FileReader())
+            ->addLoader(new PhpLoader())
+            ->addProcessor(new IncludeProcessor(
+                new FileReader(),
+                new ConfigurationLoaderFactory([new PhpLoader()]),
+                new DocumentNormalizer(),
+                $this->inc,
+            ))
+            ->addLayer(new ConfigurationLayer(
+                [new FileSource($this->baseDir)],
+                precedence: 10,
+                id: 'base',
+            ))
+            ->addLayer(new ConfigurationLayer(
+                [new FileSource($this->overrideDir)],
+                precedence: 20,
+                id: 'override',
+            ))
+            ->withExecutionContext(new ExecutionContext(environment: $env))
+        ;
     }
 }

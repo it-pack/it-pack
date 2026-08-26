@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Codegen;
 
+use InvalidArgumentException;
 use ItPack\ConfigureIt\Codegen\Model\DtoModel;
 use ItPack\ConfigureIt\Codegen\Model\Property;
 
@@ -71,11 +72,12 @@ final class PhpRenderer
             : '';
 
         return sprintf(
-            "final readonly class %s implements GeneratedConfigDtoInterface\n{\n    public function __construct(\n%s\n    ) {}\n\n" .
-            "    public static function fromSnapshotAt(ConfigurationSnapshotInterface \$s, string \$base): self\n" .
-            "    {\n        return new self(\n%s\n        );\n    }\n\n" .
-            "    public function toArray(): array\n" .
-            "    {\n        return [\n%s\n        ];\n    }%s\n}",
+            "final readonly class %s implements GeneratedConfigDtoInterface\n"
+            . "{\n    public function __construct(\n%s\n    ) {}\n\n"
+            . "    public static function fromSnapshotAt(ConfigurationSnapshotInterface \$s, string \$base): self\n"
+            . "    {\n        return new self(\n%s\n        );\n    }\n\n"
+            . "    public function toArray(): array\n"
+            . "    {\n        return [\n%s\n        ];\n    }%s\n}",
             $model->className,
             $constructor,
             $body,
@@ -110,8 +112,8 @@ final class PhpRenderer
 
     private function toArrayValue(Property $property): string
     {
-        if ($property->nestedClass !== null) {
-            if ($property->kind === 'structure') {
+        if (null !== $property->nestedClass) {
+            if ('structure' === $property->kind) {
                 return sprintf('$this->%s->toArray()', $property->name);
             }
 
@@ -133,16 +135,17 @@ final class PhpRenderer
             'scalar' => sprintf('$s->%s(%s)', $property->readMethod, $path),
             'structure' => sprintf('%s::fromSnapshotAt($s, %s)', $property->nestedClass, $path),
             'list', 'map' => $this->collectionExpression($property, $path),
-            default => throw new \InvalidArgumentException(sprintf('Unknown property kind "%s".', $property->kind)),
+            default => throw new InvalidArgumentException(sprintf('Unknown property kind "%s".', $property->kind)),
         };
     }
 
     private function collectionExpression(Property $property, string $path): string
     {
-        if ($property->nestedClass !== null) {
-            if ($property->kind === 'list') {
+        if (null !== $property->nestedClass) {
+            if ('list' === $property->kind) {
                 return sprintf(
-                    'array_map(static fn (int $i) => %s::fromSnapshotAt($s, (%s) . \'.\' . $i), array_keys($s->list(%s)))',
+                    'array_map(static fn (int $i) => %s::fromSnapshotAt($s, (%s) . \'.\' . $i), '
+                    . 'array_keys($s->list(%s)))',
                     $property->nestedClass,
                     $path,
                     $path,
@@ -150,7 +153,8 @@ final class PhpRenderer
             }
 
             return sprintf(
-                'array_combine(array_keys($s->get(%s)), array_map(static fn (string $k) => %s::fromSnapshotAt($s, (%s) . \'.\' . $k), array_keys($s->get(%s))))',
+                'array_combine(array_keys($s->get(%s)), array_map(static fn (string $k) => '
+                . '%s::fromSnapshotAt($s, (%s) . \'.\' . $k), array_keys($s->get(%s))))',
                 $path,
                 $property->nestedClass,
                 $path,
@@ -160,7 +164,7 @@ final class PhpRenderer
 
         $elementType = $property->elementType ?? 'mixed';
 
-        if ($property->kind === 'list') {
+        if ('list' === $property->kind) {
             return sprintf(
                 'array_map(static fn (mixed $v): %s => %s, $s->list(%s))',
                 $elementType,
@@ -169,12 +173,13 @@ final class PhpRenderer
             );
         }
 
-        $cast = $property->elementRead === 'get' || $property->elementRead === null
+        $cast = 'get' === $property->elementRead || null === $property->elementRead
             ? sprintf('$s->get(%s)[$k]', $path)
             : sprintf('(%s) $s->get(%s)[$k]', $elementType, $path);
 
         return sprintf(
-            'array_combine(array_keys($s->get(%s)), array_map(static fn (string $k): %s => %s, array_keys($s->get(%s))))',
+            'array_combine(array_keys($s->get(%s)), array_map(static fn (string $k): %s => '
+            . '%s, array_keys($s->get(%s))))',
             $path,
             $elementType,
             $cast,
@@ -184,7 +189,7 @@ final class PhpRenderer
 
     private function scalarCast(string $phpType, ?string $readMethod): string
     {
-        if ($readMethod === 'get' || $readMethod === null) {
+        if ('get' === $readMethod || null === $readMethod) {
             return '$v';
         }
 

@@ -12,6 +12,7 @@ use ItPack\ConfigureIt\Core\CachingResolver;
 use ItPack\ConfigureIt\Core\ConfigurationCompiler;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use RuntimeException;
 
 /**
  * R12 — a best-effort cache write failure must still yield the live snapshot and
@@ -21,35 +22,6 @@ use ItPack\ConfigureIt\Execution\ResolutionReporter;
  */
 final class CachingResolverTest extends Unit
 {
-    private function innerReturning(ConfigurationSnapshotInterface $snapshot): ConfigurationResolverInterface
-    {
-        return new class ($snapshot) implements ConfigurationResolverInterface {
-            public function __construct(private ConfigurationSnapshotInterface $snapshot)
-            {
-            }
-
-            public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
-            {
-                return $this->snapshot;
-            }
-        };
-    }
-
-    private function throwingCache(): ConfigurationCacheInterface
-    {
-        return new class () implements ConfigurationCacheInterface {
-            public function get(string $key): ?ConfigurationSnapshotInterface
-            {
-                return null;
-            }
-
-            public function set(string $key, ConfigurationSnapshotInterface $snapshot): void
-            {
-                throw new \RuntimeException('disk full');
-            }
-        };
-    }
-
     public function testThrowingCacheStillReturnsLiveSnapshot(): void
     {
         $inner = $this->innerReturning(new ConfigurationSnapshot([]));
@@ -118,5 +90,33 @@ final class CachingResolverTest extends Unit
         $snapshot = $resolver->resolve([]);
 
         verify($snapshot)->instanceOf(ConfigurationSnapshotInterface::class);
+    }
+    private function innerReturning(ConfigurationSnapshotInterface $snapshot): ConfigurationResolverInterface
+    {
+        return new class ($snapshot) implements ConfigurationResolverInterface {
+            public function __construct(private ConfigurationSnapshotInterface $snapshot)
+            {
+            }
+
+            public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
+            {
+                return $this->snapshot;
+            }
+        };
+    }
+
+    private function throwingCache(): ConfigurationCacheInterface
+    {
+        return new class () implements ConfigurationCacheInterface {
+            public function get(string $key): ?ConfigurationSnapshotInterface
+            {
+                return null;
+            }
+
+            public function set(string $key, ConfigurationSnapshotInterface $snapshot): void
+            {
+                throw new RuntimeException('disk full');
+            }
+        };
     }
 }

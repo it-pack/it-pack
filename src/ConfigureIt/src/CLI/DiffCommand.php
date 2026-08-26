@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\CLI;
 
+use function count;
+
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 
@@ -27,7 +29,7 @@ final readonly class DiffCommand implements CommandInterface
 
     public function run(array $args, Output $output): int
     {
-        if (\count($args) < 2) {
+        if (count($args) < 2) {
             $output->writeln('Usage: diff <file-a> <file-b>');
 
             return 1;

@@ -5,31 +5,18 @@ declare(strict_types=1);
 namespace Tests\Unit\CLI;
 
 use Codeception\Test\Unit;
+
+use function fopen;
+
 use ItPack\ConfigureIt\CLI\ConfigurationCli;
 use ItPack\ConfigureIt\CLI\Output;
 
+use function rewind;
+use function str_contains;
+use function stream_get_contents;
+
 class ConfigurationCliTest extends Unit
 {
-    private function memoryOutput(): Output
-    {
-        return new Output(\fopen('php://memory', 'r+'));
-    }
-
-    private function read(Output $output): string
-    {
-        /** @var resource $stream */
-        $stream = $output->stream();
-
-        \rewind($stream);
-
-        return (string) \stream_get_contents($stream);
-    }
-
-    private function support(string $file): string
-    {
-        return __DIR__ . '/../../../examples/Support/Provenance/' . $file;
-    }
-
     public function testExplainTableReturnsSuccess(): void
     {
         $output = $this->memoryOutput();
@@ -40,8 +27,8 @@ class ConfigurationCliTest extends Unit
         );
 
         verify($code)->equals(0);
-        verify(\str_contains($this->read($output), 'db.host'))->true();
-        verify(\str_contains($this->read($output), 'ADAPTER'))->true();
+        verify(str_contains($this->read($output), 'db.host'))->true();
+        verify(str_contains($this->read($output), 'ADAPTER'))->true();
     }
 
     public function testExplainKeyShowsAdapter(): void
@@ -54,7 +41,7 @@ class ConfigurationCliTest extends Unit
         );
 
         verify($code)->equals(0);
-        verify(\str_contains($this->read($output), 'JsonLoader'))->true();
+        verify(str_contains($this->read($output), 'JsonLoader'))->true();
     }
 
     public function testDiffShowsChangedKeys(): void
@@ -67,8 +54,8 @@ class ConfigurationCliTest extends Unit
         );
 
         verify($code)->equals(0);
-        verify(\str_contains($this->read($output), 'changed'))->true();
-        verify(\str_contains($this->read($output), 'local.json overrode base.json'))->true();
+        verify(str_contains($this->read($output), 'changed'))->true();
+        verify(str_contains($this->read($output), 'local.json overrode base.json'))->true();
     }
 
     public function testGraphAsciiRendersTree(): void
@@ -81,7 +68,7 @@ class ConfigurationCliTest extends Unit
         );
 
         verify($code)->equals(0);
-        verify(\str_contains($this->read($output), 'db:'))->true();
+        verify(str_contains($this->read($output), 'db:'))->true();
     }
 
     public function testGraphDotRendersDigraph(): void
@@ -94,7 +81,7 @@ class ConfigurationCliTest extends Unit
         );
 
         verify($code)->equals(0);
-        verify(\str_contains($this->read($output), 'digraph configuration'))->true();
+        verify(str_contains($this->read($output), 'digraph configuration'))->true();
     }
 
     public function testHelpReturnsSuccess(): void
@@ -104,7 +91,7 @@ class ConfigurationCliTest extends Unit
         $code = new ConfigurationCli()->handle(['configure-it', 'help'], $output);
 
         verify($code)->equals(0);
-        verify(\str_contains($this->read($output), 'explain'))->true();
+        verify(str_contains($this->read($output), 'explain'))->true();
     }
 
     public function testUnknownCommandReturnsError(): void
@@ -114,7 +101,7 @@ class ConfigurationCliTest extends Unit
         $code = new ConfigurationCli()->handle(['configure-it', 'frobnicate'], $output);
 
         verify($code)->equals(2);
-        verify(\str_contains($this->read($output), 'Unknown command'))->true();
+        verify(str_contains($this->read($output), 'Unknown command'))->true();
     }
 
     public function testMissingArgumentsReturnsError(): void
@@ -133,7 +120,7 @@ class ConfigurationCliTest extends Unit
         $code = new ConfigurationCli()->handle(['configure-it', 'diff', 'only-one'], $output);
 
         verify($code)->equals(1);
-        verify(\str_contains($this->read($output), 'Usage: diff'))->true();
+        verify(str_contains($this->read($output), 'Usage: diff'))->true();
     }
 
     public function testGraphWithoutArgumentsReturnsUsageError(): void
@@ -143,7 +130,7 @@ class ConfigurationCliTest extends Unit
         $code = new ConfigurationCli()->handle(['configure-it', 'graph'], $output);
 
         verify($code)->equals(1);
-        verify(\str_contains($this->read($output), 'Usage: graph'))->true();
+        verify(str_contains($this->read($output), 'Usage: graph'))->true();
     }
 
     public function testExplainWithoutArgumentsReturnsUsageError(): void
@@ -153,7 +140,7 @@ class ConfigurationCliTest extends Unit
         $code = new ConfigurationCli()->handle(['configure-it', 'explain'], $output);
 
         verify($code)->equals(1);
-        verify(\str_contains($this->read($output), 'Usage: explain'))->true();
+        verify(str_contains($this->read($output), 'Usage: explain'))->true();
     }
 
     public function testNoSubcommandRendersHelpAndReturnsError(): void
@@ -163,6 +150,25 @@ class ConfigurationCliTest extends Unit
         $code = new ConfigurationCli()->handle(['configure-it'], $output);
 
         verify($code)->equals(2);
-        verify(\str_contains($this->read($output), 'explain'))->true();
+        verify(str_contains($this->read($output), 'explain'))->true();
+    }
+    private function memoryOutput(): Output
+    {
+        return new Output(fopen('php://memory', 'r+'));
+    }
+
+    private function read(Output $output): string
+    {
+        /** @var resource $stream */
+        $stream = $output->stream();
+
+        rewind($stream);
+
+        return (string) stream_get_contents($stream);
+    }
+
+    private function support(string $file): string
+    {
+        return __DIR__ . '/../../../examples/Support/Provenance/' . $file;
     }
 }

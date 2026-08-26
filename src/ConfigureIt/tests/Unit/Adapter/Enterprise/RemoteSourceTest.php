@@ -30,6 +30,7 @@ use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Exception\ReadException;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
+use RuntimeException;
 
 class RemoteSourceTest extends Unit
 {
@@ -253,7 +254,7 @@ class RemoteSourceTest extends Unit
 
     public function testConsulClientRejectsUnknownSchemes(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('unsupported URI scheme');
 
         new ConsulClient(new FakeHttpClient())->fetch('ftp://localhost:8500/app');
@@ -281,7 +282,7 @@ class RemoteSourceTest extends Unit
 
     public function testEtcdClientRejectsUnknownSchemes(): void
     {
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('unsupported URI scheme');
 
         new EtcdClient(new FakeHttpClient())->fetch('gopher://localhost:2379/app');
@@ -441,7 +442,7 @@ final class InMemoryDocCache implements RemoteDocumentCacheInterface
 
         $expires = $this->store[$key]['expires'];
 
-        if ($expires !== null && $expires < time()) {
+        if (null !== $expires && $expires < time()) {
             return null;
         }
 
@@ -456,7 +457,7 @@ final class InMemoryDocCache implements RemoteDocumentCacheInterface
     public function set(string $key, string $document, ?int $ttlSeconds = null): void
     {
         $this->store[$key] = [
-            'expires' => $ttlSeconds === null ? null : time() + $ttlSeconds,
+            'expires' => null === $ttlSeconds ? null : time() + $ttlSeconds,
             'document' => $document,
         ];
     }

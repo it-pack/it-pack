@@ -47,7 +47,7 @@ final readonly class ValidationResult implements ValidationResultInterface
     {
         return array_values(array_filter(
             $this->issues,
-            static fn (array $issue): bool => $issue['severity'] === 'error',
+            static fn (array $issue): bool => 'error' === $issue['severity'],
         ));
     }
 
@@ -58,17 +58,17 @@ final readonly class ValidationResult implements ValidationResultInterface
     {
         return array_values(array_filter(
             $this->issues,
-            static fn (array $issue): bool => $issue['severity'] === 'warning',
+            static fn (array $issue): bool => 'warning' === $issue['severity'],
         ));
     }
 
     public function hasErrors(): bool
     {
-        return $this->errors() !== [];
+        return [] !== $this->errors();
     }
 
     public function hasWarnings(): bool
     {
-        return $this->warnings() !== [];
+        return [] !== $this->warnings();
     }
 }

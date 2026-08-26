@@ -4,9 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function is_bool;
+use function is_float;
+use function is_int;
+use function is_numeric;
+use function is_string;
+
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Exception\CastException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
+
+use function str_contains;
+use function strtolower;
+use function trim;
 
 /**
  * Coerces node values to explicitly declared scalar types.
@@ -36,7 +46,7 @@ final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
     {
         $type = $this->casts[$node->key()] ?? null;
 
-        if ($type === null) {
+        if (null === $type) {
             return $node;
         }
 
@@ -60,15 +70,15 @@ final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
 
     private function toInt(mixed $value, string $key): int
     {
-        if (\is_int($value)) {
+        if (is_int($value)) {
             return $value;
         }
 
-        if (\is_float($value)) {
+        if (is_float($value)) {
             return (int) $value;
         }
 
-        if (\is_string($value) && \is_numeric($value) && !\str_contains($value, '.')) {
+        if (is_string($value) && is_numeric($value) && !str_contains($value, '.')) {
             return (int) $value;
         }
 
@@ -77,11 +87,11 @@ final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
 
     private function toFloat(mixed $value, string $key): float
     {
-        if (\is_int($value) || \is_float($value)) {
+        if (is_int($value) || is_float($value)) {
             return (float) $value;
         }
 
-        if (\is_string($value) && \is_numeric($value)) {
+        if (is_string($value) && is_numeric($value)) {
             return (float) $value;
         }
 
@@ -90,16 +100,16 @@ final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
 
     private function toBool(mixed $value, string $key): bool
     {
-        if (\is_bool($value)) {
+        if (is_bool($value)) {
             return $value;
         }
 
-        if ($value === 1 || $value === 0) {
-            return $value === 1;
+        if (1 === $value || 0 === $value) {
+            return 1 === $value;
         }
 
-        if (\is_string($value)) {
-            return match (\strtolower(\trim($value))) {
+        if (is_string($value)) {
+            return match (strtolower(trim($value))) {
                 'true', '1', 'on', 'yes', 'y' => true,
                 'false', '0', 'off', 'no', 'n' => false,
                 default => throw new CastException(sprintf('Cannot cast key "%s" to bool.', $key)),
@@ -111,11 +121,11 @@ final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
 
     private function toString(mixed $value, string $key): string
     {
-        if (\is_string($value)) {
+        if (is_string($value)) {
             return $value;
         }
 
-        if (\is_int($value) || \is_float($value) || \is_bool($value)) {
+        if (is_int($value) || is_float($value) || is_bool($value)) {
             return (string) $value;
         }
 

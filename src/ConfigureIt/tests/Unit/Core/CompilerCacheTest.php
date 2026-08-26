@@ -15,6 +15,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Exception\TypeException;
 use Nette\Schema\Expect;
+use RuntimeException;
 
 /**
  * M3 — Epic E7.1 (Compiler + cache) exit verification.
@@ -29,53 +30,6 @@ class CompilerCacheTest extends Unit
     private string $dir;
 
     private string $cacheDir;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-m3-' . uniqid();
-        $this->cacheDir = sys_get_temp_dir() . '/cfg-m3-cache-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-
-        $this->writeConfig(['name' => 'acme', 'port' => 8080]);
-    }
-
-    protected function _after(): void
-    {
-        foreach ([$this->dir, $this->cacheDir] as $dir) {
-            if (!is_dir($dir)) {
-                continue;
-            }
-
-            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
-                $path = $dir . '/' . $item;
-
-                if (is_file($path)) {
-                    unlink($path);
-                }
-            }
-
-            rmdir($dir);
-        }
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function writeConfig(array $data): void
-    {
-        file_put_contents($this->dir . '/config.php', '<?php return ' . var_export($data, true) . ';');
-    }
-
-    private function builder(?ConfigurationCacheInterface $cache = null): ConfigurationBuilder
-    {
-        $builder = new ConfigurationBuilder()
-            ->addReader(new FileReader())
-            ->addLoader(new PhpLoader())
-            ->addSource(new FileSource($this->dir))
-        ;
-
-        return $cache === null ? $builder : $builder->withCache($cache);
-    }
 
     public function testCacheHitServesEqualSnapshot(): void
     {
@@ -116,7 +70,7 @@ class CompilerCacheTest extends Unit
 
             public function set(string $key, ConfigurationSnapshotInterface $snapshot): void
             {
-                throw new \RuntimeException('disk full');
+                throw new RuntimeException('disk full');
             }
         };
 
@@ -167,5 +121,52 @@ class CompilerCacheTest extends Unit
 
         $this->expectException(TypeException::class);
         $resolver->resolve();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-m3-' . uniqid();
+        $this->cacheDir = sys_get_temp_dir() . '/cfg-m3-cache-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+
+        $this->writeConfig(['name' => 'acme', 'port' => 8080]);
+    }
+
+    protected function _after(): void
+    {
+        foreach ([$this->dir, $this->cacheDir] as $dir) {
+            if (!is_dir($dir)) {
+                continue;
+            }
+
+            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
+                $path = $dir . '/' . $item;
+
+                if (is_file($path)) {
+                    unlink($path);
+                }
+            }
+
+            rmdir($dir);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function writeConfig(array $data): void
+    {
+        file_put_contents($this->dir . '/config.php', '<?php return ' . var_export($data, true) . ';');
+    }
+
+    private function builder(?ConfigurationCacheInterface $cache = null): ConfigurationBuilder
+    {
+        $builder = new ConfigurationBuilder()
+            ->addReader(new FileReader())
+            ->addLoader(new PhpLoader())
+            ->addSource(new FileSource($this->dir))
+        ;
+
+        return null === $cache ? $builder : $builder->withCache($cache);
     }
 }

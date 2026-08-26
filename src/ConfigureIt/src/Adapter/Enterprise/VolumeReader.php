@@ -43,7 +43,7 @@ final readonly class VolumeReader implements ConfigurationReaderInterface
         $entries = is_array($entries) ? $entries : [];
 
         foreach ($entries as $name) {
-            if ($name === '.' || $name === '..') {
+            if ('.' === $name || '..' === $name) {
                 continue;
             }
 
@@ -62,7 +62,7 @@ final readonly class VolumeReader implements ConfigurationReaderInterface
 
     public function supports(ConfigurationResourceInterface $resource): bool
     {
-        if ($resource->format() !== Format::ENV) {
+        if (Format::ENV !== $resource->format()) {
             return false;
         }
 

@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Adapter;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Exception\ReadException;
+use Throwable;
 
 /**
  * Reads the raw content of a file-backed resource.
@@ -26,7 +27,7 @@ final class FileReader implements ConfigurationReaderInterface
 
         $content = file_get_contents($resource->uri());
 
-        if ($content === false) {
+        if (false === $content) {
             throw new ReadException(sprintf('Unable to read configuration file "%s".', $resource->uri()));
         }
 
@@ -37,7 +38,7 @@ final class FileReader implements ConfigurationReaderInterface
     {
         try {
             return is_file($resource->uri());
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         }
     }

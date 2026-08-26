@@ -4,10 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function is_array;
+use function is_string;
+
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\FlagEvaluatorInterface;
 use ItPack\ConfigureIt\ValueObject\FlagDefinition;
+use LogicException;
+
+use function sprintf;
 
 /**
  * Evaluates feature flags declared in the resolved configuration.
@@ -51,7 +57,7 @@ final class FlagEvaluator implements FlagEvaluatorInterface
     {
         $definition = $this->definitions[$flag] ?? null;
 
-        return $definition !== null && $definition->isEnabledFor($ctx);
+        return null !== $definition && $definition->isEnabledFor($ctx);
     }
 
     public function evaluate(ExecutionContextInterface $ctx): array
@@ -76,16 +82,16 @@ final class FlagEvaluator implements FlagEvaluatorInterface
 
         $raw = $snapshot->get($path);
 
-        if (!\is_array($raw)) {
-            throw new \LogicException(
-                \sprintf('Feature flags at "%s" must resolve to a map of flag definitions.', $path),
+        if (!is_array($raw)) {
+            throw new LogicException(
+                sprintf('Feature flags at "%s" must resolve to a map of flag definitions.', $path),
             );
         }
 
         $definitions = [];
 
         foreach ($raw as $name => $data) {
-            if (!\is_string($name)) {
+            if (!is_string($name)) {
                 continue;
             }
 

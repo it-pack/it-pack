@@ -16,6 +16,10 @@ namespace ItPack\ConfigureIt\ValueObject;
  */
 enum SourceKind: string
 {
+    public static function fromString(string $value): self
+    {
+        return self::tryFrom($value) ?? self::Other;
+    }
     case File = 'file';
     case Env = 'env';
     case Programmatic = 'programmatic';
@@ -32,9 +36,4 @@ enum SourceKind: string
     case Etcd = 'etcd';
     case Memory = 'memory';
     case Other = '__other__';
-
-    public static function fromString(string $value): self
-    {
-        return self::tryFrom($value) ?? self::Other;
-    }
 }

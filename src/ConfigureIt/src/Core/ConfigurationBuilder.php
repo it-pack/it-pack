@@ -214,7 +214,7 @@ final class ConfigurationBuilder
 
         $processors = $this->processors;
 
-        if ($this->executionContext !== null) {
+        if (null !== $this->executionContext) {
             $context = $this->executionContext;
 
             $processors = array_map(
@@ -269,7 +269,7 @@ final class ConfigurationBuilder
      */
     private function resolveSources(): array
     {
-        if ($this->layers === []) {
+        if ([] === $this->layers) {
             return $this->sources;
         }
 

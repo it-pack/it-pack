@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Adapter;
+namespace Tests\Integration\Adapter;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\ConfigurationLoaders;
@@ -34,7 +34,7 @@ class ConfigurationLoadersTest extends Unit
     public function testResolvesMultipleFormatsEndToEnd(): void
     {
         $dir = sys_get_temp_dir() . '/cfg-loaders-' . uniqid();
-        mkdir($dir, 0o777, true);
+        mkdir($dir, 0o700, true);
 
         try {
             file_put_contents($dir . '/base.yaml', "db:\n  host: yaml-host\napp:\n  name: yaml\n");

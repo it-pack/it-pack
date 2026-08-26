@@ -63,10 +63,10 @@ final readonly class AzureAppConfigClient implements RemoteKeyValueClient
             $key = TreeBuilder::asString($item['key'] ?? null);
             $segments = array_values(array_filter(
                 explode(':', $key),
-                static fn (string $segment): bool => $segment !== '',
+                static fn (string $segment): bool => '' !== $segment,
             ));
 
-            if ($segments === []) {
+            if ([] === $segments) {
                 continue;
             }
 

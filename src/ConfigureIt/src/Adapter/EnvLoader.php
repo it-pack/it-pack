@@ -34,7 +34,7 @@ final readonly class EnvLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::ENV;
+        return Format::ENV === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface
@@ -42,24 +42,24 @@ final readonly class EnvLoader implements ConfigurationLoaderInterface
         $data = [];
 
         $lines = preg_split('/\R/', $raw);
-        $lines = $lines === false ? [] : $lines;
+        $lines = false === $lines ? [] : $lines;
 
         foreach ($lines as $line) {
             $line = trim($line);
 
-            if ($line === '' || str_starts_with($line, '#')) {
+            if ('' === $line || str_starts_with($line, '#')) {
                 continue;
             }
 
             $separatorPosition = strpos($line, '=');
 
-            if ($separatorPosition === false) {
+            if (false === $separatorPosition) {
                 throw new ParseException(sprintf('Invalid ENV line, expected "KEY=VALUE": "%s".', $line));
             }
 
             $key = trim(substr($line, 0, $separatorPosition));
 
-            if ($key === '') {
+            if ('' === $key) {
                 throw new ParseException(sprintf('Invalid ENV line, empty key: "%s".', $line));
             }
 

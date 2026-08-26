@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use function basename;
+use function is_scalar;
+
 /**
  * A semantic diff between two resolved configuration graphs.
  *
@@ -19,7 +22,14 @@ final readonly class ConfigurationDiff
     /**
      * @param array<string, mixed> $added
      * @param array<string, mixed> $removed
-     * @param list<array{key:string, from:mixed, to:mixed, fromProvenance:array<string, mixed>, toProvenance:array<string, mixed>, sensitive:bool}> $changed
+     * @param list<array{
+     *     key:string,
+     *     from:mixed,
+     *     to:mixed,
+     *     fromProvenance:array<string, mixed>,
+     *     toProvenance:array<string, mixed>,
+     *     sensitive:bool,
+     * }> $changed
      * @param array<string, bool> $addedSensitive dotted key => is secret
      * @param array<string, bool> $removedSensitive dotted key => is secret
      */
@@ -34,7 +44,7 @@ final readonly class ConfigurationDiff
 
     public function empty(): bool
     {
-        return $this->added === [] && $this->removed === [] && $this->changed === [];
+        return [] === $this->added && [] === $this->removed && [] === $this->changed;
     }
 
     /**
@@ -57,28 +67,28 @@ final readonly class ConfigurationDiff
 
         $lines = ['Configuration diff:'];
 
-        if ($this->added !== []) {
+        if ([] !== $this->added) {
             $lines[] = '  added:';
             foreach ($this->added as $key => $value) {
                 $lines[] = sprintf('    + %s = %s', $key, $this->display($value));
             }
         }
 
-        if ($this->removed !== []) {
+        if ([] !== $this->removed) {
             $lines[] = '  removed:';
             foreach ($this->removed as $key => $value) {
                 $lines[] = sprintf('    - %s = %s', $key, $this->display($value));
             }
         }
 
-        if ($this->changed !== []) {
+        if ([] !== $this->changed) {
             $lines[] = '  changed:';
             foreach ($this->changed as $entry) {
-                $toSrc = \is_scalar($entry['toProvenance']['resourceUri'] ?? null)
-                    ? \basename((string) $entry['toProvenance']['resourceUri'])
+                $toSrc = is_scalar($entry['toProvenance']['resourceUri'] ?? null)
+                    ? basename((string) $entry['toProvenance']['resourceUri'])
                     : '?';
-                $fromSrc = \is_scalar($entry['fromProvenance']['resourceUri'] ?? null)
-                    ? \basename((string) $entry['fromProvenance']['resourceUri'])
+                $fromSrc = is_scalar($entry['fromProvenance']['resourceUri'] ?? null)
+                    ? basename((string) $entry['fromProvenance']['resourceUri'])
                     : '?';
 
                 $lines[] = sprintf(

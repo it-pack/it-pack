@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\Decryption\CommandDecryption;
 use ItPack\ConfigureIt\Contract\CommandRunnerInterface;
 use ItPack\ConfigureIt\Exception\DecryptionException;
+use RuntimeException;
 
 class CommandDecryptionTest extends Unit
 {
@@ -38,7 +39,7 @@ class CommandDecryptionTest extends Unit
         $runner = new class () implements CommandRunnerInterface {
             public function run(array $command, string $input = ''): string
             {
-                throw new \RuntimeException('boom');
+                throw new RuntimeException('boom');
             }
         };
 

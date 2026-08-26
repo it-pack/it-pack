@@ -26,7 +26,7 @@ final readonly class ExplainCommand implements CommandInterface
 
     public function run(array $args, Output $output): int
     {
-        if ($args === []) {
+        if ([] === $args) {
             $output->writeln('Usage: explain <file> [key]');
 
             return 1;

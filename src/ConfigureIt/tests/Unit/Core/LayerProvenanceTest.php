@@ -30,39 +30,6 @@ class LayerProvenanceTest extends Unit
      */
     private array $created = [];
 
-    protected function _before(): void
-    {
-        $this->created = [];
-    }
-
-    protected function _after(): void
-    {
-        foreach ($this->created as $dir) {
-            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
-                unlink($dir . '/' . $item);
-            }
-
-            rmdir($dir);
-        }
-    }
-
-    /**
-     * @param array<string, string> $files map of filename => file contents
-     */
-    private function dirWith(array $files): string
-    {
-        $dir = sys_get_temp_dir() . '/cfg-layer-prov-' . uniqid();
-        mkdir($dir, 0o777, true);
-
-        foreach ($files as $name => $content) {
-            file_put_contents($dir . '/' . $name, $content);
-        }
-
-        $this->created[] = $dir;
-
-        return $dir;
-    }
-
     public function testLayerIdIsStampedOntoNodeProvenance(): void
     {
         $base = new FileSource($this->dirWith([
@@ -128,5 +95,38 @@ class LayerProvenanceTest extends Unit
         $table = new ConfigurationInspector()->explain($graph);
         verify($table)->stringContainsString('LAYER');
         verify($table)->stringContainsString('override');
+    }
+
+    protected function _before(): void
+    {
+        $this->created = [];
+    }
+
+    protected function _after(): void
+    {
+        foreach ($this->created as $dir) {
+            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
+                unlink($dir . '/' . $item);
+            }
+
+            rmdir($dir);
+        }
+    }
+
+    /**
+     * @param array<string, string> $files map of filename => file contents
+     */
+    private function dirWith(array $files): string
+    {
+        $dir = sys_get_temp_dir() . '/cfg-layer-prov-' . uniqid();
+        mkdir($dir, 0o700, true);
+
+        foreach ($files as $name => $content) {
+            file_put_contents($dir . '/' . $name, $content);
+        }
+
+        $this->created[] = $dir;
+
+        return $dir;
     }
 }

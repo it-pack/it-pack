@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
+
+use function count;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
 use ItPack\ConfigureIt\Core\ConfigurationDriftDetector;
@@ -17,35 +20,6 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationDriftDetectorTest extends Unit
 {
-    private static function node(string $key, mixed $value, string $source, int $priority): ConfigurationNode
-    {
-        return new ConfigurationNode(
-            $key,
-            $value,
-            $source,
-            $priority,
-            [],
-            new Provenance($source, Format::JSON, 'JsonLoader', $priority, SourceKind::File),
-        );
-    }
-
-    private static function graphA(): ConfigurationGraphInterface
-    {
-        return new ConfigurationGraph([
-            self::node('a', 1, 'base.json', 10),
-            self::node('b', 2, 'base.json', 10),
-        ]);
-    }
-
-    private static function graphB(): ConfigurationGraphInterface
-    {
-        return new ConfigurationGraph([
-            self::node('a', 1, 'base.json', 10),
-            self::node('b', 20, 'local.json', 20),
-            self::node('c', 3, 'local.json', 20),
-        ]);
-    }
-
     public function testBaselineMatchProducesNoDrift(): void
     {
         $reporter = new ResolutionReporter();
@@ -77,11 +51,11 @@ class ConfigurationDriftDetectorTest extends Unit
         verify($detector->check())->true();
 
         $observations = $reporter->observations();
-        verify(\count($observations))->equals(1);
+        verify(count($observations))->equals(1);
         verify($observations[0]->level())->equals('warning');
 
         $occurrences = $reporter->occurrences();
-        verify(\count($occurrences))->equals(1);
+        verify(count($occurrences))->equals(1);
         verify($occurrences[0]->type())->equals('ConfigurationDrift');
         verify($occurrences[0]->payload()['added'])->equals(1);
         verify($occurrences[0]->payload()['changed'])->equals(1);
@@ -112,11 +86,11 @@ class ConfigurationDriftDetectorTest extends Unit
         verify($detector->check())->false();       // back to baseline
 
         $occurrences = $reporter->occurrences();
-        verify(\count($occurrences))->equals(1);
+        verify(count($occurrences))->equals(1);
         verify($occurrences[0]->type())->equals('ConfigurationDrift');
 
         $observations = $reporter->observations();
-        verify(\count($observations))->equals(2);
+        verify(count($observations))->equals(2);
         verify($observations[0]->level())->equals('warning');
         verify($observations[1]->level())->equals('info');
     }
@@ -147,7 +121,7 @@ class ConfigurationDriftDetectorTest extends Unit
 
         // Drift reported once (transition) even though the live graph stays
         // diverged on the third check inside the loop.
-        verify(\count($reporter->occurrences()))->equals(1);
+        verify(count($reporter->occurrences()))->equals(1);
     }
 
     /**
@@ -168,8 +142,8 @@ class ConfigurationDriftDetectorTest extends Unit
         verify($detector->check())->true();  // same hash -> replayed verdict
         verify($detector->check())->true();
 
-        verify(\count($reporter->occurrences()))->equals(1);
-        verify(\count($reporter->observations()))->equals(1);
+        verify(count($reporter->occurrences()))->equals(1);
+        verify(count($reporter->observations()))->equals(1);
     }
 
     public function testUnchangedMatchingGraphKeepsAnsweringNoDrift(): void
@@ -207,15 +181,15 @@ class ConfigurationDriftDetectorTest extends Unit
 
         $live = self::graphB();
         verify($detector->check())->true();
-        verify(\count($reporter->occurrences()))->equals(1);
+        verify(count($reporter->occurrences()))->equals(1);
 
         // Accept the new shape as the reference.
         $detector->pin();
 
         verify($detector->check())->false();
-        verify(\count($reporter->occurrences()))->equals(1);
+        verify(count($reporter->occurrences()))->equals(1);
         // No "drift resolved" observation: the drift was pinned away, not undone.
-        verify(\count($reporter->observations()))->equals(1);
+        verify(count($reporter->observations()))->equals(1);
     }
 
     public function testPinBeforeAnyCheckMakesTheFirstCheckSilent(): void
@@ -246,7 +220,7 @@ class ConfigurationDriftDetectorTest extends Unit
         });
 
         verify($detector->check())->true();
-        verify(\count($diffs))->equals(1);
+        verify(count($diffs))->equals(1);
         verify($diffs[0]->empty())->false();
     }
 
@@ -275,5 +249,33 @@ class ConfigurationDriftDetectorTest extends Unit
         verify($reporter->occurrences())->equals([]);
         // Nothing was ever reported, so there is nothing to "resolve".
         verify($reporter->observations())->equals([]);
+    }
+    private static function node(string $key, mixed $value, string $source, int $priority): ConfigurationNode
+    {
+        return new ConfigurationNode(
+            $key,
+            $value,
+            $source,
+            $priority,
+            [],
+            new Provenance($source, Format::JSON, 'JsonLoader', $priority, SourceKind::File),
+        );
+    }
+
+    private static function graphA(): ConfigurationGraphInterface
+    {
+        return new ConfigurationGraph([
+            self::node('a', 1, 'base.json', 10),
+            self::node('b', 2, 'base.json', 10),
+        ]);
+    }
+
+    private static function graphB(): ConfigurationGraphInterface
+    {
+        return new ConfigurationGraph([
+            self::node('a', 1, 'base.json', 10),
+            self::node('b', 20, 'local.json', 20),
+            self::node('c', 3, 'local.json', 20),
+        ]);
     }
 }

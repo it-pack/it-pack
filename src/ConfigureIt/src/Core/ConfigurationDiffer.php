@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function basename;
+use function is_scalar;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationDiff;
 
@@ -76,28 +79,36 @@ final readonly class ConfigurationDiffer
 
         $lines = ['Configuration diff:'];
 
-        if ($diff->added !== []) {
+        if ([] !== $diff->added) {
             $lines[] = '  added:';
             foreach ($diff->added as $key => $value) {
-                $lines[] = sprintf('    + %s = %s', $key, $this->renderer->render($value, $diff->addedSensitive[$key] ?? false));
+                $lines[] = sprintf(
+                    '    + %s = %s',
+                    $key,
+                    $this->renderer->render($value, $diff->addedSensitive[$key] ?? false),
+                );
             }
         }
 
-        if ($diff->removed !== []) {
+        if ([] !== $diff->removed) {
             $lines[] = '  removed:';
             foreach ($diff->removed as $key => $value) {
-                $lines[] = sprintf('    - %s = %s', $key, $this->renderer->render($value, $diff->removedSensitive[$key] ?? false));
+                $lines[] = sprintf(
+                    '    - %s = %s',
+                    $key,
+                    $this->renderer->render($value, $diff->removedSensitive[$key] ?? false),
+                );
             }
         }
 
-        if ($diff->changed !== []) {
+        if ([] !== $diff->changed) {
             $lines[] = '  changed:';
             foreach ($diff->changed as $entry) {
-                $toSrc = \is_scalar($entry['toProvenance']['resourceUri'] ?? null)
-                    ? \basename((string) $entry['toProvenance']['resourceUri'])
+                $toSrc = is_scalar($entry['toProvenance']['resourceUri'] ?? null)
+                    ? basename((string) $entry['toProvenance']['resourceUri'])
                     : '?';
-                $fromSrc = \is_scalar($entry['fromProvenance']['resourceUri'] ?? null)
-                    ? \basename((string) $entry['fromProvenance']['resourceUri'])
+                $fromSrc = is_scalar($entry['fromProvenance']['resourceUri'] ?? null)
+                    ? basename((string) $entry['fromProvenance']['resourceUri'])
                     : '?';
 
                 $lines[] = sprintf(

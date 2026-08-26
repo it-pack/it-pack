@@ -42,6 +42,9 @@
         "coverage:check": "php scripts/coverage_check.php",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "lint:length": "vendor/bin/phpcs --standard=phpcs.xml.dist src",
+        "lint:magic": "vendor/bin/phpmnd src --ignore-numbers=2,100,200,300",
+        "architecture": "vendor/bin/deptrac analyse",
         "analyse": "vendor/bin/phpstan analyse",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction"

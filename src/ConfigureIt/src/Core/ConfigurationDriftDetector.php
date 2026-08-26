@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function count;
+
 use ItPack\ConfigureIt\Contract\ConfigurationDriftDetectorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
@@ -53,11 +55,16 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
     private ?string $reportedDriftHash = null;
 
     /**
-     * @param callable(): ConfigurationGraphInterface              $liveProvider supplies the current live graph.
-     * @param ConfigurationGraphInterface|null                    $baseline      pinned baseline; when null the first check pins the live graph.
-     * @param ResolutionReporterInterface|null                   $reporter      optional reporter; drift is recorded via Observation + Occurrence.
-     * @param ConfigurationDiffer                                $differ        injected differ (reuses Roadmap Phase 6 diffing).
-     * @param float                                              $intervalSeconds polling interval for {@see self::watch()}.
+     * @param callable(): ConfigurationGraphInterface              $liveProvider supplies the current
+     *        live graph.
+     * @param ConfigurationGraphInterface|null                    $baseline      pinned baseline; when null the
+     *        first check pins the live graph.
+     * @param ResolutionReporterInterface|null                   $reporter      optional reporter; drift is recorded
+     *        via Observation + Occurrence.
+     * @param ConfigurationDiffer                                $differ        injected differ (reuses Roadmap Phase 6
+     *        diffing).
+     * @param float                                              $intervalSeconds polling interval for
+     *        {@see self::watch()}.
      */
     public function __construct(
         callable $liveProvider,
@@ -90,7 +97,7 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
         $live = ($this->liveProvider)();
         $liveHash = $this->hash($live);
 
-        if ($this->baseline === null) {
+        if (null === $this->baseline) {
             $this->baseline = $live;
             $this->lastLiveHash = $liveHash;
             $this->reportedDriftHash = null;
@@ -105,7 +112,7 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
         $diff = $this->differ->diff($this->baseline, $live);
 
         if ($diff->empty()) {
-            if ($this->reportedDriftHash !== null) {
+            if (null !== $this->reportedDriftHash) {
                 $this->reporter?->observe(new Observation(
                     Severity::Info,
                     'Configuration drift resolved: the live graph matches the pinned baseline again.',
@@ -122,16 +129,16 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
         $summary = $this->differ->summarize($diff);
 
         $this->reporter?->record(new Occurrence(OccurrenceType::Drift, microtime(true), [
-            'added'   => \count($diff->added),
-            'removed' => \count($diff->removed),
-            'changed' => \count($diff->changed),
+            'added'   => count($diff->added),
+            'removed' => count($diff->removed),
+            'changed' => count($diff->changed),
             'summary' => $summary,
         ]));
 
         $this->reporter?->observe(new Observation(Severity::Warning, $summary, [
-            'added'   => \count($diff->added),
-            'removed' => \count($diff->removed),
-            'changed' => \count($diff->changed),
+            'added'   => count($diff->added),
+            'removed' => count($diff->removed),
+            'changed' => count($diff->changed),
             'at'      => microtime(true),
         ]));
 

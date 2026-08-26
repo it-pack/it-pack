@@ -25,39 +25,6 @@ class LayerOrderTest extends Unit
      */
     private array $created = [];
 
-    protected function _before(): void
-    {
-        $this->created = [];
-    }
-
-    protected function _after(): void
-    {
-        foreach ($this->created as $dir) {
-            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
-                unlink($dir . '/' . $item);
-            }
-
-            rmdir($dir);
-        }
-    }
-
-    /**
-     * @param array<string, string> $files map of filename => file contents
-     */
-    private function dirWith(array $files): string
-    {
-        $dir = sys_get_temp_dir() . '/cfg-layer-' . uniqid();
-        mkdir($dir, 0o777, true);
-
-        foreach ($files as $name => $content) {
-            file_put_contents($dir . '/' . $name, $content);
-        }
-
-        $this->created[] = $dir;
-
-        return $dir;
-    }
-
     public function testLayersAreOrderedByPrecedenceRegardlessOfInsertionOrder(): void
     {
         $base = new FileSource($this->dirWith([
@@ -102,7 +69,7 @@ class LayerOrderTest extends Unit
             ->addLayer(new ConfigurationLayer(
                 [$prod],
                 precedence: 30,
-                match: static fn (ExecutionContextInterface $ctx): bool => $ctx->environment() === 'prod',
+                match: static fn (ExecutionContextInterface $ctx): bool => 'prod' === $ctx->environment(),
             ))
             ->withExecutionContext(new ExecutionContext(environment: 'dev'))
             ->build()
@@ -133,7 +100,7 @@ class LayerOrderTest extends Unit
             ->addLayer(new ConfigurationLayer(
                 [$prod],
                 precedence: 30,
-                match: static fn (ExecutionContextInterface $ctx): bool => $ctx->environment() === 'prod',
+                match: static fn (ExecutionContextInterface $ctx): bool => 'prod' === $ctx->environment(),
             ))
             ->withExecutionContext(new ExecutionContext(environment: 'prod'))
             ->build()
@@ -160,5 +127,38 @@ class LayerOrderTest extends Unit
         $snapshot = $resolver->resolve();
 
         verify($snapshot->get('db.host'))->equals('base-host');
+    }
+
+    protected function _before(): void
+    {
+        $this->created = [];
+    }
+
+    protected function _after(): void
+    {
+        foreach ($this->created as $dir) {
+            foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
+                unlink($dir . '/' . $item);
+            }
+
+            rmdir($dir);
+        }
+    }
+
+    /**
+     * @param array<string, string> $files map of filename => file contents
+     */
+    private function dirWith(array $files): string
+    {
+        $dir = sys_get_temp_dir() . '/cfg-layer-' . uniqid();
+        mkdir($dir, 0o700, true);
+
+        foreach ($files as $name => $content) {
+            file_put_contents($dir . '/' . $name, $content);
+        }
+
+        $this->created[] = $dir;
+
+        return $dir;
     }
 }

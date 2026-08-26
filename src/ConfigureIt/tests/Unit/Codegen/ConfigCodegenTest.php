@@ -15,6 +15,50 @@ use Nette\Schema\Expect;
 
 class ConfigCodegenTest extends Unit
 {
+    public function testGeneratesRootAndNestedDtoClasses(): void
+    {
+        $code = new ConfigCodegen()->generate($this->schema(), 'AppConfig', 'ItPack\\ConfigureIt\\Generated\\Inspect');
+
+        verify($code)->stringContainsString('final readonly class AppConfig');
+        verify($code)->stringContainsString('final readonly class AppConfigDb');
+        verify($code)->stringContainsString('final readonly class AppConfigServersItem');
+        verify($code)->stringContainsString('final readonly class AppConfigPeersItem');
+        verify($code)->stringContainsString('implements GeneratedConfigDtoInterface');
+        verify($code)->stringContainsString('public static function fromSnapshot(ConfigurationSnapshotInterface $s): self');
+        verify($code)->stringContainsString('public function toArray(): array');
+    }
+
+    public function testHydratedDtoExposesTypedValues(): void
+    {
+        $dto = $this->hydrate($this->schema(), $this->snapshot(), 'AppConfig');
+
+        verify($dto->toArray())->equals([
+            'name' => 'svc',
+            'port' => 8080,
+            'debug' => true,
+            'db' => [
+                'host' => 'localhost',
+                'pool' => [5432, 5433],
+            ],
+            'tags' => ['a', 'b'],
+            'servers' => [
+                ['ip' => '10.0.0.1'],
+                ['ip' => '10.0.0.2'],
+            ],
+            'meta' => ['env' => 'prod'],
+            'peers' => [
+                'a' => ['host' => 'ha'],
+                'b' => ['host' => 'hb'],
+            ],
+        ]);
+    }
+
+    public function testHydratorRejectsUnknownClass(): void
+    {
+        $this->expectException(\ItPack\ConfigureIt\Exception\ConfigurationException::class);
+
+        new ConfigDtoHydrator()->hydrate('ItPack\\ConfigureIt\\Generated\\Nope', $this->snapshot());
+    }
     private function schema(): \Nette\Schema\Schema
     {
         return Expect::structure([
@@ -64,50 +108,5 @@ class ConfigCodegenTest extends Unit
         require $file;
 
         return new ConfigDtoHydrator()->hydrate($namespace . '\\' . $class, $snapshot);
-    }
-
-    public function testGeneratesRootAndNestedDtoClasses(): void
-    {
-        $code = new ConfigCodegen()->generate($this->schema(), 'AppConfig', 'ItPack\\ConfigureIt\\Generated\\Inspect');
-
-        verify($code)->stringContainsString('final readonly class AppConfig');
-        verify($code)->stringContainsString('final readonly class AppConfigDb');
-        verify($code)->stringContainsString('final readonly class AppConfigServersItem');
-        verify($code)->stringContainsString('final readonly class AppConfigPeersItem');
-        verify($code)->stringContainsString('implements GeneratedConfigDtoInterface');
-        verify($code)->stringContainsString('public static function fromSnapshot(ConfigurationSnapshotInterface $s): self');
-        verify($code)->stringContainsString('public function toArray(): array');
-    }
-
-    public function testHydratedDtoExposesTypedValues(): void
-    {
-        $dto = $this->hydrate($this->schema(), $this->snapshot(), 'AppConfig');
-
-        verify($dto->toArray())->equals([
-            'name' => 'svc',
-            'port' => 8080,
-            'debug' => true,
-            'db' => [
-                'host' => 'localhost',
-                'pool' => [5432, 5433],
-            ],
-            'tags' => ['a', 'b'],
-            'servers' => [
-                ['ip' => '10.0.0.1'],
-                ['ip' => '10.0.0.2'],
-            ],
-            'meta' => ['env' => 'prod'],
-            'peers' => [
-                'a' => ['host' => 'ha'],
-                'b' => ['host' => 'hb'],
-            ],
-        ]);
-    }
-
-    public function testHydratorRejectsUnknownClass(): void
-    {
-        $this->expectException(\ItPack\ConfigureIt\Exception\ConfigurationException::class);
-
-        new ConfigDtoHydrator()->hydrate('ItPack\\ConfigureIt\\Generated\\Nope', $this->snapshot());
     }
 }

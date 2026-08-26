@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
+
+use function count;
+
 use ItPack\ConfigureIt\Core\ConfigurationDiagnostics;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
@@ -50,7 +53,7 @@ class ConfigurationDiagnosticsTest extends Unit
         $report = $diagnostics->report($graph);
 
         verify($report->hasOverrides())->true();
-        verify(\count($report->overrides))->equals(1);
+        verify(count($report->overrides))->equals(1);
         verify($report->overrides[0]['key'])->equals('db.host');
         verify($report->overrides[0]['shadowed'])->equals('base.yaml');
 
@@ -61,7 +64,7 @@ class ConfigurationDiagnosticsTest extends Unit
         verify($report->byFormat['YAML'])->equals(2);
 
         $observations = $reporter->observations();
-        verify(\count($observations))->equals(2);
+        verify(count($observations))->equals(2);
     }
 
     public function testEmptyReportForCleanGraph(): void

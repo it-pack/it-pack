@@ -5,24 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\ValueObject;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ProvenanceTest extends Unit
 {
-    private function provenance(): Provenance
-    {
-        return new Provenance(
-            resourceUri: 'config/app.yaml',
-            format: Format::YAML,
-            adapter: 'ItPack\ConfigureIt\Adapter\YamlLoader',
-            priority: 10,
-            sourceKind: SourceKind::File,
-            at: 1.0,
-        );
-    }
-
     public function testWithProcessorAppendsAndDedupes(): void
     {
         $p = $this->provenance()->withProcessor('VariableProcessor')->withProcessor('VariableProcessor');
@@ -295,7 +284,7 @@ class ProvenanceTest extends Unit
      */
     public function testFromArrayRejectsAnUnrecognisedFormatString(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         Provenance::fromArray(['format' => 'protobuf']);
     }
@@ -305,5 +294,16 @@ class ProvenanceTest extends Unit
         $secret = $this->provenance()->asSensitive();
 
         verify(Provenance::fromArray($secret->toArray())->isSensitive())->true();
+    }
+    private function provenance(): Provenance
+    {
+        return new Provenance(
+            resourceUri: 'config/app.yaml',
+            format: Format::YAML,
+            adapter: 'ItPack\ConfigureIt\Adapter\YamlLoader',
+            priority: 10,
+            sourceKind: SourceKind::File,
+            at: 1.0,
+        );
     }
 }

@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
+
+use function is_array;
+
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
@@ -16,15 +19,6 @@ use Nette\Schema\Expect;
 class NativeConfigurationSchemaTypedTest extends Unit
 {
     private string $dir;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/configure-it-typed-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-
-        file_put_contents($this->dir . '/config.php', "<?php return ['app' => ['name' => 'svc', 'port' => 8080, 'debug' => true]];");
-        file_put_contents($this->dir . '/config.json', (string) json_encode(['app' => ['name' => 'svc', 'port' => 8080, 'debug' => true]]));
-    }
 
     public function testEnumeratesScalarTypesFromNetteStructure(): void
     {
@@ -74,11 +68,20 @@ class NativeConfigurationSchemaTypedTest extends Unit
         verify($snapshot->bool('app.debug'))->true();
     }
 
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/configure-it-typed-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+
+        file_put_contents($this->dir . '/config.php', "<?php return ['app' => ['name' => 'svc', 'port' => 8080, 'debug' => true]];");
+        file_put_contents($this->dir . '/config.json', (string) json_encode(['app' => ['name' => 'svc', 'port' => 8080, 'debug' => true]]));
+    }
+
     protected function _after(): void
     {
         $files = glob($this->dir . '/*');
 
-        if (\is_array($files)) {
+        if (is_array($files)) {
             array_map('unlink', $files);
         }
 

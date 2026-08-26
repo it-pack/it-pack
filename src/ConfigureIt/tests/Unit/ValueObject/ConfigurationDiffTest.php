@@ -16,29 +16,6 @@ use ItPack\ConfigureIt\ValueObject\ConfigurationDiff;
  */
 final class ConfigurationDiffTest extends Unit
 {
-    /**
-     * @param array<string, mixed> $fromProvenance
-     * @param array<string, mixed> $toProvenance
-     * @return array{key:string, from:mixed, to:mixed, fromProvenance:array<string, mixed>, toProvenance:array<string, mixed>, sensitive:bool}
-     */
-    private static function entry(
-        string $key = 'b',
-        mixed $from = 2,
-        mixed $to = 20,
-        array $fromProvenance = ['resourceUri' => 'base.json'],
-        array $toProvenance = ['resourceUri' => 'local.json'],
-        bool $sensitive = false,
-    ): array {
-        return [
-            'key'            => $key,
-            'from'           => $from,
-            'to'             => $to,
-            'fromProvenance' => $fromProvenance,
-            'toProvenance'   => $toProvenance,
-            'sensitive'      => $sensitive,
-        ];
-    }
-
     public function testSensitiveMapsDefaultToEmpty(): void
     {
         $diff = new ConfigurationDiff([], [], []);
@@ -262,5 +239,27 @@ final class ConfigurationDiffTest extends Unit
         // The flags themselves survive so the redacting summarizer can use them.
         verify($diff->addedSensitive['db.password'])->true();
         verify($diff->changed[0]['sensitive'])->true();
+    }
+    /**
+     * @param array<string, mixed> $fromProvenance
+     * @param array<string, mixed> $toProvenance
+     * @return array{key:string, from:mixed, to:mixed, fromProvenance:array<string, mixed>, toProvenance:array<string, mixed>, sensitive:bool}
+     */
+    private static function entry(
+        string $key = 'b',
+        mixed $from = 2,
+        mixed $to = 20,
+        array $fromProvenance = ['resourceUri' => 'base.json'],
+        array $toProvenance = ['resourceUri' => 'local.json'],
+        bool $sensitive = false,
+    ): array {
+        return [
+            'key'            => $key,
+            'from'           => $from,
+            'to'             => $to,
+            'fromProvenance' => $fromProvenance,
+            'toProvenance'   => $toProvenance,
+            'sensitive'      => $sensitive,
+        ];
     }
 }

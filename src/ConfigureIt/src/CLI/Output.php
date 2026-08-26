@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\CLI;
 
+use function fopen;
+use function fwrite;
+
+use InvalidArgumentException;
+
+use function is_resource;
+
 /**
  * Minimal CLI output sink.
  *
@@ -25,8 +32,8 @@ final class Output
      */
     public function __construct(mixed $stream)
     {
-        if (!\is_resource($stream)) {
-            throw new \InvalidArgumentException('Output requires a stream resource.');
+        if (!is_resource($stream)) {
+            throw new InvalidArgumentException('Output requires a stream resource.');
         }
 
         $this->stream = $stream;
@@ -34,12 +41,12 @@ final class Output
 
     public static function stdout(): self
     {
-        return new self(\fopen('php://stdout', 'w'));
+        return new self(fopen('php://stdout', 'w'));
     }
 
     public function write(string $text): void
     {
-        \fwrite($this->stream, $text);
+        fwrite($this->stream, $text);
     }
 
     public function writeln(string $text = ''): void

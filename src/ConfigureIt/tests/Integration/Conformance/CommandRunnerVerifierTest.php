@@ -50,7 +50,7 @@ final class CommandRunnerVerifierTest extends Unit
         $first = $runner->run($command, 'secret');
         $second = $runner->run($command, 'secret');
 
-        verify($first !== '')->true();
+        verify('' !== $first)->true();
         verify($first)->equals($second);
     }
 

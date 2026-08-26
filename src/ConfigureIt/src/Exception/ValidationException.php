@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Exception;
 
 use ItPack\ConfigureIt\Contract\MessageInterface;
 use ItPack\ConfigureIt\Contract\ValidationExceptionInterface;
+use Throwable;
 
 /**
  * Thrown when resolved configuration fails schema validation.
@@ -18,7 +19,7 @@ class ValidationException extends ConfigurationException implements ValidationEx
     public function __construct(
         string $message = '',
         ?int $code = null,
-        ?\Throwable $previous = null,
+        ?Throwable $previous = null,
         private readonly array $messages = [],
     ) {
         parent::__construct($message, $code ?? 0, $previous);

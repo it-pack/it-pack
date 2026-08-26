@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
+use OutOfBoundsException;
+
 /**
  * The internal semantic representation of resolved configuration.
  *
@@ -21,7 +23,7 @@ interface ConfigurationGraphInterface
     public function nodes(): array;
 
     /**
-     * @throws \OutOfBoundsException when the key is not present.
+     * @throws OutOfBoundsException when the key is not present.
      */
     public function node(string $key): ConfigurationNodeInterface;
 

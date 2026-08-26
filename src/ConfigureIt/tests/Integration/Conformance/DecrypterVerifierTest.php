@@ -23,18 +23,6 @@ use ItPack\ConfigureIt\Exception\DecryptionException;
  */
 final class DecrypterVerifierTest extends Unit
 {
-    private function hasBinary(string $name): bool
-    {
-        $paths = explode(PATH_SEPARATOR, (string) getenv('PATH'));
-        foreach ($paths as $dir) {
-            if (is_file($dir . DIRECTORY_SEPARATOR . $name) && is_executable($dir . DIRECTORY_SEPARATOR . $name)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * @return iterable<string, array{string, DecrypterInterface}>
      */
@@ -72,5 +60,16 @@ final class DecrypterVerifierTest extends Unit
         $this->expectException(DecryptionException::class);
 
         $decrypter->decrypt('@@this-is-not-valid-ciphertext@@');
+    }
+    private function hasBinary(string $name): bool
+    {
+        $paths = explode(PATH_SEPARATOR, (string) getenv('PATH'));
+        foreach ($paths as $dir) {
+            if (is_file($dir . DIRECTORY_SEPARATOR . $name) && is_executable($dir . DIRECTORY_SEPARATOR . $name)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

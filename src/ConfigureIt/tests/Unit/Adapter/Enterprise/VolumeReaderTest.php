@@ -18,29 +18,6 @@ final class VolumeReaderTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-vol-u-' . uniqid();
-        mkdir($this->dir);
-        file_put_contents($this->dir . '/app_name', "demo\n");
-        file_put_contents($this->dir . '/db_host', "db.internal\r\n");
-        mkdir($this->dir . '/subdir');
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            $path = $this->dir . '/' . $item;
-            if (is_dir($path)) {
-                rmdir($path);
-            } else {
-                unlink($path);
-            }
-        }
-
-        rmdir($this->dir);
-    }
-
     public function testSupportsEnvVolumeSchemesOnly(): void
     {
         $reader = new VolumeReader();
@@ -96,5 +73,28 @@ final class VolumeReaderTest extends Unit
         $method = new ReflectionMethod($reader, 'pathOf');
 
         verify($method->invoke($reader, 'file:///etc/x'))->equals('file:///etc/x');
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-vol-u-' . uniqid();
+        mkdir($this->dir);
+        file_put_contents($this->dir . '/app_name', "demo\n");
+        file_put_contents($this->dir . '/db_host', "db.internal\r\n");
+        mkdir($this->dir . '/subdir');
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            $path = $this->dir . '/' . $item;
+            if (is_dir($path)) {
+                rmdir($path);
+            } else {
+                unlink($path);
+            }
+        }
+
+        rmdir($this->dir);
     }
 }

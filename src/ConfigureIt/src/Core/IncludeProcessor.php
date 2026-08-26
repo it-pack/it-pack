@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function array_map;
+use function basename;
+use function dirname;
+
+use InvalidArgumentException;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
@@ -18,6 +23,15 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
+
+use function ltrim;
+use function pathinfo;
+use function preg_match;
+use function str_starts_with;
+use function strlen;
+use function strrpos;
+use function substr;
+use function trim;
 
 /**
  * Imports external configuration files referenced from the graph.
@@ -41,7 +55,10 @@ use ItPack\ConfigureIt\ValueObject\ProcessorStage;
  * @see docs/architecture/PIPELINE.md "Include"
  * @see docs/ADDITIONAL_FEATURES_PLAN.md §3 "Layered Composition & Environments"
  */
-final readonly class IncludeProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface, ExecutionContextAwareProcessorInterface
+final readonly class IncludeProcessor implements
+    ConfigurationProcessorInterface,
+    ProvenanceAwareProcessorInterface,
+    ExecutionContextAwareProcessorInterface
 {
     /** Recognized `@if` attribute vocabulary (matched against the execution context). */
     private const array CONDITION_ATTRIBUTES = ['env', 'tenant', 'profile'];
@@ -86,10 +103,10 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
         foreach ($graph->nodes() as $node) {
             $value = $node->value();
 
-            if (\is_string($value) && \str_starts_with($value, $this->directive . ' ')) {
+            if (\is_string($value) && str_starts_with($value, $this->directive . ' ')) {
                 [$path, $condition] = $this->parseDirective($value);
 
-                if ($condition !== null && !$this->conditionMatches($condition)) {
+                if (null !== $condition && !$this->conditionMatches($condition)) {
                     continue;
                 }
 
@@ -116,10 +133,10 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
      */
     private function parseDirective(string $value): array
     {
-        $body = \trim(\substr($value, \strlen($this->directive) + 1));
+        $body = trim(substr($value, strlen($this->directive) + 1));
 
-        if (\preg_match('/^(?P<path>\S+)(?:\s+@if\s+(?P<cond>.+))?$/', $body, $m) === 1) {
-            $condition = isset($m['cond']) ? \trim($m['cond']) : null;
+        if (1 === preg_match('/^(?P<path>\S+)(?:\s+@if\s+(?P<cond>.+))?$/', $body, $m)) {
+            $condition = isset($m['cond']) ? trim($m['cond']) : null;
 
             return [$m['path'], $condition];
         }
@@ -137,7 +154,7 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
     {
         $pattern = sprintf('/^(%s)=(\S+)$/', implode('|', self::CONDITION_ATTRIBUTES));
 
-        if (\preg_match($pattern, $condition, $m) !== 1) {
+        if (1 !== preg_match($pattern, $condition, $m)) {
             throw new ResolutionException(sprintf('Invalid @include condition "%s".', $condition));
         }
 
@@ -158,8 +175,8 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
         $path = $this->containPath($relative);
 
         try {
-            $format = Format::fromString(\pathinfo($path, PATHINFO_EXTENSION));
-        } catch (\InvalidArgumentException $e) {
+            $format = Format::fromString(pathinfo($path, PATHINFO_EXTENSION));
+        } catch (InvalidArgumentException $e) {
             throw new ResolutionException(sprintf('Cannot determine format of included file "%s".', $relative), 0, $e);
         }
 
@@ -180,15 +197,15 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
 
         $parent = $directive->key();
 
-        $pos = \strrpos($parent, '.');
+        $pos = strrpos($parent, '.');
 
-        if ($pos === false) {
+        if (false === $pos) {
             return $nodes;
         }
 
-        $prefix = \substr($parent, 0, $pos) . '.';
+        $prefix = substr($parent, 0, $pos) . '.';
 
-        return \array_map(
+        return array_map(
             static fn (ConfigurationNodeInterface $node): ConfigurationNodeInterface => new ConfigurationNode(
                 key: $prefix . $node->key(),
                 value: $node->value(),
@@ -210,24 +227,24 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
     {
         $base = realpath($this->baseDirectory);
 
-        if ($base === false) {
+        if (false === $base) {
             throw new ResolutionException(sprintf('Include base directory "%s" does not exist.', $this->baseDirectory));
         }
 
-        $candidate = $base . \DIRECTORY_SEPARATOR . \ltrim($relative, \DIRECTORY_SEPARATOR);
+        $candidate = $base . \DIRECTORY_SEPARATOR . ltrim($relative, \DIRECTORY_SEPARATOR);
         $resolved = realpath($candidate);
 
-        if ($resolved === false) {
+        if (false === $resolved) {
             // The file itself need not exist yet (the reader reports missing
             // files); containment is decided on the deepest existing ancestor.
-            $parent = realpath(\dirname($candidate));
-            $resolved = $parent === false
+            $parent = realpath(dirname($candidate));
+            $resolved = false === $parent
                 ? false
-                : $parent . \DIRECTORY_SEPARATOR . \basename($candidate);
+                : $parent . \DIRECTORY_SEPARATOR . basename($candidate);
         }
 
         $contained = is_string($resolved)
-            && ($resolved === $base || \str_starts_with($resolved, $base . \DIRECTORY_SEPARATOR));
+            && ($resolved === $base || str_starts_with($resolved, $base . \DIRECTORY_SEPARATOR));
 
         if (!$contained) {
             throw new ResolutionException(sprintf('Include "%s" escapes the base directory.', $relative));

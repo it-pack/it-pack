@@ -16,6 +16,7 @@ use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\ValueObject\Severity;
+use Throwable;
 
 /**
  * Decorates a {@see ConfigurationResolverInterface} with opt-in artifact caching.
@@ -55,7 +56,7 @@ final class CachingResolver implements ConfigurationResolverInterface
 
     public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
     {
-        $effective = $sources === [] ? $this->defaultSources : $sources;
+        $effective = [] === $sources ? $this->defaultSources : $sources;
 
         $key = $this->compiler->hash(
             $effective,
@@ -78,7 +79,7 @@ final class CachingResolver implements ConfigurationResolverInterface
         // but the failure is now observable instead of silently swallowed.
         try {
             $this->cache->set($key, $snapshot);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $this->reporter?->observe(
                 new Observation(Severity::Warning, 'Cache write failed: ' . $e->getMessage()),
             );

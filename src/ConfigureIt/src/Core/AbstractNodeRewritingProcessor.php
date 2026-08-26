@@ -24,7 +24,9 @@ use ItPack\ConfigureIt\ValueObject\ProcessorStage;
  *
  * @see docs/architecture/PIPELINE.md "Processors"
  */
-abstract readonly class AbstractNodeRewritingProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface
+abstract readonly class AbstractNodeRewritingProcessor implements
+    ConfigurationProcessorInterface,
+    ProvenanceAwareProcessorInterface
 {
     public function __construct(
         protected ProcessorStage $stage,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\ValueObject;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 class FormatTest extends Unit
@@ -24,7 +25,7 @@ class FormatTest extends Unit
 
     public function testFromStringRejectsUnknown(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         Format::fromString('xmlnope');
     }

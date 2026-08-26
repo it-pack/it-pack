@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 use ItPack\ConfigureIt\Core\FlagEvaluator;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use LogicException;
 
 /**
  * M7 / E8.2 — FlagEvaluator reads flag definitions from the resolved snapshot
@@ -16,22 +17,6 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
  */
 class FlagEvaluatorTest extends Unit
 {
-    /**
-     * @param array<string, string> $attributes
-     */
-    private function ctx(string $environment = 'production', array $attributes = []): ExecutionContextInterface
-    {
-        return new ExecutionContext($environment, $attributes);
-    }
-
-    /**
-     * @param array<string, mixed> $flags
-     */
-    private function snapshot(array $flags): ConfigurationSnapshot
-    {
-        return new ConfigurationSnapshot(['feature_flags' => $flags]);
-    }
-
     public function testNoFlagsYieldsEmptyState(): void
     {
         $evaluator = new FlagEvaluator(new ConfigurationSnapshot([]));
@@ -78,8 +63,23 @@ class FlagEvaluatorTest extends Unit
 
     public function testMalformedFlagsThrow(): void
     {
-        $this->expectException(\LogicException::class);
+        $this->expectException(LogicException::class);
 
         new FlagEvaluator(new ConfigurationSnapshot(['feature_flags' => 'not-a-map']));
+    }
+    /**
+     * @param array<string, string> $attributes
+     */
+    private function ctx(string $environment = 'production', array $attributes = []): ExecutionContextInterface
+    {
+        return new ExecutionContext($environment, $attributes);
+    }
+
+    /**
+     * @param array<string, mixed> $flags
+     */
+    private function snapshot(array $flags): ConfigurationSnapshot
+    {
+        return new ConfigurationSnapshot(['feature_flags' => $flags]);
     }
 }

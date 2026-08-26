@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
+use RuntimeException;
+
 /**
  * Runs an external command, feeding it `input` on stdin and returning stdout.
  *
@@ -19,7 +21,7 @@ interface CommandRunnerInterface
      *
      * @return string the child process stdout.
      *
-     * @throws \RuntimeException when the command cannot be started or exits non-zero.
+     * @throws RuntimeException when the command cannot be started or exits non-zero.
      */
     public function run(array $command, string $input = ''): string;
 }

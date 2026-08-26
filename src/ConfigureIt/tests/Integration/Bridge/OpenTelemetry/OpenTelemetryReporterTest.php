@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Bridge\OpenTelemetry;
+namespace Tests\Integration\Bridge\OpenTelemetry;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileReader;
@@ -25,60 +25,6 @@ class OpenTelemetryReporterTest extends Unit
     private string $dir;
 
     private InMemoryTelemetrySink $sink;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-otel-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-        file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "base-host"], "app" => ["name" => "base"]];');
-        file_put_contents($this->dir . '/local.json', '{"db":{"host":"local-host"},"app":{"debug":true}}');
-
-        $this->sink = new InMemoryTelemetrySink();
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-
-        rmdir($this->dir);
-    }
-
-    private function buildResolver(?ExecutionContext $context = null): ConfigurationBuilder
-    {
-        $builder = new ConfigurationBuilder()
-            ->addReader(new FileReader())
-            ->addSource(new FileSource($this->dir))
-            ->addLoader(new PhpLoader())
-            ->addLoader(new JsonLoader())
-            ->withTelemetry($this->sink)
-        ;
-
-        if ($context instanceof ExecutionContext) {
-            $builder->withExecutionContext($context);
-        }
-
-        return $builder;
-    }
-
-    /**
-     * @param array<int, array{name: string, ...}> $spans
-     * @return array<int, string>
-     */
-    private function spanNames(array $spans): array
-    {
-        return array_map(static fn (array $s): string => $s['name'], $spans);
-    }
-
-    /**
-     * @param array<int, array{name: string, ...}> $events
-     * @return array<int, string>
-     */
-    private function eventNames(array $events): array
-    {
-        return array_map(static fn (array $e): string => $e['name'], $events);
-    }
 
     public function testEmitsTraceSpansEventsAndMetricsForAResolution(): void
     {
@@ -160,7 +106,7 @@ class OpenTelemetryReporterTest extends Unit
 
         $observationEvents = array_filter(
             $this->sink->events(),
-            static fn (array $e): bool => $e['name'] === SemanticConventions::EVENT_OBSERVATION,
+            static fn (array $e): bool => SemanticConventions::EVENT_OBSERVATION === $e['name'],
         );
         $sample = array_values($observationEvents)[0];
         verify($sample['attributes'][SemanticConventions::ATTR_LEVEL] ?? null)->equals('warning');
@@ -183,5 +129,59 @@ class OpenTelemetryReporterTest extends Unit
 
         $spans = $this->spanNames($this->sink->spans());
         verify(in_array(SemanticConventions::SPAN_DRIFT, $spans, true))->true();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-otel-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+        file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "base-host"], "app" => ["name" => "base"]];');
+        file_put_contents($this->dir . '/local.json', '{"db":{"host":"local-host"},"app":{"debug":true}}');
+
+        $this->sink = new InMemoryTelemetrySink();
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+
+        rmdir($this->dir);
+    }
+
+    private function buildResolver(?ExecutionContext $context = null): ConfigurationBuilder
+    {
+        $builder = new ConfigurationBuilder()
+            ->addReader(new FileReader())
+            ->addSource(new FileSource($this->dir))
+            ->addLoader(new PhpLoader())
+            ->addLoader(new JsonLoader())
+            ->withTelemetry($this->sink)
+        ;
+
+        if ($context instanceof ExecutionContext) {
+            $builder->withExecutionContext($context);
+        }
+
+        return $builder;
+    }
+
+    /**
+     * @param array<int, array{name: string, ...}> $spans
+     * @return array<int, string>
+     */
+    private function spanNames(array $spans): array
+    {
+        return array_map(static fn (array $s): string => $s['name'], $spans);
+    }
+
+    /**
+     * @param array<int, array{name: string, ...}> $events
+     * @return array<int, string>
+     */
+    private function eventNames(array $events): array
+    {
+        return array_map(static fn (array $e): string => $e['name'], $events);
     }
 }

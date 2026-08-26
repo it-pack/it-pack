@@ -9,27 +9,13 @@ use ItPack\ConfigureIt\Adapter\FeatureFlagSchema;
 use Nette\Schema\Expect;
 use Nette\Schema\Processor;
 use Nette\Schema\ValidationException;
+use stdClass;
 
 /**
  * @covers \ItPack\ConfigureIt\Adapter\FeatureFlagSchema
  */
 final class FeatureFlagSchemaTest extends Unit
 {
-    /**
-     * @param array<string, mixed> $config
-     * @return object{feature_flags: array<string, mixed>}
-     */
-    private function process(array $config): object
-    {
-        $result = new Processor()->process(
-            Expect::structure(['feature_flags' => FeatureFlagSchema::structure()]),
-            ['feature_flags' => $config],
-        );
-
-        /** @var object{feature_flags: array<string, mixed>} $result */
-        return $result;
-    }
-
     public function testBoolShortcutIsAccepted(): void
     {
         $result = $this->process(['newDashboard' => true]);
@@ -50,7 +36,7 @@ final class FeatureFlagSchemaTest extends Unit
             ],
         ]);
 
-        /** @var \stdClass $flag */
+        /** @var stdClass $flag */
         $flag = $result->feature_flags['betaApi'];
         verify($flag->enabled)->true();
         verify($flag->environments)->equals(['staging']);
@@ -86,5 +72,19 @@ final class FeatureFlagSchemaTest extends Unit
         $result = $this->process([]);
 
         verify($result->feature_flags)->equals([]);
+    }
+    /**
+     * @param array<string, mixed> $config
+     * @return object{feature_flags: array<string, mixed>}
+     */
+    private function process(array $config): object
+    {
+        $result = new Processor()->process(
+            Expect::structure(['feature_flags' => FeatureFlagSchema::structure()]),
+            ['feature_flags' => $config],
+        );
+
+        /** @var object{feature_flags: array<string, mixed>} $result */
+        return $result;
     }
 }

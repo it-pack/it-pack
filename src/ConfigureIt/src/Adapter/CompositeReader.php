@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
+use InvalidArgumentException;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 
@@ -25,7 +26,9 @@ class CompositeReader implements ConfigurationReaderInterface
             }
         }
 
-        throw new \InvalidArgumentException('No reader supports the given resource of type "'.$resource->format()->value.'".');
+        throw new InvalidArgumentException(
+            'No reader supports the given resource of type "' . $resource->format()->value . '".',
+        );
     }
 
     public function supports(ConfigurationResourceInterface $resource): bool

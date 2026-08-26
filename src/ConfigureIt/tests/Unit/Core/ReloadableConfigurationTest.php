@@ -13,39 +13,13 @@ use ItPack\ConfigureIt\Adapter\PollingWatcher;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ReloadableConfiguration;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use Throwable;
 
 class ReloadableConfigurationTest extends Unit
 {
     private string $dir;
 
     private string $file;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/reload-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-        $this->file = $this->dir . '/config.json';
-        file_put_contents($this->file, '{"feature":{"enabled":false}}');
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-
-        rmdir($this->dir);
-    }
-
-    private function builder(): ConfigurationBuilder
-    {
-        return new ConfigurationBuilder()
-            ->addReader(new FileReader())
-            ->addSource(new FileSource($this->dir))
-            ->addLoader(new PhpLoader())
-            ->addLoader(new JsonLoader())
-        ;
-    }
 
     public function testResolvesInitialSnapshot(): void
     {
@@ -144,7 +118,7 @@ class ReloadableConfigurationTest extends Unit
         $reporter = new ResolutionReporter();
         $watcher = new PollingWatcher([$this->file], $reporter, 10);
 
-        $this->expectException(\Throwable::class);
+        $this->expectException(Throwable::class);
 
         new ReloadableConfiguration($this->builder(), $watcher, $reporter);
     }
@@ -267,7 +241,7 @@ class ReloadableConfigurationTest extends Unit
 
         $reloads = array_filter(
             $reporter->occurrences(),
-            static fn ($o): bool => $o->type() === 'ConfigurationReloaded',
+            static fn ($o): bool => 'ConfigurationReloaded' === $o->type(),
         );
         verify(count($reloads))->equals(1);
     }
@@ -290,5 +264,32 @@ class ReloadableConfigurationTest extends Unit
         $watcher->tick();
 
         verify($config->bool('feature.enabled'))->true();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/reload-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+        $this->file = $this->dir . '/config.json';
+        file_put_contents($this->file, '{"feature":{"enabled":false}}');
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+
+        rmdir($this->dir);
+    }
+
+    private function builder(): ConfigurationBuilder
+    {
+        return new ConfigurationBuilder()
+            ->addReader(new FileReader())
+            ->addSource(new FileSource($this->dir))
+            ->addLoader(new PhpLoader())
+            ->addLoader(new JsonLoader())
+        ;
     }
 }

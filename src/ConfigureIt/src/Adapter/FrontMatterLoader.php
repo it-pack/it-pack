@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
+use function class_exists;
+
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
 use ItPack\ConfigureIt\Exception\ParseException;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Throwable;
 use Webuni\FrontMatter\FrontMatter;
 
 /**
@@ -31,12 +34,12 @@ final readonly class FrontMatterLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::FRONTMATTER;
+        return Format::FRONTMATTER === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface
     {
-        if (!\class_exists(FrontMatter::class)) {
+        if (!class_exists(FrontMatter::class)) {
             throw new ParseException('Front Matter support requires the webuni/front-matter package.');
         }
 
@@ -46,13 +49,13 @@ final readonly class FrontMatterLoader implements ConfigurationLoaderInterface
             $document = $frontMatter->parse($raw);
             /** @var array<string, mixed> $data */
             $data = $document->getData();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new ParseException(sprintf('Invalid Front Matter configuration: %s', $e->getMessage()), 0, $e);
         }
 
         $content = $document->getContent();
 
-        if ($content !== '') {
+        if ('' !== $content) {
             $data['content'] = $content;
         }
 

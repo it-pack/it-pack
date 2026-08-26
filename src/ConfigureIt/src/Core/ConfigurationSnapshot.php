@@ -45,20 +45,25 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
     }
 
     /**
-     * @param array<string, ProvenanceInterface> $provenance
-     * @return array<string, bool>
+     * Rebuild an immutable snapshot from {@see self::toArray()}.
+     *
+     * @param array<array-key, mixed> $data
      */
-    private static function deriveSensitiveKeys(array $provenance): array
+    public static function fromArray(array $data): self
     {
-        $keys = [];
+        $provenance = [];
 
-        foreach ($provenance as $key => $prov) {
-            if ($prov->isSensitive()) {
-                $keys[$key] = true;
+        $entries = is_array($data['provenance'] ?? null) ? $data['provenance'] : [];
+
+        foreach ($entries as $key => $entry) {
+            if (is_array($entry)) {
+                $provenance[$key] = Provenance::fromArray($entry);
             }
         }
 
-        return $keys;
+        $tree = is_array($data['tree'] ?? null) ? $data['tree'] : [];
+
+        return new self($tree, $provenance, self::deriveSensitiveKeys($provenance));
     }
 
     /**
@@ -141,19 +146,6 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
     }
 
     /**
-     * Resolve a typed read: return the default when the key is absent and a
-     * default was supplied, otherwise fetch (throwing on a missing required key).
-     */
-    private function resolve(string $path, mixed $default): mixed
-    {
-        if ($default !== null || $this->has($path)) {
-            return $this->get($path, $default);
-        }
-
-        throw TypeException::missing($path);
-    }
-
-    /**
      * @return array<string, mixed>
      */
     public function all(): array
@@ -191,24 +183,32 @@ final readonly class ConfigurationSnapshot implements ConfigurationSnapshotInter
     }
 
     /**
-     * Rebuild an immutable snapshot from {@see self::toArray()}.
-     *
-     * @param array<array-key, mixed> $data
+     * @param array<string, ProvenanceInterface> $provenance
+     * @return array<string, bool>
      */
-    public static function fromArray(array $data): self
+    private static function deriveSensitiveKeys(array $provenance): array
     {
-        $provenance = [];
+        $keys = [];
 
-        $entries = is_array($data['provenance'] ?? null) ? $data['provenance'] : [];
-
-        foreach ($entries as $key => $entry) {
-            if (is_array($entry)) {
-                $provenance[$key] = Provenance::fromArray($entry);
+        foreach ($provenance as $key => $prov) {
+            if ($prov->isSensitive()) {
+                $keys[$key] = true;
             }
         }
 
-        $tree = is_array($data['tree'] ?? null) ? $data['tree'] : [];
+        return $keys;
+    }
 
-        return new self($tree, $provenance, self::deriveSensitiveKeys($provenance));
+    /**
+     * Resolve a typed read: return the default when the key is absent and a
+     * default was supplied, otherwise fetch (throwing on a missing required key).
+     */
+    private function resolve(string $path, mixed $default): mixed
+    {
+        if (null !== $default || $this->has($path)) {
+            return $this->get($path, $default);
+        }
+
+        throw TypeException::missing($path);
     }
 }

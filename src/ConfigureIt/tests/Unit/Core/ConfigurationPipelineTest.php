@@ -13,15 +13,6 @@ use ItPack\ConfigureIt\ValueObject\Format;
 
 class ConfigurationPipelineTest extends Unit
 {
-    /**
-     * @return iterable<ConfigurationDocumentInterface>
-     */
-    private function docs(): iterable
-    {
-        yield new ConfigurationDocument(['a' => ['x' => 1]], Format::PHP, 'base');
-        yield new ConfigurationDocument(['a' => ['y' => 2]], Format::PHP, 'local');
-    }
-
     public function testDocumentsFlattenAndMergeInOrder(): void
     {
         $pipeline = new ConfigurationPipeline();
@@ -52,5 +43,13 @@ class ConfigurationPipelineTest extends Unit
         $graph = $pipeline->run($this->docs());
 
         verify($graph->has('a.x'))->true();
+    }
+    /**
+     * @return iterable<ConfigurationDocumentInterface>
+     */
+    private function docs(): iterable
+    {
+        yield new ConfigurationDocument(['a' => ['x' => 1]], Format::PHP, 'base');
+        yield new ConfigurationDocument(['a' => ['y' => 2]], Format::PHP, 'local');
     }
 }

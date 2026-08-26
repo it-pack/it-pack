@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
+
+use function count;
+
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
@@ -14,18 +17,6 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationDifferTest extends Unit
 {
-    private function node(string $key, mixed $value, string $source, int $priority): ConfigurationNode
-    {
-        return new ConfigurationNode(
-            $key,
-            $value,
-            $source,
-            $priority,
-            [],
-            new Provenance($source, Format::JSON, 'JsonLoader', $priority, SourceKind::File),
-        );
-    }
-
     public function testDetectsAddedRemovedAndChangedWithProvenance(): void
     {
         $base = new ConfigurationGraph([
@@ -45,7 +36,7 @@ class ConfigurationDifferTest extends Unit
         verify($diff->added)->equals(['c' => 3]);
         verify($diff->removed)->equals([]);
 
-        verify(\count($diff->changed))->equals(1);
+        verify(count($diff->changed))->equals(1);
         verify($diff->changed[0]['key'])->equals('b');
         verify($diff->changed[0]['from'])->equals(2);
         verify($diff->changed[0]['to'])->equals(20);
@@ -62,5 +53,16 @@ class ConfigurationDifferTest extends Unit
 
         verify($diff->empty())->true();
         verify($diff->summary())->equals('Configuration graphs are identical.');
+    }
+    private function node(string $key, mixed $value, string $source, int $priority): ConfigurationNode
+    {
+        return new ConfigurationNode(
+            $key,
+            $value,
+            $source,
+            $priority,
+            [],
+            new Provenance($source, Format::JSON, 'JsonLoader', $priority, SourceKind::File),
+        );
     }
 }

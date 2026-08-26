@@ -22,11 +22,15 @@ final class ConfigDtoHydrator
     public function hydrate(string $dtoClass, ConfigurationSnapshotInterface $snapshot): GeneratedConfigDtoInterface
     {
         if (!class_exists($dtoClass)) {
-            throw new ConfigurationException(sprintf('DTO class "%s" is not loaded; generate it with ConfigCodegen first.', $dtoClass));
+            throw new ConfigurationException(
+                sprintf('DTO class "%s" is not loaded; generate it with ConfigCodegen first.', $dtoClass),
+            );
         }
 
         if (!method_exists($dtoClass, 'fromSnapshot')) {
-            throw new ConfigurationException(sprintf('DTO class "%s" does not expose a fromSnapshot() factory.', $dtoClass));
+            throw new ConfigurationException(
+                sprintf('DTO class "%s" does not expose a fromSnapshot() factory.', $dtoClass),
+            );
         }
 
         /** @var GeneratedConfigDtoInterface $dto */

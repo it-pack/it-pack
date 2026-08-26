@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
+use Closure;
+
 interface ContextInterface
 {
     /** @param  array<string, mixed>  $variables */
@@ -14,8 +16,8 @@ interface ContextInterface
     public function addWarning(string $message, string $code, array $variables = []): MessageInterface;
 
 
-    /** @return \Closure(): bool */
-    public function createChecker(): \Closure;
+    /** @return Closure(): bool */
+    public function createChecker(): Closure;
 
     /**
      * Returns the underlying context implementation (adapter-specific).

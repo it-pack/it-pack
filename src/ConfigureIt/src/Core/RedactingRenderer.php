@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function is_array;
+use function is_bool;
+use function is_scalar;
+
 /**
  * The single place that decides how a configuration value is rendered for
  * human/telemetry consumption. When a value is {@see ProvenanceInterface::isSensitive()},
@@ -40,19 +44,19 @@ final class RedactingRenderer
 
     private function format(mixed $value): string
     {
-        if (\is_array($value)) {
+        if (is_array($value)) {
             return (string) json_encode($value);
         }
 
-        if (\is_bool($value)) {
+        if (is_bool($value)) {
             return $value ? 'true' : 'false';
         }
 
-        if ($value === null) {
+        if (null === $value) {
             return 'null';
         }
 
-        if (\is_scalar($value)) {
+        if (is_scalar($value)) {
             return (string) $value;
         }
 

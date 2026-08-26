@@ -43,19 +43,35 @@ final readonly class Key
     {
         $trimmed = trim($path);
 
-        if ($trimmed === '') {
+        if ('' === $trimmed) {
             throw new ConfigurationException('Configuration key must not be empty.');
         }
 
         $segments = explode('.', $trimmed);
 
         foreach ($segments as $segment) {
-            if ($segment === '') {
+            if ('' === $segment) {
                 throw new ConfigurationException(sprintf('Configuration key "%s" contains an empty segment.', $path));
             }
         }
 
         return new self($segments);
+    }
+
+    /**
+     * Whether a plain array should be treated as a nested configuration branch
+     * (associative) rather than a leaf list value. An empty array is a leaf, not
+     * a branch.
+     *
+     * @param array<mixed> $value
+     */
+    public static function isAssociative(array $value): bool
+    {
+        if ([] === $value) {
+            return false;
+        }
+
+        return array_keys($value) !== range(0, count($value) - 1);
     }
 
     /**
@@ -65,7 +81,7 @@ final readonly class Key
     {
         $trimmed = trim($segment);
 
-        if ($trimmed === '') {
+        if ('' === $trimmed) {
             throw new ConfigurationException('Cannot append an empty segment to a configuration key.');
         }
 
@@ -78,22 +94,6 @@ final readonly class Key
     public function toString(): string
     {
         return implode('.', $this->segments);
-    }
-
-    /**
-     * Whether a plain array should be treated as a nested configuration branch
-     * (associative) rather than a leaf list value. An empty array is a leaf, not
-     * a branch.
-     *
-     * @param array<mixed> $value
-     */
-    public static function isAssociative(array $value): bool
-    {
-        if ($value === []) {
-            return false;
-        }
-
-        return array_keys($value) !== range(0, count($value) - 1);
     }
 
     /**

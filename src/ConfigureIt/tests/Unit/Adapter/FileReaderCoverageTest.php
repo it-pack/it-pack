@@ -17,19 +17,6 @@ class FileReaderCoverageTest extends Unit
 {
     private string $file;
 
-    protected function _before(): void
-    {
-        $this->file = sys_get_temp_dir() . '/cfg-fr-' . uniqid() . '.json';
-    }
-
-    protected function _after(): void
-    {
-        if (is_file($this->file)) {
-            @chmod($this->file, 0o600);
-            @unlink($this->file);
-        }
-    }
-
     public function testReadsExistingFile(): void
     {
         file_put_contents($this->file, 'hello');
@@ -67,6 +54,19 @@ class FileReaderCoverageTest extends Unit
             self::fail('Expected ReadException for an unreadable file.');
         } catch (ReadException $e) {
             verify(str_contains($e->getMessage(), 'Unable to read'))->true();
+        }
+    }
+
+    protected function _before(): void
+    {
+        $this->file = sys_get_temp_dir() . '/cfg-fr-' . uniqid() . '.json';
+    }
+
+    protected function _after(): void
+    {
+        if (is_file($this->file)) {
+            @chmod($this->file, 0o600);
+            @unlink($this->file);
         }
     }
 }

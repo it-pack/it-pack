@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Cache;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\ConfigureIt\Cache\FileSystemCache;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Core\TypedSnapshot;
@@ -18,24 +19,6 @@ use ItPack\ConfigureIt\Core\TypedSnapshot;
 final class FileSystemCacheTest extends Unit
 {
     private string $dir;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-cache-sec-' . uniqid();
-    }
-
-    protected function _after(): void
-    {
-        if (!is_dir($this->dir)) {
-            return;
-        }
-
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            @unlink($this->dir . '/' . $item);
-        }
-
-        @rmdir($this->dir);
-    }
 
     public function testCreatedDirectoryIsNeverWorldAccessible(): void
     {
@@ -65,16 +48,6 @@ final class FileSystemCacheTest extends Unit
     }
 
     /**
-     * @return list<string>
-     */
-    private function files(string $pattern): array
-    {
-        $matched = glob($this->dir . '/' . $pattern);
-
-        return $matched === false ? [] : $matched;
-    }
-
-    /**
      * @dataProvider invalidKeys
      */
     public function testHostileKeysAreRejected(string $key): void
@@ -84,7 +57,7 @@ final class FileSystemCacheTest extends Unit
         try {
             $cache->get($key);
             self::fail('Expected the invalid cache key to be rejected.');
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             verify(str_contains($e->getMessage(), 'Invalid cache key'))->true();
         }
     }
@@ -113,5 +86,33 @@ final class FileSystemCacheTest extends Unit
 
             verify($cache->get($key)?->all())->equals(['ok' => true]);
         }
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-cache-sec-' . uniqid();
+    }
+
+    protected function _after(): void
+    {
+        if (!is_dir($this->dir)) {
+            return;
+        }
+
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            @unlink($this->dir . '/' . $item);
+        }
+
+        @rmdir($this->dir);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function files(string $pattern): array
+    {
+        $matched = glob($this->dir . '/' . $pattern);
+
+        return false === $matched ? [] : $matched;
     }
 }

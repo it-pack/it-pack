@@ -42,7 +42,8 @@ use ItPack\ConfigureIt\ValueObject\ValidationMessage;
 final readonly class ConfigurationResolver implements ConfigurationResolverInterface
 {
     /**
-     * @param iterable<ConfigurationSourceInterface> $sources default sources used when resolve() is called without arguments.
+     * @param iterable<ConfigurationSourceInterface> $sources default sources used when
+     *        resolve() is called without arguments.
      */
     public function __construct(
         private ConfigurationReaderInterface          $reader,
@@ -196,7 +197,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
         if ($this->schema instanceof DeclaresScalarTypesInterface) {
             $types = $this->schema->scalarTypes();
 
-            if ($types !== []) {
+            if ([] !== $types) {
                 return new TypedSnapshot($snapshot, $types);
             }
         }
@@ -210,7 +211,12 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
      */
     private function resolveResources(iterable $sources = []): array
     {
-        $effectiveSources = $sources === [] ? $this->sources : $sources;
+        // Materialize the iterable first so a non-array iterable (e.g. a generator)
+        // that yields nothing is correctly detected as empty and falls back to the
+        // sources supplied at construction. `=== []` would never match a generator.
+        $materialized = is_array($sources) ? $sources : iterator_to_array($sources, false);
+
+        $effectiveSources = [] === $materialized ? $this->sources : $materialized;
 
         $documents = [];
 

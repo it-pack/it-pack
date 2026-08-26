@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter\CommandRunner;
 
 use ItPack\ConfigureIt\Contract\CommandRunnerInterface;
+use RuntimeException;
 
 /**
  * Runs a command via `proc_open`, piping `input` to stdin and capturing stdout.
@@ -43,7 +44,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
         $proc = proc_open($command, $spec, $pipes);
 
         if (!is_resource($proc)) {
-            throw new \RuntimeException('Unable to start command: ' . implode(' ', $command));
+            throw new RuntimeException('Unable to start command: ' . implode(' ', $command));
         }
 
         try {
@@ -59,7 +60,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
         $exitCode = proc_close($proc);
 
         if ($result['timedOut']) {
-            throw new \RuntimeException(sprintf(
+            throw new RuntimeException(sprintf(
                 'Command "%s" timed out after %d second(s): %s',
                 implode(' ', $command),
                 $this->timeoutSeconds,
@@ -67,8 +68,8 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
             ));
         }
 
-        if ($exitCode !== 0) {
-            throw new \RuntimeException(sprintf(
+        if (0 !== $exitCode) {
+            throw new RuntimeException(sprintf(
                 'Command "%s" failed (exit %d): %s',
                 implode(' ', $command),
                 $exitCode,
@@ -77,6 +78,13 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
         }
 
         return $result['stdout'];
+    }
+
+    private static function truncateStderr(string $stderr): string
+    {
+        return strlen($stderr) > self::MAX_STDERR_BYTES
+            ? substr($stderr, 0, self::MAX_STDERR_BYTES) . '…(truncated)'
+            : $stderr;
     }
 
     /**
@@ -98,7 +106,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
 
         // An exhausted (or empty) stdin must be closed immediately: children
         // reading to EOF would otherwise wait forever.
-        if ($pending === '') {
+        if ('' === $pending) {
             fclose($pipes[self::STDIN_PIPE]);
             $stdinOpen = false;
         }
@@ -119,7 +127,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
                 $write[] = $pipes[self::STDIN_PIPE];
             }
 
-            if ($read === [] && $write === []) {
+            if ([] === $read && [] === $write) {
                 break;
             }
 
@@ -136,7 +144,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
             $microseconds = (int) (($remaining - $seconds) * 1_000_000);
             $selected = stream_select($read, $write, $except, $seconds, $microseconds);
 
-            if ($selected === false || $selected === 0) {
+            if (false === $selected || 0 === $selected) {
                 // Interrupted or tick elapsed — re-evaluate streams and deadline.
                 continue;
             }
@@ -144,7 +152,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
             foreach ($read as $stream) {
                 $chunk = fread($stream, self::CHUNK_BYTES);
 
-                if ($chunk === '' || $chunk === false) {
+                if ('' === $chunk || false === $chunk) {
                     fclose($stream);
                     continue;
                 }
@@ -159,7 +167,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
             foreach ($write as $stream) {
                 $written = fwrite($stream, $pending);
 
-                if ($written === false || $written <= 0) {
+                if (false === $written || $written <= 0) {
                     // The child closed its end; writing more would never finish.
                     fclose($stream);
                     $stdinOpen = false;
@@ -168,7 +176,7 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
 
                 $pending = substr($pending, $written);
 
-                if ($pending === '') {
+                if ('' === $pending) {
                     fclose($stream);
                     $stdinOpen = false;
                 }
@@ -176,12 +184,5 @@ final readonly class NativeCommandRunner implements CommandRunnerInterface
         }
 
         return ['stdout' => $stdout, 'stderr' => $stderr, 'timedOut' => false];
-    }
-
-    private static function truncateStderr(string $stderr): string
-    {
-        return strlen($stderr) > self::MAX_STDERR_BYTES
-            ? substr($stderr, 0, self::MAX_STDERR_BYTES) . '…(truncated)'
-            : $stderr;
     }
 }

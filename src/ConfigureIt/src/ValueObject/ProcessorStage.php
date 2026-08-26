@@ -17,14 +17,13 @@ namespace ItPack\ConfigureIt\ValueObject;
  */
 enum ProcessorStage: string
 {
+    public static function fromString(string $value): self
+    {
+        return self::tryFrom($value) ?? self::Defaults;
+    }
     case Defaults   = 'DefaultsProcessor';
     case Validation = 'ValidationProcessor';
     case Casting    = 'CastingProcessor';
     case Include    = 'IncludeProcessor';
     case Variable   = 'VariableProcessor';
-
-    public static function fromString(string $value): self
-    {
-        return self::tryFrom($value) ?? self::Defaults;
-    }
 }

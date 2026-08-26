@@ -7,6 +7,8 @@ namespace Tests\Unit\Core;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Core\ScalarCaster;
 use ItPack\ConfigureIt\Exception\TypeException;
+use LogicException;
+use stdClass;
 
 /**
  * The coercion rules shared by typed snapshot accessors and freeze-time
@@ -19,19 +21,6 @@ use ItPack\ConfigureIt\Exception\TypeException;
 final class ScalarCasterTest extends Unit
 {
     private const string PATH = 'cfg.key';
-
-    private function cast(string $method, mixed $value): mixed
-    {
-        return match ($method) {
-            'toInt'    => ScalarCaster::toInt($value, self::PATH),
-            'toFloat'  => ScalarCaster::toFloat($value, self::PATH),
-            'toBool'   => ScalarCaster::toBool($value, self::PATH),
-            'toString' => ScalarCaster::toString($value, self::PATH),
-            'toList'   => ScalarCaster::toList($value, self::PATH),
-            'toMap'    => ScalarCaster::toMap($value, self::PATH),
-            default    => throw new \LogicException(sprintf('Unknown caster "%s" in test table.', $method)),
-        };
-    }
 
     /**
      * @dataProvider acceptedCoercions
@@ -149,14 +138,14 @@ final class ScalarCasterTest extends Unit
             'int rejects false'         => ['toInt', false, $mismatch('int', 'bool')],
             'int rejects null'          => ['toInt', null, $mismatch('int', 'null')],
             'int rejects array'         => ['toInt', [], $mismatch('int', 'array')],
-            'int rejects object'        => ['toInt', new \stdClass(), $mismatch('int', 'stdClass')],
+            'int rejects object'        => ['toInt', new stdClass(), $mismatch('int', 'stdClass')],
 
             'float rejects word'        => ['toFloat', 'abc', $mismatch('float', 'string')],
             'float rejects empty'       => ['toFloat', '', $mismatch('float', 'string')],
             'float rejects true'        => ['toFloat', true, $mismatch('float', 'bool')],
             'float rejects null'        => ['toFloat', null, $mismatch('float', 'null')],
             'float rejects array'       => ['toFloat', [1], $mismatch('float', 'array')],
-            'float rejects object'      => ['toFloat', new \stdClass(), $mismatch('float', 'stdClass')],
+            'float rejects object'      => ['toFloat', new stdClass(), $mismatch('float', 'stdClass')],
 
             // Only the exact ints 1/0 are truthy; other numbers are ambiguous.
             'bool rejects int two'      => ['toBool', 2, $mismatch('bool', 'int')],
@@ -167,11 +156,11 @@ final class ScalarCasterTest extends Unit
             'bool rejects "2"'          => ['toBool', '2', $mismatch('bool', 'string')],
             'bool rejects null'         => ['toBool', null, $mismatch('bool', 'null')],
             'bool rejects array'        => ['toBool', [], $mismatch('bool', 'array')],
-            'bool rejects object'       => ['toBool', new \stdClass(), $mismatch('bool', 'stdClass')],
+            'bool rejects object'       => ['toBool', new stdClass(), $mismatch('bool', 'stdClass')],
 
             'string rejects null'       => ['toString', null, $mismatch('string', 'null')],
             'string rejects array'      => ['toString', ['a'], $mismatch('string', 'array')],
-            'string rejects object'     => ['toString', new \stdClass(), $mismatch('string', 'stdClass')],
+            'string rejects object'     => ['toString', new stdClass(), $mismatch('string', 'stdClass')],
 
             'list rejects map'          => ['toList', ['a' => 1], 'Configuration key "cfg.key" expected a list, got array.'],
             'list rejects string'       => ['toList', 'x', 'Configuration key "cfg.key" expected a list, got string.'],
@@ -194,5 +183,18 @@ final class ScalarCasterTest extends Unit
         } catch (TypeException $e) {
             verify(str_contains($e->getMessage(), 'database.connections.default.port'))->true();
         }
+    }
+
+    private function cast(string $method, mixed $value): mixed
+    {
+        return match ($method) {
+            'toInt'    => ScalarCaster::toInt($value, self::PATH),
+            'toFloat'  => ScalarCaster::toFloat($value, self::PATH),
+            'toBool'   => ScalarCaster::toBool($value, self::PATH),
+            'toString' => ScalarCaster::toString($value, self::PATH),
+            'toList'   => ScalarCaster::toList($value, self::PATH),
+            'toMap'    => ScalarCaster::toMap($value, self::PATH),
+            default    => throw new LogicException(sprintf('Unknown caster "%s" in test table.', $method)),
+        };
     }
 }

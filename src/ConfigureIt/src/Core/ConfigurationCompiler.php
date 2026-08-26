@@ -62,7 +62,7 @@ final class ConfigurationCompiler
                 if (is_file($uri)) {
                     $hashed = hash_file(self::HASH_ALGO, $uri);
 
-                    if ($hashed !== false) {
+                    if (false !== $hashed) {
                         $version = $hashed;
                     }
                 }
@@ -87,7 +87,7 @@ final class ConfigurationCompiler
 
     private function schemaFingerprint(?ConfigurationSchemaInterface $schema): string
     {
-        if ($schema === null) {
+        if (null === $schema) {
             return '';
         }
 
@@ -102,7 +102,7 @@ final class ConfigurationCompiler
 
     private function contextFingerprint(?ExecutionContextInterface $context): string
     {
-        if ($context === null) {
+        if (null === $context) {
             return '';
         }
 

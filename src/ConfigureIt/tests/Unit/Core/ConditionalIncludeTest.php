@@ -26,48 +26,6 @@ class ConditionalIncludeTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-cond-include-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-    }
-
-    protected function _after(): void
-    {
-        $this->removeDir($this->dir);
-    }
-
-    private function removeDir(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
-            $path = $dir . '/' . $item;
-
-            if (is_dir($path)) {
-                $this->removeDir($path);
-                continue;
-            }
-
-            unlink($path);
-        }
-
-        rmdir($dir);
-    }
-
-    private function processor(ExecutionContext $context = new ExecutionContext()): IncludeProcessor
-    {
-        return new IncludeProcessor(
-            new FileReader(),
-            new ConfigurationLoaderFactory([new PhpLoader()]),
-            new DocumentNormalizer(),
-            $this->dir,
-            context: $context,
-        );
-    }
-
     public function testIncludedWhenConditionMatches(): void
     {
         file_put_contents($this->dir . '/extra.php', '<?php return ["value" => "yes"];');
@@ -177,8 +135,8 @@ class ConditionalIncludeTest extends Unit
     {
         $conf = $this->dir . '/conf';
         $inc = $this->dir . '/inc';
-        mkdir($conf, 0o777, true);
-        mkdir($inc, 0o777, true);
+        mkdir($conf, 0o700, true);
+        mkdir($inc, 0o700, true);
 
         file_put_contents($conf . '/base.php', '<?php return ["import" => "@include extra.php @if env=prod"];');
         file_put_contents($inc . '/extra.php', '<?php return ["value" => "yes"];');
@@ -201,5 +159,47 @@ class ConditionalIncludeTest extends Unit
 
         verify($build('prod'))->true();
         verify($build('dev'))->false();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-cond-include-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+    }
+
+    protected function _after(): void
+    {
+        $this->removeDir($this->dir);
+    }
+
+    private function removeDir(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        foreach (array_diff(scandir($dir), ['.', '..']) as $item) {
+            $path = $dir . '/' . $item;
+
+            if (is_dir($path)) {
+                $this->removeDir($path);
+                continue;
+            }
+
+            unlink($path);
+        }
+
+        rmdir($dir);
+    }
+
+    private function processor(ExecutionContext $context = new ExecutionContext()): IncludeProcessor
+    {
+        return new IncludeProcessor(
+            new FileReader(),
+            new ConfigurationLoaderFactory([new PhpLoader()]),
+            new DocumentNormalizer(),
+            $this->dir,
+            context: $context,
+        );
     }
 }

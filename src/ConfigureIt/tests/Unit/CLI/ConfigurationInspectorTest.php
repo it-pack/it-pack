@@ -12,8 +12,39 @@ use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
 
+use function str_contains;
+
 class ConfigurationInspectorTest extends Unit
 {
+    public function testExplainKeyRendersProvenance(): void
+    {
+        $text = new ConfigurationInspector()->explain($this->graph(), 'db.host');
+
+        verify(str_contains($text, 'db.host'))->true();
+        verify(str_contains($text, 'local-db'))->true();
+        verify(str_contains($text, 'JsonLoader'))->true();
+        verify(str_contains($text, 'overrode base.json'))->true();
+        verify(str_contains($text, 'VariableProcessor'))->true();
+    }
+
+    public function testExplainMissingKeyReportsAbsence(): void
+    {
+        $text = new ConfigurationInspector()->explain($this->graph(), 'nope');
+
+        verify(str_contains($text, 'not present'))->true();
+    }
+
+    public function testExplainWithoutKeyRendersTable(): void
+    {
+        $text = new ConfigurationInspector()->explain($this->graph());
+
+        verify(str_contains($text, 'KEY'))->true();
+        verify(str_contains($text, 'VALUE'))->true();
+        verify(str_contains($text, 'ADAPTER'))->true();
+        verify(str_contains($text, 'OVERRIDDEN'))->true();
+        verify(str_contains($text, 'db.host'))->true();
+        verify(str_contains($text, 'yes'))->true();
+    }
     private function graph(): ConfigurationGraph
     {
         return new ConfigurationGraph([
@@ -36,35 +67,5 @@ class ConfigurationInspectorTest extends Unit
                 new Provenance('base.json', Format::JSON, 'ItPack\ConfigureIt\Adapter\JsonLoader', 10, SourceKind::File),
             ),
         ]);
-    }
-
-    public function testExplainKeyRendersProvenance(): void
-    {
-        $text = new ConfigurationInspector()->explain($this->graph(), 'db.host');
-
-        verify(\str_contains($text, 'db.host'))->true();
-        verify(\str_contains($text, 'local-db'))->true();
-        verify(\str_contains($text, 'JsonLoader'))->true();
-        verify(\str_contains($text, 'overrode base.json'))->true();
-        verify(\str_contains($text, 'VariableProcessor'))->true();
-    }
-
-    public function testExplainMissingKeyReportsAbsence(): void
-    {
-        $text = new ConfigurationInspector()->explain($this->graph(), 'nope');
-
-        verify(\str_contains($text, 'not present'))->true();
-    }
-
-    public function testExplainWithoutKeyRendersTable(): void
-    {
-        $text = new ConfigurationInspector()->explain($this->graph());
-
-        verify(\str_contains($text, 'KEY'))->true();
-        verify(\str_contains($text, 'VALUE'))->true();
-        verify(\str_contains($text, 'ADAPTER'))->true();
-        verify(\str_contains($text, 'OVERRIDDEN'))->true();
-        verify(\str_contains($text, 'db.host'))->true();
-        verify(\str_contains($text, 'yes'))->true();
     }
 }

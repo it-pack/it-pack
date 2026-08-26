@@ -24,7 +24,10 @@ final class InMemoryTelemetrySink implements TelemetrySinkInterface
     private array $traces = [];
 
     /**
-     * @var array<int, array{traceId: string, name: string, attributes: array<string, mixed>, startedAt: ?float, endedAt: ?float}>
+     * @var array<int, array{
+     *     traceId: string, name: string, attributes: array<string, mixed>,
+     *     startedAt: ?float, endedAt: ?float,
+     * }>
      */
     private array $spans = [];
 
@@ -102,7 +105,10 @@ final class InMemoryTelemetrySink implements TelemetrySinkInterface
     }
 
     /**
-     * @return array<int, array{traceId: string, name: string, attributes: array<string, mixed>, startedAt: ?float, endedAt: ?float}>
+     * @return array<int, array{
+     *     traceId: string, name: string, attributes: array<string, mixed>,
+     *     startedAt: ?float, endedAt: ?float,
+     * }>
      */
     public function spans(): array
     {

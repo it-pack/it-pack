@@ -4,7 +4,23 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use function crc32;
+use function gettype;
+use function in_array;
+use function intval;
+
+use InvalidArgumentException;
+
+use function is_array;
+use function is_bool;
+use function is_numeric;
+use function is_scalar;
+use function is_string;
+
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+
+use function sprintf;
+use function strval;
 
 /**
  * Definition of a single feature flag, as declared in configuration.
@@ -48,13 +64,13 @@ final readonly class FlagDefinition
      */
     public static function fromArray(string $name, mixed $data): self
     {
-        if (\is_bool($data)) {
+        if (is_bool($data)) {
             return new self($name, $data);
         }
 
-        if (!\is_array($data)) {
-            throw new \InvalidArgumentException(
-                \sprintf('Feature flag "%s" must be a bool or an array definition, %s given.', $name, \gettype($data)),
+        if (!is_array($data)) {
+            throw new InvalidArgumentException(
+                sprintf('Feature flag "%s" must be a bool or an array definition, %s given.', $name, gettype($data)),
             );
         }
 
@@ -64,9 +80,9 @@ final readonly class FlagDefinition
 
         $bucketBy = $data['bucketBy'] ?? 'tenant';
 
-        if (!\is_string($bucketBy) || !\in_array($bucketBy, ['tenant', 'user', 'environment'], true)) {
-            throw new \InvalidArgumentException(
-                \sprintf('Feature flag "%s" has an invalid bucketBy "%s".', $name, \gettype($bucketBy)),
+        if (!is_string($bucketBy) || !in_array($bucketBy, ['tenant', 'user', 'environment'], true)) {
+            throw new InvalidArgumentException(
+                sprintf('Feature flag "%s" has an invalid bucketBy "%s".', $name, gettype($bucketBy)),
             );
         }
 
@@ -87,11 +103,11 @@ final readonly class FlagDefinition
             return false;
         }
 
-        if ($this->environments !== [] && !\in_array($ctx->environment(), $this->environments, true)) {
+        if ([] !== $this->environments && !in_array($ctx->environment(), $this->environments, true)) {
             return false;
         }
 
-        if ($this->tenants !== [] && !$this->tenantMatch($ctx)) {
+        if ([] !== $this->tenants && !$this->tenantMatch($ctx)) {
             return false;
         }
 
@@ -104,11 +120,82 @@ final readonly class FlagDefinition
         return $this->rolloutHit($ctx);
     }
 
+    /**
+     * @param mixed $value
+     * @return list<string>
+     */
+    /**
+     * @param mixed $value
+     * @return list<string>
+     */
+    private static function stringList(mixed $value): array
+    {
+        if (!is_array($value)) {
+            throw new InvalidArgumentException('Flag environments/tenants must be a list of strings.');
+        }
+
+        $out = [];
+
+        foreach ($value as $item) {
+            if (!is_scalar($item) && null !== $item) {
+                throw new InvalidArgumentException('Flag environments/tenants must be a list of scalars.');
+            }
+
+            $out[] = strval($item);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param mixed $value
+     * @return array<string, string>
+     */
+    private static function stringMap(mixed $value): array
+    {
+        if (!is_array($value)) {
+            throw new InvalidArgumentException('Flag attributes must be a map of string => string.');
+        }
+
+        $map = [];
+
+        foreach ($value as $key => $item) {
+            // Array keys are always int|string; only the value needs a scalar
+            // guard before strval (which rejects mixed).
+            if (!is_scalar($item) && null !== $item) {
+                throw new InvalidArgumentException('Flag attribute values must be scalars.');
+            }
+
+            $map[strval($key)] = strval($item);
+        }
+
+        return $map;
+    }
+
+    private static function normalizeRollout(string $name, mixed $value): int
+    {
+        if (!is_numeric($value)) {
+            throw new InvalidArgumentException(
+                sprintf('Feature flag "%s" rollout must be numeric, %s given.', $name, gettype($value)),
+            );
+        }
+
+        $rollout = intval($value);
+
+        if ($rollout < 0 || $rollout > 100) {
+            throw new InvalidArgumentException(
+                sprintf('Feature flag "%s" rollout must be between 0 and 100, %d given.', $name, $rollout),
+            );
+        }
+
+        return $rollout;
+    }
+
     private function tenantMatch(ExecutionContextInterface $ctx): bool
     {
         $tenant = $ctx->attribute('tenant');
 
-        return $tenant !== null && \in_array($tenant, $this->tenants, true);
+        return null !== $tenant && in_array($tenant, $this->tenants, true);
     }
 
     private function rolloutHit(ExecutionContextInterface $ctx): bool
@@ -127,85 +214,14 @@ final readonly class FlagDefinition
             default => $ctx->attribute('tenant') ?? $ctx->environment(),
         };
 
-        if ($bucket === null) {
+        if (null === $bucket) {
             return false;
         }
 
         // Stable, order-independent bucket: the same (unit, flag) always maps to
         // the same percentage, so a user/tenant keeps a consistent experience.
-        $percent = \crc32($bucket . "\0" . $this->name) % 100;
+        $percent = crc32($bucket . "\0" . $this->name) % 100;
 
         return $percent < $this->rollout;
-    }
-
-    /**
-     * @param mixed $value
-     * @return list<string>
-     */
-    /**
-     * @param mixed $value
-     * @return list<string>
-     */
-    private static function stringList(mixed $value): array
-    {
-        if (!\is_array($value)) {
-            throw new \InvalidArgumentException('Flag environments/tenants must be a list of strings.');
-        }
-
-        $out = [];
-
-        foreach ($value as $item) {
-            if (!\is_scalar($item) && $item !== null) {
-                throw new \InvalidArgumentException('Flag environments/tenants must be a list of scalars.');
-            }
-
-            $out[] = \strval($item);
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param mixed $value
-     * @return array<string, string>
-     */
-    private static function stringMap(mixed $value): array
-    {
-        if (!\is_array($value)) {
-            throw new \InvalidArgumentException('Flag attributes must be a map of string => string.');
-        }
-
-        $map = [];
-
-        foreach ($value as $key => $item) {
-            // Array keys are always int|string; only the value needs a scalar
-            // guard before strval (which rejects mixed).
-            if (!\is_scalar($item) && $item !== null) {
-                throw new \InvalidArgumentException('Flag attribute values must be scalars.');
-            }
-
-            $map[\strval($key)] = \strval($item);
-        }
-
-        return $map;
-    }
-
-    private static function normalizeRollout(string $name, mixed $value): int
-    {
-        if (!\is_numeric($value)) {
-            throw new \InvalidArgumentException(
-                \sprintf('Feature flag "%s" rollout must be numeric, %s given.', $name, \gettype($value)),
-            );
-        }
-
-        $rollout = \intval($value);
-
-        if ($rollout < 0 || $rollout > 100) {
-            throw new \InvalidArgumentException(
-                \sprintf('Feature flag "%s" rollout must be between 0 and 100, %d given.', $name, $rollout),
-            );
-        }
-
-        return $rollout;
     }
 }

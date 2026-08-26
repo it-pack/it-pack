@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
+use function class_exists;
+
 use Internal\Toml\Toml;
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
@@ -11,6 +13,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
 use ItPack\ConfigureIt\Exception\ParseException;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Throwable;
 
 /**
  * Parses TOML configuration content using `internal/toml`.
@@ -28,18 +31,18 @@ final readonly class TomlLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::TOML;
+        return Format::TOML === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface
     {
-        if (!\class_exists(Toml::class)) {
+        if (!class_exists(Toml::class)) {
             throw new ParseException('TOML support requires the internal/toml package.');
         }
 
         try {
             $parsed = Toml::parseToArray($raw);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new ParseException(sprintf('Invalid TOML configuration: %s', $e->getMessage()), 0, $e);
         }
 

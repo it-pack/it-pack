@@ -12,20 +12,6 @@ use Nette\Schema\Expect;
 
 class NativeConfigurationSchemaTest extends Unit
 {
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function graphWith(array $data): ConfigurationGraph
-    {
-        $nodes = [];
-
-        foreach ($data as $key => $value) {
-            $nodes[] = new ConfigurationNode($key, $value, 'base', 10);
-        }
-
-        return new ConfigurationGraph($nodes);
-    }
-
     public function testValidatesAgainstExpect(): void
     {
         $schema = new NativeConfigurationSchema(Expect::structure([
@@ -157,5 +143,18 @@ class NativeConfigurationSchemaTest extends Unit
     public function testEmptyStructureDeclaresNoScalarTypes(): void
     {
         verify(new NativeConfigurationSchema(Expect::structure([]))->scalarTypes())->equals([]);
+    }
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function graphWith(array $data): ConfigurationGraph
+    {
+        $nodes = [];
+
+        foreach ($data as $key => $value) {
+            $nodes[] = new ConfigurationNode($key, $value, 'base', 10);
+        }
+
+        return new ConfigurationGraph($nodes);
     }
 }

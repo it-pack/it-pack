@@ -12,6 +12,7 @@ use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 use ItPack\ConfigureIt\ValueObject\Severity;
+use Throwable;
 
 /**
  * Live configuration facade: holds an immutable snapshot and re-resolves it on
@@ -143,7 +144,7 @@ final class ReloadableConfiguration
     {
         try {
             $next = $this->resolver->resolve();
-        } catch (\Throwable $failure) {
+        } catch (Throwable $failure) {
             $this->reporter->observe(new Observation(
                 Severity::Error,
                 'Configuration reload failed; serving last-good snapshot.',

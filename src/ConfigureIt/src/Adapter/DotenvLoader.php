@@ -34,7 +34,7 @@ final readonly class DotenvLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::DOTENV;
+        return Format::DOTENV === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface

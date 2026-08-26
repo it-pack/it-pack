@@ -13,18 +13,6 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 class ConfigurationGraphProvenanceTest extends Unit
 {
-    private function node(string $key, mixed $value, string $source, int $priority, string $shadowed = 'base'): ConfigurationNode
-    {
-        return new ConfigurationNode(
-            $key,
-            $value,
-            $source,
-            $priority,
-            [],
-            new Provenance($source, Format::YAML, 'Loader', $priority, SourceKind::File),
-        );
-    }
-
     public function testHigherPriorityMarksWinningNodeAsOverridden(): void
     {
         $graph = new ConfigurationGraph([
@@ -61,5 +49,16 @@ class ConfigurationGraphProvenanceTest extends Unit
 
         verify($graph->node('db.host')->value())->equals('second');
         verify($graph->node('db.host')->provenance()->overridden())->false();
+    }
+    private function node(string $key, mixed $value, string $source, int $priority, string $shadowed = 'base'): ConfigurationNode
+    {
+        return new ConfigurationNode(
+            $key,
+            $value,
+            $source,
+            $priority,
+            [],
+            new Provenance($source, Format::YAML, 'Loader', $priority, SourceKind::File),
+        );
     }
 }

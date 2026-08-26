@@ -9,6 +9,8 @@ use ItPack\ConfigureIt\Adapter\Message;
 use ItPack\ConfigureIt\Adapter\MessageFactory;
 use Nette\Schema\Message as NetteMessage;
 
+use function str_contains;
+
 /**
  * @covers \ItPack\ConfigureIt\Adapter\Message
  * @covers \ItPack\ConfigureIt\Adapter\MessageFactory
@@ -26,9 +28,9 @@ final class MessageFactoryTest extends Unit
         );
 
         self::assertInstanceOf(Message::class, $message);
-        verify(\str_contains($message->toString(), 'db'))->true();
-        verify(\str_contains($message->toString(), 'host'))->true();
-        verify(\str_contains($message->toString(), '1'))->true();
+        verify(str_contains($message->toString(), 'db'))->true();
+        verify(str_contains($message->toString(), 'host'))->true();
+        verify(str_contains($message->toString(), '1'))->true();
         verify($message->__toString())->equals($message->toString());
     }
 
@@ -39,7 +41,7 @@ final class MessageFactoryTest extends Unit
 
         self::assertInstanceOf(Message::class, $message);
         verify($message->adaptee)->same($nette);
-        verify(\str_contains($message->toString(), "'a'"))->true();
+        verify(str_contains($message->toString(), "'a'"))->true();
     }
 
     public function testCreateReturnsFactory(): void

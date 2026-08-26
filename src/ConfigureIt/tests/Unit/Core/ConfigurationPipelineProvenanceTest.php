@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
+
+use function count;
+use function get_class;
+use function is_string;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
@@ -12,6 +17,8 @@ use ItPack\ConfigureIt\Core\ConfigurationDocument;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationPipeline;
 use ItPack\ConfigureIt\ValueObject\Format;
+
+use function strtoupper;
 
 class ConfigurationPipelineProvenanceTest extends Unit
 {
@@ -30,7 +37,7 @@ class ConfigurationPipelineProvenanceTest extends Unit
                 foreach ($graph->nodes() as $node) {
                     $value = $node->value();
 
-                    $next->put($node->withValue(\is_string($value) ? \strtoupper($value) : $value));
+                    $next->put($node->withValue(is_string($value) ? strtoupper($value) : $value));
                 }
 
                 return $next;
@@ -80,7 +87,7 @@ class ConfigurationPipelineProvenanceTest extends Unit
                 foreach ($graph->nodes() as $node) {
                     $value = $node->value();
 
-                    $next->put($node->withValue(\is_string($value) ? $value . '!' : $value));
+                    $next->put($node->withValue(is_string($value) ? $value . '!' : $value));
                 }
 
                 return $next;
@@ -95,7 +102,7 @@ class ConfigurationPipelineProvenanceTest extends Unit
 
         $trail = $graph->node('name')->provenance()->processorTrail();
 
-        verify(\count($trail))->equals(1);
-        verify($trail[0])->equals(\get_class($processor));
+        verify(count($trail))->equals(1);
+        verify($trail[0])->equals(get_class($processor));
     }
 }

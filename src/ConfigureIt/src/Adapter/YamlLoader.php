@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
+use function error_reporting;
+use function function_exists;
+use function is_array;
+
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationDocumentInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
 use ItPack\ConfigureIt\Exception\ParseException;
 use ItPack\ConfigureIt\ValueObject\Format;
+
+use function yaml_parse;
 
 /**
  * Parses YAML configuration content using the standard `ext-yaml` extension.
@@ -27,24 +33,24 @@ final readonly class YamlLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::YAML;
+        return Format::YAML === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface
     {
-        if (!\function_exists('yaml_parse')) {
+        if (!function_exists('yaml_parse')) {
             throw new ParseException('YAML support requires the ext-yaml extension.');
         }
 
-        $previous = \error_reporting(\E_ERROR);
-        $parsed = @\yaml_parse($raw);
-        \error_reporting($previous);
+        $previous = error_reporting(\E_ERROR);
+        $parsed = @yaml_parse($raw);
+        error_reporting($previous);
 
-        if ($parsed === false) {
+        if (false === $parsed) {
             throw new ParseException('Invalid YAML configuration.');
         }
 
-        if (!\is_array($parsed)) {
+        if (!is_array($parsed)) {
             throw new ParseException('YAML configuration must decode to a mapping/array.');
         }
 

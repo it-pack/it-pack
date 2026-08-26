@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 
+use function is_numeric;
+use function is_scalar;
+
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ObservationInterface;
@@ -56,7 +59,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
 
         $span = SemanticConventions::occurrenceSpan($type);
 
-        if ($span !== null) {
+        if (null !== $span) {
             $this->sink->span(
                 $traceId,
                 $span,
@@ -68,7 +71,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
 
         $event = SemanticConventions::occurrenceEvent($type);
 
-        if ($event !== null) {
+        if (null !== $event) {
             $this->sink->event($traceId, $event, $this->spanAttributes($occurrence));
         }
 
@@ -78,7 +81,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
             1,
         );
 
-        if ($type === 'ConfigurationResolved') {
+        if ('ConfigurationResolved' === $type) {
             $payload = $occurrence->payload();
 
             $this->sink->measure(
@@ -125,7 +128,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
         ];
 
         foreach ($observation->context() as $key => $value) {
-            if (\is_scalar($value) || $value === null) {
+            if (is_scalar($value) || null === $value) {
                 $attributes['config.observation.' . $key] = $this->renderer->render($value, false);
             }
         }
@@ -154,12 +157,12 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
      */
     private function toFloat(mixed $value): float
     {
-        return \is_numeric($value) ? (float) $value : 0.0;
+        return is_numeric($value) ? (float) $value : 0.0;
     }
 
     private function ensureTrace(float $at): string
     {
-        if ($this->traceId !== null) {
+        if (null !== $this->traceId) {
             return $this->traceId;
         }
 
@@ -187,11 +190,11 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
         $attributes = [SemanticConventions::ATTR_EVENT => $occurrence->type()];
 
         foreach ($occurrence->payload() as $key => $value) {
-            if (!\is_scalar($value) && $value !== null) {
+            if (!is_scalar($value) && null !== $value) {
                 continue;
             }
 
-            $sensitive = $key === 'value';
+            $sensitive = 'value' === $key;
 
             $attributes[match ($key) {
                 'origin' => SemanticConventions::ATTR_SOURCE_KIND,

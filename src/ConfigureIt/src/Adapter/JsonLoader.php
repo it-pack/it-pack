@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
 use ItPack\ConfigureIt\Exception\ParseException;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Throwable;
 
 /**
  * Parses JSON configuration content.
@@ -26,14 +27,14 @@ final readonly class JsonLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::JSON;
+        return Format::JSON === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface
     {
         try {
             $decoded = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new ParseException(sprintf('Invalid JSON configuration: %s', $e->getMessage()), 0, $e);
         }
 

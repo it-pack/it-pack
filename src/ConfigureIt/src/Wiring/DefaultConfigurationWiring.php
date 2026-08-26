@@ -40,7 +40,7 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
     {
         $reader = new CompositeReader($readers);
 
-        if ($decrypter !== null) {
+        if (null !== $decrypter) {
             $reader = new DecryptingReader($reader, $decrypter);
         }
 
@@ -52,7 +52,7 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
         ?TelemetrySinkInterface $sink,
         ?ExecutionContextInterface $context,
     ): ResolutionReporterInterface {
-        if ($sink === null) {
+        if (null === $sink) {
             return $base;
         }
 

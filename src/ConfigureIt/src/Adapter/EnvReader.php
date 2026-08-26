@@ -38,7 +38,7 @@ final readonly class EnvReader implements ConfigurationReaderInterface
 
         /** @var array<string, string> $_ENV */
         foreach ($_ENV as $key => $value) {
-            if ($this->only !== null && !in_array($key, $this->only, true)) {
+            if (null !== $this->only && !in_array($key, $this->only, true)) {
                 continue;
             }
 
@@ -50,7 +50,7 @@ final readonly class EnvReader implements ConfigurationReaderInterface
 
     public function supports(ConfigurationResourceInterface $resource): bool
     {
-        return $resource->format() === Format::ENV
+        return Format::ENV === $resource->format()
             && str_starts_with($resource->uri(), 'env://');
     }
 }

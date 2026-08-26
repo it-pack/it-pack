@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter\Enterprise\Http;
 
+use JsonException;
+
 /**
  * Transport-agnostic HTTP response value object.
  */
@@ -22,7 +24,7 @@ final readonly class HttpResponse
 
     /**
      * @return mixed
-     * @throws \JsonException when the body is not valid JSON.
+     * @throws JsonException when the body is not valid JSON.
      */
     public function json(): mixed
     {

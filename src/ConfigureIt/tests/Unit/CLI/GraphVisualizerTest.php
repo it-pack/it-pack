@@ -12,8 +12,29 @@ use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
 
+use function str_contains;
+
 class GraphVisualizerTest extends Unit
 {
+    public function testToDotWrapsEveryNode(): void
+    {
+        $dot = new GraphVisualizer()->toDot($this->graph());
+
+        verify(str_contains($dot, 'digraph configuration'))->true();
+        verify(str_contains($dot, '"db.host"'))->true();
+        verify(str_contains($dot, 'local-db'))->true();
+        verify(str_contains($dot, 'color=red'))->true();
+    }
+
+    public function testToAsciiRendersNestedTree(): void
+    {
+        $ascii = new GraphVisualizer()->toAscii($this->graph());
+
+        verify(str_contains($ascii, 'db:'))->true();
+        verify(str_contains($ascii, 'host: local-db'))->true();
+        verify(str_contains($ascii, 'app:'))->true();
+        verify(str_contains($ascii, 'debug: true'))->true();
+    }
     private function graph(): ConfigurationGraph
     {
         return new ConfigurationGraph([
@@ -27,25 +48,5 @@ class GraphVisualizerTest extends Unit
             ),
             new ConfigurationNode('app.debug', true, 'base.json', 10, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 10, SourceKind::File)),
         ]);
-    }
-
-    public function testToDotWrapsEveryNode(): void
-    {
-        $dot = new GraphVisualizer()->toDot($this->graph());
-
-        verify(\str_contains($dot, 'digraph configuration'))->true();
-        verify(\str_contains($dot, '"db.host"'))->true();
-        verify(\str_contains($dot, 'local-db'))->true();
-        verify(\str_contains($dot, 'color=red'))->true();
-    }
-
-    public function testToAsciiRendersNestedTree(): void
-    {
-        $ascii = new GraphVisualizer()->toAscii($this->graph());
-
-        verify(\str_contains($ascii, 'db:'))->true();
-        verify(\str_contains($ascii, 'host: local-db'))->true();
-        verify(\str_contains($ascii, 'app:'))->true();
-        verify(\str_contains($ascii, 'debug: true'))->true();
     }
 }

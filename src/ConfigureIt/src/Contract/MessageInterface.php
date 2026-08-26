@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
-interface MessageInterface extends \Stringable
+use Stringable;
+
+interface MessageInterface extends Stringable
 {
     public function toString(): string;
 }

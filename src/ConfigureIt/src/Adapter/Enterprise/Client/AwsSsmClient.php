@@ -71,10 +71,10 @@ final readonly class AwsSsmClient implements RemoteKeyValueClient
             $name = TreeBuilder::asString($parameter['Name'] ?? null);
             $segments = array_values(array_filter(
                 explode('/', $name),
-                static fn (string $segment): bool => $segment !== '',
+                static fn (string $segment): bool => '' !== $segment,
             ));
 
-            if ($segments === []) {
+            if ([] === $segments) {
                 continue;
             }
 

@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function is_scalar;
+use function is_string;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
+
+use function preg_replace_callback;
 
 /**
  * Resolves `${dotted.key}` placeholders inside string values against the graph.
@@ -38,7 +43,7 @@ final readonly class VariableProcessor implements ConfigurationProcessorInterfac
         foreach ($graph->nodes() as $node) {
             $value = $node->value();
 
-            if (!\is_string($value)) {
+            if (!is_string($value)) {
                 continue;
             }
 
@@ -56,7 +61,7 @@ final readonly class VariableProcessor implements ConfigurationProcessorInterfac
 
     private function interpolate(string $value, ConfigurationGraphInterface $graph): string
     {
-        return (string) \preg_replace_callback(
+        return (string) preg_replace_callback(
             self::PATTERN,
             static function (array $match) use ($graph): string {
                 $key = $match[1];
@@ -67,7 +72,7 @@ final readonly class VariableProcessor implements ConfigurationProcessorInterfac
 
                 $resolved = $graph->node($key)->value();
 
-                return \is_scalar($resolved) || $resolved === null ? (string) $resolved : $match[0];
+                return is_scalar($resolved) || null === $resolved ? (string) $resolved : $match[0];
             },
             $value,
         );

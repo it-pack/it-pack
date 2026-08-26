@@ -6,6 +6,7 @@ namespace Tests\Unit\ValueObject;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\ValueObject\DiagnosticsReport;
+use ReflectionClass;
 
 /**
  * Pure value-object coverage for the resolved-graph diagnostics report:
@@ -16,17 +17,6 @@ use ItPack\ConfigureIt\ValueObject\DiagnosticsReport;
  */
 final class DiagnosticsReportTest extends Unit
 {
-    /**
-     * @return list<array{key:string, source:string, shadowed:?string}>
-     */
-    private static function overrides(): array
-    {
-        return [
-            ['key' => 'db.host', 'source' => 'local.yaml', 'shadowed' => 'base.yaml'],
-            ['key' => 'db.port', 'source' => 'env://', 'shadowed' => null],
-        ];
-    }
-
     public function testAssemblesEveryChannelVerbatim(): void
     {
         $report = new DiagnosticsReport(
@@ -46,7 +36,7 @@ final class DiagnosticsReportTest extends Unit
     {
         $report = new DiagnosticsReport([], ['a' => 1], [], []);
 
-        verify(new \ReflectionClass(DiagnosticsReport::class)->isReadOnly())->true();
+        verify(new ReflectionClass(DiagnosticsReport::class)->isReadOnly())->true();
 
         // Arrays are handed out by value, so a caller cannot mutate the report.
         $counts = $report->bySource;
@@ -179,5 +169,15 @@ final class DiagnosticsReportTest extends Unit
             '    db.host <- local.yaml (overrode base.yaml)',
             '  unresolved variables: app.name',
         ]);
+    }
+    /**
+     * @return list<array{key:string, source:string, shadowed:?string}>
+     */
+    private static function overrides(): array
+    {
+        return [
+            ['key' => 'db.host', 'source' => 'local.yaml', 'shadowed' => 'base.yaml'],
+            ['key' => 'db.port', 'source' => 'env://', 'shadowed' => null],
+        ];
     }
 }

@@ -102,6 +102,6 @@ final class SemanticConventions
      */
     public static function closesTrace(string $type): bool
     {
-        return $type === 'SnapshotCreated';
+        return 'SnapshotCreated' === $type;
     }
 }

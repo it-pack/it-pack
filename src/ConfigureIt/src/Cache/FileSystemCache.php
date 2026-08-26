@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Cache;
 
+use InvalidArgumentException;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Core\TypedSnapshot;
+use Throwable;
 
 /**
  * Filesystem-backed compiled-artifact cache (opt-in via the builder).
@@ -62,7 +64,7 @@ final class FileSystemCache implements ConfigurationCacheInterface
 
         try {
             $snapshot = $this->factory->buildFromArray((array) $data['snapshot']);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
 
@@ -103,7 +105,7 @@ final class FileSystemCache implements ConfigurationCacheInterface
         try {
             file_put_contents($tmp, '<?php return ' . var_export($payload, true) . ';');
             rename($tmp, $file);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             // Best-effort: a failed write must not break resolution.
         } finally {
             if (is_file($tmp)) {
@@ -114,8 +116,8 @@ final class FileSystemCache implements ConfigurationCacheInterface
 
     private function path(string $key): string
     {
-        if (preg_match(self::KEY_PATTERN, $key) !== 1) {
-            throw new \InvalidArgumentException(sprintf('Invalid cache key "%s".', $key));
+        if (1 !== preg_match(self::KEY_PATTERN, $key)) {
+            throw new InvalidArgumentException(sprintf('Invalid cache key "%s".', $key));
         }
 
         return rtrim($this->directory, '/\\') . '/' . $key . '.php';

@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Adapter\Enterprise\Client;
 
 use ItPack\ConfigureIt\Adapter\Enterprise\Contract\HttpClient;
 use ItPack\ConfigureIt\Adapter\Enterprise\Contract\RemoteKeyValueClient;
+use RuntimeException;
 
 /**
  * HashiCorp Consul KV client (REST API) translating the vendor response into a
@@ -49,14 +50,14 @@ final readonly class ConsulClient implements RemoteKeyValueClient
     {
         $parts = parse_url($uri);
 
-        if ($parts === false || !isset($parts['host'])) {
-            throw new \RuntimeException(sprintf('ConsulClient: cannot parse URI "%s".', $uri));
+        if (false === $parts || !isset($parts['host'])) {
+            throw new RuntimeException(sprintf('ConsulClient: cannot parse URI "%s".', $uri));
         }
 
         $scheme = self::UPSTREAM_SCHEMES[$parts['scheme'] ?? self::PLAIN_SCHEME] ?? null;
 
-        if ($scheme === null) {
-            throw new \RuntimeException(sprintf(
+        if (null === $scheme) {
+            throw new RuntimeException(sprintf(
                 'ConsulClient: unsupported URI scheme "%s://" in "%s" (expected "%s://" or "%s://").',
                 $parts['scheme'] ?? '',
                 $uri,
@@ -74,13 +75,13 @@ final readonly class ConsulClient implements RemoteKeyValueClient
         $response = $this->http->request('GET', $url);
 
         if (!$response->isSuccess()) {
-            throw new \RuntimeException(sprintf('Consul KV request "%s" failed: %d.', $url, $response->status));
+            throw new RuntimeException(sprintf('Consul KV request "%s" failed: %d.', $url, $response->status));
         }
 
         $entries = $response->json();
 
         if (!is_array($entries)) {
-            throw new \RuntimeException(sprintf('Consul KV response for "%s" was not a list.', $url));
+            throw new RuntimeException(sprintf('Consul KV response for "%s" was not a list.', $url));
         }
 
         $tree = [];
@@ -93,13 +94,13 @@ final readonly class ConsulClient implements RemoteKeyValueClient
             $keyValue = $entry['Key'];
             $relative = $this->relativeKey(is_string($keyValue) ? $keyValue : '', $prefix);
 
-            if ($relative === '') {
+            if ('' === $relative) {
                 continue;
             }
 
             $rawValue = $entry['Value'] ?? '';
             $raw = is_string($rawValue) ? $rawValue : '';
-            $decoded = $raw === '' ? '' : base64_decode($raw, true);
+            $decoded = '' === $raw ? '' : base64_decode($raw, true);
             $value = is_string($decoded) ? $decoded : '';
             $this->assign($tree, $relative, $value);
         }
@@ -109,7 +110,7 @@ final readonly class ConsulClient implements RemoteKeyValueClient
 
     private function relativeKey(string $key, string $prefix): string
     {
-        if ($prefix === '') {
+        if ('' === $prefix) {
             return $key;
         }
 
@@ -133,7 +134,7 @@ final readonly class ConsulClient implements RemoteKeyValueClient
         $node = &$tree;
 
         foreach ($segments as $segment) {
-            if ($segment === '') {
+            if ('' === $segment) {
                 continue;
             }
 

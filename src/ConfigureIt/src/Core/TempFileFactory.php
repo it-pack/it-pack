@@ -28,7 +28,7 @@ class TempFileFactory implements TempFileFactoryInterface
     {
         $temp = tempnam(sys_get_temp_dir(), $this->tempFilePrefix);
 
-        return $temp === false ? null : $temp;
+        return false === $temp ? null : $temp;
     }
 
     public function require(): string

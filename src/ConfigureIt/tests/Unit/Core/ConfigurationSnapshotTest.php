@@ -11,16 +11,6 @@ use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 
 class ConfigurationSnapshotTest extends Unit
 {
-    private function snapshot(): ConfigurationSnapshot
-    {
-        $graph = new ConfigurationGraph([
-            new ConfigurationNode('db.host', 'localhost', 'base', 10),
-            new ConfigurationNode('app.debug', true, 'base', 10),
-        ]);
-
-        return ConfigurationSnapshot::fromGraph($graph);
-    }
-
     public function testGetReturnsNestedValueByDotPath(): void
     {
         $snapshot = $this->snapshot();
@@ -53,5 +43,14 @@ class ConfigurationSnapshotTest extends Unit
             'db' => ['host' => 'localhost'],
             'app' => ['debug' => true],
         ]);
+    }
+    private function snapshot(): ConfigurationSnapshot
+    {
+        $graph = new ConfigurationGraph([
+            new ConfigurationNode('db.host', 'localhost', 'base', 10),
+            new ConfigurationNode('app.debug', true, 'base', 10),
+        ]);
+
+        return ConfigurationSnapshot::fromGraph($graph);
     }
 }

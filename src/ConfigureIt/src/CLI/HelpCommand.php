@@ -33,7 +33,7 @@ final readonly class HelpCommand implements CommandInterface
         $output->writeln('Commands:');
 
         foreach ($this->commands as $command) {
-            if ($command->name() === 'help') {
+            if ('help' === $command->name()) {
                 continue;
             }
 

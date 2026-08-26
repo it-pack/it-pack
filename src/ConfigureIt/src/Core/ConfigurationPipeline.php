@@ -70,7 +70,7 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
             $graph = $this->recordStage($graph, $before, $this->stageNameOf($processor));
         }
 
-        if ($this->processors !== []) {
+        if ([] !== $this->processors) {
             $this->reporter?->record(new Occurrence(
                 OccurrenceType::Merged,
                 microtime(true),
@@ -87,8 +87,11 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
     /**
      * @param array<string, ConfigurationNodeInterface> $before
      */
-    private function recordStage(ConfigurationGraphInterface $graph, array $before, string $stage): ConfigurationGraphInterface
-    {
+    private function recordStage(
+        ConfigurationGraphInterface $graph,
+        array $before,
+        string $stage,
+    ): ConfigurationGraphInterface {
         $next = new ConfigurationGraph();
 
         foreach ($graph->nodes() as $key => $node) {

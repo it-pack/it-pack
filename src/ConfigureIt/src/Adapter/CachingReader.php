@@ -46,7 +46,7 @@ final readonly class CachingReader implements ConfigurationReaderInterface
 
         $fresh = $this->cache->get($key);
 
-        if ($fresh !== null) {
+        if (null !== $fresh) {
             return $fresh;
         }
 
@@ -55,7 +55,7 @@ final readonly class CachingReader implements ConfigurationReaderInterface
         } catch (ReadException $e) {
             $lastGood = $this->cache->getLastGood($key);
 
-            if ($lastGood !== null) {
+            if (null !== $lastGood) {
                 return $lastGood;
             }
 

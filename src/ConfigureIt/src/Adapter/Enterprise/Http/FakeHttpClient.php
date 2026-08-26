@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter\Enterprise\Http;
 
 use ItPack\ConfigureIt\Adapter\Enterprise\Contract\HttpClient;
+use RuntimeException;
 
 /**
  * In-memory {@see HttpClient} for unit tests — returns a queued response for the
@@ -30,6 +31,6 @@ final readonly class FakeHttpClient implements HttpClient
             }
         }
 
-        throw new \RuntimeException(sprintf('FakeHttpClient has no response for "%s %s".', $method, $url));
+        throw new RuntimeException(sprintf('FakeHttpClient has no response for "%s %s".', $method, $url));
     }
 }

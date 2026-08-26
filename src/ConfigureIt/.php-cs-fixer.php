@@ -30,5 +30,21 @@ return $config
         'single_quote' => true,
         'trailing_comma_in_multiline' => true,
         'multiline_whitespace_before_semicolons' => ['strategy' => 'new_line_for_chained_calls'],
+        'yoda_style' => ['equal' => true, 'identical' => true],
+        'global_namespace_import' => ['import_classes' => true, 'import_constants' => false, 'import_functions' => true],
+        'ordered_class_elements' => [
+            'order' => [
+                'use_trait',
+                'constant',
+                'property',
+                'construct',
+                'method_public_static',
+                'method_public',
+                'method_protected_static',
+                'method_protected',
+                'method_private_static',
+                'method_private',
+            ],
+        ],
     ])
     ->setFinder($finder);

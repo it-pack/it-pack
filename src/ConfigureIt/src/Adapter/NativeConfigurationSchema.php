@@ -17,6 +17,7 @@ use Nette\Schema\Elements\Structure;
 use Nette\Schema\Elements\Type;
 use Nette\Schema\Schema as Ne;
 use Nette\Schema\ValidationException;
+use ReflectionProperty;
 
 /**
  * Validates a configuration graph against a Nette Schema definition.
@@ -29,6 +30,7 @@ use Nette\Schema\ValidationException;
  */
 final readonly class NativeConfigurationSchema implements ConfigurationSchemaInterface, DeclaresScalarTypesInterface
 {
+    private SchemaInterface $schema;
     public function __construct(
         Ne                                         $schema,
         private ProcessorInterface               $processor = new Processor(),
@@ -36,8 +38,6 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
     ) {
         $this->schema = new Schema($schema);
     }
-
-    private SchemaInterface $schema;
 
     public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
     {
@@ -84,7 +84,7 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
             $map = [];
 
             foreach ($items as $name => $child) {
-                $path = $prefix === '' ? $name : $prefix . '.' . $name;
+                $path = '' === $prefix ? $name : $prefix . '.' . $name;
                 $map = [...$map, ...$this->walk($child, $path)];
             }
 
@@ -92,7 +92,7 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
         }
 
         if ($schema instanceof Type) {
-            if ($prefix === '') {
+            if ('' === $prefix) {
                 return [];
             }
 
@@ -100,7 +100,7 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
             $type = $this->readPrivate($schema, 'type');
             $declared = $this->mapNetteType($type);
 
-            return $declared === null ? [] : [$prefix => $declared];
+            return null === $declared ? [] : [$prefix => $declared];
         }
 
         return [];
@@ -124,7 +124,7 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
      */
     private function readPrivate(object $object, string $property): mixed
     {
-        $reflection = new \ReflectionProperty($object, $property);
+        $reflection = new ReflectionProperty($object, $property);
 
         return $reflection->getValue($object);
     }
@@ -140,7 +140,7 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
             $path = implode('.', $message->path);
 
             $errors[] = [
-                'path' => $path !== '' ? $path : '(root)',
+                'path' => '' !== $path ? $path : '(root)',
                 'message' => $message->toString(),
                 'severity' => 'error',
             ];

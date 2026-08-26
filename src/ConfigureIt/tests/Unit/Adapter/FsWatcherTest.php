@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
+
+use function function_exists;
+
 use ItPack\ConfigureIt\Adapter\FsWatcher;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
@@ -13,46 +16,6 @@ class FsWatcherTest extends Unit
     private string $file;
 
     private string $dir;
-
-    protected function _before(): void
-    {
-        $this->file = sys_get_temp_dir() . '/fs-watch-' . uniqid() . '.json';
-        file_put_contents($this->file, '{"v":1}');
-
-        $this->dir = sys_get_temp_dir() . '/fs-watch-dir-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-    }
-
-    protected function _after(): void
-    {
-        if (is_file($this->file)) {
-            unlink($this->file);
-        }
-
-        $this->removeTree($this->dir);
-    }
-
-    private function removeTree(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        $entries = scandir($dir);
-
-        foreach ($entries === false ? [] : array_diff($entries, ['.', '..']) as $item) {
-            $path = $dir . '/' . $item;
-
-            if (is_dir($path)) {
-                $this->removeTree($path);
-                continue;
-            }
-
-            @unlink($path);
-        }
-
-        @rmdir($dir);
-    }
 
     public function testDispatchesOnFileModification(): void
     {
@@ -178,7 +141,7 @@ class FsWatcherTest extends Unit
      */
     public function testBlockingWatchLoopExitsWhenStoppedExternally(): void
     {
-        if (!\function_exists('pcntl_alarm') || !\function_exists('pcntl_async_signals')) {
+        if (!function_exists('pcntl_alarm') || !function_exists('pcntl_async_signals')) {
             self::markTestSkipped('pcntl is required to interrupt the blocking watch loop.');
         }
 
@@ -213,5 +176,45 @@ class FsWatcherTest extends Unit
         $watcher->watch();
 
         verify($reporter->occurrences())->equals([]);
+    }
+
+    protected function _before(): void
+    {
+        $this->file = sys_get_temp_dir() . '/fs-watch-' . uniqid() . '.json';
+        file_put_contents($this->file, '{"v":1}');
+
+        $this->dir = sys_get_temp_dir() . '/fs-watch-dir-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+    }
+
+    protected function _after(): void
+    {
+        if (is_file($this->file)) {
+            unlink($this->file);
+        }
+
+        $this->removeTree($this->dir);
+    }
+
+    private function removeTree(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $entries = scandir($dir);
+
+        foreach (false === $entries ? [] : array_diff($entries, ['.', '..']) as $item) {
+            $path = $dir . '/' . $item;
+
+            if (is_dir($path)) {
+                $this->removeTree($path);
+                continue;
+            }
+
+            @unlink($path);
+        }
+
+        @rmdir($dir);
     }
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\CLI;
 
+use function array_shift;
+use function sprintf;
+
 /**
  * The configuration inspection CLI dispatcher.
  *
@@ -21,7 +24,7 @@ final class ConfigurationCli
     public function __construct(
         private array $commands = [],
     ) {
-        if ($this->commands === []) {
+        if ([] === $this->commands) {
             $this->commands = [
                 new ExplainCommand(),
                 new DiffCommand(),
@@ -39,16 +42,16 @@ final class ConfigurationCli
     {
         $output ??= Output::stdout();
 
-        \array_shift($argv); // drop program name
-        $subcommand = \array_shift($argv);
+        array_shift($argv); // drop program name
+        $subcommand = array_shift($argv);
 
-        if ($subcommand === null) {
+        if (null === $subcommand) {
             $this->help($output);
 
             return 2;
         }
 
-        if ($subcommand === 'help') {
+        if ('help' === $subcommand) {
             new HelpCommand($this->commands)->run([], $output);
 
             return 0;
@@ -60,7 +63,7 @@ final class ConfigurationCli
             }
         }
 
-        $output->writeln(\sprintf('Unknown command: "%s".', $subcommand));
+        $output->writeln(sprintf('Unknown command: "%s".', $subcommand));
 
         $this->help($output);
 

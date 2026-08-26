@@ -12,22 +12,6 @@ use ItPack\ConfigureIt\Exception\TypeException;
 
 class ConfigurationSnapshotTypedTest extends Unit
 {
-    private function snapshot(): ConfigurationSnapshot
-    {
-        $graph = new ConfigurationGraph([
-            new ConfigurationNode('app.debug', true, 'base', 10),
-            new ConfigurationNode('app.port', '8080', 'base', 10),
-            new ConfigurationNode('app.ratio', '3.5', 'base', 10),
-            new ConfigurationNode('app.whole', 9.0, 'base', 10),
-            new ConfigurationNode('app.name', 'service', 'base', 10),
-            new ConfigurationNode('app.tags', ['a', 'b'], 'base', 10),
-            new ConfigurationNode('app.flag', 'yes', 'base', 10),
-            new ConfigurationNode('db.host', 'localhost', 'base', 10),
-        ]);
-
-        return ConfigurationSnapshot::fromGraph($graph);
-    }
-
     public function testIntCoercesNumericStringAndFloat(): void
     {
         $snapshot = $this->snapshot();
@@ -112,5 +96,20 @@ class ConfigurationSnapshotTypedTest extends Unit
         $this->expectExceptionMessage('Configuration key "db.host" expected a list, got string.');
 
         $snapshot->list('db.host');
+    }
+    private function snapshot(): ConfigurationSnapshot
+    {
+        $graph = new ConfigurationGraph([
+            new ConfigurationNode('app.debug', true, 'base', 10),
+            new ConfigurationNode('app.port', '8080', 'base', 10),
+            new ConfigurationNode('app.ratio', '3.5', 'base', 10),
+            new ConfigurationNode('app.whole', 9.0, 'base', 10),
+            new ConfigurationNode('app.name', 'service', 'base', 10),
+            new ConfigurationNode('app.tags', ['a', 'b'], 'base', 10),
+            new ConfigurationNode('app.flag', 'yes', 'base', 10),
+            new ConfigurationNode('db.host', 'localhost', 'base', 10),
+        ]);
+
+        return ConfigurationSnapshot::fromGraph($graph);
     }
 }

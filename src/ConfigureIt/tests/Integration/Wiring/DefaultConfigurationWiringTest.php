@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Wiring;
+namespace Tests\Integration\Wiring;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\CompositeReader;
@@ -17,6 +17,7 @@ use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Core\CachingResolver;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
+use LogicException;
 
 /**
  * F1 — the composition root is the only place that assembles Adapter/Bridge
@@ -27,11 +28,6 @@ use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
 final class DefaultConfigurationWiringTest extends Unit
 {
     private DefaultConfigurationWiring $wiring;
-
-    protected function _before(): void
-    {
-        $this->wiring = new DefaultConfigurationWiring();
-    }
 
     public function testComposeReaderWrapsInCompositeReader(): void
     {
@@ -81,7 +77,7 @@ final class DefaultConfigurationWiringTest extends Unit
         $inner = new class () implements ConfigurationResolverInterface {
             public function resolve(iterable $sources = []): ConfigurationSnapshotInterface
             {
-                throw new \LogicException('not used');
+                throw new LogicException('not used');
             }
         };
 
@@ -100,5 +96,10 @@ final class DefaultConfigurationWiringTest extends Unit
 
         verify($resolver)->instanceOf(ConfigurationResolverInterface::class);
         verify($resolver)->instanceOf(CachingResolver::class);
+    }
+
+    protected function _before(): void
+    {
+        $this->wiring = new DefaultConfigurationWiring();
     }
 }

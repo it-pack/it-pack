@@ -26,66 +26,6 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 final readonly class DocumentNormalizer implements DocumentNormalizerInterface
 {
     /**
-     * @return list<ConfigurationNodeInterface>
-     */
-    public function normalize(ConfigurationDocumentInterface $document, int $priority, string $origin, ?string $layerId = null): array
-    {
-        return $this->flatten($document, $document->toArray(), '', $origin, $priority, $layerId);
-    }
-
-    /**
-     * @param array<mixed> $data
-     * @param string $prefix
-     * @param string $source
-     * @param int $priority
-     * @param string|null $layerId
-     * @return list<ConfigurationNodeInterface>
-     */
-    private function flatten(
-        ConfigurationDocumentInterface $document,
-        array $data,
-        string $prefix,
-        string $source,
-        int $priority,
-        ?string $layerId = null,
-    ): array {
-        $key = $prefix === '' ? null : Key::fromString($prefix);
-        $nodes = [];
-
-        foreach ($data as $segment => $value) {
-            $child = $key === null ? Key::fromString((string) $segment) : $key->child((string) $segment);
-
-            if (is_array($value) && Key::isAssociative($value)) {
-                $nodes = [...$nodes, ...$this->flatten($document, $value, $child->toString(), $source, $priority, $layerId)];
-
-                continue;
-            }
-
-            $sensitive = self::isSecretScheme($source);
-
-            $nodes[] = new ConfigurationNode(
-                key: $child->toString(),
-                value: $value,
-                source: $source,
-                priority: $priority,
-                metadata: [],
-                provenance: new Provenance(
-                    resourceUri: $source,
-                    format: $document->format(),
-                    adapter: $document->adapter() ?? 'unknown',
-                    priority: $priority,
-                    sourceKind: self::sourceKindOf($document->format(), $source),
-                    layerId: $layerId,
-                    at: microtime(true),
-                    sensitive: $sensitive,
-                ),
-            );
-        }
-
-        return $nodes;
-    }
-
-    /**
      * Schemes that identify secret-bearing sources. Values resolved from these
      * are flagged {@see ProvenanceInterface::isSensitive()} so the central
      * {@see \ItPack\ConfigureIt\Core\RedactingRenderer} can mask them everywhere
@@ -99,6 +39,17 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
         'gcp-secretmanager://',
         'vault://',
     ];
+    /**
+     * @return list<ConfigurationNodeInterface>
+     */
+    public function normalize(
+        ConfigurationDocumentInterface $document,
+        int $priority,
+        string $origin,
+        ?string $layerId = null,
+    ): array {
+        return $this->flatten($document, $document->toArray(), '', $origin, $priority, $layerId);
+    }
 
     private static function isSecretScheme(string $uri): bool
     {
@@ -138,5 +89,60 @@ final readonly class DocumentNormalizer implements DocumentNormalizerInterface
             Format::PHP => SourceKind::Programmatic,
             default => SourceKind::File,
         };
+    }
+
+    /**
+     * @param array<mixed> $data
+     * @param string $prefix
+     * @param string $source
+     * @param int $priority
+     * @param string|null $layerId
+     * @return list<ConfigurationNodeInterface>
+     */
+    private function flatten(
+        ConfigurationDocumentInterface $document,
+        array $data,
+        string $prefix,
+        string $source,
+        int $priority,
+        ?string $layerId = null,
+    ): array {
+        $key = '' === $prefix ? null : Key::fromString($prefix);
+        $nodes = [];
+
+        foreach ($data as $segment => $value) {
+            $child = null === $key ? Key::fromString((string) $segment) : $key->child((string) $segment);
+
+            if (is_array($value) && Key::isAssociative($value)) {
+                $nodes = [
+                    ...$nodes,
+                    ...$this->flatten($document, $value, $child->toString(), $source, $priority, $layerId),
+                ];
+
+                continue;
+            }
+
+            $sensitive = self::isSecretScheme($source);
+
+            $nodes[] = new ConfigurationNode(
+                key: $child->toString(),
+                value: $value,
+                source: $source,
+                priority: $priority,
+                metadata: [],
+                provenance: new Provenance(
+                    resourceUri: $source,
+                    format: $document->format(),
+                    adapter: $document->adapter() ?? 'unknown',
+                    priority: $priority,
+                    sourceKind: self::sourceKindOf($document->format(), $source),
+                    layerId: $layerId,
+                    at: microtime(true),
+                    sensitive: $sensitive,
+                ),
+            );
+        }
+
+        return $nodes;
     }
 }

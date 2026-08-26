@@ -1,6 +1,5 @@
 # Composer
 vendor/
-var/
 composer.lock
 composer.phar
 
@@ -31,3 +30,13 @@ tests/_output/
 # OS
 Thumbs.db
 /phpstan-errors.txt
+.phpstan/
+
+var/
+
+# symlink
+packages/
+
+# deptrac
+/.deptrac.cache
+.deptrac.cache

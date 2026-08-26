@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Core;
+namespace Tests\Integration\Core;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileReader;
@@ -27,23 +27,6 @@ use Nette\Schema\Expect;
 class ConfigurationResolverTest extends Unit
 {
     private string $dir;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-resolve-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-        file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "base-host"], "app" => ["name" => "base"]];');
-        file_put_contents($this->dir . '/local.json', '{"db":{"host":"local-host"},"app":{"debug":true}}');
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-
-        rmdir($this->dir);
-    }
 
     public function testResolvesAndMergesSourcesIntoImmutableSnapshot(): void
     {
@@ -155,5 +138,22 @@ class ConfigurationResolverTest extends Unit
         $this->expectException(\ItPack\ConfigureIt\Exception\ValidationException::class);
 
         $resolver->resolve();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-resolve-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+        file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "base-host"], "app" => ["name" => "base"]];');
+        file_put_contents($this->dir . '/local.json', '{"db":{"host":"local-host"},"app":{"debug":true}}');
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+
+        rmdir($this->dir);
     }
 }

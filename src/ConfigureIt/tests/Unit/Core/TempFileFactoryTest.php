@@ -4,9 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use function basename;
+
 use Codeception\Test\Unit;
+
+use function is_file;
+use function is_string;
+
 use ItPack\ConfigureIt\Core\TempFileFactory;
 use ItPack\ConfigureIt\Exception\ParseException;
+
+use function str_starts_with;
+use function unlink;
 
 /**
  * @covers \ItPack\ConfigureIt\Core\TempFileFactory
@@ -18,13 +27,13 @@ final class TempFileFactoryTest extends Unit
     {
         $temp = new TempFileFactory('unit-prefix-')->build();
 
-        verify(\is_string($temp))->true();
-        verify($temp !== '')->true();
+        verify(is_string($temp))->true();
+        verify('' !== $temp)->true();
         self::assertNotNull($temp);
-        verify(\str_starts_with(\basename($temp), 'unit-prefix-'))->true();
+        verify(str_starts_with(basename($temp), 'unit-prefix-'))->true();
 
-        if (\is_file($temp)) {
-            @\unlink($temp);
+        if (is_file($temp)) {
+            @unlink($temp);
         }
     }
 

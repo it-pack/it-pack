@@ -37,6 +37,43 @@ final readonly class Provenance implements ProvenanceInterface
     ) {
     }
 
+    /**
+     * Reconstruct an immutable provenance record from {@see self::toArray()}.
+     *
+     * Used by the compiled-artifact cache to rebuild an equal snapshot from a
+     * serialized artifact (M3 — Epic E7.1).
+     *
+     * @param array<array-key, mixed> $data
+     */
+    public static function fromArray(array $data): self
+    {
+        $at = $data['at'] ?? 0.0;
+        $at = is_numeric($at) ? (float) $at : 0.0;
+
+        return new self(
+            resourceUri: is_string($data['resourceUri'] ?? null) ? $data['resourceUri'] : '',
+            format: isset($data['format']) && is_string($data['format'])
+                ? Format::fromString($data['format'])
+                : Format::UNKNOWN,
+            adapter: is_string($data['adapter'] ?? null) ? $data['adapter'] : '',
+            priority: is_numeric($data['priority'] ?? null) ? (int) $data['priority'] : 0,
+            sourceKind: is_string($data['sourceKind'] ?? null)
+                ? SourceKind::fromString($data['sourceKind'])
+                : SourceKind::Other,
+            processorTrail: self::stringList($data['processorTrail'] ?? null),
+            overridden: ($data['overridden'] ?? false) === true,
+            overriddenSource: isset($data['overriddenSource']) && is_string($data['overriddenSource'])
+                ? $data['overriddenSource']
+                : null,
+            validatedBy: isset($data['validatedBy']) && is_string($data['validatedBy'])
+                ? $data['validatedBy']
+                : null,
+            layerId: isset($data['layerId']) && is_string($data['layerId']) ? $data['layerId'] : null,
+            at: $at,
+            sensitive: ($data['sensitive'] ?? false) === true,
+        );
+    }
+
     public function resourceUri(): string
     {
         return $this->resourceUri;
@@ -133,6 +170,45 @@ final readonly class Provenance implements ProvenanceInterface
         return $this->copy(['sensitive' => true]);
     }
 
+    public function toArray(): array
+    {
+        return [
+            'resourceUri'     => $this->resourceUri,
+            'format'          => $this->format->name,
+            'adapter'         => $this->adapter,
+            'priority'        => $this->priority,
+            'sourceKind'      => $this->sourceKind->value,
+            'processorTrail'  => $this->processorTrail,
+            'overridden'      => $this->overridden,
+            'overriddenSource' => $this->overriddenSource,
+            'validatedBy'     => $this->validatedBy,
+            'layerId'         => $this->layerId,
+            'at'              => $this->at,
+            'sensitive'       => $this->sensitive,
+        ];
+    }
+
+    /**
+     * @param mixed $value
+     * @return list<string>
+     */
+    private static function stringList(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $list = [];
+
+        foreach ($value as $item) {
+            if (is_string($item)) {
+                $list[] = $item;
+            }
+        }
+
+        return $list;
+    }
+
     /**
      * Reconstructs an equal provenance with the given fields overridden.
      *
@@ -172,79 +248,5 @@ final readonly class Provenance implements ProvenanceInterface
             at:              $overrides['at']              ?? $this->at,
             sensitive:       $overrides['sensitive']       ?? $this->sensitive,
         );
-    }
-
-    public function toArray(): array
-    {
-        return [
-            'resourceUri'     => $this->resourceUri,
-            'format'          => $this->format->name,
-            'adapter'         => $this->adapter,
-            'priority'        => $this->priority,
-            'sourceKind'      => $this->sourceKind->value,
-            'processorTrail'  => $this->processorTrail,
-            'overridden'      => $this->overridden,
-            'overriddenSource' => $this->overriddenSource,
-            'validatedBy'     => $this->validatedBy,
-            'layerId'         => $this->layerId,
-            'at'              => $this->at,
-            'sensitive'       => $this->sensitive,
-        ];
-    }
-
-    /**
-     * Reconstruct an immutable provenance record from {@see self::toArray()}.
-     *
-     * Used by the compiled-artifact cache to rebuild an equal snapshot from a
-     * serialized artifact (M3 — Epic E7.1).
-     *
-     * @param array<array-key, mixed> $data
-     */
-    public static function fromArray(array $data): self
-    {
-        $at = $data['at'] ?? 0.0;
-        $at = is_numeric($at) ? (float) $at : 0.0;
-
-        return new self(
-            resourceUri: is_string($data['resourceUri'] ?? null) ? $data['resourceUri'] : '',
-            format: isset($data['format']) && is_string($data['format'])
-                ? Format::fromString($data['format'])
-                : Format::UNKNOWN,
-            adapter: is_string($data['adapter'] ?? null) ? $data['adapter'] : '',
-            priority: is_numeric($data['priority'] ?? null) ? (int) $data['priority'] : 0,
-            sourceKind: is_string($data['sourceKind'] ?? null) ? SourceKind::fromString($data['sourceKind']) : SourceKind::Other,
-            processorTrail: self::stringList($data['processorTrail'] ?? null),
-            overridden: ($data['overridden'] ?? false) === true,
-            overriddenSource: isset($data['overriddenSource']) && is_string($data['overriddenSource'])
-                ? $data['overriddenSource']
-                : null,
-            validatedBy: isset($data['validatedBy']) && is_string($data['validatedBy'])
-                ? $data['validatedBy']
-                : null,
-            layerId: isset($data['layerId']) && is_string($data['layerId']) ? $data['layerId'] : null,
-            at: $at,
-            sensitive: ($data['sensitive'] ?? false) === true,
-        );
-    }
-
-    /**
-     * @param mixed $value
-     * @return list<string>
-     */
-    private static function stringList(mixed $value): array
-    {
-        if (!is_array($value)) {
-            return [];
-        }
-
-        $list = [];
-
-        foreach ($value as $item) {
-            if (is_string($item)) {
-                $list[] = $item;
-            }
-        }
-
-        return $list;
     }
 }

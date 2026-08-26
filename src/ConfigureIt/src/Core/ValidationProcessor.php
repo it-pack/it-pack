@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function implode;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 use ItPack\ConfigureIt\ValueObject\ValidationMessage;
+
+use function sprintf;
 
 /**
  * Validates the graph against a schema as a discrete pipeline stage.
@@ -44,10 +48,10 @@ final readonly class ValidationProcessor extends AbstractNodeRewritingProcessor
 
         foreach ($result->errors() as $error) {
             $messages[] = new ValidationMessage($error['path'], $error['message']);
-            $lines[] = \sprintf('  %s: %s', $error['path'], $error['message']);
+            $lines[] = sprintf('  %s: %s', $error['path'], $error['message']);
         }
 
-        throw new ValidationException(\implode("\n", $lines), messages: $messages);
+        throw new ValidationException(implode("\n", $lines), messages: $messages);
     }
 
     protected function rewrite(ConfigurationNodeInterface $node): ConfigurationNodeInterface

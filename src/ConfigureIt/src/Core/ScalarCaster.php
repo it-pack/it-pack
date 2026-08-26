@@ -4,7 +4,20 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function array_is_list;
+use function get_debug_type;
+use function is_array;
+use function is_bool;
+use function is_float;
+use function is_int;
+use function is_numeric;
+use function is_string;
+
 use ItPack\ConfigureIt\Exception\TypeException;
+
+use function str_contains;
+use function strtolower;
+use function trim;
 
 /**
  * Coercion rules shared by typed snapshot accessors and freeze-time validation.
@@ -23,15 +36,15 @@ final class ScalarCaster
      */
     public static function toInt(mixed $value, string $path): int
     {
-        if (\is_int($value)) {
+        if (is_int($value)) {
             return $value;
         }
 
-        if (\is_float($value)) {
+        if (is_float($value)) {
             return (int) $value;
         }
 
-        if (\is_string($value) && \is_numeric($value) && !\str_contains($value, '.')) {
+        if (is_string($value) && is_numeric($value) && !str_contains($value, '.')) {
             return (int) $value;
         }
 
@@ -40,11 +53,11 @@ final class ScalarCaster
 
     public static function toFloat(mixed $value, string $path): float
     {
-        if (\is_int($value) || \is_float($value)) {
+        if (is_int($value) || is_float($value)) {
             return (float) $value;
         }
 
-        if (\is_string($value) && \is_numeric($value)) {
+        if (is_string($value) && is_numeric($value)) {
             return (float) $value;
         }
 
@@ -53,16 +66,16 @@ final class ScalarCaster
 
     public static function toBool(mixed $value, string $path): bool
     {
-        if (\is_bool($value)) {
+        if (is_bool($value)) {
             return $value;
         }
 
-        if ($value === 1 || $value === 0) {
-            return $value === 1;
+        if (1 === $value || 0 === $value) {
+            return 1 === $value;
         }
 
-        if (\is_string($value)) {
-            return match (\strtolower(\trim($value))) {
+        if (is_string($value)) {
+            return match (strtolower(trim($value))) {
                 'true', '1', 'on', 'yes', 'y' => true,
                 'false', '0', 'off', 'no', 'n' => false,
                 default => throw TypeException::typeMismatch($path, 'bool', self::describe($value)),
@@ -74,11 +87,11 @@ final class ScalarCaster
 
     public static function toString(mixed $value, string $path): string
     {
-        if (\is_string($value)) {
+        if (is_string($value)) {
             return $value;
         }
 
-        if (\is_int($value) || \is_float($value) || \is_bool($value)) {
+        if (is_int($value) || is_float($value) || is_bool($value)) {
             return (string) $value;
         }
 
@@ -90,7 +103,7 @@ final class ScalarCaster
      */
     public static function toList(mixed $value, string $path): array
     {
-        if (\is_array($value) && \array_is_list($value)) {
+        if (is_array($value) && array_is_list($value)) {
             return $value;
         }
 
@@ -102,7 +115,7 @@ final class ScalarCaster
      */
     public static function toMap(mixed $value, string $path): array
     {
-        if (\is_array($value) && !\array_is_list($value)) {
+        if (is_array($value) && !array_is_list($value)) {
             /** @var array<string, mixed> $value */
             return $value;
         }
@@ -112,10 +125,10 @@ final class ScalarCaster
 
     private static function describe(mixed $value): string
     {
-        if ($value === null) {
+        if (null === $value) {
             return 'null';
         }
 
-        return \get_debug_type($value);
+        return get_debug_type($value);
     }
 }

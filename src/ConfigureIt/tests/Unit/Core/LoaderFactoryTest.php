@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Core\ConfigurationLoaderFactory;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\ValueObject\Format;
+use LogicException;
 
 final class StubLoader implements ConfigurationLoaderInterface
 {
@@ -25,7 +26,7 @@ final class StubLoader implements ConfigurationLoaderInterface
 
     public function load(string $raw): ConfigurationDocumentInterface
     {
-        throw new \LogicException('not used in this test');
+        throw new LogicException('not used in this test');
     }
 }
 

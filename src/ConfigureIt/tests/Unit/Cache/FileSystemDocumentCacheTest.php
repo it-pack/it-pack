@@ -19,63 +19,6 @@ final class FileSystemDocumentCacheTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-doc-cache-' . uniqid();
-    }
-
-    protected function _after(): void
-    {
-        $this->removeTree($this->dir);
-    }
-
-    private function removeTree(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-
-        $entries = scandir($dir);
-
-        foreach ($entries === false ? [] : array_diff($entries, ['.', '..']) as $item) {
-            $path = $dir . '/' . $item;
-
-            if (is_dir($path)) {
-                $this->removeTree($path);
-                continue;
-            }
-
-            @unlink($path);
-        }
-
-        @rmdir($dir);
-    }
-
-    /**
-     * Directory listing by shell pattern. Deliberately scandir-based rather than
-     * glob-based: sanitized cache keys may legitimately start with a dot (e.g.
-     * from a `../` traversal attempt), which glob() hides by default.
-     *
-     * @return list<string>
-     */
-    private function files(string $pattern): array
-    {
-        if (!is_dir($this->dir)) {
-            return [];
-        }
-
-        $entries = scandir($this->dir);
-        $matched = [];
-
-        foreach ($entries === false ? [] : array_diff($entries, ['.', '..']) as $item) {
-            if (fnmatch($pattern, $item)) {
-                $matched[] = $this->dir . '/' . $item;
-            }
-        }
-
-        return $matched;
-    }
-
     // ---------------------------------------------------------------- wiring
 
     public function testImplementsTheRemoteDocumentCachePort(): void
@@ -333,6 +276,63 @@ final class FileSystemDocumentCacheTest extends Unit
         verify($this->files('*.tmp*'))->equals([]);
         verify($cache->get('blocked'))->null();
         verify($cache->getLastGood('blocked'))->null();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-doc-cache-' . uniqid();
+    }
+
+    protected function _after(): void
+    {
+        $this->removeTree($this->dir);
+    }
+
+    private function removeTree(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $entries = scandir($dir);
+
+        foreach (false === $entries ? [] : array_diff($entries, ['.', '..']) as $item) {
+            $path = $dir . '/' . $item;
+
+            if (is_dir($path)) {
+                $this->removeTree($path);
+                continue;
+            }
+
+            @unlink($path);
+        }
+
+        @rmdir($dir);
+    }
+
+    /**
+     * Directory listing by shell pattern. Deliberately scandir-based rather than
+     * glob-based: sanitized cache keys may legitimately start with a dot (e.g.
+     * from a `../` traversal attempt), which glob() hides by default.
+     *
+     * @return list<string>
+     */
+    private function files(string $pattern): array
+    {
+        if (!is_dir($this->dir)) {
+            return [];
+        }
+
+        $entries = scandir($this->dir);
+        $matched = [];
+
+        foreach (false === $entries ? [] : array_diff($entries, ['.', '..']) as $item) {
+            if (fnmatch($pattern, $item)) {
+                $matched[] = $this->dir . '/' . $item;
+            }
+        }
+
+        return $matched;
     }
 
     private function writeArtifact(string $key, string $exported): void

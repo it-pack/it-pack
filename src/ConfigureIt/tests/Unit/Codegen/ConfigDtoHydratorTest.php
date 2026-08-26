@@ -17,14 +17,13 @@ use ItPack\ConfigureIt\Exception\ConfigurationException;
 
 final class FakeDto implements GeneratedConfigDtoInterface
 {
-    public function toArray(): array
-    {
-        return ['ok' => true];
-    }
-
     public static function fromSnapshot(ConfigurationSnapshotInterface $snapshot): self
     {
         return new self();
+    }
+    public function toArray(): array
+    {
+        return ['ok' => true];
     }
 }
 
@@ -38,11 +37,6 @@ final class FakeDtoWithoutFactory implements GeneratedConfigDtoInterface
 
 class ConfigDtoHydratorTest extends Unit
 {
-    private function snapshot(): ConfigurationSnapshotInterface
-    {
-        return new ConfigurationSnapshotFactory()->build(['a' => 1]);
-    }
-
     public function testHydratesDtoFromSnapshot(): void
     {
         $dto = new ConfigDtoHydrator()->hydrate(FakeDto::class, $this->snapshot());
@@ -64,5 +58,9 @@ class ConfigDtoHydratorTest extends Unit
         $this->expectException(ConfigurationException::class);
 
         new ConfigDtoHydrator()->hydrate(FakeDtoWithoutFactory::class, $this->snapshot());
+    }
+    private function snapshot(): ConfigurationSnapshotInterface
+    {
+        return new ConfigurationSnapshotFactory()->build(['a' => 1]);
     }
 }

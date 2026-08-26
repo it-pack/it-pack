@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\Contract\ContextInterface;
 use ItPack\ConfigureIt\Contract\SchemaInterface;
+use LogicException;
 use Nette\Schema\Expect;
 use Nette\Schema\Processor as NetteProcessor;
 use Nette\Schema\Schema as NetteSchema;
@@ -26,53 +27,6 @@ use Nette\Schema\ValidationException as NetteValidationException;
  */
 final class ProcessorTest extends Unit
 {
-    /**
-     * A schema port fake that carries a real Nette schema as its adaptee.
-     */
-    private function schema(NetteSchema $adaptee): SchemaInterface
-    {
-        return new class ($adaptee) implements SchemaInterface {
-            public function __construct(private NetteSchema $adaptee)
-            {
-            }
-
-            public function normalize(mixed $value, ContextInterface $context): mixed
-            {
-                throw new \LogicException('The processor adapter must not call normalize() directly.');
-            }
-
-            public function merge(mixed $value, mixed $base): mixed
-            {
-                throw new \LogicException('The processor adapter must not call merge() directly.');
-            }
-
-            public function complete(mixed $value, ContextInterface $context): mixed
-            {
-                throw new \LogicException('The processor adapter must not call complete() directly.');
-            }
-
-            public function completeDefault(ContextInterface $context): mixed
-            {
-                throw new \LogicException('The processor adapter must not call completeDefault() directly.');
-            }
-
-            public function getAdaptee(): object
-            {
-                return $this->adaptee;
-            }
-        };
-    }
-
-    private function appSchema(): SchemaInterface
-    {
-        return $this->schema(
-            Expect::structure([
-                'port' => Expect::int(),
-                'name' => Expect::string('api'),
-            ])->castTo('array'),
-        );
-    }
-
     public function testProcessCompletesValidData(): void
     {
         $result = new Processor()->process($this->appSchema(), ['port' => 8080]);
@@ -185,5 +139,51 @@ final class ProcessorTest extends Unit
     public function testDefaultConstructorProvidesItsOwnNetteProcessor(): void
     {
         verify(new Processor()->getAdaptee() instanceof NetteProcessor)->true();
+    }
+    /**
+     * A schema port fake that carries a real Nette schema as its adaptee.
+     */
+    private function schema(NetteSchema $adaptee): SchemaInterface
+    {
+        return new class ($adaptee) implements SchemaInterface {
+            public function __construct(private NetteSchema $adaptee)
+            {
+            }
+
+            public function normalize(mixed $value, ContextInterface $context): mixed
+            {
+                throw new LogicException('The processor adapter must not call normalize() directly.');
+            }
+
+            public function merge(mixed $value, mixed $base): mixed
+            {
+                throw new LogicException('The processor adapter must not call merge() directly.');
+            }
+
+            public function complete(mixed $value, ContextInterface $context): mixed
+            {
+                throw new LogicException('The processor adapter must not call complete() directly.');
+            }
+
+            public function completeDefault(ContextInterface $context): mixed
+            {
+                throw new LogicException('The processor adapter must not call completeDefault() directly.');
+            }
+
+            public function getAdaptee(): object
+            {
+                return $this->adaptee;
+            }
+        };
+    }
+
+    private function appSchema(): SchemaInterface
+    {
+        return $this->schema(
+            Expect::structure([
+                'port' => Expect::int(),
+                'name' => Expect::string('api'),
+            ])->castTo('array'),
+        );
     }
 }

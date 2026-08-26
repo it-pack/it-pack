@@ -31,7 +31,7 @@ final class PhpLoader implements ConfigurationLoaderInterface
 
     public function supports(Format $format): bool
     {
-        return $format === Format::PHP;
+        return Format::PHP === $format;
     }
 
     public function load(string $raw): ConfigurationDocumentInterface
@@ -39,7 +39,7 @@ final class PhpLoader implements ConfigurationLoaderInterface
         $temp = $this->tempFileFactory->require();
 
         try {
-            if (file_put_contents($temp, $raw) === false) {
+            if (false === file_put_contents($temp, $raw)) {
                 throw new ParseException('Unable to write temporary PHP configuration.');
             }
 

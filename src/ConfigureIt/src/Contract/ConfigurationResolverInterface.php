@@ -18,7 +18,8 @@ use ItPack\ConfigureIt\Exception\ResolutionException;
 interface ConfigurationResolverInterface
 {
     /**
-     * @param iterable<ConfigurationSourceInterface> $sources when omitted, the resolver uses its configured default sources.
+     * @param iterable<ConfigurationSourceInterface> $sources when omitted, the resolver uses
+     *        its configured default sources.
      * @throws ResolutionException when resolution cannot complete.
      */
     public function resolve(iterable $sources = []): ConfigurationSnapshotInterface;

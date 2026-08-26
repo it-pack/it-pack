@@ -26,7 +26,7 @@ final readonly class GraphCommand implements CommandInterface
 
     public function run(array $args, Output $output): int
     {
-        if ($args === []) {
+        if ([] === $args) {
             $output->writeln('Usage: graph <file> [dot|ascii]');
 
             return 1;
@@ -42,7 +42,7 @@ final readonly class GraphCommand implements CommandInterface
             return 1;
         }
 
-        $output->write($format === 'ascii' ? $this->visualizer->toAscii($graph) : $this->visualizer->toDot($graph));
+        $output->write('ascii' === $format ? $this->visualizer->toAscii($graph) : $this->visualizer->toDot($graph));
 
         return 0;
     }

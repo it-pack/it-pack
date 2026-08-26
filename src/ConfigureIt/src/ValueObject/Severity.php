@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use InvalidArgumentException;
+
 /**
  * Severity of an {@see Observation} emitted during resolution.
  *
@@ -13,16 +15,15 @@ namespace ItPack\ConfigureIt\ValueObject;
  */
 enum Severity: string
 {
-    case Info = 'info';
-    case Warning = 'warning';
-    case Error = 'error';
-
     /**
-     * @throws \InvalidArgumentException when the severity string is unknown.
+     * @throws InvalidArgumentException when the severity string is unknown.
      */
     public static function fromString(string $value): self
     {
         return self::tryFrom($value)
-            ?? throw new \InvalidArgumentException(sprintf('Unknown severity "%s".', $value));
+            ?? throw new InvalidArgumentException(sprintf('Unknown severity "%s".', $value));
     }
+    case Info = 'info';
+    case Warning = 'warning';
+    case Error = 'error';
 }

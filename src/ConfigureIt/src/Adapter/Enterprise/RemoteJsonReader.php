@@ -39,7 +39,7 @@ final readonly class RemoteJsonReader implements ConfigurationReaderInterface
 
     public function supports(ConfigurationResourceInterface $resource): bool
     {
-        return $resource->format() === Format::JSON
+        return Format::JSON === $resource->format()
             && str_starts_with($resource->uri(), $this->scheme . '://');
     }
 }

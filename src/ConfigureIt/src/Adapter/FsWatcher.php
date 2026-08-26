@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationWatcherInterface;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use RuntimeException;
 
 /**
  * Kernel-level file watching via the `inotify` extension.
@@ -30,7 +31,12 @@ final class FsWatcher implements ConfigurationWatcherInterface
     private const IN_MOVED_TO = 0x00000080;
     private const IN_CREATE = 0x00000100;
     private const IN_DELETE = 0x00000200;
-    private const WATCH_MASK = self::IN_MODIFY | self::IN_ATTRIB | self::IN_CLOSE_WRITE | self::IN_MOVED_TO | self::IN_CREATE | self::IN_DELETE;
+    private const WATCH_MASK = self::IN_MODIFY
+        | self::IN_ATTRIB
+        | self::IN_CLOSE_WRITE
+        | self::IN_MOVED_TO
+        | self::IN_CREATE
+        | self::IN_DELETE;
 
     /**
      * @var list<callable(array<int, string>): void>
@@ -52,7 +58,7 @@ final class FsWatcher implements ConfigurationWatcherInterface
         private readonly ResolutionReporter $reporter,
     ) {
         if (!extension_loaded('inotify')) {
-            throw new \RuntimeException('FsWatcher requires the inotify extension.');
+            throw new RuntimeException('FsWatcher requires the inotify extension.');
         }
 
         $this->open();
@@ -92,7 +98,7 @@ final class FsWatcher implements ConfigurationWatcherInterface
      */
     public function await(int $timeoutMs = 500): bool
     {
-        if ($this->stream === null) {
+        if (null === $this->stream) {
             $this->open();
         }
 
@@ -111,13 +117,13 @@ final class FsWatcher implements ConfigurationWatcherInterface
 
         $ready = @stream_select($read, $write, $except, $seconds, $microseconds);
 
-        if ($ready === false || $ready < 1) {
+        if (false === $ready || $ready < 1) {
             return false;
         }
 
         $events = inotify_read($stream);
 
-        if ($events === false || $events === []) {
+        if (false === $events || [] === $events) {
             return false;
         }
 

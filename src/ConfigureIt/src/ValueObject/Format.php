@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use InvalidArgumentException;
+
 /**
  * Supported configuration source/resource formats.
  *
@@ -14,20 +16,8 @@ namespace ItPack\ConfigureIt\ValueObject;
  */
 enum Format: string
 {
-    case PHP = 'php';
-    case JSON = 'json';
-    case YAML = 'yaml';
-    case ENV = 'env';
-    case DOTENV = 'dotenv';
-    case NEON = 'neon';
-    case TOML = 'toml';
-    case INI = 'ini';
-    case XML = 'xml';
-    case FRONTMATTER = 'frontmatter';
-    case UNKNOWN = 'unknown';
-
     /**
-     * @throws \InvalidArgumentException when the format string is unknown.
+     * @throws InvalidArgumentException when the format string is unknown.
      */
     public static function fromString(string $value): self
     {
@@ -39,6 +29,17 @@ enum Format: string
             }
         }
 
-        throw new \InvalidArgumentException(sprintf('Unknown configuration format "%s".', $value));
+        throw new InvalidArgumentException(sprintf('Unknown configuration format "%s".', $value));
     }
+    case PHP = 'php';
+    case JSON = 'json';
+    case YAML = 'yaml';
+    case ENV = 'env';
+    case DOTENV = 'dotenv';
+    case NEON = 'neon';
+    case TOML = 'toml';
+    case INI = 'ini';
+    case XML = 'xml';
+    case FRONTMATTER = 'frontmatter';
+    case UNKNOWN = 'unknown';
 }

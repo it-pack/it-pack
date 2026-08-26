@@ -31,12 +31,12 @@ final readonly class DiagnosticsReport
 
     public function hasOverrides(): bool
     {
-        return $this->overrides !== [];
+        return [] !== $this->overrides;
     }
 
     public function hasUnresolved(): bool
     {
-        return $this->unresolved !== [];
+        return [] !== $this->unresolved;
     }
 
     /**
@@ -56,14 +56,14 @@ final readonly class DiagnosticsReport
     {
         $lines = ['Configuration diagnostics:'];
 
-        $lines[] = sprintf('  nodes by source: %s', $this->bySource === [] ? '(none)' : json_encode($this->bySource));
-        $lines[] = sprintf('  nodes by format: %s', $this->byFormat === [] ? '(none)' : json_encode($this->byFormat));
+        $lines[] = sprintf('  nodes by source: %s', [] === $this->bySource ? '(none)' : json_encode($this->bySource));
+        $lines[] = sprintf('  nodes by format: %s', [] === $this->byFormat ? '(none)' : json_encode($this->byFormat));
 
-        $lines[] = $this->overrides === []
+        $lines[] = [] === $this->overrides
             ? '  overrides: none'
             : '  overrides:';
 
-        if ($this->overrides !== []) {
+        if ([] !== $this->overrides) {
             foreach ($this->overrides as $override) {
                 $lines[] = sprintf(
                     '    %s <- %s (overrode %s)',
@@ -74,7 +74,7 @@ final readonly class DiagnosticsReport
             }
         }
 
-        if ($this->unresolved !== []) {
+        if ([] !== $this->unresolved) {
             $lines[] = '  unresolved variables: ' . implode(', ', $this->unresolved);
         }
 

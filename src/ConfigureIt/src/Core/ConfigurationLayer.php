@@ -44,11 +44,11 @@ final readonly class ConfigurationLayer implements ConfigurationLayerInterface
 
     public function id(): string
     {
-        return $this->id === '' ? sprintf('layer-%d', $this->precedence) : $this->id;
+        return '' === $this->id ? sprintf('layer-%d', $this->precedence) : $this->id;
     }
 
     public function match(ExecutionContextInterface $context): bool
     {
-        return $this->match === null || ($this->match)($context);
+        return null === $this->match || ($this->match)($context);
     }
 }

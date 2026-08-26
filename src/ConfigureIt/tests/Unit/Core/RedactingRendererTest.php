@@ -6,6 +6,7 @@ namespace Tests\Unit\Core;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Core\RedactingRenderer;
+use stdClass;
 
 /**
  * The single rendering seam for configuration values (M4 — Epic E5.2). Covers
@@ -56,7 +57,7 @@ final class RedactingRendererTest extends Unit
             'null'         => [null],
             'list'         => [['a', 'b']],
             'map'          => [['user' => 'root', 'pass' => 'hunter2']],
-            'object'       => [new \stdClass()],
+            'object'       => [new stdClass()],
         ];
     }
 
@@ -92,12 +93,12 @@ final class RedactingRendererTest extends Unit
 
     public function testNonScalarValuesFallBackToJson(): void
     {
-        $object = new \stdClass();
+        $object = new stdClass();
         $object->host = 'localhost';
         $object->port = 5432;
 
         verify(new RedactingRenderer()->render($object, false))->equals('{"host":"localhost","port":5432}');
-        verify(new RedactingRenderer()->render(new \stdClass(), false))->equals('{}');
+        verify(new RedactingRenderer()->render(new stdClass(), false))->equals('{}');
     }
 
     public function testBooleansAreNeverRenderedAsPhpEmptyString(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter\Enterprise\Http;
 
 use ItPack\ConfigureIt\Adapter\Enterprise\Contract\HttpClient;
+use RuntimeException;
 
 /**
  * cURL-backed {@see HttpClient} for production use.
@@ -34,14 +35,14 @@ final readonly class CurlHttpClient implements HttpClient
     {
         $upperMethod = strtoupper($method);
 
-        if ($upperMethod === '') {
-            throw new \RuntimeException('HTTP method must not be empty.');
+        if ('' === $upperMethod) {
+            throw new RuntimeException('HTTP method must not be empty.');
         }
 
         $handle = curl_init($url);
 
-        if ($handle === false) {
-            throw new \RuntimeException(sprintf('curl_init failed for "%s".', $url));
+        if (false === $handle) {
+            throw new RuntimeException(sprintf('curl_init failed for "%s".', $url));
         }
 
         try {
@@ -54,8 +55,8 @@ final readonly class CurlHttpClient implements HttpClient
             curl_close($handle);
         }
 
-        if ($responseBody === false) {
-            throw new \RuntimeException(sprintf('HTTP "%s %s" failed: %s', $upperMethod, $url, $error));
+        if (false === $responseBody) {
+            throw new RuntimeException(sprintf('HTTP "%s %s" failed: %s', $upperMethod, $url, $error));
         }
 
         return new HttpResponse($status, (string) $responseBody);
@@ -85,7 +86,7 @@ final readonly class CurlHttpClient implements HttpClient
             CURLOPT_FAILONERROR => false,
         ];
 
-        if ($body !== null) {
+        if (null !== $body) {
             $options[CURLOPT_POSTFIELDS] = $body;
         }
 

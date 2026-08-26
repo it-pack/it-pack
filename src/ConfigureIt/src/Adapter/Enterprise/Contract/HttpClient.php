@@ -16,5 +16,10 @@ interface HttpClient
     /**
      * @param array<string, string> $headers
      */
-    public function request(string $method, string $url, array $headers = [], ?string $body = null): \ItPack\ConfigureIt\Adapter\Enterprise\Http\HttpResponse;
+    public function request(
+        string $method,
+        string $url,
+        array $headers = [],
+        ?string $body = null,
+    ): \ItPack\ConfigureIt\Adapter\Enterprise\Http\HttpResponse;
 }

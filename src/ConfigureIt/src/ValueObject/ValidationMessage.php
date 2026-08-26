@@ -23,7 +23,7 @@ final readonly class ValidationMessage implements MessageInterface
 
     public function toString(): string
     {
-        return $this->path === ''
+        return '' === $this->path
             ? $this->message
             : sprintf('%s: %s', $this->path, $this->message);
     }

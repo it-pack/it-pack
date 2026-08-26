@@ -51,7 +51,7 @@ final readonly class GcpSecretManagerClient implements RemoteKeyValueClient
             $name = TreeBuilder::asString($secret['name'] ?? null);
             $id = (string) preg_replace('#^projects/[^/]+/secrets/#', '', $name);
 
-            if ($prefix !== '' && !str_starts_with($id, $prefix)) {
+            if ('' !== $prefix && !str_starts_with($id, $prefix)) {
                 continue;
             }
 
@@ -62,14 +62,14 @@ final readonly class GcpSecretManagerClient implements RemoteKeyValueClient
 
             $segments = array_values(array_filter(
                 explode('-', $id),
-                static fn (string $segment): bool => $segment !== '',
+                static fn (string $segment): bool => '' !== $segment,
             ));
 
-            if ($segments === []) {
+            if ([] === $segments) {
                 continue;
             }
 
-            TreeBuilder::setPath($tree, $segments, $decoded === false ? $encoded : $decoded);
+            TreeBuilder::setPath($tree, $segments, false === $decoded ? $encoded : $decoded);
         }
 
         return json_encode($tree, JSON_THROW_ON_ERROR);

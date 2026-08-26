@@ -18,6 +18,7 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
+use RuntimeException;
 
 /**
  * F16 — {@see ConfigurationCompiler::hash()} must treat non-file resources
@@ -30,11 +31,6 @@ use ItPack\ConfigureIt\ValueObject\ValidationResult;
 final class CompilerHashTest extends Unit
 {
     private ConfigurationCompiler $compiler;
-
-    protected function _before(): void
-    {
-        $this->compiler = new ConfigurationCompiler();
-    }
 
     /**
      * The spy wrapper throws if anything tries to *open* the resource. With the
@@ -104,20 +100,6 @@ final class CompilerHashTest extends Unit
                 rmdir($dir);
             }
         }
-    }
-
-    private function sourceWith(string $uri): ConfigurationSourceInterface
-    {
-        return new class ($uri) implements ConfigurationSourceInterface {
-            public function __construct(private string $uri)
-            {
-            }
-
-            public function discover(): iterable
-            {
-                return [new ConfigurationResource($this->uri, Format::PHP)];
-            }
-        };
     }
 
     /**
@@ -202,6 +184,25 @@ final class CompilerHashTest extends Unit
         verify(strlen($first))->equals(64);
     }
 
+    protected function _before(): void
+    {
+        $this->compiler = new ConfigurationCompiler();
+    }
+
+    private function sourceWith(string $uri): ConfigurationSourceInterface
+    {
+        return new class ($uri) implements ConfigurationSourceInterface {
+            public function __construct(private string $uri)
+            {
+            }
+
+            public function discover(): iterable
+            {
+                return [new ConfigurationResource($this->uri, Format::PHP)];
+            }
+        };
+    }
+
     /**
      * @param array<string, string> $types
      */
@@ -271,7 +272,7 @@ final class SpyStreamWrapper
 
     public function stream_open(string $path, string $mode, int $options, ?string &$openedPath): bool
     {
-        throw new \RuntimeException(
+        throw new RuntimeException(
             'SpyStreamWrapper: resource was opened by hash_file() — F16 guard failed',
         );
     }

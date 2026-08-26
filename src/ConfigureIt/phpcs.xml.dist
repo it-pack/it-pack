@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="ConfigureIt">
+    <description>Line-length budget for ConfigureIt source (Milestone 4 / NV14).</description>
+
+    <file>src</file>
+    <exclude-pattern>*/var/*</exclude-pattern>
+    <exclude-pattern>*/tests/*</exclude-pattern>
+
+    <!-- 120-column hard budget: any line beyond it is an error. -->
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="120"/>
+        </properties>
+    </rule>
+</ruleset>

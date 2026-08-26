@@ -4,9 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\CLI;
 
+use function array_map;
+use function basename;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Core\RedactingRenderer;
+
+use function max;
+use function str_pad;
+use function str_repeat;
+use function strlen;
+use function strrpos;
+use function substr;
 
 /**
  * Renders human-readable explanations of a resolved configuration graph.
@@ -26,7 +36,7 @@ final readonly class ConfigurationInspector
 
     public function explain(ConfigurationGraphInterface $graph, ?string $key = null): string
     {
-        if ($key !== null) {
+        if (null !== $key) {
             if (!$graph->has($key)) {
                 return sprintf('Key "%s" is not present in the resolved configuration.', $key) . PHP_EOL;
             }
@@ -50,9 +60,10 @@ final readonly class ConfigurationInspector
             '  priority    : ' . $p->priority(),
             '  sourceKind  : ' . $p->sourceKind(),
             '  layer       : ' . ($p->layerId() ?? '-'),
-            '  overridden  : ' . ($p->overridden() ? 'yes (overrode ' . ($p->overriddenSource() ?? 'unknown') . ')' : 'no'),
+            '  overridden  : '
+                . ($p->overridden() ? 'yes (overrode ' . ($p->overriddenSource() ?? 'unknown') . ')' : 'no'),
             '  validatedBy : ' . ($p->validatedBy() ?? '-'),
-            '  trail       : ' . ($p->processorTrail() === [] ? '-' : implode(' -> ', $p->processorTrail())),
+            '  trail       : ' . ([] === $p->processorTrail() ? '-' : implode(' -> ', $p->processorTrail())),
         ];
 
         return implode(PHP_EOL, $lines) . PHP_EOL;
@@ -60,7 +71,7 @@ final readonly class ConfigurationInspector
 
     private function renderTable(ConfigurationGraphInterface $graph): string
     {
-        if ($graph->nodes() === []) {
+        if ([] === $graph->nodes()) {
             return 'Resolved configuration is empty.' . PHP_EOL;
         }
 
@@ -71,7 +82,7 @@ final readonly class ConfigurationInspector
             $rows[] = [
                 $node->key(),
                 $this->renderer->render($node->value(), $p->isSensitive()),
-                \basename($p->resourceUri()),
+                basename($p->resourceUri()),
                 $this->shortClass($p->adapter()),
                 $p->layerId() ?? '-',
                 $p->overridden() ? 'yes' : 'no',
@@ -93,12 +104,12 @@ final readonly class ConfigurationInspector
         $widths = [];
 
         foreach ($headers as $i => $header) {
-            $widths[$i] = \strlen($header);
+            $widths[$i] = strlen($header);
         }
 
         foreach ($rows as $row) {
             foreach ($row as $i => $cell) {
-                $widths[$i] = \max($widths[$i] ?? 0, \strlen($cell));
+                $widths[$i] = max($widths[$i] ?? 0, strlen($cell));
             }
         }
 
@@ -106,14 +117,14 @@ final readonly class ConfigurationInspector
             $parts = [];
 
             foreach ($cells as $i => $cell) {
-                $parts[] = \str_pad($cell, $widths[$i] ?? 0);
+                $parts[] = str_pad($cell, $widths[$i] ?? 0);
             }
 
             return implode('  ', $parts) . PHP_EOL;
         };
 
         $out = $line($headers)
-            . $line(\array_map(static fn (int $width): string => \str_repeat('-', $width), $widths));
+            . $line(array_map(static fn (int $width): string => str_repeat('-', $width), $widths));
 
         foreach ($rows as $row) {
             $out .= $line($row);
@@ -124,8 +135,8 @@ final readonly class ConfigurationInspector
 
     private function shortClass(string $fqcn): string
     {
-        $pos = \strrpos($fqcn, '\\');
+        $pos = strrpos($fqcn, '\\');
 
-        return $pos === false ? $fqcn : \substr($fqcn, $pos + 1);
+        return false === $pos ? $fqcn : substr($fqcn, $pos + 1);
     }
 }

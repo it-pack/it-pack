@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Execution;
 use ItPack\ConfigureIt\Behavior\CreatableBehavior;
 use ItPack\ConfigureIt\Contract\Execution\OccurrenceFactoryInterface;
 use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use ReflectionClass;
 
 class OccurrenceFactory implements OccurrenceFactoryInterface
 {
@@ -14,7 +15,7 @@ class OccurrenceFactory implements OccurrenceFactoryInterface
 
     public static function createLLazy(): self
     {
-        return new \ReflectionClass(self::class)->newLazyProxy(static fn (): self => new self());
+        return new ReflectionClass(self::class)->newLazyProxy(static fn (): self => new self());
     }
 
     public function build(

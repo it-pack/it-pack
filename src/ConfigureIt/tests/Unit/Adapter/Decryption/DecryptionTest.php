@@ -16,25 +16,12 @@ use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Exception\DecryptionException;
 use ItPack\ConfigureIt\Exception\ReadException;
 use ItPack\ConfigureIt\ValueObject\Format;
+use LogicException;
+use RuntimeException;
 
 class DecryptionTest extends Unit
 {
     private string $dir;
-
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-dec-' . uniqid();
-        mkdir($this->dir);
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-
-        rmdir($this->dir);
-    }
 
     public function testDecryptingReaderDecryptsEncAnnotatedResource(): void
     {
@@ -97,7 +84,7 @@ class DecryptionTest extends Unit
         $runner = new class () implements CommandRunnerInterface {
             public function run(array $command, string $input = ''): string
             {
-                throw new \RuntimeException('boom');
+                throw new RuntimeException('boom');
             }
         };
 
@@ -106,6 +93,21 @@ class DecryptionTest extends Unit
         $this->expectException(DecryptionException::class);
 
         $decrypter->decrypt('x');
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-dec-' . uniqid();
+        mkdir($this->dir);
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+
+        rmdir($this->dir);
     }
 
     /**
@@ -133,7 +135,7 @@ class DecryptionTest extends Unit
         return new class () implements DecrypterInterface {
             public function decrypt(string $ciphertext): string
             {
-                throw new \LogicException('should not be called');
+                throw new LogicException('should not be called');
             }
         };
     }

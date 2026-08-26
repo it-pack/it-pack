@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Adapter\Decryption;
 
 use ItPack\ConfigureIt\Contract\CommandRunnerInterface;
 use ItPack\ConfigureIt\Exception\DecryptionException;
+use Throwable;
 
 /**
  * Shared decryption behavior for adapters that shell out to an external
@@ -30,7 +31,7 @@ final readonly class CommandDecryption
     {
         try {
             $output = $this->runner->run([...$this->command], $ciphertext);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             throw new DecryptionException(
                 sprintf('Failed to decrypt secret: %s', $e->getMessage()),
                 0,

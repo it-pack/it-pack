@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
+use function is_string;
+
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\ValueObject\DiagnosticsReport;
 use ItPack\ConfigureIt\ValueObject\Severity;
+
+use function str_contains;
 
 /**
  * Computes {@see DiagnosticsReport} from a resolved graph and, optionally, emits
@@ -47,14 +51,23 @@ final readonly class ConfigurationDiagnostics
 
                 $this->reporter?->observe(new Observation(
                     Severity::Info,
-                    sprintf('Key "%s" resolved from "%s" overrode "%s".', $key, $provenance->resourceUri(), $provenance->overriddenSource() ?? 'unknown'),
-                    ['key' => $key, 'source' => $provenance->resourceUri(), 'shadowed' => $provenance->overriddenSource()],
+                    sprintf(
+                        'Key "%s" resolved from "%s" overrode "%s".',
+                        $key,
+                        $provenance->resourceUri(),
+                        $provenance->overriddenSource() ?? 'unknown',
+                    ),
+                    [
+                        'key' => $key,
+                        'source' => $provenance->resourceUri(),
+                        'shadowed' => $provenance->overriddenSource(),
+                    ],
                 ));
             }
 
             $value = $node->value();
 
-            if (\is_string($value) && \str_contains($value, '${')) {
+            if (is_string($value) && str_contains($value, '${')) {
                 $unresolved[] = $key;
 
                 $this->reporter?->observe(new Observation(

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Adapter;
 
+use FilesystemIterator;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 
 /**
  * Discovers configuration files in a directory (recursively) and returns them
@@ -51,12 +55,12 @@ final readonly class FileSource implements ConfigurationSourceInterface
             return;
         }
 
-        /** @var array<int, \SplFileInfo> $files */
+        /** @var array<int, SplFileInfo> $files */
         $files = iterator_to_array(
-            new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator(
+            new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator(
                     $this->directory,
-                    \FilesystemIterator::SKIP_DOTS,
+                    FilesystemIterator::SKIP_DOTS,
                 )
             )
         );

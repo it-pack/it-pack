@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter;
 
+use Closure;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\Schema;
 use ItPack\ConfigureIt\Contract\ContextInterface;
@@ -21,68 +22,6 @@ use Nette\Schema\Message as NetteMessage;
  */
 final class SchemaTest extends Unit
 {
-    /**
-     * A minimal ContextInterface fake backed by a real Nette context, so the
-     * adapter's unwrapping is exercised without pulling in the Core context.
-     */
-    private function context(NetteContext $adaptee): ContextInterface
-    {
-        return new class ($adaptee) implements ContextInterface {
-            public function __construct(private NetteContext $adaptee)
-            {
-            }
-
-            public function addError(string $message, string $code, array $variables = []): MessageInterface
-            {
-                return $this->wrap($this->adaptee->addError($message, $code, $variables));
-            }
-
-            public function addWarning(string $message, string $code, array $variables = []): MessageInterface
-            {
-                return $this->wrap($this->adaptee->addWarning($message, $code, $variables));
-            }
-
-            public function createChecker(): \Closure
-            {
-                return $this->adaptee->createChecker();
-            }
-
-            public function getAdaptee(): object
-            {
-                return $this->adaptee;
-            }
-
-            private function wrap(NetteMessage $message): MessageInterface
-            {
-                return new class ($message) implements MessageInterface {
-                    public function __construct(private NetteMessage $message)
-                    {
-                    }
-
-                    public function toString(): string
-                    {
-                        return $this->message->toString();
-                    }
-
-                    public function __toString(): string
-                    {
-                        return $this->toString();
-                    }
-                };
-            }
-        };
-    }
-
-    private function schema(): Schema
-    {
-        return new Schema(
-            Expect::structure([
-                'port' => Expect::int(),
-                'name' => Expect::string('api'),
-            ])->castTo('array'),
-        );
-    }
-
     public function testNormalizeDelegatesToTheWrappedSchema(): void
     {
         $normalized = $this->schema()->normalize(['port' => 8080], $this->context(new NetteContext()));
@@ -174,5 +113,66 @@ final class SchemaTest extends Unit
         verify($schema->normalize('value', $context))->equals('value');
         verify($schema->complete('value', $context))->equals('value');
         verify($schema->completeDefault($context))->equals('fallback');
+    }
+    /**
+     * A minimal ContextInterface fake backed by a real Nette context, so the
+     * adapter's unwrapping is exercised without pulling in the Core context.
+     */
+    private function context(NetteContext $adaptee): ContextInterface
+    {
+        return new class ($adaptee) implements ContextInterface {
+            public function __construct(private NetteContext $adaptee)
+            {
+            }
+
+            public function addError(string $message, string $code, array $variables = []): MessageInterface
+            {
+                return $this->wrap($this->adaptee->addError($message, $code, $variables));
+            }
+
+            public function addWarning(string $message, string $code, array $variables = []): MessageInterface
+            {
+                return $this->wrap($this->adaptee->addWarning($message, $code, $variables));
+            }
+
+            public function createChecker(): Closure
+            {
+                return $this->adaptee->createChecker();
+            }
+
+            public function getAdaptee(): object
+            {
+                return $this->adaptee;
+            }
+
+            private function wrap(NetteMessage $message): MessageInterface
+            {
+                return new class ($message) implements MessageInterface {
+                    public function __construct(private NetteMessage $message)
+                    {
+                    }
+
+                    public function toString(): string
+                    {
+                        return $this->message->toString();
+                    }
+
+                    public function __toString(): string
+                    {
+                        return $this->toString();
+                    }
+                };
+            }
+        };
+    }
+
+    private function schema(): Schema
+    {
+        return new Schema(
+            Expect::structure([
+                'port' => Expect::int(),
+                'name' => Expect::string('api'),
+            ])->castTo('array'),
+        );
     }
 }

@@ -17,24 +17,6 @@ class VolumeSourceTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-vol-' . uniqid();
-        mkdir($this->dir);
-        file_put_contents($this->dir . '/app_name', 'demo');
-        file_put_contents($this->dir . '/app_debug', 'true');
-        file_put_contents($this->dir . '/db_host', 'db.internal');
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-
-        rmdir($this->dir);
-    }
-
     public function testConfigMapResolvesWithProvenance(): void
     {
         $snapshot = new ConfigurationBuilder()
@@ -103,5 +85,23 @@ class VolumeSourceTest extends Unit
         $this->expectException(ReadException::class);
 
         $resolver->resolve();
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-vol-' . uniqid();
+        mkdir($this->dir);
+        file_put_contents($this->dir . '/app_name', 'demo');
+        file_put_contents($this->dir . '/app_debug', 'true');
+        file_put_contents($this->dir . '/db_host', 'db.internal');
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+
+        rmdir($this->dir);
     }
 }

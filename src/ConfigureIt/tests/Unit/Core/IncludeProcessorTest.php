@@ -19,20 +19,6 @@ class IncludeProcessorTest extends Unit
 {
     private string $dir;
 
-    protected function _before(): void
-    {
-        $this->dir = sys_get_temp_dir() . '/cfg-include-' . uniqid();
-        mkdir($this->dir, 0o777, true);
-    }
-
-    protected function _after(): void
-    {
-        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
-            unlink($this->dir . '/' . $item);
-        }
-        rmdir($this->dir);
-    }
-
     public function testDotDotTraversalOutOfTheBaseDirectoryIsRejected(): void
     {
         $graph = new ConfigurationGraph([
@@ -85,16 +71,6 @@ class IncludeProcessorTest extends Unit
             @unlink($outsideDir . '/secret.yaml');
             @rmdir($outsideDir);
         }
-    }
-
-    private function processor(): IncludeProcessor
-    {
-        return new IncludeProcessor(
-            new FileReader(),
-            new ConfigurationLoaderFactory([new YamlLoader()]),
-            new DocumentNormalizer(),
-            $this->dir,
-        );
     }
 
     public function testInlinesReferencedFileAndDropsDirective(): void
@@ -302,5 +278,29 @@ class IncludeProcessorTest extends Unit
         ]));
 
         verify($next->toArray())->equals(['a' => 1, 'b' => 2]);
+    }
+
+    protected function _before(): void
+    {
+        $this->dir = sys_get_temp_dir() . '/cfg-include-' . uniqid();
+        mkdir($this->dir, 0o700, true);
+    }
+
+    protected function _after(): void
+    {
+        foreach (array_diff(scandir($this->dir), ['.', '..']) as $item) {
+            unlink($this->dir . '/' . $item);
+        }
+        rmdir($this->dir);
+    }
+
+    private function processor(): IncludeProcessor
+    {
+        return new IncludeProcessor(
+            new FileReader(),
+            new ConfigurationLoaderFactory([new YamlLoader()]),
+            new DocumentNormalizer(),
+            $this->dir,
+        );
     }
 }

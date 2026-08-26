@@ -31,8 +31,11 @@ final class ConfigCodegen
      * @param string      $className FQCN-less class name (namespace added separately).
      * @param non-empty-string $namespace Target namespace for the generated classes.
      */
-    public function generate(NetteSchema $schema, string $className, string $namespace = 'ItPack\\ConfigureIt\\Generated'): string
-    {
+    public function generate(
+        NetteSchema $schema,
+        string $className,
+        string $namespace = 'ItPack\\ConfigureIt\\Generated',
+    ): string {
         $models = $this->builder->build($schema, $className);
 
         return $this->renderer->render($models, $namespace);

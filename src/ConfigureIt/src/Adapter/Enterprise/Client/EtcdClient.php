@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Adapter\Enterprise\Client;
 
 use ItPack\ConfigureIt\Adapter\Enterprise\Contract\HttpClient;
 use ItPack\ConfigureIt\Adapter\Enterprise\Contract\RemoteKeyValueClient;
+use RuntimeException;
 
 /**
  * etcd v2 (REST API) client translating the nested node tree into a single
@@ -47,14 +48,14 @@ final readonly class EtcdClient implements RemoteKeyValueClient
     {
         $parts = parse_url($uri);
 
-        if ($parts === false || !isset($parts['host'])) {
-            throw new \RuntimeException(sprintf('EtcdClient: cannot parse URI "%s".', $uri));
+        if (false === $parts || !isset($parts['host'])) {
+            throw new RuntimeException(sprintf('EtcdClient: cannot parse URI "%s".', $uri));
         }
 
         $scheme = self::UPSTREAM_SCHEMES[$parts['scheme'] ?? self::PLAIN_SCHEME] ?? null;
 
-        if ($scheme === null) {
-            throw new \RuntimeException(sprintf(
+        if (null === $scheme) {
+            throw new RuntimeException(sprintf(
                 'EtcdClient: unsupported URI scheme "%s://" in "%s" (expected "%s://" or "%s://").',
                 $parts['scheme'] ?? '',
                 $uri,
@@ -72,13 +73,13 @@ final readonly class EtcdClient implements RemoteKeyValueClient
         $response = $this->http->request('GET', $url);
 
         if (!$response->isSuccess()) {
-            throw new \RuntimeException(sprintf('etcd request "%s" failed: %d.', $url, $response->status));
+            throw new RuntimeException(sprintf('etcd request "%s" failed: %d.', $url, $response->status));
         }
 
         $data = $response->json();
 
         if (!is_array($data) || !isset($data['node']) || !is_array($data['node'])) {
-            throw new \RuntimeException(sprintf('etcd response for "%s" had no node tree.', $url));
+            throw new RuntimeException(sprintf('etcd response for "%s" had no node tree.', $url));
         }
 
         $tree = [];
@@ -98,7 +99,7 @@ final readonly class EtcdClient implements RemoteKeyValueClient
             $keyValue = $node['key'] ?? '';
             $relative = $this->relativeKey(is_string($keyValue) ? $keyValue : '', $prefix);
 
-            if ($relative !== '') {
+            if ('' !== $relative) {
                 $value = $node['value'];
                 $this->assign($tree, $relative, is_string($value) ? $value : '');
             }
@@ -121,7 +122,7 @@ final readonly class EtcdClient implements RemoteKeyValueClient
     {
         $key = ltrim($key, '/');
 
-        if ($prefix === '') {
+        if ('' === $prefix) {
             return $key;
         }
 
@@ -145,7 +146,7 @@ final readonly class EtcdClient implements RemoteKeyValueClient
         $node = &$tree;
 
         foreach ($segments as $segment) {
-            if ($segment === '') {
+            if ('' === $segment) {
                 continue;
             }
 

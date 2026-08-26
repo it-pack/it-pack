@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\Exception\ReadException;
+use Throwable;
 
 /**
  * Reader decorator that transparently decrypts annotated values.
@@ -42,7 +43,7 @@ final class DecryptingReader implements ConfigurationReaderInterface
             if (str_starts_with(strtolower($trimmed), $marker)) {
                 try {
                     return $this->decrypter->decrypt(substr($trimmed, $length));
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     throw new ReadException(
                         sprintf('Failed to decrypt resource "%s": %s', $resource->uri(), $e->getMessage()),
                         0,

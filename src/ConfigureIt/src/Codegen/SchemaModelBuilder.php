@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Codegen\Model\Property;
 use Nette\Schema\Elements\Structure;
 use Nette\Schema\Elements\Type;
 use Nette\Schema\Schema as NetteSchema;
+use ReflectionProperty;
 
 /**
  * Walks a Nette Schema definition and produces the set of DTO models to generate.
@@ -49,8 +50,8 @@ final class SchemaModelBuilder
             /** @var string $type */
             $type = $this->readPrivate($schema, 'type');
 
-            if ($type === 'array' || $type === 'list') {
-                return $this->wrapScalar('value', $type === 'list' ? 'list' : 'map', 'mixed', 'get', $ownerClass);
+            if ('array' === $type || 'list' === $type) {
+                return $this->wrapScalar('value', 'list' === $type ? 'list' : 'map', 'mixed', 'get', $ownerClass);
             }
 
             $mapped = $this->mapScalar($type);
@@ -72,8 +73,12 @@ final class SchemaModelBuilder
     /**
      * @param list<DtoModel> $models
      */
-    private function modelFromStructure(Structure $structure, string $ownerClass, array &$models, bool $isRoot): DtoModel
-    {
+    private function modelFromStructure(
+        Structure $structure,
+        string $ownerClass,
+        array &$models,
+        bool $isRoot,
+    ): DtoModel {
         /** @var array<string, NetteSchema> $items */
         $items = $this->readPrivate($structure, 'items');
 
@@ -102,8 +107,14 @@ final class SchemaModelBuilder
             /** @var string $type */
             $type = $this->readPrivate($child, 'type');
 
-            if ($type === 'list' || $type === 'array') {
-                return $this->propertyForCollection($name, $type === 'list' ? 'list' : 'map', $child, $ownerClass, $models);
+            if ('list' === $type || 'array' === $type) {
+                return $this->propertyForCollection(
+                    $name,
+                    'list' === $type ? 'list' : 'map',
+                    $child,
+                    $ownerClass,
+                    $models,
+                );
             }
 
             $mapped = $this->mapScalar($type);
@@ -117,8 +128,13 @@ final class SchemaModelBuilder
     /**
      * @param list<DtoModel> $models
      */
-    private function propertyForCollection(string $name, string $kind, Type $child, string $ownerClass, array &$models): Property
-    {
+    private function propertyForCollection(
+        string $name,
+        string $kind,
+        Type $child,
+        string $ownerClass,
+        array &$models,
+    ): Property {
         $itemsValue = $this->readPrivate($child, 'itemsValue');
 
         if ($itemsValue instanceof Structure) {
@@ -128,7 +144,7 @@ final class SchemaModelBuilder
             return new Property(
                 $name,
                 $kind,
-                $kind === 'list' ? "array<int, $nested>" : "array<string, $nested>",
+                'list' === $kind ? "array<int, $nested>" : "array<string, $nested>",
                 'get',
                 $nested,
             );
@@ -142,7 +158,7 @@ final class SchemaModelBuilder
             return new Property(
                 $name,
                 $kind,
-                $kind === 'list' ? "array<int, {$mapped[0]}>" : "array<string, {$mapped[0]}>",
+                'list' === $kind ? "array<int, {$mapped[0]}>" : "array<string, {$mapped[0]}>",
                 'get',
                 null,
                 $mapped[0],
@@ -153,7 +169,7 @@ final class SchemaModelBuilder
         return new Property(
             $name,
             $kind,
-            $kind === 'list' ? 'array<int, mixed>' : 'array<string, mixed>',
+            'list' === $kind ? 'array<int, mixed>' : 'array<string, mixed>',
             'get',
             null,
             'mixed',
@@ -176,11 +192,23 @@ final class SchemaModelBuilder
         };
     }
 
-    private function wrapScalar(string $name, string $kind, string $phpType, string $readMethod, string $ownerClass): DtoModel
-    {
+    private function wrapScalar(
+        string $name,
+        string $kind,
+        string $phpType,
+        string $readMethod,
+        string $ownerClass,
+    ): DtoModel {
         return new DtoModel(
             $ownerClass,
-            [new Property($name, $kind, $kind === 'list' ? "array<int, $phpType>" : "array<string, $phpType>", $readMethod)],
+            [
+                new Property(
+                    $name,
+                    $kind,
+                    'list' === $kind ? "array<int, $phpType>" : "array<string, $phpType>",
+                    $readMethod,
+                ),
+            ],
             false,
         );
     }
@@ -195,7 +223,7 @@ final class SchemaModelBuilder
      */
     private function readPrivate(object $object, string $property): mixed
     {
-        $reflection = new \ReflectionProperty($object, $property);
+        $reflection = new ReflectionProperty($object, $property);
         $reflection->setAccessible(true);
 
         return $reflection->getValue($object);

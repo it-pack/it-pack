@@ -430,6 +430,33 @@ whitespace/import churn; big diffs, low semantics.
 AGENTS.md (declaration-order rule restated; import policy: classes + functions imported),
 CHANGELOG, REVIEW: NV12, NV14, NV15, NV18, NV21, NV22 → Resolved.
 
+### Status
+
+✅ done (2026-08-26).
+
+- Three hand-policed conventions are now enforced fixer rules: `yoda_style`
+  (`equal`/`identical`), `global_namespace_import` (classes **and** functions), and
+  `ordered_class_elements`. `composer cs:fix` auto-fixed the seven NV12 member-order
+  deviations (`ConfigurationSnapshot`, `DocumentNormalizer`, `Provenance`, `Output`, `Key`,
+  `NativeConfigurationSchema`, `IncludeProcessor`) and the ~130 NV15 `use function` import
+  sites; `composer cs:check` is clean with all three rules active.
+- 120-column budget enforced: `phpcs.xml.dist` (`Generic.Files.LineLength`, limit 120,
+  `src/` only) wired as `composer lint:length`; the ~41 long lines were hand-wrapped —
+  **0 violations**.
+- NV21: `resolveResources()` materializes non-array iterables via
+  `iterator_to_array($sources, false)` so an empty generator falls back to defaults;
+  covered by a dedicated test. NV22 cosmetics applied (double blank line removed,
+  `composeReporter()` brace on its own line, `0o777` → `0o700` in tests).
+- Dormant QA tools wired: `deptrac.yaml` (baseline layer map, **0 violations**;
+  `composer architecture`) and `phpmnd` (`composer lint:magic`, curated ignore list,
+  **0 magic numbers**). The `pdepend`/`phpmd` 8.5 parser crash is recorded as an upstream
+  watch-item.
+- Gates: `composer analyse` **0 errors** · `composer cs:check` **0 files** ·
+  `composer test:unit` **868 tests** · `composer test:integration` **21 tests** ·
+  `composer coverage:check` **98.10 % statements / 97.39 % elements** (≥ 95 %) ·
+  `composer architecture` **0 violations** · `composer lint:length` **0** ·
+  `composer lint:magic` **0**.
+
 ---
 
 ## Milestone 5 — Contracts completion
@@ -595,7 +622,7 @@ if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
 | 1 | Transport & storage security hardening | NV2–NV6, NV17½ | M | M | ✅ Done (2026-08-26) |
 | 2 | Mutation testing online (Infection × Codeception adapter) | NV19 | L-M | S | ✅ Done (2026-08-26; MSI baseline pending CI) |
 | 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ✅ Done (2026-08-26) |
-| 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ⬜ Pending |
+| 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ✅ Done (2026-08-26) |
 | 5 | Contracts completion (no abstract, interfaces, vocabularies, R10) | NV7, NV8, NV13, NV16 | M | L | ⬜ Pending |
 | 6 | Composition-root & DI-policy purity | NV9, NV10 | M | M | ⬜ Pending |
 

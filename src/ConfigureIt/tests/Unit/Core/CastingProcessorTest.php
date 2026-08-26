@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Core;
 
+use function array_keys;
+
 use Codeception\Test\Unit;
+
+use function get_debug_type;
+
 use ItPack\ConfigureIt\Core\CastingProcessor;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Exception\CastException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
+use stdClass;
 
 class CastingProcessorTest extends Unit
 {
@@ -82,13 +88,6 @@ class CastingProcessorTest extends Unit
         new CastingProcessor(['port' => 'array'])->process($graph);
     }
 
-    private function cast(string $type, mixed $value): mixed
-    {
-        $graph = new ConfigurationGraph([new ConfigurationNode('k', $value, 'ini', 10)]);
-
-        return new CastingProcessor(['k' => $type])->process($graph)->node('k')->value();
-    }
-
     /**
      * The full accepted coercion matrix: untyped sources (INI, ENV, XML) hand in
      * strings, so casting must be lenient in exactly these cases.
@@ -100,7 +99,7 @@ class CastingProcessorTest extends Unit
         $actual = $this->cast($type, $input);
 
         verify($actual)->equals($expected);
-        verify(\get_debug_type($actual))->equals($expectedType);
+        verify(get_debug_type($actual))->equals($expectedType);
     }
 
     /**
@@ -192,7 +191,7 @@ class CastingProcessorTest extends Unit
 
             'string rejects null'       => ['string', null, 'Cannot cast key "k" to string.'],
             'string rejects array'      => ['string', ['a'], 'Cannot cast key "k" to string.'],
-            'string rejects object'     => ['string', new \stdClass(), 'Cannot cast key "k" to string.'],
+            'string rejects object'     => ['string', new stdClass(), 'Cannot cast key "k" to string.'],
 
             'unknown type'              => ['datetime', 'now', 'Unknown cast type "datetime" for key "k".'],
             'empty type'                => ['', 'x', 'Unknown cast type "" for key "k".'],
@@ -234,6 +233,13 @@ class CastingProcessorTest extends Unit
 
         verify($next->node('a')->value())->equals('1');
         verify($next->node('b')->value())->equals('two');
-        verify(\array_keys($next->nodes()))->equals(['a', 'b']);
+        verify(array_keys($next->nodes()))->equals(['a', 'b']);
+    }
+
+    private function cast(string $type, mixed $value): mixed
+    {
+        $graph = new ConfigurationGraph([new ConfigurationNode('k', $value, 'ini', 10)]);
+
+        return new CastingProcessor(['k' => $type])->process($graph)->node('k')->value();
     }
 }

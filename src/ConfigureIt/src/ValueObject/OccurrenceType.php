@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use InvalidArgumentException;
+
 /**
  * Closed vocabulary of resolution-time {@see Occurrence} types.
  *
@@ -13,6 +15,14 @@ namespace ItPack\ConfigureIt\ValueObject;
  */
 enum OccurrenceType: string
 {
+    /**
+     * @throws InvalidArgumentException when the occurrence type is unknown.
+     */
+    public static function fromString(string $value): self
+    {
+        return self::tryFrom($value)
+            ?? throw new InvalidArgumentException(sprintf('Unknown occurrence type "%s".', $value));
+    }
     case Loaded = 'ConfigurationLoaded';
     case Merged = 'ConfigurationMerged';
     case Validated = 'ConfigurationValidated';
@@ -21,13 +31,4 @@ enum OccurrenceType: string
     case Drift = 'ConfigurationDrift';
     case Reloaded = 'ConfigurationReloaded';
     case Changed = 'ConfigurationChanged';
-
-    /**
-     * @throws \InvalidArgumentException when the occurrence type is unknown.
-     */
-    public static function fromString(string $value): self
-    {
-        return self::tryFrom($value)
-            ?? throw new \InvalidArgumentException(sprintf('Unknown occurrence type "%s".', $value));
-    }
 }

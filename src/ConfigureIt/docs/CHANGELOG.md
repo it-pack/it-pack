@@ -55,6 +55,36 @@ and `ROADMAP.md`).
     **889 tests** (868 Unit + 21 Integration), PHPStan level 9 **0 errors**,
     `php-cs-fixer` **0 files to fix**.
 
+- **Milestone 4 — House style mechanized & hygiene sweep (REVIEW NV12, NV14, NV15, NV18, NV21, NV22)**
+  - **Conventions now enforced by cs-fixer** (previously hand-policed): `yoda_style`
+    (`equal` + `identical`), `global_namespace_import` (classes **and** functions are
+    imported, so the 71 previously-unimported global symbols — `\count`, `\sprintf`,
+    `\is_string`, … — are now `use function` imports), and `ordered_class_elements`
+    (traits → const → property → construct → public-static → public → protected →
+    private). `composer cs:fix` auto-fixed the seven NV12 member-order deviations and the
+    ~130 NV15 import sites; `composer cs:check` is clean with all three rules active.
+  - **120-column budget enforced** via `phpcs.xml.dist` (`Generic.Files.LineLength`,
+    limit 120, `src/` only) wired as `composer lint:length`; the ~41 long lines (NV14)
+    were hand-wrapped and now report 0 violations.
+  - **Resolver iterable edge (NV21):** `resolveResources()` materializes non-array
+    iterables with `iterator_to_array($sources, false)` so an empty generator correctly
+    falls back to default sources; covered by a dedicated empty-generator test.
+  - **Cosmetics (NV22):** dropped the double blank line in `IncludeProcessor`;
+    `DefaultConfigurationWiring::composeReporter()` opening brace moved to its own line;
+    scratch-dir `0o777` in tests replaced with `0o700`.
+  - **Dormant QA tools wired into composer gates:**
+    - `composer architecture` → `vendor/bin/deptrac analyse` with `deptrac.yaml` encoding
+      today's actual layer edges (Contract / ValueObject / Core / Execution / Cache /
+      Adapter / Bridge / Codegen / CLI / Wiring) as a **baseline** — 0 violations; the map
+      is intentionally permissive and is tightened to enforce architectural intent in
+      Milestone 6.
+    - `composer lint:magic` → `vendor/bin/phpmnd src` with a curated `--ignore-numbers`
+      list (2, 100, 200, 300 — argument counts, rollout percent, HTTP status range);
+      the run reports 0 magic numbers on `src/`.
+  - **Upstream watch-item (NV18 residue):** the `pdepend`/`phpmd` PHP 8.5 parser crash
+    remains an engine-lag issue in the QA base; complexity metrics will be re-introduced
+    when a compatible release ships. Recorded here rather than worked around.
+
 ### Security
 
 - **Milestone 1 — Secure transport & storage defaults (REVIEW NV2–NV6, NV17; ADR-0011)**
