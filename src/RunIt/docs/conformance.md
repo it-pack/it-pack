@@ -113,6 +113,25 @@ vendor/bin/codecept run Conformance
 the bundled adapters through `RunItPortFixture`. That suite is the in-repo
 evidence for the "first-party adapters pass their conformance suites" gate.
 
+## Self-exercised in CI
+
+The project's own suite feeds every bundled verifier end-to-end, so the public
+conformance contract cannot regress silently:
+
+- `RunItPortConformanceTest` runs each verifier against the bundled first-party
+  adapters with happy-path fixtures and asserts **zero** violations.
+- A sibling `*VerifierNegativeTest` per verifier deliberately breaks one port
+  contract at a time (throwing publish/store/redact, non-LIFO context storage,
+  duplicate or invalid identifiers, decreasing clock readings, non-primitive or
+  non-deterministic normalization, mutated supposedly-immutable artifacts) and
+  asserts the verifier reports the expected violation identifier and severity.
+  Every violation branch of every shipped verifier is exercised this way; all
+  `src/Conformance/Verifier/*` classes are covered at ≥95% by these suites.
+- Impure fixture material used to probe mutation-detection branches lives in
+  `tests/Support/Fixture/Conformance/` (`ImpureNormalize*` artifact doubles and
+  the `OverridingPortFixture` decorator); verifier internals carry no test
+  scaffolding.
+
 ## Authoring a new verifier
 
 A new port verifier is a plain class that:
@@ -123,7 +142,8 @@ A new port verifier is a plain class that:
 - does not extend a framework base class.
 
 Add the verifier to `src/Conformance/Verifier/` and, for first-party ports, a
-case in `tests/Conformance/RunItPortConformanceTest.php`.
+case in `tests/Conformance/RunItPortConformanceTest.php` plus negative cases in
+a sibling `*VerifierNegativeTest` that cover every violation branch.
 
 ## Reference
 

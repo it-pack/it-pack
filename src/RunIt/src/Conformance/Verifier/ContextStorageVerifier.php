@@ -9,7 +9,6 @@ use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
-use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use Throwable;
 
 /**
@@ -35,9 +34,10 @@ final class ContextStorageVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        $token = $this->safeAttach($storage, $scope, $result);
-        if ($token === null) {
-            return $result;
+        try {
+            $token = $storage->attach($scope);
+        } catch (Throwable $e) {
+            return $result->add(new ConformanceViolation('attach.throws', sprintf('attach() threw: %s', $e->getMessage())));
         }
 
         $top = $storage->current();
@@ -45,45 +45,39 @@ final class ContextStorageVerifier implements VerifierInterface
             $result = $result->add(new ConformanceViolation('current.after-attach', 'current() did not return the attached scope'));
         }
 
-        $secondToken = $this->safeAttach($storage, $scope, $result);
+        try {
+            $secondToken = $storage->attach($scope);
+        } catch (Throwable $e) {
+            $secondToken = null;
+            $result = $result->add(new ConformanceViolation('attach.throws', sprintf('attach() threw: %s', $e->getMessage())));
+        }
+
         if ($secondToken !== null) {
             if ($storage->current() !== $scope) {
                 $result = $result->add(new ConformanceViolation('current.not-lifo', 'a second attach did not become the current scope'));
             }
 
-            $this->safeDetach($storage, $secondToken, $result);
+            try {
+                $storage->detach($secondToken);
+            } catch (Throwable $e) {
+                $result = $result->add(new ConformanceViolation('detach.throws', sprintf('detach() threw: %s', $e->getMessage())));
+            }
+
             if ($storage->current() !== $scope) {
                 $result = $result->add(new ConformanceViolation('detach.wrong-scope', 'detaching the inner scope did not restore the outer scope'));
             }
         }
 
-        $this->safeDetach($storage, $token, $result);
+        try {
+            $storage->detach($token);
+        } catch (Throwable $e) {
+            $result = $result->add(new ConformanceViolation('detach.throws', sprintf('detach() threw: %s', $e->getMessage())));
+        }
+
         if ($storage->current() !== null) {
             $result = $result->add(new ConformanceViolation('detach.incomplete', 'current() still returned a scope after detaching the last one'));
         }
 
         return $result;
-    }
-
-    private function safeAttach(ContextStorageInterface $storage, ExecutionScopeInterface $scope, ConformanceResult $result): ?ContextTokenInterface
-    {
-        try {
-            $token = $storage->attach($scope);
-        } catch (Throwable $e) {
-            $result->add(new ConformanceViolation('attach.throws', sprintf('attach() threw: %s', $e->getMessage())));
-
-            return null;
-        }
-
-        return $token;
-    }
-
-    private function safeDetach(ContextStorageInterface $storage, ContextTokenInterface $token, ConformanceResult $result): void
-    {
-        try {
-            $storage->detach($token);
-        } catch (Throwable $e) {
-            $result->add(new ConformanceViolation('detach.throws', sprintf('detach() threw: %s', $e->getMessage())));
-        }
     }
 }

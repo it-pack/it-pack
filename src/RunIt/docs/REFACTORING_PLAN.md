@@ -191,7 +191,24 @@ signal, not just CI folklore.
 
 ## Phase 2 — Conformance kit self-exercise (REVIEW §3 P1-3)
 
-> **Status: Pending**
+> **Status: Complete (2026-08-26).**
+> Happy-path coverage already existed (`tests/Conformance/RunItPortConformanceTest.php`,
+> zero-violation assertions per bundled adapter). T2.1 added a negative suite — nine
+> `*VerifierNegativeTest` classes in `tests/Conformance/` (43 tests) — that breaks one
+> port contract at a time and asserts the expected violation identifier and severity,
+> including the mutation-detection branches via impure fixture doubles
+> (`tests/Support/Fixture/Conformance/ImpureNormalizeArtifact|Observation|Snapshot`) and
+> the typed `OverridingPortFixture` decorator; `RunItPortFixture` itself is untouched.
+> Every `src/Conformance/Verifier/*` class now measures **100% line coverage** from the
+> Conformance suite alone (target ≥95%). **Deviation recorded:** the plan's
+> "keep verifier internals untouched" constraint could not hold — the new negative tests
+> proved that `ContextStorageVerifier::safeAttach()/safeDetach()` and
+> `SerializerVerifier::checkNormalize()` called `$result->add(...)` on the immutable
+> result and discarded the returned instance, silently dropping `attach.throws`,
+> `detach.throws`, and all `normalize.*` findings. Both verifiers were fixed to thread
+> the updated `ConformanceResult` through; this is precisely the silent-regression class
+> Phase 2 exists to catch. `docs/conformance.md` gained the "Self-exercised in CI"
+> paragraph.
 
 Goal: the project's own suite must feed every bundled verifier end-to-end, so
 the public conformance contract cannot regress silently

@@ -49,32 +49,31 @@ final class SerializerVerifier implements VerifierInterface
         ];
 
         foreach ($samples as $label => $data) {
-            $this->checkNormalize($serializer, $label, $data, $result);
+            $result = $this->checkNormalize($serializer, $label, $data, $result);
         }
 
         return $result;
     }
 
-    private function checkNormalize(SerializerInterface $serializer, string $label, mixed $data, ConformanceResult $result): void
+    private function checkNormalize(SerializerInterface $serializer, string $label, mixed $data, ConformanceResult $result): ConformanceResult
     {
         try {
             $first = $serializer->normalize($data);
             $second = $serializer->normalize($data);
         } catch (Throwable $e) {
-            $result->add(new ConformanceViolation(sprintf('normalize.%s.throws', $label), sprintf('normalize() threw for %s: %s', $label, $e->getMessage())));
-
-            return;
+            return $result->add(new ConformanceViolation(sprintf('normalize.%s.throws', $label), sprintf('normalize() threw for %s: %s', $label, $e->getMessage())));
         }
 
         if (!$this->isRecursivelyPrimitive($first)) {
-            $result->add(new ConformanceViolation(sprintf('normalize.%s.not-primitive', $label), 'normalize() returned a structure containing PHP objects, resources, or closures'));
+            $result = $result->add(new ConformanceViolation(sprintf('normalize.%s.not-primitive', $label), 'normalize() returned a structure containing PHP objects, resources, or closures'));
         }
 
         if (json_encode($first) !== json_encode($second)) {
-            $result->add(new ConformanceViolation(sprintf('normalize.%s.not-deterministic', $label), 'normalize() was not deterministic for the same input'));
+            $result = $result->add(new ConformanceViolation(sprintf('normalize.%s.not-deterministic', $label), 'normalize() was not deterministic for the same input'));
         }
-    }
 
+        return $result;
+    }
     private function isRecursivelyPrimitive(mixed $value): bool
     {
         if (is_object($value) || is_resource($value)) {
