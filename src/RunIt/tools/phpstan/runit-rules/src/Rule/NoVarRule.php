@@ -40,7 +40,8 @@ final class NoVarRule extends AbstractSrcRule implements Rule
             return [];
         }
 
-        $hasVisibility = ($node->flags & (Class_::MODIFIER_PUBLIC | Class_::MODIFIER_PROTECTED | Class_::MODIFIER_PRIVATE)) !== 0;
+        $hasVisibility = ($node->flags
+            & (Class_::MODIFIER_PUBLIC | Class_::MODIFIER_PROTECTED | Class_::MODIFIER_PRIVATE)) !== 0;
 
         if ($hasVisibility) {
             return [];

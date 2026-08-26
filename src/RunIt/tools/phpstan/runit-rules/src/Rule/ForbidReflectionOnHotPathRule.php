@@ -55,13 +55,12 @@ final class ForbidReflectionOnHotPathRule extends AbstractSrcRule implements Rul
 
         $name = null;
 
-        if ($node instanceof Node\Expr\New_ && $node->class instanceof Node\Name) {
-            $name = $node->class->toString();
-        } elseif ($node instanceof Node\Expr\StaticCall && $node->class instanceof Node\Name) {
-            $name = $node->class->toString();
-        } else {
+        if (!($node instanceof Node\Expr\New_ && $node->class instanceof Node\Name)
+            && !($node instanceof Node\Expr\StaticCall && $node->class instanceof Node\Name)) {
             return [];
         }
+
+        $name = $node->class->toString();
 
         if (stripos($name, 'Reflection') !== 0) {
             return [];

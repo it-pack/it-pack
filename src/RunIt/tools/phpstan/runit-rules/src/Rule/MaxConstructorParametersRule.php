@@ -68,10 +68,11 @@ final class MaxConstructorParametersRule extends AbstractSrcRule implements Rule
             return [];
         }
 
-        return [RuleErrorBuilder::message(sprintf(
-            'Constructor has %d parameters; the maximum allowed is %d (RunIt T3.1). Extract a cohesive dependency group or builder.',
-            $count,
-            $this->maxParameters,
-        ))->identifier('runit.maxConstructorParameters')->build()];
+        $message = 'Constructor has %d parameters; the maximum allowed is %d '
+            . '(RunIt T3.1). Extract a cohesive dependency group or builder.';
+
+        return [RuleErrorBuilder::message(sprintf($message, $count, $this->maxParameters))
+            ->identifier('runit.maxConstructorParameters')
+            ->build()];
     }
 }

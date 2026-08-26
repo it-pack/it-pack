@@ -44,11 +44,6 @@ final readonly class StringValueValidator implements StringValueValidatorInterfa
 
     private const string ALLOWED = KeyPattern::VALIDATED_KEY;
 
-    public function validate(string $value): void
-    {
-        self::assertValid($value);
-    }
-
     /**
      * Applies the default rules without requiring an instance.
      *
@@ -69,5 +64,10 @@ final readonly class StringValueValidator implements StringValueValidatorInterfa
         if (preg_match(self::ALLOWED, $value) !== 1) {
             throw InvalidStringValueException::unsupportedCharacters();
         }
+    }
+
+    public function validate(string $value): void
+    {
+        self::assertValid($value);
     }
 }

@@ -112,6 +112,11 @@ final readonly class CloudEvent
         );
     }
 
+    public static function isValidExtensionKey(string $key): bool
+    {
+        return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
+    }
+
     public function withExtensions(array $extensions): self
     {
         return new self(
@@ -163,10 +168,5 @@ final readonly class CloudEvent
         }
 
         return $event;
-    }
-
-    public static function isValidExtensionKey(string $key): bool
-    {
-        return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
     }
 }

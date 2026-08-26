@@ -31,6 +31,17 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
  */
 final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinatorInterface
 {
+    /**
+     * Returns whether the transition from one status to another is permitted.
+     *
+     * This is the pure, side-effect-free companion to {@see self::transition()} and is
+     * used by tests and tooling to reason about the matrix without completing an execution.
+     */
+    public static function isAllowed(ExecutionStatusInterface $from, ExecutionStatusInterface $to): bool
+    {
+        return $from->canTransitionTo($to);
+    }
+
     public function transition(
         ExecutionInterface $execution,
         ExecutionResultInterface $result,
@@ -61,16 +72,5 @@ final class ExecutionLifecycleCoordinator implements ExecutionLifecycleCoordinat
         }
 
         return $execution->beginRunning();
-    }
-
-    /**
-     * Returns whether the transition from one status to another is permitted.
-     *
-     * This is the pure, side-effect-free companion to {@see self::transition()} and is
-     * used by tests and tooling to reason about the matrix without completing an execution.
-     */
-    public static function isAllowed(ExecutionStatusInterface $from, ExecutionStatusInterface $to): bool
-    {
-        return $from->canTransitionTo($to);
     }
 }

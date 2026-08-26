@@ -183,9 +183,11 @@ final class ApiCompat
                         "Added method to interface {$fqn}::{$name}() (breaks third-party implementers)",
                         $fqn,
                     );
-                } else {
-                    $issues[] = $this->add("Added method {$fqn}::{$name}()", $fqn);
+
+                    continue;
                 }
+
+                $issues[] = $this->add("Added method {$fqn}::{$name}()", $fqn);
             }
 
             if ($old['kind'] === 'enum') {
@@ -348,7 +350,9 @@ final class ApiCompat
         }
 
         if (!is_file($schemaBaseline)) {
-            $this->stdout("No normalization-schema baseline; skipping schema diff (establish at RC via composer api:baseline).\n");
+            $this->stdout(
+                "No normalization-schema baseline; skipping schema diff (establish at RC via composer api:baseline).\n",
+            );
 
             return [];
         }
@@ -361,16 +365,28 @@ final class ApiCompat
             $newFields = $current['artifacts'][$artifact] ?? [];
 
             foreach (array_diff($oldFields, $newFields) as $removed) {
-                $issues[] = $this->break("Normalization schema removed field '{$removed}' from {$artifact}", "schema:{$artifact}");
+                $issues[] = $this->break(
+                    "Normalization schema removed field '{$removed}' from {$artifact}",
+                    "schema:{$artifact}",
+                );
             }
 
             foreach (array_diff($newFields, $oldFields) as $added) {
-                $issues[] = $this->change("Normalization schema added field '{$added}' to {$artifact}", "schema:{$artifact}");
+                $issues[] = $this->change(
+                    "Normalization schema added field '{$added}' to {$artifact}",
+                    "schema:{$artifact}",
+                );
             }
         }
 
-        foreach (array_diff(array_keys($current['artifacts'] ?? []), array_keys($baseline['artifacts'] ?? [])) as $added) {
-            $issues[] = $this->change("Normalization schema added artifact '{$added}'", "schema:{$added}");
+        $currentArtifacts = array_keys($current['artifacts'] ?? []);
+        $baselineArtifacts = array_keys($baseline['artifacts'] ?? []);
+
+        foreach (array_diff($currentArtifacts, $baselineArtifacts) as $added) {
+            $issues[] = $this->change(
+                "Normalization schema added artifact '{$added}'",
+                "schema:{$added}",
+            );
         }
 
         return $issues;
@@ -424,7 +440,10 @@ final class ApiCompat
                 'kind' => $rc->isInterface() ? 'interface' : ($rc->isEnum() ? 'enum' : 'class'),
                 'final' => $rc->isFinal(),
                 'extends' => $rc->getParentClass() !== false ? $rc->getParentClass()->getName() : null,
-                'implements' => array_map(static fn (\ReflectionClass $i): string => $i->getName(), $rc->getInterfaces()),
+                'implements' => array_map(
+                    static fn (\ReflectionClass $i): string => $i->getName(),
+                    $rc->getInterfaces(),
+                ),
                 'constants' => [],
                 'methods' => [],
                 'cases' => [],
@@ -441,7 +460,9 @@ final class ApiCompat
                     continue;
                 }
 
-                if ($m->isStatic() === false && $m->getDeclaringClass()->getName() !== $fqn && $m->getDeclaringClass()->isInternal() === false) {
+                if ($m->isStatic() === false
+                    && $m->getDeclaringClass()->getName() !== $fqn
+                    && $m->getDeclaringClass()->isInternal() === false) {
                     // skip inherited from non-internal parents to keep the surface focused on the declared API
                 }
 
@@ -560,8 +581,13 @@ final class ApiCompat
 
             if (in_array($type, [T_CLASS, T_INTERFACE, T_ENUM], true)) {
                 $candidate = $type;
-            } elseif ($candidate !== null && $type === T_STRING) {
+
+                continue;
+            }
+
+            if ($candidate !== null && $type === T_STRING) {
                 $name = $token[1];
+
                 return $namespace !== '' ? $namespace . '\\' . $name : $name;
             }
         }
@@ -744,11 +770,17 @@ final class ApiCompat
             if ($issue['severity'] === 'break') {
                 $breaks++;
                 $this->stdout("BREAK  {$issue['message']}\n");
-            } elseif ($issue['severity'] === 'change') {
-                $this->stdout("CHANGE {$issue['message']}\n");
-            } else {
-                $this->stdout("ADD    {$issue['message']}\n");
+
+                continue;
             }
+
+            if ($issue['severity'] === 'change') {
+                $this->stdout("CHANGE {$issue['message']}\n");
+
+                continue;
+            }
+
+            $this->stdout("ADD    {$issue['message']}\n");
         }
 
         $this->stdout(sprintf("\n%d backward-compatibility break(s) detected.\n", $breaks));

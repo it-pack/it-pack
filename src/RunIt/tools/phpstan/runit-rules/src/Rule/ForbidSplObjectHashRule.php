@@ -53,8 +53,11 @@ final class ForbidSplObjectHashRule extends AbstractSrcRule implements Rule
             return [];
         }
 
-        return [RuleErrorBuilder::message(
-            'spl_object_hash() must not be used as a cache key; use a WeakMap keyed on the callable object identity (RunIt T3.1).',
-        )->identifier('runit.forbidSplObjectHash')->build()];
+        $message = 'spl_object_hash() must not be used as a cache key; '
+            . 'use a WeakMap keyed on the callable object identity (RunIt T3.1).';
+
+        return [RuleErrorBuilder::message($message)
+            ->identifier('runit.forbidSplObjectHash')
+            ->build()];
     }
 }

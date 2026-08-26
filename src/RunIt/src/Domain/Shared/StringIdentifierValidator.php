@@ -48,11 +48,6 @@ final readonly class StringIdentifierValidator implements StringIdentifierValida
      */
     private const string VISIBLE_ASCII = '/^[\x21-\x7E]++\z/';
 
-    public function validate(string $value): void
-    {
-        self::assertValid($value);
-    }
-
     /**
      * Applies the default rules without requiring an instance.
      *
@@ -76,5 +71,10 @@ final readonly class StringIdentifierValidator implements StringIdentifierValida
         if (preg_match(self::VISIBLE_ASCII, $value) !== 1) {
             throw InvalidIdentifierException::unsupportedCharacters();
         }
+    }
+
+    public function validate(string $value): void
+    {
+        self::assertValid($value);
     }
 }

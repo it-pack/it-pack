@@ -60,6 +60,8 @@ is one component of a broader quality gate.
 | `require-initialized-properties` | Properties are `readonly`, defaulted, or assigned in the class. | src-scoped equivalent of `checkUninitializedProperties`. |
 | `require-readonly-artifact` | Domain artifacts (`Execution`, `Activity`, `Measurement`, `Observation`, `Occurrence`, `Snapshot`) are `readonly`. | ADR-002: artifacts are immutable. |
 | `require-interface` | Every concrete class implements an interface (with a documented exemption list). | "Every concrete class must implement an appropriate interface." |
+| `member-order` | Canonical class-member ordering: trait `use` → constants → properties → constructor → static methods → instance methods, with public before protected/private within each group. | Phase 1 T1.1 / AGENTS.md conventions. |
+| `forbid-leading-backslash-reference` | Inlined leading-backslash FQCNs (written as `\Foo\Bar`) must be replaced by a `use` import; two Swoole probe files are exempt. | Phase 1 T1.2 / REVIEW R-1. |
 
 ### Key decision: explicit `mixed` is permitted
 
@@ -384,11 +386,30 @@ types, and are always acceptable.
 ### Line-length guard (≤120 columns)
 
 `composer lint:length` (`tools/lint/line-length.php`) fails on any code line
-longer than 120 columns in `src` and `tests`; it runs as part of
-`composer quality`. Docblock/comment lines are exempt, and Codeception's
-generated actor artifacts (`tests/Support/_generated`) are ignored. The plan's
-preferred PHPStan `FileRule` variant is not available against the phar-based
-PHPStan build, so the documented `composer lint:length` alternative was chosen.
+longer than 120 columns in `src`, `tests`, **and `tools`** (vendored stubs under
+`tools/**/vendor` are ignored); it runs as part of `composer quality`. Docblock/
+comment lines are exempt, and Codeception's generated actor artifacts
+(`tests/Support/_generated`) are ignored. The plan's preferred PHPStan `FileRule`
+variant is not available against the phar-based PHPStan build, so the documented
+`composer lint:length` alternative was chosen.
+
+### Tooling scope (REVIEW R-5, R-6, R-13)
+
+First-party developer tooling under `tools/` follows the same mechanical
+disciplines as the library:
+
+- **Line length** — `composer lint:length` scans `tools` (see above).
+- **Guard clauses** — `ForbidElseRule` is registered for the `tools` root as well
+  as `src`, so `else`/`elseif` are disallowed in first-party tooling; branches use
+  early-return / `continue` / `match` instead.
+- **No inlined leading-backslash FQCNs** — the `forbid-leading-backslash-reference`
+  rule is registered for the `tests` root; tooling imports its dependencies.
+
+The one sanctioned exception is `Tools\PhpStan\RunitRules\Support\AbstractSrcRule`,
+which is intentionally `abstract`. It is a tooling base class (never shipped in the
+library) and is exempt from the "every concrete class implements an interface" and
+"no abstract classes" expectations; converting it to a trait buys nothing while only
+one such base exists.
 
 ## Mutation testing (M13.5)
 

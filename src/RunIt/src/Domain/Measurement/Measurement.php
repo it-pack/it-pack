@@ -193,6 +193,13 @@ final readonly class Measurement implements MeasurementInterface
         );
     }
 
+    private static function assertFinite(float $value): void
+    {
+        if (!is_finite($value)) {
+            throw InvalidMeasurementValueException::forNonFiniteValue();
+        }
+    }
+
     public function name(): MeasurementNameInterface
     {
         return $this->name;
@@ -251,12 +258,5 @@ final readonly class Measurement implements MeasurementInterface
             ArtifactField::SEQUENCE => $this->sequence->value(),
             ArtifactField::ATTRIBUTES => $this->attributes->toArray(),
         ];
-    }
-
-    private static function assertFinite(float $value): void
-    {
-        if (!is_finite($value)) {
-            throw InvalidMeasurementValueException::forNonFiniteValue();
-        }
     }
 }

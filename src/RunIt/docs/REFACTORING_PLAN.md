@@ -135,10 +135,25 @@ phase below starts from the committed baseline.
 
 ## Phase 2 — Guards: make the categories non-regrowable
 
-> **Status: Pending**
+> **Status: Done**
 > Converts Phase 1 results into machine enforcement using the repository's established
 > custom-PHPStan-rule pattern (`tools/phpstan/runit-rules`). Also settles the tooling-
 > scope question once (R-5, R-6, R-13).
+>
+> Completion notes:
+> - **T2.1** — `MemberOrderRule` added (`tools/phpstan/runit-rules/src/Rule/MemberOrderRule.php`)
+>   and registered in `extension.neon` (`srcRoot` = `src`). 5 source files were normalized to the
+>   canonical ordering (static methods before instance methods) so the rule starts clean.
+> - **T2.2** — `ForbidLeadingBackslashReferenceRule` added and registered for both `src` and
+>   `tests` roots, with `exemptFiles` for the two sanctioned Swoole probes
+>   (`SwooleRuntimeDetector.php`, `SwooleCoroutineIdProvider.php`). Detection inspects the
+>   original source token (the `NameResolver` rewrites every resolved name to `FullyQualified`,
+>   so the node type alone is insufficient).
+> - **T2.3** — `composer lint:length` now scans `tools` (vendor stubs excluded); long lines in
+>   `ApiCompat.php` and the rule files were wrapped. The four `else`/`elseif` sites
+>   (`ApiCompat.php` :186/:563/:749 and `ForbidReflectionOnHotPathRule` :58/:62) were converted
+>   to guard clauses, and `ForbidElseRule` is now registered for the `tools` root. `AbstractSrcRule`
+>   remains abstract and is recorded as the single sanctioned tooling exception (see QA.md).
 
 ### T2.1 — `MemberOrderRule` (guards T1.1)
 - **Files:** `tools/phpstan/runit-rules/src/Rule/MemberOrderRule.php` (new),

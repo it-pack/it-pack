@@ -54,9 +54,11 @@ final class ForbidArbitraryObjectSerializationRule extends AbstractSrcRule imple
             return [];
         }
 
-        return [RuleErrorBuilder::message(sprintf(
-            'Arbitrary object serialization via %s() is forbidden; use deterministic normalization instead (RunIt M13.2).',
-            $function,
-        ))->identifier('runit.forbidSerialization')->build()];
+        $message = 'Arbitrary object serialization via %s() is forbidden; '
+            . 'use deterministic normalization instead (RunIt M13.2).';
+
+        return [RuleErrorBuilder::message(sprintf($message, $function))
+            ->identifier('runit.forbidSerialization')
+            ->build()];
     }
 }

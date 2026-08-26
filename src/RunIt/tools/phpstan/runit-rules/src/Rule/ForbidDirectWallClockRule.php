@@ -67,10 +67,12 @@ final class ForbidDirectWallClockRule extends AbstractSrcRule implements Rule
             ];
 
             if (in_array($function, $clockFunctions, true)) {
-                return [RuleErrorBuilder::message(sprintf(
-                    'Direct wall-clock call %s() is forbidden outside adapters; use the MonotonicClockInterface port (RunIt M13.2).',
-                    $function,
-                ))->identifier('runit.forbidWallClock.func')->build()];
+                $message = 'Direct wall-clock call %s() is forbidden outside adapters; '
+                    . 'use the MonotonicClockInterface port (RunIt M13.2).';
+
+                return [RuleErrorBuilder::message(sprintf($message, $function))
+                    ->identifier('runit.forbidWallClock.func')
+                    ->build()];
             }
 
             return [];
@@ -81,10 +83,12 @@ final class ForbidDirectWallClockRule extends AbstractSrcRule implements Rule
 
             if (in_array($class, ['DateTime', 'DateTimeImmutable', 'DateTimeZone'], true)
                 || preg_match('/\\\\(DateTime|DateTimeImmutable|DateTimeZone)$/', '\\' . $class) === 1) {
-                return [RuleErrorBuilder::message(sprintf(
-                    'Direct wall-clock construction of %s is forbidden outside adapters; use the MonotonicClockInterface port (RunIt M13.2).',
-                    $class,
-                ))->identifier('runit.forbidWallClock.new')->build()];
+                $message = 'Direct wall-clock construction of %s is forbidden outside adapters; '
+                    . 'use the MonotonicClockInterface port (RunIt M13.2).';
+
+                return [RuleErrorBuilder::message(sprintf($message, $class))
+                    ->identifier('runit.forbidWallClock.new')
+                    ->build()];
             }
         }
 
