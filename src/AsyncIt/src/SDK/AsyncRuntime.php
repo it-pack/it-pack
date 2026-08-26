@@ -7,8 +7,9 @@ namespace ItPack\AsyncIt\SDK;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
+use ItPack\AsyncIt\Contract\TaskChannelInterface;
+use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
-use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -25,7 +26,10 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
  * detaches it under `finally` (conformance Assertion A), so an interleaved task
  * never holds ambient context. Publication is fail-safe (recursion-guarded,
  * health-reported) and the clock is the system monotonic clock — both supplied
- * by RunIt first-party adapters through {@see AsyncRuntimeFactory}.
+ * by RunIt first-party adapters through {@see AsyncRuntimeFactory}. The active
+ * runtime adapter (Swoole/Swow/Revolt/reference) is negotiated from capabilities,
+ * not runtime names; the scheduler, ports, and the {@see self::channel()}/
+ * {@see self::telemetry()} bridges stay identical across every selection.
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
@@ -38,16 +42,36 @@ final readonly class AsyncRuntime implements ExecutionEngineInterface
         private CancellationScopeFactoryInterface $cancellationScopeFactory,
         private IdentifierGeneratorInterface      $idGenerator,
         private EngineCapabilityInterface         $capability,
+        private TaskChannelInterface              $channel,
+        private TelemetryBridgeInterface          $telemetry,
     ) {
     }
 
     /**
-     * Discovers and assembles the reference runtime from RunIt first-party
-     * adapters, returning a ready-to-run {@see ExecutionEngineInterface}.
+     * Discovers and assembles the runtime (negotiated adapter) from RunIt
+     * first-party adapters and the selected native runtime adapter, returning a
+     * ready-to-run {@see ExecutionEngineInterface}.
      */
     public static function discover(): self
     {
         return AsyncRuntimeFactory::create();
+    }
+
+    /**
+     * The negotiated {@see TaskChannelInterface} (native where supported,
+     * emulated otherwise).
+     */
+    public function channel(): TaskChannelInterface
+    {
+        return $this->channel;
+    }
+
+    /**
+     * The lazily-materialised telemetry bridge.
+     */
+    public function telemetry(): TelemetryBridgeInterface
+    {
+        return $this->telemetry;
     }
 
     public function run(ExecutionScopeInterface $scope, callable $operation): mixed

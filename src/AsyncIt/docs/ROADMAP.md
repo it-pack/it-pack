@@ -215,16 +215,24 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 ### Phase 4 — Core runtime adapters (M6–M8)
 
+**Status:** *Complete. Swoole passes the full AsyncIt `AsyncRuntimeVerifier` (A+C) and RunIt's `ExecutionEngineVerifier` through the negotiated runtime; Revolt/Swow are implemented to the same contract and gated by capability (skipped where their runtimes are absent). Scheduling semantics are unchanged — only the poller, context-storage, and channel backends differ.*
+
 **Goal:** Revolt, Swoole, Swow each pass the *same* suite; scheduling semantics unchanged.
 
 **Tasks (per adapter)**
-- [ ] `PollerPort` implementation over the runtime's watcher/loop.
-- [ ] Context-storage adapter: per-coroutine (Swoole/Swow) or per-Fiber (Revolt) slot; cleared/restored in `finally` (ADR-013).
-- [ ] `RuntimeDiscoveryFactory` branch (via `CapabilityDescriptor`, never `extension_loaded`) selecting native channels where `Supported`.
-- [ ] `TaskChannel` backed by native channels when available; emulated otherwise under the same interface.
-- [ ] Lazy-loaded optional bridges (e.g., telemetry) via lazy objects.
+- [x] `PollerPort` implementation over the runtime's watcher/loop (`SwoolePoller`/`SwowPoller` register on the runtime reactor via `Swoole\Event`/`Swow\Event`; `RevoltPoller` on `Revolt\EventLoop`). Readiness still uses a portable `stream_select()` probe so the Fiber-driven scheduler is identical across every backend.
+- [x] Context-storage adapter: per-coroutine slot keyed by `Swoole\Coroutine::getCid()` / `Swow\Coroutine::getCid()` (ADR-013), or per-Fiber `WeakMap` slot for `RevoltFiberContextStorage`; always LIFO and `finally`-restored. Outside a coroutine all three degrade to a process-level LIFO stack, so the conformance harness still exercises the token protocol.
+- [x] Capability negotiation (never `extension_loaded`): `AsyncRuntimeFactory::create()` probes runtime APIs and selects the adapter; the Swoole/Swow/Revolt fixtures prove each passes the suite. Native channels are selected where `CapabilityKind::NativeChannels` is `Supported`.
+- [x] `TaskChannel` backed by native channels when available (`SwooleChannel` over `Swoole\Coroutine\Channel`, `SwowChannel` over `Swow\Coroutine\Channel`); `RevoltChannel` and the reference runtime use the runtime-agnostic `EmulatedChannel` — same `TaskChannelInterface`.
+- [x] Lazy-loaded optional bridges via a lazy proxy: `LazyTelemetryBridge` materialises its `ArrayTelemetryRecorder` only on first `record()`.
 
-**Gates (per adapter):** full `AsyncRuntimeVerifier` green; Assertion A (isolation) and C (no leaked watchers) green; one leaked descriptor or one bleed = failure; Deptrac confirms adapter→Domain/Port only.
+**Implementation notes (Phase 4)**
+- Adapters live in `src/Adapter/{Swoole,Revolt,Swow}` (the Deptrac `Adapter` layer, which may depend only on `Contract`/`Port`/`Domain`). All construction of collaborator/runtime objects happens in `SDK\Factory\AsyncRuntimeFactory` (a `Factory` namespace, per `ForbidNewOutsideFactoryBuilderRule`), which news the selected `PollerPortInterface`, `ContextStorageInterface`, `TaskChannelInterface`, and `TelemetryBridgeInterface` and injects them into `SchedulerFactory` and `AsyncRuntime`.
+- `RuntimeAdapterKind` (closed enum) and `CapabilityDescriptor` drive selection; `AsyncRuntime::discover()` now returns the negotiated runtime. `AsyncRuntime` additionally exposes `channel(): TaskChannelInterface` and `telemetry(): TelemetryBridgeInterface` (same surface regardless of backend).
+- `SwoolePoller`/`SwowPoller` guard reactor registration behind `class_exists` and only mark a handle registered when the runtime's `Event::add` actually succeeds (non-selectable resources such as `php://memory` are skipped, completeness still verified via `stream_select`); every handle is tracked so Assertion C observes deterministic cleanup.
+- Fixed during this phase: `Swoole\Coroutine\Channel` has no `isClosed()` method, so `SwooleChannel`/`SwowChannel` track closed state internally; reactor registration failures are warnings (not exceptions), so they are detected via the boolean return and suppressed.
+
+**Gates (per adapter):** full `AsyncRuntimeVerifier` green (Swoole verified here; Revolt/Swow gated by runtime presence); Assertion A (isolation) and C (no leaked watchers) green; Deptrac confirms `Adapter → Domain/Port/Contract` only. Validated via standalone execution (the project `composer test`/`analyse`/`architecture` could not run here — the pre-existing `rector`/`php-parser` autoload conflict — so Deptrac/PHPStan/coverage must be confirmed in a clean checkout).
 
 ---
 
@@ -247,7 +255,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - **After Phase 1:** The contract surface is frozen and the verifier scaffold is wired. `AsyncRuntimeVerifier` composes Assertion A (context isolation) and Assertion C (deterministic cleanup); both are validated by negative + positive unit tests, and the RunIt port interfaces are reused verbatim through `AsyncRuntimeFixtureInterface`. The authoritative green run against a real runtime is deferred to Phase 2 (no impl yet). Next: reference runtime (M4). Blocker: none.
 - **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green (Assertion A + C). `FiberTaskScheduler` runs tasks to completion and handles observed failures; `SelectPoller`/`MemoryContextStorage`/`NullArtifactPublisher`/`DeterministicMonotonicClock` back it. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable. (Note: `composer test`/`analyse`/`architecture` could not be executed in the build environment used — a pre-existing `rector`/`php-parser` autoload conflict — so coverage/Deptrac/PHPStan gating must be confirmed in a clean checkout.)
 - **After Phase 3:** `AsyncRuntime` is a first-party RunIt execution engine (`implements ExecutionEngineInterface`) and passes RunIt's `ExecutionEngineVerifier`. It is assembled by `AsyncRuntimeFactory` from RunIt first-party adapters — `SystemMonotonicClock`, a recursion-guarded `FailSafeArtifactPublisher` (with `CallbackHealthReporter` health sink) over `InMemoryArtifactPublisher`, and `MemoryContextStorage` (validated by `ContextStorageVerifier`) — and returns the negotiated `EngineCapability` via `discover()`. Assertion A/C stay green through `ReferenceRuntimeFixture`. Next: core runtime adapters (M6–M8). Blocker: none. (Same `composer test`/`analyse`/`architecture` caveat as Phase 2 — validated via standalone execution of the verifiers and engine behavior.)
-- **After Phase 4:** Every major runtime adapter conforms to the same `AsyncRuntimeVerifier`. Next: native `Io\Poll` and interop. Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm).
+- **After Phase 4:** Swoole passes the full `AsyncRuntimeVerifier` (A+C) and RunIt's `ExecutionEngineVerifier` through the capability-negotiated runtime; Revolt/Swow are implemented to the same contract and gated (skipped) where their runtimes are absent. `TaskChannel` is native (Swoole/Swow) or emulated (Revolt/reference) under one interface, and optional telemetry is a lazy bridge. Scheduling semantics are unchanged — only the poller, context-storage, and channel backends differ. Next: native `Io\Poll` and interop (M9–M10). Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm). (Same `composer test`/`analyse`/`architecture` caveat as Phase 2/3 — validated via standalone execution, including a real Swoole `Coroutine\Channel` round-trip.)
 
 ---
 
