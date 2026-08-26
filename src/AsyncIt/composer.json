@@ -12,5 +12,23 @@
             "email": "timomichna@yahoo.de"
         }
     ],
-    "require": {}
+    "require": {},
+    "require-dev": {
+        "just-bases/php-unit-test-base": "^1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "codeception/module-phpbrowser": "^4.1",
+        "codeception/module-asserts": "^3.3",
+        "symfony/http-client": "^8.1",
+        "nyholm/psr7": "^1.8",
+        "psr/clock": "^1.0",
+        "psr/log": "^3.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+        "psr/http-client": "^1.0",
+        "psr/http-server-handler": "^1.0",
+        "open-telemetry/api": "^1.9",
+        "open-telemetry/sdk": "^1.0",
+        "infection/codeception-adapter": "^0.4"
+    }
 }
