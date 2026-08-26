@@ -1,0 +1,16 @@
+{
+    "name": "it-pack/async-it",
+    "description": "Portable, Capability-Oriented Asynchronous Execution and Scheduling for the ItPack Semantic Stack.",
+    "autoload": {
+        "psr-4": {
+            "ItPack\\AsyncIt\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "require": {}
+}
