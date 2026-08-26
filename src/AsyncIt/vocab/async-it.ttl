@@ -1,0 +1,633 @@
+# =============================================================================
+# AsyncIt Scheduling Ontology
+# =============================================================================
+#
+# Design reasoning (brainstorm summary):
+#
+# AsyncIt owns the *progression* of work (the Scheduling/Progress tier of the
+# ItPack stack), not execution semantics. RunIt (run-it.ttl) owns the
+# execution, its immutable context, and telemetry artifacts. Therefore this
+# ontology models the scheduling kernel only:
+#
+#   Task            - the micro-unit of scheduled work (wraps a Fiber);
+#                     belongs to exactly one RunIt execution.
+#   Scheduler       - coordinates task queues, Fiber suspend/resume, timers.
+#   Awaitable       - a cooperation point where a task yields without blocking.
+#   CancellationScope - an observed cancellation state (never preemptive).
+#   Timer           - a monotonic, scheduled delay.
+#   TaskChannel     - synchronization primitive (native or emulated).
+#   Poller /
+#   StreamPollHandle - the OS-readiness notifier and its per-task watcher.
+#   RuntimeAdapter  - Revolt/Swoole/Swow/Native/Select backend.
+#   CapabilityDescriptor / Capability / CapabilityStatus - negotiated power.
+#   ConformanceResult / ConformanceViolation / ViolationSeverity - verifier output.
+#
+# Cross-references to RunIt are intentional (ADR-ITP-002):
+#   - asyncit:Task rdfs:seeAlso runit:Activity (parallel micro-unit).
+#   - asyncit:belongsToExecution has range runit:Execution.
+#   - asyncit:duration / asyncit:taskStartedAt align with runit:duration / runit:startedAt.
+#   - asyncit:ConflictingCompletion maps to runit's conflicting-completion policy (ADR-023).
+#
+# The lifecycle (TaskStatus) and capability status (CapabilityStatus) are
+# closed sets modelled as controlled individuals, matching the enums in code
+# (see docs/ROADMAP.md: "vocabularies live in interfaces").
+# =============================================================================
+
+@prefix :               <https://w3id.org/itpack/asyncit#> .
+@prefix asyncit:        <https://w3id.org/itpack/asyncit#> .
+@prefix runit:          <https://w3id.org/itpack/runit#> .
+@prefix rdf:            <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:           <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:            <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:            <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:           <http://www.w3.org/2004/02/skos/core#> .
+@prefix prov:           <http://www.w3.org/ns/prov#> .
+@prefix qudt:           <http://qudt.org/schema/qudt/> .
+@prefix dcterms:        <http://purl.org/dc/terms/> .
+@prefix vann:           <http://purl.org/vocab/vann/> .
+@prefix vs:             <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+
+# =============================================================================
+# Ontology header
+# =============================================================================
+
+<https://w3id.org/itpack/asyncit>
+    a                   owl:Ontology ;
+    dcterms:title       "AsyncIt Scheduling Ontology"@en ;
+    dcterms:description "Portable, capability-oriented asynchronous scheduling and progression ontology for the ItPack ecosystem. Models the progression of work — tasks, scheduling, awaiting, suspension/resumption, synchronization, and observed cancellation — independently of any runtime, poller, or telemetry engine. Consumes the RunIt execution model rather than redefining it."@en ;
+    dcterms:creator     "ItPack contributors"@en ;
+    dcterms:license     <https://opensource.org/licenses/MIT> ;
+    dcterms:date        "2026-08-26"^^xsd:date ;
+    vann:preferredNamespacePrefix  "asyncit" ;
+    vann:preferredNamespaceUri     "https://w3id.org/itpack/asyncit#" ;
+    owl:imports         <https://w3id.org/itpack/runit> ;
+    owl:imports         <http://www.w3.org/ns/prov> ;
+    rdfs:seeAlso        <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# =============================================================================
+# Core scheduling classes
+# =============================================================================
+
+# --- Scheduler ---------------------------------------------------------------
+
+asyncit:Scheduler
+    a                   owl:Class ;
+    rdfs:label          "Scheduler"@en ;
+    rdfs:comment        "The scheduling engine that coordinates task queues, Fiber suspension/resumption, timers, and cancellation mechanics. The Scheduler is the 'Progress Engine' of the ItPack stack (Tier 4)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Task --------------------------------------------------------------------
+
+asyncit:Task
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Activity ;
+    rdfs:label          "Task"@en ;
+    rdfs:comment        "The micro-unit of scheduled work within an execution. A task wraps a Fiber, belongs to exactly one RunIt execution, and has a closed lifecycle. Distinct from a RunIt Activity: the task is the scheduling-layer unit, the Activity is the semantics-layer unit."@en ;
+    rdfs:seeAlso        runit:Activity ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Awaitable ---------------------------------------------------------------
+
+asyncit:Awaitable
+    a                   owl:Class ;
+    rdfs:label          "Awaitable"@en ;
+    rdfs:comment        "A cooperation point where a task yields control while waiting for a resource (e.g. stream readability, writability, or a timer) without blocking the reactor. Await boundaries are where cancellation is observed."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Cancellation ------------------------------------------------------------
+
+asyncit:CancellationScope
+    a                   owl:Class ;
+    rdfs:label          "Cancellation Scope"@en ;
+    rdfs:comment        "An observed cancellation state. Cancellation is a state change, never a preemptive interruption. Scopes form a parent/child tree; cancelling a parent cascades to children unless a child is explicitly detached."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Timer -------------------------------------------------------------------
+
+asyncit:Timer
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Entity ;
+    rdfs:label          "Timer"@en ;
+    rdfs:comment        "A monotonic scheduled delay registered by a task. Timers are measured with monotonic time (hrtime) and never wall-clock time."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Synchronization ---------------------------------------------------------
+
+asyncit:TaskChannel
+    a                   owl:Class ;
+    rdfs:label          "Task Channel"@en ;
+    rdfs:comment        "A coordination primitive between concurrent tasks. May be native (e.g. Swoole/Swow channels) or emulated; the public interface is identical and the backing is chosen by capability negotiation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Polling -----------------------------------------------------------------
+
+asyncit:Poller
+    a                   owl:Class ;
+    rdfs:label          "Poller"@en ;
+    rdfs:comment        "A readiness notifier. The Poller signals when a descriptor is ready for work; it does NOT manage tasks, timers, or Fiber lifecycles. Implementations: NativePoller (Io\\Poll) and SelectPoller (stream_select fallback)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:StreamPollHandle
+    a                   owl:Class ;
+    rdfs:subClassOf     prov:Entity ;
+    rdfs:label          "Stream Poll Handle"@en ;
+    rdfs:comment        "An OS-level file watcher registered with the Poller by a task. Handles must be explicitly released on terminal transition; a leaked handle is a conformance failure (AsyncRuntimeVerifier Assertion C)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Runtime adapter ---------------------------------------------------------
+
+asyncit:RuntimeAdapter
+    a                   owl:Class ;
+    rdfs:label          "Runtime Adapter"@en ;
+    rdfs:comment        "A backend that translates suspension/resumption and polling into a concrete runtime model (Revolt, Swoole, Swow, Native 8.6 Poller, Select fallback). Adapters never change scheduling semantics."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Capability negotiation --------------------------------------------------
+
+asyncit:CapabilityDescriptor
+    a                   owl:Class ;
+    rdfs:label          "Capability Descriptor"@en ;
+    rdfs:comment        "The queryable, process-boundary source of truth describing the active runtime's negotiated capabilities. Produced once by RuntimeDiscovery."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:Capability
+    a                   owl:Class ;
+    rdfs:label          "Capability"@en ;
+    rdfs:comment        "A single functional capability of the runtime (e.g. fiber execution, edge-triggered polling, native channels, blocking-hook model), bound to a CapabilityStatus."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CapabilityKind
+    a                   owl:Class ;
+    rdfs:label          "Capability Kind"@en ;
+    rdfs:comment        "The functional question a capability answers (e.g. 'Can you run Fibers natively?'). Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CapabilityStatus
+    a                   owl:Class ;
+    rdfs:label          "Capability Status"@en ;
+    rdfs:comment        "The negotiated level of support for a capability. Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:TaskStatus
+    a                   owl:Class ;
+    rdfs:label          "Task Status"@en ;
+    rdfs:comment        "The lifecycle status of a task. Instances are the controlled individuals defined in this vocabulary. Transitions are governed by a closed matrix owned by the Task aggregate."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Conformance -------------------------------------------------------------
+
+asyncit:ConformanceResult
+    a                   owl:Class ;
+    rdfs:label          "Conformance Result"@en ;
+    rdfs:comment        "The outcome of running an AsyncRuntimeVerifier against an adapter. Carries zero or more violations and an overall conformance flag."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:ConformanceViolation
+    a                   owl:Class ;
+    rdfs:label          "Conformance Violation"@en ;
+    rdfs:comment        "A single behavioral-contract breach (or advisory note) reported by a verifier. Carries a stable violation id, a human-readable message, and a severity."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:ViolationSeverity
+    a                   owl:Class ;
+    rdfs:label          "Violation Severity"@en ;
+    rdfs:comment        "Severity of a conformance violation. Instances are the controlled individuals defined in this vocabulary."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Object properties
+# =============================================================================
+
+asyncit:hasTask
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has task"@en ;
+    rdfs:comment        "Links a Scheduler to the tasks it coordinates."@en ;
+    rdfs:domain         asyncit:Scheduler ;
+    rdfs:range          asyncit:Task ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:belongsToExecution
+    a                   owl:ObjectProperty ;
+    rdfs:subPropertyOf  prov:wasInformedBy ;
+    rdfs:label          "belongs to execution"@en ;
+    rdfs:comment        "Links a Task to the RunIt Execution it progresses. A task belongs to exactly one execution."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          runit:Execution ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:awaits
+    a                   owl:ObjectProperty ;
+    rdfs:label          "awaits"@en ;
+    rdfs:comment        "Links a Task to an Awaitable it is suspended on."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          asyncit:Awaitable ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:hasCancellationScope
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has cancellation scope"@en ;
+    rdfs:comment        "Links a Task to the CancellationScope it observes."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          asyncit:CancellationScope ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:parentScope
+    a                   owl:ObjectProperty ;
+    rdfs:label          "parent scope"@en ;
+    rdfs:comment        "Links a nested CancellationScope to its parent. Cancellation cascades parent-to-child unless the child is detached."@en ;
+    rdfs:domain         asyncit:CancellationScope ;
+    rdfs:range          asyncit:CancellationScope ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:hasTimer
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has timer"@en ;
+    rdfs:comment        "Links a Task to a Timer it registered."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          asyncit:Timer ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:registersHandle
+    a                   owl:ObjectProperty ;
+    rdfs:label          "registers handle"@en ;
+    rdfs:comment        "Links a Task to a StreamPollHandle it registered with the Poller. All handles must be released on terminal transition."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          asyncit:StreamPollHandle ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:usesPoller
+    a                   owl:ObjectProperty ;
+    rdfs:label          "uses poller"@en ;
+    rdfs:comment        "Links a Scheduler (or RuntimeAdapter) to the Poller it drives."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( asyncit:Scheduler asyncit:RuntimeAdapter ) ] ;
+    rdfs:range          asyncit:Poller ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:supportsCapability
+    a                   owl:ObjectProperty ;
+    rdfs:label          "supports capability"@en ;
+    rdfs:comment        "Links a RuntimeAdapter to a Capability it provides."@en ;
+    rdfs:domain         asyncit:RuntimeAdapter ;
+    rdfs:range          asyncit:Capability ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:hasCapability
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has capability"@en ;
+    rdfs:comment        "Links a CapabilityDescriptor to a Capability it describes."@en ;
+    rdfs:domain         asyncit:CapabilityDescriptor ;
+    rdfs:range          asyncit:Capability ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:capabilityStatus
+    a                   owl:ObjectProperty ;
+    rdfs:label          "capability status"@en ;
+    rdfs:comment        "Links a Capability to its negotiated CapabilityStatus."@en ;
+    rdfs:domain         asyncit:Capability ;
+    rdfs:range          asyncit:CapabilityStatus ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:taskStatus
+    a                   owl:ObjectProperty ;
+    rdfs:label          "task status"@en ;
+    rdfs:comment        "Links a Task to its current TaskStatus. Value must be one of the TaskStatus individuals."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          asyncit:TaskStatus ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:violationSeverity
+    a                   owl:ObjectProperty ;
+    rdfs:label          "violation severity"@en ;
+    rdfs:comment        "Links a ConformanceViolation to its ViolationSeverity."@en ;
+    rdfs:domain         asyncit:ConformanceViolation ;
+    rdfs:range          asyncit:ViolationSeverity ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:hasViolation
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has violation"@en ;
+    rdfs:comment        "Links a ConformanceResult to a ConformanceViolation it reported."@en ;
+    rdfs:domain         asyncit:ConformanceResult ;
+    rdfs:range          asyncit:ConformanceViolation ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Datatype properties
+# =============================================================================
+
+asyncit:taskId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "task ID"@en ;
+    rdfs:comment        "Stable identifier for a task."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:taskName
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "task name"@en ;
+    rdfs:comment        "Human-readable name for a task."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:taskKind
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "task kind"@en ;
+    rdfs:comment        "The kind or category of task (e.g. 'task.spawn', 'task.delay', 'task.await.readable'). Kinds are extensible strings, not a closed enum."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:capabilityKey
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "capability key"@en ;
+    rdfs:comment        "Functional key identifying the capability kind (e.g. 'fiber.execution')."@en ;
+    rdfs:domain         asyncit:Capability ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:pollHandleId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "poll handle ID"@en ;
+    rdfs:comment        "Stable identifier for a StreamPollHandle."@en ;
+    rdfs:domain         asyncit:StreamPollHandle ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:timerDuration
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "timer duration"@en ;
+    rdfs:comment        "Timer duration in nanoseconds, measured with monotonic time."@en ;
+    rdfs:domain         asyncit:Timer ;
+    rdfs:range          xsd:integer ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:duration
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "duration"@en ;
+    rdfs:comment        "Elapsed duration in nanoseconds, measured with monotonic time. Aligns with runit:duration."@en ;
+    rdfs:domain         [ a owl:UnionOf ; owl:members ( asyncit:Task asyncit:Timer ) ] ;
+    rdfs:range          xsd:integer ;
+    rdfs:seeAlso        runit:duration ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:taskStartedAt
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "task started at"@en ;
+    rdfs:comment        "Timestamp when the task started. Aligns with runit:startedAt."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          xsd:dateTime ;
+    rdfs:seeAlso        runit:startedAt ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:taskEndedAt
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "task ended at"@en ;
+    rdfs:comment        "Timestamp when the task ended. Aligns with runit:endedAt."@en ;
+    rdfs:domain         asyncit:Task ;
+    rdfs:range          xsd:dateTime ;
+    rdfs:seeAlso        runit:endedAt ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:violationId
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "violation ID"@en ;
+    rdfs:comment        "Stable identifier for a conformance violation (e.g. 'context.isolation.bleed')."@en ;
+    rdfs:domain         asyncit:ConformanceViolation ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:violationMessage
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "violation message"@en ;
+    rdfs:comment        "Human-readable description of a conformance violation."@en ;
+    rdfs:domain         asyncit:ConformanceViolation ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Controlled individuals — TaskStatus
+# =============================================================================
+
+asyncit:TaskCreated
+    a                   asyncit:TaskStatus ;
+    rdfs:label          "created"@en ;
+    rdfs:comment        "The task has been defined but not yet started."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:TaskRunning
+    a                   asyncit:TaskStatus ;
+    rdfs:label          "running"@en ;
+    rdfs:comment        "The task is currently in progress (its Fiber is scheduled)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:TaskSucceeded
+    a                   asyncit:TaskStatus ;
+    rdfs:label          "succeeded"@en ;
+    rdfs:comment        "The task completed successfully."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:TaskFailed
+    a                   asyncit:TaskStatus ;
+    rdfs:label          "failed"@en ;
+    rdfs:comment        "The task completed with a failure."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:TaskCancelled
+    a                   asyncit:TaskStatus ;
+    rdfs:label          "cancelled"@en ;
+    rdfs:comment        "The task was cancelled before completion (observed cancellation)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:TaskTimedOut
+    a                   asyncit:TaskStatus ;
+    rdfs:label          "timed out"@en ;
+    rdfs:comment        "The task exceeded its time limit."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+# =============================================================================
+# Controlled individuals — CapabilityStatus
+# =============================================================================
+
+asyncit:CapabilitySupported
+    a                   asyncit:CapabilityStatus ;
+    rdfs:label          "supported"@en ;
+    rdfs:comment        "The runtime provides a native, high-performance implementation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CapabilityEmulated
+    a                   asyncit:CapabilityStatus ;
+    rdfs:label          "emulated"@en ;
+    rdfs:comment        "The feature is provided via a userspace fallback."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CapabilityAdapterOnly
+    a                   asyncit:CapabilityStatus ;
+    rdfs:label          "adapter only"@en ;
+    rdfs:comment        "The feature is accessible only through a vendor-specific bridge."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CapabilityUnavailable
+    a                   asyncit:CapabilityStatus ;
+    rdfs:label          "unavailable"@en ;
+    rdfs:comment        "The capability is not present and cannot be safely emulated."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+# =============================================================================
+# Controlled individuals — ViolationSeverity
+# =============================================================================
+
+asyncit:SeverityError
+    a                   asyncit:ViolationSeverity ;
+    rdfs:label          "error"@en ;
+    rdfs:comment        "A behavioral contract breach. The adapter is non-conformant."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:SeverityWarning
+    a                   asyncit:ViolationSeverity ;
+    rdfs:label          "warning"@en ;
+    rdfs:comment        "An advisory note. The adapter remains conformant but the behavior is noteworthy."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+# =============================================================================
+# Controlled individuals — CapabilityKind
+# =============================================================================
+
+asyncit:CapabilityFiberExecution
+    a                   asyncit:CapabilityKind ;
+    rdfs:label          "fiber execution"@en ;
+    rdfs:comment        "Can you run Fibers natively for suspended work?"@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CapabilityEdgeTriggeredPolling
+    a                   asyncit:CapabilityKind ;
+    rdfs:label          "edge-triggered polling"@en ;
+    rdfs:comment        "Do you support edge-triggered I/O polling?"@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CapabilityNativeChannels
+    a                   asyncit:CapabilityKind ;
+    rdfs:label          "native channels"@en ;
+    rdfs:comment        "Do you provide native CSP-style channels for synchronization?"@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CapabilityBlockingHook
+    a                   asyncit:CapabilityKind ;
+    rdfs:label          "blocking hook model"@en ;
+    rdfs:comment        "Do you support rewriting blocking calls into non-blocking coroutines (e.g. SWOOLE_HOOK_ALL)?"@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+# =============================================================================
+# QUDT alignment — timer/measurement unit references
+# =============================================================================
+
+asyncit:unitNanoSecond
+    a                   owl:NamedIndividual ;
+    owl:sameAs          <http://qudt.org/vocab/unit/NanoSecond> ;
+    rdfs:label          "nanosecond"@en ;
+    rdfs:comment        "Nanosecond time unit. Aligned with QUDT unit:NanoSecond."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.

@@ -1,0 +1,362 @@
+# =============================================================================
+# AsyncIt Scheduling Taxonomy
+# =============================================================================
+#
+# SKOS taxonomy of extensible scheduling vocabularies for the AsyncIt
+# progression engine. Mirrors the structure of RunIt's taxonomy
+# (run-it-taxonomy.ttl). Consumers may extend these concept schemes with their
+# own concepts; closed sets (statuses, severities, capability statuses) live as
+# OWL controlled individuals in async-it.ttl, not here.
+#
+# Cross-reference: AsyncIt publishes scheduler events into the RunIt artifact
+# stream, so its occurrence types follow RunIt's stable, versioned,
+# lowercase naming pattern <organization>.<domain>.<fact>.<version>.
+# =============================================================================
+
+@prefix :               <https://w3id.org/itpack/asyncit/taxonomy#> .
+@prefix asyncit-tax:    <https://w3id.org/itpack/asyncit/taxonomy#> .
+@prefix asyncit:        <https://w3id.org/itpack/asyncit#> .
+@prefix runit-tax:      <https://w3id.org/itpack/runit/taxonomy#> .
+@prefix rdf:            <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:           <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:            <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:            <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:           <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms:        <http://purl.org/dc/terms/> .
+@prefix vann:           <http://purl.org/vocab/vann/> .
+
+# =============================================================================
+# Taxonomy header
+# =============================================================================
+
+<https://w3id.org/itpack/asyncit/taxonomy>
+    a                   owl:Ontology ;
+    dcterms:title       "AsyncIt Scheduling Taxonomy"@en ;
+    dcterms:description "SKOS taxonomy of extensible task kinds, capability keys, scheduler occurrence types, runtime-adapter kinds, and poller kinds for the AsyncIt progression engine. Consumers may extend these concept schemes with their own concepts."@en ;
+    dcterms:creator     "ItPack contributors"@en ;
+    dcterms:license     <https://opensource.org/licenses/MIT> ;
+    dcterms:date        "2026-08-26"^^xsd:date ;
+    vann:preferredNamespacePrefix  "asyncit-tax" ;
+    vann:preferredNamespaceUri     "https://w3id.org/itpack/asyncit/taxonomy#" ;
+    owl:imports         <https://w3id.org/itpack/asyncit> ;
+    rdfs:seeAlso        <https://w3id.org/itpack/asyncit> ;
+.
+
+# =============================================================================
+# Concept schemes
+# =============================================================================
+
+asyncit-tax:TaskKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Task Kind Taxonomy"@en ;
+    rdfs:comment        "Taxonomy of task kinds. Task kinds classify the type of scheduled work a task performs. Extensible: consumers may define additional kinds."@en ;
+    skos:hasTopConcept  asyncit-tax:task-spawn ,
+                        asyncit-tax:task-delay ,
+                        asyncit-tax:task-await-readable ,
+                        asyncit-tax:task-await-writable ,
+                        asyncit-tax:task-channel-send ,
+                        asyncit-tax:task-channel-receive ,
+                        asyncit-tax:task-custom ;
+.
+
+asyncit-tax:CapabilityKeys
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Capability Key Vocabulary"@en ;
+    rdfs:comment        "Recommended standard capability keys for functional negotiation. These are conventions; consumers may use additional keys."@en ;
+    skos:hasTopConcept  asyncit-tax:cap-fiber-execution ,
+                        asyncit-tax:cap-edge-triggered-polling ,
+                        asyncit-tax:cap-native-channels ,
+                        asyncit-tax:cap-blocking-hook-model ;
+.
+
+asyncit-tax:OccurrenceTypes
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Scheduler Occurrence Type Vocabulary"@en ;
+    rdfs:comment        "Recommended stable scheduler occurrence type names, published into the RunIt artifact stream. Occurrence types follow the pattern <organization>.<domain>.<fact>.<version>. Extensible."@en ;
+    skos:hasTopConcept  asyncit-tax:occ-task-spawned ,
+                        asyncit-tax:occ-task-resumed ,
+                        asyncit-tax:occ-task-completed ,
+                        asyncit-tax:occ-cancellation-observed ,
+                        asyncit-tax:occ-handle-released ,
+                        asyncit-tax:occ-conflicting-completion ;
+.
+
+asyncit-tax:RuntimeAdapterKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Runtime Adapter Kind Taxonomy"@en ;
+    rdfs:comment        "Taxonomy of runtime adapter backends. Each adapter translates suspension/resumption and polling into one runtime model."@en ;
+    skos:hasTopConcept  asyncit-tax:adapter-revolt ,
+                        asyncit-tax:adapter-swoole ,
+                        asyncit-tax:adapter-swow ,
+                        asyncit-tax:adapter-native ,
+                        asyncit-tax:adapter-select ;
+.
+
+asyncit-tax:PollerKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Poller Kind Taxonomy"@en ;
+    rdfs:comment        "Taxonomy of poller backends. Pollers are readiness notifiers only; the scheduler owns task control."@en ;
+    skos:hasTopConcept  asyncit-tax:poller-native ,
+                        asyncit-tax:poller-select ;
+.
+
+# =============================================================================
+# Task kind concepts
+# =============================================================================
+
+asyncit-tax:task-spawn
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Task spawn"@en ;
+    skos:notation       "task.spawn" ;
+    skos:definition     "A task that runs a user-supplied closure to completion within an execution."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:task-delay
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Task delay"@en ;
+    skos:notation       "task.delay" ;
+    skos:definition     "A task suspended for a monotonic duration before resuming."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:task-await-readable
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Await readable"@en ;
+    skos:notation       "task.await.readable" ;
+    skos:definition     "A task suspended until a stream becomes readable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:task-await-writable
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Await writable"@en ;
+    skos:notation       "task.await.writable" ;
+    skos:definition     "A task suspended until a stream becomes writable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:task-channel-send
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Channel send"@en ;
+    skos:notation       "task.channel.send" ;
+    skos:definition     "A task suspended while sending on a TaskChannel."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:task-channel-receive
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Channel receive"@en ;
+    skos:notation       "task.channel.receive" ;
+    skos:definition     "A task suspended while receiving from a TaskChannel."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:task-custom
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TaskKinds ;
+    skos:topConceptOf   asyncit-tax:TaskKinds ;
+    skos:prefLabel      "Custom task"@en ;
+    skos:notation       "custom" ;
+    skos:definition     "A custom task kind not covered by the standard taxonomy."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# =============================================================================
+# Capability key concepts
+# =============================================================================
+
+asyncit-tax:cap-fiber-execution
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:CapabilityKeys ;
+    skos:topConceptOf   asyncit-tax:CapabilityKeys ;
+    skos:prefLabel      "Fiber execution"@en ;
+    skos:notation       "fiber.execution" ;
+    skos:definition     "Whether the runtime can run suspended work via native Fibers."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:cap-edge-triggered-polling
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:CapabilityKeys ;
+    skos:topConceptOf   asyncit-tax:CapabilityKeys ;
+    skos:prefLabel      "Edge-triggered polling"@en ;
+    skos:notation       "edge.triggered.polling" ;
+    skos:definition     "Whether the runtime supports edge-triggered I/O polling."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:cap-native-channels
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:CapabilityKeys ;
+    skos:topConceptOf   asyncit-tax:CapabilityKeys ;
+    skos:prefLabel      "Native channels"@en ;
+    skos:notation       "native.channels" ;
+    skos:definition     "Whether the runtime provides native CSP-style channels for synchronization."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:cap-blocking-hook-model
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:CapabilityKeys ;
+    skos:topConceptOf   asyncit-tax:CapabilityKeys ;
+    skos:prefLabel      "Blocking hook model"@en ;
+    skos:notation       "blocking.hook.model" ;
+    skos:definition     "Whether the runtime can rewrite blocking calls into non-blocking coroutines."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# =============================================================================
+# Occurrence type concepts (published into the RunIt artifact stream)
+# =============================================================================
+
+asyncit-tax:occ-task-spawned
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:OccurrenceTypes ;
+    skos:topConceptOf   asyncit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Task spawned"@en ;
+    skos:notation       "itpack.asyncit.task.spawned.v1" ;
+    skos:definition     "Published when a task is spawned by the scheduler."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:occ-task-resumed
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:OccurrenceTypes ;
+    skos:topConceptOf   asyncit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Task resumed"@en ;
+    skos:notation       "itpack.asyncit.task.resumed.v1" ;
+    skos:definition     "Published when a suspended task is resumed by the scheduler."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:occ-task-completed
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:OccurrenceTypes ;
+    skos:topConceptOf   asyncit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Task completed"@en ;
+    skos:notation       "itpack.asyncit.task.completed.v1" ;
+    skos:definition     "Published when a task reaches a terminal status."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:occ-cancellation-observed
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:OccurrenceTypes ;
+    skos:topConceptOf   asyncit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Cancellation observed"@en ;
+    skos:notation       "itpack.asyncit.cancellation.observed.v1" ;
+    skos:definition     "Published when a task observes a cancellation signal and begins structured unwind."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:occ-handle-released
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:OccurrenceTypes ;
+    skos:topConceptOf   asyncit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Handle released"@en ;
+    skos:notation       "itpack.asyncit.handle.released.v1" ;
+    skos:definition     "Published when a StreamPollHandle or timer is released on terminal transition."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:occ-conflicting-completion
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:OccurrenceTypes ;
+    skos:topConceptOf   asyncit-tax:OccurrenceTypes ;
+    skos:prefLabel      "Conflicting completion"@en ;
+    skos:notation       "itpack.asyncit.conflicting.completion.v1" ;
+    skos:definition     "Published when a task receives a conflicting terminal transition (e.g. succeeding an already timed-out task). Aligns with RunIt's ConflictingCompletionException policy (ADR-023)."@en ;
+    rdfs:seeAlso        runit-tax:occ-snapshot-created ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# =============================================================================
+# Runtime adapter kind concepts
+# =============================================================================
+
+asyncit-tax:adapter-revolt
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RuntimeAdapterKinds ;
+    skos:topConceptOf   asyncit-tax:RuntimeAdapterKinds ;
+    skos:prefLabel      "Revolt"@en ;
+    skos:notation       "revolt" ;
+    skos:definition     "Pure-PHP Fiber-based scheduler and event loop driver."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:adapter-swoole
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RuntimeAdapterKinds ;
+    skos:topConceptOf   asyncit-tax:RuntimeAdapterKinds ;
+    skos:prefLabel      "Swoole"@en ;
+    skos:notation       "swoole" ;
+    skos:definition     "C-extension coroutine runtime with edge-triggered polling and native channels."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:adapter-swow
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RuntimeAdapterKinds ;
+    skos:topConceptOf   asyncit-tax:RuntimeAdapterKinds ;
+    skos:prefLabel      "Swow"@en ;
+    skos:notation       "swow" ;
+    skos:definition     "libuv-based engine with native Windows support and native channels."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:adapter-native
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RuntimeAdapterKinds ;
+    skos:topConceptOf   asyncit-tax:RuntimeAdapterKinds ;
+    skos:prefLabel      "Native Poller"@en ;
+    skos:notation       "native" ;
+    skos:definition     "Native PHP 8.6 Io\\Poll readiness notifier used as a poll provider."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:adapter-select
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RuntimeAdapterKinds ;
+    skos:topConceptOf   asyncit-tax:RuntimeAdapterKinds ;
+    skos:prefLabel      "Select Poller"@en ;
+    skos:notation       "select" ;
+    skos:definition      "Reference stream_select fallback with weaker characteristics; never pretends to be the native Poll API."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# =============================================================================
+# Poller kind concepts
+# =============================================================================
+
+asyncit-tax:poller-native
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:PollerKinds ;
+    skos:topConceptOf   asyncit-tax:PollerKinds ;
+    skos:prefLabel      "Native Poller"@en ;
+    skos:notation       "native.poll" ;
+    skos:definition     "PHP 8.6 Io\\Poll readiness notifier (epoll/kqueue/WSAPoll)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:poller-select
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:PollerKinds ;
+    skos:topConceptOf   asyncit-tax:PollerKinds ;
+    skos:prefLabel      "Select Poller"@en ;
+    skos:notation       "select.poll" ;
+    skos:definition     "Legacy stream_select fallback within the descriptor ceiling."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
