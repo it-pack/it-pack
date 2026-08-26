@@ -32,6 +32,10 @@ final readonly class DotenvLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'dotenv-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::DOTENV === $format;

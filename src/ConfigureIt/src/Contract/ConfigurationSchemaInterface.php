@@ -16,5 +16,13 @@ use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
  */
 interface ConfigurationSchemaInterface
 {
+    /**
+     * A short, stable identifier for this schema (e.g. "nette-schema").
+     *
+     * Replaces runtime {@see get_class()} discrimination so compiled-cache
+     * fingerprints stay stable across refactors.
+     */
+    public function name(): string;
+
     public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface;
 }

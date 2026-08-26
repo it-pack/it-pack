@@ -15,5 +15,15 @@ namespace ItPack\ConfigureIt\Contract;
  */
 interface ConfigurationProcessorInterface
 {
+    /**
+     * A short, stable identifier for this processor (e.g. "casting-processor").
+     *
+     * Replaces runtime {@see get_class()} discrimination. When a processor also
+     * implements {@see ProvenanceAwareProcessorInterface} its
+     * {@see ProvenanceAwareProcessorInterface::stageName()} is preferred for
+     * provenance trails; this method backs the non-aware fallback.
+     */
+    public function name(): string;
+
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface;
 }

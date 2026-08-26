@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\YamlLoader;
 use ItPack\ConfigureIt\Core\CastingProcessor;
 use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
+use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
 use ItPack\ConfigureIt\Core\ConfigurationLoaderFactory;
 use ItPack\ConfigureIt\Core\ConfigurationPipeline;
 use ItPack\ConfigureIt\Core\DefaultsProcessor;
@@ -35,7 +36,7 @@ class ConfigurationPipelineStagesTest extends Unit
             new CastingProcessor([
                 'db.port' => 'int',
                 'server.debug' => 'bool',
-            ]),
+            ], new ConfigurationGraphRewriter()),
             new DefaultsProcessor(['server.host' => 'default-host']),
         ]);
 

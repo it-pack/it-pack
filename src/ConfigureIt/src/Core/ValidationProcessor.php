@@ -8,7 +8,9 @@ use function implode;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ValidationException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 use ItPack\ConfigureIt\ValueObject\ValidationMessage;
@@ -24,18 +26,44 @@ use function sprintf;
  * validation run between other processors (e.g. after casting) rather than only
  * at the end.
  *
+ * The immutable per-node rewrite loop (and the optional whole-graph
+ * {@see self::before()} hook) is delegated to an injected
+ * {@see ConfigurationGraphRewriter} collaborator rather than an abstract base
+ * class (see docs/architecture/decisions/ADR-0011-Rewriter-Decomposition.md).
+ *
  * @see docs/architecture/PIPELINE.md "Validation"
  */
-final readonly class ValidationProcessor extends AbstractNodeRewritingProcessor
+final readonly class ValidationProcessor implements
+    ConfigurationProcessorInterface,
+    ProvenanceAwareProcessorInterface
 {
     public function __construct(
         private ConfigurationSchemaInterface $schema,
-        ProcessorStage $stage = ProcessorStage::Validation,
+        private ConfigurationGraphRewriter $rewriter,
+        private ProcessorStage $stage = ProcessorStage::Validation,
     ) {
-        parent::__construct($stage);
     }
 
-    protected function before(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
+    public function name(): string
+    {
+        return 'validation-processor';
+    }
+
+    public function stageName(): string
+    {
+        return $this->stage->value;
+    }
+
+    public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
+    {
+        return $this->rewriter->rewrite(
+            $graph,
+            fn (ConfigurationNodeInterface $node): ConfigurationNodeInterface => $this->rewriteNode($node),
+            fn (ConfigurationGraphInterface $graph): ConfigurationGraphInterface => $this->before($graph),
+        );
+    }
+
+    private function before(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
     {
         $result = $this->schema->validate($graph);
 
@@ -54,7 +82,7 @@ final readonly class ValidationProcessor extends AbstractNodeRewritingProcessor
         throw new ValidationException(implode("\n", $lines), messages: $messages);
     }
 
-    protected function rewrite(ConfigurationNodeInterface $node): ConfigurationNodeInterface
+    private function rewriteNode(ConfigurationNodeInterface $node): ConfigurationNodeInterface
     {
         return $node->withProvenance($node->provenance()->validated($this->stage->value));
     }

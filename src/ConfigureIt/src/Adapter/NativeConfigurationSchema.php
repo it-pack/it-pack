@@ -39,6 +39,11 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
         $this->schema = new Schema($schema);
     }
 
+    public function name(): string
+    {
+        return 'nette-schema';
+    }
+
     public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
     {
         try {

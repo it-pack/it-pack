@@ -29,6 +29,11 @@ class ConfigurationBuilderTest extends Unit
     public function testProcessorIsAppliedDuringResolution(): void
     {
         $suffixer = new class () implements \ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface {
+            public function name(): string
+            {
+                return 'suffixer-processor';
+            }
+
             public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
             {
                 $next = new ConfigurationGraph();

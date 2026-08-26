@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\ValueObject;
 
+use ItPack\ConfigureIt\Contract\ValueObject\DiagnosticsReportInterface;
+
 /**
  * A structured, read-only report of a resolved configuration graph.
  *
@@ -13,7 +15,7 @@ namespace ItPack\ConfigureIt\ValueObject;
  *
  * @see docs/architecture/GRAPH.md "Diagnostics"
  */
-final readonly class DiagnosticsReport
+final readonly class DiagnosticsReport implements DiagnosticsReportInterface
 {
     /**
      * @param list<array{key:string, source:string, shadowed:?string}> $overrides

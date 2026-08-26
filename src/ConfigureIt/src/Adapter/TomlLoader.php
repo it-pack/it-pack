@@ -29,6 +29,10 @@ final readonly class TomlLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'toml-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::TOML === $format;

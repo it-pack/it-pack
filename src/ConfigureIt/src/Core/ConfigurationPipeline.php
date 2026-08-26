@@ -107,6 +107,6 @@ final readonly class ConfigurationPipeline implements ConfigurationPipelineInter
     {
         return $processor instanceof ProvenanceAwareProcessorInterface
             ? $processor->stageName()
-            : get_class($processor);
+            : $processor->name();
     }
 }

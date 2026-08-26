@@ -35,6 +35,11 @@ final readonly class DefaultsProcessor implements ConfigurationProcessorInterfac
     ) {
     }
 
+    public function name(): string
+    {
+        return 'defaults-processor';
+    }
+
     public function stageName(): string
     {
         return ProcessorStage::Defaults->value;

@@ -17,6 +17,15 @@ use ItPack\ConfigureIt\ValueObject\Format;
  */
 interface ConfigurationLoaderInterface
 {
+    /**
+     * A short, stable identifier for this loader (e.g. "json-loader").
+     *
+     * Replaces runtime {@see get_class()} discrimination so telemetry, cache
+     * fingerprints and document source labels stay stable across refactors and
+     * do not leak fully-qualified class names into persisted artifacts.
+     */
+    public function name(): string;
+
     public function supports(Format $format): bool;
 
     /**

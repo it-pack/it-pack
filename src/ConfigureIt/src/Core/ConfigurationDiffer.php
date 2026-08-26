@@ -7,7 +7,9 @@ namespace ItPack\ConfigureIt\Core;
 use function basename;
 use function is_scalar;
 
+use ItPack\ConfigureIt\Contract\ConfigurationDifferInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationDiffInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationDiff;
 
 /**
@@ -19,7 +21,7 @@ use ItPack\ConfigureIt\ValueObject\ConfigurationDiff;
  *
  * @see docs/architecture/GRAPH.md "Graph Diffing"
  */
-final readonly class ConfigurationDiffer
+final readonly class ConfigurationDiffer implements ConfigurationDifferInterface
 {
     public function __construct(
         private RedactingRenderer $renderer = new RedactingRenderer(),
@@ -71,7 +73,7 @@ final readonly class ConfigurationDiffer
      * {@see RedactingRenderer} (M4 — Epic E5.2). Sensitive added/removed/changed
      * values are rendered as the mask regardless of their clear text.
      */
-    public function summarize(ConfigurationDiff $diff): string
+    public function summarize(ConfigurationDiffInterface $diff): string
     {
         if ($diff->empty()) {
             return 'Configuration graphs are identical.';
@@ -79,31 +81,31 @@ final readonly class ConfigurationDiffer
 
         $lines = ['Configuration diff:'];
 
-        if ([] !== $diff->added) {
+        if ([] !== $diff->added()) {
             $lines[] = '  added:';
-            foreach ($diff->added as $key => $value) {
+            foreach ($diff->added() as $key => $value) {
                 $lines[] = sprintf(
                     '    + %s = %s',
                     $key,
-                    $this->renderer->render($value, $diff->addedSensitive[$key] ?? false),
+                    $this->renderer->render($value, $diff->addedSensitive()[$key] ?? false),
                 );
             }
         }
 
-        if ([] !== $diff->removed) {
+        if ([] !== $diff->removed()) {
             $lines[] = '  removed:';
-            foreach ($diff->removed as $key => $value) {
+            foreach ($diff->removed() as $key => $value) {
                 $lines[] = sprintf(
                     '    - %s = %s',
                     $key,
-                    $this->renderer->render($value, $diff->removedSensitive[$key] ?? false),
+                    $this->renderer->render($value, $diff->removedSensitive()[$key] ?? false),
                 );
             }
         }
 
-        if ([] !== $diff->changed) {
+        if ([] !== $diff->changed()) {
             $lines[] = '  changed:';
-            foreach ($diff->changed as $entry) {
+            foreach ($diff->changed() as $entry) {
                 $toSrc = is_scalar($entry['toProvenance']['resourceUri'] ?? null)
                     ? basename((string) $entry['toProvenance']['resourceUri'])
                     : '?';

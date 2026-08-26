@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Core;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationWatcherInterface;
+use ItPack\ConfigureIt\Contract\ReloadableConfigurationInterface;
 use ItPack\ConfigureIt\Execution\Observation;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
@@ -32,7 +33,7 @@ use Throwable;
  *
  * @see docs/ADDITIONAL_FEATURES_PLAN.md §4 "ReloadableConfiguration"
  */
-final class ReloadableConfiguration
+final class ReloadableConfiguration implements ReloadableConfigurationInterface
 {
     private ConfigurationSnapshotInterface $snapshot;
 

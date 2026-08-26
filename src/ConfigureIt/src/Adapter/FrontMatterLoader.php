@@ -32,6 +32,10 @@ final readonly class FrontMatterLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'frontmatter-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::FRONTMATTER === $format;

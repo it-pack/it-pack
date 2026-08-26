@@ -101,7 +101,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
 
             $this->reporter?->record(
                 $this->createOccurrence(
-                    'ConfigurationValidated',
+                    OccurrenceType::Validated->value,
                     [
                         'valid' => $result->valid(),
                         'errors' => count($result->errors()),
@@ -157,7 +157,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
 
         $this->reporter?->record(
             $this->createOccurrence(
-                'ConfigurationResolved',
+                OccurrenceType::Resolved->value,
                 [
                     'nodes' => count($graph->nodes()),
                     'overrides' => count($diagnostics->overrides),
@@ -180,7 +180,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
 
         $this->reporter?->record(
             $this->createOccurrence(
-                'SnapshotCreated',
+                OccurrenceType::SnapshotCreated->value
             )
         );
 
@@ -234,7 +234,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
                     $parsed->toArray(),
                     $resource->format(),
                     $resource->uri(),
-                    get_class($loader),
+                    $loader->name(),
                     $layerId,
                 );
             }

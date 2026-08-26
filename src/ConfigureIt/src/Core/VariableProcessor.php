@@ -30,6 +30,11 @@ final readonly class VariableProcessor implements ConfigurationProcessorInterfac
 {
     private const PATTERN = '/\$\{([a-zA-Z0-9_.]+)\}/';
 
+    public function name(): string
+    {
+        return 'variable-processor';
+    }
+
     public function stageName(): string
     {
         return ProcessorStage::Variable->value;

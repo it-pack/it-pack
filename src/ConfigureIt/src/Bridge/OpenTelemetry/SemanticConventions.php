@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+
 /**
  * OpenTelemetry-aligned semantic conventions for ConfigureIt telemetry.
  *
@@ -71,12 +73,12 @@ final class SemanticConventions
     public static function occurrenceSpan(string $type): ?string
     {
         return match ($type) {
-            'ConfigurationLoaded' => self::SPAN_LOAD,
-            'ConfigurationMerged' => self::SPAN_MERGE,
-            'ConfigurationValidated' => self::SPAN_VALIDATE,
-            'ConfigurationResolved' => self::SPAN_RESOLVE_STAGES,
-            'SnapshotCreated' => self::SPAN_SNAPSHOT,
-            'ConfigurationDrift' => self::SPAN_DRIFT,
+            OccurrenceType::Loaded->value => self::SPAN_LOAD,
+            OccurrenceType::Merged->value => self::SPAN_MERGE,
+            OccurrenceType::Validated->value => self::SPAN_VALIDATE,
+            OccurrenceType::Resolved->value => self::SPAN_RESOLVE_STAGES,
+            OccurrenceType::SnapshotCreated->value => self::SPAN_SNAPSHOT,
+            OccurrenceType::Drift->value => self::SPAN_DRIFT,
             default => null,
         };
     }
@@ -87,12 +89,12 @@ final class SemanticConventions
     public static function occurrenceEvent(string $type): ?string
     {
         return match ($type) {
-            'ConfigurationLoaded' => self::EVENT_LOADED,
-            'ConfigurationMerged' => self::EVENT_MERGED,
-            'ConfigurationValidated' => self::EVENT_VALIDATED,
-            'ConfigurationResolved' => self::EVENT_RESOLVED,
-            'SnapshotCreated' => self::EVENT_SNAPSHOT_CREATED,
-            'ConfigurationDrift' => self::EVENT_DRIFT,
+            OccurrenceType::Loaded->value => self::EVENT_LOADED,
+            OccurrenceType::Merged->value => self::EVENT_MERGED,
+            OccurrenceType::Validated->value => self::EVENT_VALIDATED,
+            OccurrenceType::Resolved->value => self::EVENT_RESOLVED,
+            OccurrenceType::SnapshotCreated->value => self::EVENT_SNAPSHOT_CREATED,
+            OccurrenceType::Drift->value => self::EVENT_DRIFT,
             default => null,
         };
     }
@@ -102,6 +104,6 @@ final class SemanticConventions
      */
     public static function closesTrace(string $type): bool
     {
-        return 'SnapshotCreated' === $type;
+        return OccurrenceType::SnapshotCreated->value === $type;
     }
 }

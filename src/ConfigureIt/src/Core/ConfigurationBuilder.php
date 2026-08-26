@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Core;
 
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationBuilderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLayerInterface;
@@ -34,7 +35,7 @@ use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
  *
  * @see docs/architecture/MODEL.md "Configuration Builder"
  */
-final class ConfigurationBuilder
+final class ConfigurationBuilder implements ConfigurationBuilderInterface
 {
     /**
      * @var list<ConfigurationReaderInterface>

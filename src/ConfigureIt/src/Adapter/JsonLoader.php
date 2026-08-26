@@ -25,6 +25,10 @@ final readonly class JsonLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'json-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::JSON === $format;

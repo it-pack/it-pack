@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
+use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Core\ValidationProcessor;
 use ItPack\ConfigureIt\Exception\ValidationException;
@@ -17,7 +18,7 @@ class ValidationProcessorTest extends Unit
 {
     public function testStageNameIsEnumBackedValue(): void
     {
-        verify(new ValidationProcessor($this->schema(true))->stageName())
+        verify(new ValidationProcessor($this->schema(true), new ConfigurationGraphRewriter())->stageName())
             ->equals('ValidationProcessor')
         ;
     }
@@ -26,7 +27,7 @@ class ValidationProcessorTest extends Unit
     {
         $graph = new ConfigurationGraph([new ConfigurationNode('a', 1, 'base', 10)]);
 
-        $next = new ValidationProcessor($this->schema(true))->process($graph);
+        $next = new ValidationProcessor($this->schema(true), new ConfigurationGraphRewriter())->process($graph);
 
         verify($next->node('a')->provenance()->validatedBy())
             ->equals('ValidationProcessor')
@@ -37,7 +38,7 @@ class ValidationProcessorTest extends Unit
     {
         $graph = new ConfigurationGraph([new ConfigurationNode('a', 1, 'base', 10)]);
 
-        $next = new ValidationProcessor($this->schema(true))->process($graph);
+        $next = new ValidationProcessor($this->schema(true), new ConfigurationGraphRewriter())->process($graph);
 
         verify($next->node('a')->value())->equals(1);
         verify($next->node('a')->provenance()->validatedBy())->notNull();
@@ -47,7 +48,7 @@ class ValidationProcessorTest extends Unit
     {
         $this->expectException(ValidationException::class);
 
-        new ValidationProcessor($this->schema(false))->process(
+        new ValidationProcessor($this->schema(false), new ConfigurationGraphRewriter())->process(
             new ConfigurationGraph([new ConfigurationNode('a', 1, 'base', 10)]),
         );
     }
@@ -57,6 +58,11 @@ class ValidationProcessorTest extends Unit
         return new class ($valid) implements ConfigurationSchemaInterface {
             public function __construct(private bool $valid)
             {
+            }
+
+            public function name(): string
+            {
+                return 'stub-schema';
             }
 
             public function validate(ConfigurationGraphInterface $graph): ValidationResult

@@ -14,6 +14,7 @@ use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 
 /**
  * Decorates the Execution reporter spine with native OpenTelemetry instrumentation.
@@ -81,7 +82,7 @@ final class OpenTelemetryReporter implements ResolutionReporterInterface
             1,
         );
 
-        if ('ConfigurationResolved' === $type) {
+        if (OccurrenceType::Resolved->value === $type) {
             $payload = $occurrence->payload();
 
             $this->sink->measure(

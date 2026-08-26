@@ -419,7 +419,23 @@ and alphabetically ordered with the other imports.
 
 Yoda conditions (`5 === $x`, not `$x === 5`) are enforced.
 
-## Naming
+## Vocabulary home
+
+String vocabularies have a single, intentional home so call sites stop leaking
+raw literals:
+
+- A **single-use** literal becomes a `private const` / `class const` on the
+  class that owns it (e.g. `IncludeProcessor::INCLUDE_SOURCE_PREFIX`,
+  `DocumentNormalizer::SECRET_SCHEMES`).
+- A **shared / cross-layer** vocabulary becomes an interface constant or a
+  `Contract` enum. The canonical example is `OccurrenceType`
+  (`ValueObject`): every call site uses `OccurrenceType::…->value` — never the
+  raw occurrence string (`'ConfigurationValidated'`, …). The same applies to
+  loader/schema/processor identity: they expose `name(): string`
+  (`'json-loader'`, `'nette-schema'`, …) instead of `get_class()`.
+
+Rule of thumb: if the same string could appear in two files, it belongs in a
+shared `Contract` constant/enum, not duplicated as a literal.
 
 Prefer domain language.
 

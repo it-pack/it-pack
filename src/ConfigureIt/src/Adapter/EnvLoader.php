@@ -32,6 +32,10 @@ final readonly class EnvLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'env-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::ENV === $format;

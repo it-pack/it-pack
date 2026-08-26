@@ -18,6 +18,7 @@ use function is_scalar;
 use function is_string;
 
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+use ItPack\ConfigureIt\Contract\ValueObject\FlagDefinitionInterface;
 
 use function sprintf;
 use function strval;
@@ -41,7 +42,7 @@ use function strval;
  *   5. rollout (`rollout`, 0–100): a stable percentage of the bucketing unit
  *      (see `bucketBy`) receives the flag.
  */
-final readonly class FlagDefinition
+final readonly class FlagDefinition implements FlagDefinitionInterface
 {
     /**
      * @param list<string> $environments

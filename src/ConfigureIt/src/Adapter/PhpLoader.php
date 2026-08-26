@@ -29,6 +29,10 @@ final class PhpLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'php-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::PHP === $format;

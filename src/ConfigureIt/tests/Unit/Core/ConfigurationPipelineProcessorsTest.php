@@ -7,6 +7,7 @@ namespace Tests\Unit\Core;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Core\CastingProcessor;
 use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
+use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
 use ItPack\ConfigureIt\Core\ConfigurationPipeline;
 use ItPack\ConfigureIt\Core\DefaultsProcessor;
 use ItPack\ConfigureIt\ValueObject\Format;
@@ -27,7 +28,7 @@ class ConfigurationPipelineProcessorsTest extends Unit
                 'server.port' => 'int',
                 'server.debug' => 'bool',
                 'server.host' => 'string',
-            ]),
+            ], new ConfigurationGraphRewriter()),
         ]);
 
         $graph = $pipeline->run($documents);

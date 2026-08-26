@@ -21,6 +21,7 @@ use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface;
 use ItPack\ConfigureIt\Core\CachingResolver;
 use ItPack\ConfigureIt\Core\ConfigurationCompiler;
+use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
@@ -67,6 +68,11 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
     public function baseExecutionContext(): ExecutionContextInterface
     {
         return new ExecutionContext();
+    }
+
+    public function graphRewriter(): ConfigurationGraphRewriter
+    {
+        return new ConfigurationGraphRewriter();
     }
 
     /**

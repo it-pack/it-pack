@@ -19,6 +19,11 @@ final class StubLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'stub-loader';
+    }
+
     public function supports(Format $format): bool
     {
         return $format === $this->format;

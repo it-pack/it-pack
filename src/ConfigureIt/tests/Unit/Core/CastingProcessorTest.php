@@ -12,6 +12,7 @@ use function get_debug_type;
 
 use ItPack\ConfigureIt\Core\CastingProcessor;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
+use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Exception\CastException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
@@ -33,7 +34,7 @@ class CastingProcessorTest extends Unit
             'ratio' => 'float',
             'debug' => 'bool',
             'name' => 'string',
-        ])->process($graph);
+        ], new ConfigurationGraphRewriter())->process($graph);
 
         verify($next->node('port')->value())->equals(8080);
         verify($next->node('ratio')->value())->equals(0.5);
@@ -47,7 +48,7 @@ class CastingProcessorTest extends Unit
             new ConfigurationNode('port', '8080', 'ini', 10, ['origin' => 'ini']),
         ]);
 
-        $next = new CastingProcessor(['port' => 'int'])->process($graph);
+        $next = new CastingProcessor(['port' => 'int'], new ConfigurationGraphRewriter())->process($graph);
 
         $node = $next->node('port');
         verify($node->source())->equals('ini');
@@ -61,7 +62,7 @@ class CastingProcessorTest extends Unit
             new ConfigurationNode('port', '8080', 'ini', 10),
         ]);
 
-        $next = new CastingProcessor(['missing' => 'int'])->process($graph);
+        $next = new CastingProcessor(['missing' => 'int'], new ConfigurationGraphRewriter())->process($graph);
 
         verify($next->has('missing'))->false();
     }
@@ -74,7 +75,7 @@ class CastingProcessorTest extends Unit
 
         $this->expectException(CastException::class);
 
-        new CastingProcessor(['port' => 'int'])->process($graph);
+        new CastingProcessor(['port' => 'int'], new ConfigurationGraphRewriter())->process($graph);
     }
 
     public function testThrowsOnUnknownType(): void
@@ -85,7 +86,7 @@ class CastingProcessorTest extends Unit
 
         $this->expectException(CastException::class);
 
-        new CastingProcessor(['port' => 'array'])->process($graph);
+        new CastingProcessor(['port' => 'array'], new ConfigurationGraphRewriter())->process($graph);
     }
 
     /**
@@ -204,7 +205,7 @@ class CastingProcessorTest extends Unit
         $node = new ConfigurationNode('untouched', ['deep' => true], 'json', 10);
         $graph = new ConfigurationGraph([$node, new ConfigurationNode('port', '80', 'ini', 10)]);
 
-        $next = new CastingProcessor(['port' => 'int'])->process($graph);
+        $next = new CastingProcessor(['port' => 'int'], new ConfigurationGraphRewriter())->process($graph);
 
         self::assertSame($node, $next->node('untouched'));
         verify($next->node('port')->value())->equals(80);
@@ -212,12 +213,12 @@ class CastingProcessorTest extends Unit
 
     public function testStageNameDefaultsToCasting(): void
     {
-        verify(new CastingProcessor([])->stageName())->equals(ProcessorStage::Casting->value);
+        verify(new CastingProcessor([], new ConfigurationGraphRewriter())->stageName())->equals(ProcessorStage::Casting->value);
     }
 
     public function testStageNameIsOverridable(): void
     {
-        $processor = new CastingProcessor([], ProcessorStage::Validation);
+        $processor = new CastingProcessor([], new ConfigurationGraphRewriter(), ProcessorStage::Validation);
 
         verify($processor->stageName())->equals(ProcessorStage::Validation->value);
     }
@@ -229,7 +230,7 @@ class CastingProcessorTest extends Unit
             new ConfigurationNode('b', 'two', 'ini', 10),
         ]);
 
-        $next = new CastingProcessor([])->process($graph);
+        $next = new CastingProcessor([], new ConfigurationGraphRewriter())->process($graph);
 
         verify($next->node('a')->value())->equals('1');
         verify($next->node('b')->value())->equals('two');
@@ -240,6 +241,6 @@ class CastingProcessorTest extends Unit
     {
         $graph = new ConfigurationGraph([new ConfigurationNode('k', $value, 'ini', 10)]);
 
-        return new CastingProcessor(['k' => $type])->process($graph)->node('k')->value();
+        return new CastingProcessor(['k' => $type], new ConfigurationGraphRewriter())->process($graph)->node('k')->value();
     }
 }

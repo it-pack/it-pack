@@ -155,9 +155,43 @@ and `ROADMAP.md`).
     - `ConfigurationException` (marker base)
     - `ReadException`, `ParseException`, `ValidationException`, `ResolutionException`
 
+- **Milestone 5 — Contracts completion (REVIEW NV7, NV8, NV13, NV16; closes R10)**
+  - **No abstract classes.** `Core\AbstractNodeRewritingProcessor` removed; the
+    immutable node-rewrite loop moved to a new stateless
+    `Core\ConfigurationGraphRewriter` collaborator. `CastingProcessor` and
+    `ValidationProcessor` now implement the processor interfaces and delegate to
+    the injected rewriter (served by the new `graphRewriter()` seam on
+    `ConfigurationWiringInterface`). A `NoAbstractClassesTest` tokenizer guard
+    locks the policy in.
+  - **Open services expose contracts.** New interfaces: `MessageFactoryInterface`,
+    `ConfigurationLoadersInterface`, `ConfigurationBuilderInterface`,
+    `ReloadableConfigurationInterface`, `ConfigurationDifferInterface`,
+    `ConfigurationDiagnosticsInterface`, plus value-object contracts
+    `ConfigurationDiffInterface` / `DiagnosticsReportInterface` /
+    `FlagDefinitionInterface`. Every named concrete now `implements` its contract;
+    an `InterfaceConformanceTest` asserts the bindings. `CommandDecryption` and the
+    internal helpers (`ScalarCaster`, `RedactingRenderer`, `ConfigurationCompiler`,
+    `Key`, `FileModificationProbe`, `TreeBuilder`, `HttpResponse`,
+    `FeatureFlagSchema`, `SemanticConventions`) remain adapter-internal (see
+    PORTS.md).
+  - **Vocabularies hoisted.** Occurrence-type string literals
+    (`'ConfigurationValidated'`, `'ConfigurationResolved'`, `'SnapshotCreated'`)
+    replaced by `OccurrenceType::…->value` at every call site (resolver, OTel
+    reporter, semantic-convention map). The vocabulary-home rule now lives in
+    AGENTS.md (single-use literal → class const; shared/cross-layer vocabulary →
+    interface const or a `Contract` enum).
+
 ### Changed
 
-- **Milestone 2 — DIP purity in the composition root (R7 + R8)**
+- **Milestone 5 — Loader/schema identity strings are now semantic (NV16, R10).**
+  `ConfigurationLoaderInterface`, `ConfigurationSchemaInterface` and
+  `ConfigurationProcessorInterface` gained a `name(): string` method; the four
+  `get_class()` discriminators (resolver source label, compiler cache fingerprint,
+  CLI graph renderer, pipeline stage-name fallback) now read it. Document source
+  labels and compiled-cache fingerprints change from fully-qualified class names
+  to short ids (`'json-loader'`, `'nette-schema'`, `'casting-processor'`, …); the
+  `'include:'` source prefix is now the `INCLUDE_SOURCE_PREFIX` const. **First run
+  after upgrade re-resolves/re-caches** — expected one-time effect, not a bug.- **Milestone 2 — DIP purity in the composition root (R7 + R8)**
   - `src/Core/ConfigurationResolver` — constructor now depends on
     `ConfigurationPipelineInterface` instead of the concrete `ConfigurationPipeline` (R7), in
     line with AGENTS.md ("Core depends on Contracts, not concrete classes").

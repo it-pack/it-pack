@@ -29,6 +29,10 @@ final readonly class IniLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'ini-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::INI === $format;

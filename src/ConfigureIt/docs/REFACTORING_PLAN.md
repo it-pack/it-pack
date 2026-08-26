@@ -541,6 +541,57 @@ PORTS.md (new ports + blessed-internal list), AGENTS.md (vocabulary-home rule),
 ADR for the rewriter decomposition, CHANGELOG, REVIEW: NV7, NV8, NV13, NV16 → Resolved;
 archive-side note that R10 is closed.
 
+### Status
+
+✅ done (2026-08-26).
+
+- **NV7 (last abstract class removed).** {@see
+  ItPack\ConfigureIt\Core\AbstractNodeRewritingProcessor} is deleted; the
+  immutable clone-graph → loop-nodes → put sequence (plus the optional
+  whole-graph `before()` hook) now lives in a stateless
+  {@see ItPack\ConfigureIt\Core\ConfigurationGraphRewriter} collaborator.
+  {@see ItPack\ConfigureIt\Core\CastingProcessor} and
+  {@see ItPack\ConfigureIt\Core\ValidationProcessor} implement both processor
+  interfaces and delegate `process()` to the injected rewriter (obtained from
+  the composition root via the new `graphRewriter()` seam on
+  {@see ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface}).
+  `composer test:unit` includes `NoAbstractClassesTest` (tokenizer guard) so the
+  policy cannot silently regress. `rg -n "abstract (readonly )?class" src/` →
+  **0**.
+- **NV8 (open services expose contracts).** Extracted interfaces:
+  `MessageFactoryInterface`, `ConfigurationLoadersInterface`,
+  `ConfigurationBuilderInterface`, `ReloadableConfigurationInterface`,
+  `ConfigurationDifferInterface`, `ConfigurationDiagnosticsInterface`, and the
+  value-object contracts `ConfigurationDiffInterface` /
+  `DiagnosticsReportInterface` / `FlagDefinitionInterface`. Every named concrete
+  now `implements` its contract; a new `InterfaceConformanceTest` asserts the
+  bindings. `CommandDecryption` and the "bless internal" helpers (ScalarCaster,
+  RedactingRenderer, ConfigurationCompiler, Key, FileModificationProbe,
+  TreeBuilder, HttpResponse, FeatureFlagSchema, SemanticConventions) stay
+  adapter-internal and are noted in PORTS.md.
+- **NV13 (vocabularies hoisted).** The three occurrence-type string literals
+  (`'ConfigurationValidated'`, `'ConfigurationResolved'`, `'SnapshotCreated'`)
+  are replaced by `OccurrenceType::…->value` at every call site (resolver,
+  OpenTelemetry reporter and semantic-convention map). Wire format is unchanged
+  (same string values). AGENTS.md now carries the vocabulary-home rule
+  (single-use literal → class const; shared/cross-layer vocabulary → interface
+  const or a `Contract` enum).
+- **NV16 / R10 (get_class discriminators retired).** Added `name(): string` to
+  `ConfigurationLoaderInterface`, `ConfigurationSchemaInterface` and
+  `ConfigurationProcessorInterface`; the four `get_class()` sites
+  (resolver, compiler fingerprint, CLI graph renderer, pipeline stage-name
+  fallback) now read the semantic name (`'json-loader'`, `'nette-schema'`,
+  …). The `'include:'` source prefix is now the `INCLUDE_SOURCE_PREFIX` const.
+  ⚠️ One-time effect: compiled-cache fingerprints and persisted document source
+  labels change to the short ids (documented under CHANGELOG *Changed*); first
+  run after deploy re-resolves.
+- Gates: `composer analyse` **0 errors** · `composer cs:check` **0 files** ·
+  `composer test:unit` **870 tests** · `composer test:integration` **21 tests** ·
+  `composer coverage:check` **98.10 % statements / 97.39 % elements** (≥ 95 %) ·
+  `composer architecture` **0 violations** (Bridge→ValueObject edge added for
+  the occurrence-enum use) · `composer lint:length` **0** · `composer lint:magic`
+  **0**.
+
 ---
 
 ## Milestone 6 — Composition-root & DI-policy purity
@@ -623,7 +674,7 @@ if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
 | 2 | Mutation testing online (Infection × Codeception adapter) | NV19 | L-M | S | ✅ Done (2026-08-26; MSI baseline pending CI) |
 | 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ✅ Done (2026-08-26) |
 | 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ✅ Done (2026-08-26) |
-| 5 | Contracts completion (no abstract, interfaces, vocabularies, R10) | NV7, NV8, NV13, NV16 | M | L | ⬜ Pending |
+| 5 | Contracts completion (no abstract, interfaces, vocabularies, R10) | NV7, NV8, NV13, NV16 | M | L | ✅ Done (2026-08-26) |
 | 6 | Composition-root & DI-policy purity | NV9, NV10 | M | M | ⬜ Pending |
 
 Dependency notes: 2 → 3 (thresholds meaningful only post-split); 4 → 5 (fixer rules hold

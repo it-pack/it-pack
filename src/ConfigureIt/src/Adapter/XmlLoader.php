@@ -47,6 +47,10 @@ final readonly class XmlLoader implements ConfigurationLoaderInterface
     ) {
     }
 
+    public function name(): string
+    {
+        return 'xml-loader';
+    }
     public function supports(Format $format): bool
     {
         return Format::XML === $format;

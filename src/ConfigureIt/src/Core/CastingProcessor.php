@@ -10,7 +10,10 @@ use function is_int;
 use function is_numeric;
 use function is_string;
 
+use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
+use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\CastException;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 
@@ -28,21 +31,45 @@ use function trim;
  * the "Type Coercion" pipeline stage; it is the counterpart to
  * {@see DefaultsProcessor} for making untyped sources (INI, ENV, XML) safe.
  *
+ * The immutable per-node rewrite loop is delegated to an injected
+ * {@see ConfigurationGraphRewriter} collaborator rather than an abstract base
+ * class (see docs/architecture/decisions/ADR-0011-Rewriter-Decomposition.md).
+ *
  * @see docs/architecture/PIPELINE.md "Casting"
  */
-final readonly class CastingProcessor extends AbstractNodeRewritingProcessor
+final readonly class CastingProcessor implements
+    ConfigurationProcessorInterface,
+    ProvenanceAwareProcessorInterface
 {
     /**
      * @param array<string, string> $casts flat dotted-key → target type.
      */
     public function __construct(
         private array $casts,
-        ProcessorStage $stage = ProcessorStage::Casting,
+        private ConfigurationGraphRewriter $rewriter,
+        private ProcessorStage $stage = ProcessorStage::Casting,
     ) {
-        parent::__construct($stage);
     }
 
-    protected function rewrite(ConfigurationNodeInterface $node): ConfigurationNodeInterface
+    public function name(): string
+    {
+        return 'casting-processor';
+    }
+
+    public function stageName(): string
+    {
+        return $this->stage->value;
+    }
+
+    public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
+    {
+        return $this->rewriter->rewrite(
+            $graph,
+            fn (ConfigurationNodeInterface $node): ConfigurationNodeInterface => $this->rewriteNode($node),
+        );
+    }
+
+    private function rewriteNode(ConfigurationNodeInterface $node): ConfigurationNodeInterface
     {
         $type = $this->casts[$node->key()] ?? null;
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationLoadersInterface;
 
 /**
  * Bundled {@see ConfigurationLoaderInterface} implementations.
@@ -13,7 +14,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
  * without enumerating adapters. Lives in the adapter layer; the Core never
  * depends on it (ADR-0002 boundary).
  */
-final class ConfigurationLoaders
+final class ConfigurationLoaders implements ConfigurationLoadersInterface
 {
     /**
      * @return list<ConfigurationLoaderInterface>

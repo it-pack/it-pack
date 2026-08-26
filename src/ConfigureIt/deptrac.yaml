@@ -85,6 +85,7 @@ deptrac:
       - Contract
       - Core
       - Execution
+      - ValueObject
     Codegen:
       - Codegen
       - Contract

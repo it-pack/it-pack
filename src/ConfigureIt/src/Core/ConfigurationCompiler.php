@@ -91,7 +91,7 @@ final class ConfigurationCompiler
             return '';
         }
 
-        $fingerprint = get_class($schema);
+        $fingerprint = $schema->name();
 
         if ($schema instanceof DeclaresScalarTypesInterface) {
             $fingerprint .= ':' . serialize($schema->scalarTypes());

@@ -63,6 +63,9 @@ final readonly class IncludeProcessor implements
     /** Recognized `@if` attribute vocabulary (matched against the execution context). */
     private const array CONDITION_ATTRIBUTES = ['env', 'tenant', 'profile'];
 
+    /** Prefix applied to the source label of nodes produced by an included file. */
+    private const string INCLUDE_SOURCE_PREFIX = 'include:';
+
     /**
      * @param string $directive prefix that marks an include directive value.
      */
@@ -75,6 +78,11 @@ final readonly class IncludeProcessor implements
         private string                           $directive = '@include',
         private ExecutionContextInterface       $context = new ExecutionContext(),
     ) {
+    }
+
+    public function name(): string
+    {
+        return 'include-processor';
     }
 
     public function stageName(): string
@@ -193,7 +201,12 @@ final readonly class IncludeProcessor implements
         // so layer attribution stays accurate across conditional includes (E3.3).
         $layerId = $document->layerId() ?? $directive->provenance()->layerId();
 
-        $nodes = $this->normalizer->normalize($document, $directive->priority() + 1, 'include:' . $relative, $layerId);
+        $nodes = $this->normalizer->normalize(
+            $document,
+            $directive->priority() + 1,
+            self::INCLUDE_SOURCE_PREFIX . $relative,
+            $layerId,
+        );
 
         $parent = $directive->key();
 

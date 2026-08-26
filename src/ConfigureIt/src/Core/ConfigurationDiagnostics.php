@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Core;
 
 use function is_string;
 
+use ItPack\ConfigureIt\Contract\ConfigurationDiagnosticsInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Execution\Observation;
@@ -22,7 +23,7 @@ use function str_contains;
  *
  * @see docs/architecture/GRAPH.md "Diagnostics"
  */
-final readonly class ConfigurationDiagnostics
+final readonly class ConfigurationDiagnostics implements ConfigurationDiagnosticsInterface
 {
     public function __construct(
         private ?ResolutionReporterInterface $reporter = null,

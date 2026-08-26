@@ -15,6 +15,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
 
 /**
  * Composition-root seam that knows how to assemble decorated readers/reporters.
@@ -52,6 +53,17 @@ interface ConfigurationWiringInterface
      * The default (base) resolution reporter, used when the builder supplies none.
      */
     public function baseReporter(): ResolutionReporterInterface;
+
+    /**
+     * The shared node-rewrite collaborator used by node-rewriting processors
+     * (e.g. {@see \ItPack\ConfigureIt\Core\CastingProcessor},
+     * {@see \ItPack\ConfigureIt\Core\ValidationProcessor}).
+     *
+     * Exposed as a composition-root service so processors receive it via
+     * dependency injection rather than constructing it internally, keeping the
+     * "no service is built inside another service" policy (NV10) intact.
+     */
+    public function graphRewriter(): ConfigurationGraphRewriter;
 
     /**
      * The default execution context, used when the builder supplies none and a

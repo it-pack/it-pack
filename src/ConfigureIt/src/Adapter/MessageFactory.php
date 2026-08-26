@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter;
 
 use ItPack\ConfigureIt\Behavior\CreatableBehavior;
+use ItPack\ConfigureIt\Contract\MessageFactoryInterface;
 use Nette\Schema\Message as NetteMessage;
 
-class MessageFactory
+final class MessageFactory implements MessageFactoryInterface
 {
     use CreatableBehavior;
 

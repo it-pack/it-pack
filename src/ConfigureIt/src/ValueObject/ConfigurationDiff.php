@@ -7,6 +7,8 @@ namespace ItPack\ConfigureIt\ValueObject;
 use function basename;
 use function is_scalar;
 
+use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationDiffInterface;
+
 /**
  * A semantic diff between two resolved configuration graphs.
  *
@@ -17,7 +19,7 @@ use function is_scalar;
  *
  * @see docs/architecture/GRAPH.md "Graph Diffing"
  */
-final readonly class ConfigurationDiff
+final readonly class ConfigurationDiff implements ConfigurationDiffInterface
 {
     /**
      * @param array<string, mixed> $added
@@ -45,6 +47,53 @@ final readonly class ConfigurationDiff
     public function empty(): bool
     {
         return [] === $this->added && [] === $this->removed && [] === $this->changed;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function added(): array
+    {
+        return $this->added;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function removed(): array
+    {
+        return $this->removed;
+    }
+
+    /**
+     * @return list<array{
+     *     key:string,
+     *     from:mixed,
+     *     to:mixed,
+     *     fromProvenance:array<string, mixed>,
+     *     toProvenance:array<string, mixed>,
+     *     sensitive:bool,
+     * }>
+     */
+    public function changed(): array
+    {
+        return $this->changed;
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function addedSensitive(): array
+    {
+        return $this->addedSensitive;
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    public function removedSensitive(): array
+    {
+        return $this->removedSensitive;
     }
 
     /**

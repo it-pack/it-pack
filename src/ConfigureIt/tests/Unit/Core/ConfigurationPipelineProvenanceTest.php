@@ -7,7 +7,6 @@ namespace Tests\Unit\Core;
 use Codeception\Test\Unit;
 
 use function count;
-use function get_class;
 use function is_string;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
@@ -25,6 +24,11 @@ class ConfigurationPipelineProvenanceTest extends Unit
     public function testPipelineRecordsProcessorTrailOnTouchedNodes(): void
     {
         $processor = new class () implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface {
+            public function name(): string
+            {
+                return 'upper-processor';
+            }
+
             public function stageName(): string
             {
                 return 'UpperProcessor';
@@ -57,6 +61,11 @@ class ConfigurationPipelineProvenanceTest extends Unit
     public function testUntouchedNodesAreNotInTrail(): void
     {
         $processor = new class () implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface {
+            public function name(): string
+            {
+                return 'noop-processor';
+            }
+
             public function stageName(): string
             {
                 return 'NoopProcessor';
@@ -77,9 +86,14 @@ class ConfigurationPipelineProvenanceTest extends Unit
         verify($graph->node('name')->provenance()->processorTrail())->equals([]);
     }
 
-    public function testCustomProcessorWithoutInterfaceFallsBackToClassName(): void
+    public function testCustomProcessorWithoutInterfaceFallsBackToName(): void
     {
         $processor = new class () implements ConfigurationProcessorInterface {
+            public function name(): string
+            {
+                return 'suffixer-processor';
+            }
+
             public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
             {
                 $next = new ConfigurationGraph();
@@ -103,6 +117,6 @@ class ConfigurationPipelineProvenanceTest extends Unit
         $trail = $graph->node('name')->provenance()->processorTrail();
 
         verify(count($trail))->equals(1);
-        verify($trail[0])->equals(get_class($processor));
+        verify($trail[0])->equals('suffixer-processor');
     }
 }

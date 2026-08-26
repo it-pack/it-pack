@@ -216,6 +216,11 @@ final class CompilerHashTest extends Unit
             {
             }
 
+            public function name(): string
+            {
+                return 'typed-stub-schema';
+            }
+
             public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
             {
                 return new ValidationResult(true);
@@ -234,6 +239,11 @@ final class CompilerHashTest extends Unit
     private function plainSchema(): ConfigurationSchemaInterface
     {
         return new class () implements ConfigurationSchemaInterface {
+            public function name(): string
+            {
+                return 'plain-stub-schema';
+            }
+
             public function validate(ConfigurationGraphInterface $graph): ValidationResultInterface
             {
                 return new ValidationResult(true);

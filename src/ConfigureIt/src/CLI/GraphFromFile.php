@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\CLI;
 
-use function get_class;
 use function is_file;
 
 use ItPack\ConfigureIt\Adapter\ConfigurationLoaders;
@@ -63,7 +62,7 @@ final class GraphFromFile
             $parsed->toArray(),
             $parsed->format(),
             $path,
-            get_class($loader),
+            $loader->name(),
         );
 
         return new ConfigurationGraph(new DocumentNormalizer()->normalize($document, 1, $path));

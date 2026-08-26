@@ -41,7 +41,7 @@ class ConfigurationCliTest extends Unit
         );
 
         verify($code)->equals(0);
-        verify(str_contains($this->read($output), 'JsonLoader'))->true();
+        verify(str_contains($this->read($output), 'json-loader'))->true();
     }
 
     public function testDiffShowsChangedKeys(): void
