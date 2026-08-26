@@ -100,6 +100,22 @@ and `ROADMAP.md`).
     than `CastingProcessor` (the plan's note is stale). Both remain internal `final readonly` helpers;
     R17 is tracked as a mechanical follow-up if extension points are later wanted.
 
+- **Milestone 5 — Remove the sole abstract class via composition (R19)**
+  - `src/Adapter/Decryption/CommandDecryption` (new `final readonly` helper) — owns the shared
+    command-decryption behavior extracted from the deleted `abstract CommandDecrypter`: the
+    `CommandRunnerInterface` + `list<string> $command` state and a verbatim copy of its
+    `decrypt()` body (ciphertext fed to the command on stdin, stdout returned with trailing
+    `\r\n` trimmed, `\Throwable` translated into `DecryptionException`).
+  - `src/Adapter/Decryption/{AgeDecrypter,SopsDecrypter}` — no longer extend the abstract base;
+    each now `implements DecrypterInterface`, composes a `private readonly CommandDecryption`
+    built with its identical command array, and delegates `decrypt()`. Public constructor
+    signatures are unchanged. Inheritance is replaced by composition per `AGENTS.md`
+    ("Composition over Inheritance"); `CommandDecrypter.php` is deleted.
+  - Tests: new direct unit test `tests/Unit/Adapter/Decryption/CommandDecryptionTest` — locks
+    the exact command array and stdin ciphertext passed to the runner, the trailing-newline trim,
+    and the runner-failure → `DecryptionException` translation (message format included); this
+    logic was previously only reachable through the subclasses.
+
 - `src/ConfigureIt/docs/IMPLEMENTATION_PLAN.md` — added authoritative build plan
   (context, package layout, step-by-step sequence, risks, definition of done).
 

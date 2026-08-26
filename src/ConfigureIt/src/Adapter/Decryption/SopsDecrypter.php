@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Adapter\Decryption;
 
 use ItPack\ConfigureIt\Contract\CommandRunnerInterface;
+use ItPack\ConfigureIt\Contract\DecrypterInterface;
 
 /**
  * Decrypts SOPS-encrypted secrets.
@@ -12,13 +13,20 @@ use ItPack\ConfigureIt\Contract\CommandRunnerInterface;
  * Wraps the `sops --decrypt` CLI, reading the ciphertext from stdin (M4 — Epic
  * E5.1).
  */
-final class SopsDecrypter extends CommandDecrypter
+final class SopsDecrypter implements DecrypterInterface
 {
+    private readonly CommandDecryption $decryption;
+
     public function __construct(CommandRunnerInterface $runner)
     {
-        parent::__construct(
+        $this->decryption = new CommandDecryption(
             $runner,
             ['sops', '--decrypt', '-'],
         );
+    }
+
+    public function decrypt(string $ciphertext): string
+    {
+        return $this->decryption->decrypt($ciphertext);
     }
 }

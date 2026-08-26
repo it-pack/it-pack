@@ -441,7 +441,32 @@ hard constraint.
 **Low.** Behavior-preserving: identical `$command` arrays and identical `decrypt()` body.
 
 ### Status
-⬜ Pending.
+✅ done (2026-08-26) — **Option B (composition)** implemented.
+
+`src/Adapter/Decryption/CommandDecryption` (new `final readonly` helper) now owns the shared
+behavior: the `CommandRunnerInterface $runner` + `list<string> $command` state and the
+`decrypt()` body copied verbatim from `CommandDecrypter::decrypt()` (stdin feed → stdout,
+`\Throwable` translated into `DecryptionException('Failed to decrypt secret: …', 0, $e)`,
+trailing `\r\n` trimmed). `AgeDecrypter` / `SopsDecrypter` are rewritten as thin adapters that
+`implements DecrypterInterface`, hold a `private readonly CommandDecryption $decryption`
+(assembled with their identical command arrays in their constructors), and delegate `decrypt()`.
+`CommandDecrypter.php` is deleted — no inheritance remains between them, and both decrypters keep
+their public constructor signatures, so every existing call-site is unchanged.
+
+The extracted logic gained its first direct unit test,
+`tests/Unit/Adapter/Decryption/CommandDecryptionTest` (the stdin-command behavior was previously
+only reachable via subclasses): it locks the exact command array + stdin ciphertext passed to the
+runner, the trailing-newline trim (multi-line output preserved), and the runner-failure →
+`DecryptionException` translation including the message format.
+
+Note: after this milestone exactly one `abstract` type remains in `src/`,
+`src/Core/AbstractNodeRewritingProcessor` — introduced deliberately by Milestone 4 (R18) *after*
+this milestone's audit was written. Unlike `CommandDecrypter` it declares an abstract method
+(`rewrite()`), so it is a genuine template-method contract rather than pure behavior-sharing
+inheritance, and it stays.
+
+Gates: `composer analyse` 0 errors (PHPStan L9 + dead-code), `composer cs:check` 0/263,
+`composer test:unit` 276 tests / 636 assertions.
 
 ---
 
