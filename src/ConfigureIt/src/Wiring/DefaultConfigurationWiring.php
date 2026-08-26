@@ -84,6 +84,7 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
         array $readers,
         array $loaders,
         ?ExecutionContextInterface $executionContext,
+        ?ResolutionReporterInterface $reporter = null,
     ): ConfigurationResolverInterface {
         return new CachingResolver(
             inner: $inner,
@@ -95,6 +96,7 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
             readers: $readers,
             loaders: $loaders,
             executionContext: $executionContext,
+            reporter: $reporter,
         );
     }
 }

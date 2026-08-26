@@ -257,7 +257,19 @@ observable instead of silently swallowed.
 **Low.** All three are local, behavior-preserving; the cache test is the only new assertion.
 
 ### Status
-⬜ Pending.
+✅ done (2026-08-25). **R11** — removed the duplicate `@return` docblock in
+`CastingProcessor::cast()` (single docblock now). **R12** — `CachingResolver` gained an
+optional `?ResolutionReporterInterface $reporter` constructor param; a throwing
+`ConfigurationCacheInterface::set()` now records a `Severity::Warning` `Observation`
+(`'Cache write failed: …'`) via the reporter instead of being silently swallowed, while still
+returning the live snapshot. The composed reporter is threaded from `ConfigurationBuilder::build()`
+through `ConfigurationWiringInterface::cachingResolver()` into `CachingResolver`. **R13** — removed
+all `else` blocks from `FileModificationProbe::__invoke()` (ternary), `DiagnosticsReport::summary()`
+(early-branch + `if`), and `FileSystemCache::set()` (ternary on `instanceof TypedSnapshot`); the
+no-`else` guideline now holds for all three target files. Gates: `composer analyse` 0 errors
+(PHPStan L9), `composer cs:check` 0/261, `composer test:unit` 274 tests / 630 assertions. Behavior
+locked by `CachingResolverTest` (live snapshot returned + warning observation recorded when a
+reporter is present, none when absent).
 
 ---
 

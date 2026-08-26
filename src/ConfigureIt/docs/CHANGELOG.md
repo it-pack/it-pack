@@ -66,6 +66,23 @@ and `ROADMAP.md`).
   - Tests: `ConfigurationResolverTest::testAcceptsPipelineInterfaceImplementation` and
     `DefaultConfigurationWiringTest::testCachingResolverWrapsInnerResolverInCachingResolver`.
 
+- **Milestone 3 — Hygiene & error visibility (R11, R12, R13)**
+  - **R11** — `src/Core/CastingProcessor::cast()` — removed the stray duplicate `@return`
+    docblock; the method now has a single `@param`/`@return` docblock.
+  - **R12** — `src/Core/CachingResolver` — added an optional `?ResolutionReporterInterface
+    $reporter` constructor param; a failing `cache->set()` now records a `Severity::Warning`
+    `Observation` (`'Cache write failed: ' . $e->getMessage()`) instead of being silently
+    swallowed, while still returning the live snapshot (best-effort semantics preserved).
+    `ConfigurationWiringInterface::cachingResolver()` gained a `$reporter` parameter and the
+    builder threads the composed reporter through.
+  - **R13** — removed the remaining `else` blocks to honor the no-`else` guideline:
+    `src/Adapter/FileModificationProbe::__invoke()` (ternary),
+    `src/ValueObject/DiagnosticsReport::summary()` (early-branch + `if`), and
+    `src/Cache/FileSystemCache::set()` (ternary on `instanceof TypedSnapshot`).
+  - Tests: `tests/Unit/Core/CachingResolverTest` — a throwing cache still returns the live
+    snapshot and records exactly one `warning` observation when a reporter is wired in (none
+    when absent).
+
 - `src/ConfigureIt/docs/IMPLEMENTATION_PLAN.md` — added authoritative build plan
   (context, package layout, step-by-step sequence, risks, definition of done).
 

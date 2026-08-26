@@ -13,6 +13,9 @@ use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
+use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Execution\Observation;
+use ItPack\ConfigureIt\ValueObject\Severity;
 
 /**
  * Decorates a {@see ConfigurationResolverInterface} with opt-in artifact caching.
@@ -46,6 +49,7 @@ final class CachingResolver implements ConfigurationResolverInterface
         private array                          $readers,
         private array                          $loaders,
         private ?ExecutionContextInterface      $executionContext,
+        private ?ResolutionReporterInterface    $reporter = null,
     ) {
     }
 
@@ -70,11 +74,14 @@ final class CachingResolver implements ConfigurationResolverInterface
 
         $snapshot = $this->inner->resolve($sources);
 
-        // Writes are best-effort: a failing cache must never break resolution.
+        // Writes are best-effort: a failing cache must never break resolution,
+        // but the failure is now observable instead of silently swallowed.
         try {
             $this->cache->set($key, $snapshot);
-        } catch (\Throwable) {
-            // Ignore — the live snapshot is still returned to the caller.
+        } catch (\Throwable $e) {
+            $this->reporter?->observe(
+                new Observation(Severity::Warning, 'Cache write failed: ' . $e->getMessage()),
+            );
         }
 
         return $snapshot;

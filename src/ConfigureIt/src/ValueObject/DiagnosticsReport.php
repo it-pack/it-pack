@@ -59,10 +59,11 @@ final readonly class DiagnosticsReport
         $lines[] = sprintf('  nodes by source: %s', $this->bySource === [] ? '(none)' : json_encode($this->bySource));
         $lines[] = sprintf('  nodes by format: %s', $this->byFormat === [] ? '(none)' : json_encode($this->byFormat));
 
-        if ($this->overrides === []) {
-            $lines[] = '  overrides: none';
-        } else {
-            $lines[] = '  overrides:';
+        $lines[] = $this->overrides === []
+            ? '  overrides: none'
+            : '  overrides:';
+
+        if ($this->overrides !== []) {
             foreach ($this->overrides as $override) {
                 $lines[] = sprintf(
                     '    %s <- %s (overrode %s)',

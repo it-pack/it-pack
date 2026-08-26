@@ -250,6 +250,7 @@ final class ConfigurationBuilder
                 readers: $this->readers,
                 loaders: $this->loaders,
                 executionContext: $this->executionContext,
+                reporter: $reporter,
             );
         }
 

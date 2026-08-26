@@ -71,21 +71,19 @@ final class FileSystemCache implements ConfigurationCacheInterface
 
     public function set(string $key, ConfigurationSnapshotInterface $snapshot): void
     {
-        if ($snapshot instanceof TypedSnapshot) {
-            $payload = [
+        $payload = $snapshot instanceof TypedSnapshot
+            ? [
                 'typed'       => true,
                 'scalarTypes' => $snapshot->scalarTypes(),
                 'snapshot'    => $snapshot->innerSnapshot()->toArray(),
-            ];
-        } else {
-            $payload = [
+            ]
+            : [
                 'typed'       => false,
                 'scalarTypes' => [],
                 'snapshot'    => $snapshot instanceof ConfigurationSnapshot
                     ? $snapshot->toArray()
                     : ['tree' => $snapshot->all(), 'provenance' => []],
             ];
-        }
 
         $file = $this->path($key);
 

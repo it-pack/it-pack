@@ -81,5 +81,6 @@ interface ConfigurationWiringInterface
         array $readers,
         array $loaders,
         ?ExecutionContextInterface $executionContext,
+        ?ResolutionReporterInterface $reporter = null,
     ): ConfigurationResolverInterface;
 }

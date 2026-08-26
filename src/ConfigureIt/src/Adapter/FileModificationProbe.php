@@ -30,11 +30,9 @@ final class FileModificationProbe
         $parts = [];
 
         foreach ($this->paths as $path) {
-            if (is_file($path)) {
-                $parts[] = $path . ':' . md5_file($path);
-            } else {
-                $parts[] = $path . ':missing';
-            }
+            $parts[] = is_file($path)
+                ? $path . ':' . md5_file($path)
+                : $path . ':missing';
         }
 
         return md5(implode('|', $parts));
