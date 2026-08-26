@@ -58,9 +58,11 @@ final class FiberAwareIntegrationTest extends Unit
             $attributes = $span->getAttributes();
             if ($attributes->get('runit.activity.id') !== null) {
                 $activities[] = $span;
-            } else {
-                $executions[] = $span;
+
+                continue;
             }
+
+            $executions[] = $span;
         }
 
         self::assertCount(2, $executions);

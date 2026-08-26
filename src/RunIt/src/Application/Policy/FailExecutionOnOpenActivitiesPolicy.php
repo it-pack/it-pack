@@ -24,7 +24,7 @@ final class FailExecutionOnOpenActivitiesPolicy implements ExecutionCompletionPo
         foreach ($openActivities as $activity) {
             $scope->observations()->record(
                 sprintf(
-                    'Activity "%s" was still open at execution completion; the execution is flagged as failed.',
+                    self::OPEN_ACTIVITY_MESSAGE_PREFIX . '; the execution is flagged as failed.',
                     $activity->definition()->name()->toString(),
                 ),
                 ObservationSeverity::Critical,

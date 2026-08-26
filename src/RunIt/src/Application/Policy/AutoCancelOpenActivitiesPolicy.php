@@ -25,7 +25,7 @@ final class AutoCancelOpenActivitiesPolicy implements ExecutionCompletionPolicyI
         foreach ($openActivities as $activity) {
             $scope->observations()->record(
                 sprintf(
-                    'Activity "%s" was still open at execution completion and was auto-cancelled.',
+                    self::OPEN_ACTIVITY_MESSAGE_PREFIX . ' and was auto-cancelled.',
                     $activity->definition()->name()->toString(),
                 ),
                 ObservationSeverity::Warning,

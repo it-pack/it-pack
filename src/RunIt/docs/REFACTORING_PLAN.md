@@ -311,7 +311,20 @@ These are behavior-preserving, diff-verifiable passes.
 
 ## Phase 4 — Cosmetic residues (REVIEW §3 P3-1..P3-3)
 
-> **Status: Pending**
+> **Status: Complete (2026-08-26), scan-driven.**
+> **T4.1:** `Instant::of(1_700_000_000)` appeared at five construction sites (plan said
+> three); hoisted to a private `FIXED_INSTANT_NANOS` constant on `RunItPortFixture`.
+> **T4.2:** the "was still open…" wording lived in **four** completion policies
+> (`WarnAndIgnore`, `FailExecution`, `AutoCancel`, `AutoFail` — plan counted three).
+> The shared prefix is now the named constant
+> `ExecutionCompletionPolicyInterface::OPEN_ACTIVITY_MESSAGE_PREFIX`; each policy appends
+> its resolution-specific tail and sprintfs once, so messages remain byte-identical
+> (verified by the policy suites). Additive `@api` constant; api-compat clean.
+> **T4.3:** all trailing `else`/`elseif` chains in tests converted to early-return/
+> continue/fail style — four statements across `DefaultActivityRunnerTest`,
+> `TenantIsolationTest`, `ExecutionScopeTest`, and `FiberAwareIntegrationTest` (the plan's
+> fifth candidate was a string literal containing "else", not a branch). Gates green;
+> pipeline unchanged (872 tests); no behavioral deltas.
 
 ### T4.1 — Name the fixture instant (P3-1)
 - Hoist `Instant::of(1_700_000_000)` in `RunItPortFixture` to a private

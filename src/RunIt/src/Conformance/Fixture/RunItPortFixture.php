@@ -39,6 +39,8 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
  */
 final readonly class RunItPortFixture implements PortFixtureInterface
 {
+    private const int FIXED_INSTANT_NANOS = 1_700_000_000;
+
     public function safeObservation(): ObservationInterface
     {
         return Observation::info(
@@ -46,7 +48,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
             ExecutionId::fromString('exec-0001'),
             'Service started',
             attributes: AttributeCollection::fromArray(['component' => 'bootstrap']),
-            instant: Instant::of(1_700_000_000),
+            instant: Instant::of(self::FIXED_INSTANT_NANOS),
         );
     }
 
@@ -57,7 +59,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
             ExecutionId::fromString('exec-0001'),
             'Connected to upstream',
             attributes: AttributeCollection::fromArray(['password' => $this->sensitiveAttributeValue()]),
-            instant: Instant::of(1_700_000_000),
+            instant: Instant::of(self::FIXED_INSTANT_NANOS),
         );
     }
 
@@ -72,7 +74,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
             MeasurementName::fromString('items.processed'),
             ExecutionId::fromString('exec-0001'),
             3,
-            instant: Instant::of(1_700_000_000),
+            instant: Instant::of(self::FIXED_INSTANT_NANOS),
         );
     }
 
@@ -83,7 +85,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
             ExecutionId::fromString('exec-0001'),
             OccurrenceType::fromString('system.boot.v1'),
             'runit.runtime',
-            Instant::of(1_700_000_000),
+            Instant::of(self::FIXED_INSTANT_NANOS),
             ['started' => true],
         );
     }
@@ -97,7 +99,7 @@ final readonly class RunItPortFixture implements PortFixtureInterface
             1,
             ['feature_flags' => ['beta' => true]],
             new DeterministicHashCalculator(),
-            createdAt: Instant::of(1_700_000_000),
+            createdAt: Instant::of(self::FIXED_INSTANT_NANOS),
         );
     }
 

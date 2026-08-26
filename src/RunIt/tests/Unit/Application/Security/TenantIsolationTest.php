@@ -84,16 +84,25 @@ final class TenantIsolationTest extends Unit
         $ownedBySecond = 0;
 
         foreach ($kit->artifacts() as $artifact) {
-            if ($artifact instanceof ExecutionOwnedInterface) {
-                $id = $artifact->executionId()->toString();
-                if ($id === $first) {
-                    ++$ownedByFirst;
-                } elseif ($id === $second) {
-                    ++$ownedBySecond;
-                } else {
-                    self::fail('Artifact owned by an unknown execution: ' . $id);
-                }
+            if (!$artifact instanceof ExecutionOwnedInterface) {
+                continue;
             }
+
+            $id = $artifact->executionId()->toString();
+
+            if ($id === $first) {
+                ++$ownedByFirst;
+
+                continue;
+            }
+
+            if ($id === $second) {
+                ++$ownedBySecond;
+
+                continue;
+            }
+
+            self::fail('Artifact owned by an unknown execution: ' . $id);
         }
 
         self::assertGreaterThan(0, $ownedByFirst);

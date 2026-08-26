@@ -25,7 +25,7 @@ final class AutoFailOpenActivitiesPolicy implements ExecutionCompletionPolicyInt
         foreach ($openActivities as $activity) {
             $scope->observations()->record(
                 sprintf(
-                    'Activity "%s" was still open at execution completion and was auto-resolved.',
+                    self::OPEN_ACTIVITY_MESSAGE_PREFIX . ' and was auto-resolved.',
                     $activity->definition()->name()->toString(),
                 ),
                 ObservationSeverity::Warning,

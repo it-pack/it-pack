@@ -127,9 +127,11 @@ final class ExecutionScopeTest extends Unit
         foreach ($measurements as $measurement) {
             if ($measurement->name()->toString() === 'inside-activity') {
                 $inner = $measurement;
-            } else {
-                $outer[] = $measurement;
+
+                continue;
             }
+
+            $outer[] = $measurement;
         }
 
         self::assertNotNull($inner);

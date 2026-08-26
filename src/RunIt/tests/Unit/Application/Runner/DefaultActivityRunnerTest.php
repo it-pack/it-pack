@@ -142,9 +142,11 @@ final class DefaultActivityRunnerTest extends Unit
         foreach ($measurements as $measurement) {
             if ($measurement->name()->toString() === 'inside') {
                 $inner = $measurement;
-            } else {
-                $outer[] = $measurement;
+
+                continue;
             }
+
+            $outer[] = $measurement;
         }
 
         self::assertNotNull($inner);
