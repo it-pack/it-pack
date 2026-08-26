@@ -137,15 +137,23 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 **Goal:** freeze the contract surface; stand up the verifier scaffold as *failing* tests; prove the rules compile.
 
 **Tasks**
-- [ ] Define vocabulary interfaces (constants/enums live here), e.g. `CapabilityVocabulary`, `TaskStatusVocabulary`, `ViolationVocabulary`. Each closed-set enum/interface carries a PHPDoc `@see` to its `async-it.ttl` individual; each extensible kind/key/occurrence type carries `@see` to its `async-it-taxonomy.ttl` concept.
-- [ ] `TaskStatus` enum (closed matrix) with `canTransitionTo()`; `TaskStatusInterface` exposes it.
-- [ ] `Task` domain entity (`final`, `readonly` where possible): `TaskId`, owning execution id, `CancellationScope` ref; `complete()` enforces the matrix (illegal → `InvalidLifecycleTransitionException`; conflicting terminal → `ConflictingCompletionException`). Idempotent same-status repeat handled by the coordinator.
-- [ ] `Scheduler` interface; `PollerPort` interface + `StreamPollHandle` value object; `CancellationScopeInterface`; `CapabilityDescriptor` (`readonly`); `RuntimeDiscovery` interface.
-- [ ] Reuse RunIt port *interfaces*: `MonotonicClockInterface`, `ContextStorageInterface`, `ArtifactPublisherInterface`, `SequenceAllocatorInterface`, `IdentifierGeneratorInterface`, `ExecutionEngineInterface`.
-- [ ] Marker exception interface + `ConflictingCompletionException`, `InvalidLifecycleTransitionException`, `StreamPollHandleLeakException`.
-- [ ] Factory interfaces: `TaskFactory`, `PollerFactory`, `CancellationScopeFactory`, `RuntimeDiscoveryFactory` — all in `*\Factory\*`, injected via DI.
-- [ ] `AsyncRuntimeVerifier` suite wired: reused RunIt verifiers + Assertion A (`ContextIsolationVerifier`) and Assertion C (`DeterministicCleanupVerifier`), all returning `ConformanceResult`.
-- [ ] Negative-test siblings for A and C asserting expected violation ids.
+- [x] Define vocabulary interfaces (constants/enums live here), e.g. `CapabilityVocabulary`, `TaskStatusVocabulary`, `ViolationVocabulary`. Each closed-set enum/interface carries a PHPDoc `@see` to its `async-it.ttl` individual; each extensible kind/key/occurrence type carries `@see` to its `async-it-taxonomy.ttl` concept.
+- [x] `TaskStatus` enum (closed matrix) with `canTransitionTo()`; `TaskStatusInterface` exposes it.
+- [x] `Task` domain entity (`final`, `readonly` where possible): `TaskId`, owning execution id, `CancellationScope` ref; `complete()` enforces the matrix (illegal → `InvalidLifecycleTransitionException`; conflicting terminal → `ConflictingCompletionException`). Idempotent same-status repeat handled by the coordinator.
+- [x] `Scheduler` interface; `PollerPort` interface + `StreamPollHandle` value object; `CancellationScopeInterface`; `CapabilityDescriptor` (`readonly`); `RuntimeDiscovery` interface.
+- [x] Reuse RunIt port *interfaces*: `MonotonicClockInterface`, `ContextStorageInterface`, `ArtifactPublisherInterface`, `SequenceAllocatorInterface`, `IdentifierGeneratorInterface`, `ExecutionEngineInterface`. Realised through `Conformance/Fixture/AsyncRuntimeFixtureInterface`, which consumes the six RunIt port interfaces directly rather than forking them; the concrete runtime supplies one fixture, AsyncIt's reference runtime supplies the other.
+- [x] Marker exception interface + `ConflictingCompletionException`, `InvalidLifecycleTransitionException`, `StreamPollHandleLeakException`.
+- [x] Factory interfaces: `TaskFactoryInterface`, `PollerFactoryInterface`, `CancellationScopeFactoryInterface`, `RuntimeDiscoveryFactoryInterface` — all in `Application\Factory\*`, injected via DI.
+- [x] `AsyncRuntimeVerifier` suite wired: Assertion A (`ContextIsolationVerifier`) and Assertion C (`DeterministicCleanupVerifier`), all returning `ConformanceResult`. Reused RunIt verifiers (monotonic clock, context storage, artifact publisher, execution engine) are slotted behind the same `VerifierInterface` surface in Phase 3.
+- [x] Negative-test siblings for A and C asserting expected violation ids (`ctx-bleed`, `handle-leak`, both at error severity).
+
+**Implementation notes (Phase 1)**
+- The contract surface was already in place (Phase 0 left the skeleton standing); this phase froze it and added the verifier scaffold.
+- `AsyncRuntimeVerifier` (`Conformance/Verifier/`) composes `ContextIsolationVerifier` (A) and `DeterministicCleanupVerifier` (C). Each verifier returns a `ConformanceResult` and tags findings with the `ViolationVocabulary` ids (`ctx-bleed`, `handle-leak`); the `Conformance` namespace is exempt from the `ForbidNewOutsideFactoryBuilderRule`, so verifiers may construct `ConformanceResult`/`ConformanceViolation`.
+- `Conformance/Fixture/AsyncRuntimeFixtureInterface` is the single seam an adapter author fills; it reuses the six RunIt port interfaces verbatim. Introspection helpers (`activePollHandleCount()`, `makeExecutionScope()`) exist only so the verifiers can observe leakage/isolation without a concrete consumer.
+- Verifier detection is validated by unit tests under `tests/Unit/Conformance/Verifier/`: a bleeding storage and a leaked handle are each reported with the correct id/severity, and a LIFO storage / released handle pass. A reference-runtime conformance test is recorded as `markTestIncomplete` because the runtime fixture is built in Phase 2.
+
+**Gates:** all contracts compile (`php -l` clean); verifier suite wired and its detection logic proven by negative + positive unit tests; the authoritative green run against the reference runtime is deferred to Phase 2 (no impl yet → suite is *red* for the runtime, complete for the verifier logic). No `else`/Yoda/magic literals; every concrete type `final` + interface-backed; one type per file.
 
 **Modern PHP notes:** `readonly` value objects; enums for state; property hooks on `ContextToken`/`TaskId`; traits for the lifecycle-matrix guard (`LifecycleMatrixTrait`) and throwable normalization (`ThrowableNormalizationTrait`) — no abstract classes.
 
@@ -220,6 +228,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 ## 5. Status updates (major milestones)
 
 - **After Phase 0:** Tooling and architecture guards are in place; the package is buildable and enforceable, but no behavior exists yet. Next: contract freeze (M3). Blocker: none.
+- **After Phase 1:** The contract surface is frozen and the verifier scaffold is wired. `AsyncRuntimeVerifier` composes Assertion A (context isolation) and Assertion C (deterministic cleanup); both are validated by negative + positive unit tests, and the RunIt port interfaces are reused verbatim through `AsyncRuntimeFixtureInterface`. The authoritative green run against a real runtime is deferred to Phase 2 (no impl yet). Next: reference runtime (M4). Blocker: none.
 - **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable.
 - **After Phase 4:** Every major runtime adapter conforms to the same `AsyncRuntimeVerifier`. Next: native `Io\Poll` and interop. Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm).
 
