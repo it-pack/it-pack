@@ -13,6 +13,7 @@ use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
+use ItPack\AsyncIt\Conformance\Fixture\ReferenceRuntimeFixture;
 use Tests\Unit\Conformance\Fixture\FakeExecutionScope;
 use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
 use PHPUnit\Framework\TestCase;
@@ -48,9 +49,16 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
     public function testReferenceRuntimeConforms(): void
     {
-        self::markTestIncomplete(
-            'The reference runtime fixture is implemented in Phase 2; until then '
-            . 'no conformant AsyncRuntime exists to drive the suite green.',
+        $verifier = new AsyncRuntimeVerifier(
+            new ContextIsolationVerifier(),
+            new DeterministicCleanupVerifier(),
+        );
+
+        $result = $verifier->verify(new ReferenceRuntimeFixture());
+
+        self::assertTrue(
+            $result->isConformant(),
+            (string) $result->summary(),
         );
     }
 

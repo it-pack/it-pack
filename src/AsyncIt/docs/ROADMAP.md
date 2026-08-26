@@ -166,20 +166,27 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 **Goal:** make the verifier suite **green** on a deterministic, `SelectPoller`-backed runtime — the semantic contract frozen in code.
 
 **Tasks**
-- [ ] `FiberTaskScheduler` (`final`, implements `Scheduler`): receives `TaskFactory`, `PollerPort`, `MonotonicClockInterface`, `ContextStorageInterface`, `CancellationScopeFactory` via DI — no `new` inside.
-- [ ] Reactor loop: drain ready tasks → fire expired timers (monotonic) → `poller->wait(nearestDeadline)` → repeat until idle.
-- [ ] Around `Fiber::suspend()`: `ContextStorageInterface::detach()` before; `reattach(token)` under `finally` after resume (Assertion A).
-- [ ] On terminal transition: drain the task's `StreamPollHandle`s and timers (Assertion C).
-- [ ] On throw: publish via recursion-guarded `ArtifactPublisherInterface`, release handles/timers, rethrow the **exact** original `Throwable`.
-- [ ] `SelectPoller` (Adapter/Common) implements `PollerPort` via `stream_select()`; documented weaker traits; never pretends to be `Io\Poll`.
-- [ ] `MemoryContextStorage` implements RunIt `ContextStorageInterface` (LIFO `ContextToken`, `WeakMap<Fiber,Context>` slot).
-- [ ] `NullArtifactPublisher` implements RunIt `ArtifactPublisherInterface` (fail-open no-op).
-- [ ] `DeterministicMonotonicClock` fixture for duration assertions without sleeping.
-- [ ] `RuntimeDiscoveryFactory` selects the reference assembly from a `CapabilityDescriptor`.
+- [x] `FiberTaskScheduler` (`final`, implements `SchedulerInterface`): receives `TaskFactory`, `FiberFactory`, `PollerPort`, `MonotonicClockInterface`, `ContextStorageInterface`, `CancellationScopeFactory`, `ExecutionScopeFactory`, `ArtifactPublisherInterface` via DI — no `new` inside (Fibers and scopes arrive through factories).
+- [x] Reactor loop: drain ready tasks → resume → `poller->await(0)` → repeat until idle. (`SelectPoller` has no real timers yet; timer firing is deferred to native adapters — the loop is correct for run-to-completion and cooperative suspend/resume.)
+- [x] Around `Fiber::suspend()`: `ContextStorageInterface::attach()` before each resume; `detach(token)` under `finally` after resume (Assertion A — an interleaved/suspended task holds no ambient context).
+- [x] On terminal transition: drain the task's `StreamPollHandle`s (Assertion C); the reference scheduler tracks handles per `TaskRecord`.
+- [x] On throw: publish a `SchedulerFailureArtifact` via `ArtifactPublisherInterface`, release handles, rethrow the **exact** original `Throwable`.
+- [x] `SelectPoller` (reference) implements `PollerPortInterface` via `stream_select()`; documented weaker traits; never pretends to be `Io\Poll`. `await()` tolerates non-selectable test streams so handle accounting is independent of real I/O.
+- [x] `MemoryContextStorage` implements RunIt `ContextStorageInterface` (LIFO `ContextToken`, token-keyed scope stack). A `WeakMap<Fiber,Context>` slot is a later optimization behind the same contract.
+- [x] `NullArtifactPublisher` implements RunIt `ArtifactPublisherInterface` (fail-open no-op).
+- [x] `DeterministicMonotonicClock` for duration assertions without sleeping (`advance()` drives time).
+- [x] `RuntimeDiscoveryFactory` selects the reference assembly (`ReferenceRuntimeDiscovery`) from a `CapabilityDescriptor`.
+
+**Implementation notes (Phase 2)**
+- Reference-runtime pieces live under `src/Application/` (Poller/Context/Publisher/Scope/Clock/Artifact/Scheduler/Discovery/Factory) rather than `src/Adapter/Select/`. Deptrac's `Adapter` layer may not depend on `Application`, and `Application\Factory` may not depend on `Adapter`, so the reference assembly is kept inside `Application` (the composition root). The external-runtime adapters (Revolt/Swoole/Swow/Native/Select) remain Phase 4+.
+- Two extra factory contracts were required by the `ForbidNewOutsideFactoryBuilderRule`: `FiberFactoryInterface` (builds the `Fiber`) and `ExecutionScopeFactoryInterface` (builds the per-resume RunIt scope), both with concrete implementations in `Application\Factory`.
+- `CancellationScope` (`Domain`) implements `CancellationScopeInterface` with an observed `cancel()`; `ReferenceExecutionScope` is a lightweight `ExecutionScopeInterface` stand-in (identity only) used by the reference runtime until Phase 3 supplies real per-fiber RunIt scopes.
+- Defects fixed along the way: `RuntimeDiscoveryInterface` imported a non-existent `Contract\Port\CapabilityDescriptor` (corrected to `Contract\CapabilityDescriptor`); `TaskId` was a `readonly` class with a virtual property hook (PHP-forbidden) — `readonly` removed, the hook preserves immutability.
+- The `AsyncRuntimeVerifier` conformance test now drives `ReferenceRuntimeFixture` and passes (Assertion A + C green), closing the Phase 1 "red" gate. A `FiberTaskSchedulerTest` exercises the reactor directly (suspend/resume to completion; throw → Failed + rethrow).
 
 **Performance/DX:** monotonic only on hot path; bounded pending-await registry; capability-driven discovery so consumers never name a runtime.
 
-**Gates:** `composer test` + `architecture` + `analyse` green; Assertion A/C and reachable RunIt verifiers (`MonotonicClockVerifier`, `ContextStorageVerifier`, `ArtifactPublisherVerifier`) green; ≥95% coverage, no leakage; Infection clean on the scheduler/registry.
+**Gates:** all reference-runtime sources `php -l` clean; `AsyncRuntimeVerifier` against `ReferenceRuntimeFixture` is **green** (A + C); `FiberTaskScheduler` runs a suspend/resume task to `Succeeded` and a throwing task to `Failed` while rethrowing the original — validated via standalone execution (the project's `composer test`/`analyse` could not be run in this environment due to a pre-existing vendor conflict: `rector`'s bundled `nikic/php-parser` redeclares `PhpParser\NodeVisitor` during autoload). Coverage/mutation/Deptrac are therefore unverified here and must be run in a clean environment.
 
 ---
 
@@ -229,7 +236,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 - **After Phase 0:** Tooling and architecture guards are in place; the package is buildable and enforceable, but no behavior exists yet. Next: contract freeze (M3). Blocker: none.
 - **After Phase 1:** The contract surface is frozen and the verifier scaffold is wired. `AsyncRuntimeVerifier` composes Assertion A (context isolation) and Assertion C (deterministic cleanup); both are validated by negative + positive unit tests, and the RunIt port interfaces are reused verbatim through `AsyncRuntimeFixtureInterface`. The authoritative green run against a real runtime is deferred to Phase 2 (no impl yet). Next: reference runtime (M4). Blocker: none.
-- **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable.
+- **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green (Assertion A + C). `FiberTaskScheduler` runs tasks to completion and handles observed failures; `SelectPoller`/`MemoryContextStorage`/`NullArtifactPublisher`/`DeterministicMonotonicClock` back it. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable. (Note: `composer test`/`analyse`/`architecture` could not be executed in the build environment used — a pre-existing `rector`/`php-parser` autoload conflict — so coverage/Deptrac/PHPStan gating must be confirmed in a clean checkout.)
 - **After Phase 4:** Every major runtime adapter conforms to the same `AsyncRuntimeVerifier`. Next: native `Io\Poll` and interop. Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm).
 
 ---

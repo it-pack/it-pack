@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\AsyncIt\Contract\Port\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 
 /**
  * Discovers the active runtime and exposes its negotiated capability profile.

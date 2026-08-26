@@ -16,7 +16,7 @@ use InvalidArgumentException;
  * @see https://w3id.org/itpack/asyncit#Task
  * @see https://w3id.org/itpack/runit#executionId
  */
-final readonly class TaskId
+final class TaskId
 {
     public string $value {
         get => $this->id;
