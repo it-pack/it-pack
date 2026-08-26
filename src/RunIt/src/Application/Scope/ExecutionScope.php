@@ -103,7 +103,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly SecurityLimits $limits = new SecurityLimits(),
         ?Closure $currentActivityId = null,
     ) {
-        $activityId = $currentActivityId ?? (fn (): ?ActivityIdInterface => $this->currentActivityId);
+        $activityId = $currentActivityId ?? $this->currentActivityId(...);
 
         $this->measurementRecorder = new DefaultMeasurementRecorder(
             $executionId,

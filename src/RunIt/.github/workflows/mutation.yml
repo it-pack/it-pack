@@ -1,0 +1,93 @@
+name: Mutation testing
+
+# Enforces the REVIEW R-4 mutation gate: a CI-owned baseline and ratcheted floors.
+# - PRs touching `src/**` (or the Infection configs) run the critical-branching
+#   profile (`composer mutation:p0`) so mutation quality is checked per change.
+# - A nightly (and manual) run executes the full profile (`composer mutation`) to
+#   track the whole-suite MSI baseline.
+# Floors live in `infection*.json5` (`minMsi` / `minCoveredMsi`). They start at 0 so
+# the first successful run can capture the baseline without failing; once the baseline
+# is recorded (docs/ROADMAP.md M13.5), replace them with (baseline - ~5). Infection
+# fails the job only when a floor is breached; timed-out mutants are excluded from MSI
+# by default, so transient timeout noise never fails the job.
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'infection*.json5'
+      - '.github/workflows/mutation.yml'
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: mutation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mutation-critical:
+    name: Mutation (critical profile, PR gate)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+          extensions: pcov
+      - uses: ramsey/composer-install@v3
+      - name: Run critical-branching mutation profile
+        run: composer mutation:p0
+      - name: Upload summary artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infection-p0-summary
+          path: |
+            var/infection.s1s6.summary.json
+            var/infection.s1s6.log
+          if-no-files-found: warn
+      - name: Report MSI
+        if: always()
+        run: |
+          if [ -f var/infection.s1s6.summary.json ]; then
+            echo "::group::Mutation MSI (critical profile)"
+            jq -r '"MSI: \(.mutationMSI // .msi // "n/a") | Covered MSI: \(.coveredCodeMSI // .coveredMsi // "n/a") | Escaped: \(.escapedCount // .escaped // "n/a") | Timed out: \(.timeoutCount // .timeouts // "n/a")"' var/infection.s1s6.summary.json || cat var/infection.s1s6.summary.json
+            echo "::endgroup::"
+          fi
+
+  mutation-full:
+    name: Mutation (full profile, nightly)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: pcov
+          extensions: pcov
+      - uses: ramsey/composer-install@v3
+      - name: Run full mutation profile
+        run: composer mutation
+      - name: Upload summary artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: infection-full-summary
+          path: |
+            var/infection.summary.json
+            var/infection.log
+          if-no-files-found: warn
+      - name: Report MSI
+        if: always()
+        run: |
+          if [ -f var/infection.summary.json ]; then
+            echo "::group::Mutation MSI (full profile)"
+            jq -r '"MSI: \(.mutationMSI // .msi // "n/a") | Covered MSI: \(.coveredCodeMSI // .coveredMsi // "n/a") | Escaped: \(.escapedCount // .escaped // "n/a") | Timed out: \(.timeoutCount // .timeouts // "n/a")"' var/infection.summary.json || cat var/infection.summary.json
+            echo "::endgroup::"
+          fi

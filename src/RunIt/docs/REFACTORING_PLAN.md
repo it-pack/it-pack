@@ -350,11 +350,37 @@ phase below starts from the committed baseline.
 
 ## Phase 5 — Opportunistic modernization (each task independently skippable)
 
-> **Status: Pending**
+> **Status: Done (with documented skips)**
 > REVIEW R-8/R-9/R-10/R-14. None may regress hot-path predictability; AGENTS' "do not use
-> a feature merely because it exists" governs.
+> a feature merely because it exists" governs. Each task is independently skippable and a skip
+> here incurs no debt.
+>
+> Completion notes:
+> - **T5.3 — applied.** The only trivial forwarding closure in `src` whose argument list maps
+>   exactly to a first-class callable was converted: `ExecutionScope::__construct` previously
+>   built `fn (): ?ActivityIdInterface => $this->currentActivityId` and now passes the
+>   first-class callable `$this->currentActivityId(...)`. A repo-wide scan for the R-10 pattern
+>   (`fn ($x) => $this->method($x)`) found no other pure forwarders in `src` or `tests`; the only
+>   near-matches carry extra logic and are not convertible (a ternary in
+>   `Psr7RequestContextExtractor::normalizePath`, a negation in `SerializerVerifier`).
+> - **T5.1 — skipped.** `Duration::seconds()` (and the sibling getters) are `@api` methods tracked
+>   by api-compat (`src/Domain` is a public dir). A property-hook getter changes call syntax
+>   (`$d->seconds()` → `$d->seconds`), a backward-compatibility break with no behavioral benefit.
+>   AGENTS forbids features "merely because they exist", and the api-compat floor would flag it.
+>   No additive hook site exists without breaking the existing method.
+> - **T5.2 — skipped.** `ExecutionScope` has no "snapshot store accessor" to lazily materialize;
+>   the snapshot store is injected and forwarded to the recorder in the constructor. A lazy-ghost
+>   accessor would be speculative (no consumer, no measured need) and would add stateful complexity
+>   to a runtime object.
+> - **T5.4 — skipped.** Removing the in-constructor `new Default*()` recorders would require adding
+>   optional factory parameters with no current consumer, violating AGENTS ("do not add a public
+>   extension point until there is a concrete consumer"). `DefaultExecutionRunner`'s built-in
+>   publication stack is intentionally non-injectable by design (its docblock forbids bypassing
+>   Bounded→FailSafe); its engine is already injectable (`?ExecutionEngineInterface`).
 
 ### T5.1 — Property hooks pilot (R-8)
+
+- **Status:** Skipped — see Phase 5 completion notes (BC break via call-syntax change; no safe additive site).
 - **Candidates (pick ≤3):** derived projections on value objects — e.g. `Duration::seconds`
   as a virtual `get` hook over nanoseconds; `Snapshot::payloadSize()` if telemetry needs
   it; `ExecutionContext::isExpired(clock)` stays a method (takes args → wrong shape).
@@ -364,6 +390,8 @@ phase below starts from the committed baseline.
 - **Risk/BC:** low; hooks are call-compatible with methods for readers.
 
 ### T5.2 — Lazy-object pilot for optional infrastructure (R-9)
+
+- **Status:** Skipped — see Phase 5 completion notes (no lazy accessor exists; speculative).
 - **Candidate:** `ExecutionScope`'s snapshot store accessor — materialize via
   `ReflectionClass::newLazyGhost()` when unset instead of eager branch.
 - **Steps:** implement behind the existing accessor; add Fiber/persistent-worker leak test
@@ -373,12 +401,16 @@ phase below starts from the committed baseline.
 - **Risk/BC:** none observable.
 
 ### T5.3 — First-class callable sweep (R-10)
+
+- **Status:** Applied — `ExecutionScope::__construct` now uses `$this->currentActivityId(...)` instead of an equivalent arrow closure (one site; no other pure forwarders exist in `src`/`tests`).
 - **Steps:** mechanical replacement of trivial closures (`fn ($x) => $this->handle($x)`)
   with first-class callable syntax where argument lists match exactly; cs-fixer run.
 - **Verify:** pipeline green; diff purely syntactic.
 - **Risk/BC:** none.
 
 ### T5.4 — Strict-DIP default factories (R-14)
+
+- **Status:** Skipped — see Phase 5 completion notes (would add speculative factory extension points with no consumer; runner stack is intentionally fixed).
 - **Goal:** remove residual `new Default*()` materialization from application-service
   bodies (`DefaultExecutionRunner` bootstrap, `ExecutionScope` accessors).
 - **Steps:** add optional factory parameters defaulting to `null` and resolving to the
@@ -398,7 +430,7 @@ phase below starts from the committed baseline.
 | 2 | Guards installed | `MemberOrderRule` + backslash guard fire on induced violations; tooling scope decision recorded in QA.md |
 | 3 | Structure settled | ADR amended; `RequireInterfaceRule` green with explicit exemption list; literal-frequency rescan clean; single wrapping authority |
 | 4 | Mutation enforced | CI job green; baseline recorded in QA.md; floors = baseline−ε and provably enforced |
-| 5 | Modernization (optional) | Each landed task individually benchmarked/gated; skipped tasks remain listed here without debt |
+| 5 | Modernization (optional) | T5.3 applied (first-class callable); T5.1/T5.2/T5.4 skipped with rationale, no debt |
 
 Phases 1–2 must land in order (normalize, then freeze). Phase 3 can start after Phase 1
 (different files). Phase 4 is independent and encouraged to start immediately — it is the
