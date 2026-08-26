@@ -97,7 +97,9 @@ asyncit-tax:PollerKinds
     rdfs:label          "Poller Kind Taxonomy"@en ;
     rdfs:comment        "Taxonomy of poller backends. Pollers are readiness notifiers only; the scheduler owns task control."@en ;
     skos:hasTopConcept  asyncit-tax:poller-native ,
-                        asyncit-tax:poller-select ;
+                        asyncit-tax:poller-select ,
+                        asyncit-tax:poller-interop-reactphp ,
+                        asyncit-tax:poller-interop-amp ;
 .
 
 # =============================================================================
@@ -358,5 +360,25 @@ asyncit-tax:poller-select
     skos:prefLabel      "Select Poller"@en ;
     skos:notation       "select.poll" ;
     skos:definition     "Legacy stream_select fallback within the descriptor ceiling."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:poller-interop-reactphp
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:PollerKinds ;
+    skos:topConceptOf   asyncit-tax:PollerKinds ;
+    skos:prefLabel      "ReactPHP Interop Poller"@en ;
+    skos:notation       "interop.reactphp" ;
+    skos:definition     "Interop bridge letting a ReactPHP event loop host AsyncIt tasks; scheduling semantics unchanged."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:poller-interop-amp
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:PollerKinds ;
+    skos:topConceptOf   asyncit-tax:PollerKinds ;
+    skos:prefLabel      "Amp Interop Poller"@en ;
+    skos:notation       "interop.amp" ;
+    skos:definition     "Interop bridge letting an Amp event loop host AsyncIt tasks; scheduling semantics unchanged."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
 .

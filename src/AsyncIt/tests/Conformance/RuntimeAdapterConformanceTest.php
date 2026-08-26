@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Conformance;
 
+use ItPack\AsyncIt\Conformance\Fixture\AmpRuntimeFixture;
+use ItPack\AsyncIt\Conformance\Fixture\NativeRuntimeFixture;
+use ItPack\AsyncIt\Conformance\Fixture\ReactPhpRuntimeFixture;
 use ItPack\AsyncIt\Conformance\Fixture\RevoltRuntimeFixture;
 use ItPack\AsyncIt\Conformance\Fixture\SwooleRuntimeFixture;
 use ItPack\AsyncIt\Conformance\Fixture\SwowRuntimeFixture;
@@ -57,6 +60,44 @@ final class RuntimeAdapterConformanceTest extends TestCase
         }
 
         $result = $this->verifier()->verify(new SwowRuntimeFixture());
+
+        self::assertTrue($result->isConformant(), (string) $result->summary());
+    }
+
+    public function testNativePollerConforms(): void
+    {
+        if (!class_exists('Io\\Poll')) {
+            self::markTestSkipped('PHP 8.6 Io\\Poll not available.');
+        }
+
+        $result = $this->verifier()->verify(new NativeRuntimeFixture());
+
+        self::assertTrue($result->isConformant(), (string) $result->summary());
+    }
+
+    public function testReactPhpInteropConforms(): void
+    {
+        if (!class_exists('React\\EventLoop\\LoopInterface')) {
+            self::markTestSkipped('ReactPHP not available.');
+        }
+
+        $loopClass = 'React\\EventLoop\\Loop';
+        /** @var callable $get */
+        $get = $loopClass . '::get';
+        $loop = $get();
+
+        $result = $this->verifier()->verify(new ReactPhpRuntimeFixture($loop));
+
+        self::assertTrue($result->isConformant(), (string) $result->summary());
+    }
+
+    public function testAmpInteropConforms(): void
+    {
+        if (!class_exists('Amp\\Loop')) {
+            self::markTestSkipped('Amp not available.');
+        }
+
+        $result = $this->verifier()->verify(new AmpRuntimeFixture());
 
         self::assertTrue($result->isConformant(), (string) $result->summary());
     }

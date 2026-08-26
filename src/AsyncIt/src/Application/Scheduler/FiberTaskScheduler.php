@@ -92,7 +92,6 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
         try {
             $this->resume($record);
-        } catch (Throwable) {
         } finally {
             $this->contextStorage->detach($token);
         }

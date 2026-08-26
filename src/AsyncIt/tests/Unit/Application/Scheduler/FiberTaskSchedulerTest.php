@@ -12,6 +12,9 @@ use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\Port\CapabilityKind;
+use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
@@ -32,7 +35,9 @@ final class FiberTaskSchedulerTest extends TestCase
         return new FiberTaskScheduler(
             new TaskFactory(new RandomIdentifierGenerator()),
             new FiberFactory(),
-            (new PollerFactory())->create(),
+            (new PollerFactory())->create(new CapabilityDescriptor([
+                CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
+            ])),
             new DeterministicMonotonicClock(),
             new MemoryContextStorage(),
             new CancellationScopeFactory(),

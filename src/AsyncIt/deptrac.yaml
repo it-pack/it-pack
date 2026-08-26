@@ -29,7 +29,7 @@ deptrac:
     - name: Adapter
       collectors:
         - type: directory
-          value: src/Adapter/(Revolt|Swoole|Swow|Native|Select)/.*
+          value: src/Adapter/(Revolt|Swoole|Swow|Native|Select|Interop)/.*
     - name: Test Support
       collectors:
         - type: directory

@@ -63,7 +63,7 @@ final class AsyncRuntimeFactory
         [$kind, $descriptor] = (new self())->negotiate();
 
         $clock = new SystemMonotonicClock();
-        $poller = (new self())->buildPoller($kind);
+        $poller = (new self())->buildPoller($kind, $descriptor);
         $storage = (new self())->buildStorage($kind);
         $channel = (new self())->buildChannel($kind);
         $telemetry = (new self())->buildTelemetry();
@@ -156,20 +156,22 @@ final class AsyncRuntimeFactory
             RuntimeAdapterKind::Reference,
             new CapabilityDescriptor([
                 CapabilityKind::FiberExecution->value => CapabilityStatus::Supported,
-                CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
+                CapabilityKind::EdgeTriggeredPolling->value => PollerFactory::nativePollAvailable()
+                    ? CapabilityStatus::Supported
+                    : CapabilityStatus::Emulated,
                 CapabilityKind::NativeChannels->value => CapabilityStatus::Unavailable,
                 CapabilityKind::BlockingHook->value => CapabilityStatus::Unavailable,
             ]),
         ];
     }
 
-    private function buildPoller(RuntimeAdapterKind $kind): \ItPack\AsyncIt\Contract\PollerPortInterface
+    private function buildPoller(RuntimeAdapterKind $kind, CapabilityDescriptor $descriptor): \ItPack\AsyncIt\Contract\PollerPortInterface
     {
         return match ($kind) {
             RuntimeAdapterKind::Swoole => new SwoolePoller(),
             RuntimeAdapterKind::Swow => new SwowPoller(),
             RuntimeAdapterKind::Revolt => new RevoltPoller(),
-            RuntimeAdapterKind::Reference => (new PollerFactory())->create(),
+            RuntimeAdapterKind::Reference => (new PollerFactory())->create($descriptor),
         };
     }
 
