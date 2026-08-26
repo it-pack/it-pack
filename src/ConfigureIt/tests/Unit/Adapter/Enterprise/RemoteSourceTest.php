@@ -236,6 +236,57 @@ class RemoteSourceTest extends Unit
         ]);
     }
 
+    public function testConsulClientUpgradesTlsUrisToHttps(): void
+    {
+        $body = json_encode([
+            ['Key' => 'app/database/host', 'Value' => base64_encode('db.internal')],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = new ConsulClient(
+            new FakeHttpClient(['https://secure:8500/v1/kv/app' => new HttpResponse(200, $body)]),
+        );
+
+        $json = $client->fetch('consul+tls://secure:8500/app');
+
+        verify(json_decode($json, true))->equals(['database' => ['host' => 'db.internal']]);
+    }
+
+    public function testConsulClientRejectsUnknownSchemes(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('unsupported URI scheme');
+
+        new ConsulClient(new FakeHttpClient())->fetch('ftp://localhost:8500/app');
+    }
+
+    public function testEtcdClientUpgradesTlsUrisToHttps(): void
+    {
+        $body = json_encode([
+            'node' => [
+                'key' => '/app',
+                'nodes' => [
+                    ['key' => '/app/feature/flag', 'value' => 'on'],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        $client = new EtcdClient(
+            new FakeHttpClient(['https://secure:2379/v2/keys/app' => new HttpResponse(200, $body)]),
+        );
+
+        $json = $client->fetch('etcd+tls://secure:2379/app');
+
+        verify(json_decode($json, true))->equals(['feature' => ['flag' => 'on']]);
+    }
+
+    public function testEtcdClientRejectsUnknownSchemes(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('unsupported URI scheme');
+
+        new EtcdClient(new FakeHttpClient())->fetch('gopher://localhost:2379/app');
+    }
+
     public function testConsulSourceResolvesWithConsulClient(): void
     {
         $body = json_encode([

@@ -6,6 +6,35 @@ and `ROADMAP.md`).
 
 ## [Unreleased]
 
+### Security
+
+- **Milestone 1 — Secure transport & storage defaults (REVIEW NV2–NV6, NV17; ADR-0011)**
+  - `src/Cache/{FileSystemCache,FileSystemDocumentCache}` — cache directories are created
+    at most group-writable (`0o770`, was `0o777`) because artifacts embed resolved and
+    decrypted configuration; artifact writes land atomically (temp file + `rename` with
+    `finally` cleanup); `FileSystemCache` additionally validates keys against
+    `[A-Za-z0-9._-]{1,128}` so a hostile key can never traverse out of the cache directory.
+  - `src/Adapter/CommandRunner/NativeCommandRunner` — the argument **array** is passed
+    straight to `proc_open` (no shell is invoked anymore, matching the docblock); stdin and
+    stdout/stderr are drained concurrently via `stream_select`, removing the pipe-buffer
+    deadlock for payloads beyond ~64 KiB; an injectable wall-clock deadline
+    (`DEFAULT_TIMEOUT_SECONDS = 30`) terminates runaway processes; stderr in exception
+    messages is truncated (`MAX_STDERR_BYTES = 2048`) to keep secret-bearing tool output
+    out of logs.
+  - `src/Adapter/Enterprise/Http/CurlHttpClient` — redirect following is deliberately
+    disabled (authenticated headers must not be forwarded to redirect targets); timeouts
+    became named injectable constants (`REQUEST_TIMEOUT_SECONDS = 10`,
+    `CONNECT_TIMEOUT_SECONDS = 5`, plus `CURLOPT_CONNECTTIMEOUT`); option assembly was
+    extracted into `buildOptions()` for network-free unit testing.
+  - `src/Core/IncludeProcessor` — `@include` targets are resolved with `realpath()` and
+    must stay inside the processor's base directory; `..` traversal and symlink escapes now
+    raise `ResolutionException("… escapes the base directory.")`. The `@if`
+    attribute vocabulary is de-duplicated into a class constant map.
+  - `src/Adapter/Enterprise/Client/{ConsulClient,EtcdClient}` — TLS-capable URI schemes
+    (`consul+tls://…` / `etcd+tls://…` → upstream `https://`); unknown schemes are rejected
+    explicitly instead of silently defaulting to plaintext HTTP. Auth credentials remain a
+    decorated-transport concern (see PORTS.md §6 recipe).
+
 ### Added
 
 - **Step 0 — Tooling & config baseline**

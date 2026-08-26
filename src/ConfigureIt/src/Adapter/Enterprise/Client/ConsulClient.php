@@ -13,10 +13,14 @@ use ItPack\ConfigureIt\Adapter\Enterprise\Contract\RemoteKeyValueClient;
  *
  * The {@see RemoteKeyValueClient::fetch()} URI encodes the agent and the KV
  * prefix, e.g. `consul://localhost:8500/app` reads
- * `GET http://localhost:8500/v1/kv/app?recurse`. Consul returns a flat
- * base64-encoded array (`[{"Key":"app/database/host","Value":"<base64>"}]`);
- * this client nests each entry under its key path *relative to the prefix* so
- * the resolved tree is rooted at the prefix (mirroring the AWS/GCP adapters).
+ * `GET http://localhost:8500/v1/kv/app?recurse`. TLS is available via
+ * `consul+tls://…` (upstream `https://`); other schemes are rejected. Auth
+ * tokens (ACL) ride via a decorating {@see HttpClient} that adds headers.
+ *
+ * Consul returns a flat base64-encoded array (`[{"Key":"app/database/host",
+ * "Value":"<base64>"}]`); this client nests each entry under its key path
+ * *relative to the prefix* so the resolved tree is rooted at the prefix
+ * (mirroring the AWS/GCP adapters).
  *
  * Implementations translate vendor APIs; tests inject a
  * {@see \ItPack\ConfigureIt\Adapter\Enterprise\Http\FakeHttpClient}. The Core
@@ -26,6 +30,15 @@ use ItPack\ConfigureIt\Adapter\Enterprise\Contract\RemoteKeyValueClient;
  */
 final readonly class ConsulClient implements RemoteKeyValueClient
 {
+    private const string PLAIN_SCHEME = 'consul';
+    private const string TLS_SCHEME = 'consul+tls';
+
+    /** URI scheme → upstream URL scheme. */
+    private const array UPSTREAM_SCHEMES = [
+        self::PLAIN_SCHEME => 'http',
+        self::TLS_SCHEME => 'https',
+    ];
+
     public function __construct(
         private HttpClient $http,
         private int        $defaultPort = 8500,
@@ -40,11 +53,23 @@ final readonly class ConsulClient implements RemoteKeyValueClient
             throw new \RuntimeException(sprintf('ConsulClient: cannot parse URI "%s".', $uri));
         }
 
+        $scheme = self::UPSTREAM_SCHEMES[$parts['scheme'] ?? self::PLAIN_SCHEME] ?? null;
+
+        if ($scheme === null) {
+            throw new \RuntimeException(sprintf(
+                'ConsulClient: unsupported URI scheme "%s://" in "%s" (expected "%s://" or "%s://").',
+                $parts['scheme'] ?? '',
+                $uri,
+                self::PLAIN_SCHEME,
+                self::TLS_SCHEME,
+            ));
+        }
+
         $host = $parts['host'];
         $port = $parts['port'] ?? $this->defaultPort;
         $prefix = ltrim($parts['path'] ?? '', '/');
 
-        $url = sprintf('http://%s:%d/v1/kv/%s?recurse', $host, $port, $prefix);
+        $url = sprintf('%s://%s:%d/v1/kv/%s?recurse', $scheme, $host, $port, $prefix);
 
         $response = $this->http->request('GET', $url);
 

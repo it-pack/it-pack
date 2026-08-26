@@ -43,6 +43,9 @@ use ItPack\ConfigureIt\ValueObject\ProcessorStage;
  */
 final readonly class IncludeProcessor implements ConfigurationProcessorInterface, ProvenanceAwareProcessorInterface, ExecutionContextAwareProcessorInterface
 {
+    /** Recognized `@if` attribute vocabulary (matched against the execution context). */
+    private const array CONDITION_ATTRIBUTES = ['env', 'tenant', 'profile'];
+
     /**
      * @param string $directive prefix that marks an include directive value.
      */
@@ -132,7 +135,9 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
      */
     private function conditionMatches(string $condition): bool
     {
-        if (\preg_match('/^(env|tenant|profile)=(\S+)$/', $condition, $m) !== 1) {
+        $pattern = sprintf('/^(%s)=(\S+)$/', implode('|', self::CONDITION_ATTRIBUTES));
+
+        if (\preg_match($pattern, $condition, $m) !== 1) {
             throw new ResolutionException(sprintf('Invalid @include condition "%s".', $condition));
         }
 
@@ -150,18 +155,18 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
      */
     private function include(string $relative, ConfigurationNodeInterface $directive): array
     {
-        $path = $this->baseDirectory . \DIRECTORY_SEPARATOR . \ltrim($relative, \DIRECTORY_SEPARATOR);
+        $path = $this->containPath($relative);
 
         try {
             $format = Format::fromString(\pathinfo($path, PATHINFO_EXTENSION));
         } catch (\InvalidArgumentException $e) {
-            throw new ResolutionException(sprintf('Cannot determine format of included file "%s".', $path), 0, $e);
+            throw new ResolutionException(sprintf('Cannot determine format of included file "%s".', $relative), 0, $e);
         }
 
         $resource = $this->resourceFactory->build($path, $format);
 
         if (!$this->reader->supports($resource)) {
-            throw new ResolutionException(sprintf('Included configuration "%s" does not exist.', $path));
+            throw new ResolutionException(sprintf('Included configuration "%s" does not exist.', $relative));
         }
 
         $raw = $this->reader->read($resource);
@@ -194,5 +199,40 @@ final readonly class IncludeProcessor implements ConfigurationProcessorInterface
             ),
             $nodes,
         );
+    }
+
+    /**
+     * Resolve an include target and guarantee it stays inside the base
+     * directory: `..` segments, absolute paths and symlink escapes are all
+     * rejected instead of being read.
+     */
+    private function containPath(string $relative): string
+    {
+        $base = realpath($this->baseDirectory);
+
+        if ($base === false) {
+            throw new ResolutionException(sprintf('Include base directory "%s" does not exist.', $this->baseDirectory));
+        }
+
+        $candidate = $base . \DIRECTORY_SEPARATOR . \ltrim($relative, \DIRECTORY_SEPARATOR);
+        $resolved = realpath($candidate);
+
+        if ($resolved === false) {
+            // The file itself need not exist yet (the reader reports missing
+            // files); containment is decided on the deepest existing ancestor.
+            $parent = realpath(\dirname($candidate));
+            $resolved = $parent === false
+                ? false
+                : $parent . \DIRECTORY_SEPARATOR . \basename($candidate);
+        }
+
+        $contained = is_string($resolved)
+            && ($resolved === $base || \str_starts_with($resolved, $base . \DIRECTORY_SEPARATOR));
+
+        if (!$contained) {
+            throw new ResolutionException(sprintf('Include "%s" escapes the base directory.', $relative));
+        }
+
+        return $resolved;
     }
 }

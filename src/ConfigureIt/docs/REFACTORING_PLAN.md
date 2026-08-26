@@ -68,6 +68,11 @@ git log --oneline -3
 Record these numbers in the PR description of Milestone 1 — they are the "before" column
 for every acceptance criterion below.
 
+**Status:** ✅ done (2026-08-26). Baselines re-verified on the committed tree:
+`composer analyse` 0 errors · `composer cs:check` 0 files fixable · `composer test:unit`
+276 tests / 636 assertions · coverage 82.90 % elements / 84.75 % statements / 74.08 %
+methods (pcov, `tests/_output/coverage.xml`).
+
 ---
 
 ## Milestone 1 — Transport & storage security hardening
@@ -80,6 +85,29 @@ plaintext-only Consul/etcd endpoints.
 **Findings:** NV2 (H), NV3 (M), NV4 (M), NV5 (M), NV6 (M), NV17 (L, atomic-write part).
 **Branch:** `refactor/transport-hardening`. **Risk:** M — touches process/HTTP/filesystem
 behavior; mitigated by new tests around every changed default.
+
+### Status
+
+✅ done (2026-08-26).
+
+- All five tasks implemented as specified, plus one gate-driven addition: the
+  `rg "0o777"` acceptance grep exposed that `FileSystemDocumentCache` shared NV2's
+  world-writable-directory hole; it received the same mode constant and atomic-write
+  treatment.
+- New tests: `tests/Unit/Cache/FileSystemCacheTest` (permissions, atomicity, key
+  validation, round-trips incl. typed snapshots),
+  `tests/Unit/Adapter/CommandRunner/NativeCommandRunnerTest` (large-input/large-output
+  drain, EOF-on-empty-stdin, exit-code translation, stderr truncation, deadline
+  termination via real subprocesses),
+  `tests/Unit/Adapter/Enterprise/Http/CurlHttpClientTest` (redirect policy absent,
+  default + injectable timeouts, body attachment, empty-method rejection), traversal +
+  symlink-escape + contained-normalization cases in `IncludeProcessorTest`, TLS-upgrade
+  and scheme-rejection cases in `RemoteSourceTest`.
+- Gates: `composer test:unit` **302 tests / 684 assertions** (was 276/636) ·
+  `composer cs:check` **0 of 266 files** · `composer analyse` **[OK] no errors** ·
+  acceptance greps clean (`0o777`, `FOLLOWLOCATION`, `escapeshellarg` → 0 hits in src/).
+- Docs: CHANGELOG `[Unreleased] → Security`; REVIEW NV2–NV6 resolved + NV17 partial;
+  ADR-0011 accepted (+ INDEX); PORTS.md §6 remote-KV TLS/auth recipe.
 
 ### Tasks
 
@@ -529,7 +557,7 @@ if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
 
 | # | Milestone | Findings retired | Risk | Effort | Status |
 |---|-----------|------------------|------|--------|--------|
-| 1 | Transport & storage security hardening | NV2–NV6, NV17½ | M | M | ⬜ Pending |
+| 1 | Transport & storage security hardening | NV2–NV6, NV17½ | M | M | ✅ Done (2026-08-26) |
 | 2 | Mutation harness (PHPUnit decoupling + Infection) | NV19 | L-M | M | ⬜ Pending |
 | 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ⬜ Pending |
 | 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ⬜ Pending |

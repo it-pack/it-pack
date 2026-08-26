@@ -15,16 +15,20 @@ use ItPack\ConfigureIt\Contract\RemoteDocumentCacheInterface;
  * {@see \ItPack\ConfigureIt\Adapter\CachingReader} can honour a TTL and still
  * fall back to a stale-but-present last-good copy on fetch failure. A missing,
  * unreadable or corrupt entry yields null so the reader falls back to a live
- * fetch. Writes are best-effort.
+ * fetch. Writes are best-effort and land atomically (temp file + rename); the
+ * directory is created group-writable at most ({@see self::DEFAULT_DIRECTORY_MODE}).
  *
  * @see docs/ADDITIONAL_FEATURES_PLAN.md §6 "Remote & Distributed Configuration"
  */
 final class FileSystemDocumentCache implements RemoteDocumentCacheInterface
 {
+    /** Cached documents may embed secrets: never world-readable. */
+    private const int DEFAULT_DIRECTORY_MODE = 0o770;
+
     public function __construct(private string $directory)
     {
         if (!is_dir($this->directory)) {
-            mkdir($this->directory, 0o777, true);
+            mkdir($this->directory, self::DEFAULT_DIRECTORY_MODE, true);
         }
     }
 
@@ -79,6 +83,7 @@ final class FileSystemDocumentCache implements RemoteDocumentCacheInterface
     public function set(string $key, string $document, ?int $ttlSeconds = null): void
     {
         $file = $this->path($key);
+        $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
 
         $payload = [
             'expires' => $ttlSeconds === null ? null : time() + $ttlSeconds,
@@ -86,9 +91,14 @@ final class FileSystemDocumentCache implements RemoteDocumentCacheInterface
         ];
 
         try {
-            file_put_contents($file, '<?php return ' . var_export($payload, true) . ';');
+            file_put_contents($tmp, '<?php return ' . var_export($payload, true) . ';');
+            rename($tmp, $file);
         } catch (\Throwable) {
             // Best-effort: a failed write must not break resolution.
+        } finally {
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
         }
     }
 

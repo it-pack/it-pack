@@ -13,10 +13,12 @@ use ItPack\ConfigureIt\Adapter\Enterprise\Contract\RemoteKeyValueClient;
  *
  * The {@see RemoteKeyValueClient::fetch()} URI encodes the node and the key
  * prefix, e.g. `etcd://localhost:2379/app` reads
- * `GET http://localhost:2379/v2/keys/app?recursive=true`. etcd returns a tree
- * (`{"node":{"key":"/app","nodes":[{"key":"/app/database/host","value":"db.internal"}]}}`);
- * this client re-roots the values under the prefix (mirroring the AWS/GCP/
- * Consul adapters) so the resolved tree is rooted at the prefix.
+ * `GET http://localhost:2379/v2/keys/app?recursive=true`. TLS is available via
+ * `etcd+tls://…` (upstream `https://`); other schemes are rejected. Auth
+ * credentials ride via a decorating {@see HttpClient} that adds headers. etcd
+ * returns a tree (`{"node":{"key":"/app","nodes":[…]}}`); this client re-roots
+ * the values under the prefix (mirroring the AWS/GCP/Consul adapters) so the
+ * resolved tree is rooted at the prefix.
  *
  * Implementations translate vendor APIs; tests inject a
  * {@see \ItPack\ConfigureIt\Adapter\Enterprise\Http\FakeHttpClient}. The Core
@@ -26,6 +28,15 @@ use ItPack\ConfigureIt\Adapter\Enterprise\Contract\RemoteKeyValueClient;
  */
 final readonly class EtcdClient implements RemoteKeyValueClient
 {
+    private const string PLAIN_SCHEME = 'etcd';
+    private const string TLS_SCHEME = 'etcd+tls';
+
+    /** URI scheme → upstream URL scheme. */
+    private const array UPSTREAM_SCHEMES = [
+        self::PLAIN_SCHEME => 'http',
+        self::TLS_SCHEME => 'https',
+    ];
+
     public function __construct(
         private HttpClient $http,
         private int        $defaultPort = 2379,
@@ -40,11 +51,23 @@ final readonly class EtcdClient implements RemoteKeyValueClient
             throw new \RuntimeException(sprintf('EtcdClient: cannot parse URI "%s".', $uri));
         }
 
+        $scheme = self::UPSTREAM_SCHEMES[$parts['scheme'] ?? self::PLAIN_SCHEME] ?? null;
+
+        if ($scheme === null) {
+            throw new \RuntimeException(sprintf(
+                'EtcdClient: unsupported URI scheme "%s://" in "%s" (expected "%s://" or "%s://").',
+                $parts['scheme'] ?? '',
+                $uri,
+                self::PLAIN_SCHEME,
+                self::TLS_SCHEME,
+            ));
+        }
+
         $host = $parts['host'];
         $port = $parts['port'] ?? $this->defaultPort;
         $prefix = ltrim($parts['path'] ?? '', '/');
 
-        $url = sprintf('http://%s:%d/v2/keys/%s?recursive=true', $host, $port, $prefix);
+        $url = sprintf('%s://%s:%d/v2/keys/%s?recursive=true', $scheme, $host, $port, $prefix);
 
         $response = $this->http->request('GET', $url);
 

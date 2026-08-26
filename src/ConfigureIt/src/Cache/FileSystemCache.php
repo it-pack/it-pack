@@ -19,18 +19,30 @@ use ItPack\ConfigureIt\Core\TypedSnapshot;
  * schema-backed cache entry is reconstructed as a {@see TypedSnapshot}). Reads
  * `include` the file; a missing, unreadable or corrupt artifact yields null so
  * the resolver transparently falls back to a live resolution. Writes are
- * best-effort and never interrupt resolution.
+ * best-effort and never interrupt resolution; they land atomically (temp file +
+ * rename) so readers never observe torn artifacts. Artifacts may embed
+ * decrypted secrets, so the directory is created group-writable at most
+ * ({@see self::DEFAULT_DIRECTORY_MODE}).
  *
  * @see docs/ADDITIONAL_FEATURES_PLAN.md §7 "Compiled / Cached Artifacts"
  */
 final class FileSystemCache implements ConfigurationCacheInterface
 {
+    /** Artifacts hold resolved-and-decrypted configuration: never world-readable. */
+    private const int DEFAULT_DIRECTORY_MODE = 0o770;
+
+    /**
+     * Keys normally come from the compiler's hash; validation is
+     * defense-in-depth so a hostile key cannot escape the cache directory.
+     */
+    private const string KEY_PATTERN = '/^[A-Za-z0-9._-]{1,128}$/';
+
     public function __construct(
         private string                                   $directory,
         private ConfigurationSnapshotFactoryInterface $factory = new ConfigurationSnapshotFactory(),
     ) {
         if (!is_dir($this->directory)) {
-            mkdir($this->directory, 0o777, true);
+            mkdir($this->directory, self::DEFAULT_DIRECTORY_MODE, true);
         }
     }
 
@@ -86,16 +98,26 @@ final class FileSystemCache implements ConfigurationCacheInterface
             ];
 
         $file = $this->path($key);
+        $tmp = $file . '.tmp-' . bin2hex(random_bytes(4));
 
         try {
-            file_put_contents($file, '<?php return ' . var_export($payload, true) . ';');
+            file_put_contents($tmp, '<?php return ' . var_export($payload, true) . ';');
+            rename($tmp, $file);
         } catch (\Throwable) {
             // Best-effort: a failed write must not break resolution.
+        } finally {
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
         }
     }
 
     private function path(string $key): string
     {
+        if (preg_match(self::KEY_PATTERN, $key) !== 1) {
+            throw new \InvalidArgumentException(sprintf('Invalid cache key "%s".', $key));
+        }
+
         return rtrim($this->directory, '/\\') . '/' . $key . '.php';
     }
 }

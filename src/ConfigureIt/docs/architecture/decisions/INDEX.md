@@ -12,6 +12,7 @@
 | ADR-0008 | Fibers for Asynchronous Sources | Proposed |
 | ADR-0009 | Shared `Key` / `Path` Value Object | Proposed |
 | ADR-0010 | Document Normalizer Separated from Pipeline | Accepted |
+| ADR-0011 | Secure Transport Defaults (cache modes, shell-free commands, no redirects, include containment, KV TLS) | Accepted |
 
 Future ADRs should follow:
 

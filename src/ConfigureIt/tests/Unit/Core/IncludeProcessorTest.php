@@ -32,6 +32,60 @@ class IncludeProcessorTest extends Unit
         rmdir($this->dir);
     }
 
+    public function testDotDotTraversalOutOfTheBaseDirectoryIsRejected(): void
+    {
+        $graph = new ConfigurationGraph([
+            new ConfigurationNode('import', '@include ../outside.yaml', 'base', 10),
+        ]);
+
+        $this->expectException(ResolutionException::class);
+        $this->expectExceptionMessage('escapes the base directory');
+
+        $this->processor()->process($graph);
+    }
+
+    public function testDeepTraversalStillLandsInsideBase(): void
+    {
+        mkdir($this->dir . '/sub');
+        file_put_contents($this->dir . '/extra.yaml', "value: inner\n");
+
+        try {
+            $graph = new ConfigurationGraph([
+                new ConfigurationNode('import', '@include sub/../extra.yaml', 'base', 10),
+            ]);
+
+            $next = $this->processor()->process($graph);
+
+            verify($next->node('value')->value())->equals('inner');
+        } finally {
+            rmdir($this->dir . '/sub');
+        }
+    }
+
+    public function testSymlinkEscapeIsRejected(): void
+    {
+        $outsideDir = sys_get_temp_dir() . '/cfg-include-out-' . uniqid();
+        mkdir($outsideDir, 0o700, true);
+        file_put_contents($outsideDir . '/secret.yaml', "value: stolen\n");
+
+        try {
+            symlink($outsideDir . '/secret.yaml', $this->dir . '/link.yaml');
+
+            $graph = new ConfigurationGraph([
+                new ConfigurationNode('import', '@include link.yaml', 'base', 10),
+            ]);
+
+            $this->expectException(ResolutionException::class);
+            $this->expectExceptionMessage('escapes the base directory');
+
+            $this->processor()->process($graph);
+        } finally {
+            @unlink($this->dir . '/link.yaml');
+            @unlink($outsideDir . '/secret.yaml');
+            @rmdir($outsideDir);
+        }
+    }
+
     private function processor(): IncludeProcessor
     {
         return new IncludeProcessor(

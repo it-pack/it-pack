@@ -247,6 +247,16 @@ These mirror `AGENTS.md` and MUST hold for every port and adapter:
 - To add a schema: implement `ConfigurationSchemaInterface`, translating vendor errors into
   `ValidationResult`.
 - To add a cache: implement `ConfigurationCacheInterface`.
+- To run external commands: implement `CommandRunnerInterface` (the default
+  `NativeCommandRunner` passes the argument **array** straight to `proc_open` — no shell
+  is ever invoked — and enforces a wall-clock deadline).
+- To talk to remote KV backends: implement `RemoteKeyValueClient` over an injected
+  `HttpClient`. **TLS/auth recipe:** encode transport security in the URI scheme
+  (`consul+tls://…`, `etcd+tls://…` → upstream `https://`; plain schemes stay `http://`,
+  anything else is rejected) and supply credentials by decorating `HttpClient` with a
+  transport that adds auth headers (e.g. `X-Vault-Token`, bearer tokens, AWS SigV4) —
+  clients never embed secrets themselves. The cURL transport deliberately does not follow
+  redirects: authenticated headers must never be forwarded to a redirect target.
 - Never put business logic in an adapter; adapters translate, Core decides.
 
 ---
