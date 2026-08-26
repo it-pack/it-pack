@@ -4,6 +4,7 @@
 > **Scope:** Broad architectural and implementation reasoning for `it-pack/async-it`.
 > **Audience:** Architects and AI agents bootstrapping the package.
 > **Companion docs:** `README.md`, `AGENTS.md`, `docs/EXECUTION.md`, `docs/background/*` (ADR-AI-001, ADR-ITP-002).
+> **RunIt reference (critical):** `src/RunIt/docs/conformance.md` (port conformance toolkit), `src/RunIt/docs/architecture/context-propagation.md`, `src/RunIt/docs/architecture/lifecycle.md`, `src/RunIt/docs/concepts/time-and-sequencing.md`, and ADRs 005/013/014/023/024. AsyncIt must integrate with RunIt, so its contracts and verifiers should mirror RunIt's established patterns rather than reinvent them.
 
 This document is deliberately exploratory. It reasons about *what* AsyncIt should be, *why* the central decisions hold, and *how* to build it without over-committing to a concrete API. Concrete contracts belong in code and in ADRs, not here.
 
@@ -77,15 +78,21 @@ Adapters (Common/External) → {Contract, Port, Domain}
 Conformance (Test Support)   → everything
 ```
 
-I reason the **ports** we need are:
+I reason the **ports** we need are a mix of AsyncIt-native contracts and *reused RunIt ports* (RunIt already defines the execution-semantics ports; AsyncIt implements them per ADR-ITP-002):
 
-- **`ClockPort`** — monotonic time only (`hrtime()`). No wall-clock in scheduling.
-- **`ContextStoragePort`** — fiber/coroutine-aware attach/detach of the immutable RunIt context. AsyncIt never owns context; it only coordinates its isolation.
-- **`PollerPort`** — readiness notification. Implementations: `NativePoller` (`Io\Poll`), `SelectPoller` (fallback).
-- **`PublicationPort`** — push scheduler events (Occurrences/Measurements/Observations) into the RunIt artifact stream, recursion-safe.
-- **`IdentityPort`** — generate task/execution correlation ids (or consume RunIt's).
+**Reused RunIt ports (do not reinvent):**
+- **`MonotonicClockInterface`** (RunIt) — `nowSeconds()` (wall) and `monotonicNanoseconds()` are distinct methods; `measure()` returns a `Duration` in integer nanoseconds. AsyncIt uses this for all scheduling durations so wall-clock skew is impossible. Maps to Assertion B.
+- **`ContextStorageInterface`** (RunIt) — attach/detach of the immutable `ExecutionContext` via a `ContextToken`; LIFO stack semantics. AsyncIt never owns context; it only triggers detach/reattach around suspension.
+- **`ArtifactPublisherInterface`** (RunIt) — push scheduler events into the RunIt artifact stream; carries the recursion guard and fail-open default (ADR-014, ADR-007).
+- **`SequenceAllocatorInterface`** (RunIt) — per-execution monotonic artifact sequencing.
+- **`ExecutionEngineInterface`** (RunIt) — **this is the seam**. AsyncIt's `AsyncRuntime` *is* the canonical `ExecutionEngineInterface` implementation; it must therefore pass RunIt's `ExecutionEngineVerifier`.
 
-**Reasoning on RunIt coupling:** RunIt is WiP (pre-1.0). We must **not** take a hard dependency on its implementation. Therefore `ContextStoragePort` and `PublicationPort` are AsyncIt-owned contracts with *optional* RunIt adapters. The reference runtime (M4) can ship a `Null`/`Memory` context storage and a no-op publisher so we can validate semantics before RunIt lands. This keeps M4 unblocked.
+**AsyncIt-native ports:**
+- **`PollerPort`** — readiness notification. Implementations: `NativePoller` (`Io\Poll`), `SelectPoller` (fallback). AsyncIt-owned.
+- **`CancellationScopeInterface`** — observed cancellation state; native to the scheduling domain.
+- **`CapabilityDescriptor` / `RuntimeDiscovery`** — AsyncIt-owned; selects adapters and emulation.
+
+**Reasoning on RunIt coupling:** RunIt is WiP (pre-1.0) but its port *contracts* are already stable and shipped with a conformance toolkit. We should implement those interfaces (not fork them) and validate against RunIt's own verifiers. For M4 we still need a `Memory`/`Null` stand-in only where RunIt's *implementation* is not yet consumable — but the *interfaces* and *verifiers* can be depended on immediately. This keeps M4 unblocked without forking RunIt's vocabulary.
 
 **Reasoning on adapter boundaries:** Runtime adapters (Revolt, Swoole, Swow) translate *suspension/resumption* and *polling* into the runtime's model but must **not** change scheduling semantics. The scheduler logic stays in the Application/Domain; the adapter only provides the "how do I actually suspend a coroutine / register a watcher here" primitive.
 
@@ -117,9 +124,11 @@ Persistent workers (Swoole/Swow/RoadRunner) break PHP's shared-nothing guarantee
 2. While suspended, the context is non-ambient and unreachable by interleaved tasks.
 3. **Resume** → exact context is **re-attached** (guarded by `finally`).
 
-**Reasoning:** This must be coordinated through `ContextStoragePort`, but the *trigger* is the scheduler's suspend/resume calls, not the runtime. So the seam is: the scheduler calls `contextStorage->detach()` before `Fiber::suspend()` and `contextStorage->reattach(token)` after `Fiber::resume()`. Adapters implement how the token is stored per fiber/coroutine (Swoole: coroutine-local; Revolt: fiber slot; reference: `WeakMap<Fiber, Context>`).
+**Reasoning (aligned with RunIt's `ContextStorageInterface`):** RunIt's storage is a synchronous **LIFO stack** keyed by an immutable `ContextToken`. Attaching pushes a token; detaching pops it and restores the *previous nested scope*. The storage detects **invalid tokens and double-detachment** — this is exactly what RunIt's `ContextStorageVerifier` checks (`src/RunIt/docs/conformance.md`). For the Fiber/coroutine models the *adapter* swaps the stack for a per-Fiber context slot (Revolt) or per-coroutine storage + `RuntimeContextDetectorInterface` (Swoole), clearing or restoring in `finally` (ADR-005, ADR-013). So the seam is: the scheduler calls `contextStorage->detach()` before `Fiber::suspend()` and `contextStorage->reattach(token)` after `Fiber::resume()`. AsyncIt supplies the *trigger timing*; the adapter supplies the *per-fiber slot*. `CurrentExecution` (the ambient accessor) returns `null` when no execution is active and never reads global mutable state.
 
-**Open decision:** Copy-on-write context with hard bounds (≤64 entries, ≤4096 bytes/value, no raw objects/resources) is owned by RunIt, not AsyncIt. AsyncIt only *transports* the context token. We must resist the temptation to re-implement context here.
+**Assertion A (AsyncIt-native, stricter than the LIFO stack contract):** RunIt's `ContextStorageVerifier` proves the LIFO stack contract, but a cooperative scheduler adds a *timing* requirement — context must be detached **at the exact yield point** of the `Io\Poll` wait and re-attached **before** the resumed task executes any business code. Assertion A interleaves concurrent tasks and proves zero bleed *across the suspend/resume boundary*, which the plain stack verifier does not exercise.
+
+**Open decision:** Copy-on-write context with hard bounds (≤64 entries, ≤4096 bytes/value, no raw objects/resources), classification (`public`/`internal`/`confidential`/`restricted`/`secret`), and merge policy (`ContextCollisionPolicy`) are owned by RunIt, not AsyncIt. AsyncIt only *transports* the context token and must respect `secret` deny-by-default. We must resist the temptation to re-implement context here.
 
 ---
 
@@ -133,7 +142,9 @@ Lifecycle: `CREATED → RUNNING → {SUCCEEDED|FAILED|CANCELLED|TIMED_OUT}`.
 
 **Reasoning on structured concurrency:** A parent `CancellationScope` cascades to children unless a child is explicitly `detached`. This is a relationship on cancellation scopes, not on tasks directly — tasks reference a scope. This keeps the cascade policy in one place.
 
-**Open decision:** `ConflictingCompletionException` — which layer owns it? I reason the Task state transition is guarded in the domain (a task is a state machine); the scheduler calls `task->complete(...)` and the domain rejects illegal transitions. Adapters never drive transitions directly.
+**Reasoning on the lifecycle matrix (mirroring RunIt ADR-023/024):** RunIt deliberately moved the closed transition matrix *into the aggregate* (`ExecutionStatus::canTransitionTo()`, enforced in `Execution::complete()`) rather than leaving it only in the coordinator. AsyncIt should do the same: the task state machine is owned by the **Task aggregate** via `TaskStatus::canTransitionTo()`, and `Task::complete()` structurally rejects illegal transitions. The **scheduler/coordinator** sits above the aggregate and adds *idempotency*: repeating the **same** terminal completion is a no-op, while a **different** terminal status raises `ConflictingCompletionException`. This directly answers the open decision below — the exception is owned by the domain, invoked by the coordinator, never by adapters.
+
+**Consequence for `created → cancelled`:** like RunIt, a task may be cancelled before it runs (`created → cancelled` is legal); only `running → terminal` and `created → cancelled` are valid, and any other transition raises `InvalidLifecycleTransitionException`.
 
 ---
 
@@ -161,7 +172,7 @@ This is a standard cooperative reactor. The novelty is not the loop; it is the *
 
 ## 9. Timers & synchronization (channels)
 
-- **Timers:** monotonic `ClockPort`; scheduler keeps a timer queue keyed by absolute monotonic deadline; `delay()` suspends a task and registers a timer; nearest deadline drives `poller->wait` timeout. Assertion B (Temporal Precision) verifies no wall-clock skew.
+- **Timers:** reuse RunIt's `MonotonicClockInterface`. Scheduler keeps a timer queue keyed by absolute monotonic deadline; `delay()` suspends a task and registers a timer; nearest deadline drives `poller->wait` timeout. Durations are `Duration` value objects in **integer nanoseconds** (exact sub-second, no float rounding). Assertion B (Temporal Precision) verifies no wall-clock skew — this is essentially RunIt's `MonotonicClockVerifier` applied to AsyncIt's scheduling use. Per-execution artifact ordering (if AsyncIt emits occurrences) uses RunIt's `SequenceAllocatorInterface`.
 - **Channels:** `TaskChannel` over a bounded queue. If `CapabilityDescriptor` says native channels `Supported`, the adapter may back it with Swoole/Swow channels; otherwise AsyncIt provides an emulated channel using suspend/resume + the scheduler registry. The **public interface is identical** — capability only chooses the backing.
 
 **Reasoning:** Channels and timers are *derivable* from await + cancellation, so they do not need to be in the M3 minimal kernel. They can arrive in M4/M5 once the await primitive is proven.
@@ -170,15 +181,37 @@ This is a standard cooperative reactor. The novelty is not the loop; it is the *
 
 ## 10. Conformance strategy
 
-The pivot is the **`AsyncRuntimeVerifier`** (in `src/Conformance`). Reasoning: PSR-style interface matching cannot prove runtime invariants, so we prove *behavior*:
+The pivot is the **`AsyncRuntimeVerifier`** suite (in `src/Conformance`). But the key insight from RunIt is that **AsyncIt does not invent its own conformance shape** — it should reuse RunIt's framework-agnostic toolkit and *extend* it with scheduling-specific assertions.
 
-- **Assertion A — Context Isolation:** interleave tasks, assert zero bleed across suspend/resume.
-- **Assertion B — Temporal Precision:** monotonic-clock integration; no wall-clock skew in Measurements.
-- **Assertion C — Deterministic Cleanup:** no dangling `StreamPollHandle`/timers after timeout/cancel.
+**RunIt's conformance toolkit (`src/RunIt/docs/conformance.md`)** is the template we mirror:
+- Lives in `src/Conformance/` with `Contract/PortFixtureInterface.php` (the *only* contract a verifier depends on), `Fixture/`, `Verifier/` (one per port contract), and `Result/` (`ConformanceResult`, `ConformanceViolation`, `ViolationSeverity`).
+- Each verifier exposes `verify(port, fixture): ConformanceResult`. A result carries `isConformant(): bool` and `list<ConformanceViolation>`; breaches are `error`, advisories `warning`. **Verifiers never throw on a behavioral mismatch.**
+- **Framework-agnostic:** no verifier extends a test-framework base class. The same checks run unchanged as a plain PHP script, or inside PHPUnit/Pest/Codeception via the returned result object.
+- **Negative tests:** every verifier has a sibling `*VerifierNegativeTest` that deliberately breaks one contract at a time and asserts the expected violation id + severity; shipped verifiers are covered ≥95%.
 
-A **pure-PHP deterministic reference runtime** (M4) is the semantic baseline. All runtime adapters (Revolt/Swoole/Swow/NativePoller) must match it 100%. This inverts the usual order: define behavior → prove with reference → adapters must conform.
+**AsyncIt's `AsyncRuntimeVerifier` = two layers:**
+1. **Reuse RunIt's port verifiers** against the RunIt ports AsyncIt implements. Because AsyncIt *is* a RunIt `ExecutionEngineInterface` implementation, it must pass:
+   - `ExecutionEngineVerifier` → `ExecutionEngineInterface` (lifecycle, exception preservation). This *is* the formal integration gate between AsyncIt and RunIt.
+   - `ContextStorageVerifier` → `ContextStorageInterface` (LIFO attach/detach, current, invalid token, double-detach).
+   - `MonotonicClockVerifier` → `MonotonicClockInterface` (monotonic ordering, wall/mono separation). This *is* Assertion B.
+   - `ArtifactPublisherVerifier` → `ArtifactPublisherInterface` (publish, ordering, recursion guard — ADR-014).
+2. **AsyncIt-native scheduling verifiers** (same `verify(port, fixture): ConformanceResult` shape, same `Result/` model), covering what RunIt's ports alone cannot:
+   - **Assertion A — Context Isolation across suspend/resume:** interleave tasks, prove zero bleed *at the exact yield point* and on re-attach (stricter than the LIFO stack contract).
+   - **Assertion C — Deterministic Cleanup:** no dangling `StreamPollHandle`/timers after timeout/cancel.
 
-**Reasoning:** This de-risks vendor adapters enormously. We can develop and validate all of AsyncIt's semantics on PHP 8.4/8.5 with `SelectPoller` + Fibers, long before PHP 8.6 `Io\Poll` is required.
+**Mapping summary:**
+
+| AsyncIt concern | RunIt verifier reused | AsyncIt-native verifier |
+|---|---|---|
+| Execution engine integration | `ExecutionEngineVerifier` | — |
+| Context LIFO contract | `ContextStorageVerifier` | Assertion A (timing) |
+| Monotonic time | `MonotonicClockVerifier` | — (Assertion B) |
+| Publication recursion guard | `ArtifactPublisherVerifier` | — |
+| Handle/timer cleanup | — | Assertion C |
+
+A **pure-PHP deterministic reference runtime** (M4) is the semantic baseline. All runtime adapters (Revolt/Swoole/Swow/NativePoller) must match it 100% via the *same* verifier suite. This inverts the usual order: define behavior → prove with reference → adapters must conform.
+
+**Reasoning:** This de-risks vendor adapters enormously and avoids fork risk — we reuse RunIt's verifiers rather than re-prove RunIt's own contracts. We can develop and validate all of AsyncIt's semantics on PHP 8.4/8.5 with `SelectPoller` + Fibers, long before PHP 8.6 `Io\Poll` is required. The framework-agnostic `ConformanceResult` model also means third-party AsyncIt adapter authors get the same "drop in your adapter, get a result object" experience RunIt already offers.
 
 ---
 
@@ -186,11 +219,11 @@ A **pure-PHP deterministic reference runtime** (M4) is the semantic baseline. Al
 
 I reason the safest first slice is **contracts + reference runtime + verifier**, not a vendor adapter:
 
-1. **M0–M2:** Freeze landscape, boundaries (done-ish via ADRs/docs). Define vocabulary.
-2. **M3 — Minimal Contracts:** `Task`, `Scheduler` (interface), `PollerPort`, `CancellationScope`, `ClockPort`, `ContextStoragePort`, `PublicationPort`, `CapabilityDescriptor`, `RuntimeDiscovery` (interface), exceptions (`ConflictingCompletionException`, marker interfaces). Plus the `AsyncRuntimeVerifier` skeleton with assertions A/B/C as *failing* tests.
-3. **M4 — Reference Runtime:** a pure-PHP `FiberTaskScheduler` + `SelectPoller` + `MemoryContextStorage` + `NullPublisher`. Make the verifier **pass** here. This is the semantic contract frozen in code.
-4. **M5 — RunIt integration:** swap `MemoryContextStorage`/`NullPublisher` for RunIt-backed ports; validate detach/reattach.
-5. **M6–M8 — Core adapters:** Revolt, Swoole, Swow. Each must pass the *same* verifier.
+1. **M0–M2:** Freeze landscape, boundaries (done-ish via ADRs/docs). Define vocabulary. Lock the `src/Conformance/` layout to mirror RunIt's (`Contract/PortFixtureInterface`, `Fixture`, `Verifier`, `Result`).
+2. **M3 — Minimal Contracts:** `Task`, `TaskStatus` (with `canTransitionTo()`), `Scheduler` (interface), `PollerPort`, `CancellationScopeInterface`, `CapabilityDescriptor`, `RuntimeDiscovery` (interface), exceptions (`ConflictingCompletionException`, `InvalidLifecycleTransitionException`, marker interfaces). Plus `AsyncRuntimeVerifier` skeleton reusing RunIt's port verifiers + failing Assertion A/C.
+3. **M4 — Reference Runtime:** a pure-PHP `FiberTaskScheduler` + `SelectPoller` + a `MemoryContextStorage` implementing RunIt's `ContextStorageInterface` + a `NullArtifactPublisher` implementing RunIt's `ArtifactPublisherInterface` + a `SystemMonotonicClock` (RunIt's). Make the verifier suite **pass** here. This is the semantic contract frozen in code.
+4. **M5 — RunIt integration:** swap `MemoryContextStorage`/`NullArtifactPublisher` for RunIt's first-party adapters; validate detach/reattach and pass `ExecutionEngineVerifier` end-to-end (the formal AsyncIt↔RunIt gate).
+5. **M6–M8 — Core adapters:** Revolt, Swoole, Swow. Each must pass the *same* verifier suite, including Assertion A (per-fiber/per-coroutine context slots) and Assertion C.
 6. **M9–M10 — Native & interop:** `NativePoller` (`Io\Poll`), ReactPHP/Amp interop layer.
 
 **Reasoning:** Building adapters first would let runtime quirks leak into the contract. Building the verifier first (even failing) keeps the target explicit. The reference runtime is what makes "semantic portability" real rather than aspirational.
@@ -199,13 +232,20 @@ I reason the safest first slice is **contracts + reference runtime + verifier**,
 
 ## 12. Open questions / decisions needed
 
-1. **Task identity source** — does AsyncIt mint task ids, or consume RunIt correlation ids? Likely AsyncIt mints, RunIt correlates.
+1. **Task identity source** — does AsyncIt mint task ids, or consume RunIt correlation ids? Likely AsyncIt mints, RunIt correlates via `IdentifierGeneratorInterface` (RunIt port, verifiable by `IdentifierGeneratorVerifier`).
 2. **Suspension trigger granularity** — explicit `await*` calls only, or also support runtime blocking-hook rewriting (Swoole `SWOOLE_HOOK_ALL`)? Reasoning: support explicit model as canonical; treat hook model as an adapter convenience, never required.
-3. **Structured concurrency primitives** — how explicit? Full task-tree (structured) vs lightweight scopes. Recommend scopes first, tree later.
+3. **Structured concurrency primitives** — how explicit? Full task-tree (structured) vs lightweight scopes. Recommend scopes first, tree later. Mirror RunIt's `NestedExecutionPolicyInterface` modes (`child_execution`, `activity_only`, `detached_execution`, `reject_nested`) for the "detached vs child" decision.
 4. **Scheduler queue policy** — FIFO minimal for M4; priority/weighted later, selected by capability.
-5. **`StreamPollHandle` ownership** — is it returned to the caller or held by the scheduler registry? Recommend scheduler-held, auto-released on terminal transition, with manual release API for edge cases.
-6. **Serialization** — tasks/Fibers are non-serializable by design; we do **not** persist suspended tasks. Confirm this is acceptable (it is, per background docs). Capability descriptors and task *state* (enum) are serializable.
-7. **Error model** — original business exception must survive; adapter/runtime exceptions must not replace it. Need a clear "wrap, don't swallow" rule in the await boundary.
+5. **`StreamPollHandle` ownership** — is it returned to the caller or held by the scheduler registry? Recommend scheduler-held, auto-released on terminal transition, with manual release API for edge cases. This is Assertion C's enforcement hook.
+6. **Serialization** — tasks/Fibers are non-serializable by design; we do **not** persist suspended tasks. Confirmed acceptable (background docs + RunIt's artifact model). Capability descriptors and task *state* (the `TaskStatus` enum) are serializable.
+7. **Error model** — original business exception must survive; adapter/runtime exceptions must not replace it. **Resolved pattern (RunIt precedent):** the runner/scheduler rethrows the *exact* original `Throwable`; a mapped, bounded description is carried on the failed artifact, never in place of the business exception. AsyncIt mirrors this at the await boundary ("wrap, don't swallow").
+
+**Decisions already informed by RunIt (no longer open):**
+- **Clock** → reuse RunIt's `MonotonicClockInterface` + `Duration` (integer ns), not a custom `ClockPort`. (§4, §9)
+- **Context storage** → implement RunIt's `ContextStorageInterface` (LIFO stack + `ContextToken`, per-fiber/coroutine slot in adapters); AsyncIt triggers detach/reattach. (§6)
+- **Conflicting completion ownership** → owned by the Task aggregate (`TaskStatus::canTransitionTo()` + `Task::complete()`); coordinator adds idempotency. Same-status repeat = no-op, different = `ConflictingCompletionException`. (§7)
+- **Publication** → implement RunIt's `ArtifactPublisherInterface` behind `FailSafeArtifactPublisher` (fail-open default, `onPublicationFailure` health callback, recursion guard per ADR-014). (§4, §10)
+- **The integration seam** → AsyncIt's `AsyncRuntime` *is* RunIt's `ExecutionEngineInterface`; the formal gate is passing RunIt's `ExecutionEngineVerifier`. (§4, §10)
 
 ---
 
@@ -214,10 +254,10 @@ I reason the safest first slice is **contracts + reference runtime + verifier**,
 | Risk | Mitigation |
 |---|---|
 | Coupling scheduler to a runtime | Strict DepTrac: Domain depends only on Contracts/Ports; adapters isolated. |
-| Context bleed in persistent workers | Detach/reattach via `ContextStoragePort`, proven by Assertion A. |
+| Context bleed in persistent workers | Detach/reattach via RunIt `ContextStorageInterface`, proven by Assertion A (and `ContextStorageVerifier`). |
 | `StreamPollHandle` / timer leaks | Registry drained on every terminal transition; Assertion C. |
-| Wall-clock skew in telemetry | Monotonic `ClockPort` only; Assertion B. |
-| RunIt not yet 1.0 | Ports with `Memory`/`Null` reference impls; no hard RunIt dependency. |
+| Wall-clock skew in telemetry | Reuse RunIt `MonotonicClockInterface` (`Duration` ns); `MonotonicClockVerifier`. |
+| RunIt not yet 1.0 | Depend on RunIt *port contracts + verifiers* (stable, shipped), not its *implementation*; `Memory`/`Null` stand-ins only for unavailable impls. |
 | Over-abstraction before need | Contracts added only with a concrete consumer/adapter (per AGENTS.md). |
 | Pretending `SelectPoller` is `Io\Poll` | Distinct named impl with documented weaker characteristics. |
 
