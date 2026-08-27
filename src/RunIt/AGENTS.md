@@ -10,6 +10,21 @@ Use these instructions when implementing, reviewing, refactoring, testing, or do
 
 ---
 
+## Current Project Status
+
+RunIt is at release candidate **`1.0.0-rc.1`**. The public API is frozen.
+
+- **Frozen public API**: 372 public symbols (147 interfaces, 206 classes, 13 enums) across the public namespaces `Domain`, `Application`, `Contract`, `Adapter`, `SDK`, and `Common`. The stability contract is `tools/api-compat/api-baseline.json` plus `tools/api-compat/normalization-schema-baseline.json`.
+- **Internal namespaces**: `ItPack\RunIt\Behavior` and `ItPack\RunIt\Conformance` are excluded from the backward-compatibility guarantee (see `tools/api-compat/config.json`). Treat them as implementation detail.
+- **BC enforcement**: `composer api:baseline` regenerates the baseline; `composer api:check` fails the build on any public-symbol break. Do not edit the baseline to mask an accidental change—update it deliberately when a public contract intentionally changes, and record the change in `docs/CHANGELOG.md`.
+- **No abandoned or experimental APIs**: the codebase contains no `@experimental`/`@deprecated` markers; the API surface described here is the shipped surface.
+- **Third-party usability**: validated by the sibling package `it-pack/run-it-third-party-sample`.
+- **Remaining stable-release gate**: PHPStan must reach zero errors before `1.0.0` is tagged (135 pre-existing errors at `rc.1`). This is tracked separately from M15.1 documentation prep and is not part of the RC documentation work.
+
+The authoritative roadmap and release records live in `docs/ROADMAP.md` and `docs/releases/`.
+
+---
+
 ## Instruction Priority
 
 Follow instructions in this order:
@@ -76,6 +91,8 @@ Before making architectural changes, read the smallest relevant set of:
 7. `composer.json`
 8. `deptrac.yaml`
 9. `phpstan.neon.dist`
+10. `tools/api-compat/api-baseline.json` and `tools/api-compat/normalization-schema-baseline.json`
+11. `docs/ROADMAP.md` and `docs/releases/`
 
 If a listed file does not exist, do not invent its contents. Use the available sources and mention the missing artifact when it blocks the task.
 
@@ -690,6 +707,8 @@ composer test
 composer analyse
 composer architecture
 composer coding-style
+composer api:baseline
+composer api:check
 composer mutation
 composer benchmark
 composer audit
@@ -710,6 +729,13 @@ Do not assume these scripts exist. Verify them first.
 - Do not add skips to hide an architectural violation.
 - Correct the dependency direction.
 - If a boundary must change, update the architecture and ADR first.
+
+### API compatibility
+
+- The public API is frozen at `1.0.0-rc.1` and protected by `tools/api-compat/api-baseline.json`.
+- Run `composer api:check` as part of change validation; it must report no backward-compatibility breaks.
+- Regenerate the baseline with `composer api:baseline` only when a public symbol (interface, class, enum, attribute, method signature, normalized field, or occurrence type) intentionally changes.
+- Document every baseline change in `docs/CHANGELOG.md` and, for releases, in `docs/releases/`.
 
 ### Mutation testing
 
@@ -740,6 +766,7 @@ Update documentation when changing:
 - Security defaults.
 - Configuration.
 - Installation requirements.
+- Backward-compatibility impact (update `docs/CHANGELOG.md`; if a public symbol changed, regenerate the API baseline).
 
 Examples must:
 
@@ -765,7 +792,7 @@ Create or update an ADR when a change affects:
 
 ## Backward Compatibility
 
-Before `1.0.0`, breaking changes may be necessary but must be deliberate and documented.
+Before `1.0.0`, breaking changes may be necessary but must be deliberate and documented. As of `1.0.0-rc.1` the public API is frozen: any modification of a frozen public symbol is a breaking change and must go through a deliberate, documented baseline update (`composer api:baseline` + `docs/CHANGELOG.md`).
 
 After `1.0.0`, treat these as compatibility-sensitive:
 
@@ -869,5 +896,6 @@ Before considering a change complete, verify:
 - [ ] Relevant tests were added or updated.
 - [ ] Architecture and static-analysis checks pass where available.
 - [ ] Documentation reflects public behavior.
+- [ ] Public API changes regenerate and document the BC baseline.
 - [ ] No unrelated changes were introduced.
 - [ ] Any unverified assumption is explicitly reported.

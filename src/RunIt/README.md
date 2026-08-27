@@ -4,7 +4,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D%208.4-777BB4.svg)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-initial%20development-orange.svg)](#project-status)
+[![Status](https://img.shields.io/badge/status-release%20candidate-blue.svg)](#project-status)
 
 RunIt provides composable, reusable, and non-intrusive execution components for PHP applications and libraries.
 
@@ -117,13 +117,13 @@ RunIt can represent:
 
 ## Project Status
 
-RunIt is currently in **initial development**.
+RunIt is currently at **release candidate `1.0.0-rc.1`**.
 
-The public API shown in this README represents the intended direction of the package but may change before the first stable `1.0.0` release.
+The public API is **frozen**. It comprises 372 public symbols (147 interfaces, 206 classes, 13 enums) plus a stable normalization schema, recorded in `tools/api-compat/api-baseline.json` and `tools/api-compat/normalization-schema-baseline.json`. Backward compatibility is enforced by `composer api:check`.
 
-Do not rely on backward compatibility before `1.0.0` unless a specific pre-release version documents otherwise.
+Through the release candidate, a change to a frozen public symbol is a deliberate, documented act: update the baseline with `composer api:baseline` and record the change in `docs/CHANGELOG.md` (see [`docs/releases/1.0.0-rc.1.md`](docs/releases/1.0.0-rc.1.md)).
 
-Initial development priorities are:
+The initial development priorities are complete:
 
 1. Stable execution semantics.
 2. Immutable domain artifacts.
@@ -134,7 +134,9 @@ Initial development priorities are:
 7. CloudEvents integration.
 8. PSR integration.
 9. Fiber and Swoole runtime adapters.
-10. Adoption by other ItPack packages.
+10. Adoption by other ItPack packages and a third-party usability sample (`it-pack/run-it-third-party-sample`).
+
+Remaining work toward `1.0.0` and beyond is tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ---
 
@@ -166,11 +168,13 @@ Install RunIt through Composer:
 composer require it-pack/run-it
 ```
 
-During initial development, a pre-release constraint may be required:
+For the release candidate, pin to the RC constraint:
 
 ```bash
-composer require it-pack/run-it:^0.1
+composer require it-pack/run-it:^1.0.0@RC
 ```
+
+The stable `^1.0.0` constraint becomes available once `1.0.0` is tagged.
 
 RunIt is designed to remain usable without installing telemetry exporters, framework bridges, or runtime extensions.
 
@@ -853,7 +857,7 @@ External standards implement portions of the RunIt model.
 
 ### OpenTelemetry
 
-The OpenTelemetry adapter is expected to provide:
+The OpenTelemetry adapter provides:
 
 - Execution-to-trace mapping.
 - Activity-to-span mapping.
@@ -865,7 +869,7 @@ The OpenTelemetry adapter is expected to provide:
 - Cardinality protection.
 - Exception recording.
 
-RunIt will not:
+RunIt does not:
 
 - Configure a global OpenTelemetry provider from library code.
 - Require a specific exporter.
@@ -895,7 +899,7 @@ Structured JSON will be the initial format.
 
 ### PSR-3
 
-Planned PSR-3 support includes:
+PSR-3 support includes:
 
 - Publishing observations through a logger.
 - Decorating loggers with execution correlation.
@@ -904,7 +908,7 @@ Planned PSR-3 support includes:
 
 ### PSR-14
 
-Planned PSR-14 support includes:
+PSR-14 support includes:
 
 - Dispatching occurrences as PSR-14 events.
 - Converting supported PSR events into occurrences.
@@ -912,7 +916,7 @@ Planned PSR-14 support includes:
 
 ### HTTP
 
-Planned HTTP support includes:
+HTTP support includes:
 
 - PSR-15 server middleware.
 - PSR-7 request context extraction.
@@ -922,9 +926,9 @@ Planned HTTP support includes:
 
 ### Swoole and OpenSwoole
 
-Swoole support will remain optional and adapter-based.
+Swoole support is optional and adapter-based.
 
-Planned capabilities:
+Capabilities:
 
 - Coroutine-local execution context.
 - HTTP server execution middleware.
@@ -1006,20 +1010,24 @@ src/
 │   ├── Lifecycle/
 │   ├── Publication/
 │   └── Propagation/
-├── Adapter/
+├── Adapter/            # Optional, vendor-neutral integrations
 │   ├── Memory/
 │   ├── Null/
-│   ├── Callback/
+│   ├── Common/
 │   ├── Fiber/
 │   ├── OpenTelemetry/
 │   ├── CloudEvents/
 │   ├── Psr/
 │   └── Swoole/
-└── SDK/
+└── SDK/                # Ergonomic consumer-facing helpers
     ├── Builder/
     ├── Decorator/
-    ├── Middleware/
-    └── Attribute/
+    ├── Attribute/
+    └── Exception/
+
+`Domain`, `Application`, `Contract`, `Adapter`, `SDK`, and `Common` are public
+namespaces covered by the backward-compatibility guarantee. `Behavior` and
+`Conformance` are internal and may change without notice.
 ```
 
 ### Design standards
@@ -1069,12 +1077,11 @@ Routing
 Adapter
 ```
 
-Planned publishers include:
+Publishers include:
 
 ```text
 NullArtifactPublisher
 InMemoryArtifactPublisher
-CallbackArtifactPublisher
 CompositeArtifactPublisher
 FilteringArtifactPublisher
 RedactingArtifactPublisher
@@ -1091,10 +1098,12 @@ $publisher = new FailSafeArtifactPublisher(
         policy: $samplingPolicy,
         publisher: new RedactingArtifactPublisher(
             redactor: $redactor,
-            publisher: new CompositeArtifactPublisher([
-                $openTelemetryPublisher,
-                $cloudEventsPublisher,
-            ]),
+            publisher: new BufferedArtifactPublisher(
+                publisher: new CompositeArtifactPublisher([
+                    $openTelemetryPublisher,
+                    $cloudEventsPublisher,
+                ]),
+            ),
         ),
     ),
     fallback: $fallbackReporter,
@@ -1276,7 +1285,7 @@ composer install
 
 ### Quality checks
 
-The final Composer scripts may evolve during initial development, but the intended commands are:
+The Composer scripts are stable for the release candidate. The intended commands are:
 
 ```bash
 composer validate
@@ -1284,6 +1293,8 @@ composer test
 composer analyse
 composer architecture
 composer coding-style
+composer api:baseline
+composer api:check
 composer mutation
 composer benchmark
 composer audit
@@ -1359,70 +1370,16 @@ All PHP files must:
 
 ## Roadmap
 
-### Initial domain kernel
+RunIt `1.0.0-rc.1` implements the complete initial feature set described in this document:
 
-- [ ] Execution identifiers and definitions.
-- [ ] Immutable execution context.
-- [ ] Activity model.
-- [ ] Measurement model.
-- [ ] Observation model.
-- [ ] Occurrence model.
-- [ ] Snapshot model.
-- [ ] Deterministic normalization.
+- The domain kernel (execution, context, activity, measurement, observation, occurrence, snapshot) with deterministic normalization.
+- Lifecycle-safe execution and activity runners, explicit and ambient context propagation, and nested-execution policies.
+- A composable artifact-publication pipeline with redaction, sampling, buffering, backpressure, failure policies, and recursion protection.
+- An SDK with immutable builders, callable and interface decorators, and metadata attributes.
+- Integrations for OpenTelemetry, CloudEvents, PSR-3, PSR-14, PSR-20, PSR-7/15/18, Fibers, and Swoole/OpenSwoole.
+- Third-party usability, validated by the `it-pack/run-it-third-party-sample` package.
 
-### Runtime
-
-- [ ] Execution runner.
-- [ ] Activity runner.
-- [ ] Explicit execution scopes.
-- [ ] Ambient context storage.
-- [ ] Nested execution policies.
-- [ ] Failure mapping.
-- [ ] Terminal execution snapshots.
-
-### Publication
-
-- [ ] Null publisher.
-- [ ] In-memory publisher.
-- [ ] Callback publisher.
-- [ ] Composite publisher.
-- [ ] Redaction.
-- [ ] Sampling.
-- [ ] Buffering.
-- [ ] Backpressure.
-- [ ] Failure policies.
-- [ ] Recursion protection.
-
-### SDK
-
-- [ ] Immutable builder.
-- [ ] Callable decorator.
-- [ ] Interface decorator examples.
-- [ ] Attribute metadata.
-- [ ] PSR-15 middleware.
-- [ ] CLI integration recipe.
-- [ ] Queue-worker integration recipe.
-
-### Integrations
-
-- [ ] OpenTelemetry.
-- [ ] CloudEvents.
-- [ ] PSR-3.
-- [ ] PSR-14.
-- [ ] PSR-20.
-- [ ] PSR-7/15/18.
-- [ ] Fibers.
-- [ ] Swoole.
-- [ ] OpenSwoole.
-
-### Adoption
-
-- [ ] ConfigureIt.
-- [ ] ChaosCockpit.
-- [ ] AExO.
-- [ ] HoppaDB.
-- [ ] Spindle.
-- [ ] Third-party adapter example.
+The public API is frozen at this release candidate. Remaining milestones, including the promotion to `1.0.0` and post-1.0 planning, are tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md). The authoritative compatibility baseline is `tools/api-compat/api-baseline.json`.
 
 ---
 
@@ -1441,7 +1398,7 @@ Public API includes:
 - Occurrence naming rules.
 - Serialized schema formats explicitly marked stable.
 
-Internal namespaces and APIs marked experimental are not covered by backward-compatibility guarantees.
+The `ItPack\RunIt\Behavior` and `ItPack\RunIt\Conformance` namespaces are internal and are not covered by the backward-compatibility guarantee. As of `1.0.0-rc.1`, the remaining public namespaces (`Domain`, `Application`, `Contract`, `Adapter`, `SDK`, `Common`) are frozen.
 
 Before `1.0.0`:
 
@@ -1450,11 +1407,13 @@ Before `1.0.0`:
 - Migration notes should accompany each pre-release.
 - Deprecated APIs should be retained where practical until the next minor release.
 
+From `1.0.0-rc.1` onward, any change to a frozen public symbol is a breaking change and requires a deliberate, documented baseline update (`composer api:baseline` + `docs/CHANGELOG.md`).
+
 ---
 
 ## Contributing
 
-Contributions are welcome once the initial contribution process is published.
+Contributions are welcome. The public API is frozen at `1.0.0-rc.1`, so propose any API change through an issue and an ADR before implementation.
 
 Before submitting a change:
 
