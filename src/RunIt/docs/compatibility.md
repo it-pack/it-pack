@@ -23,6 +23,12 @@ compatibility guarantee. They must never appear in a public signature
 - `ItPack\RunIt\Behavior\` — reusable behavior traits mixed into value objects.
 - `ItPack\RunIt\Conformance\` — adapter conformance harness and fixtures.
 
+> `Conformance` is intentionally **internal** even though it is shipped and
+> reachable via the `ItPack\RunIt\` PSR-4 mapping. Third-party conformance suites
+> (see `docs/conformance.md`) use it, but it is **not** covered by the
+> backward-compatibility guarantee; consumers must pin the exact RunIt version so
+> the verifiers and fixtures they depend on stay aligned.
+
 The checker fails closed: if a public symbol references an internal type, it is
 reported as a break.
 
@@ -193,6 +199,12 @@ immediately. At each **release candidate** the baseline is regenerated with
 `composer api:baseline` and committed, freezing the API surface for that
 release. Before `1.0.0` the baseline may be regenerated more freely; after
 `1.0.0` it is treated as a stability contract.
+
+The `1.0.0-rc.1` baseline generated in milestone M15.1 is the freeze for the
+`1.0.0` stable release: it captures the 372 public symbols (147 interfaces, 206
+classes, 13 enums) and the 8-artifact / 76-field normalization schema. Promotion
+to `1.0.0` must not introduce any `break` against this baseline; additive
+changes are allowed only with a documented, deliberate baseline regeneration.
 
 ## CI
 

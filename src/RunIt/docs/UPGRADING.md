@@ -6,10 +6,12 @@ stable (`1.0.0` and later) versions.
 
 ## Current release status
 
-RunIt has not yet published a stable `1.0.0`. Until then, the `main` branch is the
-supported line and **breaking changes may occur without a major version bump**.
-Treat each upgrade as potentially breaking and review the diff plus the
-[`docs/CHANGELOG.md`](docs/CHANGELOG.md).
+RunIt has published `1.0.0-rc.1`, which freezes the public API and the stable
+normalization schema. The committed API baseline (`tools/api-compat/`) is the
+stability contract: `composer api:check` must pass before promotion to `1.0.0`,
+and any break detected there requires a deliberate baseline regeneration with a
+documented reason. Treat the frozen surface as compatibility-sensitive; once
+`1.0.0` is tagged, semantic versioning applies to all public symbols.
 
 ## What is compatibility-sensitive
 
@@ -26,8 +28,10 @@ versioning:
 
 The canonical, machine-checked list lives in
 [`docs/compatibility.md`](docs/compatibility.md). Internal namespaces
-(`src/Application/**` implementation detail, `src/Behavior/**` traits, and adapter
-internals) are not covered by the backward-compatibility guarantee.
+(`ItPack\RunIt\Behavior\` and `ItPack\RunIt\Conformance\`) are excluded from the
+backward-compatibility guarantee. Classes that live inside a public directory but
+carry an `@internal` docblock (for example some `Application\Publication`
+collaborators) are also excluded by convention.
 
 ## Automated compatibility checking
 

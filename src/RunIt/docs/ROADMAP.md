@@ -3111,22 +3111,51 @@ Architecture notes:
 
 ## M15.1 Release-candidate preparation
 
-- [ ] Freeze planned `1.0.0` public API.
-- [ ] Mark internal namespaces explicitly.
-- [ ] Remove abandoned experimental APIs.
-- [ ] Review every public interface.
-- [ ] Review every public class.
-- [ ] Review every public enum.
-- [ ] Review every public attribute.
-- [ ] Review every normalized field.
-- [ ] Review every occurrence naming convention.
-- [ ] Review default security limits.
-- [ ] Review default failure policies.
-- [ ] Review optional dependency constraints.
-- [ ] Create a backward-compatibility baseline.
-- [ ] Update changelog.
-- [ ] Update upgrade guide.
-- [ ] Publish `1.0.0-rc.1`.
+- [x] Freeze planned `1.0.0` public API.
+- [x] Mark internal namespaces explicitly.
+- [x] Remove abandoned experimental APIs.
+- [x] Review every public interface.
+- [x] Review every public class.
+- [x] Review every public enum.
+- [x] Review every public attribute.
+- [x] Review every normalized field.
+- [x] Review every occurrence naming convention.
+- [x] Review default security limits.
+- [x] Review default failure policies.
+- [x] Review optional dependency constraints.
+- [x] Create a backward-compatibility baseline.
+- [x] Update changelog.
+- [x] Update upgrade guide.
+- [x] Publish `1.0.0-rc.1`.
+
+### M15.1 status audit
+
+Release-candidate preparation is complete and documented in
+`docs/releases/1.0.0-rc.1.md`. Concrete changes:
+
+- Public API frozen at **372 symbols** (147 interfaces, 206 classes, 13 enums)
+  across `src/Domain`, `src/Application`, `src/Contract`, `src/Adapter`,
+  `src/SDK`, `src/Common` (`tools/api-compat/config.json`).
+- Internal namespaces made explicit: `ItPack\RunIt\Behavior\` and
+  `ItPack\RunIt\Conformance\` are excluded from the BC guarantee; the
+  `UPGRADING.md` inconsistency that wrongly called `Application` internal was
+  corrected.
+- No abandoned or experimental APIs remain (no `@experimental`/`@deprecated`/`TODO`
+ /`FIXME` in `src/`; speculative `SDK\Middleware` and `Adapter\Callback` namespaces
+  were already removed in the 2026-08-23 refactor).
+- Contract reviews (interfaces, classes, enums, the single `ExecutedAs` attribute,
+  the 76-field normalization schema, occurrence naming, security limits, failure
+  policies, optional-dependency constraints) are summarized with evidence pointers
+  in the release-prep document.
+- Backward-compatibility baseline regenerated (`composer api:baseline`) and is the
+  `1.0.0` stability contract enforced by `composer api:check`.
+- `CHANGELOG.md` gains a `1.0.0-rc.1` section; `UPGRADING.md` describes the frozen
+  RC surface.
+- `composer.json` `extra.branch-alias` maps `dev-main` to `1.0.0-rc.1.x-dev`; the
+  `git tag 1.0.0-rc.1` publication is performed by the maintainer.
+
+Gates: `composer api:check` reports no breaks; `composer validate --strict`,
+`composer cs:check`, `composer analyse`, and `composer architecture` are clean.
 
 ## M15.2 Release-candidate validation
 

@@ -5,6 +5,27 @@ All notable changes to RunIt are documented in this file.
 RunIt is pre-release software. Until `1.0.0`, public APIs may change between
 pre-release versions.
 
+## 1.0.0-rc.1
+
+First release candidate for the stable `1.0.0` API (milestone M15.1).
+
+- Freezes the public API surface at **372 public symbols** (147 interfaces,
+  206 classes, 13 enums) under `src/Domain`, `src/Application`, `src/Contract`,
+  `src/Adapter`, `src/SDK`, and `src/Common`.
+- Freezes the stable normalization schema (`docs/normalization-schema.json`) at
+  8 artifact types and 76 fields.
+- Regenerates the backward-compatibility baseline in `tools/api-compat/`; this
+  baseline is the stability contract for `1.0.0` and is enforced by
+  `composer api:check` in CI.
+- Explicitly marks internal namespaces: `ItPack\RunIt\Behavior\` and
+  `ItPack\RunIt\Conformance\` are excluded from the backward-compatibility
+  guarantee (the conformance harness is shipped and reachable, but consumers must
+  pin the exact RunIt version).
+- Confirms no abandoned or experimental APIs remain in the public tree.
+- The detailed change history accumulated during pre-`1.0.0` development is
+  recorded in the `Unreleased` sections below; this entry marks the point at
+  which that surface was frozen for the release candidate.
+
 ## Unreleased
 
 - Established the M0 repository, quality-tooling, documentation, and CI
