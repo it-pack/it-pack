@@ -1247,7 +1247,7 @@ Test categories include:
 - Mutation tests.
 - Performance benchmarks.
 
-Reusable contract suites will be provided for third-party implementations of:
+Reusable contract suites are provided for third-party implementations of:
 
 ```text
 ArtifactPublisherInterface

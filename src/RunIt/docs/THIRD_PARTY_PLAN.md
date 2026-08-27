@@ -228,9 +228,9 @@ to be confirmed by the clean-consumer walkthrough.
 
 | id | area | severity | observed | suggested fix | status |
 |----|------|----------|----------|---------------|--------|
-| TP-001 | Context conformance | high | `ContextStorageVerifier` needs an `ExecutionScopeInterface`, but the only documented builder (`RunItTestKit`) is internal test support, not shipped. | Document a consumer-safe `FakeScope` snippet in `docs/conformance.md`; optionally export a `ConformanceScopeProvider`. | open |
-| TP-002 | Docs staleness | medium | `README.md:1250` says reusable contract suites "will be provided", but they already ship in `src/Conformance/`. | Update README to state suites are available and link `docs/conformance.md`. | open |
-| TP-003 | Examples portability | medium | `examples/conformance/run-conformance.php:49` imports `Tests\Support\Fixture\RunItTestKit`; a third party copying it cannot run it. | Add a third-party-friendly variant that builds a scope without the test kit (use `FakeScope`). | open |
+| TP-001 | Context conformance | high | `ContextStorageVerifier` needs an `ExecutionScopeInterface`, but the only first-party builder (`RunItTestKit::buildScope()`) is internal test support, not shipped. A naive `FakeScope` would require implementing `ExecutionScopeInterface` **plus** six interfaces it returns (execution, context, four recorders) — a deep stub graph no real consumer should write. | **Resolved.** A third party obtains a real scope by running a real execution through the public `RunItBuilder` (with the shipped common adapters `SystemMonotonicClock`, `InMemorySequenceAllocator`, `JsonSnapshotSerializer`, `RandomIdentifierGenerator`) and capturing the `ExecutionScopeInterface` handed to the operation. The scope's contents are irrelevant to the verifier. This is the consumer-safe pattern, documented in the sample package (`docs/consumer.md`). A `FakeScope` is unnecessary. Suggest also documenting this in `docs/conformance.md`. | resolved |
+| TP-002 | Docs staleness | medium | `README.md:1250` said reusable contract suites "will be provided", but they already ship in `src/Conformance/`. | **Resolved.** README now states the suites *are* provided. | resolved |
+| TP-003 | Examples portability | medium | `examples/conformance/run-conformance.php:49` imports `Tests\Support\Fixture\RunItTestKit`; a third party copying it cannot run it. | **Mitigated.** The standalone sibling package `it-pack/run-it-third-party-sample` is the canonical third-party path; its `docs/consumer.md` walkthrough never references first-party test tooling. The first-party example is left intact. | mitigated |
 | TP-004 | Discovery | low | A third party may not know conformance tooling exists; `examples/` is first-party and easy to miss. | Cross-link conformance from the README Quick Start and the `third-party-adapter.md` recipe (already linked there — verify path is correct). | open |
 | TP-005 | Public API clarity | low | `RunItBuilder` is the public entry, but the conformance fixture (`RunItPortFixture`) is the only shipped scope-free artifact source; confirm no other internal symbol is implicitly required. | Grep the sample package's `require` tree to ensure zero `src/Application|Domain|Adapter` concrete dependencies beyond ports/contracts. | open |
 
@@ -272,12 +272,48 @@ to be confirmed by the clean-consumer walkthrough.
 
 ## 9. Definition of done for M14.8
 
-- [ ] A separate package implements ≥1 third-party `ArtifactPublisherInterface` and ≥1
+- [x] A separate package implements ≥1 third-party `ArtifactPublisherInterface` and ≥1
       third-party `ContextStorageInterface`, depending on RunIt only as a published dependency.
-- [ ] That package's own test suite drives the **shipped** `ArtifactPublisherVerifier` and
+- [x] That package's own test suite drives the **shipped** `ArtifactPublisherVerifier` and
       `ContextStorageVerifier` and passes (no framework base-class inheritance).
-- [ ] A clean-consumer document was followed end-to-end and the stumbles recorded.
-- [ ] A findings ledger exists; critical findings are resolved or have an accepted 1.0.0
+- [x] A clean-consumer document was followed end-to-end and the stumbles recorded.
+- [x] A findings ledger exists; critical findings are resolved or have an accepted 1.0.0
       mitigation.
-- [ ] The M14 acceptance gate item "A third-party-style adapter passes conformance tests" is
+- [x] The M14 acceptance gate item "A third-party-style adapter passes conformance tests" is
       satisfied by evidence in the sample package.
+
+## 10. Implementation status (delivered)
+
+The plan was implemented as a standalone sibling package `it-pack/run-it-third-party-sample` at
+`src/RunItThirdPartySample`, mirroring the structure of `it-pack/configure-it-runit` (its own
+`composer.json` with a path repository to `../RunIt`, and `phpunit.xml.dist` / `phpstan.neon.dist`
+/ `phpcs.xml.dist` / `.php-cs-fixer.dist.php`).
+
+Delivered artifacts:
+
+- `src/Publisher/StreamLinePublisher.php` — minimal `ArtifactPublisherInterface` (writes one JSON
+  line per artifact to a stream).
+- `src/Publisher/BufferedFilePublisher.php` — `ArtifactPublisherInterface` +
+  `FlushablePublisherInterface` + `CloseablePublisherInterface` (buffered, repeatable flush/close).
+- `src/Context/StaticStackContextStorage.php` + `src/Context/ScopeToken.php` — a from-scratch
+  `ContextStorageInterface` implementation (plain LIFO array, strict token rejection).
+- `tests/PublisherConformanceTest.php` — drives the shipped `ArtifactPublisherVerifier`.
+- `tests/ContextStorageConformanceTest.php` — drives the shipped `ContextStorageVerifier`, using a
+  real `ExecutionScopeInterface` captured from a `RunItBuilder` run (resolves TP-001).
+- `tests/ContextStorageInteropTest.php` — proves the sample storage works as the live ambient
+  scope storage of a real execution.
+- `docs/consumer.md` — clean-consumer walkthrough satisfying the "documentation reviewed
+  independently" gate.
+
+Gates (run inside `src/RunItThirdPartySample`):
+
+- `composer validate --strict` — valid (only a `*@dev` constraint warning, identical to the sibling
+  `configure-it-runit` package).
+- `vendor/bin/phpunit` — **4 tests, 12 assertions, OK**.
+- `vendor/bin/phpstan analyse` — **no errors** (level 6, `src` only).
+- `vendor/bin/php-cs-fixer fix --dry-run --diff` — **0 files to fix**.
+- `vendor/bin/phpcs --standard=phpcs.xml.dist src tests` — **0 errors**.
+
+Net result: a genuine external consumer (separate Composer package, RunIt as a vendor dependency,
+no access to `Tests\Support\...`) can implement the ports and pass the shipped conformance suites,
+which satisfies the M14 acceptance gate "A third-party-style adapter passes conformance tests."

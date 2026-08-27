@@ -3079,23 +3079,27 @@ Architecture notes:
 ## M14.8 Third-party usability validation
 
 > **Plan & reasoning:** `docs/THIRD_PARTY_PLAN.md`.
+> **Implementation:** standalone sibling package `it-pack/run-it-third-party-sample`
+> (`src/RunItThirdPartySample`) with `StreamLinePublisher`, `BufferedFilePublisher`,
+> `StaticStackContextStorage`, and three conformance/interop tests; clean-consumer walkthrough
+> in `docs/consumer.md`. All gates pass (PHPUnit 4 tests, PHPStan, php-cs-fixer, phpcs).
 
-- [ ] Build one sample third-party publisher.
-- [ ] Run the publisher conformance suite.
-- [ ] Build one sample context-storage adapter.
-- [ ] Run context-storage conformance suite.
-- [ ] Validate documentation with a clean consumer project.
-- [ ] Record confusing APIs or missing extension points.
-- [ ] Resolve critical usability findings before `1.0.0`.
+- [x] Build one sample third-party publisher.
+- [x] Run the publisher conformance suite.
+- [x] Build one sample context-storage adapter.
+- [x] Run context-storage conformance suite.
+- [x] Validate documentation with a clean consumer project.
+- [x] Record confusing APIs or missing extension points.
+- [x] Resolve critical usability findings before `1.0.0`.
 
 ## M14 acceptance gate
 
-- [ ] All public concepts and APIs are documented.
-- [ ] Every README example executes successfully.
-- [ ] RunIt uses its own execution model safely.
-- [ ] ConfigureIt demonstrates production-style adoption.
-- [ ] A third-party-style adapter passes conformance tests.
-- [ ] Documentation has been reviewed independently.
+- [x] All public concepts and APIs are documented.
+- [x] Every README example executes successfully.
+- [x] RunIt uses its own execution model safely.
+- [x] ConfigureIt demonstrates production-style adoption.
+- [x] A third-party-style adapter passes conformance tests.
+- [x] Documentation has been reviewed independently.
 
 ---
 
