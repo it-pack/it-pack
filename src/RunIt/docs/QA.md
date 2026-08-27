@@ -506,7 +506,7 @@ When `composer mutation` reports escaped mutants, triage them:
 and `tools/api-compat/normalization-schema-baseline.json`). It detects removed
 or narrowed symbols/methods/types, public interface method additions, enum case
 changes, internal-namespace leaks, and normalization-schema changes (tracked
-separately in `docs/normalization-schema.json`).
+separately in `config/normalization-schema.json`).
 
 - `composer api:baseline` — regenerate the baselines (run at each release
   candidate).

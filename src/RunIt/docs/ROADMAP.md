@@ -2636,7 +2636,7 @@ and are the hardening targets below.
 - [x] Detect public interface method additions (breaks third-party implementers).
 - [x] Detect removed or narrowed types (variance-aware: covariant returns, contravariant parameters).
 - [x] Detect enum case changes (removals flagged as breaks).
-- [x] Detect normalization schema changes separately (`docs/normalization-schema.json` diffed independently of the PHP API).
+- [x] Detect normalization schema changes separately (`config/normalization-schema.json` diffed independently of the PHP API).
 - [x] Document compatibility review process (`docs/compatibility.md`; PR template records impact).
 
 ### Notes (M13.6)

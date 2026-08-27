@@ -13,7 +13,7 @@
     ],
     "baseline": "tools/api-compat/api-baseline.json",
     "schema": {
-        "path": "docs/normalization-schema.json",
+        "path": "config/normalization-schema.json",
         "baseline": "tools/api-compat/normalization-schema-baseline.json"
     }
 }

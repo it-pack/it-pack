@@ -149,7 +149,7 @@ executions:
 ## Stable normalization schema
 
 Artifact serialization is a separate compatibility surface. The stable,
-normalized field sets are documented in `docs/normalization-schema.json`
+normalized field sets are documented in `config/normalization-schema.json`
 (keyed per artifact type). Removing a field is a backward-compatibility break;
 adding a field is tracked as a change to review. This file is checked
 independently of the PHP API so schema drift is never hidden by code changes.
@@ -159,7 +159,7 @@ independently of the PHP API so schema drift is never hidden by code changes.
 `tools/api-compat/api-compat.php` is a dependency-free, reflection-based
 checker (PHP only, no third-party package). It scans the public directories,
 extracts the API surface, and diffs it against a committed baseline. It also
-diffs `docs/normalization-schema.json` against its baseline.
+diffs `config/normalization-schema.json` against its baseline.
 
 Configuration lives in `tools/api-compat/config.json` (public directories,
 internal namespaces, baseline paths).
@@ -216,7 +216,7 @@ on any detected break.
 ## Review process
 
 For any change touching `src/Domain`, `src/Application`, `src/Contract`,
-`src/Adapter`, `src/SDK`, `src/Common`, or `docs/normalization-schema.json`:
+`src/Adapter`, `src/SDK`, `src/Common`, or `config/normalization-schema.json`:
 
 1. Run `composer api:check` locally.
 2. If it reports a break, either adjust the change to preserve compatibility or

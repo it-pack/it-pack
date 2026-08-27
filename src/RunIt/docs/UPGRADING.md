@@ -21,7 +21,7 @@ versioning:
 - Public interfaces and their signatures (`src/Contract/**`).
 - Public final classes, enums, and attributes.
 - Normalized artifact fields produced by `normalize()` (see
-  [`docs/normalization-schema.json`](docs/normalization-schema.json)).
+  [`config/normalization-schema.json`](config/normalization-schema.json)).
 - Occurrence type naming conventions.
 - Adapter extension contracts and exposed exception types.
 - Default security limits and publication failure policies.
@@ -57,7 +57,7 @@ milestone M15.
 5. If you implement a RunIt adapter or port, run the conformance suite
    (`composer test:conformance`); see [`docs/conformance.md`](docs/conformance.md).
 6. Update any normalized-field consumers against
-   [`docs/normalization-schema.json`](docs/normalization-schema.json).
+   [`config/normalization-schema.json`](config/normalization-schema.json).
 
 ## Deprecations
 
