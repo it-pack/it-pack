@@ -44,8 +44,10 @@
     "scripts": {
         "test:unit": "vendor/bin/codecept run Unit",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
+        "coverage:check": "vendor/bin/codecept run Unit --coverage-xml --coverage-html && php scripts/coverage_report.php --min=96",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "cs:lines": "vendor/bin/phpcs --standard=phpcs.xml.dist src tests",
         "analyse": "vendor/bin/phpstan analyse",
         "architecture": "vendor/bin/deptrac",
         "infection": "vendor/bin/infection --min-msi=80"

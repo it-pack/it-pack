@@ -71,9 +71,17 @@ final readonly class PerTraitInterfaceDeriver
         $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_GRAPH_WALK, $adaptee);
         $traits = ClassReflection::create($reflection->getName())->getTraitsRecursively();
         $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_GRAPH_WALK);
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS, count($traits), DeriveUnits::UNIT_COUNT, ['graph' => DeriveMeasurements::GRAPH_TRAITS]);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS,
+            count($traits),
+            DeriveUnits::UNIT_COUNT,
+            ['graph' => DeriveMeasurements::GRAPH_TRAITS],
+        );
 
-        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_SURFACE_EXTRACT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_TRAIT_INTERFACES]);
+        $this->core->events()->activityStarted(
+            DeriveEvents::ACTIVITY_SURFACE_EXTRACT,
+            $adaptee + ['surface' => DeriveMeasurements::SURFACE_TRAIT_INTERFACES],
+        );
         foreach ($traits as $trait) {
             $shortName = Naming::interfaceShortName($trait->getShortName());
             $fqcn = Naming::derivedInterfaceFqcn($trait);
@@ -109,7 +117,10 @@ final readonly class PerTraitInterfaceDeriver
             Naming::assertMethodNamesUnique($interface->getName(), $methods);
             $interface->setMethods($methods);
 
-            $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT, ['target' => $trait->getName()]);
+            $this->core->events()->activityStarted(
+                DeriveEvents::ACTIVITY_LEAKAGE_AUDIT,
+                ['target' => $trait->getName()],
+            );
             new LeakageAuditor()->audit(
                 $interface,
                 $trait->getNamespaceName(),
@@ -122,7 +133,12 @@ final readonly class PerTraitInterfaceDeriver
             $totalTraitMethods += count($methods);
         }
         $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_SURFACE_EXTRACT);
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DERIVED, $totalTraitMethods, DeriveUnits::UNIT_COUNT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_TRAIT_INTERFACES]);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_METHODS_DERIVED,
+            $totalTraitMethods,
+            DeriveUnits::UNIT_COUNT,
+            $adaptee + ['surface' => DeriveMeasurements::SURFACE_TRAIT_INTERFACES],
+        );
 
         return $interfaces;
     }
@@ -168,7 +184,10 @@ final readonly class PerTraitInterfaceDeriver
         $adaptee = ['adaptee' => $reflection->getName()];
 
         $mainMethods = [];
-        $this->core->events()->activityStarted(DeriveEvents::ACTIVITY_SURFACE_EXTRACT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_MAIN]);
+        $this->core->events()->activityStarted(
+            DeriveEvents::ACTIVITY_SURFACE_EXTRACT,
+            $adaptee + ['surface' => DeriveMeasurements::SURFACE_MAIN],
+        );
         foreach ($this->core->extractor()->extract($reflection) as $method) {
             if (isset($traitMethodNames[$method->getName()])) {
                 continue;
@@ -180,7 +199,12 @@ final readonly class PerTraitInterfaceDeriver
             $mainMethods[] = $signature;
         }
         $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_SURFACE_EXTRACT);
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DERIVED, count($mainMethods), DeriveUnits::UNIT_COUNT, $adaptee + ['surface' => DeriveMeasurements::SURFACE_MAIN]);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_METHODS_DERIVED,
+            count($mainMethods),
+            DeriveUnits::UNIT_COUNT,
+            $adaptee + ['surface' => DeriveMeasurements::SURFACE_MAIN],
+        );
 
         Naming::assertMethodNamesUnique($main->getName(), $mainMethods);
         $main->setMethods($mainMethods);
@@ -189,7 +213,11 @@ final readonly class PerTraitInterfaceDeriver
         new LeakageAuditor()->audit(
             $main,
             $reflection->getNamespaceName(),
-            LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->core->config()->typeSubstitutionMap, []),
+            LeakageAuditor::allowedNamespaces(
+                $reflection->getNamespaceName(),
+                $this->core->config()->typeSubstitutionMap,
+                [],
+            ),
             $this->core->config()->auditLeakage,
         );
         $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_LEAKAGE_AUDIT);
@@ -211,8 +239,16 @@ final readonly class PerTraitInterfaceDeriver
         $traitInterfaces = $this->deriveTraitInterfaces($reflection);
         $main = $this->assemble($reflection, $traitInterfaces);
 
-        $source = $this->core->renderer()->renderMany([...array_values($traitInterfaces), $main], $reflection->getNamespaceName());
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SOURCE_BYTES, strlen($source), DeriveUnits::UNIT_BYTES, ['target' => $reflection->getName()]);
+        $source = $this->core->renderer()->renderMany(
+            [...array_values($traitInterfaces), $main],
+            $reflection->getNamespaceName(),
+        );
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
+            strlen($source),
+            DeriveUnits::UNIT_BYTES,
+            ['target' => $reflection->getName()],
+        );
         $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_COMPLETED, ['target' => $reflection->getName()]);
 
         return $source;

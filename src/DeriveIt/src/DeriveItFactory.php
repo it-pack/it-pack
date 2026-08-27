@@ -46,12 +46,22 @@ final class DeriveItFactory
 
     public function interfaceDeriver(): InterfaceDeriver
     {
-        return new InterfaceDeriver(config: $this->config, factory: $this->factory, reflectionCache: $this->reflectionCache, eventSink: $this->eventSink);
+        return new InterfaceDeriver(
+            config: $this->config,
+            factory: $this->factory,
+            reflectionCache: $this->reflectionCache,
+            eventSink: $this->eventSink,
+        );
     }
 
     public function perTraitDeriver(): PerTraitInterfaceDeriver
     {
-        return new PerTraitInterfaceDeriver(config: $this->config, factory: $this->factory, reflectionCache: $this->reflectionCache, eventSink: $this->eventSink);
+        return new PerTraitInterfaceDeriver(
+            config: $this->config,
+            factory: $this->factory,
+            reflectionCache: $this->reflectionCache,
+            eventSink: $this->eventSink,
+        );
     }
 
     public function familyDeriver(): FamilyDeriverInterface
@@ -82,8 +92,11 @@ final class DeriveItFactory
     /**
      * @param array<string, string> $returnWrapperMap Derived-interface FQCN => adapter class FQCN.
      */
-    public function adapterGenerator(InterfaceType $interface, ReflectionClass $adaptee, array $returnWrapperMap = []): AdapterGeneratorInterface
-    {
+    public function adapterGenerator(
+        InterfaceType $interface,
+        ReflectionClass $adaptee,
+        array $returnWrapperMap = [],
+    ): AdapterGeneratorInterface {
         return new AdapterGenerator($interface, $adaptee, $returnWrapperMap);
     }
 }

@@ -20,8 +20,10 @@
 > factories-only instantiation rule; framework lifecycle methods (`setUp` /
 > `_before`) are exempt from public-first ordering once documented (R4-8).
 >
-> **Status: Milestone A (R4-1 … R4-3) implemented and gated green; Milestones B/C
-> (R4-4 … R4-9) still planned.** Update the implementation-status table as steps land.
+> **Status: Milestone A (R4-1 … R4-3) implemented and gated green; Milestone B
+> (R4-4 … R4-6) implemented and gated green (cs:lines, coverage:check floor 96%,
+> bridge infection MSI 100%). Milestones C/D (R4-7 … R4-9) still planned.** Update
+> the implementation-status table as steps land.
 
 ## Severity legend (mirrors REVIEW.md §14)
 
@@ -71,9 +73,9 @@ gate battery on both packages.
  | R4-1 | F-3 | ✅ Done | `Contract/Telemetry/{DeriveEvents,DeriveMeasurements,DeriveUnits}.php` (typed const string) hold every emitted event/measurement/unit/attribute-value name; all emission sites (InterfaceDeriver, PerTraitInterfaceDeriver, FamilyDeriver, DeriveIt) and the bridge `RunItDerivationEventSink` `match` arms reference them. `DerivationTelemetryTest` kinds assertions reference the constants; AGENTS.md telemetry convention added. |
  | R4-2 | F-4, F-7 | ✅ Done | `AbstractDeriver` deleted; new `final readonly Generator\DerivationCore` owns reflection memoization, skip/allow filtering, substitutor seeding (`self`/`static`/`parent` + explicit map), the signature pipeline, plus `sourceRenderer()`/`eventEmitter()`/`config()` accessors. InterfaceDeriver + PerTraitInterfaceDeriver compose a `DerivationCore` (via `DerivationCore::create()`); FamilyDeriver still assembles members through the composite builder. |
  | R4-3 | F-7 | ✅ Done | `DeriveItFactory::sourceRenderer()` + `eventEmitter()` accessors; facade `deriveFamily*` render loops and `diff()` route through them; `DeriveCommand` ctor accepts optional injectable `ArgParser` + verbose-writer closure (DI seams); `FamilyDeriver::deriveMember()` documented as the composite builder; AGENTS.md instantiation-discipline line added. |
- | R4-4 | F-1 | ⬜ Planned | — |
- | R4-5 | F-2, F-10 | ⬜ Planned | — |
- | R4-6 | F-12 | ⬜ Planned | — |
+ | R4-4 | F-1 | ✅ Done | `phpcs.xml.dist` (`Generic.Files.LineLength` 120) added (no `<file>` tags — pass paths on CLI); all 76 >120-col lines wrapped in `src` (54) + `tests` (22) via bottom-up multi-line edits; `composer cs:lines` script (`vendor/bin/phpcs --standard=phpcs.xml.dist src tests`) added; AGENTS.md §2 updated. |
+ | R4-5 | F-2, F-10 | ✅ Done | `scripts/coverage_report.php` (Clover parse + per-file/overall, default floor 96) added; `composer coverage:check` script (`codecept run Unit --coverage-xml --coverage-html && php scripts/coverage_report.php --min=96`) added; targeted tests drove overall 94.05% → 97.59% and the four named files (DeriveCommand 95.14%, ConstructorFilter 100%, LeakageAuditor 98.08%, Naming 95.24%) to ≥95%. |
+ | R4-6 | F-12 | ✅ Done | Bridge `it-pack/derive-it-runit` gained `infection/infection`, `infection.json5` (testFramework phpunit, min-msi 80), `composer infection`/`coverage`/`cs:lines` scripts, its own `phpcs.xml.dist`, and `.github/workflows/ci.yml`; a direct branch-coverage test (`DerivationExecutionFunctionalTest::testSinkExercisesEveryRecorderBranch`) pins every recorder arm, recorded MSI 100% on PHP 8.4/8.5. |
  | R4-7 | F-5 | ⬜ Planned | — |
  | R4-8 | F-6 | ⬜ Planned | — |
  | R4-9 | F-8 | ⬜ Planned ◐ | — |
@@ -262,6 +264,8 @@ documented exemption.
 
 ## R4-4 — Enforce the 120-column limit (F-1, Medium)
 
+**Status:** ✅ Done (2026-08-25).
+
 **Locations:** 58 executable + 3 docblock lines over 120 cols (inventory in
 REVIEW.md §6; worst: `DeriveIt.php` docblocks 168–174, `DeriveItFactory.php`
 145–162, `ArgParser.php:103`, `DeriveCommand.php:151`). php-cs-fixer has no
@@ -284,6 +288,8 @@ line-length fixer, so enforcement needs PHPCS.
   gates green; goldens byte-stable.
 
 ## R4-5 — Close the coverage gaps + numeric gate (F-2 + F-10, Medium)
+
+**Status:** ✅ Done (2026-08-25).
 
 **Locations:** `DeriveCommand::classFromFile()` (0%), `ConstructorFilter`
 (88.89%), `LeakageAuditor` (91.07%), `Naming` (93.10%); composer `coverage`
@@ -321,6 +327,8 @@ machine-enforced in CI; per-test attribution path documented.
 - Gates green; goldens untouched.
 
 ## R4-6 — Bridge mutation testing + CI (F-12, Medium)
+
+**Status:** ✅ Done (2026-08-25).
 
 **Location:** `../DeriveItRunit` (composer.json, new `infection.json5`,
 new `.github/workflows/ci.yml` or monorepo-equivalent).

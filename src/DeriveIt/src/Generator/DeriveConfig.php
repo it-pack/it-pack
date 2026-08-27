@@ -33,7 +33,8 @@ final readonly class DeriveConfig
      * @param list<string> $skipMethods Method names always dropped.
      * @param list<string> $ownedAttributes Attribute class FQCNs permitted when `attributePassThrough` is on.
      * @param array<string, string> $methodRenames Original method name => new name, applied uniformly (G11 / B4).
-     * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends` (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
+     * @param list<string> $reExposeOwnedInterfaces Owned interface FQCNs to re-expose via `extends`
+     *     (G16 / A4). Opt-in and allow-list scoped; third-party interfaces stay out.
      */
     public readonly Visibility $visibility;
 
@@ -83,7 +84,10 @@ final readonly class DeriveConfig
                 throw new \InvalidArgumentException('DeriveConfig::methodRenames keys must be non-empty method names.');
             }
             if ($to === '') {
-                throw new \InvalidArgumentException(sprintf('DeriveConfig::methodRenames target for "%s" must be a non-empty method name.', $from));
+                throw new \InvalidArgumentException(sprintf(
+                    'DeriveConfig::methodRenames target for "%s" must be a non-empty method name.',
+                    $from,
+                ));
             }
         }
 
@@ -91,7 +95,9 @@ final readonly class DeriveConfig
         // entry would silently drop the `extends` and is almost certainly a mistake.
         foreach ($reExposeOwnedInterfaces as $owned) {
             if ($owned === '') {
-                throw new \InvalidArgumentException('DeriveConfig::reExposeOwnedInterfaces must contain non-empty interface FQCNs.');
+                throw new \InvalidArgumentException(
+                    'DeriveConfig::reExposeOwnedInterfaces must contain non-empty interface FQCNs.',
+                );
             }
         }
     }

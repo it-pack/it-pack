@@ -173,7 +173,12 @@ final class FamilyDeriver implements FamilyDeriverInterface
         $map = $this->transitiveClosure($map);
         $configHash = $this->configHash($map, $namespacePrefixMap);
 
-        $this->events->measured(DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS, count($reflections), DeriveUnits::UNIT_COUNT, ['graph' => DeriveMeasurements::GRAPH_CLASSES]);
+        $this->events->measured(
+            DeriveMeasurements::MEASUREMENT_FAMILY_MEMBERS,
+            count($reflections),
+            DeriveUnits::UNIT_COUNT,
+            ['graph' => DeriveMeasurements::GRAPH_CLASSES],
+        );
 
         $result = [];
         foreach ($reflections as $reflection) {
@@ -204,7 +209,11 @@ final class FamilyDeriver implements FamilyDeriverInterface
 
         $substitutor = new TypeSubstitutor($map, $selfFqcn, $parentFqcn, $namespacePrefixMap);
 
-        $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $map, $namespacePrefixMap);
+        $allowedNamespaces = LeakageAuditor::allowedNamespaces(
+            $reflection->getNamespaceName(),
+            $map,
+            $namespacePrefixMap,
+        );
 
         $memberConfig = $this->config->withTypeSubstitutionMap($map);
 
@@ -301,7 +310,12 @@ final class FamilyDeriver implements FamilyDeriverInterface
                         if (!$this->isUserland($className)) {
                             continue;
                         }
-                        if (class_exists($className) || interface_exists($className) || trait_exists($className) || enum_exists($className)) {
+                        if (
+                            class_exists($className)
+                            || interface_exists($className)
+                            || trait_exists($className)
+                            || enum_exists($className)
+                        ) {
                             $queue[] = $this->reflect($className);
                         }
                     }

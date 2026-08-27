@@ -80,7 +80,9 @@ class Phase9EdgeCasesTest extends \Codeception\Test\Unit
 
     public function testTypeSubstitutorPrefixNoMatchUnchanged(): void
     {
-        $type = new ReflectionMethod(\_Fixture\NamespacePrefixHost::class, 'useExternal')->getParameters()[0]->getType();
+        $type = new ReflectionMethod(\_Fixture\NamespacePrefixHost::class, 'useExternal')
+            ->getParameters()[0]->getType()
+        ;
         $substitutor = new TypeSubstitutor([], null, null, ['Dep\\' => 'Dep\\Port\\']);
 
         verify($substitutor->substitute($type))->equals('Other\\VendorThing');

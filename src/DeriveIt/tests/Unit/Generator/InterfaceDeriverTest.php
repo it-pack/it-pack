@@ -52,7 +52,9 @@ class InterfaceDeriverTest extends \Codeception\Test\Unit
         verify($default->hasMethod('staticPublicMethod'))->false();
         verify($default->hasMethod('instanceMethod'))->true();
 
-        $withStatic = new InterfaceDeriver(config: new DeriveConfig(includeStatic: true))->derive(\_Fixture\StaticHeavyClass::class);
+        $withStatic = new InterfaceDeriver(config: new DeriveConfig(includeStatic: true))
+            ->derive(\_Fixture\StaticHeavyClass::class)
+        ;
         verify($withStatic->hasMethod('staticPublicMethod'))->true();
     }
 
@@ -89,7 +91,9 @@ class InterfaceDeriverTest extends \Codeception\Test\Unit
 
     public function testExtractorFiltersByStaticFlag(): void
     {
-        $onlyInstance = new MethodExtractor(new DeriveConfig())->extract(new ReflectionClass(\_Fixture\StaticHeavyClass::class));
+        $onlyInstance = new MethodExtractor(new DeriveConfig())
+            ->extract(new ReflectionClass(\_Fixture\StaticHeavyClass::class))
+        ;
         $names = array_map(static fn (ReflectionMethod $m): string => $m->getName(), $onlyInstance);
         verify(in_array('staticPublicMethod', $names, true))->false();
         verify(in_array('instanceMethod', $names, true))->true();

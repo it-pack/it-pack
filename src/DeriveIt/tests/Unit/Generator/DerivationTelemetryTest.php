@@ -198,7 +198,13 @@ final class DerivationTelemetryTest extends Unit
         self::assertContains('occurred:' . DeriveEvents::OCCURRENCE_DRIFT_DETECTED, $this->sink->kinds());
         self::assertSame(
             Collaborator::class,
-            $this->sink->events[array_search('occurred:' . DeriveEvents::OCCURRENCE_DRIFT_DETECTED, $this->sink->kinds(), true)][2]['target'],
+            $this->sink->events[
+                array_search(
+                    'occurred:' . DeriveEvents::OCCURRENCE_DRIFT_DETECTED,
+                    $this->sink->kinds(),
+                    true,
+                )
+            ][2]['target'],
         );
     }
 }

@@ -59,7 +59,12 @@ final class ArgParser
             if (str_contains($body, '=')) {
                 [$body, $value] = explode('=', $body, 2);
             }
-            if ($value === null && (self::arities()[$body] ?? 0) > 0 && isset($args[$i + 1]) && $args[$i + 1][0] !== '-') {
+            if (
+                $value === null
+                && (self::arities()[$body] ?? 0) > 0
+                && isset($args[$i + 1])
+                && $args[$i + 1][0] !== '-'
+            ) {
                 $value = $args[$i + 1];
                 ++$i;
             }
@@ -100,7 +105,10 @@ final class ArgParser
                 $raw = self::requireValue($v, 'mode');
                 $mode = DeriveMode::tryFrom($raw);
                 if ($mode === null) {
-                    throw new \InvalidArgumentException(sprintf('unknown mode "%s" (expected flat|per-trait|adapter|family|family-adapter).', $raw));
+                    throw new \InvalidArgumentException(sprintf(
+                        'unknown mode "%s" (expected flat|per-trait|adapter|family|family-adapter).',
+                        $raw,
+                    ));
                 }
                 $s->mode = $mode;
             },
@@ -126,7 +134,10 @@ final class ArgParser
                 $s->preset = $preset;
             },
             'ns-prefix' => static function (?string $v, ParseState $s): void {
-                $s->namespacePrefixMap = [...$s->namespacePrefixMap, ...self::parsePairs(self::requireValue($v, 'ns-prefix'))];
+                $s->namespacePrefixMap = [
+                    ...$s->namespacePrefixMap,
+                    ...self::parsePairs(self::requireValue($v, 'ns-prefix')),
+                ];
             },
             'wrapper' => static function (?string $v, ParseState $s): void {
                 $s->wrapperMap = [...$s->wrapperMap, ...self::parsePairs(self::requireValue($v, 'wrapper'))];
@@ -144,7 +155,10 @@ final class ArgParser
                 $s->rename = [...$s->rename, ...self::parsePairs(self::requireValue($v, 'rename'))];
             },
             'owned-attr' => static function (?string $v, ParseState $s): void {
-                $s->ownedAttributes = [...$s->ownedAttributes, ...self::splitList(self::requireValue($v, 'owned-attr'))];
+                $s->ownedAttributes = [
+                    ...$s->ownedAttributes,
+                    ...self::splitList(self::requireValue($v, 'owned-attr')),
+                ];
             },
             're-expose' => static function (?string $v, ParseState $s): void {
                 $s->reExpose = [...$s->reExpose, ...self::splitList(self::requireValue($v, 're-expose'))];
@@ -251,7 +265,10 @@ final class ArgParser
      */
     private static function splitList(string $value): array
     {
-        return array_values(array_filter(array_map('trim', explode(',', $value)), static fn (string $v): bool => $v !== ''));
+        return array_values(array_filter(
+            array_map('trim', explode(',', $value)),
+            static fn (string $v): bool => $v !== '',
+        ));
     }
 
     /**

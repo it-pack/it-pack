@@ -63,8 +63,11 @@ final class DeriveIt
      *
      * @param ReflectionClass|class-string $class
      */
-    public static function derivePerTrait(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig(), ?DeriveEventSinkInterface $eventSink = null): string
-    {
+    public static function derivePerTrait(
+        ReflectionClass|string $class,
+        DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
+    ): string {
         return self::factory($config, $eventSink)->perTraitDeriver()->deriveSource($class);
     }
 
@@ -72,8 +75,11 @@ final class DeriveIt
      * @param ReflectionClass|class-string $class
      * @return array<string, InterfaceType> keyed by trait short name
      */
-    public static function deriveTraitInterfaces(ReflectionClass|string $class, DeriveConfig $config = new DeriveConfig(), ?DeriveEventSinkInterface $eventSink = null): array
-    {
+    public static function deriveTraitInterfaces(
+        ReflectionClass|string $class,
+        DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
+    ): array {
         return self::factory($config, $eventSink)->perTraitDeriver()->deriveTraitInterfaces(
             is_string($class) ? new ReflectionClass($class) : $class,
         );
@@ -86,15 +92,21 @@ final class DeriveIt
      * @param array<int, class-string> $classes
      * @return array<class-string, string> keyed by class FQCN -> rendered interface source
      */
-    public static function deriveFamily(array $classes, DeriveConfig $config = new DeriveConfig(), ?DeriveEventSinkInterface $eventSink = null): array
-    {
+    public static function deriveFamily(
+        array $classes,
+        DeriveConfig $config = new DeriveConfig(),
+        ?DeriveEventSinkInterface $eventSink = null,
+    ): array {
         $derived = self::factory($config, $eventSink)->familyDeriver()->derive($classes);
 
         $result = [];
         foreach ($classes as $class) {
             $reflection = new ReflectionClass($class);
             $interface = $derived[$reflection->getName()];
-            $result[$reflection->getName()] = self::factory($config)->sourceRenderer()->render($interface, $reflection->getNamespaceName());
+            $result[$reflection->getName()] = self::factory($config)
+                ->sourceRenderer()
+                ->render($interface, $reflection->getNamespaceName())
+            ;
         }
 
         return $result;
@@ -120,7 +132,10 @@ final class DeriveIt
 
         $interface = self::factory($config, $eventSink)->interfaceDeriver()->derive($reflection);
 
-        return self::factory($config, $eventSink)->adapterGenerator($interface, $reflection, $returnWrapperMap)->generateSource();
+        return self::factory($config, $eventSink)
+            ->adapterGenerator($interface, $reflection, $returnWrapperMap)
+            ->generateSource()
+        ;
     }
 
     /**
@@ -171,7 +186,10 @@ final class DeriveIt
         $result = [];
         foreach ($derived as $fqcn => $interface) {
             $reflection = new ReflectionClass($fqcn);
-            $result[$fqcn] = self::factory($config)->sourceRenderer()->render($interface, $reflection->getNamespaceName());
+            $result[$fqcn] = self::factory($config)
+                ->sourceRenderer()
+                ->render($interface, $reflection->getNamespaceName())
+            ;
         }
 
         return $result;
@@ -221,7 +239,10 @@ final class DeriveIt
         $byNamespace = [];
         foreach ($reflections as $reflection) {
             $namespace = $reflection->getNamespaceName();
-            $adapter = self::factory($config, $eventSink)->adapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)->generate();
+            $adapter = self::factory($config, $eventSink)
+                ->adapterGenerator($interfaces[$reflection->getName()], $reflection, $wrapperMap)
+                ->generate()
+            ;
             $byNamespace[$namespace][] = [$interfaces[$reflection->getName()], $adapter];
         }
 

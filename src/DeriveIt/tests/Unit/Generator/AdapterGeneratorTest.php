@@ -54,7 +54,13 @@ class AdapterGeneratorTest extends Unit
         $substitution = ['_Fixture\Collaborator' => '_Fixture\CollaboratorInterface'];
         $wrapper = ['_Fixture\CollaboratorInterface' => '_Fixture\CollaboratorAdapter'];
 
-        $this->load(DeriveIt::deriveAdapter(\_Fixture\Service::class, $wrapper, new DeriveConfig(typeSubstitutionMap: $substitution)));
+        $this->load(
+            DeriveIt::deriveAdapter(
+                \_Fixture\Service::class,
+                $wrapper,
+                new DeriveConfig(typeSubstitutionMap: $substitution),
+            ),
+        );
         $this->load(DeriveIt::deriveAdapter(\_Fixture\Collaborator::class));
 
         $serviceAdapter = $this->dynamicClass('\_Fixture\ServiceAdapter');
@@ -86,11 +92,19 @@ class AdapterGeneratorTest extends Unit
         $substitution = ['_Fixture\Collaborator' => '_Fixture\CollaboratorInterface'];
         $wrapper = ['_Fixture\CollaboratorInterface' => '_Fixture\CollaboratorAdapter'];
 
-        $source = DeriveIt::deriveAdapter(\_Fixture\Service::class, $wrapper, new DeriveConfig(typeSubstitutionMap: $substitution));
+        $source = DeriveIt::deriveAdapter(
+            \_Fixture\Service::class,
+            $wrapper,
+            new DeriveConfig(typeSubstitutionMap: $substitution),
+        );
 
         verify($source)->stringContainsString('implements ServiceInterface');
-        verify($source)->stringContainsString('return new \\_Fixture\\CollaboratorAdapter($this->adaptee->collaborator());');
-        verify($source)->stringContainsString('return $value === null ? null : new \\_Fixture\\CollaboratorAdapter($value);');
+        verify($source)->stringContainsString(
+            'return new \\_Fixture\\CollaboratorAdapter($this->adaptee->collaborator());',
+        );
+        verify($source)->stringContainsString(
+            'return $value === null ? null : new \\_Fixture\\CollaboratorAdapter($value);',
+        );
         verify($source)->stringContainsString('$this->adaptee->reset();');
         verify($source)->stringContainsString('private readonly Service $adaptee;');
     }

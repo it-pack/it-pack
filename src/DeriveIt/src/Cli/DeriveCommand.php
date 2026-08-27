@@ -149,7 +149,10 @@ final class DeriveCommand implements CommandInterface
             // the conflict is detectable); the single-target validation below
             // therefore never sees a root — no per-mode root check is needed.
             if ($input->mode === DeriveMode::FAMILY_ADAPTER) {
-                throw new \InvalidArgumentException('--root is not supported with --mode=family-adapter (pass the member classes explicitly).');
+                throw new \InvalidArgumentException(
+                    '--root is not supported with --mode=family-adapter '
+                    . '(pass the member classes explicitly).',
+                );
             }
             $input = $input->withMode(DeriveMode::FAMILY);
         }
@@ -158,7 +161,11 @@ final class DeriveCommand implements CommandInterface
             || $input->mode === DeriveMode::PER_TRAIT
             || $input->mode === DeriveMode::ADAPTER) {
             if (count($input->targets) !== 1) {
-                throw new \InvalidArgumentException(sprintf('--mode=%s expects exactly one target (got %d).', $input->mode->value, count($input->targets)));
+                throw new \InvalidArgumentException(sprintf(
+                    '--mode=%s expects exactly one target (got %d).',
+                    $input->mode->value,
+                    count($input->targets),
+                ));
             }
 
             return $input;
@@ -166,7 +173,9 @@ final class DeriveCommand implements CommandInterface
 
         if ($input->mode === DeriveMode::FAMILY) {
             if ($input->root === null && $input->targets === []) {
-                throw new \InvalidArgumentException('--mode=family needs --root <class> or one or more <class> targets.');
+                throw new \InvalidArgumentException(
+                    '--mode=family needs --root <class> or one or more <class> targets.',
+                );
             }
 
             return $input;
@@ -206,7 +215,11 @@ final class DeriveCommand implements CommandInterface
         }
 
         if (!class_exists($fqcn) && !interface_exists($fqcn) && !trait_exists($fqcn) && !enum_exists($fqcn)) {
-            throw new \RuntimeException(sprintf('cannot resolve "%s" to a loadable class/interface/trait/enum (tried "%s").', $target, $fqcn));
+            throw new \RuntimeException(sprintf(
+                'cannot resolve "%s" to a loadable class/interface/trait/enum (tried "%s").',
+                $target,
+                $fqcn,
+            ));
         }
 
         return $fqcn;
@@ -287,13 +300,22 @@ final class DeriveCommand implements CommandInterface
         ?DeriveEventSinkInterface $events = null,
     ): array {
         return match ($mode) {
-            DeriveMode::FLAT => [$classes[0] => DeriveIt::deriveWithResult($classes[0], $config, $events)->source ?? ''],
+            DeriveMode::FLAT => [
+                $classes[0] => DeriveIt::deriveWithResult($classes[0], $config, $events)->source ?? '',
+            ],
             DeriveMode::PER_TRAIT => [$classes[0] => DeriveIt::derivePerTrait($classes[0], $config, $events)],
             DeriveMode::ADAPTER => [$classes[0] => DeriveIt::deriveAdapter($classes[0], $wrapperMap, $config, $events)],
             DeriveMode::FAMILY => $root !== null
                 ? DeriveIt::deriveFamilyFromRoot($root, $namespacePrefixMap, $config, $events)
                 : DeriveIt::deriveFamily($classes, $config, $events),
-            DeriveMode::FAMILY_ADAPTER => [self::FAMILY_ADAPTER_SOURCE_KEY => DeriveIt::deriveFamilyAdapter($classes, $wrapperMap, $config, $events)],
+            DeriveMode::FAMILY_ADAPTER => [
+                self::FAMILY_ADAPTER_SOURCE_KEY => DeriveIt::deriveFamilyAdapter(
+                    $classes,
+                    $wrapperMap,
+                    $config,
+                    $events,
+                ),
+            ],
         };
     }
 
@@ -323,14 +345,20 @@ final class DeriveCommand implements CommandInterface
                 throw new \RuntimeException(sprintf('cannot create output directory "%s".', $out));
             }
             foreach ($sources as $key => $source) {
-                $this->writeFile(rtrim($out, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->fileNameFor($key), $source);
+                $this->writeFile(
+                    rtrim($out, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $this->fileNameFor($key),
+                    $source,
+                );
             }
 
             return self::EXIT_SUCCESS;
         }
 
         if (count($sources) > 1) {
-            throw new \RuntimeException(sprintf('derived %d interfaces; use --out=<dir> to write each to its own file.', count($sources)));
+            throw new \RuntimeException(sprintf(
+                'derived %d interfaces; use --out=<dir> to write each to its own file.',
+                count($sources),
+            ));
         }
 
         $this->writeFile($out, (string) reset($sources));

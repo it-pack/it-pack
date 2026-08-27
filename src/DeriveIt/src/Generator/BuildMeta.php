@@ -19,7 +19,8 @@ final readonly class BuildMeta
 {
     /**
      * @param list<string> $methods Method names in the derived surface (in order).
-     * @param array<string,string> $substitutions Effective type substitutions (FQCN => derived interface FQCN), including self/static/parent when applied.
+     * @param array<string,string> $substitutions Effective type substitutions (FQCN => derived interface FQCN),
+     *     including self/static/parent when applied.
      * @param list<string> $constants Constant names lifted into the interface.
      */
     public function __construct(

@@ -59,14 +59,33 @@ class FilteringTest extends Unit
 
     public function testStaticFilterDropsUnlessIncluded(): void
     {
-        verify(new StaticFilter(false)->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')))->false();
-        verify(new StaticFilter(true)->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')))->true();
+        verify(
+            new StaticFilter(false)->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')),
+        )->false();
+        verify(
+            new StaticFilter(true)->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')),
+        )->true();
     }
 
     public function testStaticFilterDefaultDropsStatic(): void
     {
         // Exercises the default `$includeStatic = false` parameter (StaticFilter:16).
-        verify(new StaticFilter()->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')))->false();
+        verify(
+            new StaticFilter()->keep($this->method(\_Fixture\StaticHeavyClass::class, 'staticPublicMethod')),
+        )->false();
+    }
+
+    public function testConstructorFilterDropsDestructByDefault(): void
+    {
+        verify(new ConstructorFilter()->keep($this->method(\_Fixture\DestructibleClass::class, '__destruct')))->false();
+    }
+
+    public function testConstructorFilterKeepsDestructWhenConfigured(): void
+    {
+        verify(
+            new ConstructorFilter(dropConstruct: false, dropDestruct: false)
+                ->keep($this->method(\_Fixture\DestructibleClass::class, '__destruct')),
+        )->true();
     }
 
     public function testVisibilityFilterDropsNonPublicUnderPublicMask(): void
@@ -82,8 +101,12 @@ class FilteringTest extends Unit
 
     public function testMagicFilterDropsUnlessIncluded(): void
     {
-        verify(new MagicMethodFilter(false)->keep($this->method(\_Fixture\MagicMethodsClass::class, '__toString')))->false();
-        verify(new MagicMethodFilter(true)->keep($this->method(\_Fixture\MagicMethodsClass::class, '__toString')))->true();
+        verify(
+            new MagicMethodFilter(false)->keep($this->method(\_Fixture\MagicMethodsClass::class, '__toString')),
+        )->false();
+        verify(
+            new MagicMethodFilter(true)->keep($this->method(\_Fixture\MagicMethodsClass::class, '__toString')),
+        )->true();
     }
 
     public function testConstructorFilterHonoursDropFlags(): void

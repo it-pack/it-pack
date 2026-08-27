@@ -105,7 +105,13 @@ final readonly class TypeSubstitutor
      */
     public function rewriteConstantExpression(string $expression): string
     {
-        if (preg_match('/^(?<class>[A-Za-z_\\\\][A-Za-z0-9_\\\\]*?)::(?<const>[A-Za-z_][A-Za-z0-9_]*)$/', $expression, $m) !== 1) {
+        if (
+            preg_match(
+                '/^(?<class>[A-Za-z_\\\\][A-Za-z0-9_\\\\]*?)::(?<const>[A-Za-z_][A-Za-z0-9_]*)$/',
+                $expression,
+                $m,
+            ) !== 1
+        ) {
             return $expression;
         }
 

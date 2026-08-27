@@ -77,7 +77,12 @@ final readonly class InterfaceDeriver
         $meta = $this->build($reflection);
 
         $source = $this->core->renderer()->render($meta->interface, $reflection->getNamespaceName());
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SOURCE_BYTES, strlen($source), DeriveUnits::UNIT_BYTES, ['target' => $reflection->getName()]);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
+            strlen($source),
+            DeriveUnits::UNIT_BYTES,
+            ['target' => $reflection->getName()],
+        );
 
         return $source;
     }
@@ -91,7 +96,12 @@ final readonly class InterfaceDeriver
         $meta = $this->build($reflection);
 
         $source = $this->core->renderer()->render($meta->interface, $reflection->getNamespaceName());
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SOURCE_BYTES, strlen($source), DeriveUnits::UNIT_BYTES, ['target' => $reflection->getName()]);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_SOURCE_BYTES,
+            strlen($source),
+            DeriveUnits::UNIT_BYTES,
+            ['target' => $reflection->getName()],
+        );
 
         return new DerivationResult(
             interface: $meta->interface,
@@ -128,8 +138,11 @@ final readonly class InterfaceDeriver
     /**
      * @return BuildMeta
      */
-    private function build(ReflectionClass $reflection, ?TypeSubstitutor $substitutor = null, array $allowedNamespaces = []): BuildMeta
-    {
+    private function build(
+        ReflectionClass $reflection,
+        ?TypeSubstitutor $substitutor = null,
+        array $allowedNamespaces = [],
+    ): BuildMeta {
         Naming::assertNoCollision($reflection);
 
         $target = ['target' => $reflection->getName()];
@@ -141,7 +154,11 @@ final readonly class InterfaceDeriver
             // are rewritten to their derived interface FQCNs (A1). Shared from the
             // AbstractDeriver base so flat + per-trait modes stay in lockstep.
             $substitutor = $this->core->createTypeSubstitutor($reflection);
-            $allowedNamespaces = LeakageAuditor::allowedNamespaces($reflection->getNamespaceName(), $this->core->seedTypeMap($reflection), []);
+            $allowedNamespaces = LeakageAuditor::allowedNamespaces(
+                $reflection->getNamespaceName(),
+                $this->core->seedTypeMap($reflection),
+                [],
+            );
         }
 
         $interface = new InterfaceType(Naming::derivedInterfaceShortName($reflection));
@@ -156,7 +173,11 @@ final readonly class InterfaceDeriver
         foreach ($this->core->config()->reExposeOwnedInterfaces as $owned) {
             if (!in_array($owned, $implemented, true)) {
                 $this->core->events()->observed(
-                    sprintf('reExposeOwnedInterfaces entry "%s" is not implemented by "%s"; skipped.', $owned, $reflection->getName()),
+                    sprintf(
+                        'reExposeOwnedInterfaces entry "%s" is not implemented by "%s"; skipped.',
+                        $owned,
+                        $reflection->getName(),
+                    ),
                     DeriveObservationSeverity::WARNING,
                     ['target' => $reflection->getName(), 'interface' => $owned],
                 );
@@ -178,8 +199,18 @@ final readonly class InterfaceDeriver
             $collected[] = $signature;
         }
         $this->core->events()->activityFinished(DeriveEvents::ACTIVITY_SURFACE_EXTRACT);
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DERIVED, count($collected), DeriveUnits::UNIT_COUNT, $target);
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_METHODS_DROPPED, max(0, count($extracted) - count($collected)), DeriveUnits::UNIT_COUNT, $target);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_METHODS_DERIVED,
+            count($collected),
+            DeriveUnits::UNIT_COUNT,
+            $target,
+        );
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_METHODS_DROPPED,
+            max(0, count($extracted) - count($collected)),
+            DeriveUnits::UNIT_COUNT,
+            $target,
+        );
 
         $methodNames = array_map(static fn (Method $m): string => $m->getName(), $collected);
 
@@ -189,7 +220,12 @@ final readonly class InterfaceDeriver
         $constants = [];
         if ($this->core->config()->includeConstants) {
             $constants = $this->addConstants($interface, $reflection);
-            $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_CONSTANTS_LIFTED, count($constants), DeriveUnits::UNIT_COUNT, $target);
+            $this->core->events()->measured(
+                DeriveMeasurements::MEASUREMENT_CONSTANTS_LIFTED,
+                count($constants),
+                DeriveUnits::UNIT_COUNT,
+                $target,
+            );
         }
 
         if ($this->core->config()->failOnEmpty && $methodNames === [] && $constants === []) {
@@ -227,7 +263,12 @@ final readonly class InterfaceDeriver
             $substitutions['parent'] = $parentFqcn;
         }
 
-        $this->core->events()->measured(DeriveMeasurements::MEASUREMENT_SUBSTITUTIONS_APPLIED, count($substitutions), DeriveUnits::UNIT_COUNT, $target);
+        $this->core->events()->measured(
+            DeriveMeasurements::MEASUREMENT_SUBSTITUTIONS_APPLIED,
+            count($substitutions),
+            DeriveUnits::UNIT_COUNT,
+            $target,
+        );
         $this->core->events()->occurred(DeriveEvents::EVENT_DERIVATION_COMPLETED, $target);
 
         return new BuildMeta($interface, $methodNames, $substitutions, $constants);

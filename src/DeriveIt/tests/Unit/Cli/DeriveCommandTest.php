@@ -126,7 +126,10 @@ final class DeriveCommandTest extends TestCase
         self::assertSame(0, $result['code']);
         self::assertFileExists($dir . '/CliSampleA.interface.php');
         self::assertFileExists($dir . '/CliSampleB.interface.php');
-        self::assertStringContainsString('interface CliSampleA', (string) file_get_contents($dir . '/CliSampleA.interface.php'));
+        self::assertStringContainsString(
+            'interface CliSampleA',
+            (string) file_get_contents($dir . '/CliSampleA.interface.php'),
+        );
         $files = glob($dir . '/*.interface.php');
         array_map('unlink', $files === false ? [] : $files);
         rmdir($dir);
@@ -181,7 +184,10 @@ final class DeriveCommandTest extends TestCase
         self::assertStringContainsString('[event] derivation.completed', $verbose['stderr']);
         self::assertStringContainsString('[activity] surface.extract started', $verbose['stderr']);
         self::assertStringContainsString('[measure] methods.derived', $verbose['stderr']);
-        self::assertStringContainsString('[!] reExposeOwnedInterfaces entry "Tests\Unit\Cli\MissingFixtureInterface"', $verbose['stderr']);
+        self::assertStringContainsString(
+            '[!] reExposeOwnedInterfaces entry "Tests\Unit\Cli\MissingFixtureInterface"',
+            $verbose['stderr'],
+        );
         self::assertStringNotContainsString('interface CliSampleTargetInterface', $verbose['stderr']);
     }
 
@@ -252,7 +258,9 @@ final class DeriveCommandTest extends TestCase
 
     public function testUnresolvableBaseDirRejected(): void
     {
-        $result = $this->runCommand(['--base-dir=/no/such/dir/xyz', '--out=/no/such/dir/xyz/out.php', CliSampleTarget::class]);
+        $result = $this->runCommand(
+            ['--base-dir=/no/such/dir/xyz', '--out=/no/such/dir/xyz/out.php', CliSampleTarget::class],
+        );
 
         self::assertSame(3, $result['code']);
         self::assertStringContainsString('cannot resolve --base-dir', $result['stderr']);
@@ -275,5 +283,94 @@ final class DeriveCommandTest extends TestCase
 
         self::assertSame(0, $code);
         self::assertStringContainsString('derive', $stdout);
+    }
+
+    public function testDerivesFromFileByPath(): void
+    {
+        $file = __DIR__ . '/Fixtures/CliSampleFile.php';
+        $result = $this->runCommand([$file]);
+
+        self::assertSame(0, $result['code']);
+        self::assertStringContainsString('interface CliSampleFile', $result['stdout']);
+    }
+
+    public function testFileWithoutDeclarationIsRejected(): void
+    {
+        $file = __DIR__ . '/Fixtures/CliSampleNoClass.php';
+        $result = $this->runCommand([$file]);
+
+        self::assertSame(2, $result['code']);
+        self::assertStringContainsString('no class/interface/trait/enum', $result['stderr']);
+    }
+
+    public function testRootWithFamilyAdapterRejected(): void
+    {
+        $result = $this->runCommand(['--root=' . CliSampleA::class, '--mode=family-adapter', CliSampleA::class]);
+
+        self::assertSame(1, $result['code']);
+        self::assertStringContainsString('not supported with --mode=family-adapter', $result['stderr']);
+    }
+
+    public function testFlatWithMultipleTargetsRejected(): void
+    {
+        $result = $this->runCommand(['--mode=flat', CliSampleA::class, CliSampleB::class]);
+
+        self::assertSame(1, $result['code']);
+        self::assertStringContainsString('expects exactly one target', $result['stderr']);
+    }
+
+    public function testFamilyWithNoTargetsRejected(): void
+    {
+        $result = $this->runCommand(['--mode=family']);
+
+        self::assertSame(1, $result['code']);
+        self::assertStringContainsString('needs --root', $result['stderr']);
+    }
+
+    public function testFamilyAdapterWithNoTargetsRejected(): void
+    {
+        $result = $this->runCommand(['--mode=family-adapter']);
+
+        self::assertSame(1, $result['code']);
+        self::assertStringContainsString('needs one or more', $result['stderr']);
+    }
+
+    public function testEmptyArgsExitsUsage(): void
+    {
+        $result = $this->runCommand([]);
+
+        self::assertSame(1, $result['code']);
+    }
+
+    public function testFamilyToStdoutSeparatesMembers(): void
+    {
+        $result = $this->runCommand(['--mode=family', CliSampleA::class, CliSampleB::class]);
+
+        self::assertSame(0, $result['code']);
+        self::assertStringContainsString('// --- ', $result['stdout']);
+    }
+
+    public function testFamilyToFileWithMultipleSourcesRejected(): void
+    {
+        $file = sys_get_temp_dir() . '/derive_it_cli_multi_' . uniqid() . '.php';
+        $result = $this->runCommand(['--mode=family', '--out=' . $file, CliSampleA::class, CliSampleB::class]);
+
+        self::assertSame(3, $result['code']);
+        self::assertStringContainsString('use --out=<dir>', $result['stderr']);
+        self::assertFileDoesNotExist($file);
+    }
+
+    public function testAdapterToFileNestedDirectoryIsCreated(): void
+    {
+        $dir = sys_get_temp_dir() . '/derive_it_cli_nested_' . uniqid();
+        $file = $dir . '/nested/Adapter.php';
+        $result = $this->runCommand(['--mode=adapter', '--out=' . $file, CliSampleTarget::class]);
+
+        self::assertSame(0, $result['code']);
+        self::assertFileExists($file);
+        $nestedFiles = glob($dir . '/*/*.php');
+        array_map('unlink', $nestedFiles === false ? [] : $nestedFiles);
+        rmdir($dir . '/nested');
+        rmdir($dir);
     }
 }

@@ -98,7 +98,10 @@ class Phase10PresetsTest extends \Codeception\Test\Unit
         $config = new DeriveConfig()->withMethodRenames(['traitEMethod' => 'traitERenamed']);
         $interfaces = DeriveIt::deriveTraitInterfaces(ClassD::class, $config);
 
-        $names = array_map(static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(), $interfaces['TraitE']->getMethods());
+        $names = array_map(
+            static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(),
+            $interfaces['TraitE']->getMethods(),
+        );
         self::assertContains('traitERenamed', $names);
         self::assertNotContains('traitEMethod', $names);
     }
@@ -108,11 +111,17 @@ class Phase10PresetsTest extends \Codeception\Test\Unit
         $config = new DeriveConfig()->withMethodRenames(['name' => 'nameRenamed']);
         $interfaces = new FamilyDeriver($config)->derive([Service::class, Collaborator::class]);
 
-        $collaboratorNames = array_map(static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(), $interfaces[Collaborator::class]->getMethods());
+        $collaboratorNames = array_map(
+            static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(),
+            $interfaces[Collaborator::class]->getMethods(),
+        );
         self::assertContains('nameRenamed', $collaboratorNames);
         self::assertNotContains('name', $collaboratorNames);
 
-        $serviceNames = array_map(static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(), $interfaces[Service::class]->getMethods());
+        $serviceNames = array_map(
+            static fn (\Nette\PhpGenerator\Method $m): string => $m->getName(),
+            $interfaces[Service::class]->getMethods(),
+        );
         self::assertContains('nameRenamed', $serviceNames);
     }
 }

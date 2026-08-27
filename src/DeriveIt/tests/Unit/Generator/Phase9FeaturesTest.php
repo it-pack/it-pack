@@ -79,7 +79,9 @@ class Phase9FeaturesTest extends \Codeception\Test\Unit
         $without = new InterfaceDeriver()->derive(\_Fixture\TypedConstantsClass::class);
         verify($without->getConstants())->equals([]);
 
-        $with = new InterfaceDeriver(config: new DeriveConfig(includeConstants: true))->derive(\_Fixture\TypedConstantsClass::class);
+        $with = new InterfaceDeriver(config: new DeriveConfig(includeConstants: true))
+            ->derive(\_Fixture\TypedConstantsClass::class)
+        ;
         verify(array_keys($with->getConstants()))->equals(['VERSION']);
     }
 
@@ -205,12 +207,16 @@ class Phase9FeaturesTest extends \Codeception\Test\Unit
         verify($substitutor->substitute($staticType))->equals('App\\SubjectInterface');
 
         // Owned-namespace prefix on a real class reference.
-        $paramType = new ReflectionMethod(\_Fixture\NamespacePrefixHost::class, 'useOwned')->getParameters()[0]->getType();
+        $paramType = new ReflectionMethod(\_Fixture\NamespacePrefixHost::class, 'useOwned')
+            ->getParameters()[0]->getType()
+        ;
         verify($substitutor->substitute($paramType))->equals('Prefix\\Port\\OwnedService');
 
         // `parent` resolves to the parent concrete class; the map rewrites it.
         $parentType = new ReflectionMethod(\_Fixture\SelfStaticParentReturnClass::class, 'toParent')->getReturnType();
-        $parentSubstitutor = new TypeSubstitutor(['_Fixture\ConcreteChildClass' => '\_Fixture\ConcreteChildClassInterface']);
+        $parentSubstitutor = new TypeSubstitutor(
+            ['_Fixture\ConcreteChildClass' => '\_Fixture\ConcreteChildClassInterface'],
+        );
         verify($parentSubstitutor->substitute($parentType))->equals('\_Fixture\ConcreteChildClassInterface');
     }
 

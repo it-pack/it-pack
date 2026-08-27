@@ -40,17 +40,22 @@ structured results (`DerivationResult`, `BuildMeta`), CI drift diffing
 |---|---|---|
 | `composer test:unit` | Run the Unit suite (Codeception) | ✅ Always |
 | `composer coverage` | Unit run with coverage (xml + html) | gate in CI |
+| `composer coverage:check` | Unit run with Clover coverage + `scripts/coverage_report.php` floor check (min 96%) | ✅ Always |
 | `composer cs:check` | PHP-CS-Fixer dry-run diff (PSR-12 + `@PHP84Migration`) | ✅ Always |
+| `composer cs:lines` | PHPCS 120-col line-length check (`vendor/bin/phpcs --standard=phpcs.xml.dist src tests`) | ✅ Always |
 | `composer cs:fix` | Auto-fix coding standard | use to fix, then re-check |
 | `composer analyse` | PHPStan (level 5, paths `src` + `tests/{Functional,Unit}`) | ✅ Always |
 | `composer architecture` | deptrac (`vendor/bin/deptrac`) | ✅ Always |
 | `composer infection` | Infection mutation testing (`--min-msi=80`) | ✅ Always |
 
-**Current baseline (2026-08-24):** `test:unit` ✅ (247 tests, 509 assertions),
-`cs:check` ✅ (0 files), `analyse` ✅ (0 errors), `architecture` ✅ (0 violations),
+**Current baseline (2026-08-25):** `test:unit` ✅ (298 tests, 612 assertions),
+`cs:check` ✅ (0 files), `cs:lines` ✅ (0 violations), `analyse` ✅ (0 errors),
+`architecture` ✅ (0 violations), `coverage:check` ✅ (97.59%, floor 96%),
 `infection` ✅ (MSI ≈ 99.7%, min-msi 80). CI (`.github/workflows/ci.yml`) runs the
 full battery on a PHP 8.4 + 8.5 matrix on every push/PR. Do not let any gate
-regress.
+regress. The sibling bridge `src/DeriveItRunit` mirrors this battery (its own
+`phpcs.xml.dist`, `infection.json5`, `cs:lines`, `coverage`, `infection` scripts,
+and CI workflow) and currently records MSI 100% on PHP 8.4/8.5.
 
 ---
 

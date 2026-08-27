@@ -112,8 +112,11 @@ final readonly class MethodSignatureFactory
     /**
      * @param array<string, ReflectionParameter> $parametersByName
      */
-    private function substituteParameterType(Parameter $parameter, array $parametersByName, TypeSubstitutor $substitutor): void
-    {
+    private function substituteParameterType(
+        Parameter $parameter,
+        array $parametersByName,
+        TypeSubstitutor $substitutor,
+    ): void {
         $reflection = $parametersByName[$parameter->getName()] ?? null;
         $type = $reflection?->getType();
 
@@ -127,13 +130,20 @@ final readonly class MethodSignatureFactory
      * constant's class is present in the substitution map (A2).
      * @throws ReflectionException
      */
-    private function rewriteDefaultValues(Method $signature, ReflectionMethod $method, TypeSubstitutor $substitutor): void
-    {
+    private function rewriteDefaultValues(
+        Method $signature,
+        ReflectionMethod $method,
+        TypeSubstitutor $substitutor,
+    ): void {
         $parametersByName = $this->parametersByName($method);
 
         foreach ($signature->getParameters() as $parameter) {
             $reflection = $parametersByName[$parameter->getName()] ?? null;
-            if ($reflection === null || !$reflection->isDefaultValueAvailable() || !$reflection->isDefaultValueConstant()) {
+            if (
+                $reflection === null
+                || !$reflection->isDefaultValueAvailable()
+                || !$reflection->isDefaultValueConstant()
+            ) {
                 continue;
             }
 
@@ -225,7 +235,14 @@ final readonly class MethodSignatureFactory
         }
 
         $throws = [];
-        if (preg_match_all('/@throws\s+([^\s*]+(?:<[^>]*>)?)(?:\s+(.*?))?(?=\n|\*\/|$)/', $doc, $matches, PREG_SET_ORDER) === 0) {
+        if (
+            preg_match_all(
+                '/@throws\s+([^\s*]+(?:<[^>]*>)?)(?:\s+(.*?))?(?=\n|\*\/|$)/',
+                $doc,
+                $matches,
+                PREG_SET_ORDER,
+            ) === 0
+        ) {
             return;
         }
 
