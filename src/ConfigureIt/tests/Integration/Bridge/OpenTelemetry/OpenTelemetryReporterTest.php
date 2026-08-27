@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
+use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\InMemoryTelemetrySink;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\SemanticConventions;
@@ -18,6 +19,7 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Execution\Occurrence;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\OccurrenceType;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 
 class OpenTelemetryReporterTest extends Unit
@@ -65,7 +67,7 @@ class OpenTelemetryReporterTest extends Unit
     {
         $schema = new NativeConfigurationSchema(Expect::structure([
             'db' => Expect::structure(['host' => Expect::string()]),
-        ])->otherItems(Expect::mixed())->castTo('array'));
+        ])->otherItems(Expect::mixed())->castTo('array'), new Processor(), new ValidationResultFactory());
 
         $resolver = $this->buildResolver()->withSchema($schema)->build();
 
@@ -152,7 +154,7 @@ class OpenTelemetryReporterTest extends Unit
 
     private function buildResolver(?ExecutionContext $context = null): ConfigurationBuilder
     {
-        $builder = new ConfigurationBuilder()
+        $builder = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())

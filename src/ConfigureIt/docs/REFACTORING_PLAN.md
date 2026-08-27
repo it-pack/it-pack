@@ -661,8 +661,20 @@ collaborators), and tighten deptrac from “documents reality” to “enforces 
 | All other gates | green; public builder/examples snippets still run (`examples/*.php` smoke) |
 
 ### Docs
-ADR-000Y, PORTS.md (moved sink port), AGENTS.md (instantiation policy), README/examples
-if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
+ADR-0012 (Instantiation Policy, already present), PORTS.md (moved sink port), AGENTS.md
+(instantiation policy), README (builder entry point → `Wiring\Configurations::builder()`),
+CHANGELOG, REVIEW: NV9, NV10 → Resolved.
+
+### Status (2026-08-27)
+- NV9c: `ConfigurationBuilder` takes `?ConfigurationWiringInterface` (no `use Wiring\…` in
+  Core); default supplied by `Wiring\Configurations::builder()`. README updated.
+- NV9b: `TelemetrySinkInterface` promoted to `Contract\Ports\…`; no deprecated alias was
+  introduced (pre-1.0 internal API — clean move is acceptable).
+- NV9a: snapshot-factory contract keeps importing the concrete `Core\ConfigurationSnapshot`,
+  documented as the accepted value-object exception (snapshot is a VO).
+- NV10: constructor-default instantiation of injectable collaborators eliminated; enforced by
+  `NoInjectableConstructorDefaultsTest`. Value objects remain the carve-out.
+- deptrac tightened to intent; all gates green.
 
 ---
 
@@ -675,7 +687,7 @@ if the builder entry point changed, CHANGELOG, REVIEW: NV9, NV10 → Resolved.
 | 3 | Coverage ≥ 95 % + suite split + conformance seeds | NV1, NV11 | M | L | ✅ Done (2026-08-26) |
 | 4 | Style mechanization & hygiene sweep | NV12, NV14, NV15, NV18, NV21, NV22 | L | M | ✅ Done (2026-08-26) |
 | 5 | Contracts completion (no abstract, interfaces, vocabularies, R10) | NV7, NV8, NV13, NV16 | M | L | ✅ Done (2026-08-26) |
-| 6 | Composition-root & DI-policy purity | NV9, NV10 | M | M | ⬜ Pending |
+| 6 | Composition-root & DI-policy purity | NV9, NV10 | M | M | ✅ Done (2026-08-27) |
 
 Dependency notes: 2 → 3 (thresholds meaningful only post-split); 4 → 5 (fixer rules hold
 the line while contracts churn); 5 → 6 (rewriter-as-service assumes the wiring extension

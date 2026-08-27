@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\CLI;
 use function count;
 
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
+use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 
 /**
@@ -18,7 +19,7 @@ use ItPack\ConfigureIt\Exception\ResolutionException;
 final readonly class DiffCommand implements CommandInterface
 {
     public function __construct(
-        private ConfigurationDiffer $differ = new ConfigurationDiffer(),
+        private ConfigurationDiffer $differ = new ConfigurationDiffer(new RedactingRenderer()),
     ) {
     }
 

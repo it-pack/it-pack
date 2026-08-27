@@ -17,6 +17,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Core\DocumentNormalizer;
 use ItPack\ConfigureIt\Core\IncludeProcessor;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
@@ -69,7 +70,7 @@ class M2ExitTest extends Unit
 
     public function testNoBehaviourChangeWhenNoLayersRegistered(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addSource(new FileSource($this->plain))
@@ -78,6 +79,8 @@ class M2ExitTest extends Unit
                 new ConfigurationLoaderFactory([new PhpLoader()]),
                 new DocumentNormalizer(),
                 $this->inc,
+                new ConfigurationResourceFactory(),
+                new ExecutionContext()
             ))
             ->withExecutionContext(new ExecutionContext(environment: 'prod'))
             ->build()
@@ -160,7 +163,7 @@ class M2ExitTest extends Unit
 
     private function build(string $env): ConfigurationBuilder
     {
-        return new ConfigurationBuilder()
+        return \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addProcessor(new IncludeProcessor(
@@ -168,6 +171,8 @@ class M2ExitTest extends Unit
                 new ConfigurationLoaderFactory([new PhpLoader()]),
                 new DocumentNormalizer(),
                 $this->inc,
+                new ConfigurationResourceFactory(),
+                new ExecutionContext()
             ))
             ->addLayer(new ConfigurationLayer(
                 [new FileSource($this->baseDir)],

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 

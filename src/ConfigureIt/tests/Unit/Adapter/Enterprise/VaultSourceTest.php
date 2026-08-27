@@ -12,7 +12,6 @@ use ItPack\ConfigureIt\Adapter\Enterprise\Http\HttpResponse;
 use ItPack\ConfigureIt\Adapter\Enterprise\RemoteJsonReader;
 use ItPack\ConfigureIt\Adapter\Enterprise\VaultSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 
 class VaultSourceTest extends Unit
 {
@@ -52,7 +51,7 @@ class VaultSourceTest extends Unit
 
     public function testVaultSourceResolvesAndMarksSensitive(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new RemoteJsonReader('vault', new FakeRemoteKeyValueClient(
                 json_encode(['db' => ['password' => 's3cr3t']], JSON_THROW_ON_ERROR),
             )))

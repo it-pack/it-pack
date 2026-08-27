@@ -63,7 +63,7 @@ function renderSnapshot(\ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterf
 // ---------------------------------------------------------------------------
 // 1 + 2 — secret source marks sensitive, and rendering masks it.
 // ---------------------------------------------------------------------------
-$secrets = (new ConfigurationBuilder())
+$secrets = (\ItPack\ConfigureIt\Wiring\Configurations::builder())
     ->addReader(new VolumeReader())
     ->addSource(new KubernetesSecretSource(__DIR__ . '/Support/Secrets'))
     ->addLoader(new EnvLoader())
@@ -99,7 +99,7 @@ $demoDecrypter = new class implements DecrypterInterface {
     }
 };
 
-$resolver = (new ConfigurationBuilder())
+$resolver = (\ItPack\ConfigureIt\Wiring\Configurations::builder())
     ->addReader(new FileReader())
     ->addSource(new FileSource($dir))
     ->addLoader(new JsonLoader())

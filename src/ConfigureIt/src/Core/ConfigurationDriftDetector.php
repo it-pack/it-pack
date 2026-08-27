@@ -68,9 +68,9 @@ final class ConfigurationDriftDetector implements ConfigurationDriftDetectorInte
      */
     public function __construct(
         callable $liveProvider,
+        ConfigurationDiffer $differ,
         ?ConfigurationGraphInterface $baseline = null,
         ?ResolutionReporterInterface $reporter = null,
-        ConfigurationDiffer $differ = new ConfigurationDiffer(),
         float $intervalSeconds = 5.0,
     ) {
         $this->liveProvider = $liveProvider;

@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
-use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
-
 interface ConfigurationSnapshotFactoryInterface
 {
     /**
      * @param array<mixed> $tree
      */
-    public function build(array $tree): ConfigurationSnapshot;
+    public function build(array $tree): ConfigurationSnapshotInterface;
 
-    public function buildFromGraph(ConfigurationGraphInterface $graph): ConfigurationSnapshot;
+    public function buildFromGraph(ConfigurationGraphInterface $graph): ConfigurationSnapshotInterface;
 
     /**
-     * Rebuild a snapshot from its serialized {@see \ItPack\ConfigureIt\Core\ConfigurationSnapshot::toArray()} form.
+     * Rebuild a snapshot from its serialized {@see ConfigurationSnapshotInterface} form.
      *
      * @param array<array-key, mixed> $data
      */
-    public function buildFromArray(array $data): ConfigurationSnapshot;
+    public function buildFromArray(array $data): ConfigurationSnapshotInterface;
 }

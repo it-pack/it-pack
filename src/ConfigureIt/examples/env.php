@@ -22,7 +22,7 @@ $dotenv = Dotenv::createImmutable(__DIR__ . '/Support/Data/', 'app.env');
 $dotenv->load();
 
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new EnvReader())
     ->addSource(new EnvSource())
     ->addLoader(new EnvLoader())

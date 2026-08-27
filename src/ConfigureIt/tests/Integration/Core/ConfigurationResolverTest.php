@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
+use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
@@ -17,11 +18,14 @@ use ItPack\ConfigureIt\Contract\ConfigurationPipelineInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Core\ConfigurationDocumentFactory;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationResolver;
+use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
+use ItPack\ConfigureIt\Execution\OccurrenceFactory;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\Format;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 
 class ConfigurationResolverTest extends Unit
@@ -32,7 +36,7 @@ class ConfigurationResolverTest extends Unit
     {
         $reporter = new ResolutionReporter();
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
@@ -80,14 +84,21 @@ class ConfigurationResolverTest extends Unit
             }
         };
 
-        $resolver = new ConfigurationResolver($reader, $loaders, $pipeline);
+        $resolver = new ConfigurationResolver(
+            $reader,
+            $loaders,
+            $pipeline,
+            new OccurrenceFactory(),
+            new ConfigurationDocumentFactory(),
+            new ConfigurationSnapshotFactory(),
+        );
 
         verify($resolver->resolve([]))->instanceOf(ConfigurationSnapshotInterface::class);
     }
 
     public function testThrowsWhenNoLoaderSupportsFormat(): void
     {
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
@@ -103,9 +114,9 @@ class ConfigurationResolverTest extends Unit
     {
         $schema = new NativeConfigurationSchema(Expect::structure([
             'db' => Expect::structure(['host' => Expect::string()]),
-        ])->otherItems(Expect::mixed())->castTo('array'));
+        ])->otherItems(Expect::mixed())->castTo('array'), new Processor(), new ValidationResultFactory());
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
@@ -124,9 +135,9 @@ class ConfigurationResolverTest extends Unit
     {
         $schema = new NativeConfigurationSchema(Expect::structure([
             'db' => Expect::structure(['host' => Expect::int()]),
-        ])->otherItems(Expect::mixed())->castTo('array'));
+        ])->otherItems(Expect::mixed())->castTo('array'), new Processor(), new ValidationResultFactory());
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())

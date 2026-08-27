@@ -42,28 +42,27 @@ deptrac:
       collectors:
         - type: directory
           value: src/Wiring/.*
-  # Baseline map (Milestone 4): encodes today's *actual* dependency edges so the
-  # gate locks in the current healthy state. Tightening to enforce architectural
-  # intent (e.g. forbidding Contract -> Core, Core -> Wiring) is Milestone 6 work.
+  # Tightened map (Milestone 6 / NV9 + NV10, ADR-0012): enforces intent, not
+  # just today's state. Key invariants:
+  #   * Contract depends only on itself + ValueObject (never Core/Adapter/Bridge/Wiring).
+  #   * Core depends only on Contract + ValueObject + same-tier helpers
+  #     (Cache/Execution); it must never reach Adapter/Bridge/Wiring.
+  #   * ValueObject is a leaf: it may reference Contract (interfaces) but nothing
+  #     upward (Core/Adapter/Bridge/...).
+  #   * The composition root (Wiring) is the only layer allowed to reach
+  #     Adapter/Bridge, and may depend on everything else.
   ruleset:
     Contract:
       - Contract
       - ValueObject
-      - Core
-      - Adapter
-      - Bridge
-      - Execution
     ValueObject:
       - ValueObject
       - Contract
-      - Core
     Core:
       - Core
       - Contract
       - ValueObject
-      - Bridge
       - Cache
-      - Wiring
       - Execution
     Execution:
       - Execution
@@ -103,3 +102,5 @@ deptrac:
       - Adapter
       - Bridge
       - Execution
+      - ValueObject
+      - Cache

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract\Wiring;
 
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphRewriterInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
@@ -15,7 +15,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
-use ItPack\ConfigureIt\Core\ConfigurationGraphRewriter;
+use ItPack\ConfigureIt\Contract\TelemetrySinkInterface;
 
 /**
  * Composition-root seam that knows how to assemble decorated readers/reporters.
@@ -63,7 +63,7 @@ interface ConfigurationWiringInterface
      * dependency injection rather than constructing it internally, keeping the
      * "no service is built inside another service" policy (NV10) intact.
      */
-    public function graphRewriter(): ConfigurationGraphRewriter;
+    public function graphRewriter(): ConfigurationGraphRewriterInterface;
 
     /**
      * The default execution context, used when the builder supplies none and a

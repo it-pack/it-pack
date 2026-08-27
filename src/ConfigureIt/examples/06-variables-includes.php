@@ -32,7 +32,7 @@ $include = new IncludeProcessor(
     baseDirectory: __DIR__ . '/Support/ComposeShared',
 );
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Compose'))
     ->addLoaders(ConfigurationLoaders::default())

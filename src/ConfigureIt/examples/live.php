@@ -43,7 +43,7 @@ file_put_contents($file, (string) json_encode([
 
 $reporter = new ResolutionReporter();
 
-$builder = (new ConfigurationBuilder())
+$builder = (\ItPack\ConfigureIt\Wiring\Configurations::builder())
     ->addReader(new FileReader())
     ->addSource(new FileSource($dir))
     ->addLoader(new PhpLoader())

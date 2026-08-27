@@ -19,7 +19,6 @@ use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
 use ItPack\ConfigureIt\Exception\ResolutionException;
-use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
@@ -72,11 +71,11 @@ final readonly class IncludeProcessor implements
     public function __construct(
         private ConfigurationReaderInterface    $reader,
         private ConfigurationLoaderFactoryInterface $loaders,
-        private DocumentNormalizerInterface     $normalizer = new DocumentNormalizer(),
-        private string                           $baseDirectory = '.',
-        private ConfigurationResourceFactory     $resourceFactory = new ConfigurationResourceFactory(),
+        private DocumentNormalizerInterface     $normalizer,
+        private string                           $baseDirectory,
+        private ConfigurationResourceFactory     $resourceFactory,
+        private ExecutionContextInterface       $context,
         private string                           $directive = '@include',
-        private ExecutionContextInterface       $context = new ExecutionContext(),
     ) {
     }
 

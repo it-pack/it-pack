@@ -6,9 +6,9 @@ namespace ItPack\ConfigureIt\Wiring;
 
 use ItPack\ConfigureIt\Adapter\CompositeReader;
 use ItPack\ConfigureIt\Adapter\Decryption\DecryptingReader;
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\OpenTelemetryReporter;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphRewriterInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationLoaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
@@ -18,6 +18,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationSourceInterface;
 use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface;
 use ItPack\ConfigureIt\Core\CachingResolver;
 use ItPack\ConfigureIt\Core\ConfigurationCompiler;
@@ -70,7 +71,7 @@ final class DefaultConfigurationWiring implements ConfigurationWiringInterface
         return new ExecutionContext();
     }
 
-    public function graphRewriter(): ConfigurationGraphRewriter
+    public function graphRewriter(): ConfigurationGraphRewriterInterface
     {
         return new ConfigurationGraphRewriter();
     }

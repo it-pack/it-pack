@@ -7,11 +7,11 @@ namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 use function is_numeric;
 use function is_scalar;
 
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ObservationInterface;
 use ItPack\ConfigureIt\Contract\Execution\OccurrenceInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\ValueObject\OccurrenceType;

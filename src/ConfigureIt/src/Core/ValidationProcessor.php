@@ -7,6 +7,7 @@ namespace ItPack\ConfigureIt\Core;
 use function implode;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphRewriterInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
@@ -39,7 +40,7 @@ final readonly class ValidationProcessor implements
 {
     public function __construct(
         private ConfigurationSchemaInterface $schema,
-        private ConfigurationGraphRewriter $rewriter,
+        private ConfigurationGraphRewriterInterface $rewriter,
         private ProcessorStage $stage = ProcessorStage::Validation,
     ) {
     }

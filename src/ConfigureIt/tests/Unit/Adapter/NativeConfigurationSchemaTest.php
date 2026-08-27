@@ -6,8 +6,10 @@ namespace Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
+use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 
 class NativeConfigurationSchemaTest extends Unit
@@ -16,7 +18,7 @@ class NativeConfigurationSchemaTest extends Unit
     {
         $schema = new NativeConfigurationSchema(Expect::structure([
             'app' => Expect::structure(['debug' => Expect::bool()]),
-        ])->castTo('array'));
+        ])->castTo('array'), new Processor(), new ValidationResultFactory());
 
         $result = $schema->validate($this->graphWith(['app' => ['debug' => true]]));
 
@@ -28,7 +30,7 @@ class NativeConfigurationSchemaTest extends Unit
     {
         $schema = new NativeConfigurationSchema(Expect::structure([
             'app' => Expect::structure(['debug' => Expect::bool()]),
-        ])->castTo('array'));
+        ])->castTo('array'), new Processor(), new ValidationResultFactory());
 
         $result = $schema->validate($this->graphWith(['app' => ['debug' => 'not-bool']]));
 
@@ -42,7 +44,7 @@ class NativeConfigurationSchemaTest extends Unit
      */
     public function testRootLevelFailureIsAttributedToTheRootPath(): void
     {
-        $schema = new NativeConfigurationSchema(Expect::listOf(Expect::string()));
+        $schema = new NativeConfigurationSchema(Expect::listOf(Expect::string()), new Processor(), new ValidationResultFactory());
 
         $result = $schema->validate($this->graphWith(['app' => 'value']));
 
@@ -61,7 +63,7 @@ class NativeConfigurationSchemaTest extends Unit
         $schema = new NativeConfigurationSchema(Expect::structure([
             'legacy' => Expect::string()->deprecated('legacy is deprecated'),
             'app' => Expect::structure(['debug' => Expect::bool()]),
-        ])->castTo('array'));
+        ])->castTo('array'), new Processor(), new ValidationResultFactory());
 
         $result = $schema->validate($this->graphWith([
             'legacy' => 'still-here',
@@ -81,7 +83,7 @@ class NativeConfigurationSchemaTest extends Unit
         $schema = new NativeConfigurationSchema(Expect::structure([
             'legacy' => Expect::string()->deprecated('legacy is deprecated'),
             'port' => Expect::int(),
-        ])->castTo('array'));
+        ])->castTo('array'), new Processor(), new ValidationResultFactory());
 
         $result = $schema->validate($this->graphWith([
             'legacy' => 'still-here',
@@ -114,7 +116,7 @@ class NativeConfigurationSchemaTest extends Unit
             'loose' => Expect::scalar(),
             'either' => Expect::anyOf('a', 'b'),
             'nested' => Expect::structure(['deep' => Expect::string()]),
-        ]));
+        ]), new Processor(), new ValidationResultFactory());
 
         verify($schema->scalarTypes())->equals([
             'name' => 'string',
@@ -131,18 +133,18 @@ class NativeConfigurationSchemaTest extends Unit
 
     public function testScalarTypesIsEmptyForARootLevelScalarSchema(): void
     {
-        verify(new NativeConfigurationSchema(Expect::string())->scalarTypes())->equals([]);
-        verify(new NativeConfigurationSchema(Expect::arrayOf(Expect::string()))->scalarTypes())->equals([]);
+        verify(new NativeConfigurationSchema(Expect::string(), new Processor(), new ValidationResultFactory())->scalarTypes())->equals([]);
+        verify(new NativeConfigurationSchema(Expect::arrayOf(Expect::string()), new Processor(), new ValidationResultFactory())->scalarTypes())->equals([]);
     }
 
     public function testScalarTypesIsEmptyForANonStructureNonTypeSchema(): void
     {
-        verify(new NativeConfigurationSchema(Expect::anyOf('a', 'b'))->scalarTypes())->equals([]);
+        verify(new NativeConfigurationSchema(Expect::anyOf('a', 'b'), new Processor(), new ValidationResultFactory())->scalarTypes())->equals([]);
     }
 
     public function testEmptyStructureDeclaresNoScalarTypes(): void
     {
-        verify(new NativeConfigurationSchema(Expect::structure([]))->scalarTypes())->equals([]);
+        verify(new NativeConfigurationSchema(Expect::structure([]), new Processor(), new ValidationResultFactory())->scalarTypes())->equals([]);
     }
     /**
      * @param array<string, mixed> $data

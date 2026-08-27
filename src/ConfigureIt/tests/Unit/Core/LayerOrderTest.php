@@ -9,7 +9,6 @@ use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ConfigurationLayer;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 
@@ -34,7 +33,7 @@ class LayerOrderTest extends Unit
             'override.php' => '<?php return ["db" => ["host" => "override-host"], "app" => ["debug" => true]];',
         ]));
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addLayer(new ConfigurationLayer([$override], precedence: 20))
@@ -61,7 +60,7 @@ class LayerOrderTest extends Unit
             'prod.php' => '<?php return ["db" => ["host" => "prod-host"]];',
         ]));
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addLayer(new ConfigurationLayer([$base], precedence: 10))
@@ -92,7 +91,7 @@ class LayerOrderTest extends Unit
             'prod.php' => '<?php return ["db" => ["host" => "prod-host"]];',
         ]));
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addLayer(new ConfigurationLayer([$base], precedence: 10))
@@ -117,7 +116,7 @@ class LayerOrderTest extends Unit
             'base.php' => '<?php return ["db" => ["host" => "base-host"]];',
         ]);
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addSource(new FileSource($base))

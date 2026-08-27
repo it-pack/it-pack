@@ -8,7 +8,6 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\ConfigurationLoaders;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 class ConfigurationLoadersTest extends Unit
@@ -42,7 +41,7 @@ class ConfigurationLoadersTest extends Unit
             file_put_contents($dir . '/meta.md', "---\ntitle: Docs\n---\nBody\n");
             file_put_contents($dir . '/vars.env', "dotenv_key=from-env-file\n");
 
-            $resolver = new ConfigurationBuilder()
+            $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
                 ->addReader(new FileReader())
                 ->addSource(new FileSource($dir))
                 ->addLoaders(ConfigurationLoaders::default())

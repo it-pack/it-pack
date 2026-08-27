@@ -10,7 +10,6 @@ use ItPack\ConfigureIt\Adapter\Enterprise\DockerSecretsSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\KubernetesSecretSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\VolumeReader;
 use ItPack\ConfigureIt\Adapter\EnvLoader;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Exception\ReadException;
 
 class VolumeSourceTest extends Unit
@@ -19,7 +18,7 @@ class VolumeSourceTest extends Unit
 
     public function testConfigMapResolvesWithProvenance(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new VolumeReader())
             ->addSource(new ConfigMapSource($this->dir))
             ->addLoader(new EnvLoader())
@@ -39,7 +38,7 @@ class VolumeSourceTest extends Unit
 
     public function testKubernetesSecretResolvesWithProvenance(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new VolumeReader())
             ->addSource(new KubernetesSecretSource($this->dir))
             ->addLoader(new EnvLoader())
@@ -56,7 +55,7 @@ class VolumeSourceTest extends Unit
 
     public function testDockerSecretsResolvesWithProvenance(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new VolumeReader())
             ->addSource(new DockerSecretsSource($this->dir))
             ->addLoader(new EnvLoader())
@@ -75,7 +74,7 @@ class VolumeSourceTest extends Unit
     {
         $source = new ConfigMapSource('/nonexistent/volume/' . uniqid());
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new VolumeReader())
             ->addSource($source)
             ->addLoader(new EnvLoader())

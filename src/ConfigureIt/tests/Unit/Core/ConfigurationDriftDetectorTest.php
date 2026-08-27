@@ -13,6 +13,7 @@ use ItPack\ConfigureIt\Core\ConfigurationDiffer;
 use ItPack\ConfigureIt\Core\ConfigurationDriftDetector;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
+use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
@@ -24,6 +25,7 @@ class ConfigurationDriftDetectorTest extends Unit
     {
         $reporter = new ResolutionReporter();
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static fn (): ConfigurationGraphInterface => self::graphA(),
             baseline: self::graphA(),
             reporter: $reporter,
@@ -40,6 +42,7 @@ class ConfigurationDriftDetectorTest extends Unit
         $captured = null;
 
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
             baseline: self::graphA(),
             reporter: $reporter,
@@ -72,6 +75,7 @@ class ConfigurationDriftDetectorTest extends Unit
         $index = 0;
 
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static function () use (&$index, $sequence): ConfigurationGraphInterface {
                 $graph = $sequence[$index] ?? self::graphA();
                 ++$index;
@@ -102,6 +106,7 @@ class ConfigurationDriftDetectorTest extends Unit
         $index = 0;
 
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static function () use (&$index, $sequence): ConfigurationGraphInterface {
                 $graph = $sequence[$index] ?? self::graphA();
                 ++$index;
@@ -109,7 +114,6 @@ class ConfigurationDriftDetectorTest extends Unit
                 return $graph;
             },
             reporter: $reporter,
-            differ: new ConfigurationDiffer(),
             intervalSeconds: 0.0,
         );
 
@@ -133,6 +137,7 @@ class ConfigurationDriftDetectorTest extends Unit
     {
         $reporter = new ResolutionReporter();
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
             baseline: self::graphA(),
             reporter: $reporter,
@@ -150,6 +155,7 @@ class ConfigurationDriftDetectorTest extends Unit
     {
         $reporter = new ResolutionReporter();
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static fn (): ConfigurationGraphInterface => self::graphA(),
             reporter: $reporter,
         );
@@ -172,6 +178,7 @@ class ConfigurationDriftDetectorTest extends Unit
         $live = self::graphA();
 
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static function () use (&$live): ConfigurationGraphInterface {
                 return $live;
             },
@@ -196,6 +203,7 @@ class ConfigurationDriftDetectorTest extends Unit
     {
         $reporter = new ResolutionReporter();
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
             reporter: $reporter,
         );
@@ -210,6 +218,7 @@ class ConfigurationDriftDetectorTest extends Unit
     public function testDriftIsDetectedWithoutAReporter(): void
     {
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static fn (): ConfigurationGraphInterface => self::graphB(),
             baseline: self::graphA(),
         );
@@ -230,6 +239,7 @@ class ConfigurationDriftDetectorTest extends Unit
         $live = self::graphA();
 
         $detector = new ConfigurationDriftDetector(
+            differ: new ConfigurationDiffer(new RedactingRenderer()),
             liveProvider: static function () use (&$live): ConfigurationGraphInterface {
                 return $live;
             },

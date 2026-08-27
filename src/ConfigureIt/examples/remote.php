@@ -56,7 +56,7 @@ $httpTransport = new FakeHttpClient([
 // Production: $httpTransport = new CurlHttpClient();  // + signing/headers
 $cacheDir = sys_get_temp_dir() . '/configure-it-remote-cache';
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new CachingReader(
         new HttpReader($httpTransport),
         new FileSystemDocumentCache($cacheDir),
@@ -91,13 +91,13 @@ echo 'Fallback  -> served last-good = ' . $served . PHP_EOL;
 // 2) Consul KV + etcd v2 — production wiring (would run against a live agent).
 // ---------------------------------------------------------------------------
 
-// $consul = new ConfigurationBuilder()
+// $consul = \ItPack\ConfigureIt\Wiring\Configurations::builder()
 //     ->addReader(new RemoteJsonReader('consul', new ConsulClient(new CurlHttpClient())))
 //     ->addSource(new ConsulSource('consul.svc', 8500, 'app'))
 //     ->addLoader(new JsonLoader())
 //     ->build();
 //
-// $etcd = new ConfigurationBuilder()
+// $etcd = \ItPack\ConfigureIt\Wiring\Configurations::builder()
 //     ->addReader(new RemoteJsonReader('etcd', new EtcdClient(new CurlHttpClient())))
 //     ->addSource(new EtcdSource('etcd.svc', 2379, 'app'))
 //     ->addLoader(new JsonLoader())

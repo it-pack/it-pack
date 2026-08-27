@@ -11,6 +11,7 @@ use function is_numeric;
 use function is_string;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphRewriterInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationProcessorInterface;
 use ItPack\ConfigureIt\Contract\ProvenanceAwareProcessorInterface;
@@ -46,7 +47,7 @@ final readonly class CastingProcessor implements
      */
     public function __construct(
         private array $casts,
-        private ConfigurationGraphRewriter $rewriter,
+        private ConfigurationGraphRewriterInterface $rewriter,
         private ProcessorStage $stage = ProcessorStage::Casting,
     ) {
     }

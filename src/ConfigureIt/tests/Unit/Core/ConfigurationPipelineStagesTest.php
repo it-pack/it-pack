@@ -16,6 +16,8 @@ use ItPack\ConfigureIt\Core\DefaultsProcessor;
 use ItPack\ConfigureIt\Core\DocumentNormalizer;
 use ItPack\ConfigureIt\Core\IncludeProcessor;
 use ItPack\ConfigureIt\Core\VariableProcessor;
+use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\Format;
 
 class ConfigurationPipelineStagesTest extends Unit
@@ -31,7 +33,7 @@ class ConfigurationPipelineStagesTest extends Unit
         ], Format::JSON, 'base');
 
         $pipeline = new ConfigurationPipeline([
-            new IncludeProcessor(new FileReader(), new ConfigurationLoaderFactory([new YamlLoader()]), new DocumentNormalizer(), $this->dir),
+            new IncludeProcessor(new FileReader(), new ConfigurationLoaderFactory([new YamlLoader()]), new DocumentNormalizer(), $this->dir, new ConfigurationResourceFactory(), new ExecutionContext()),
             new VariableProcessor(),
             new CastingProcessor([
                 'db.port' => 'int',

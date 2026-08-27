@@ -9,11 +9,14 @@ use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
+use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\Cache\FileSystemCache;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Exception\TypeException;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 use RuntimeException;
 
@@ -33,7 +36,7 @@ class CompilerCacheTest extends Unit
 
     public function testCacheHitServesEqualSnapshot(): void
     {
-        $cache = new FileSystemCache($this->cacheDir);
+        $cache = new FileSystemCache($this->cacheDir, new ConfigurationSnapshotFactory());
         $resolver = $this->builder($cache)->build();
 
         $first = $resolver->resolve();
@@ -49,7 +52,7 @@ class CompilerCacheTest extends Unit
 
     public function testHashChangeInvalidatesCache(): void
     {
-        $cache = new FileSystemCache($this->cacheDir);
+        $cache = new FileSystemCache($this->cacheDir, new ConfigurationSnapshotFactory());
         $resolver = $this->builder($cache)->build();
 
         verify($resolver->resolve()->get('name'))->equals('acme');
@@ -84,7 +87,7 @@ class CompilerCacheTest extends Unit
 
     public function testCorruptArtifactFallsBackToLiveResolve(): void
     {
-        $cache = new FileSystemCache($this->cacheDir);
+        $cache = new FileSystemCache($this->cacheDir, new ConfigurationSnapshotFactory());
 
         // Unknown key + non-array artifact both yield null (safe miss).
         verify($cache->get('missing'))->null();
@@ -99,10 +102,12 @@ class CompilerCacheTest extends Unit
             Expect::structure([
                 'name' => Expect::string(),
                 'port' => Expect::int(),
-            ])
+            ]),
+            new Processor(),
+            new ValidationResultFactory()
         );
 
-        $cache = new FileSystemCache($this->cacheDir);
+        $cache = new FileSystemCache($this->cacheDir, new ConfigurationSnapshotFactory());
         $resolver = $this->builder($cache)->withSchema($schema)->build();
 
         // First resolve is a miss and mints a TypedSnapshot.
@@ -161,7 +166,7 @@ class CompilerCacheTest extends Unit
 
     private function builder(?ConfigurationCacheInterface $cache = null): ConfigurationBuilder
     {
-        $builder = new ConfigurationBuilder()
+        $builder = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addSource(new FileSource($this->dir))

@@ -24,6 +24,7 @@ type-hint the interface, never the concrete.
 | `DiagnosticsReportInterface` | `ValueObject\DiagnosticsReport` | ValueObject |
 | `FlagDefinitionInterface` | `ValueObject\FlagDefinition` | ValueObject |
 | `ConfigurationGraphRewriter` (composition seam) | `Core\ConfigurationGraphRewriter` | Core |
+| `ConfigurationTelemetrySinkInterface` (NV9b) | OTel SDK-backed impl wired only in `Wiring\DefaultConfigurationWiring`; consumed by `Bridge\OpenTelemetry\OpenTelemetryReporter` | Contract → Bridge/Wiring |
 
 The `ConfigurationWiringInterface` gained `graphRewriter()` so node-rewriting
 processors receive the rewriter collaborator via dependency injection rather

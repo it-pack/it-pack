@@ -6,6 +6,7 @@ namespace ItPack\ConfigureIt\Core;
 
 use Closure;
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
+use ItPack\ConfigureIt\Contract\ConfigurationGraphRewriterInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
 
 /**
@@ -17,7 +18,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationNodeInterface;
  * the clone-graph → loop-nodes → put sequence plus an optional whole-graph
  * hook; both live here now as a single {@see self::rewrite()} entry point.
  */
-final readonly class ConfigurationGraphRewriter
+final readonly class ConfigurationGraphRewriter implements ConfigurationGraphRewriterInterface
 {
     /**
      * Rewrite every node of the graph through `$rewrite`.

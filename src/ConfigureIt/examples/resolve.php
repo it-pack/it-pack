@@ -18,7 +18,7 @@ use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Data'))
     ->addLoader(new PhpLoader())

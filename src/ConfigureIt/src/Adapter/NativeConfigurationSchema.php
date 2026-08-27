@@ -12,7 +12,6 @@ use ItPack\ConfigureIt\Contract\SchemaInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultFactoryInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ValidationResultInterface;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
-use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Elements\Structure;
 use Nette\Schema\Elements\Type;
 use Nette\Schema\Schema as Ne;
@@ -32,9 +31,9 @@ final readonly class NativeConfigurationSchema implements ConfigurationSchemaInt
 {
     private SchemaInterface $schema;
     public function __construct(
-        Ne                                         $schema,
-        private ProcessorInterface               $processor = new Processor(),
-        private ValidationResultFactoryInterface $resultFactory = new ValidationResultFactory(),
+        Ne                                                      $schema,
+        private ProcessorInterface                             $processor,
+        private ValidationResultFactoryInterface              $resultFactory,
     ) {
         $this->schema = new Schema($schema);
     }

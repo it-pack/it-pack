@@ -12,7 +12,8 @@ use ItPack\ConfigureIt\ValueObject\OccurrenceType;
  * These names follow the OpenTelemetry specification (span names, metric
  * instrument names, attribute keys) so that a backend (Jaeger, Tempo,
  * Prometheus, OTLP collector) renders ConfigureIt data natively. The Core
- * never references these; they live behind the {@see TelemetrySinkInterface}
+ * never references these; they live behind the
+ * {@see \ItPack\ConfigureIt\Contract\TelemetrySinkInterface}
  * port and are emitted by the {@see OpenTelemetryReporter} decorator built on
  * the Execution reporter spine (docs/EXECUTION.md).
  *

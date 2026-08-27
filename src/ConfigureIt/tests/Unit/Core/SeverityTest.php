@@ -10,10 +10,11 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 
 /**
@@ -58,7 +59,7 @@ class SeverityTest extends Unit
     {
         $reporter = new ResolutionReporter();
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
@@ -83,7 +84,7 @@ class SeverityTest extends Unit
     {
         $reporter = new ResolutionReporter();
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
@@ -102,7 +103,7 @@ class SeverityTest extends Unit
     {
         $reporter = new ResolutionReporter();
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())
@@ -141,6 +142,8 @@ class SeverityTest extends Unit
                     'host' => Expect::string()->deprecated('use db.endpoint instead'),
                 ])->otherItems(Expect::mixed()),
             ])->otherItems(Expect::mixed())->castTo('array'),
+            new Processor(),
+            new ValidationResultFactory()
         );
     }
 
@@ -152,6 +155,8 @@ class SeverityTest extends Unit
                     'host' => Expect::int(),
                 ])->otherItems(Expect::mixed()),
             ])->otherItems(Expect::mixed())->castTo('array'),
+            new Processor(),
+            new ValidationResultFactory()
         );
     }
 }

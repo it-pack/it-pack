@@ -32,7 +32,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $sink = new InMemoryTelemetrySink();
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Formats'))
     ->addLoaders(ConfigurationLoaders::default())
@@ -116,7 +116,7 @@ echo PHP_EOL . '== Wiring the real SDK (stub bridge prints calls) ==' . PHP_EOL;
 
 $bridgeSink = new OtelTelemetrySink(new PrintingBridge());
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Formats'))
     ->addLoaders(ConfigurationLoaders::default())

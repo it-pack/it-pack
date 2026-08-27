@@ -9,7 +9,6 @@ use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotFactoryInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
-use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Core\TypedSnapshot;
 use Throwable;
 
@@ -41,7 +40,7 @@ final class FileSystemCache implements ConfigurationCacheInterface
 
     public function __construct(
         private string                                   $directory,
-        private ConfigurationSnapshotFactoryInterface $factory = new ConfigurationSnapshotFactory(),
+        private ConfigurationSnapshotFactoryInterface $factory,
     ) {
         if (!is_dir($this->directory)) {
             mkdir($this->directory, self::DEFAULT_DIRECTORY_MODE, true);

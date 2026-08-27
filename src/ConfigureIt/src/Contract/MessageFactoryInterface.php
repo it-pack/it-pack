@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Contract;
 
-use ItPack\ConfigureIt\Adapter\Message;
 use Nette\Schema\Message as NetteMessage;
 
 /**
@@ -25,7 +24,7 @@ interface MessageFactoryInterface
         string $code,
         array $path,
         array $variables = [],
-    ): Message;
+    ): MessageInterface;
 
-    public function buildFromNetteMessage(NetteMessage $message): Message;
+    public function buildFromNetteMessage(NetteMessage $message): MessageInterface;
 }

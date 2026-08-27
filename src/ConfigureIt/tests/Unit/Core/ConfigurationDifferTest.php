@@ -11,6 +11,7 @@ use function count;
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
+use ItPack\ConfigureIt\Core\RedactingRenderer;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
@@ -30,7 +31,7 @@ class ConfigurationDifferTest extends Unit
             $this->node('c', 3, 'local.json', 20),
         ]);
 
-        $diff = new ConfigurationDiffer()->diff($base, $other);
+        $diff = new ConfigurationDiffer(new RedactingRenderer())->diff($base, $other);
 
         verify($diff->empty())->false();
         verify($diff->added)->equals(['c' => 3]);
@@ -49,7 +50,7 @@ class ConfigurationDifferTest extends Unit
         $base = new ConfigurationGraph([$this->node('a', 1, 'base.json', 10)]);
         $other = new ConfigurationGraph([$this->node('a', 1, 'base.json', 10)]);
 
-        $diff = new ConfigurationDiffer()->diff($base, $other);
+        $diff = new ConfigurationDiffer(new RedactingRenderer())->diff($base, $other);
 
         verify($diff->empty())->true();
         verify($diff->summary())->equals('Configuration graphs are identical.');

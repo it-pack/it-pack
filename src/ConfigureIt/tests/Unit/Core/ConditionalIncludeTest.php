@@ -7,7 +7,6 @@ namespace Tests\Unit\Core;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationLoaderFactory;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
@@ -15,6 +14,7 @@ use ItPack\ConfigureIt\Core\DocumentNormalizer;
 use ItPack\ConfigureIt\Core\IncludeProcessor;
 use ItPack\ConfigureIt\Exception\ResolutionException;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 
 /**
  * @covers \ItPack\ConfigureIt\Core\IncludeProcessor
@@ -141,7 +141,7 @@ class ConditionalIncludeTest extends Unit
         file_put_contents($conf . '/base.php', '<?php return ["import" => "@include extra.php @if env=prod"];');
         file_put_contents($inc . '/extra.php', '<?php return ["value" => "yes"];');
 
-        $build = fn (string $env): bool => new ConfigurationBuilder()
+        $build = fn (string $env): bool => \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addSource(new \ItPack\ConfigureIt\Adapter\FileSource($conf))
@@ -150,6 +150,8 @@ class ConditionalIncludeTest extends Unit
                 new ConfigurationLoaderFactory([new PhpLoader()]),
                 new DocumentNormalizer(),
                 $inc,
+                new ConfigurationResourceFactory(),
+                new ExecutionContext()
             ))
             ->withExecutionContext(new ExecutionContext(environment: $env))
             ->build()
@@ -199,6 +201,7 @@ class ConditionalIncludeTest extends Unit
             new ConfigurationLoaderFactory([new PhpLoader()]),
             new DocumentNormalizer(),
             $this->dir,
+            new ConfigurationResourceFactory(),
             context: $context,
         );
     }

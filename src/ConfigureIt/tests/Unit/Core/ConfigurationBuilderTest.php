@@ -16,7 +16,7 @@ class ConfigurationBuilderTest extends Unit
 {
     public function testAccumulatesLoadersAndBuildsResolver(): void
     {
-        $builder = new ConfigurationBuilder()
+        $builder = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addLoader(new PhpLoader())
             ->addLoader(new JsonLoader())
         ;
@@ -55,7 +55,7 @@ class ConfigurationBuilderTest extends Unit
             }
         };
 
-        $builder = new ConfigurationBuilder()
+        $builder = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addLoader(new PhpLoader())
             ->addProcessor($suffixer)
         ;

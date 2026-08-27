@@ -39,7 +39,7 @@ $schema = new NativeConfigurationSchema(
 
 echo '== Valid configuration ==' . PHP_EOL;
 
-$valid = new ConfigurationBuilder()
+$valid = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Schema/valid'))
     ->addLoaders(ConfigurationLoaders::default())
@@ -53,7 +53,7 @@ printf('  database.port   = %s' . PHP_EOL, var_export($snapshot->get('database.p
 
 echo PHP_EOL . '== Invalid configuration (caught) ==' . PHP_EOL;
 
-$invalid = new ConfigurationBuilder()
+$invalid = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Schema/invalid'))
     ->addLoaders(ConfigurationLoaders::default())

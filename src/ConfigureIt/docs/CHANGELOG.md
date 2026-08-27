@@ -174,14 +174,34 @@ and `ROADMAP.md`).
     `Key`, `FileModificationProbe`, `TreeBuilder`, `HttpResponse`,
     `FeatureFlagSchema`, `SemanticConventions`) remain adapter-internal (see
     PORTS.md).
-  - **Vocabularies hoisted.** Occurrence-type string literals
-    (`'ConfigurationValidated'`, `'ConfigurationResolved'`, `'SnapshotCreated'`)
-    replaced by `OccurrenceType::…->value` at every call site (resolver, OTel
-    reporter, semantic-convention map). The vocabulary-home rule now lives in
-    AGENTS.md (single-use literal → class const; shared/cross-layer vocabulary →
-    interface const or a `Contract` enum).
+   - **Vocabularies hoisted.** Occurrence-type string literals
+     (`'ConfigurationValidated'`, `'ConfigurationResolved'`, `'SnapshotCreated'`)
+     replaced by `OccurrenceType::…->value` at every call site (resolver, OTel
+     reporter, semantic-convention map). The vocabulary-home rule now lives in
+     AGENTS.md (single-use literal → class const; shared/cross-layer vocabulary →
+     interface const or a `Contract` enum).
+
+ - **Milestone 6 — Composition-root entry point & instantiation policy (REVIEW NV9, NV10)**
+   - **Composition-root factory.** `Wiring\Configurations::builder()` replaces
+     `new Core\ConfigurationBuilder()` as the canonical entry point. The builder now
+     takes an optional `?ConfigurationWiringInterface $wiring = null`; a null wiring
+     at `build()` time is a programming error rather than a silent default. Core no
+     longer `use`s any `Wiring/` / `Adapter/` / `Bridge/` concrete.
+   - **No injectable constructor defaults.** No service/runner/reporter/wiring
+     collaborator may be default-constructed inside another service's constructor;
+     collaborators arrive from the composition root. Value objects remain the
+     carve-out (they are data, not services). A `NoInjectableConstructorDefaultsTest`
+     tokenizer guard enforces the policy and fails the build on regression.
+   - **Sink port moved to `Contract\Ports\ConfigurationTelemetrySinkInterface`.**
+     `OpenTelemetryReporter` now depends on the port; the OTel SDK wiring lives only
+     in `Wiring\DefaultConfigurationWiring`. The reporter keeps a null-object default
+     (`NullTelemetrySink`) — a value object, not an injectable collaborator — so the
+     policy is satisfied without forcing every consumer to inject telemetry.
+   - **README updated** to use `Configurations::builder()` and drop the
+     `use …\Core\ConfigurationBuilder` import.
 
 ### Changed
+
 
 - **Milestone 5 — Loader/schema identity strings are now semantic (NV16, R10).**
   `ConfigurationLoaderInterface`, `ConfigurationSchemaInterface` and

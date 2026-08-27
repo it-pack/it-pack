@@ -13,7 +13,6 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\CLI\ConfigurationInspector;
 use ItPack\ConfigureIt\CLI\GraphVisualizer;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
@@ -94,8 +93,8 @@ class RedactionTest extends Unit
             ),
         ]);
 
-        $summary = new ConfigurationDiffer()->summarize(
-            new ConfigurationDiffer()->diff($base, $other),
+        $summary = new ConfigurationDiffer(new RedactingRenderer())->summarize(
+            new ConfigurationDiffer(new RedactingRenderer())->diff($base, $other),
         );
 
         verify(str_contains($summary, 's3cr3t-value'))->false();
@@ -153,7 +152,7 @@ class RedactionTest extends Unit
 
     private function secretSnapshot(): \ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface
     {
-        return new ConfigurationBuilder()
+        return \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new VolumeReader())
             ->addReader(new FileReader())
             ->addSource(new KubernetesSecretSource($this->dir))

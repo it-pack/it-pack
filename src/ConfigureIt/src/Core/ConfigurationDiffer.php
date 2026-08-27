@@ -24,7 +24,7 @@ use ItPack\ConfigureIt\ValueObject\ConfigurationDiff;
 final readonly class ConfigurationDiffer implements ConfigurationDifferInterface
 {
     public function __construct(
-        private RedactingRenderer $renderer = new RedactingRenderer(),
+        private RedactingRenderer $renderer,
     ) {
     }
 

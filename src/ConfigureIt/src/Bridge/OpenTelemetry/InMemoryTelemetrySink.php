@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
+use ItPack\ConfigureIt\Contract\TelemetrySinkInterface;
 
 /**
  * In-memory {@see TelemetrySinkInterface} implementation.

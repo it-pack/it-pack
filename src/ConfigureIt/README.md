@@ -173,10 +173,10 @@ use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Wiring\Configurations;
 
 // Discover + load + merge + validate, then freeze an immutable snapshot.
-$resolver = (new ConfigurationBuilder())
+$resolver = Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/config'))
     ->addLoader(new PhpLoader())

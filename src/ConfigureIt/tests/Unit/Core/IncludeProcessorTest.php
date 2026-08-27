@@ -13,6 +13,8 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Core\DocumentNormalizer;
 use ItPack\ConfigureIt\Core\IncludeProcessor;
 use ItPack\ConfigureIt\Exception\ResolutionException;
+use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\ValueObject\ConfigurationResourceFactory;
 use ItPack\ConfigureIt\ValueObject\ProcessorStage;
 
 class IncludeProcessorTest extends Unit
@@ -111,6 +113,8 @@ class IncludeProcessorTest extends Unit
             new ConfigurationLoaderFactory([new YamlLoader()]),
             new DocumentNormalizer(),
             $this->dir,
+            new ConfigurationResourceFactory(),
+            new ExecutionContext()
         )->process(new ConfigurationGraph([
             new ConfigurationNode('import', '@include missing.yaml', 'base', 10),
         ]));
@@ -123,6 +127,8 @@ class IncludeProcessorTest extends Unit
             new ConfigurationLoaderFactory([new YamlLoader()]),
             new DocumentNormalizer(),
             $this->dir . '/definitely-not-here',
+            new ConfigurationResourceFactory(),
+            new ExecutionContext()
         );
 
         $this->expectException(ResolutionException::class);
@@ -240,6 +246,8 @@ class IncludeProcessorTest extends Unit
             new ConfigurationLoaderFactory([new YamlLoader()]),
             new DocumentNormalizer(),
             $this->dir,
+            new ConfigurationResourceFactory(),
+            new ExecutionContext(),
             directive: '@import',
         );
 
@@ -301,6 +309,8 @@ class IncludeProcessorTest extends Unit
             new ConfigurationLoaderFactory([new YamlLoader()]),
             new DocumentNormalizer(),
             $this->dir,
+            new ConfigurationResourceFactory(),
+            new ExecutionContext()
         );
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\ConfigureIt\Core;
 
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationBuilderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationCacheInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationFactoryInterface;
@@ -19,8 +18,9 @@ use ItPack\ConfigureIt\Contract\DecrypterInterface;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
 use ItPack\ConfigureIt\Contract\ExecutionContextAwareProcessorInterface;
+use ItPack\ConfigureIt\Contract\TelemetrySinkInterface;
 use ItPack\ConfigureIt\Contract\Wiring\ConfigurationWiringInterface;
-use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
+use RuntimeException;
 
 /**
  * Mutable fluent API for assembling a configuration resolution pipeline.
@@ -76,9 +76,10 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
 
     public function __construct(
         private readonly ConfigurationFactoryInterface $factory = new ConfigurationFactory(),
-        private readonly ConfigurationWiringInterface $wiring = new DefaultConfigurationWiring(),
+        private readonly ?ConfigurationWiringInterface $wiring = null,
     ) {
     }
+
 
     public function addReader(ConfigurationReaderInterface $reader): self
     {
@@ -205,9 +206,9 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
 
     public function build(?ResolutionReporterInterface $reporter = null): ConfigurationResolverInterface
     {
-        $reporter ??= $this->wiring->baseReporter();
+        $reporter ??= $this->wiring()->baseReporter();
 
-        $reporter = $this->wiring->composeReporter(
+        $reporter = $this->wiring()->composeReporter(
             $reporter,
             $this->telemetrySink,
             $this->executionContext,
@@ -229,7 +230,7 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
 
         $sources = $this->resolveSources();
 
-        $reader = $this->wiring->composeReader($this->readers, $this->decrypter);
+        $reader = $this->wiring()->composeReader($this->readers, $this->decrypter);
 
         $resolver = $this->factory->build(
             loaders: $this->loaders,
@@ -242,7 +243,7 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
         );
 
         if ($this->cache instanceof ConfigurationCacheInterface) {
-            return $this->wiring->cachingResolver(
+            return $this->wiring()->cachingResolver(
                 inner: $resolver,
                 cache: $this->cache,
                 defaultSources: $sources,
@@ -256,6 +257,22 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
         }
 
         return $resolver;
+    }
+
+    /**
+     * Resolve the wiring, failing loudly if the builder was constructed without one.
+     *
+     * The composition root supplies the wiring; obtain a builder via
+     * {@see \ItPack\ConfigureIt\Wiring\Configurations::builder()} instead of
+     * `new ConfigurationBuilder()` so a wiring is always injected (NV9c).
+     */
+    private function wiring(): ConfigurationWiringInterface
+    {
+        return $this->wiring
+            ?? throw new RuntimeException(
+                'A ConfigurationWiringInterface must be injected; use '
+                . 'ItPack\ConfigureIt\Wiring\Configurations::builder().',
+            );
     }
 
     /**
@@ -274,7 +291,7 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
             return $this->sources;
         }
 
-        $context = $this->executionContext ?? $this->wiring->baseExecutionContext();
+        $context = $this->executionContext ?? $this->wiring()->baseExecutionContext();
 
         $active = array_filter(
             $this->layers,

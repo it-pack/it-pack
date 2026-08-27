@@ -26,7 +26,6 @@ use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\RemoteDocumentCacheInterface;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Exception\ReadException;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
@@ -38,7 +37,7 @@ class RemoteSourceTest extends Unit
 
     public function testAwsParameterStoreResolvesWithProvenance(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new RemoteJsonReader('aws-ssm', new FakeRemoteKeyValueClient(self::NESTED)))
             ->addSource(new AwsParameterStoreSource('/app'))
             ->addLoader(new JsonLoader())
@@ -57,7 +56,7 @@ class RemoteSourceTest extends Unit
 
     public function testAzureAppConfigResolvesWithProvenance(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new RemoteJsonReader('azure-appconfig', new FakeRemoteKeyValueClient(self::NESTED)))
             ->addSource(new AzureAppConfigSource('mystore', 'app'))
             ->addLoader(new JsonLoader())
@@ -71,7 +70,7 @@ class RemoteSourceTest extends Unit
 
     public function testGcpSecretManagerResolvesWithProvenance(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new RemoteJsonReader('gcp-secretmanager', new FakeRemoteKeyValueClient(self::NESTED)))
             ->addSource(new GcpSecretManagerSource('my-project', 'app'))
             ->addLoader(new JsonLoader())
@@ -168,7 +167,7 @@ class RemoteSourceTest extends Unit
 
     public function testHttpSourceResolvesFromJsonEndpoint(): void
     {
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new HttpReader(new FakeHttpClient(['config.acme.test' => new HttpResponse(200, self::NESTED)])))
             ->addSource(new HttpSource('http://config.acme.test/app'))
             ->addLoader(new JsonLoader())
@@ -295,7 +294,7 @@ class RemoteSourceTest extends Unit
             ['Key' => 'app/feature/flag', 'Value' => base64_encode('on')],
         ], JSON_THROW_ON_ERROR);
 
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new RemoteJsonReader('consul', new ConsulClient(
                 new FakeHttpClient(['/v1/kv/app' => new HttpResponse(200, $body)]),
             )))
@@ -321,7 +320,7 @@ class RemoteSourceTest extends Unit
             ],
         ], JSON_THROW_ON_ERROR);
 
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new RemoteJsonReader('etcd', new EtcdClient(
                 new FakeHttpClient(['/v2/keys/app' => new HttpResponse(200, $body)]),
             )))

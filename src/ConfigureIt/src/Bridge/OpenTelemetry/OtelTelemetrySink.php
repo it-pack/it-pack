@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\ConfigureIt\Bridge\OpenTelemetry;
 
 use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\OpenTelemetryBridgeInterface;
-use ItPack\ConfigureIt\Bridge\OpenTelemetry\Contract\TelemetrySinkInterface;
+use ItPack\ConfigureIt\Contract\TelemetrySinkInterface;
 
 /**
  * OpenTelemetry bridge sink.

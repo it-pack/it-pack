@@ -285,7 +285,7 @@ class ReloadableConfigurationTest extends Unit
 
     private function builder(): ConfigurationBuilder
     {
-        return new ConfigurationBuilder()
+        return \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())

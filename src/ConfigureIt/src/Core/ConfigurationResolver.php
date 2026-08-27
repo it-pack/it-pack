@@ -48,14 +48,14 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
     public function __construct(
         private ConfigurationReaderInterface          $reader,
         private ConfigurationLoaderFactoryInterface   $loaders,
-        private ConfigurationPipelineInterface       $pipeline,
+        private ConfigurationPipelineInterface        $pipeline,
+        private OccurrenceFactory                     $occurrenceFactory,
+        private ConfigurationDocumentFactoryInterface $documentFactory,
+        private ConfigurationSnapshotFactoryInterface $snapshotFactory,
         private ?ConfigurationSchemaInterface         $schema = null,
         private ?ResolutionReporterInterface          $reporter = null,
         private iterable                              $sources = [],
         private bool                                  $failOnWarnings = false,
-        private OccurrenceFactory                     $occurrenceFactory = new OccurrenceFactory(),
-        private ConfigurationDocumentFactoryInterface $documentFactory = new ConfigurationDocumentFactory(),
-        private ConfigurationSnapshotFactoryInterface $snapshotFactory = new ConfigurationSnapshotFactory(),
     ) {
     }
 
@@ -192,7 +192,7 @@ final readonly class ConfigurationResolver implements ConfigurationResolverInter
      * {@see TypedSnapshot} so mis-typed leaves fail fast at freeze time. The
      * behaviour is unchanged when no schema, or no type information, is present.
      */
-    private function freezeTyped(ConfigurationSnapshot $snapshot): ConfigurationSnapshotInterface
+    private function freezeTyped(ConfigurationSnapshotInterface $snapshot): ConfigurationSnapshotInterface
     {
         if ($this->schema instanceof DeclaresScalarTypesInterface) {
             $types = $this->schema->scalarTypes();

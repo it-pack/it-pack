@@ -92,4 +92,12 @@ interface ConfigurationSnapshotInterface
      * masked on every render surface (M4 — Epic E5.2).
      */
     public function isSensitive(string $path): bool;
+
+    /**
+     * Serialize this snapshot to a plain array form suitable for caching and
+     * transport (the FileSystemCache compiled artifact, M3 / Epic E7.1).
+     *
+     * @return array<array-key, mixed>
+     */
+    public function toArray(): array;
 }

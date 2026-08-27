@@ -9,7 +9,6 @@ use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\CLI\ConfigurationInspector;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationLayer;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
@@ -39,7 +38,7 @@ class LayerProvenanceTest extends Unit
             'override.php' => '<?php return ["db" => ["host" => "override-host"]];',
         ]));
 
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addLayer(new ConfigurationLayer([$base], precedence: 10, id: 'base'))
@@ -62,7 +61,7 @@ class LayerProvenanceTest extends Unit
             'base.php' => '<?php return ["db" => ["host" => "base-host"]];',
         ]);
 
-        $snapshot = new ConfigurationBuilder()
+        $snapshot = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addLoader(new PhpLoader())
             ->addSource(new FileSource($base))

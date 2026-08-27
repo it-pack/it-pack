@@ -30,7 +30,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 $reporter = new ResolutionReporter();
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/Provenance'))
     ->addLoaders(ConfigurationLoaders::default())

@@ -13,7 +13,8 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
 use ItPack\ConfigureIt\Adapter\NativeConfigurationSchema;
 use ItPack\ConfigureIt\Adapter\PhpLoader;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Adapter\Processor;
+use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 
 class NativeConfigurationSchemaTypedTest extends Unit
@@ -30,7 +31,9 @@ class NativeConfigurationSchemaTypedTest extends Unit
                     'debug' => Expect::bool(),
                     'extra' => Expect::mixed(),
                 ]),
-            ])
+            ]),
+            new Processor(),
+            new ValidationResultFactory()
         );
 
         verify($schema->scalarTypes())->equals([
@@ -49,10 +52,12 @@ class NativeConfigurationSchemaTypedTest extends Unit
                     'port' => Expect::int(),
                     'debug' => Expect::bool(),
                 ]),
-            ])->otherItems(Expect::mixed())->castTo('array')
+            ])->otherItems(Expect::mixed())->castTo('array'),
+            new Processor(),
+            new ValidationResultFactory()
         );
 
-        $resolver = new ConfigurationBuilder()
+        $resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource($this->dir))
             ->addLoader(new PhpLoader())

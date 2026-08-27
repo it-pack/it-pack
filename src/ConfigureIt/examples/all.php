@@ -26,7 +26,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $dotenv = Dotenv::createImmutable(__DIR__ . '/Support/Data/', 'app.env');
 $dotenv->load();
 
-$resolver = new ConfigurationBuilder()
+$resolver = \ItPack\ConfigureIt\Wiring\Configurations::builder()
     ->addReader(new CompositeReader([
         new EnvReader(),
         new FileReader(),

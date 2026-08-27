@@ -38,7 +38,7 @@ $schema = new NativeConfigurationSchema(
     ]),
 );
 
-$resolver = (new ConfigurationBuilder())
+$resolver = (\ItPack\ConfigureIt\Wiring\Configurations::builder())
     ->addReader(new FileReader())
     ->addSource(new FileSource(__DIR__ . '/Support/FeatureFlags'))
     ->addLoaders(ConfigurationLoaders::default())

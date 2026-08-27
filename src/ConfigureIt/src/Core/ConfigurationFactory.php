@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Contract\ConfigurationReaderInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationResolverInterface;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Contract\Execution\ResolutionReporterInterface;
+use ItPack\ConfigureIt\Execution\OccurrenceFactory;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 
 final readonly class ConfigurationFactory implements ConfigurationFactoryInterface
@@ -40,6 +41,9 @@ final readonly class ConfigurationFactory implements ConfigurationFactoryInterfa
             reporter: $reporter ?? $this->reporter,
             sources: $sources,
             failOnWarnings: $failOnWarnings,
+            occurrenceFactory: new OccurrenceFactory(),
+            documentFactory: new ConfigurationDocumentFactory(),
+            snapshotFactory: new ConfigurationSnapshotFactory(),
         );
     }
 }

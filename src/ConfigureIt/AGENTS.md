@@ -437,6 +437,30 @@ raw literals:
 Rule of thumb: if the same string could appear in two files, it belongs in a
 shared `Contract` constant/enum, not duplicated as a literal.
 
+## Instantiation policy
+
+Dependencies are supplied by the composition root; they are never
+default-constructed inside another service's constructor (REVIEW NV10, ADR-0012).
+
+- **Injectable collaborators** (services, factories, runners, reporters, wiring
+  objects — anything that *does work*) arrive through the constructor from
+  `Wiring\DefaultConfigurationWiring`. A constructor parameter must never carry a
+  `= new X()` default for such a type. `tests/Unit/Wiring/NoInjectableConstructorDefaultsTest`
+  is a tokenizer guard that fails the build if one reappears.
+- **Value objects are the carve-out.** Immutable domain data
+  (`ConfigurationNode`, `Provenance`, `ValidationMessage`, `Observation`,
+  `TypedSnapshot` wrappers, graph instances, scalar/secret vocabularies) *are*
+  data, not services; constructing them with `new` at a call site is correct and
+  explicitly allowed.
+- **Core depends only on `Contract/` + `ValueObject/`.** It must never `use` a
+  class from `Wiring/`, `Adapter/`, or `Bridge/`. The `Builder` takes an optional
+  `?ConfigurationWiringInterface $wiring = null` and is normally obtained from
+  `Wiring\Configurations::builder()`; a null wiring at `build()` time is a
+  programming error, not a silent default.
+- The composition root (`Wiring/`) is the only place that `new`s `Adapter/` and
+  `Bridge/` concretes. deptrac enforces these edges (see
+  `docs/architecture/decisions/ADR-0012-Instantiation-Policy.md`).
+
 Prefer domain language.
 
 Good:

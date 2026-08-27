@@ -22,7 +22,7 @@ final class FileSystemCacheTest extends Unit
 
     public function testCreatedDirectoryIsNeverWorldAccessible(): void
     {
-        new FileSystemCache($this->dir);
+        new FileSystemCache($this->dir, new ConfigurationSnapshotFactory());
 
         verify(is_dir($this->dir))->true();
         // Artifacts hold decrypted configuration: no bits for "other" regardless of umask.
@@ -31,7 +31,7 @@ final class FileSystemCacheTest extends Unit
 
     public function testWritesAreAtomicWithoutTempResidue(): void
     {
-        $cache = new FileSystemCache($this->dir);
+        $cache = new FileSystemCache($this->dir, new ConfigurationSnapshotFactory());
         $snapshot = new ConfigurationSnapshotFactory()->build(['a' => 1]);
 
         $cache->set('artifact', $snapshot);
@@ -52,7 +52,7 @@ final class FileSystemCacheTest extends Unit
      */
     public function testHostileKeysAreRejected(string $key): void
     {
-        $cache = new FileSystemCache($this->dir);
+        $cache = new FileSystemCache($this->dir, new ConfigurationSnapshotFactory());
 
         try {
             $cache->get($key);
@@ -78,7 +78,7 @@ final class FileSystemCacheTest extends Unit
 
     public function testLegitimateKeysRoundTrip(): void
     {
-        $cache = new FileSystemCache($this->dir);
+        $cache = new FileSystemCache($this->dir, new ConfigurationSnapshotFactory());
         $snapshot = new ConfigurationSnapshotFactory()->build(['ok' => true]);
 
         foreach (['abc.def_G-h', str_repeat('0123456789abcdef', 8)] as $key) {
