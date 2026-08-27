@@ -1,0 +1,44 @@
+# Composer
+vendor/
+composer.lock
+composer.phar
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# PHP
+.php-cs-fixer.cache
+.phpunit.cache/
+
+# Build & Testing
+build/
+coverage/
+.coverage/
+.phpunit.result.cache
+tests/_output/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db
+/phpstan-errors.txt
+.phpstan/
+
+# symlink
+packages/
+
+# QA tooling output
+var/
+coverage-xml/
+
+# deptrac
+/.deptrac.cache
+.deptrac.cache
