@@ -3046,29 +3046,35 @@ Architecture notes:
 
 ## M14.7 ConfigureIt adoption
 
-- [ ] Identify ConfigureIt execution boundaries.
-- [ ] Define `configuration.resolution` execution.
-- [ ] Define file-discovery activity.
-- [ ] Define resource-reading activity.
-- [ ] Define YAML-loading activity.
-- [ ] Define document-merge activity.
-- [ ] Define schema-validation activity.
-- [ ] Define variable-resolution activity.
-- [ ] Define graph-building activity.
-- [ ] Define snapshot-freezing activity.
-- [ ] Record files-loaded measurement.
-- [ ] Record duration measurement.
-- [ ] Record memory measurement.
-- [ ] Record graph-node measurement.
-- [ ] Record warning observations.
-- [ ] Record validation diagnostics.
-- [ ] Record configuration-loaded occurrence.
-- [ ] Record schema-validated occurrence.
-- [ ] Record snapshot-created occurrence.
-- [ ] Produce a configuration snapshot.
-- [ ] Verify ConfigureIt domain remains free of adapter dependencies.
-- [ ] Add end-to-end ConfigureIt integration tests.
-- [ ] Document the adoption case study.
+> **Status: Done.** Delivered as a separate, dependency-light bridge package
+> `it-pack/configure-it-runit` (sibling of `it-pack/derive-it-runit`). ConfigureIt
+> itself was **not** modified, so its domain remains free of adapter dependencies.
+> Full detail, the artifact mapping, and the end-to-end suite are in the bridge's
+> `docs/adoption.md`.
+
+- [x] Identify ConfigureIt execution boundaries.
+- [x] Define `configuration.resolution` execution (kind `configuration.resolution` via `ConfigureItExecutions::definition()`).
+- [x] Define file-discovery activity (RunIt occurrence `configureit.activity.file_discovery.{started,finished}.v1`).
+- [x] Define resource-reading activity (`configureit.activity.resource_reading.*.v1`).
+- [x] Define YAML-loading activity (`configureit.activity.yaml_loading.*.v1`).
+- [x] Define document-merge activity (`configureit.activity.document_merge.*.v1`; completes when `ConfigurationMerged` is emitted).
+- [x] Define schema-validation activity (`configureit.activity.schema_validation.*.v1`).
+- [x] Define variable-resolution activity (`configureit.activity.variable_resolution.*.v1`).
+- [x] Define graph-building activity (`configureit.activity.graph_building.*.v1`).
+- [x] Define snapshot-freezing activity (`configureit.activity.snapshot_freezing.*.v1`).
+- [x] Record files-loaded measurement (`configureit.files_loaded` counter; one per `ConfigurationLoaded`).
+- [x] Record duration measurement (`configureit.duration` ms; start→snapshot).
+- [x] Record memory measurement (`configureit.memory` bytes; `memory_get_peak_usage`).
+- [x] Record graph-node measurement (`configureit.graph_nodes` counter from `ConfigurationResolved`).
+- [x] Record warning observations (RunIt observation + `configureit.warnings` counter).
+- [x] Record validation diagnostics (`configureit.validation_errors` / `validation_warnings` counters).
+- [x] Record configuration-loaded occurrence (`configureit.configuration.loaded.v1`).
+- [x] Record schema-validated occurrence (`configureit.configuration.validated.v1`).
+- [x] Record snapshot-created occurrence (`configureit.configuration.snapshot_created.v1`).
+- [x] Produce a configuration snapshot (terminal `configureit.configuration.resolved` with resolution summary).
+- [x] Verify ConfigureIt domain remains free of adapter dependencies (ConfigureIt untouched; bridge isolated in `it-pack/configure-it-runit`).
+- [x] Add end-to-end ConfigureIt integration tests (`tests/ConfigureItExecutionsTest.php`: 4 tests, 37 assertions, OK).
+- [x] Document the adoption case study (`it-pack/configure-it-runit/docs/adoption.md`).
 
 ## M14.8 Third-party usability validation
 
