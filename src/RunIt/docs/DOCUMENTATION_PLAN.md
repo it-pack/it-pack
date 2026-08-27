@@ -337,15 +337,15 @@ README slim-last so the canonical `docs/*` pages exist before README points at t
 
 1. **Tutorial depth:** full `docs/tutorial/*` 7-part series, or a single longer
    `docs/getting-started.md` that links out? (Recommend the series for "intuitive
-   step-by-step"; it maps 1:1 to the domain model.)
+   step-by-step"; it maps 1:1 to the domain model.) – Answer: full series.
 2. **README slimness:** Is removing the in-README deep concept/architecture prose
    acceptable, or should README remain the single comprehensive reference and
    `docs/index.md` merely point into it? (This plan assumes README becomes curated;
-   confirm before P3.)
+   confirm before P3.) – Answer: README should be slimmed.
 3. **Examples as tests:** should `examples/*.php` be wired into CI as runnable smoke
-   tests so the tutorial "Run this" links never rot? (Recommended, low cost.)
+   tests so the tutorial "Run this" links never rot? (Recommended, low cost.) – Answer: yes.
 4. **Published site:** defer all static-site tooling until after 1.0.0 (M16), keeping
-   markdown-only for now?
+   markdown-only for now? — Answer: yes.
 
 ---
 
