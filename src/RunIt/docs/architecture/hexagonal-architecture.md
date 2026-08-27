@@ -81,15 +81,15 @@ never on a concrete adapter.
 
 ## Adapters
 
-- **Common adapters** (`src/Adapter/{Null,Memory,Callback,Fiber,Common}`) are
-  dependency-free and first-party.
+- **Common adapters** (`src/Adapter/{Null,Memory,Fiber,Common}`) are
+   dependency-free and first-party.
 - **External adapters** (`src/Adapter/{OpenTelemetry,CloudEvents,Psr,Swoole}`) hold
   the only reviewed, adapter-confined vendor imports (ADR-006, ADR-010). They are
   never referenced by Domain or Application.
 
 ## Consumers and SDK
 
-The SDK (`src/SDK`) offers builders, decorators, middleware, and attributes that
+The SDK (`src/SDK`) offers builders, decorators, and attributes that
 compose ports and application services without changing domain semantics. Consumer
 code drives the model through the SDK or directly through application services; it
 never reaches into the domain for runtime state.

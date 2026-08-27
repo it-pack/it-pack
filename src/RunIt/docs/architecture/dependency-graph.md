@@ -44,8 +44,8 @@ flowchart TD;
 | `Port` | `src/Contract/Port` | External-effect ports (time, identity, serialization, publication, storage). |
 | `Domain` | `src/Domain`, `src/Behavior/Domain` | Immutable execution-model artifacts and validators. |
 | `Application` | `src/Application` | Lifecycle runtime, scopes, recorders, policies. |
-| `SDK` | `src/SDK` | Programmatic builders, decorators, middleware, attributes. |
-| `Common Adapter` | `src/Adapter/{Null,Memory,Callback,Fiber,Common}` | First-party, dependency-free adapters. |
+| `SDK` | `src/SDK` | Programmatic builders, decorators, and attributes. |
+| `Common Adapter` | `src/Adapter/{Null,Memory,Fiber,Common}` | First-party, dependency-free adapters. |
 | `External Adapter` | `src/Adapter/{OpenTelemetry,CloudEvents,Psr,Swoole}` | Vendor-integration adapters. |
 | `Test Support` | `src/Conformance` | Framework-neutral conformance harness (fixtures, verifiers, results). |
 

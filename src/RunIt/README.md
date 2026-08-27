@@ -39,17 +39,9 @@ refer to the relevant terms as they are implemented.
 - [Installation](#installation)
 - [Core Concepts](#core-concepts)
 - [Quick Start](#quick-start)
-- [Activities](#activities)
-- [Measurements](#measurements)
-- [Observations](#observations)
-- [Occurrences](#occurrences)
-- [Snapshots](#snapshots)
-- [Execution Context](#execution-context)
-- [Non-Intrusive Adoption](#non-intrusive-adoption)
-- [Context Propagation](#context-propagation)
-- [Error Handling](#error-handling)
-- [External Integrations](#external-integrations)
 - [Architecture](#architecture)
+- [Integrations](#integrations)
+- [Documentation](#documentation)
 - [Security and Privacy](#security-and-privacy)
 - [Performance](#performance)
 - [Testing](#testing)
@@ -182,136 +174,22 @@ RunIt is designed to remain usable without installing telemetry exporters, frame
 
 ## Core Concepts
 
-### Execution
+RunIt describes one operation as an **execution** that carries immutable **context**
+and emits six kinds of artifact. Each is documented in depth under
+[`docs/concepts/`](docs/concepts/semantic-model.md); a hands-on tour is the
+[**tutorial**](docs/tutorial/01-hello-execution.md).
 
-An execution represents one logical runtime operation.
+| Concept | One-line definition | Reference |
+|---|---|---|
+| **Execution** | One logical operation; the root aggregate everything belongs to. | [concepts/execution.md](docs/concepts/execution.md) · [tutorial 1](docs/tutorial/01-hello-execution.md) |
+| **Activity** | A bounded unit of work (a step) inside an execution; may nest. | [concepts/activity.md](docs/concepts/activity.md) · [tutorial 2](docs/tutorial/02-activities.md) |
+| **Measurement** | A quantitative, named, typed, unit-bearing value. | [concepts/measurement.md](docs/concepts/measurement.md) · [tutorial 3](docs/tutorial/03-measure-and-observe.md) |
+| **Observation** | A qualitative note at a PSR-3 severity; throwables are safely normalized. | [concepts/observation.md](docs/concepts/observation.md) · [tutorial 3](docs/tutorial/03-measure-and-observe.md) |
+| **Occurrence** | An immutable, versioned fact (`order.placed.v1`); maps to CloudEvents. | [concepts/occurrence.md](docs/concepts/occurrence.md) · [tutorial 4](docs/tutorial/04-occurrences-and-snapshots.md) |
+| **Snapshot** | An immutable state projection bound to a content hash. | [concepts/snapshot.md](docs/concepts/snapshot.md) · [tutorial 4](docs/tutorial/04-occurrences-and-snapshots.md) |
+| **Context** | Immutable, classified per-execution metadata; secrets are deny-by-default. | [concepts/context.md](docs/concepts/context.md) · [tutorial 5](docs/tutorial/05-context-and-propagation.md) |
 
-Examples:
-
-```text
-configuration.resolve
-http.request
-queue.job
-workflow.execute
-migration.run
-```
-
-An execution has:
-
-- A stable identity.
-- A name and kind.
-- Immutable context.
-- A lifecycle.
-- Zero or more nested activities.
-- Measurements, observations, and occurrences.
-- A terminal result or failure.
-- Optional snapshots.
-
-See [`docs/concepts/execution.md`](docs/concepts/execution.md) for the full model.
-
-### Context
-
-Context answers:
-
-> **Where and under which conditions am I executing?**
-
-Examples:
-
-- Environment.
-- Tenant.
-- Workspace.
-- Locale.
-- Principal.
-- Feature flags.
-- Correlation ID.
-- Trace ID.
-- Configuration snapshot ID.
-
-See [`docs/concepts/context.md`](docs/concepts/context.md) for classifications, redaction, and the standard vocabulary.
-
-### Activity
-
-Activities answer:
-
-> **What is currently happening?**
-
-Examples:
-
-- Discover files.
-- Read resources.
-- Load YAML.
-- Merge documents.
-- Validate schema.
-- Resolve variables.
-
-Activities may be nested.
-
-See [`docs/concepts/activity.md`](docs/concepts/activity.md) for the activity lifecycle and nesting rules.
-
-### Measurement
-
-Measurements answer:
-
-> **How much?**
-
-Examples:
-
-- Duration.
-- Memory.
-- Files loaded.
-- Documents parsed.
-- Graph nodes.
-- Validation errors.
-
-See [`docs/concepts/measurement.md`](docs/concepts/measurement.md) for kinds, units, and cardinality rules.
-
-### Observation
-
-Observations answer:
-
-> **What did we notice?**
-
-Examples:
-
-- Diagnostic messages.
-- Warnings.
-- Debug information.
-- Validation failures.
-- Errors.
-
-See [`docs/concepts/observation.md`](docs/concepts/observation.md) for severities and normalization.
-
-### Occurrence
-
-Occurrences answer:
-
-> **What happened?**
-
-Examples:
-
-- Configuration loaded.
-- Schema validated.
-- Snapshot created.
-- Pipeline completed.
-
-Occurrences are immutable facts and can be represented as CloudEvents.
-
-See [`docs/concepts/occurrence.md`](docs/concepts/occurrence.md) for versioned types and CloudEvents mapping.
-
-### Snapshot
-
-Snapshots answer:
-
-> **What is the resulting state?**
-
-Examples:
-
-- Configuration snapshot.
-- Execution snapshot.
-- Workflow snapshot.
-- Pipeline snapshot.
-
-See [`docs/concepts/snapshot.md`](docs/concepts/snapshot.md) for snapshot integrity and persistence.
+New here? Start with [**Getting Started**](docs/getting-started.md).
 
 ---
 
@@ -352,924 +230,84 @@ The runner is responsible for:
 7. Restoring the previous execution context.
 8. Returning the result or rethrowing the original exception.
 
----
-
-## Activities
-
-Use activities to describe bounded units of work inside an execution:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use ItPack\RunIt\Application\Scope\ActivityScopeInterface;
-use ItPack\RunIt\Application\Scope\ExecutionScopeInterface;
-use ItPack\RunIt\Domain\Activity\ActivityDefinition;
-use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
-
-$config = $runner->run(
-    ExecutionDefinition::named('configuration.resolve'),
-    static function (ExecutionScopeInterface $execution) use ($loader): array {
-        return $execution->activities()->run(
-            ActivityDefinition::named('configuration.load'),
-            static function (ActivityScopeInterface $activity) use ($loader): array {
-                return $loader->load();
-            },
-        );
-    },
-);
-```
-
-Activities may be nested:
-
-```php
-$result = $execution->activities()->run(
-    ActivityDefinition::named('configuration.resolve'),
-    static function (ActivityScopeInterface $resolution) use ($loader): array {
-        $documents = $resolution->activities()->run(
-            ActivityDefinition::named('configuration.load-documents'),
-            static fn (ActivityScopeInterface $activity): array => $loader->load(),
-        );
-
-        return $resolution->activities()->run(
-            ActivityDefinition::named('configuration.merge-documents'),
-            static fn (ActivityScopeInterface $activity): array => array_replace_recursive(
-                ...$documents,
-            ),
-        );
-    },
-);
-```
-
-RunIt automatically associates nested activities with their execution and parent activity.
-
----
-
-## Measurements
-
-Measurements capture quantitative information:
-
-```php
-use ItPack\RunIt\Domain\Measurement\Measurement;
-
-$activity->measurements()->record(
-    Measurement::counter(
-        name: 'files.loaded',
-        value: 14,
-        unit: 'file',
-    ),
-);
-
-$activity->measurements()->record(
-    Measurement::duration(
-        name: 'configuration.load.duration',
-        nanoseconds: 18_700_000,
-    ),
-);
-```
-
-Measurements are structured artifacts, not preformatted metric strings.
-
-A measurement includes:
-
-- Name.
-- Numeric value.
-- Unit.
-- Kind.
-- Timestamp.
-- Execution identity.
-- Optional activity identity.
-- Structured attributes.
-
-Metric exporters are responsible for mapping measurements to their destination’s instrument and aggregation model.
-
----
-
-## Observations
-
-Observations represent qualitative information noticed during execution:
-
-```php
-use ItPack\RunIt\Domain\Observation\Observation;
-
-$execution->observations()->record(
-    Observation::warning(
-        message: 'Configuration source {source} is deprecated.',
-        attributes: [
-            'source' => 'legacy.yaml',
-        ],
-    ),
-);
-```
-
-Errors may include a throwable:
-
-```php
-try {
-    $schema->validate($document);
-} catch (Throwable $throwable) {
-    $activity->observations()->record(
-        Observation::error(
-            message: 'Schema validation failed.',
-            attributes: [
-                'schema' => $schema->name(),
-            ],
-            throwable: $throwable,
-        ),
-    );
-
-    throw $throwable;
-}
-```
-
-RunIt normalizes throwables into safe, serializable descriptions. It does not require arbitrary exception objects to cross process or service boundaries.
-
-### Observation severities
-
-```text
-trace
-debug
-info
-notice
-warning
-error
-critical
-alert
-emergency
-```
-
-PSR-3 is supported as an adapter around observations.
-
----
-
-## Occurrences
-
-Occurrences are immutable facts:
-
-```php
-use ItPack\RunIt\Domain\Occurrence\Occurrence;
-
-$activity->occurrences()->record(
-    Occurrence::named('itpack.configuration.loaded.v1')
-        ->withSubject('configuration/production')
-        ->withData([
-            'files_loaded' => 14,
-            'snapshot_id' => 'snapshot-01H...',
-        ]),
-);
-```
-
-Occurrence names should be:
-
-- Stable.
-- Lowercase.
-- Versioned.
-- Independent of PHP class names.
-- Meaningful outside the producing process.
-
-Recommended naming pattern:
-
-```text
-<organization>.<domain>.<fact>.<version>
-```
-
-Examples:
-
-```text
-itpack.configuration.loaded.v1
-itpack.schema.validated.v1
-itpack.snapshot.created.v1
-itpack.workflow.completed.v1
-```
-
-Occurrences can be mapped to:
-
-- CloudEvents.
-- PSR-14 events.
-- Message brokers.
-- Audit streams.
-- Event stores.
-- OpenTelemetry span events.
-
----
-
-## Snapshots
-
-Snapshots preserve immutable resulting state:
-
-```php
-use ItPack\RunIt\Domain\Snapshot\Snapshot;
-
-$execution->snapshots()->record(
-    Snapshot::named('configuration.snapshot')
-        ->withSchemaVersion('1.0')
-        ->withState([
-            'environment' => 'production',
-            'debug' => false,
-        ]),
-);
-```
-
-RunIt distinguishes between:
-
-- **Checkpoint snapshots** created during execution.
-- **Terminal snapshots** representing final execution state.
-
-Snapshot persistence is delegated to a port:
-
-```php
-use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
-
-interface SnapshotStoreInterface
-{
-    public function store(SnapshotInterface $snapshot): void;
-}
-```
-
-The core package does not require a database, filesystem, cache, or object store.
-
----
-
-## Execution Context
-
-Execution context is immutable and copied when changed:
-
-```php
-use ItPack\RunIt\Domain\Context\ContextEntry;
-use ItPack\RunIt\Domain\Context\ExecutionContext;
-
-$context = ExecutionContext::empty()
-    ->with(ContextEntry::internal('environment', 'production'))
-    ->with(ContextEntry::confidential('tenant.id', 'tenant-123'))
-    ->with(ContextEntry::internal('locale', 'en-US'));
-```
-
-Create a derived context without modifying the original:
-
-```php
-$workspaceContext = $context
-    ->with(ContextEntry::internal('workspace.id', 'workspace-456'))
-    ->without('legacy.flag');
-```
-
-### Context classifications
-
-RunIt supports data classification:
-
-```text
-public
-internal
-confidential
-restricted
-secret
-```
-
-Default behavior:
-
-| Classification | Default export behavior |
-|---|---|
-| Public | Exportable |
-| Internal | Exportable |
-| Confidential | Policy-controlled |
-| Restricted | Redacted |
-| Secret | Never exported |
-
-Context classification exists to make data-handling intent explicit. It does not replace application-specific authorization or regulatory controls.
-
----
-
-## Non-Intrusive Adoption
-
-RunIt does not require domain classes to:
-
-- Extend a base class.
-- Use a framework service provider.
-- Import OpenTelemetry APIs.
-- Implement logging interfaces.
-- Dispatch framework events.
-- Use static facades.
-- Use RunIt-specific traits.
-
-### Callable decoration
-
-Existing callables can be decorated:
-
-```php
-$resolve = $runIt->decorateCallable(
-    name: 'configuration.resolve',
-    kind: 'configuration.resolution',
-    operation: $resolver->resolve(...),
-);
-
-$config = $resolve();
-```
-
-### Interface decoration
-
-Existing services can be wrapped through ordinary composition:
-
-```php
-<?php
-
-declare(strict_types=1);
-
-use ItPack\RunIt\Application\Runner\ExecutionRunnerInterface;
-use ItPack\RunIt\Application\Scope\ExecutionScopeInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
-
-final readonly class InstrumentedConfigurationResolver
-    implements ConfigurationResolverInterface
-{
-    public function __construct(
-        private ConfigurationResolverInterface $inner,
-        private ExecutionRunnerInterface $runner,
-    ) {}
-
-    public function resolve(): ConfigurationInterface
-    {
-        return $this->runner->run(
-            ExecutionDefinition::named('configuration.resolve')
-                ->ofKind('configuration.resolution'),
-            fn (ExecutionScopeInterface $execution): ConfigurationInterface =>
-                $this->inner->resolve(),
-        );
-    }
-}
-```
-
-This keeps the wrapped service independent of RunIt.
-
-### Metadata attributes
-
-Optional attributes may describe execution metadata:
-
-```php
-use ItPack\RunIt\SDK\Attribute\ExecutedAs;
-
-#[ExecutedAs(
-    name: 'configuration.resolve',
-    kind: 'configuration.resolution',
-)]
-final readonly class ConfigurationResolver implements ConfigurationResolverInterface
-{
-    // ...
-}
-```
-
-Attributes are metadata only. An SDK invoker, decorator factory, or framework adapter must interpret them.
-
----
-
-## Context Propagation
-
-RunIt supports explicit and ambient context propagation.
-
-### Explicit propagation
-
-Explicit scope arguments are preferred:
-
-```php
-function loadConfiguration(
-    ExecutionScopeInterface $execution,
-): ConfigurationInterface {
-    // ...
-}
-```
-
-Explicit propagation provides:
-
-- Visible dependencies.
-- Straightforward testing.
-- Runtime independence.
-- No implicit global lookup.
-
-### Ambient propagation
-
-Code that cannot accept an explicit scope may use an injected accessor:
-
-```php
-use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
-
-final readonly class DiagnosticReporter implements DiagnosticReporterInterface
-{
-    public function __construct(
-        private CurrentExecutionInterface $currentExecution,
-    ) {}
-
-    public function warning(string $message): void
-    {
-        $execution = $this->currentExecution->get();
-
-        if ($execution === null) {
-            return;
-        }
-
-        $execution->observations()->warning($message);
-    }
-}
-```
-
-RunIt does not expose a mutable global execution singleton.
-
-### Supported storage strategies
-
-The planned storage adapters are:
-
-- Stack-based synchronous storage.
-- Fiber-local storage.
-- Swoole/OpenSwoole coroutine-local storage.
-- Runtime-selecting composite storage.
-- Null storage.
-
-Every attached scope returns a token. Only that token may detach the scope:
-
-```php
-$token = $storage->attach($scope);
-
-try {
-    return $operation();
-} finally {
-    $storage->detach($token);
-}
-```
-
-This prevents accidental restoration of the wrong execution during nesting or concurrency.
-
----
-
-## Error Handling
-
-RunIt preserves the original business result and exception.
-
-```php
-try {
-    $result = $runner->run($definition, $operation);
-} catch (Throwable $throwable) {
-    // This is the original throwable raised by the operation.
-}
-```
-
-When an operation throws:
-
-1. The active activity is marked as failed.
-2. The execution is marked as failed.
-3. A structured failure observation is recorded.
-4. A terminal snapshot is produced when configured.
-5. The original throwable is rethrown.
-
-An adapter or telemetry failure must not replace the original throwable.
-
-### Publication failure policies
-
-RunIt supports explicit publication policies:
-
-```text
-fail-open
-fail-closed
-collect-and-continue
-report-to-fallback
-```
-
-The default is:
-
-```text
-report-to-fallback → fail-open
-```
-
-Fail-closed behavior must be explicitly enabled and is intended for security, audit, or compliance use cases where missing publication must prevent the operation.
-
----
-
-## External Integrations
-
-External standards implement portions of the RunIt model.
-
-| RunIt model | OpenTelemetry | CloudEvents | PSR |
-|---|---|---|---|
-| Execution | Trace/root span | Event stream | — |
-| Context | OTel context/baggage | Extensions | — |
-| Activity | Span | — | — |
-| Measurement | Metric | Event data | — |
-| Observation | Log record/span event | Event data | PSR-3 |
-| Occurrence | Span event | CloudEvent | PSR-14 |
-| Snapshot | Reference or payload policy | Event payload | — |
-
-### OpenTelemetry
-
-The OpenTelemetry adapter provides:
-
-- Execution-to-trace mapping.
-- Activity-to-span mapping.
-- Measurement-to-metric mapping.
-- Observation-to-log mapping.
-- Occurrence-to-span-event mapping.
-- Context propagation.
-- Resource and attribute mapping.
-- Cardinality protection.
-- Exception recording.
-
-RunIt does not:
-
-- Configure a global OpenTelemetry provider from library code.
-- Require a specific exporter.
-- Require a collector.
-- Treat an OpenTelemetry span as the execution domain object.
-
-### CloudEvents
-
-The CloudEvents adapter maps occurrences to CloudEvents:
-
-```text
-Occurrence ID       → id
-Occurrence type     → type
-Source              → source
-Subject             → subject
-Time                → time
-Content type        → datacontenttype
-Data schema         → dataschema
-Data                → data
-Execution ID        → executionid extension
-Activity ID         → activityid extension
-Correlation ID      → correlationid extension
-Sequence            → executionsequence extension
-```
-
-Structured JSON will be the initial format.
-
-### PSR-3
-
-PSR-3 support includes:
-
-- Publishing observations through a logger.
-- Decorating loggers with execution correlation.
-- Converting existing PSR-3 calls into observations.
-- Mapping RunIt severities to PSR-3 levels.
-
-### PSR-14
-
-PSR-14 support includes:
-
-- Dispatching occurrences as PSR-14 events.
-- Converting supported PSR events into occurrences.
-- Applying publication failure policies around synchronous listeners.
-
-### HTTP
-
-HTTP support includes:
-
-- PSR-15 server middleware.
-- PSR-7 request context extraction.
-- PSR-18 client propagation.
-- Correlation header extraction and injection.
-- Parent-child execution relationships.
-
-### Swoole and OpenSwoole
-
-Swoole support is optional and adapter-based.
-
-Capabilities:
-
-- Coroutine-local execution context.
-- HTTP server execution middleware.
-- Worker lifecycle executions.
-- Task dispatcher integration.
-- Context cleanup between persistent requests.
-- Publisher flushing with bounded shutdown budgets.
-
-RunIt will not require consumer code to use Swoole-specific APIs.
+See the full, runnable version in [`docs/getting-started.md`](docs/getting-started.md)
+and [`examples/sdk.php`](examples/sdk.php).
 
 ---
 
 ## Architecture
 
-RunIt follows hexagonal ports-and-adapters architecture:
+RunIt uses hexagonal (ports-and-adapters) architecture. The immutable domain model is
+the center; application services orchestrate it; the SDK and external adapters sit at
+the edge; and every technology-specific effect crosses the boundary through an explicit
+**port**.
 
 ```text
-┌───────────────────────────────────────────────────────┐
-│ SDK and Consumer Adapters                             │
-│ Callables, Middleware, Attributes, Framework Bridges  │
-├───────────────────────────────────────────────────────┤
-│ Application                                           │
-│ Runner, Scopes, Lifecycle, Policies, Publication       │
-├───────────────────────────────────────────────────────┤
-│ Domain                                                │
-│ Execution, Context, Activity, Artifacts                │
-├───────────────────────────────────────────────────────┤
-│ Ports                                                 │
-│ Clock, IDs, Storage, Publisher, Serializer, Redactor   │
-├───────────────────────────────────────────────────────┤
-│ Infrastructure Adapters                               │
-│ Memory, OTel, CloudEvents, PSR, Fiber, Swoole          │
-└───────────────────────────────────────────────────────┘
+SDK / Consumer Adapters → Application → Domain
+Infrastructure Adapters ──► Ports ◄── Application
 ```
 
-### Dependency direction
+The domain never depends on application services, the SDK, or any adapter; external
+adapters are optional and never referenced by the domain (ADR-006, ADR-010).
 
-```text
-Adapter → Application → Domain
-             │
-             ▼
-            Ports
-             ▲
-             │
-    Infrastructure adapters
-```
-
-The domain does not depend on:
-
-- OpenTelemetry.
-- CloudEvents.
-- PSR interfaces.
-- Frameworks.
-- Swoole.
-- Filesystems.
-- Network clients.
-- Containers.
-
-### Package structure
-
-```text
-src/
-├── Contract/
-│   ├── Domain/
-│   ├── Application/
-│   ├── Port/
-│   └── Exception/
-├── Domain/
-│   ├── Execution/
-│   ├── Context/
-│   ├── Activity/
-│   ├── Measurement/
-│   ├── Observation/
-│   ├── Occurrence/
-│   └── Snapshot/
-├── Application/
-│   ├── Runner/
-│   ├── Scope/
-│   ├── Lifecycle/
-│   ├── Publication/
-│   └── Propagation/
-├── Adapter/            # Optional, vendor-neutral integrations
-│   ├── Memory/
-│   ├── Null/
-│   ├── Common/
-│   ├── Fiber/
-│   ├── OpenTelemetry/
-│   ├── CloudEvents/
-│   ├── Psr/
-│   └── Swoole/
-└── SDK/                # Ergonomic consumer-facing helpers
-    ├── Builder/
-    ├── Decorator/
-    ├── Attribute/
-    └── Exception/
-
-`Domain`, `Application`, `Contract`, `Adapter`, `SDK`, and `Common` are public
-namespaces covered by the backward-compatibility guarantee. `Behavior` and
-`Conformance` are internal and may change without notice.
-```
-
-### Design standards
-
-RunIt follows these standards:
-
-- SOLID.
-- DRY.
-- Composition over inheritance.
-- Immutable domain artifacts.
-- `final` concrete classes.
-- `readonly` concrete classes wherever practical.
-- Interface-backed implementations.
-- Small, focused ports.
-- Framework-neutral application services.
-- Fluent, immutable builders where useful.
-- No hidden service locator.
+- Dependency rules and the generated layer graph: [`docs/architecture/dependency-graph.md`](docs/architecture/dependency-graph.md).
+- Lifecycle, publication, context propagation, security, performance, self-instrumentation: [`docs/architecture/`](docs/architecture/hexagonal-architecture.md).
 
 ---
 
-## Artifact Publication
+## Integrations
 
-RunIt artifacts are published through a composable pipeline:
+RunIt's adapters are optional and sit at the edge. Pick what you need:
 
-```text
-Artifact
-   │
-   ▼
-Validation
-   │
-   ▼
-Enrichment
-   │
-   ▼
-Classification
-   │
-   ▼
-Redaction
-   │
-   ▼
-Sampling
-   │
-   ▼
-Routing
-   │
-   ▼
-Adapter
-```
-
-Publishers include:
-
-```text
-NullArtifactPublisher
-InMemoryArtifactPublisher
-CompositeArtifactPublisher
-FilteringArtifactPublisher
-RedactingArtifactPublisher
-SamplingArtifactPublisher
-BufferedArtifactPublisher
-FailSafeArtifactPublisher
-```
-
-Example composition:
-
-```php
-$publisher = new FailSafeArtifactPublisher(
-    publisher: new SamplingArtifactPublisher(
-        policy: $samplingPolicy,
-        publisher: new RedactingArtifactPublisher(
-            redactor: $redactor,
-            publisher: new BufferedArtifactPublisher(
-                publisher: new CompositeArtifactPublisher([
-                    $openTelemetryPublisher,
-                    $cloudEventsPublisher,
-                ]),
-            ),
-        ),
-    ),
-    fallback: $fallbackReporter,
-);
-```
-
-Artifact ownership does not require an execution to retain every artifact in memory. Publishers may stream artifacts as they are created.
+- **OpenTelemetry** — executions→traces, activities→spans, measurements→metrics. See [`docs/integrations/opentelemetry.md`](docs/integrations/opentelemetry.md).
+- **CloudEvents** — occurrences as versioned events, both directions. See [`docs/integrations/cloudevents.md`](docs/integrations/cloudevents.md).
+- **PSR-3 / PSR-14** — observations and occurrences to logs and events. See [`docs/integrations/psr.md`](docs/integrations/psr.md).
+- **HTTP** — per-request execution context and middleware. See [`docs/integrations/README.md`](docs/integrations/README.md).
+- **Swoole / OpenSwoole** — coroutine-local context and server middleware. See [`docs/integrations/swoole.md`](docs/integrations/swoole.md).
+- **Fibers** — per-Fiber context isolation. See [`docs/integrations/fibers.md`](docs/integrations/fibers.md).
 
 ---
 
-## Self-Instrumentation
+## Documentation
 
-RunIt uses its own execution model to describe operational work such as:
+The documentation has a front door: [**`docs/index.md`**](docs/index.md).
 
-- Adapter initialization.
-- Artifact routing.
-- Batch publication.
-- Snapshot serialization.
-- Context extraction.
-- Context propagation.
-- Publisher failures.
-- Worker lifecycle.
+- **Evaluating RunIt?** Read [Purpose](#purpose), the [Execution Model](docs/EXECUTION.md), [Use cases](docs/use-cases.md), and the [Ecosystem](docs/ecosystem.md).
+- **Integrating it?** Start at [Getting Started](docs/getting-started.md), follow the [tutorial](docs/tutorial/01-hello-execution.md), then pick a [recipe](docs/index.md#full-map) and an [integration](docs/integrations/README.md).
+- **Extending it?** Read the [Architecture](docs/architecture/hexagonal-architecture.md), [Base contracts](docs/concepts/base-contracts.md), the [ADR index](docs/adr/README.md), and the [Third-party adapter recipe](docs/recipes/third-party-adapter.md).
 
-Publication itself is protected by a recursion guard:
-
-```text
-Application artifact
-    │
-    ▼
-Publisher
-    │
-    ├── success
-    │
-    └── failure
-          │
-          ▼
-Internal health reporter
-```
-
-The internal health reporter does not publish through the failing publisher.
-
-This prevents infinite loops such as:
-
-```text
-Publisher failed
-→ publish observation
-→ publisher failed
-→ publish observation
-→ ...
-```
-
-The minimal bootstrap required to construct RunIt remains intentionally uninstrumented.
+Other entry points: [glossary](docs/glossary.md), [compatibility](docs/compatibility.md),
+[conformance](docs/conformance.md), and the [roadmap](docs/ROADMAP.md).
 
 ---
 
 ## Security and Privacy
 
-Execution context and telemetry frequently contain sensitive information.
+Context, observations, occurrences, and snapshots are treated as potential data
+exfiltration paths. Secret values are never exported or serialized; restricted values
+are masked on redaction; cardinality and payload sizes are bounded by default. These are
+deny-by-default behaviors, with negative tests required for security-sensitive changes.
 
-RunIt applies a deny-by-default approach to:
-
-- Credentials.
-- API keys.
-- Authentication tokens.
-- Secrets.
-- Restricted personal data.
-- Unbounded payloads.
-- Arbitrary object serialization.
-
-### Recommended practices
-
-- Classify every sensitive context value.
-- Use stable observation templates.
-- Store variable values in structured attributes.
-- Do not place secrets in occurrence payloads.
-- Do not turn tenant, user, URL, or error-message values into metric dimensions.
-- Configure maximum payload and attribute sizes.
-- Redact before export.
-- Apply explicit allow lists to environment-variable capture.
-- Keep snapshot serialization deterministic and bounded.
-- Clear execution context after every persistent-worker request.
-
-### Default limits
-
-Initial defaults are expected to include:
-
-```text
-Context entries per execution:       64
-Attributes per artifact:             64
-Attribute string size:               4 KiB
-Occurrence data size:                256 KiB
-Snapshot size:                       1 MiB
-Activity nesting depth:              64
-Artifacts per execution:             10,000
-Secret export:                       disabled
-Stack-trace export:                  errors only
-```
-
-Adapters may define stricter limits.
-
----
+- Threat model and supply chain: [`docs/SECURITY.md`](docs/SECURITY.md), [`docs/security/`](docs/security/threat-model.md).
+- Classification and redaction behavior: [`docs/architecture/security.md`](docs/architecture/security.md).
 
 ## Performance
 
-RunIt is intended for use on request, command, job, worker, and library hot paths.
+RunIt is built for request, command, job, worker, and library hot paths. The core avoids
+network/filesystem access, reflection in ordinary execution, eager stack-trace
+collection, and global mutable state. Durations use monotonic time.
 
-The core runtime therefore avoids:
-
-- Network access.
-- Filesystem access.
-- Reflection in ordinary execution.
-- Eager stack-trace collection.
-- Mandatory in-memory artifact retention.
-- Eager payload serialization.
-- Global mutable state.
-- Unbounded queues.
-
-Duration calculation uses monotonic time. Wall-clock time is used for external timestamps.
-
-Performance-sensitive consumers can use:
-
-- `NullArtifactPublisher`.
-- Sampling.
-- Deferred normalization.
-- Bounded buffering.
-- Batch exporters.
-- Disabled stack traces.
-- Activity filtering.
-
-Performance baselines and regression benchmarks will be published as the implementation stabilizes.
-
----
+Tuning levers include `NullArtifactPublisher`, sampling, deferred normalization, bounded
+buffering, batch exporters, and activity filtering. Details:
+[`docs/architecture/performance.md`](docs/architecture/performance.md).
 
 ## Testing
 
-RunIt uses a test-framework-agnostic strategy.
-
-Test categories include:
-
-- Domain invariant tests.
-- Lifecycle state-machine tests.
-- Application service tests.
-- Adapter contract tests.
-- Integration tests.
-- Property-based tests.
-- Failure-injection tests.
-- Fiber and coroutine isolation tests.
-- Persistent-worker leak tests.
-- Serialization round-trip tests.
-- Mutation tests.
-- Performance benchmarks.
-
-Reusable contract suites are provided for third-party implementations of:
-
-```text
-ArtifactPublisherInterface
-ContextStorageInterface
-IdGeneratorInterface
-SerializerInterface
-RedactorInterface
-SamplingPolicyInterface
-SnapshotStoreInterface
-ExecutionEngineInterface
-```
-
-Third-party adapters should be able to verify compatibility without adopting RunIt’s internal test framework.
+RunIt uses a test-framework-agnostic strategy: domain invariants, lifecycle
+state-machine, application service, adapter contract, integration, property-based,
+failure-injection, Fiber/coroutine isolation, leak, serialization round-trip, mutation,
+and benchmark tests. Reusable contract suites let third-party adapters verify
+compatibility without adopting RunIt's internal framework. See [`docs/QA.md`](docs/QA.md).
 
 ---
 
@@ -1298,6 +336,7 @@ composer api:check
 composer mutation
 composer benchmark
 composer audit
+composer examples
 composer quality
 ```
 
@@ -1449,11 +488,11 @@ Swoole is an adapter.
 
 The semantic model remains:
 
-> **Execution carries context.**  
-> **Activities perform work.**  
-> **Measurements quantify work.**  
-> **Observations describe work.**  
-> **Occurrences record work.**  
+> **Execution carries context.**
+> **Activities perform work.**
+> **Measurements quantify work.**
+> **Observations describe work.**
+> **Occurrences record work.**
 > **Snapshots preserve work.**
 
 ---

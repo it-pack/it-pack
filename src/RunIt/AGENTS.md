@@ -710,10 +710,11 @@ composer coding-style
 composer api:baseline
 composer api:check
 composer mutation
-composer benchmark
-composer audit
-composer quality
-```
+ composer benchmark
+ composer audit
+ composer examples
+ composer quality
+ ```
 
 Do not assume these scripts exist. Verify them first.
 

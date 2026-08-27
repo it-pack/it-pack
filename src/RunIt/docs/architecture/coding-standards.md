@@ -1,28 +1,30 @@
 # RunIt Coding and Architecture Standards
 
-RunIt uses the execution vocabulary defined in `docs/EXECUTION.md`. The domain
-is vendor-neutral and depends only on RunIt contracts; application code depends
-inward; adapters translate external systems through ports.
+The authoritative, complete standards live in [`AGENTS.md`](../AGENTS.md) (section
+"PHP Standards" and "Coding style"). This page lists only the **RunIt-specific**
+supplements that are easy to miss when reading the general rules.
 
-Every PHP file declares strict types. Concrete production classes are `final`,
-implement a focused contract, and are `readonly` unless controlled lifecycle
-mutation is required. Identifiers, names, units, and other validated concepts
-use immutable value objects. Builders are immutable and return a changed copy.
+## RunIt-specific supplements
 
-Public interfaces are small, explicitly typed, and stable. Exceptions implement
-the applicable RunIt marker interface. Normalization and serialization are
-explicit, deterministic, bounded, and must never use arbitrary object
-serialization. Global mutable execution state and framework dependencies in the
-core are prohibited.
+- **Execution vocabulary first.** RunIt uses the vocabulary defined in
+  [`docs/EXECUTION.md`](../EXECUTION.md). Prefer domain terms (execution, activity,
+  measurement, observation, occurrence, snapshot, context) over adapter synonyms
+  (trace, span, log, event, metadata bag).
+- **Immutable semantic model.** Concrete domain artifacts are `final`, `readonly`
+  unless controlled lifecycle mutation is required, and never retain a runtime scope,
+  clock, or recorder. See [`docs/concepts/semantic-model.md`](../concepts/semantic-model.md).
+- **Ports over concrete adapters.** External effects cross the boundary through
+  `src/Contract/Port`. Application and domain must never depend on a concrete adapter.
+  See [`hexagonal-architecture.md`](hexagonal-architecture.md).
+- **Vocabulary alignment (RDF is documentation only).** `vocab/run-it.ttl` is the
+  canonical OWL vocabulary; `vocab/run-it-taxonomy.ttl` supplies extensible
+  recommended kinds, context keys, and occurrence types. A public implementation that
+  corresponds to a vocabulary term must include an adjacent PHPDoc `@see` link to its
+  canonical IRI, and the matching public documentation must link to the vocabulary
+  resource. New public terms require a vocabulary update in the same change.
+- **No abandoned or experimental APIs.** The `1.0.0-rc.1` surface contains no
+  `@experimental` / `@deprecated` markers; the API baseline in
+  `tools/api-compat/api-baseline.json` is frozen and protected by `composer api:check`.
 
-`vocab/run-it.ttl` is the canonical OWL vocabulary for public domain concepts;
-`vocab/run-it-taxonomy.ttl` supplies extensible recommended kinds, context keys,
-and occurrence types. A public implementation that corresponds to a vocabulary
-term must include an adjacent PHPDoc `@see` link to its canonical IRI. The
-matching public documentation must link to the relevant vocabulary resource.
-These references document semantic alignment only: RDF is not a runtime
-dependency. New public terms require a vocabulary update in the same change.
-
-PHPDoc generics supplement, but never contradict, native types. Experimental
-public APIs must be documented as experimental until their compatibility policy
-is accepted.
+For dependency rules, the machine-generated layer graph is in
+[`dependency-graph.md`](dependency-graph.md) and enforced by `composer architecture`.
