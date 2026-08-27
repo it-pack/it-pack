@@ -3078,6 +3078,8 @@ Architecture notes:
 
 ## M14.8 Third-party usability validation
 
+> **Plan & reasoning:** `docs/THIRD_PARTY_PLAN.md`.
+
 - [ ] Build one sample third-party publisher.
 - [ ] Run the publisher conformance suite.
 - [ ] Build one sample context-storage adapter.
