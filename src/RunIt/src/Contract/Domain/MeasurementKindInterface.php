@@ -13,7 +13,7 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#measurement
+ * @see https://w3id.org/itpack/runit#Measurement
  */
 interface MeasurementKindInterface
 {

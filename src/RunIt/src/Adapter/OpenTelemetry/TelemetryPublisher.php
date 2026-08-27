@@ -41,7 +41,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  * The publisher never configures global OpenTelemetry providers; every provider is
  * supplied through {@see BridgeConfig}. Build it with {@see self::fromConfig()}.
  *
- * @see https://w3id.org/itpack/runit#OpenTelemetry
+ * @see https://opentelemetry.io/
  */
 final readonly class TelemetryPublisher implements ArtifactPublisherInterface
 {

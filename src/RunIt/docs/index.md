@@ -66,6 +66,7 @@ Implement a port or consume RunIt without coupling to internals.
 | **Conformance** | [conformance.md](conformance.md) | Framework-neutral conformance harness. |
 | **QA / Security** | [QA.md](QA.md), [SECURITY.md](SECURITY.md), [security/](security/) | Quality gates and threat model. |
 | **Glossary** | [glossary.md](glossary.md) | Every term, linked to its concept page and vocabulary IRI. |
+| **Vocabulary** | [vocabulary.md](vocabulary.md) | The canonical OWL ontology + SKOS taxonomy, namespaces, and how code links to IRIs. |
 | **Examples** | [`examples/`](https://github.com/it-pack/run-it/tree/main/examples) | 18 runnable scripts; each tutorial/recipe links the one it demonstrates. |
 | **Roadmap** | [ROADMAP.md](ROADMAP.md) | Milestone history and post-1.0 plans. |
 

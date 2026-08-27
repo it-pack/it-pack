@@ -17,7 +17,7 @@ use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final readonly class CloudEventMappingPolicy
 {

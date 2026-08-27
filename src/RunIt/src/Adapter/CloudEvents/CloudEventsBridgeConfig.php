@@ -17,7 +17,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
  * built-in occurrence mapper unless explicitly overridden. Build instances with
  * {@see CloudEventsBridgeConfigBuilder}.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final readonly class CloudEventsBridgeConfig
 {

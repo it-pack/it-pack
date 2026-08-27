@@ -20,6 +20,7 @@ use ItPack\RunIt\Contract\Domain\StringValueInterface;
  * @api
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
+ * @see https://w3id.org/itpack/runit/taxonomy#ContextKeys
  */
 final readonly class ContextKey implements ContextKeyInterface
 {

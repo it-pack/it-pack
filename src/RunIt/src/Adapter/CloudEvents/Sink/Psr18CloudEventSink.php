@@ -22,7 +22,7 @@ use Psr\Http\Message\StreamFactoryInterface;
  * to handle under the configured publication failure policy. The request is
  * built immutably and the original CloudEvent is never altered.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final readonly class Psr18CloudEventSink implements CloudEventSinkInterface
 {

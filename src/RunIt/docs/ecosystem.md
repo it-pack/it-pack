@@ -52,7 +52,12 @@ so adoption stays a single `composer require`.
 `vocab/run-it.ttl` (OWL) and `vocab/run-it-taxonomy.ttl` (SKOS) are the canonical term
 definitions. Public code references them via PHPDoc `@see`, and public docs link to
 them. They are documentation-only — never a runtime dependency (see
-[architecture/coding-standards.md](../architecture/coding-standards.md)).
+[architecture/coding-standards.md](../architecture/coding-standards.md)). Sibling
+packages reuse the same foundation: **AsyncIt** (the async/runtime companion package) imports the RunIt
+ontology (`owl:imports <https://w3id.org/itpack/runit>`) and reuses terms such as
+`runit:Execution`, `runit:Activity`, `runit:duration`, `runit:startedAt`, and
+`runit:endedAt` for its task and runtime-adapter model. See
+[vocabulary.md](vocabulary.md) for the namespaces and the full term inventory.
 
 ## How the pieces fit
 

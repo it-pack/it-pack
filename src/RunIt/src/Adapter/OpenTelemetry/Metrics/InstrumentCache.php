@@ -14,7 +14,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Metrics;
  * instrument returns the same underlying instrument, so eviction never changes
  * emitted data.
  *
- * @see https://w3id.org/itpack/runit#measurement
+ * @see https://w3id.org/itpack/runit#Measurement
  */
 final class InstrumentCache
 {

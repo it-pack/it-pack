@@ -16,7 +16,7 @@ use OpenTelemetry\API\Trace\SpanContextInterface;
  * that publish executions and activities in correlated order get correct span
  * parenting. The store never retains live spans, only their lightweight context.
  *
- * @see https://w3id.org/itpack/runit#OpenTelemetry
+ * @see https://opentelemetry.io/
  */
 final class InMemoryExecutionSpanStore implements ExecutionSpanStoreInterface
 {

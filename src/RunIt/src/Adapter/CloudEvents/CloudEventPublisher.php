@@ -27,7 +27,7 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
  * pipeline without affecting non-occurrence signals and without depending on any
  * external CloudEvents SDK.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  * @see https://w3id.org/itpack/runit#Occurrence
  */
 final readonly class CloudEventPublisher implements ArtifactPublisherInterface

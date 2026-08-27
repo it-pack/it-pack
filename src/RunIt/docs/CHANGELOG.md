@@ -41,6 +41,15 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
     `LifecycleExceptionInterface`, and `UnsupportedOperationExceptionInterface`.
   - Contract-level unit tests validate determinism, value equality, ownership,
     primitive projections, and marker hierarchies.
+  - Vocabulary: added the abstract `runit:Artifact` class to `vocab/run-it.ttl`
+    as the common supertype of `Activity`, `Measurement`, `Observation`,
+    `Occurrence`, and `Snapshot`, and corrected docblock `@see` links that pointed
+    at undefined IRIs (`#artifact` → `#Artifact`, `#measurement` → `#Measurement`)
+    or at external standards inside the RunIt namespace (`#CloudEvent` →
+    <https://cloudevents.io/>, `#OpenTelemetry` → <https://opentelemetry.io/>).
+    The kind/context-key value objects now also link to their SKOS schemes
+    (`runit-tax:ActivityKinds`, `runit-tax:ExecutionKinds`,
+    `runit-tax:ContextKeys`, `runit-tax:OccurrenceTypes`).
 
 ## Unreleased — Phase 0 (P0)
 

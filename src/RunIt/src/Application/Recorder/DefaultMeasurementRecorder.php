@@ -29,7 +29,7 @@ use Throwable;
  * creates. The active activity (if any) is bound from the supplied closure so recordings
  * inside an activity attach to that activity.
  *
- * @see https://w3id.org/itpack/runit#measurement
+ * @see https://w3id.org/itpack/runit#Measurement
  */
 final readonly class DefaultMeasurementRecorder implements MeasurementRecorderInterface
 {

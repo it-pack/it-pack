@@ -15,7 +15,7 @@ is documentation-only; RDF is never a runtime dependency.
 | **Occurrence** | An immutable, versioned fact (e.g. `order.placed.v1`); maps to CloudEvents. | [concepts/occurrence.md](concepts/occurrence.md) | `runit:Occurrence` |
 | **Snapshot** | An immutable projection of resulting state, bound to a content hash. | [concepts/snapshot.md](concepts/snapshot.md) | `runit:Snapshot` |
 | **Context** | Immutable, classified per-execution metadata. | [concepts/context.md](concepts/context.md) | `runit:ExecutionContext` |
-| **Artifact** | Any of the above domain records; each is owned by exactly one execution. | [concepts/semantic-model.md](concepts/semantic-model.md) | — |
+| **Artifact** | Any of the above domain records; each is owned by exactly one execution. | [concepts/semantic-model.md](concepts/semantic-model.md) | `runit:Artifact` |
 
 ## Identifiers, names, and time
 
@@ -43,5 +43,6 @@ is documentation-only; RDF is never a runtime dependency.
 ## Related reading
 
 - [Execution Model](EXECUTION.md) — the narrative behind these terms.
+- [Vocabulary](vocabulary.md) — the canonical OWL ontology and SKOS taxonomy behind the IRIs above.
 - [Semantic model](concepts/semantic-model.md) — the shared base contracts every artifact implements.
 - [ADR index](adr/README.md) — the decisions that shaped these definitions.

@@ -13,7 +13,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
  * Useful for in-memory capture in tests, local buffers, and custom transport
  * wiring. The callback receives the immutable event and must not mutate it.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final readonly class CallbackCloudEventSink implements CloudEventSinkInterface
 {

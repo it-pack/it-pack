@@ -23,7 +23,7 @@ use ItPack\RunIt\Contract\Shared\CorrelationKeys;
  * names are dropped because the spec cannot carry them.
  *
  * @see https://w3id.org/itpack/runit#Occurrence
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final class DefaultOccurrenceToCloudEventMapper implements OccurrenceToCloudEventMapperInterface
 {

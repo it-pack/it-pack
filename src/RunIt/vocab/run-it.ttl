@@ -92,6 +92,7 @@ runit:ContextClassification
 runit:Activity
     a                   owl:Class ;
     rdfs:subClassOf     prov:Activity ;
+    rdfs:subClassOf     runit:Artifact ;
     rdfs:label          "Activity"@en ;
     rdfs:comment        "A bounded unit of work performed during an execution. Activities answer: what is currently happening? Activities may be nested."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
@@ -119,6 +120,7 @@ runit:ActivityStatus
 runit:Measurement
     a                   owl:Class ;
     rdfs:subClassOf     prov:Entity ;
+    rdfs:subClassOf     runit:Artifact ;
     rdfs:label          "Measurement"@en ;
     rdfs:comment        "Quantitative information captured during execution. Answers: how much? Each measurement has a name, numeric value, unit, and kind."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
@@ -138,6 +140,7 @@ runit:MeasurementKind
 runit:Observation
     a                   owl:Class ;
     rdfs:subClassOf     prov:Entity ;
+    rdfs:subClassOf     runit:Artifact ;
     rdfs:label          "Observation"@en ;
     rdfs:comment        "Qualitative information noticed during execution. Answers: what did we notice? Includes log messages, warnings, diagnostics, and errors."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
@@ -173,6 +176,7 @@ runit:ExecutionContext
 runit:Occurrence
     a                   owl:Class ;
     rdfs:subClassOf     prov:Event ;
+    rdfs:subClassOf     runit:Artifact ;
     rdfs:label          "Occurrence"@en ;
     rdfs:comment        "An immutable fact that happened during execution. Answers: what happened? Occurrences have stable, versioned, lowercase types independent of implementation class names."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
@@ -184,6 +188,7 @@ runit:Occurrence
 runit:Snapshot
     a                   owl:Class ;
     rdfs:subClassOf     prov:Entity ;
+    rdfs:subClassOf     runit:Artifact ;
     rdfs:label          "Snapshot"@en ;
     rdfs:comment        "Immutable resulting state produced during or after execution. Answers: what is the resulting state? Snapshots are classified as checkpoint or terminal."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
@@ -194,6 +199,16 @@ runit:SnapshotClassification
     a                   owl:Class ;
     rdfs:label          "Snapshot Classification"@en ;
     rdfs:comment        "Classification of a snapshot as checkpoint or terminal."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Artifact (abstract) ------------------------------------------------------
+
+runit:Artifact
+    a                   owl:Class ;
+    rdfs:label          "Artifact"@en ;
+    rdfs:comment        "A publishable unit produced or carried by an execution. Activities, measurements, observations, occurrences, and snapshots are artifacts; every artifact belongs to exactly one execution. The term anchors the publication pipeline and the artifact ports (serialization, byte estimation, storage)."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/runit> ;
     vs:term_status      "stable" ;
 .

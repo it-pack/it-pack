@@ -17,6 +17,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
  * @api
  *
  * @see https://w3id.org/itpack/runit#executionKind
+ * @see https://w3id.org/itpack/runit/taxonomy#ExecutionKinds
  */
 final readonly class ExecutionKind implements ExecutionKindInterface
 {

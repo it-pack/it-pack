@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#artifact
+ * @see https://w3id.org/itpack/runit#Artifact
  */
 interface ArtifactByteEstimatorInterface
 {

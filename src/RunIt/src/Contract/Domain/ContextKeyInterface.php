@@ -15,6 +15,7 @@ namespace ItPack\RunIt\Contract\Domain;
  * @api
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
+ * @see https://w3id.org/itpack/runit/taxonomy#ContextKeys
  */
 interface ContextKeyInterface extends StringValueInterface
 {

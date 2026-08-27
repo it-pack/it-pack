@@ -28,6 +28,7 @@ use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
  * @api
  *
  * @see https://w3id.org/itpack/runit#occurrenceType
+ * @see https://w3id.org/itpack/runit/taxonomy#OccurrenceTypes
  */
 final readonly class OccurrenceType implements OccurrenceTypeInterface
 {

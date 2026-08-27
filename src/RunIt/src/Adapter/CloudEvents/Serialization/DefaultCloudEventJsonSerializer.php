@@ -20,7 +20,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  * rather than being buffered. Malformed JSON or a missing required field raises
  * a typed exception instead of being silently coerced.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInterface
 {

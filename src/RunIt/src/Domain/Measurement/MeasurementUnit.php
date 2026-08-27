@@ -14,7 +14,7 @@ use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#measurement
+ * @see https://w3id.org/itpack/runit#Measurement
  */
 enum MeasurementUnit: string implements MeasurementUnitInterface
 {

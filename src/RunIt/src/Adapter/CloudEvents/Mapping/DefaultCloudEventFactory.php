@@ -14,7 +14,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventFactoryInterface;
  * is validated against the CloudEvents envelope rules. The factory is the single
  * place the bridge materializes a CloudEvent from field values.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final class DefaultCloudEventFactory implements CloudEventFactoryInterface
 {

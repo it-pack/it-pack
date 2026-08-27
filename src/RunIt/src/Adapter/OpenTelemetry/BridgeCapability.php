@@ -12,7 +12,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry;
  * spans, record metrics, or emit logs, keeping the "missing provider" behavior
  * consistent across the whole bridge.
  *
- * @see https://w3id.org/itpack/runit#OpenTelemetry
+ * @see https://opentelemetry.io/
  */
 final readonly class BridgeCapability
 {

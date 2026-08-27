@@ -12,7 +12,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
  * values (execution id, activity id, correlation id) are recorded for
  * correlation but are deliberately excluded from metric dimensions by default.
  *
- * @see https://w3id.org/itpack/runit#OpenTelemetry
+ * @see https://opentelemetry.io/
  */
 interface AttributeKeys
 {

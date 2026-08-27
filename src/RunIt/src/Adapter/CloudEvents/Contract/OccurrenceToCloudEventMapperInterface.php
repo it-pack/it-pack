@@ -19,7 +19,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
  * @api
  *
  * @see https://w3id.org/itpack/runit#Occurrence
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 interface OccurrenceToCloudEventMapperInterface
 {

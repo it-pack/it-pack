@@ -24,7 +24,7 @@ use ItPack\RunIt\Domain\Context\ContextValueValidator;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final readonly class CloudEvent
 {

@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Domain\ActivityKindInterface;
  * @api
  *
  * @see https://w3id.org/itpack/runit#activityKind
+ * @see https://w3id.org/itpack/runit/taxonomy#ActivityKinds
  */
 final readonly class ActivityKind implements ActivityKindInterface
 {

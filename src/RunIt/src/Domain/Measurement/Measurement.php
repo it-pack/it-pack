@@ -31,7 +31,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#measurement
+ * @see https://w3id.org/itpack/runit#Measurement
  */
 final readonly class Measurement implements MeasurementInterface
 {

@@ -17,7 +17,7 @@ use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#artifact
+ * @see https://w3id.org/itpack/runit#Artifact
  */
 final class DefaultArtifactByteEstimator implements ArtifactByteEstimatorInterface
 {

@@ -32,7 +32,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
  * reconstructed occurrence so round trips keep their data.
  *
  * @see https://w3id.org/itpack/runit#Occurrence
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenceMapperInterface
 {

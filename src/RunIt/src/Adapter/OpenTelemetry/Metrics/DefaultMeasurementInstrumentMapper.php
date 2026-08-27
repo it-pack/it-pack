@@ -25,7 +25,7 @@ use OpenTelemetry\API\Metrics\UpDownCounterInterface;
  * allow list so high-cardinality dimensions (ids, correlation) are never added
  * by default, protecting downstream metric backends.
  *
- * @see https://w3id.org/itpack/runit#measurement
+ * @see https://w3id.org/itpack/runit#Measurement
  */
 final readonly class DefaultMeasurementInstrumentMapper implements MeasurementInstrumentMapperInterface
 {

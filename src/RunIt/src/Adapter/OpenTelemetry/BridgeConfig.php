@@ -22,7 +22,7 @@ use OpenTelemetry\Context\Propagation\TextMapPropagatorInterface;
  * instance assumes no providers are wired and therefore exports nothing until
  * the application supplies providers.
  *
- * @see https://w3id.org/itpack/runit#OpenTelemetry
+ * @see https://opentelemetry.io/
  */
 final readonly class BridgeConfig
 {

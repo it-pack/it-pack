@@ -17,7 +17,7 @@ use Throwable;
  *
  * @api
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 interface CloudEventSinkInterface
 {

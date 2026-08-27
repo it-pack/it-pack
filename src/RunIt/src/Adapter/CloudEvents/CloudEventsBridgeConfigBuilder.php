@@ -14,7 +14,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
  * A sink is mandatory; attempts to build without one fail fast. The mapping
  * policy and the occurrence mapper default to the built-in implementations.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 final class CloudEventsBridgeConfigBuilder
 {

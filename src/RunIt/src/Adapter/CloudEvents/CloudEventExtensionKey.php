@@ -12,7 +12,7 @@ namespace ItPack\RunIt\Adapter\CloudEvents;
  * rather than dotted names. Unknown extension attributes are preserved verbatim
  * when their key is a valid CloudEvents extension name.
  *
- * @see https://w3id.org/itpack/runit#CloudEvent
+ * @see https://cloudevents.io/
  */
 enum CloudEventExtensionKey: string
 {

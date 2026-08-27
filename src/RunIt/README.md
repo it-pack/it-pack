@@ -276,7 +276,8 @@ The documentation has a front door: [**`docs/index.md`**](docs/index.md).
 - **Integrating it?** Start at [Getting Started](docs/getting-started.md), follow the [tutorial](docs/tutorial/01-hello-execution.md), then pick a [recipe](docs/index.md#full-map) and an [integration](docs/integrations/README.md).
 - **Extending it?** Read the [Architecture](docs/architecture/hexagonal-architecture.md), [Base contracts](docs/concepts/base-contracts.md), the [ADR index](docs/adr/README.md), and the [Third-party adapter recipe](docs/recipes/third-party-adapter.md).
 
-Other entry points: [glossary](docs/glossary.md), [compatibility](docs/compatibility.md),
+Other entry points: [glossary](docs/glossary.md), [vocabulary](docs/vocabulary.md)
+(the canonical OWL ontology + SKOS taxonomy), [compatibility](docs/compatibility.md),
 [conformance](docs/conformance.md), and the [roadmap](docs/ROADMAP.md).
 
 ---
