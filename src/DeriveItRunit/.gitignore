@@ -37,6 +37,7 @@ packages/
 
 # QA tooling output
 var/
+coverage-xml/
 
 # deptrac
 /.deptrac.cache

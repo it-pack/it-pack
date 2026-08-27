@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
+<coverage line-rate="0.75438596491228" branch-rate="0" lines-covered="43" lines-valid="57" branches-covered="0" branches-valid="0" complexity="25" version="0.4" timestamp="1787669637">
+  <sources>
+    <source>/home/quill/tinker/php/project/it-pack/src/DeriveItRunit/src</source>
+  </sources>
+  <packages>
+    <package name="DeriveItExecutions.php" line-rate="0.88888888888889" branch-rate="0" complexity="3">
+      <classes>
+        <class name="ItPack\DeriveItRunit\DeriveItExecutions" filename="DeriveItExecutions.php" line-rate="0.88888888888889" branch-rate="0" complexity="3">
+          <methods>
+            <method name="__construct" signature="" line-rate="0" branch-rate="0" complexity="1">
+              <lines>
+                <line number="40" hits="0"/>
+              </lines>
+            </method>
+            <method name="definition" signature="string $name" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="47" hits="4"/>
+                <line number="48" hits="4"/>
+                <line number="49" hits="4"/>
+                <line number="50" hits="4"/>
+              </lines>
+            </method>
+            <method name="run" signature="ItPack\RunIt\SDK\RunItInterface $runtime, string $name, callable $derivation" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="65" hits="3"/>
+                <line number="66" hits="3"/>
+                <line number="67" hits="3"/>
+                <line number="68" hits="3"/>
+              </lines>
+            </method>
+          </methods>
+          <lines>
+            <line number="40" hits="0"/>
+            <line number="47" hits="4"/>
+            <line number="48" hits="4"/>
+            <line number="49" hits="4"/>
+            <line number="50" hits="4"/>
+            <line number="65" hits="3"/>
+            <line number="66" hits="3"/>
+            <line number="67" hits="3"/>
+            <line number="68" hits="3"/>
+          </lines>
+        </class>
+      </classes>
+    </package>
+    <package name="RunItDerivationEventSink.php" line-rate="0.72916666666667" branch-rate="0" complexity="22">
+      <classes>
+        <class name="ItPack\DeriveItRunit\RunItDerivationEventSink" filename="RunItDerivationEventSink.php" line-rate="0.72916666666667" branch-rate="0" complexity="22">
+          <methods>
+            <method name="__construct" signature="ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="48" hits="3"/>
+              </lines>
+            </method>
+            <method name="activityStarted" signature="string $name, array $attributes" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="52" hits="3"/>
+              </lines>
+            </method>
+            <method name="activityFinished" signature="string $name, bool $successful, array $attributes" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="57" hits="3"/>
+              </lines>
+            </method>
+            <method name="measured" signature="string $name, int|float $value, string $unit, array $attributes" line-rate="0.51851851851852" branch-rate="0" complexity="6">
+              <lines>
+                <line number="62" hits="2"/>
+                <line number="63" hits="2"/>
+                <line number="66" hits="2"/>
+                <line number="67" hits="2"/>
+                <line number="68" hits="2"/>
+                <line number="69" hits="2"/>
+                <line number="70" hits="2"/>
+                <line number="71" hits="2"/>
+                <line number="72" hits="2"/>
+                <line number="73" hits="2"/>
+                <line number="74" hits="2"/>
+                <line number="75" hits="2"/>
+                <line number="76" hits="2"/>
+                <line number="77" hits="2"/>
+                <line number="78" hits="0"/>
+                <line number="79" hits="0"/>
+                <line number="80" hits="0"/>
+                <line number="81" hits="0"/>
+                <line number="82" hits="0"/>
+                <line number="83" hits="0"/>
+                <line number="84" hits="0"/>
+                <line number="85" hits="0"/>
+                <line number="86" hits="0"/>
+                <line number="87" hits="0"/>
+                <line number="88" hits="0"/>
+                <line number="89" hits="0"/>
+                <line number="90" hits="0"/>
+              </lines>
+            </method>
+            <method name="observed" signature="string $message, ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity $severity, array $attributes" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="96" hits="1"/>
+                <line number="97" hits="1"/>
+                <line number="98" hits="1"/>
+                <line number="99" hits="1"/>
+                <line number="100" hits="1"/>
+              </lines>
+            </method>
+            <method name="occurred" signature="string $type, array $attributes" line-rate="1" branch-rate="0" complexity="1">
+              <lines>
+                <line number="105" hits="3"/>
+              </lines>
+            </method>
+            <method name="occur" signature="string $type, array $attributes" line-rate="1" branch-rate="0" complexity="4">
+              <lines>
+                <line number="115" hits="3"/>
+                <line number="117" hits="3"/>
+                <line number="118" hits="3"/>
+                <line number="119" hits="3"/>
+                <line number="120" hits="3"/>
+                <line number="121" hits="3"/>
+                <line number="122" hits="3"/>
+              </lines>
+            </method>
+            <method name="attributes" signature="array $attributes" line-rate="1" branch-rate="0" complexity="2">
+              <lines>
+                <line number="130" hits="2"/>
+              </lines>
+            </method>
+            <method name="severity" signature="ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity $severity" line-rate="1" branch-rate="0" complexity="5">
+              <lines>
+                <line number="136" hits="1"/>
+                <line number="137" hits="1"/>
+                <line number="138" hits="1"/>
+                <line number="139" hits="1"/>
+              </lines>
+            </method>
+          </methods>
+          <lines>
+            <line number="48" hits="3"/>
+            <line number="52" hits="3"/>
+            <line number="57" hits="3"/>
+            <line number="62" hits="2"/>
+            <line number="63" hits="2"/>
+            <line number="66" hits="2"/>
+            <line number="67" hits="2"/>
+            <line number="68" hits="2"/>
+            <line number="69" hits="2"/>
+            <line number="70" hits="2"/>
+            <line number="71" hits="2"/>
+            <line number="72" hits="2"/>
+            <line number="73" hits="2"/>
+            <line number="74" hits="2"/>
+            <line number="75" hits="2"/>
+            <line number="76" hits="2"/>
+            <line number="77" hits="2"/>
+            <line number="78" hits="0"/>
+            <line number="79" hits="0"/>
+            <line number="80" hits="0"/>
+            <line number="81" hits="0"/>
+            <line number="82" hits="0"/>
+            <line number="83" hits="0"/>
+            <line number="84" hits="0"/>
+            <line number="85" hits="0"/>
+            <line number="86" hits="0"/>
+            <line number="87" hits="0"/>
+            <line number="88" hits="0"/>
+            <line number="89" hits="0"/>
+            <line number="90" hits="0"/>
+            <line number="96" hits="1"/>
+            <line number="97" hits="1"/>
+            <line number="98" hits="1"/>
+            <line number="99" hits="1"/>
+            <line number="100" hits="1"/>
+            <line number="105" hits="3"/>
+            <line number="115" hits="3"/>
+            <line number="117" hits="3"/>
+            <line number="118" hits="3"/>
+            <line number="119" hits="3"/>
+            <line number="120" hits="3"/>
+            <line number="121" hits="3"/>
+            <line number="122" hits="3"/>
+            <line number="130" hits="2"/>
+            <line number="136" hits="1"/>
+            <line number="137" hits="1"/>
+            <line number="138" hits="1"/>
+            <line number="139" hits="1"/>
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

@@ -1,0 +1,70 @@
+{
+    "name": "it-pack/derive-it-runit",
+    "description": "RunIt execution-model integration for DeriveIt — bridges derivation telemetry onto a RunIt execution so derivations appear as first-class executions.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "derive-it",
+        "run-it",
+        "execution",
+        "telemetry",
+        "integration",
+        "it-pack",
+        "itpack"
+    ],
+    "require": {
+        "php": "^8.4",
+        "it-pack/derive-it": "*@dev",
+        "it-pack/run-it": "*@dev"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "phpstan/phpstan": "^2.0",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "squizlabs/php_codesniffer": "*",
+        "infection/infection": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "ItPack\\DeriveItRunit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ItPack\\DeriveItRunit\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "phpstan/extension-installer": true,
+            "infection/extension-installer": true
+        }
+    },
+    "scripts": {
+        "test:unit": "vendor/bin/phpunit",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "cs:lines": "vendor/bin/phpcs --standard=phpcs.xml.dist src tests",
+        "analyse": "vendor/bin/phpstan analyse",
+        "coverage": "vendor/bin/phpunit --coverage-text",
+        "infection": "vendor/bin/infection --min-msi=80"
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../DeriveIt"
+        },
+        {
+            "type": "path",
+            "url": "../RunIt"
+        }
+    ]
+}
