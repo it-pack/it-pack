@@ -58,17 +58,33 @@ coverage-capable environment.
 
 ---
 
-## 2. R0 — Baseline & tooling (optional)
+## 2. R0 — Baseline & tooling (optional) — ✅ DONE
 
 **Goal:** make `composer analyse`/`architecture` executable in CI by removing the
 `rector`/`php-parser` autoload conflict that currently blocks verification.
 
 **Tasks**
-- [ ] Reproduce the `rector`/`nikic/php-parser` redeclaration locally and isolate it to a `require-dev` conflict (do not modify `src/`).
-- [ ] Add a CI job that runs `composer validate`, `cs:check`, `analyse`, `architecture`, `lint:length`, `lint:types`, `test` on a PHP 8.4+ matrix.
-- [ ] Confirm a coverage driver (pcov/xdebug) is available for R6.
+- [x] Reproduce the `rector`/`nikic/php-parser` redeclaration locally and isolate it to a `require-dev` conflict (do not modify `src/`).
+- [x] Add a CI job that runs `composer validate`, `cs:check`, `analyse`, `architecture`, `lint:length`, `lint:types`, `test` on a PHP 8.4+ matrix.
+- [x] Confirm a coverage driver (pcov/xdebug) is available for R6.
 
-**Gates:** `composer quality` (minus `mutation`) is runnable end-to-end in CI.
+**Resolution (verified 2026-08-27):** the original blocker no longer
+reproduces. `composer analyse`, `composer architecture`, `composer lint:*`,
+`composer cs:check`, and `composer test:unit` all execute in this checkout.
+Root cause of the *prior* "rector/php-parser" symptom: `rector/rector` bundles
+its own **isolated** copy at `vendor/rector/rector/vendor/nikic/php-parser`,
+which is **not** on the main Composer autoload path, so it never collides with
+the root `vendor/nikic/php-parser`. No `require-dev` change is required.
+`pcov` is installed (PHP 8.5.9), so R6 coverage/mutation is feasible.
+
+**CI job added:** `.github/workflows/quality.yml` at the monorepo root
+(`it-pack`). It checks out the monorepo (RunIt resolves via the `../RunIt` path
+repository to `src/RunIt`), runs `codecept build`, then the full `composer
+quality` sequence on a PHP `8.4`/`8.5` matrix. No `src/` changes were made.
+
+**Gates:** `composer quality` (minus `mutation`) is runnable end-to-end; CI
+codifies it. (2 pre-existing unit-test failures in `test:unit` are scoped to R6,
+not R0.)
 
 ---
 
@@ -308,6 +324,9 @@ scoped `@covers`.
 
 ## 9. Status updates (milestones)
 
+- **After R0:** the tooling blocker is gone (rector's bundled `php-parser` is
+  isolated, not a collision); `composer quality` runs end-to-end and is
+  codified in `.github/workflows/quality.yml`. Next: unblock `composer analyse` (R1).
 - **After R1:** `composer analyse` is green — the `else` is gone and the
   instantiation rule permits value-object/exception construction. Next: architecture.
 - **After R2:** Deptrac reports 0 violations; `AsyncRuntimeFactory` no longer
