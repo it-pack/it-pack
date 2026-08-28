@@ -39,6 +39,30 @@ final class ArrayInputAdapterTest extends Unit
         self::assertSame(['force' => true], $input->options());
     }
 
+    public function testBoolOptionAcceptsAliasesCaseInsensitivelyAndIntegers(): void
+    {
+        foreach ([
+            '1' => true,
+            'TRUE' => true,
+            'Yes' => true,
+            'ON' => true,
+            '0' => false,
+            'FALSE' => false,
+            'No' => false,
+            'OFF' => false,
+        ] as $raw => $expected) {
+            $input = new ArrayInputAdapter()->parse($this->definition(), ['count' => 1, 'force' => $raw]);
+
+            self::assertSame($expected, $input->options()['force'], "bool alias '$raw'");
+        }
+
+        $intInput = new ArrayInputAdapter()->parse($this->definition(), ['count' => 1, 'force' => 1]);
+        self::assertTrue($intInput->options()['force']);
+
+        $zeroInput = new ArrayInputAdapter()->parse($this->definition(), ['count' => 1, 'force' => 0]);
+        self::assertFalse($zeroInput->options()['force']);
+    }
+
     public function testUnknownKeyThrows(): void
     {
         $this->expectException(InvalidCommandException::class);

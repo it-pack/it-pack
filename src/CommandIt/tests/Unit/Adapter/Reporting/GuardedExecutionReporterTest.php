@@ -42,6 +42,50 @@ final class GuardedExecutionReporterTest extends Unit
         self::assertSame('command.handled.v1', $this->delegate->entries()[0]['name']);
     }
 
+    public function testMeasurementIsForwardedToDelegate(): void
+    {
+        $this->reporter->reportMeasurement('duration_ms', 42, 'ms');
+
+        self::assertCount(1, $this->delegate->entries());
+        self::assertSame('measurement', $this->delegate->entries()[0]['type']);
+        self::assertSame(42, $this->delegate->entries()[0]['value']);
+        self::assertSame('ms', $this->delegate->entries()[0]['unit']);
+    }
+
+    public function testMeasurementFailureIsRoutedToHealthAndNotRethrown(): void
+    {
+        $failing = new class () implements ExecutionReporterInterface {
+            public function reportObservation(string $message, array $context = []): void
+            {
+            }
+
+            public function reportOccurrence(string $type, array $context = []): void
+            {
+            }
+
+            public function reportMeasurement(string $name, int|float $value, string $unit): void
+            {
+                throw new \RuntimeException('sink down');
+            }
+
+            public function beginActivity(string $name): string
+            {
+                return '';
+            }
+
+            public function endActivity(string $activityId): void
+            {
+            }
+        };
+
+        $reporter = new GuardedExecutionReporter($failing, $this->health);
+
+        $reporter->reportMeasurement('duration_ms', 1, 'ms');
+
+        self::assertCount(0, $this->delegate->entries());
+        $this->assertHealthContains('publication.failed');
+    }
+
     public function testDelegateFailureIsRoutedToHealthAndNotRethrown(): void
     {
         $failing = new class () implements ExecutionReporterInterface {

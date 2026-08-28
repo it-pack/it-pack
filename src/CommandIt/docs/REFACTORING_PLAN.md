@@ -27,7 +27,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M1 | Publication-path correctness hotfixes | F-02, F-03 | — | — | S | **Done (2026-08-25)** |
 | M2 | CLI trustworthiness & registry policy | F-04, F-18, F-05 | — | 0004 | S/M | **Done (2026-08-25)** |
 | M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M | **Done (2026-08-25)** |
-| M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | Planned (storage/reporter stubs partially landed in M1) |
+| M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | **Done (2026-08-28)** |
 | M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | Planned |
 | M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | Planned |
 | M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Planned |
@@ -213,19 +213,19 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 4.1 — Bare-reporter and bare-storage injection tests
 
-- [ ] Executor-level test with a reporter whose `reportOccurrence()` throws on the second call (wire it **directly** into `CommandExecutionCoordinator`, no `GuardedExecutionReporter`):
+- [x] Executor-level test with a reporter whose `reportOccurrence()` throws on the second call (wire it **directly** into `CommandExecutionCoordinator`, no `GuardedExecutionReporter`):
   - success dispatch ⇒ result returned intact, no reporter exception escapes;
   - handler-throws dispatch ⇒ **original** business `Throwable` rethrown (`assertSame`), execution completed FAILED, failure occurrence attempt swallowed.
-- [ ] Storage-level test: `InMemory`-stub whose `store()` always throws ⇒ both success and failure dispatches preserve business outcomes.
-- [ ] Middleware-throws-before-`next()` case: recorded as FAILED with the middleware's exception rethrown (add if not already covered explicitly).
+- [x] Storage-level test: `InMemory`-stub whose `store()` always throws ⇒ both success and failure dispatches preserve business outcomes *(landed in M1 as the two preservation tests; M4 adds the bare-reporter + middleware cases).*
+- [x] Middleware-throws-before-`next()` case: recorded as FAILED with the middleware's exception rethrown (add if not already covered explicitly).
 - Files: `tests/Unit/Application/CommandExecutorTest.php` (new provider-based cases).
 - Acceptance: suite green; each case names the guarantee it pins in its method name/docblock (mutation testing will target them next).
 
 ### Task 4.2 — Mutation floors
 
-- [ ] Set initial thresholds in `composer.json` script `mutation`: `--min-msi=55 --min-covered-msi=65` (calibrate after a baseline local run; raise over time).
-- [ ] Run `composer mutation` locally; triage the timed-out mutants previously recorded silently in `var/infection.log` (e.g., `PublicVisibility` mutations of `CommandResult::succeed/fail`): for each, either add a killing assertion or accept with a one-line rationale in the PR.
-- [ ] Keep the nightly CI schedule; add the floors there too (same script).
+- [x] Set initial thresholds in `composer.json` script `mutation`: `--min-msi=55 --min-covered-msi=65` (calibrate after a baseline local run; raise over time).
+- [x] Run `composer mutation` locally; triage the timed-out mutants. **Key finding:** the Infection↔Codeception adapter misclassifies most mutants as "time outs" (each process exits well under the 120s timeout, yet ~451/544 are flagged), which inflates reported MSI — see follow-up note. 12 genuinely-executed escapes were triaged: 10 killed by new assertions; 2 accepted as equivalent (the `'1'` boolean-arm `MatchArmRemoval` and the `RandomIdentifierGenerator` version-nibble integer mutants, which preserve the RFC 4122 v4 shape).
+- [x] Keep the nightly CI schedule; add the floors there too (same script) — `composer mutation` already reads the floors from `composer.json`, so CI inherits them.
 - Acceptance: `composer mutation` exits 0 at the chosen floors; floors recorded in this file's Status table.
 
 ---
@@ -458,3 +458,20 @@ reportMeasurement(string $name, int|float $value, string $unit): void
 - [ ] `vendor/bin/deptrac debug:unassigned` ⇒ none (gate integrity held).
 - [ ] Examples 01–06 still exit 0 (`for f in examples/0*.php; do php "$f" || exit 1; done`).
 - [ ] `docs/adr/` contains 0004–0008; REVIEW.md gains a "Follow-up 2026-MM-DD" section pointing at this plan's completed status table.
+
+> **M4 tooling follow-up (investigate before trusting mutation metrics):** the
+> Infection↔Codeception integration in this repo misclassifies the vast majority
+> of mutants as "time outs" even when runs complete in seconds (verified: a
+> full serial run reported 451/544 timed out, but wall time makes that
+> mathematically impossible, and a single-mutant run killed cleanly in ~50s).
+> Timed-out mutants count as *killed* in Infection's MSI math, so reported MSI
+> (~76–100% across runs) is inflated and not a trustworthy regression signal.
+> The `--min-msi=55/--min-covered-msi=65` floors are therefore a conservative
+> lower bound, not a measured quality bar. Candidate root causes: the Codeception
+> adapter's per-mutant process handling and/or `coverage`-driven reruns under
+> pcov. Recommended next step (M4.5 / fold into M10): switch Infection's
+> `testFramework` to `phpunit` (the suites are plain PHPUnit classes under
+> `tests/Unit` and runnable directly) or fix the adapter/coverage wiring so mutant
+> outcomes are real. Until then, rely on the hand-triaged escape list (10 killed,
+> 2 equivalent-accepted) and keep the floors as a guardrail against silent
+> regressions in the failure/publication paths.

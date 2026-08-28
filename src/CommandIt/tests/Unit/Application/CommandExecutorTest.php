@@ -28,7 +28,27 @@ use ItPack\CommandIt\Contract\Domain\CommandContextInterface;
 use ItPack\CommandIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
+use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
 use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
+
+/**
+ * Records the most recently stored execution so tests can assert terminal
+ * lifecycle state without reaching into the executor.
+ */
+final class StorageSpy implements CommandExecutionStorageInterface
+{
+    public ?ExecutionArtifactInterface $lastStored = null;
+
+    public function store(CommandExecutionIdInterface $id, ExecutionArtifactInterface $execution): void
+    {
+        $this->lastStored = $execution;
+    }
+
+    public function find(CommandExecutionIdInterface $id): ?ExecutionArtifactInterface
+    {
+        return null;
+    }
+}
 use ItPack\CommandIt\Domain\Command;
 use ItPack\CommandIt\Domain\CommandDefinition;
 use ItPack\CommandIt\Domain\CommandExecution;
@@ -504,6 +524,192 @@ final class CommandExecutorTest extends Unit
             $this->registry,
             new HandlerResolver($this->registry),
             new CommandExecutionCoordinator($this->reporter),
+            $this->context,
+            $storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+        );
+    }
+
+    /**
+     * Pins the fail-open publication guarantee end-to-end with a BARE reporter
+     * (no Guarded decorator): the sink starts throwing on the second occurrence
+     * call, after `command.received.v1` was accepted. A successful dispatch must
+     * still return the business result untouched.
+     */
+    public function testBareThrowingReporterDoesNotBreakSuccessDispatch(): void
+    {
+        $spy = $this->storageSpy();
+        $executor = $this->executorWithThrowingReporter($spy);
+
+        $this->register('demo:run', new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed('ok');
+            }
+        });
+
+        $result = $executor->dispatch($this->command('demo:run'));
+
+        self::assertSame('ok', $result->payload(), 'business result returned intact');
+        self::assertSame('succeeded', $result->status()->label());
+        self::assertContains('command.received.v1', $this->occurrenceNames());
+
+        self::assertNotNull($spy->lastStored);
+        self::assertInstanceOf(CommandExecution::class, $spy->lastStored);
+        self::assertSame('succeeded', $spy->lastStored->status()->label());
+    }
+
+    /**
+     * Pins THE core failure guarantee at executor level: when the bare reporter
+     * throws while publishing `command.failed.v1`, the ORIGINAL business
+     * Throwable is still rethrown and the execution is persisted as FAILED.
+     */
+    public function testBareThrowingReporterPreservesOriginalExceptionOnFailure(): void
+    {
+        $original = new \RuntimeException('boom');
+        $this->registerThrowing('demo:run', $original);
+
+        $spy = $this->storageSpy();
+        $executor = $this->executorWithThrowingReporter($spy);
+
+        $thrown = null;
+
+        try {
+            $executor->dispatch($this->command('demo:run'));
+        } catch (\RuntimeException $error) {
+            $thrown = $error;
+        }
+
+        self::assertSame($original, $thrown, 'reporter failure never replaces the business exception');
+
+        $names = $this->occurrenceNames();
+        self::assertContains('command.received.v1', $names, 'received was published before the sink died');
+        self::assertNotContains('command.handled.v1', $names);
+        self::assertNotContains('command.failed.v1', $names, 'failed occurrence publication threw and was swallowed');
+
+        self::assertNotNull($spy->lastStored);
+        self::assertInstanceOf(CommandExecution::class, $spy->lastStored);
+        self::assertTrue($spy->lastStored->isTerminal());
+        self::assertSame('failed', $spy->lastStored->status()->label());
+    }
+
+    /**
+     * A middleware that throws before calling next() must be recorded as a
+     * FAILED execution and rethrown — never converted into a result.
+     */
+    public function testMiddlewareThrowingBeforeNextIsRecordedAndRethrown(): void
+    {
+        $middleware = new class () implements CommandMiddlewareInterface {
+            public function process(CommandInterface $command, callable $next, ContextEnricherInterface $context): CommandResultInterface
+            {
+                throw new \RuntimeException('middleware boom');
+            }
+        };
+
+        $spy = $this->storageSpy();
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($this->reporter),
+            $this->context,
+            $spy,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+            [$middleware],
+        );
+
+        $this->register('demo:run', new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed('unreachable');
+            }
+        });
+
+        $thrown = null;
+
+        try {
+            $executor->dispatch($this->command('demo:run'));
+        } catch (\RuntimeException $error) {
+            $thrown = $error;
+        }
+
+        self::assertNotNull($thrown);
+        self::assertSame('middleware boom', $thrown->getMessage());
+
+        $names = $this->occurrenceNames();
+        self::assertContains('command.received.v1', $names);
+        self::assertContains('command.failed.v1', $names);
+        self::assertNotContains('command.handled.v1', $names);
+
+        self::assertNull($this->context->current(), 'ambient context restored after middleware failure');
+
+        self::assertNotNull($spy->lastStored);
+        self::assertInstanceOf(CommandExecution::class, $spy->lastStored);
+        self::assertTrue($spy->lastStored->isTerminal());
+        self::assertSame('failed', $spy->lastStored->status()->label());
+    }
+
+    private function storageSpy(): StorageSpy
+    {
+        return new StorageSpy();
+    }
+
+    private function executorWithThrowingReporter(CommandExecutionStorageInterface $storage): CommandExecutor
+    {
+        $reporter = new class ($this->reporter) implements ExecutionReporterInterface {
+            private int $occurrences = 0;
+
+            public function __construct(
+                private readonly CollectingExecutionReporter $inner,
+            ) {
+            }
+
+            public function reportObservation(string $message, array $context = []): void
+            {
+                $this->inner->reportObservation($message, $context);
+            }
+
+            public function reportOccurrence(string $type, array $context = []): void
+            {
+                ++$this->occurrences;
+
+                if ($this->occurrences >= 2) {
+                    throw new \LogicException('sink exploded');
+                }
+
+                $this->inner->reportOccurrence($type, $context);
+            }
+
+            public function reportMeasurement(string $name, int|float $value, string $unit): void
+            {
+                $this->inner->reportMeasurement($name, $value, $unit);
+            }
+
+            public function beginActivity(string $name): string
+            {
+                return '';
+            }
+
+            public function endActivity(string $activityId): void
+            {
+            }
+        };
+
+        return new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($reporter),
             $this->context,
             $storage,
             new SystemClock(),

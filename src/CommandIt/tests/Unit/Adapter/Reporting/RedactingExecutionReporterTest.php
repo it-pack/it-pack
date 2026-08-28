@@ -55,6 +55,10 @@ final class RedactingExecutionReporterTest extends Unit
         $id = $this->reporter->beginActivity('handler');
         $this->reporter->endActivity($id);
 
-        self::assertNotEmpty($this->delegate->entries());
+        self::assertCount(2, $this->delegate->entries());
+        self::assertSame('activity_start', $this->delegate->entries()[0]['type']);
+        self::assertSame($id, $this->delegate->entries()[0]['id']);
+        self::assertSame('activity_end', $this->delegate->entries()[1]['type']);
+        self::assertSame($id, $this->delegate->entries()[1]['id'], 'end is forwarded for the same activity id');
     }
 }

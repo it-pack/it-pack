@@ -66,7 +66,7 @@
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "analyse": "vendor/bin/phpstan analyse",
         "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
-        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --min-covered-msi=0",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=55 --min-covered-msi=65",
         "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
         "security:audit": "@composer audit",
         "bc-check": "@composer what-changed",

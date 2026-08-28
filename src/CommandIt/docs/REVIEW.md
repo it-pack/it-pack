@@ -311,3 +311,31 @@ Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16�
   highest-vs-lowest matrix.
 - Verification: composer validate strict OK · phpstan max clean (139 files) · DepTrac 0 violations /
   0 uncovered · full suite 166 tests / 391 assertions green · cs-fixer clean.
+
+### 2026-08-28 — Refactoring plan milestone M4 landed
+
+- **F-10 proven** — added executor-level injection tests with a **bare** reporter
+  (no `GuardedExecutionReporter`): a sink that starts throwing on the second
+  occurrence call still returns business results intact on success, and on
+  handler/middleware failure the **original** (`assertSame`) `Throwable` is
+  rethrown while the execution is persisted as FAILED (`command.failed.v1`
+  published, the failure-occurrence publication swallowed). Middleware-throws-before-
+  `next()` is recorded as FAILED and rethrown, ambient context restored.
+- **F-11 mutation floors** — `composer.json` mutation script now runs
+  `infection --min-msi=55 --min-covered-msi=65` (was 0/0); CI nightly inherits
+  them. Triage of the legacy timed-out-mutant log: 12 executed escapes → **10
+  killed** by new assertions (builder immutability/accumulation, signature optional
+  arguments, UUID-v4 regex over 64 draws, bool-coercion aliases incl. integer `1`
+  and case variants, reporter measurement forwarding + failure-routing, redacting
+  `endActivity` forwarding) and **2 accepted as equivalent** (`MatchArmRemoval` of
+  the `'1'` boolean arm, and the `RandomIdentifierGenerator` version-nibble integer
+  mutants — both preserve the RFC 4122 v4 format).
+- **Tooling caveat recorded:** the Infection↔Codeception adapter misclassifies
+  most mutants as "time outs" (inflating reported MSI), so the floors are a
+  conservative guardrail, not a measured bar. A follow-up note in the plan
+  recommends switching Infection to the native `phpunit` test framework (suites are
+  plain PHPUnit classes under `tests/Unit`). Manual mutant probes confirmed every
+  intended kill.
+- Verification: composer validate strict OK · phpstan max clean (139 files) · DepTrac
+  0 violations / 0 uncovered · full suite **173 tests** (162 unit / 9 functional /
+  2 integration) green · cs-fixer clean.

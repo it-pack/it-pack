@@ -60,11 +60,14 @@ final class CommandModelTest extends Unit
         $definition = new CommandDefinition(
             CommandName::fromString('cache:clear'),
             'Clears the cache.',
-            [new Argument(ArgumentName::fromString('source'), true)],
+            [
+                new Argument(ArgumentName::fromString('source'), true),
+                new Argument(ArgumentName::fromString('target'), false),
+            ],
             [new Option(OptionName::fromString('force'))],
         );
 
-        self::assertSame('cache:clear <source> --force', $definition->signature());
+        self::assertSame('cache:clear <source> [target] --force', $definition->signature());
         self::assertSame('Clears the cache.', $definition->description());
     }
 }

@@ -52,6 +52,40 @@ final class CommandDefinitionBuilderTest extends Unit
 
         self::assertSame('', $base->build()->description(), 'receiver unchanged');
         self::assertSame('extended', $extended->build()->description());
+
+        // Clone semantics hold for every fluent step, not only description().
+        $renamed = $base->name('other:run');
+        self::assertSame('cache:clear', $base->build()->name()->toString(), 'name() must not mutate the receiver');
+        self::assertSame('other:run', $renamed->build()->name()->toString());
+
+        $withArgument = $base->argument($this->argument());
+        self::assertCount(0, $base->build()->arguments(), 'argument() must not mutate the receiver');
+        self::assertCount(1, $withArgument->build()->arguments());
+
+        $withOption = $base->option($this->option());
+        self::assertCount(0, $base->build()->options(), 'option() must not mutate the receiver');
+        self::assertCount(1, $withOption->build()->options());
+    }
+
+    public function testAccumulatesMultipleArgumentsAndOptionsInOrder(): void
+    {
+        $definition = new CommandDefinitionBuilder()
+            ->name('demo:run')
+            ->argument(new Argument(ArgumentName::fromString('first'), required: true, type: 'string'))
+            ->argument(new Argument(ArgumentName::fromString('second'), required: false, type: 'string'))
+            ->option(new Option(OptionName::fromString('force'), required: false, type: 'bool'))
+            ->option(new Option(OptionName::fromString('mode'), required: false, type: 'string'))
+            ->build()
+        ;
+
+        self::assertSame(
+            ['first', 'second'],
+            array_map(static fn ($spec) => $spec->name()->toString(), $definition->arguments()),
+        );
+        self::assertSame(
+            ['force', 'mode'],
+            array_map(static fn ($spec) => $spec->name()->toString(), $definition->options()),
+        );
     }
 
     public function testBuildWithoutNameThrows(): void

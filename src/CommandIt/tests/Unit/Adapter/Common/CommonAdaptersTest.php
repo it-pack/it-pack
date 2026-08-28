@@ -28,10 +28,21 @@ final class CommonAdaptersTest extends Unit
     public function testIdentifierGeneratorProducesUniqueUuids(): void
     {
         $generator = new RandomIdentifierGenerator();
-        $first = $generator->generate();
+        $seen = [];
 
-        self::assertMatchesRegularExpression('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $first);
-        self::assertNotSame($first, $generator->generate());
+        // Many draws so the version/variant nibble assertions are deterministic
+        // rather than lucky on a single random sample.
+        for ($i = 0; $i < 64; ++$i) {
+            $id = $generator->generate();
+
+            self::assertMatchesRegularExpression(
+                '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+                $id,
+            );
+            $seen[$id] = true;
+        }
+
+        self::assertCount(64, $seen);
     }
 
     public function testSafeSerializerNormalizesPrimitives(): void
