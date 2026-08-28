@@ -26,6 +26,21 @@ use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
  */
 final class GuardedExecutionReporter implements ExecutionReporterInterface
 {
+    /**
+     * Health-signal occurrence types emitted to the separate {@see $health} reporter.
+     */
+    public const SIGNAL_RECURSION_GUARDED = 'publication.recursion-guarded';
+    public const SIGNAL_PUBLICATION_FAILED = 'publication.failed';
+
+    /**
+     * Internal labels describing which reporter method was being guarded.
+     */
+    private const KIND_OBSERVATION = 'observation';
+    private const KIND_OCCURRENCE = 'occurrence';
+    private const KIND_MEASUREMENT = 'measurement';
+    private const KIND_ACTIVITY_START = 'activity_start';
+    private const KIND_ACTIVITY_END = 'activity_end';
+
     private int $depth = 0;
 
     public function __construct(
@@ -38,7 +53,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     {
         $this->guard(
             fn () => $this->delegate->reportObservation($message, $context),
-            'observation',
+            self::KIND_OBSERVATION,
             $message,
         );
     }
@@ -47,7 +62,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     {
         $this->guard(
             fn () => $this->delegate->reportOccurrence($type, $context),
-            'occurrence',
+            self::KIND_OCCURRENCE,
             $type,
         );
     }
@@ -56,7 +71,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     {
         $this->guard(
             fn () => $this->delegate->reportMeasurement($name, $value, $unit),
-            'measurement',
+            self::KIND_MEASUREMENT,
             $name,
         );
     }
@@ -65,7 +80,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     {
         $id = $this->guard(
             fn () => $this->delegate->beginActivity($name),
-            'activity_start',
+            self::KIND_ACTIVITY_START,
             $name,
         );
 
@@ -76,7 +91,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     {
         $this->guard(
             fn () => $this->delegate->endActivity($activityId),
-            'activity_end',
+            self::KIND_ACTIVITY_END,
             $activityId,
         );
     }
@@ -93,7 +108,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
 
         try {
             if ($this->depth > 1) {
-                $this->health->reportObservation('publication.recursion-guarded', [
+                $this->health->reportObservation(self::SIGNAL_RECURSION_GUARDED, [
                     'kind' => $kind,
                     'label' => $label,
                 ]);
@@ -103,7 +118,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
 
             return $publish();
         } catch (\Throwable $error) {
-            $this->health->reportObservation('publication.failed', [
+            $this->health->reportObservation(self::SIGNAL_PUBLICATION_FAILED, [
                 'kind' => $kind,
                 'label' => $label,
                 'error' => $error->getMessage(),

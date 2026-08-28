@@ -92,4 +92,78 @@ final class RedactionPolicyTest extends Unit
 
         self::assertSame('***redacted***', $meta['token']);
     }
+
+    public function testObjectWithToArrayIsReducedAndRedacted(): void
+    {
+        $policy = new RedactionPolicy();
+
+        $payload = new class () {
+            /**
+             * @return array<string, mixed>
+             */
+            public function toArray(): array
+            {
+                return ['token' => 'secret-value', 'label' => 'ok'];
+            }
+        };
+
+        $redacted = $policy->redact(['payload' => $payload]);
+        $out = (array) $redacted['payload'];
+
+        self::assertSame('***redacted***', $out['token'], 'nested sensitive key inside a reduced object is redacted');
+        self::assertSame('ok', $out['label']);
+    }
+
+    public function testStringableObjectIsReducedToString(): void
+    {
+        $policy = new RedactionPolicy();
+
+        $payload = new class () implements \Stringable {
+            public function __toString(): string
+            {
+                return 'user-123';
+            }
+        };
+
+        $redacted = $policy->redact(['payload' => $payload]);
+
+        self::assertSame('user-123', $redacted['payload']);
+    }
+
+    public function testArbitraryObjectBecomesMarker(): void
+    {
+        $policy = new RedactionPolicy();
+
+        $redacted = $policy->redact(['payload' => new \stdClass()]);
+
+        self::assertSame('***redacted***(object)', $redacted['payload'], 'objects without toArray/Stringable never pass through unchanged');
+    }
+
+    public function testDefaultMarkerMatchesInterfaceConstant(): void
+    {
+        $policy = new RedactionPolicy();
+
+        $redacted = $policy->redact(['password' => 'hunter2']);
+
+        self::assertSame(\ItPack\CommandIt\Contract\Port\RedactionPolicyInterface::DEFAULT_MARKER, $redacted['password']);
+    }
+
+    public function testSubstringModeRedactsPartialKey(): void
+    {
+        $policy = new RedactionPolicy();
+
+        $redacted = $policy->redact(['monkey' => 'not-a-secret-key-but-matches-key']);
+
+        self::assertSame('***redacted***', $redacted['monkey'], 'substring mode: "key" is a substring of "monkey"');
+    }
+
+    public function testExactModeDoesNotRedactPartialKey(): void
+    {
+        $policy = new RedactionPolicy(exactKeyMatch: true);
+
+        $redacted = $policy->redact(['monkey' => 'value', 'key' => 'value']);
+
+        self::assertSame('value', $redacted['monkey'], 'exact mode: "monkey" is not the whole key "key"');
+        self::assertSame('***redacted***', $redacted['key'], 'exact mode: whole key "key" still matches');
+    }
 }

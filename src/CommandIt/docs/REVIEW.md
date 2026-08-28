@@ -339,3 +339,32 @@ Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16�
 - Verification: composer validate strict OK · phpstan max clean (139 files) · DepTrac
   0 violations / 0 uncovered · full suite **173 tests** (162 unit / 9 functional /
   2 integration) green · cs-fixer clean.
+
+### 2026-08-28 — Refactoring plan milestone M5 landed
+
+- **F-13 redaction-marker drift fixed** — the classification stage and policy stage
+  now each have a single source of truth: `CommandContextInterface::REDACTED = '***'`
+  is used by `CommandContext::redacted()`; `RedactionPolicyInterface::DEFAULT_MARKER =
+  '***redacted***'` is the default for `RedactionPolicy`. The USER_GUIDE now documents
+  the honest two-stage model (`***` always masking secrets in ambient context;
+  `***redacted***` added by the safe wrapper on sensitive *keys*), and a static check
+  confirms no inline `'***'`/`'***redacted***'` literals remain in `src/` outside these
+  constants.
+- **F-14 objects bypass redaction fixed** — `RedactionPolicy::redactValue()` now has an
+  object branch: `toArray()`-bearing objects are reduced through that method and their
+  keys then redacted, `\Stringable` objects become their string form, and any other
+  object becomes `marker . '(object)'`. This mirrors `SafeSerializer`'s accepted shapes
+  so policy and serializer agree; no object can pass through `redact()` unchanged.
+- **F-15 substring over-redaction made transparent** — the substring semantics are
+  documented prominently (case-insensitive substring; safe-direction over-redaction,
+  `key` ⊆ `monkey`), and an optional `bool $exactKeyMatch = false` constructor flag adds
+  whole-key matching (default stays substring for BC). Tests pin both modes.
+- **§12 vocabulary (reporting half) constant-backed** — `ExecutionReporterInterface` now
+  exposes `CONTEXT_EXECUTION_ID/COMMAND/STATUS/ERROR_CLASS/ERROR_MESSAGE` and
+  `MEASUREMENT_DURATION`/`DURATION_UNIT_MS`; the coordinator and executor `buildContext()`
+  use them. `GuardedExecutionReporter` exposes `SIGNAL_RECURSION_GUARDED`/`SIGNAL_PUBLICATION_FAILED`
+  plus a private `KIND_*` set; `CollectingExecutionReporter` exposes `ACTIVITY_ID_PREFIX = 'act-'`.
+  No bare vocabulary literals remain in `src/` logic.
+- Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
+  0 uncovered · full suite **180 tests** (169 unit / 9 functional / 2 integration) green ·
+  cs-fixer clean.

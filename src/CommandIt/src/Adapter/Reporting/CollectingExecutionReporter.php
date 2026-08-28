@@ -19,6 +19,11 @@ use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
 final class CollectingExecutionReporter implements ExecutionReporterInterface
 {
     /**
+     * Prefix for activity ids synthesized by {@see self::beginActivity()}.
+     */
+    public const ACTIVITY_ID_PREFIX = 'act-';
+
+    /**
      * @var list<array<string, mixed>>
      */
     private array $entries = [];
@@ -46,7 +51,7 @@ final class CollectingExecutionReporter implements ExecutionReporterInterface
 
     public function beginActivity(string $name): string
     {
-        $id = \uniqid('act-', true);
+        $id = \uniqid(self::ACTIVITY_ID_PREFIX, true);
         $this->record(['type' => 'activity_start', 'id' => $id, 'name' => $name]);
 
         return $id;

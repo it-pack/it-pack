@@ -19,6 +19,15 @@ namespace ItPack\CommandIt\Contract\Port;
 interface RedactionPolicyInterface
 {
     /**
+     * Default replacement for redacted values. This is the *policy* mask, applied
+     * by {@see self::redact()} when the safe wrapper (`RedactingExecutionReporter`)
+     * is used. It is distinct from {@see \ItPack\CommandIt\Contract\Domain\CommandContextInterface::REDACTED}
+     * (the always-on classification mask); the two-stage model is documented in
+     * the user guide.
+     */
+    public const DEFAULT_MARKER = '***redacted***';
+
+    /**
      * Returns a redacted copy of the given context.
      *
      * @param array<string, mixed> $context

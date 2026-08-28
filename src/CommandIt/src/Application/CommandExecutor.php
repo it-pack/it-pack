@@ -17,6 +17,7 @@ use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 use ItPack\CommandIt\Contract\Port\ClockInterface;
 use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionContextProviderInterface;
+use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
 use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\CommandIt\Contract\Port\SerializerInterface;
 use ItPack\CommandIt\Domain\CommandContext;
@@ -103,8 +104,8 @@ final class CommandExecutor implements CommandExecutorInterface
     private function buildContext(string $command, string $executionId): CommandContextInterface
     {
         return new CommandContext()
-            ->with('command', $command, Classification::Internal)
-            ->with('execution_id', $executionId, Classification::Internal)
+            ->with(ExecutionReporterInterface::CONTEXT_COMMAND, $command, Classification::Internal)
+            ->with(ExecutionReporterInterface::CONTEXT_EXECUTION_ID, $executionId, Classification::Internal)
         ;
     }
 

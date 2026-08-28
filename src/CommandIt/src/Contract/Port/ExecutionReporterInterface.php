@@ -38,6 +38,22 @@ interface ExecutionReporterInterface
     public const COMMAND_FAILED = 'command.failed.v1';
 
     /**
+     * Stable occurrence-context keys. Use these instead of inline literals so the
+     * published vocabulary stays constant-backed and greppable.
+     */
+    public const CONTEXT_EXECUTION_ID = 'execution_id';
+    public const CONTEXT_COMMAND = 'command';
+    public const CONTEXT_STATUS = 'status';
+    public const CONTEXT_ERROR_CLASS = 'error_class';
+    public const CONTEXT_ERROR_MESSAGE = 'error_message';
+
+    /**
+     * Stable measurement identity for the command duration.
+     */
+    public const MEASUREMENT_DURATION = 'duration_ms';
+    public const DURATION_UNIT_MS = 'ms';
+
+    /**
      * Records a qualitative observation.
      *
      * @param array<string, mixed> $context

@@ -28,7 +28,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M2 | CLI trustworthiness & registry policy | F-04, F-18, F-05 | — | 0004 | S/M | **Done (2026-08-25)** |
 | M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M | **Done (2026-08-25)** |
 | M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | **Done (2026-08-28)** |
-| M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | Planned |
+| M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | **Done (2026-08-28)** |
 | M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | Planned |
 | M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Planned |
 | M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Planned |
@@ -261,7 +261,7 @@ if (\count($value) > $this->maxArrayEntries) {
 - [ ] Occurrence context keys → public constants on `ExecutionReporterInterface`: `CONTEXT_EXECUTION_ID = 'execution_id'`, `CONTEXT_COMMAND = 'command'`, `CONTEXT_STATUS = 'status'`, `CONTEXT_ERROR_CLASS`, `CONTEXT_ERROR_MESSAGE`. Use them in `CommandExecutionCoordinator` and `CommandExecutor::buildContext()`.
 - [ ] Measurement identity → `ExecutionReporterInterface::MEASUREMENT_DURATION = 'duration_ms'` + `DURATION_UNIT_MS = 'ms'`; use in coordinator.
 - [ ] Health signals → `GuardedExecutionReporter::SIGNAL_RECURSION_GUARDED` / `SIGNAL_PUBLICATION_FAILED`; kind labels → private const set (`KIND_OBSERVATION`, …) in Guarded/Collecting.
-- [ ] Activity id prefix → `CollectingExecutionReporter::ACTIVITY_ID_PREFIX = 'act-'`.
+- [x] Activity id prefix → `CollectingExecutionReporter::ACTIVITY_ID_PREFIX = 'act-'`.
 - Files: `src/Contract/Port/ExecutionReporterInterface.php`, `src/Application/CommandExecutionCoordinator.php`, `src/Application/CommandExecutor.php`, `src/Adapter/Reporting/{GuardedExecutionReporter,CollectingExecutionReporter}.php`.
 - Acceptance: `composer analyse` + suites green; grep shows no bare occurrences of these strings in logic (tests may assert literal values deliberately).
 

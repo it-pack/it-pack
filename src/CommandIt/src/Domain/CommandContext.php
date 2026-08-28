@@ -50,7 +50,7 @@ final readonly class CommandContext implements CommandContextInterface
         $out = [];
 
         foreach ($this->entries as $key => $entry) {
-            $out[$key] = $entry['classification']->isSecret() ? '***' : $entry['value'];
+            $out[$key] = $entry['classification']->isSecret() ? CommandContextInterface::REDACTED : $entry['value'];
         }
 
         return $out;

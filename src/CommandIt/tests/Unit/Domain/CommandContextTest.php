@@ -40,6 +40,16 @@ final class CommandContextTest extends Unit
         self::assertSame('***', $redacted['password']);
     }
 
+    public function testRedactedUsesClassificationConstant(): void
+    {
+        self::assertSame('***', \ItPack\CommandIt\Contract\Domain\CommandContextInterface::REDACTED);
+
+        $context = new CommandContext()->with('password', 'hunter2', Classification::Secret);
+        $redacted = $context->redacted();
+
+        self::assertSame(\ItPack\CommandIt\Contract\Domain\CommandContextInterface::REDACTED, $redacted['password']);
+    }
+
     public function testEntriesStructure(): void
     {
         $context = new CommandContext()->with('k', 1, Classification::Internal);

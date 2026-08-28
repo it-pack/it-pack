@@ -46,8 +46,8 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
         ;
 
         $this->reportOccurrence(ExecutionReporterInterface::COMMAND_RECEIVED, $this->withContext([
-            'execution_id' => $id->toString(),
-            'command' => $definition->name()->toString(),
+            ExecutionReporterInterface::CONTEXT_EXECUTION_ID => $id->toString(),
+            ExecutionReporterInterface::CONTEXT_COMMAND => $definition->name()->toString(),
         ]));
 
         return $execution;
@@ -65,11 +65,11 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
         ;
 
         $this->reportOccurrence(ExecutionReporterInterface::COMMAND_HANDLED, $this->withContext([
-            'execution_id' => $completed->id()->toString(),
-            'command' => $completed->definition()->name()->toString(),
-            'status' => $result->status()->label(),
+            ExecutionReporterInterface::CONTEXT_EXECUTION_ID => $completed->id()->toString(),
+            ExecutionReporterInterface::CONTEXT_COMMAND => $completed->definition()->name()->toString(),
+            ExecutionReporterInterface::CONTEXT_STATUS => $result->status()->label(),
         ]));
-        $this->reportMeasurement('duration_ms', $durationMs);
+        $this->reportMeasurement(ExecutionReporterInterface::MEASUREMENT_DURATION, $durationMs);
 
         return $completed;
     }
@@ -87,12 +87,12 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
         ;
 
         $this->reportOccurrence(ExecutionReporterInterface::COMMAND_FAILED, $this->withContext([
-            'execution_id' => $completed->id()->toString(),
-            'command' => $completed->definition()->name()->toString(),
-            'error_class' => $error::class,
-            'error_message' => $error->getMessage(),
+            ExecutionReporterInterface::CONTEXT_EXECUTION_ID => $completed->id()->toString(),
+            ExecutionReporterInterface::CONTEXT_COMMAND => $completed->definition()->name()->toString(),
+            ExecutionReporterInterface::CONTEXT_ERROR_CLASS => $error::class,
+            ExecutionReporterInterface::CONTEXT_ERROR_MESSAGE => $error->getMessage(),
         ]));
-        $this->reportMeasurement('duration_ms', $durationMs);
+        $this->reportMeasurement(ExecutionReporterInterface::MEASUREMENT_DURATION, $durationMs);
 
         return $completed;
     }
@@ -142,7 +142,7 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
     private function reportMeasurement(string $name, int $value): void
     {
         try {
-            $this->reporter->reportMeasurement($name, $value, 'ms');
+            $this->reporter->reportMeasurement($name, $value, ExecutionReporterInterface::DURATION_UNIT_MS);
         } catch (\Throwable) {
         }
     }
