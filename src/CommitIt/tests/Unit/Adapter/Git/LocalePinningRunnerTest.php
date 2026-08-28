@@ -14,19 +14,16 @@ use ItPack\CommitIt\Adapter\Git\LocalePinningRunner;
  */
 final class LocalePinningRunnerTest extends Unit
 {
-    public function testPinsCLocaleDuringRunAndRestoresAfter(): void
+    public function testPinsLocaleThroughEnvArrayAndLeavesGlobalsUntouched(): void
     {
         $inner = new class () implements IRunner {
-            /** @var array<mixed>|null */
+            /** @var array<string, string>|null */
             public ?array $capturedEnv = null;
-            public ?string $localeDuringRun = null;
-            public ?string $langDuringRun = null;
 
             public function run($cwd, array $args, ?array $env = null): RunnerResult
             {
+                /** @var array<string, string> $env */
                 $this->capturedEnv = $env;
-                $this->localeDuringRun = (string) getenv('LC_ALL');
-                $this->langDuringRun = (string) getenv('LANG');
 
                 return new RunnerResult('git', 0, '', '');
             }
@@ -38,28 +35,60 @@ final class LocalePinningRunnerTest extends Unit
         };
 
         $runner = new LocalePinningRunner($inner);
+
+        $beforeLcAll = getenv('LC_ALL');
+
         $runner->run('/tmp', ['status'], ['PATH' => '/usr/bin']);
 
-        // The caller-supplied env is passed through unchanged (we do not pollute
-        // the command key the way an env-array override would).
-        self::assertSame(['PATH' => '/usr/bin'], $inner->capturedEnv);
-
-        // The locale was pinned for the duration of the git call.
-        self::assertSame('C', $inner->localeDuringRun);
-        self::assertSame('C', $inner->langDuringRun);
-
-        // And restored afterwards so the host process is not leaked into.
-        self::assertNotSame('C', getenv('LC_ALL'));
+        self::assertNotNull($inner->capturedEnv);
+        // Locale is pinned inside the child env array, never via a global putenv().
+        self::assertSame('C', $inner->capturedEnv['LC_ALL']);
+        self::assertSame('C', $inner->capturedEnv['LANG']);
+        // Caller-supplied env is preserved alongside the locale pin.
+        self::assertSame('/usr/bin', $inner->capturedEnv['PATH']);
+        // The host process environment is left untouched (no concurrency race).
+        self::assertSame($beforeLcAll, getenv('LC_ALL'));
     }
 
-    public function testPinsLocaleWhenNoEnvProvided(): void
+    public function testOverridesCallerProvidedLocale(): void
     {
         $inner = new class () implements IRunner {
-            public ?string $localeDuringRun = null;
+            /** @var array<string, string>|null */
+            public ?array $capturedEnv = null;
 
             public function run($cwd, array $args, ?array $env = null): RunnerResult
             {
-                $this->localeDuringRun = (string) getenv('LC_ALL');
+                /** @var array<string, string> $env */
+                $this->capturedEnv = $env;
+
+                return new RunnerResult('git', 0, '', '');
+            }
+
+            public function getCwd(): string
+            {
+                return (string) getcwd();
+            }
+        };
+
+        $runner = new LocalePinningRunner($inner);
+        $runner->run('/tmp', ['status'], ['LC_ALL' => 'de_DE.UTF-8', 'LANG' => 'de_DE.UTF-8']);
+
+        self::assertNotNull($inner->capturedEnv);
+        // The locale pin wins even if the caller tried to set a localized value.
+        self::assertSame('C', $inner->capturedEnv['LC_ALL']);
+        self::assertSame('C', $inner->capturedEnv['LANG']);
+    }
+
+    public function testInheritsFullProcessEnvironmentWhenNoEnvProvided(): void
+    {
+        $inner = new class () implements IRunner {
+            /** @var array<string, string>|null */
+            public ?array $capturedEnv = null;
+
+            public function run($cwd, array $args, ?array $env = null): RunnerResult
+            {
+                /** @var array<string, string> $env */
+                $this->capturedEnv = $env;
 
                 return new RunnerResult('git', 0, '', '');
             }
@@ -73,6 +102,13 @@ final class LocalePinningRunnerTest extends Unit
         $runner = new LocalePinningRunner($inner);
         $runner->run('/tmp', ['status']);
 
-        self::assertSame('C', $inner->localeDuringRun);
+        self::assertNotNull($inner->capturedEnv);
+        self::assertSame('C', $inner->capturedEnv['LC_ALL']);
+        self::assertSame('C', $inner->capturedEnv['LANG']);
+        // When the caller passes no env, the child still inherits the full host
+        // environment (PATH/HOME/GIT_*) so git resolves config and binaries.
+        if (getenv('PATH') !== false) {
+            self::assertSame(getenv('PATH'), $inner->capturedEnv['PATH']);
+        }
     }
 }

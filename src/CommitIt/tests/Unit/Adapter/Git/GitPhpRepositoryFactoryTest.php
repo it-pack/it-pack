@@ -42,7 +42,7 @@ final class GitPhpRepositoryFactoryTest extends Unit
     public function testOpenExistingNonRepoThrowsRepositoryNotFound(): void
     {
         $runner = new MemoryRunner($this->repoDir);
-        $runner->setResult(['rev-parse', '--git-dir'], [], '', 'fatal: not a git repository', 128);
+        $runner->setResult(['rev-parse', '--git-dir'], $this->pinnedEnv(), '', 'fatal: not a git repository', 128);
 
         $factory = new GitPhpRepositoryFactory($runner);
 
@@ -53,7 +53,7 @@ final class GitPhpRepositoryFactoryTest extends Unit
     public function testInitCreatesRepository(): void
     {
         $runner = new MemoryRunner($this->repoDir);
-        $runner->setResult(['init', null, '--end-of-options', $this->repoDir], [], '');
+        $runner->setResult(['init', null, '--end-of-options', $this->repoDir], $this->pinnedEnv(), '');
 
         $factory = new GitPhpRepositoryFactory($runner);
         $repository = $factory->init(RepositoryPath::from($this->repoDir));
@@ -66,12 +66,30 @@ final class GitPhpRepositoryFactoryTest extends Unit
     {
         $url = 'https://example.com/repo.git';
         $runner = new MemoryRunner($this->repoDir);
-        $runner->setResult(['clone', '-q', '--end-of-options', $url, $this->repoDir], [], '');
+        $runner->setResult(['clone', '-q', '--end-of-options', $url, $this->repoDir], $this->pinnedEnv(), '');
 
         $factory = new GitPhpRepositoryFactory($runner);
         $repository = $factory->cloneRepository($url, RepositoryPath::from($this->repoDir));
 
         self::assertInstanceOf(GitPhpRepository::class, $repository);
         self::assertSame($this->repoDir, $repository->getPath()->toString());
+    }
+
+    /**
+     * Mirrors the locale-pinned environment {@see \ItPack\CommitIt\Adapter\Git\LocalePinningRunner}
+     * injects, so `MemoryRunner` (which keys results by the env array) matches the command the
+     * adapter actually dispatches. Resolved per process so it equals the runner's own view.
+     *
+     * @return array<string, string>
+     */
+    private function pinnedEnv(): array
+    {
+        /** @var array<string, string> $env */
+        $env = getenv();
+
+        $env['LC_ALL'] = 'C';
+        $env['LANG'] = 'C';
+
+        return $env;
     }
 }

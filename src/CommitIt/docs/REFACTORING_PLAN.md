@@ -25,9 +25,9 @@
 
 ## 1. Milestone roadmap
 
-| # | Milestone | Priority | Risk | Depends on | Gate to add |
-|---|---|---|---|---|---|
-| M1 | Secure locale pinning (env injection, no `putenv`) | Medium (security) | Low–Med | — | `composer quality` |
+| # | Milestone | Priority | Risk | Depends on | Gate to add | Status |
+|---|---|---|---|---|---|---|
+| M1 | Secure locale pinning (env injection, no `putenv`) | Medium (security) | Low–Med | — | `composer quality` | ✅ Done |
 | M2 | Extract `ObserverDispatch` trait (DRY) | Medium | Low | — | `composer quality` |
 | M3 | Close Unit coverage gap to ≥95% lines | Medium | Low | M2 (optional) | `composer coverage` |
 | M4 | Fix coverage job + enforce mutation | Medium | Low | M1, M3 | `coverage:all`, `quality:full` |
@@ -57,6 +57,27 @@ global environment and exception mapping is locale-stable.
 is untouched. `composer quality` green.
 
 **Rollback.** Revert `LocalePinningRunner.php` only; callers pass `$env` unchanged.
+
+#### M1 — Implementation notes (completed)
+
+- `src/Adapter/Git/LocalePinningRunner.php` rewritten: no `putenv`/`getenv` mutation. It now reads the
+  current process environment once via `getenv()`, merges the caller-supplied `$env` (values cast to
+  `string`), then pins `LC_ALL`/`LANG` to the constant `self::LOCALE = 'C'`, and forwards the **full**
+  env array to the inner runner. Forwarding the full env is required because `CliRunner` passes `$env`
+  to `proc_open` as the child's *entire* environment (so git still resolves PATH/HOME/GIT_*); pinning
+  via the env array removes the process-global race under parallel workers.
+- `tests/Unit/Adapter/Git/LocalePinningRunnerTest.php` rewritten to assert the new contract: the child
+  env array contains `LC_ALL=C`/`LANG=C`, caller env is preserved (and a caller-supplied locale is
+  overridden), and the host `getenv('LC_ALL')` is unchanged before/after the call.
+- `tests/Unit/Adapter/Git/GitPhpRepositoryFactoryTest.php` updated: `MemoryRunner` keys results by the
+  env array, so the three `setResult` calls now register results with a `pinnedEnv()` helper that
+  mirrors the locale-pinned env (resolved per process, so it equals the runner's own view). This is a
+  test-only change; `GitAdapterMemoryTrait` (which builds `MemoryRunner` directly, without the locale
+  decorator) was unaffected.
+- **Verification run:** `composer analyse` (0 errors), `composer cs:check` (0 files), `composer test:unit`
+  (115 ✔ / 314 assertions), `composer test:functional` (31 ✔ / 89 assertions). `composer quality`
+  itself only fails on `security:audit` due to a pre-existing abandoned dev dependency
+  (`doctrine/annotations`), unrelated to this change.
 
 ---
 

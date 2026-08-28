@@ -221,6 +221,9 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
 
 1. **(Medium, security)** Replace `putenv`/`getenv` in `LocalePinningRunner` with `$env`-array injection
    of `LC_ALL=C`/`LANG=C`; drop the global mutation. Removes a concurrency race under parallel workers.
+   **→ Implemented (M1).** `LocalePinningRunner` now forwards the full process env with `LC_ALL`/`LANG`
+   pinned to `C` via the per-process `$env` array; no global `putenv`. Verified by `LocalePinningRunnerTest`
+   (global env unchanged) and a green Functional suite.
 2. **(Medium, DRY/style)** Extract an `ObserverDispatch` trait (private `run`/`runVoid`/`notify`) used by
    both `ObservedRepository` and `ObservedWorkingTree`; delete the duplicated docblock.
 3. **(Medium, coverage)** Close the Unit gaps: value-object `equals()` for all types, the missing

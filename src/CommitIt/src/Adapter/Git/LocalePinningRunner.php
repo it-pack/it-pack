@@ -15,54 +15,50 @@ use CzProject\GitPhp\RunnerResult;
  * `LC_ALL`/`LANG` keeps the mapping deterministic regardless of the host locale
  * (see REVIEW.md F6).
  *
- * The locale is pinned via `putenv()` immediately before delegating and restored
- * afterwards. Because `proc_open` inherits the parent process environment when no
- * explicit env array is given (the default for {@see \CzProject\GitPhp\Runners\CliRunner}),
- * the child git process sees `LC_ALL=C` while the host environment (HOME, PATH,
- * GIT_*, ...) is left untouched — so git keeps resolving global config and commit
- * author identity. Test runners such as `MemoryRunner` are unaffected because they
- * never spawn a process.
+ * The locale is pinned by merging `LC_ALL=C`/`LANG=C` into the per-process `$env`
+ * array forwarded to {@see IRunner::run} — not via a process-global `putenv()`.
+ * Because {@see \CzProject\GitPhp\Runners\CliRunner} forwards `$env` to `proc_open`
+ * as the child's *entire* environment, we merge the overrides onto a copy of the
+ * current process environment so git still resolves PATH, HOME, GIT_*, and global
+ * config. Keeping the mutation inside the env array means concurrent git
+ * invocations in shared workers can no longer race on the global `LC_ALL`/`LANG`
+ * (see REVIEW.md M1).
+ *
+ * Test runners such as `MemoryRunner` are unaffected because they never spawn a
+ * process and ignore the `$env` argument.
  *
  * @internal adapter-internal helper; not part of the public contract.
  */
 final class LocalePinningRunner implements IRunner
 {
+    private const LOCALE = 'C';
+
     public function __construct(private IRunner $inner)
     {
     }
 
+    /**
+     * @param array<string, scalar>|null $env
+     */
     public function run($cwd, array $args, ?array $env = null): RunnerResult
     {
-        $previousLocale = getenv('LC_ALL');
-        $previousLang = getenv('LANG');
+        /** @var array<string, string> $processEnv */
+        $processEnv = getenv();
 
-        putenv('LC_ALL=C');
-        putenv('LANG=C');
-
-        try {
-            return $this->inner->run($cwd, $args, $env);
-        } finally {
-            $this->restore('LC_ALL', $previousLocale);
-            $this->restore('LANG', $previousLang);
+        if ($env !== null) {
+            foreach ($env as $key => $value) {
+                $processEnv[$key] = (string) $value;
+            }
         }
+
+        $processEnv['LC_ALL'] = self::LOCALE;
+        $processEnv['LANG'] = self::LOCALE;
+
+        return $this->inner->run($cwd, $args, $processEnv);
     }
 
     public function getCwd(): string
     {
         return $this->inner->getCwd();
-    }
-
-    /**
-     * @param string|false $previous
-     */
-    private function restore(string $name, $previous): void
-    {
-        if ($previous === false) {
-            putenv($name);
-
-            return;
-        }
-
-        putenv($name . '=' . $previous);
     }
 }
