@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use ItPack\HashIt\Hasher;
+use ItPack\HashIt\HasherInterface;
 use ItPack\HashIt\HmacHasherInterface;
 
 /**
@@ -14,7 +15,7 @@ use ItPack\HashIt\HmacHasherInterface;
  */
 final class NativeHashIt
 {
-    public static function create(): Hasher
+    public static function create(): HasherInterface
     {
         return new Hasher(new NativeContextFactory(), new NativeDirectoryListing());
     }

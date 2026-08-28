@@ -13,12 +13,20 @@ use ItPack\HashIt\FilepathInterface;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashContextInterface;
 use ItPack\HashIt\Hasher;
+use ItPack\HashIt\HasherInterface;
+use ItPack\HashIt\HmacHasherInterface;
 
 class HasherTest extends Unit
 {
-    private function hasher(): Hasher
+    private function hasher(): HasherInterface
     {
         return NativeHashIt::create();
+    }
+
+    public function testCompositionRootReturnsPortBackedServices(): void
+    {
+        self::assertInstanceOf(HasherInterface::class, NativeHashIt::create());
+        self::assertInstanceOf(HmacHasherInterface::class, NativeHashIt::hmacHasher());
     }
 
     public function testHashString(): void
@@ -244,6 +252,7 @@ class HasherTest extends Unit
             self::fakePath($a),
             self::fakePath($b),
         ]));
+        self::assertInstanceOf(HasherInterface::class, $hasher);
 
         $map = $hasher->hashDirectory($dir);
 

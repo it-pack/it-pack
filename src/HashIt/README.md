@@ -86,6 +86,7 @@ src/
   ContextFactoryInterface.php        port
   FilepathInterface.php              port
   DirectoryListingInterface.php      port
+  HasherInterface.php                port (the public hasher API)
   Hasher.php                         core service (depends only on ports)
   Adapter/
     NativeHashContext.php            wraps PHP \HashContext

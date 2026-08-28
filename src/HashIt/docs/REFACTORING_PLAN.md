@@ -220,7 +220,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M5 — Interface backing for the core services (F-4)
+## M5 — Interface backing for the core services (F-4) — ✅ DONE (2026-08-25)
 
 **Goal:** Close the review's §4 audit gap: the primary public API becomes port-backed, so consumers can inject fakes and the composition root stops propagating a concrete type.
 
@@ -244,6 +244,8 @@ git status --porcelain   # var/ noise gone
 **Verification:** gates; review §4 verdict table re-audited — every swappable collaborator port-backed, exemptions limited to enum/attribute/composition-root.
 **Dependencies:** M3, M4 (surface stable before extracting the interface).
 **Acceptance:** no consumer-facing concrete class in the primary API path; gates green.
+
+**Completion note (2026-08-25):** `HasherInterface` introduced with all eight public operations (the plan's "seven" was a miscount — hash, hashBinary, hashFile, verify, verifyBinary, hashStream, hashFiles, hashDirectory) plus migrated contract docblocks (`@throws RuntimeException`/`InvalidArgumentException` on `hashFile`, stream seek semantics + `@param resource` + chunk guard on `hashStream`, shape docs on bulk methods); `Hasher` implements it and inherits the docs rather than duplicating them. Two implementation details worth recording: `DEFAULT_CHUNK_SIZE_BYTES` moved from a private `Hasher` constant to a **public typed interface constant** so both signatures reference one definition without exposing magic numbers (M1's grep gate still holds — `65536` exists exactly once), and `NativeHashIt::create()` now returns `HasherInterface` while keeping both concrete imports it legitimately needs for construction. The builder-interface deferral stands as decided. Tests: composition-root port-typing assertions added, the shared `hasher()` helper now returns `HasherInterface` (so every existing test consumes through the port), and the fake-driven test asserts its SUT satisfies the port. Review §4 re-audit: adapters 100% port-backed; core services port-backed except `HashBuilder` (documented deferral); exemptions exactly enum + attribute + composition root. Gates: 44 tests / 182 assertions ✅ · php-cs-fixer 0 of 25 ✅ · PHPStan 0 errors ✅ · deptrac 0 violations ✅.
 
 ---
 
