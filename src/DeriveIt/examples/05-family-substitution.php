@@ -9,6 +9,8 @@ declare(strict_types=1);
  * are rewritten to the corresponding derived interface. DeriveIt::deriveFamily()
  * auto-detects the cross references, so Node's `?Node` and Tree's `Node` both
  * point at `NodeInterface` instead of the concrete class.
+ *
+ * To emit a delegating adapter per member as well (auto-wired), see example 12.
  */
 
 require __DIR__ . '/bootstrap.php';

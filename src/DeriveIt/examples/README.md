@@ -38,6 +38,11 @@ Each script `require`s `examples/bootstrap.php`, which loads Composer's autoload
 | 8 | `08-graph-walking.php` | **The foundation.** `ClassReflection` walks the full class/interface/trait graph the generators build on. |
 | 9 | `09-leakage-invariant.php` | **No leakage.** Even when the source implements other interfaces, the derived interface extends nothing of the adaptee. |
 | 10 | `10-dogfood-nette.php` | **Real-world use.** Derive an interface from `nette/php-generator`'s own `ClassType`, then load and verify it. |
+| 11 | `11-adapter-wrapper-map.php` | **Adapters that wrap returned ports.** Port a returned type first, then a `returnWrapperMap` converts the concrete return value into its port (no vendor leakage). |
+| 12 | `12-family-adapters.php` | **A family of adapters, auto-wired.** `deriveFamilyAdapter()` emits each member's interface + adapter and wraps cross references for you. |
+| 13 | `13-adapter-with-config.php` | **Adapter with full config.** The `forAdapter()` preset keeps static methods; `methodRenames` reshapes the port's vocabulary. |
+| 14 | `14-drift-detection.php` | **CI guardrail.** `DeriveIt::diff()` flags when a committed port diverges from the adaptee it was derived from. |
+| 15 | `15-dogfood-adapter.php` | **Real-world adapter.** Emit interface + adapter for `nette/php-generator`'s `ClassType` and instantiate the generated adapter. |
 
 ## Fixtures used
 

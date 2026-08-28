@@ -76,7 +76,7 @@ $source = DeriveIt::deriveAdapter(
 // TreeAdapter::add(NodeInterface $node) { $this->adaptee->add(new NodeAdapter($node)); }
 ```
 
-*(see `examples/06-adapter-generation.php` and `features.md §6`)*.
+*(see `examples/06` for the basics, `examples/11` for wrapped returned ports, and `examples/12` for a whole family of adapters; also `features.md §6`)*.
 
 ---
 
@@ -231,7 +231,8 @@ foreach (PORTS as $fqcn => $file) {
 
 When a drift is intentional (the vendor legitimately changed), regenerate with
 `scripts/regenerate_goldens.php`, review the diff, and commit. The port becomes a
-reviewable artifact, not a hidden assumption.
+reviewable artifact, not a hidden assumption. *(A runnable version lives in
+`examples/14-drift-detection.php`.)*
 
 ---
 
