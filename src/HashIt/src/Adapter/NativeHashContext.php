@@ -7,7 +7,7 @@ namespace ItPack\HashIt\Adapter;
 use HashContext;
 use ItPack\HashIt\HashContextInterface;
 
-final class NativeHashContext implements HashContextInterface
+final readonly class NativeHashContext implements HashContextInterface
 {
     private HashContext $context;
 

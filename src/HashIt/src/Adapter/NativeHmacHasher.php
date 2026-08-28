@@ -10,7 +10,7 @@ use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashInterface;
 use ItPack\HashIt\HmacHasherInterface;
 
-final class NativeHmacHasher implements HmacHasherInterface
+final readonly class NativeHmacHasher implements HmacHasherInterface
 {
     public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {

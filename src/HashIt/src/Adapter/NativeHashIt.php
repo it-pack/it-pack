@@ -13,7 +13,7 @@ use ItPack\HashIt\HmacHasherInterface;
  * port-based Hasher. The only place in the codebase that knows about concrete
  * adapter classes — keep framework/concrete wiring here, not in the core.
  */
-final class NativeHashIt
+final readonly class NativeHashIt
 {
     public static function create(): HasherInterface
     {

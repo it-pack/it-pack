@@ -60,7 +60,7 @@ uses readonly classes (a PHP 8.2 feature) and the README claims `>= 8.1`.
 | F-6 | 🟡 | Contract robustness | Raw `ValueError`/`TypeError` leak through the public API; `HashContextInterface` lifecycle undocumented; non-seekable-stream semantics implicit |
 | F-7 | 🟡 | Maintenance | No CI workflow, no deptrac/phparkitect rule, no `license`/`description` fields, `var/` not gitignored, empty `fixtures/` and `tests/_envs/` dirs |
 | F-8 | 🟢 | Feature symmetry | HMAC path is hex-only and non-incremental (no keyed context factory port), while the plain path offers binary + stream + bulk |
-| F-9 | 🟢 | Modern PHP consistency | Only 2 of 8 classes declare `final readonly`; four others are effectively immutable but undeclared |
+| F-9 | 🟢 | Modern PHP consistency | Only 2 of 8 classes declare `final readonly`; four others are effectively immutable but undeclared (closed by M6) | ✅ closed by M6 |
 
 ---
 
@@ -168,7 +168,7 @@ would make the future bridge story symmetric with siblings that expose `Contract
 |---------|-------|------------|
 | Backed enums | ✅ | `HashAlgorithm` is the right tool; attribute metadata on cases avoids parallel lists |
 | Attributes | ✅ | `#[HmacSafe]` with reflection derivation is the package's best design move |
-| Readonly classes | ◑ | `Hasher`, `NativeFilepathFileinfo` are `final readonly`; `Hash`, `HashBuilder`, `NativeHashContext`, `NativeHmacHasher`, `NativeContextFactory` are effectively immutable but undeclared (**F-9**, 🟢 consistency nit — `final readonly` costs nothing and documents intent; note `Hash` uses promoted non-readonly props) |
+| Readonly classes | ✅ | All 10 classes declared `final readonly` (incl. `Hash` — promoted props subsumed by the class modifier); **F-9** closed by M6 |
 | Property hooks / virtual properties | ✖ avoided deliberately | Endorsed: IMPLEMENTATION_PLAN §1.1 documents that get-only hooks caused the original infinite-recursion defect; the method-accessor form was consciously chosen. Revisit hooks only with backed storage |
 | Constructor promotion | ✅ | everywhere applicable |
 | First-class callables, enums-in-constants | n/a | no natural use site |
@@ -245,6 +245,21 @@ None of these violate memory safety, and PHP's native messages are decent — bu
 
 Items 1–2 are half-day changes that close the gap between "usable" and the package's stated
 "reference architecture" ambition; items 3–6 are mechanical follow-ons; 7–9 are polish.
+
+### Closure log (verified closed)
+
+| ID | Milestone | Verification |
+|----|-----------|-------------|
+| F-2 | M0 | `php` constraint `^8.4`, license MIT, description; README floor `^8.4` |
+| F-1 | M3 | core→adapter import removed; `deptrac.yaml` guards Core/Adapter/CompositionRoot, 0 violations |
+| F-3 | M1 | 11× `'sha256'` → `HashAlgorithm::SHA256`; named chunk-size constant; deduped message |
+| F-5 | M4 | `hashFile` routes through `hashStream` via `try`/`finally`; benchmark flat |
+| F-6 | M2 | context lifecycle docblock; `ValueError`→`InvalidArgumentException(previous)`; tryFrom guard |
+| F-7 | M0 + M7 | gitignore `var/`, dropped empty dirs; CI workflow runs the four gates |
+| F-4 | M5 | `HasherInterface` port; `NativeHashIt::create(): HasherInterface`; consumers bind to port |
+| F-9 | M6 | all 10 classes `final readonly`; `grep -rn "^final class" src/` → empty |
+
+F-8 remains open (deferred to M8 decision point — keyed-context port for streaming/bulk/binary HMAC).
 
 ---
 

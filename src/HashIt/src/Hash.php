@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
-final class Hash implements HashInterface
+final readonly class Hash implements HashInterface
 {
     public function __construct(
         private string $value,

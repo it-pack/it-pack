@@ -7,7 +7,7 @@ namespace ItPack\HashIt\Adapter;
 use ItPack\HashIt\ContextFactoryInterface;
 use ItPack\HashIt\HashContextInterface;
 
-final class NativeContextFactory implements ContextFactoryInterface
+final readonly class NativeContextFactory implements ContextFactoryInterface
 {
     public function build(string $algorithm): HashContextInterface
     {

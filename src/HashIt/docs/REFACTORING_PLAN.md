@@ -249,7 +249,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M6 — `final readonly` consistency (F-9)
+## M6 — `final readonly` consistency (F-9) — ✅ DONE (2026-08-25)
 
 **Goal:** Declare intent on the four effectively-immutable classes that lack the class modifier, so the whole package reads uniformly.
 
@@ -264,6 +264,8 @@ git status --porcelain   # var/ noise gone
 **Verification:** gates + `grep -rn "^final class" src/` → empty.
 **Dependencies:** M0 (readonly classes require ≥ 8.2; floor guarantees 8.4).
 **Acceptance:** every instantiable class in `src/` is `final readonly` except the composition root (which holds no state — convert it too if trivially possible, else leave documented).
+
+**Completion note (2026-08-25):** All six remaining `final class` declarations converted to `final readonly class` — `Hash`, `Adapter\NativeContextFactory`, `Adapter\NativeHmacHasher`, `Adapter\NativeHashContext` (the four listed in the plan), plus the composition root `Adapter\NativeHashIt` and the `HmacSafe` attribute, both of which hold no state so the modifier applies trivially. The package now has exactly 10 classes and every one is `final readonly` (`grep -rn "^final class" src/` → empty, `grep -c "^final readonly class" src/` → 10). No new tests were required (behavior-preserving); the existing builder-immutability and branching suites double as the regression net as planned. Gates: 44 tests / 182 assertions ✅ · PHPStan 0 errors ✅ · php-cs-fixer 0 of 25 ✅ · deptrac 0 violations ✅. F-9 closed.
 
 ---
 
