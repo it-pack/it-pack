@@ -15,33 +15,6 @@ use ItPack\DeriveIt\Generator\DeriveMode;
  */
 final class ArgParser
 {
-    /**
-     * Number of value arguments each option consumes; absent entries are boolean
-     * flags. Kept as a map co-located with {@see self::table()} so adding an
-     * option is one table row plus (when value-consuming) one arity entry —
-     * replacing the previous duplicate VALUE_OPTIONS name list (F7 / R3-8).
-     *
-     * @return array<string, int>
-     */
-    private static function arities(): array
-    {
-        return [
-            'mode' => 1,
-            'out' => 1,
-            'root' => 1,
-            'preset' => 1,
-            'ns-prefix' => 1,
-            'wrapper' => 1,
-            'skip' => 1,
-            'only' => 1,
-            'subst' => 1,
-            'rename' => 1,
-            'owned-attr' => 1,
-            're-expose' => 1,
-            'base-dir' => 1,
-        ];
-    }
-
     public function parse(array $args): DeriveCliInput
     {
         $state = new ParseState();
@@ -83,6 +56,33 @@ final class ArgParser
             wrapperMap: $state->wrapperMap,
             verbose: $state->verbose,
         );
+    }
+
+    /**
+     * Number of value arguments each option consumes; absent entries are boolean
+     * flags. Kept as a map co-located with {@see self::table()} so adding an
+     * option is one table row plus (when value-consuming) one arity entry —
+     * replacing the previous duplicate VALUE_OPTIONS name list (F7 / R3-8).
+     *
+     * @return array<string, int>
+     */
+    private static function arities(): array
+    {
+        return [
+            'mode' => 1,
+            'out' => 1,
+            'root' => 1,
+            'preset' => 1,
+            'ns-prefix' => 1,
+            'wrapper' => 1,
+            'skip' => 1,
+            'only' => 1,
+            'subst' => 1,
+            'rename' => 1,
+            'owned-attr' => 1,
+            're-expose' => 1,
+            'base-dir' => 1,
+        ];
     }
 
     private function apply(string $body, ?string $value, ParseState $state): void

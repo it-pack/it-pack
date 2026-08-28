@@ -6,57 +6,10 @@ namespace Tests\Unit\Cli;
 
 use ItPack\DeriveIt\Cli\DeriveCommand;
 use PHPUnit\Framework\TestCase;
-
-/**
- * Sample targets live in this namespace so they are autoloadable by the CLI's
- * class_exists() resolution without touching the fixtures.
- */
-class CliSampleTarget
-{
-    public function hello(string $name): string
-    {
-        return $name;
-    }
-
-    public function widget(): void
-    {
-    }
-
-    public static function make(): self
-    {
-        return new self();
-    }
-}
-
-trait CliSampleTrait
-{
-    public function traitDo(): void
-    {
-    }
-}
-
-class CliSampleTraitUser
-{
-    use CliSampleTrait;
-
-    public function selfDo(): void
-    {
-    }
-}
-
-class CliSampleA
-{
-    public function a(): void
-    {
-    }
-}
-
-class CliSampleB
-{
-    public function b(): void
-    {
-    }
-}
+use Tests\Support\Fixture\CliSampleA;
+use Tests\Support\Fixture\CliSampleB;
+use Tests\Support\Fixture\CliSampleTarget;
+use Tests\Support\Fixture\CliSampleTraitUser;
 
 final class DeriveCommandTest extends TestCase
 {

@@ -50,6 +50,7 @@ final class DeriveCommand implements CommandInterface
 
     private readonly ArgParser $parser;
     private readonly \Closure $verboseWriter;
+    private readonly FileTargetResolver $fileResolver;
 
     /**
      * @param \Closure(string):void $output       where derived source is written
@@ -57,17 +58,21 @@ final class DeriveCommand implements CommandInterface
      * @param ArgParser|null        $parser       injectable arg parser (R4-3 DI seam; defaults to a new one)
      * @param \Closure(string):void|null $verboseWriter where --verbose diagnostics lines are written
      *                                            (R4-3 DI seam; defaults to the error stream)
+     * @param FileTargetResolver|null $fileResolver resolves a target file to its declared type FQCN
+     *                                            (R4-9 DI seam; defaults to a new one)
      */
     public function __construct(
         private readonly \Closure $output,
         private readonly \Closure $error,
         ?ArgParser $parser = null,
         ?\Closure $verboseWriter = null,
+        ?FileTargetResolver $fileResolver = null,
     ) {
         $this->parser = $parser ?? new ArgParser();
         $this->verboseWriter = $verboseWriter ?? function (string $line): void {
             ($this->error)($line . "\n");
         };
+        $this->fileResolver = $fileResolver ?? new FileTargetResolver();
     }
 
     private function write(string $data): void
@@ -211,7 +216,7 @@ final class DeriveCommand implements CommandInterface
     {
         $fqcn = $target;
         if (is_file($target) && (str_ends_with($target, '.php') || str_contains($target, '/'))) {
-            $fqcn = $this->classFromFile($target);
+            $fqcn = $this->fileResolver->resolve($target);
         }
 
         if (!class_exists($fqcn) && !interface_exists($fqcn) && !trait_exists($fqcn) && !enum_exists($fqcn)) {
@@ -223,65 +228,6 @@ final class DeriveCommand implements CommandInterface
         }
 
         return $fqcn;
-    }
-
-    /**
-     * Extract the first declared type FQCN from a PHP source file without executing
-     * it (tokenizer scan), so the CLI can point DeriveIt at a file directly.
-     */
-    private function classFromFile(string $file): string
-    {
-        $code = file_get_contents($file);
-        if ($code === false) {
-            throw new \RuntimeException(sprintf('cannot read file "%s".', $file));
-        }
-
-        $tokens = token_get_all($code);
-        $namespace = '';
-        $count = count($tokens);
-
-        for ($i = 0; $i < $count; ++$i) {
-            $token = $tokens[$i];
-            if (!is_array($token)) {
-                continue;
-            }
-
-            if ($token[0] === T_NAMESPACE) {
-                $buffer = '';
-                for ($j = $i + 1; $j < $count; ++$j) {
-                    $next = $tokens[$j];
-                    if ($next === ';' || $next === '{') {
-                        break;
-                    }
-                    if (is_array($next)) {
-                        $buffer .= $next[1];
-                    }
-                }
-                $namespace = trim($buffer);
-
-                continue;
-            }
-
-            if ($token[0] === T_DOUBLE_COLON) {
-                continue;
-            }
-
-            if (in_array($token[0], [T_CLASS, T_INTERFACE, T_TRAIT, T_ENUM], true)) {
-                for ($j = $i + 1; $j < $count; ++$j) {
-                    $next = $tokens[$j];
-                    if ($next === '{' || $next === '(') {
-                        break;
-                    }
-                    if (is_array($next) && $next[0] === T_STRING) {
-                        $name = $next[1];
-
-                        return $namespace === '' ? $name : $namespace . '\\' . $name;
-                    }
-                }
-            }
-        }
-
-        throw new \RuntimeException(sprintf('no class/interface/trait/enum declaration found in "%s".', $file));
     }
 
     /**

@@ -50,8 +50,8 @@ structured results (`DerivationResult`, `BuildMeta`), CI drift diffing
 
 **Current baseline (2026-08-25):** `test:unit` ✅ (298 tests, 612 assertions),
 `cs:check` ✅ (0 files), `cs:lines` ✅ (0 violations), `analyse` ✅ (0 errors),
-`architecture` ✅ (0 violations), `coverage:check` ✅ (97.59%, floor 96%),
-`infection` ✅ (MSI ≈ 99.7%, min-msi 80). CI (`.github/workflows/ci.yml`) runs the
+`architecture` ✅ (0 violations), `coverage:check` ✅ (97.60%, floor 96%),
+`infection` ✅ (Covered Code MSI ≈ 99%, min-msi 80). CI (`.github/workflows/ci.yml`) runs the
 full battery on a PHP 8.4 + 8.5 matrix on every push/PR. Do not let any gate
 regress. The sibling bridge `src/DeriveItRunit` mirrors this battery (its own
 `phpcs.xml.dist`, `infection.json5`, `cs:lines`, `coverage`, `infection` scripts,
@@ -107,10 +107,12 @@ fixtures/
   Stubs/                                # stubs used by unit tests
   *.php (~60)                           # type fixtures for golden-file snapshot tests
 tests/
-  Unit/                                 # 25 test classes incl. snapshot/golden suites
+  Unit/                                 # test classes incl. snapshot/golden suites
+  Support/Fixture/                      # one-type-per-file shared test fixtures
+                                         #   (PSR-4 Tests\Support\Fixture\; Foreign\ → foreign/)
   Functional/DeriveRealPackageTest.php  # end-to-end against a real external package
   _expected/                            # 48 committed golden sources (*.interface.php,
-                                        #   *.adapter.php) — must stay byte-stable
+                                         #   *.adapter.php) — must stay byte-stable
 generated/                              # empty — output is rendered in-memory / to string
 ```
 
@@ -165,6 +167,17 @@ Namespace roots (composer.json): `ItPack\DeriveIt\` → `src/`,
 - **Golden files are contracts.** Never edit `tests/_expected/*` by hand; if a
   deliberate output change is intended, regenerate via `scripts/regenerate_goldens.php`
   and review the full diff.
+- **One type per file.** Every hand-written PHP file declares exactly one type.
+  Shared test fixtures are extracted to `tests/Support/Fixture/`
+  (`ItPack\DeriveItRunit\Tests\Fixture\` in the bridge) so each stays
+  one-type-per-file; the committed golden sources in `tests/_expected/` are
+  exempt (R4-7 / F-5).
+- **Declaration order.** Within a class, public API methods precede private and
+  static helpers (e.g. `ArgParser::arities()` sits below `parse()`; the facade's
+  composition-root accessor `DeriveIt::factory()` sits beneath the public static
+  block). Standing exemptions (language-inseparable): constructor-promoted
+  properties precede the constructor, and framework lifecycle methods
+  (`setUp` / `_before`) precede the test methods they set up (R4-8 / F-6).
 
 ---
 

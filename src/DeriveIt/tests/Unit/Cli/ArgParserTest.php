@@ -9,14 +9,7 @@ use ItPack\DeriveIt\Cli\Preset;
 use ItPack\DeriveIt\Generator\DeriveMode;
 use ItPack\DeriveIt\Generator\Visibility;
 use PHPUnit\Framework\TestCase;
-
-class ArgParserSample
-{
-    public function hello(string $name): string
-    {
-        return $name;
-    }
-}
+use Tests\Support\Fixture\ArgParserSample;
 
 final class ArgParserTest extends TestCase
 {

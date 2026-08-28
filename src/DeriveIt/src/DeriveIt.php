@@ -27,17 +27,6 @@ use ReflectionException;
 final class DeriveIt
 {
     /**
-     * Composition-root accessor (F-10 / RP-10): assembles the derivers behind the
-     * {@see DeriveItFactory} so the facade stays a thin, stateless entry point.
-     * The optional telemetry sink threads through to every assembled deriver
-     * (CONSOLIDATION_PLAN.md §5.1).
-     */
-    private static function factory(DeriveConfig $config, ?DeriveEventSinkInterface $eventSink = null): DeriveItFactory
-    {
-        return new DeriveItFactory($config, eventSink: $eventSink);
-    }
-
-    /**
      * @param ReflectionClass|class-string $class
      */
     public static function derive(ReflectionClass|string $class, bool $includeStatic = false): string
@@ -328,5 +317,16 @@ final class DeriveIt
         );
 
         return $result;
+    }
+
+    /**
+     * Composition-root accessor (F-10 / RP-10): assembles the derivers behind the
+     * {@see DeriveItFactory} so the facade stays a thin, stateless entry point.
+     * The optional telemetry sink threads through to every assembled deriver
+     * (CONSOLIDATION_PLAN.md §5.1).
+     */
+    private static function factory(DeriveConfig $config, ?DeriveEventSinkInterface $eventSink = null): DeriveItFactory
+    {
+        return new DeriveItFactory($config, eventSink: $eventSink);
     }
 }

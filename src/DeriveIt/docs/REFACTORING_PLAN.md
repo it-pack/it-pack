@@ -22,8 +22,9 @@
 >
 > **Status: Milestone A (R4-1 … R4-3) implemented and gated green; Milestone B
 > (R4-4 … R4-6) implemented and gated green (cs:lines, coverage:check floor 96%,
-> bridge infection MSI 100%). Milestones C/D (R4-7 … R4-9) still planned.** Update
-> the implementation-status table as steps land.
+> bridge infection MSI 100%); Milestone C (R4-7 … R4-9) implemented and gated
+> green (2026-08-28). All R4 steps shipped — the plan's three milestones are
+> complete.** Update the implementation-status table as steps land.
 
 ## Severity legend (mirrors REVIEW.md §14)
 
@@ -76,9 +77,9 @@ gate battery on both packages.
  | R4-4 | F-1 | ✅ Done | `phpcs.xml.dist` (`Generic.Files.LineLength` 120) added (no `<file>` tags — pass paths on CLI); all 76 >120-col lines wrapped in `src` (54) + `tests` (22) via bottom-up multi-line edits; `composer cs:lines` script (`vendor/bin/phpcs --standard=phpcs.xml.dist src tests`) added; AGENTS.md §2 updated. |
  | R4-5 | F-2, F-10 | ✅ Done | `scripts/coverage_report.php` (Clover parse + per-file/overall, default floor 96) added; `composer coverage:check` script (`codecept run Unit --coverage-xml --coverage-html && php scripts/coverage_report.php --min=96`) added; targeted tests drove overall 94.05% → 97.59% and the four named files (DeriveCommand 95.14%, ConstructorFilter 100%, LeakageAuditor 98.08%, Naming 95.24%) to ≥95%. |
  | R4-6 | F-12 | ✅ Done | Bridge `it-pack/derive-it-runit` gained `infection/infection`, `infection.json5` (testFramework phpunit, min-msi 80), `composer infection`/`coverage`/`cs:lines` scripts, its own `phpcs.xml.dist`, and `.github/workflows/ci.yml`; a direct branch-coverage test (`DerivationExecutionFunctionalTest::testSinkExercisesEveryRecorderBranch`) pins every recorder arm, recorded MSI 100% on PHP 8.4/8.5. |
- | R4-7 | F-5 | ⬜ Planned | — |
- | R4-8 | F-6 | ⬜ Planned | — |
- | R4-9 | F-8 | ⬜ Planned ◐ | — |
+ | R4-7 | F-5 | ✅ Done | Test types extracted to `tests/Support/Fixture/` (PSR-4 `Tests\Support\Fixture\`): `ArgParserSample`; `CliSampleTarget` + `CliSampleTrait` + `CliSampleTraitUser` + `CliSampleA` + `CliSampleB`; `RecordingDeriveEventSink` (shared by DeriveEventEmitterTest + DerivationTelemetryTest); `CountingReflectionCache` + `InMemoryPool` + `CacheItem`; `NamingEndsWithInterface` + `NamingCollideInterface` + `NamingCollide`; `LeakForeignReturn` + `LeakBuiltinReturn` + `LeakOwnedReturn` (plus `Foreign\Ns\Thing`, autoloaded via a new `Foreign\` dev PSR-4 root → `tests/Support/Fixture/foreign/`). Bridge `ReportWidget` extracted to `DeriveItRunit/tests/Fixture/` (`ItPack\DeriveItRunit\Tests\Fixture\`). The original audit undercounted (5 files); the true hand-written multi-type set was 7 — all extracted, leaving the tree `MULTI = 0` (goldens excluded). AGENTS.md §4 carries the one-type-per-file ledger + golden exemption. |
+ | R4-8 | F-6 | ✅ Done | `ArgParser::arities()` relocated below `parse()`; `DeriveIt::factory()` relocated beneath the public static API block. AGENTS.md §4 carries the declaration-order rule + the two standing exemptions (constructor-promoted properties, lifecycle methods). |
+ | R4-9 | F-8 | ✅ Done ◐ | Tokenizer scan extracted from `DeriveCommand::classFromFile()` into `src/Cli/FileTargetResolver.php` (`final readonly`, injected as an optional DI seam defaulting to a new instance; `resolveType()` delegates). New `FileTargetResolverTest` covers namespace scan, global-class scan, and the no-declaration error. `DeriveCommand` aggregate CC drops; behavior identical (same error strings asserted by DeriveCommandTest). |
 
 ---
 
@@ -466,13 +467,13 @@ or rewrite a golden to pass.
 
 ## Definition of Done
 
-- [ ] R4-1 … R4-9 implemented (R4-9 may close as "declined" with rationale in
-      the status table).
-- [ ] Zero abstract classes; zero telemetry literals outside vocabulary
+- [x] R4-1 … R4-9 implemented (R4-9 shipped as the optional `FileTargetResolver`
+      extraction rather than declined — rationale in the status table).
+- [x] Zero abstract classes; zero telemetry literals outside vocabulary
       interfaces; `cs:lines` + `coverage:check` green and wired into CI.
-- [ ] All five DeriveIt gates green on PHP 8.4/8.5 with coverage ≥ 96%;
+- [x] All five DeriveIt gates green on PHP 8.4/8.5 with coverage ≥ 96%;
       bridge gates green with recorded MSI ≥ 80 and CI running.
-- [ ] Goldens byte-identical throughout; public APIs additive-only.
-- [ ] AGENTS.md carries the instantiation/ordering exemption ledger.
-- [ ] `docs/REVIEW.md` annotated with a per-F-id resolution column linking to
+- [x] Goldens byte-identical throughout; public APIs additive-only.
+- [x] AGENTS.md carries the instantiation/ordering exemption ledger.
+- [x] `docs/REVIEW.md` annotated with a per-F-id resolution column linking to
       R4 steps (mirroring how REVIEW_3/4 closures were recorded).

@@ -7,6 +7,7 @@ namespace Tests\Unit\Generator;
 use Codeception\Test\Unit;
 use ItPack\DeriveIt\Contract\Telemetry\DeriveObservationSeverity;
 use ItPack\DeriveIt\Generator\DeriveEventEmitter;
+use Tests\Support\Fixture\RecordingDeriveEventSink;
 
 /**
  * Unit contract of the telemetry pass-through: every emission must forward

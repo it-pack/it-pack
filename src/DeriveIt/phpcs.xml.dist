@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ruleset name="DeriveItLineLength">
+    <description>Enforces the 120-column line limit (REVIEW.md F-1 / R4-4).</description>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="120"/>
+            <property name="ignoreComments" value="false"/>
+        </properties>
+    </rule>
+</ruleset>

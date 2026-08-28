@@ -17,9 +17,9 @@ use ItPack\DeriveIt\Generator\PerTraitInterfaceDeriver;
 use ItPack\DeriveIt\Reflection\PsrCacheReflectionCache;
 use Nette\PhpGenerator\InterfaceType;
 use PHPUnit\Framework\TestCase;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use ReflectionClass;
+use Tests\Support\Fixture\CountingReflectionCache;
+use Tests\Support\Fixture\InMemoryPool;
 
 /**
  * Step 10.15 (G15 / G18): `InterfaceDeriver::build()` returns a typed {@see BuildMeta}
@@ -141,140 +141,5 @@ final class Phase15BuildMetaAndCacheTest extends TestCase
         // ReflectionClass, so get() returns null; only the marker persists.
         $fresh = new PsrCacheReflectionCache($pool);
         self::assertNull($fresh->get(Node::class));
-    }
-}
-
-/**
- * Spy cache counting get/set calls so the memoization contract is observable.
- */
-final class CountingReflectionCache implements ReflectionCacheInterface
-{
-    /** @var list<string> */
-    public array $gets = [];
-    /** @var list<string> */
-    public array $sets = [];
-
-    private array $items = [];
-
-    public function get(string $fqcn): ?ReflectionClass
-    {
-        $this->gets[] = $fqcn;
-
-        return $this->items[$fqcn] ?? null;
-    }
-
-    public function set(string $fqcn, ReflectionClass $reflection): void
-    {
-        $this->sets[] = $fqcn;
-        $this->items[$fqcn] = $reflection;
-    }
-}
-
-/**
- * Minimal in-memory PSR-6 pool for adapter testing.
- */
-final class InMemoryPool implements CacheItemPoolInterface
-{
-    /** @var array<string, CacheItemInterface> */
-    private array $items = [];
-
-    public function getItem(string $key): CacheItemInterface
-    {
-        return $this->items[$key] ?? new CacheItem($key, hit: false);
-    }
-
-    public function getItems(array $keys = []): iterable
-    {
-        foreach ($keys as $key) {
-            yield $key => $this->getItem($key);
-        }
-    }
-
-    public function hasItem(string $key): bool
-    {
-        return isset($this->items[$key]) && $this->items[$key]->isHit();
-    }
-
-    public function clear(): bool
-    {
-        $this->items = [];
-
-        return true;
-    }
-
-    public function deleteItem(string $key): bool
-    {
-        unset($this->items[$key]);
-
-        return true;
-    }
-
-    public function deleteItems(array $keys): bool
-    {
-        foreach ($keys as $key) {
-            unset($this->items[$key]);
-        }
-
-        return true;
-    }
-
-    public function save(CacheItemInterface $item): bool
-    {
-        $this->items[$item->getKey()] = $item;
-
-        return true;
-    }
-
-    public function saveDeferred(CacheItemInterface $item): bool
-    {
-        return $this->save($item);
-    }
-
-    public function commit(): bool
-    {
-        return true;
-    }
-}
-
-final class CacheItem implements CacheItemInterface
-{
-    public function __construct(
-        private string $key,
-        private mixed $value = null,
-        private bool $hit = true,
-    ) {
-    }
-
-    public function getKey(): string
-    {
-        return $this->key;
-    }
-
-    public function get(): mixed
-    {
-        return $this->value;
-    }
-
-    public function isHit(): bool
-    {
-        return $this->hit;
-    }
-
-    public function set(mixed $value): static
-    {
-        $this->value = $value;
-        $this->hit = true;
-
-        return $this;
-    }
-
-    public function expiresAt(?\DateTimeInterface $expiration): static
-    {
-        return $this;
-    }
-
-    public function expiresAfter(int|\DateInterval|null $time): static
-    {
-        return $this;
     }
 }

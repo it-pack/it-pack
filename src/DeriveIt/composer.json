@@ -15,7 +15,8 @@
         "psr-4": {
             "Tests\\": "tests/",
             "_Fixture\\": "fixtures/",
-            "_Vendor\\": "fixtures/"
+            "_Vendor\\": "fixtures/",
+            "Foreign\\": "tests/Support/Fixture/foreign/"
         }
     },
     "bin": [
