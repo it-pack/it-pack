@@ -26,10 +26,12 @@ final class LineBasedRewriterTest extends Unit
 
     public function testDryRunReturnsCodeUnchanged(): void
     {
+        // 'admin' lives on line 6; the replacement WOULD apply without dry-run,
+        // so this guards the early `if ($dryRun) return` branch meaningfully.
         $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        \$x = 'admin';\n    }\n}";
         $artifact = $this->artifact(
             [],
-            [new Replacement(7, "'admin'", 'self::FOO')],
+            [new Replacement(6, "'admin'", 'self::FOO')],
         );
 
         $this->assertSame($code, new LineBasedRewriter()->rewrite($code, [$artifact], true));
@@ -197,5 +199,126 @@ final class LineBasedRewriterTest extends Unit
         );
 
         $this->assertSame($code, new LineBasedRewriter()->rewrite($code, [$artifact]));
+    }
+
+    /**
+     * A stale (out-of-range) replacement must be skipped WITHOUT aborting the
+     * remaining valid replacements. Guards the `continue` in the Step-1 loop
+     * (a `break` mutant would drop every later replacement).
+     */
+    public function testStaleReplacementDoesNotSkipLaterReplacements(): void
+    {
+        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        \$x = 'admin';\n        \$y = 'user';\n    }\n}";
+        $artifact = $this->artifact(
+            [],
+            [
+                new Replacement(999, "'absent'", 'self::FOO'), // stale line
+                new Replacement(6, "'admin'", 'self::FOO'),    // valid line
+            ],
+        );
+
+        $result = new LineBasedRewriter()->rewrite($code, [$artifact]);
+
+        $this->assertStringContainsString('self::FOO', $result);
+        $this->assertStringNotContainsString("'admin'", $result);
+    }
+
+    /**
+     * When one class is absent from the file, its body-insertion `continue`
+     * must not abort insertions planned for a present class. A `break` mutant
+     * would drop the present class's const entirely.
+     */
+    public function testMissingClassBodyInsertionDoesNotAbortOthers(): void
+    {
+        $code = "<?php\nclass A\n{\n}";
+        $artifact = $this->artifact([
+            new Insertion('Ghost', ["    private const string GHOST = 'g';"]),
+            new Insertion('A', ["    private const string A_FOO = 'a';"]),
+        ]);
+
+        $result = new LineBasedRewriter()->rewrite($code, [$artifact]);
+
+        $this->assertStringContainsString('private const string A_FOO', $result);
+        $this->assertStringNotContainsString('GHOST', $result);
+    }
+
+    /**
+     * Same guard as above, but for top-level enum insertions: a missing class
+     * must not abort a present class's enum emission.
+     */
+    public function testMissingClassTopLevelInsertionDoesNotAbortOthers(): void
+    {
+        $code = "<?php\nclass A\n{\n}";
+        $artifact = $this->artifact([
+            new Insertion('Ghost', ['enum Ghost : string', '{', '}'], true),
+            new Insertion('A', ['enum AStatus : string', '{', '}'], true),
+        ]);
+
+        $result = new LineBasedRewriter()->rewrite($code, [$artifact]);
+
+        $this->assertStringContainsString('enum AStatus : string', $result);
+        $this->assertStringNotContainsString('enum Ghost', $result);
+    }
+
+    /**
+     * A top-level enum that already exists must be skipped (the `continue` at
+     * the enum-already-exists guard) WITHOUT aborting insertion of a different
+     * enum for the same class. A `break` mutant would drop the second enum.
+     */
+    public function testExistingTopLevelEnumDoesNotAbortOtherEnum(): void
+    {
+        // Two classes so each enum lives in its own `$insertionsByClass` group:
+        // A's enum already exists (continue @ the enum-already-exists guard),
+        // B's enum is new and must still be emitted. A `break` mutant would drop
+        // B's enum.
+        $code = "<?php\nclass A\n{\n}\nclass B\n{\n}\nenum Status : string\n{\n    case ACTIVE = 'active';\n}";
+        $artifact = $this->artifact([
+            new Insertion('A', ['enum Status : string', '{', "    case ACTIVE = 'active';", '}'], true),
+            new Insertion('B', ['enum Other : string', '{', "    case ON = 'on';", '}'], true),
+        ]);
+
+        $result = new LineBasedRewriter()->rewrite($code, [$artifact]);
+
+        $this->assertStringContainsString('enum Other : string', $result);
+        $this->assertSame(1, substr_count($result, 'enum Status : string'));
+    }
+
+    /**
+     * Within one class, a const already declared must be skipped (the inner
+     * `continue` in the per-insertion loop) WITHOUT dropping a subsequent new
+     * const. A `break` mutant would omit the new const.
+     */
+    public function testDuplicateConstDoesNotAbortOtherConst(): void
+    {
+        $code = "<?php\nclass A\n{\n    private const string FOO = 'a';\n}";
+        $artifact = $this->artifact([
+            new Insertion('A', [
+                "    private const string FOO = 'a';",
+                "    private const string BAR = 'b';",
+            ]),
+        ]);
+
+        $result = new LineBasedRewriter()->rewrite($code, [$artifact]);
+
+        $this->assertStringContainsString('private const string BAR', $result);
+        $this->assertSame(1, substr_count($result, 'private const string FOO'));
+    }
+
+    /**
+     * When a class contributes no new consts (all already declared → empty
+     * declaration lines → `continue`), a following class's insertion must
+     * still apply. A `break` mutant would abort the second class.
+     */
+    public function testFullyDuplicateClassDoesNotAbortOtherClass(): void
+    {
+        $code = "<?php\nclass A\n{\n    private const string FOO = 'a';\n}\nclass B\n{\n}";
+        $artifact = $this->artifact([
+            new Insertion('A', ["    private const string FOO = 'a';"]),
+            new Insertion('B', ["    private const string BAR = 'b';"]),
+        ]);
+
+        $result = new LineBasedRewriter()->rewrite($code, [$artifact]);
+
+        $this->assertStringContainsString('private const string BAR', $result);
     }
 }
