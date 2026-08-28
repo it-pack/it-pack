@@ -153,4 +153,50 @@ final class ValueObjectTest extends Unit
         self::assertSame('feature', $info->branch);
         self::assertFalse($info->isMain);
     }
+
+    public function testValueObjectsEqualSameValueAndDifferOtherwise(): void
+    {
+        self::assertTrue(CommitId::from('abc')->equals(CommitId::from('abc')));
+        self::assertFalse(CommitId::from('abc')->equals(CommitId::from('def')));
+
+        self::assertTrue(BranchName::from('main')->equals(BranchName::from('main')));
+        self::assertFalse(BranchName::from('main')->equals(BranchName::from('develop')));
+
+        self::assertTrue(TagName::from('v1')->equals(TagName::from('v1')));
+        self::assertFalse(TagName::from('v1')->equals(TagName::from('v2')));
+
+        self::assertTrue(RemoteName::from('origin')->equals(RemoteName::from('origin')));
+        self::assertFalse(RemoteName::from('origin')->equals(RemoteName::from('upstream')));
+    }
+
+    public function testRefNamesAreCaseSensitive(): void
+    {
+        self::assertFalse(BranchName::from('Main')->equals(BranchName::from('main')));
+        self::assertFalse(TagName::from('V1')->equals(TagName::from('v1')));
+        self::assertFalse(RemoteName::from('Origin')->equals(RemoteName::from('origin')));
+    }
+
+    public function testCommitIdRejectsEmpty(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        CommitId::from('');
+    }
+
+    public function testRepositoryPathResolvesExistingDirAndCaches(): void
+    {
+        $path = RepositoryPath::from(sys_get_temp_dir());
+
+        self::assertSame(realpath(sys_get_temp_dir()), $path->realPath);
+        self::assertSame(realpath(sys_get_temp_dir()), $path->realPath, 'second access hits the cached resolution');
+        self::assertSame(sys_get_temp_dir(), $path->toString());
+        self::assertSame(sys_get_temp_dir(), (string) $path);
+    }
+
+    public function testCommitMessageIsStringable(): void
+    {
+        $message = CommitMessage::fromParts('Subject', 'Body text');
+
+        self::assertSame("Subject\n\nBody text", (string) $message);
+    }
 }

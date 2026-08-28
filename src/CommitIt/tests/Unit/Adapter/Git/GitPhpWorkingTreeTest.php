@@ -9,6 +9,7 @@ use CzProject\GitPhp\GitRepository;
 use CzProject\GitPhp\Runners\MemoryRunner;
 use InvalidArgumentException;
 use ItPack\CommitIt\Adapter\Git\GitPhpWorkingTree;
+use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\WorktreeInfo;
@@ -91,6 +92,17 @@ final class GitPhpWorkingTreeTest extends Unit
 
     }
 
+    public function testAddWithoutBranchFormulatesCommand(): void
+    {
+        $target = $this->repoDir . DIRECTORY_SEPARATOR . 'wt';
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'add', $target], [], ''),
+        );
+
+        $workingTree->add(RepositoryPath::from($target));
+
+    }
+
     public function testAddRejectsPathOutsideRepositoryParent(): void
     {
         $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'list'], [], ''));
@@ -129,5 +141,49 @@ final class GitPhpWorkingTreeTest extends Unit
         } finally {
             GitRepoFactory::tearDown($repoDir, $sibling);
         }
+    }
+
+    public function testListWorktreesFailureIsMapped(): void
+    {
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'list', '--porcelain'], [], '', 'fatal: not a worktree', 1),
+        );
+
+        $this->expectException(VcsOperationException::class);
+        $workingTree->listWorktrees();
+    }
+
+    public function testListWorktreesParsesConsecutiveEntries(): void
+    {
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(
+                ['worktree', 'list', '--porcelain'],
+                [],
+                implode("\n", [
+                    'worktree /repo/a',
+                    'worktree /repo/b',
+                ]),
+            ),
+        );
+
+        $trees = $workingTree->listWorktrees();
+
+        self::assertCount(2, $trees);
+        self::assertSame('/repo/a', $trees[0]->path);
+        self::assertSame('/repo/b', $trees[1]->path);
+    }
+
+    public function testAddRejectsWhenParentDoesNotExist(): void
+    {
+        $outside = DIRECTORY_SEPARATOR . 'commitit_wt_nonexistent_' . bin2hex(random_bytes(4));
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'list'], [], ''),
+        );
+
+        $this->expectException(InvalidArgumentException::class);
+        $workingTree->add(
+            RepositoryPath::from($outside . DIRECTORY_SEPARATOR . 'wt'),
+            BranchName::from('feature'),
+        );
     }
 }

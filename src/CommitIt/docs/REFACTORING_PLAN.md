@@ -29,7 +29,7 @@
 |---|---|---|---|---|---|---|
 | M1 | Secure locale pinning (env injection, no `putenv`) | Medium (security) | Low–Med | — | `composer quality` | ✅ Done |
 | M2 | Extract `ObserverDispatch` trait (DRY) | Medium | Low | — | `composer quality` | ✅ Done |
-| M3 | Close Unit coverage gap to ≥95% lines | Medium | Low | M2 (optional) | `composer coverage` |
+| M3 | Close Unit coverage gap to ≥95% lines | Medium | Low | M2 (optional) | `composer coverage` | ✅ Done |
 | M4 | Fix coverage job + enforce mutation | Medium | Low | M1, M3 | `coverage:all`, `quality:full` |
 | M5 | Declare `readonly class` on eligible types | Low | Low | — | `composer quality` |
 | M6 | Enforce `line_length` + import FQNs + decl order | Low | Low | — | `cs:check` |
@@ -165,6 +165,37 @@ leakage introduced. `composer quality` green.
 
 > If any test in M3.4/M3.1 reveals a genuine bug, fix it in this milestone and note it in the PR
 > (does not change the refactor scope but is required for correctness).
+
+#### M3 — Implementation notes (completed)
+
+- **Measured baseline → result.** Unit coverage rose from **86.90% lines / 92.59% methods / 96.00% classes**
+  (418/481 lines) to **98.54% lines / 97.78% methods / 96.00% classes** (474/481 lines, 132/135 methods,
+  24/25 classes). All three thresholds clear the 95% bar; the single remaining sub-100% class is
+  `GitPhpRepository` (130/137 lines) whose last gaps are `getLastCommit()`'s `GitExceptionMap` catch (lines
+  103-104), `assertWithinWorkingTree()`'s "working tree not accessible" throw (268), and the `..`/`.` branches
+  of `canonicalizePath()` (304/311/315/317) — defensive edges already exercised by the Functional suite.
+- **M3.1 (value-object `equals()`):** added same/different/case-sensitivity cases for `CommitId`, `BranchName`,
+  `TagName`, `RemoteName` in `ValueObjectTest`, plus `CommitId::from('')` rejection, `RepositoryPath` real-path
+  resolution + cache, and `CommitMessage` stringable (`(string)` cast).
+- **M3.2 / M3.3 (`with*` builders):** `OptionBuilderTest` now covers `CloneOptions::withBare()` and
+  `CommitOptions::withAllowEmpty()` (both builders at 100% methods/lines).
+- **M3.4 / M3.5 (`ObservedRepository` data-driven + `FakeRepository`):** `ObservedRepositoryTest` gained a
+  `@dataProvider observedOperationProvider` driving **every** repository operation (success → `onStart` then
+  `onSuccess`; failure → `onStart` then `onFailure` + original `Throwable` rethrown). The existing
+  `tests/Unit/Application/FakeRepository`/`RecordingObserver`/`ThrowingObserver` doubles were reused (M3.5 was
+  already scaffolded). `ObservedRepository` is now **100% methods and lines**. The only operation not routed
+  through the dispatcher is `getWorkingTree()` (it wraps its collaborator), covered by `testGetWorkingTreeIsObserved`.
+- **Adapter Unit coverage (needed to clear the bar):** added `MemoryRunner`-backed cases for `GitPhpRepository`
+  (`getPath`, `getLastCommit()` success path, `commit()` with `CommitOptions` author/date/allow-empty/amend),
+  `GitPhpRepositoryFactory` (`open()` success, `init`/`cloneRepository` option branches **and** their
+  `GitExceptionMap` catch paths → factory 100% methods/lines), and `GitPhpWorkingTree` (worktree-list failure
+  mapping, consecutive worktree entries, add with/without branch, missing-parent rejection → 100% methods/lines).
+  No real git binary is spawned (uses `czproject/git-php`'s `MemoryRunner`).
+- **M3.6 (`GitAdapterMemoryTrait` `else` → guard):** the trait already uses early-return/guard style — there is
+  no `else` branch to replace, so this is a no-op (verified by reading the trait).
+- **No source changes** beyond tests; behaviour is unchanged. `composer analyse` (0 errors), `composer cs:check`
+  (0 files), `composer architecture` (0 violations), `composer test:unit` (181 ✔ / 517 assertions) and
+  `composer test:functional` (31 ✔) all pass.
 
 ---
 

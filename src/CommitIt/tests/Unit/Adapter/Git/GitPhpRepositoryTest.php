@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\Git;
 use Codeception\Test\Unit;
 use CzProject\GitPhp\Runners\MemoryRunner;
 use ItPack\CommitIt\Domain\Exception\VcsOperationException;
+use ItPack\CommitIt\Domain\Option\CommitOptions;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
@@ -262,5 +263,63 @@ final class GitPhpRepositoryTest extends Unit
         $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'list', '--porcelain'], [], ''));
 
         self::assertInstanceOf(\ItPack\CommitIt\Contract\WorkingTree::class, $repository->getWorkingTree());
+    }
+
+    public function testGetPathReturnsValidatedRepositoryPath(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        self::assertSame($this->repoDir, $repository->getPath()->toString());
+    }
+
+    public function testGetLastCommitReturnsMappedCommitWhenPresent(): void
+    {
+        $id = self::TEST_COMMIT_ID;
+        $date = '2024-01-02T03:04:05+00:00';
+
+        $repository = $this->buildRepository(function (MemoryRunner $runner) use ($id, $date): void {
+            $runner->setResult(['rev-parse', '--verify', 'HEAD'], [], $id);
+            $runner->setResult(['log', '--pretty=format:%H', '-n', '1'], [], $id);
+            $runner->setResult(['log', '-1', $id, '--format=%s'], [], 'Subject');
+            $runner->setResult(['log', '-1', $id, '--format=%b'], [], 'Body text');
+            $runner->setResult(['log', '-1', $id, '--format=%ae'], [], 'a@example.com');
+            $runner->setResult(['log', '-1', $id, '--format=%an'], [], 'Author Name');
+            $runner->setResult(['log', '-1', $id, '--pretty=format:%ad', '--date=iso-strict'], [], $date);
+            $runner->setResult(['log', '-1', $id, '--format=%ce'], [], 'c@example.com');
+            $runner->setResult(['log', '-1', $id, '--format=%cn'], [], 'Committer');
+            $runner->setResult(['log', '-1', $id, '--pretty=format:%cd', '--date=iso-strict'], [], $date);
+        });
+
+        $commit = $repository->getLastCommit();
+
+        self::assertInstanceOf(Commit::class, $commit);
+        self::assertSame($id, $commit->id->__toString());
+        self::assertSame('Subject', $commit->subject);
+        self::assertSame('Author Name', $commit->authorName);
+    }
+
+    public function testCommitWithOptionsFormulatesParameters(): void
+    {
+        $date = '2024-01-02T03:04:05+00:00';
+
+        $repository = $this->buildRepository(function (MemoryRunner $runner) use ($date): void {
+            $runner->setResult(
+                ['commit', null, ['--author' => 'Jane <jane@example.com>', '--date' => $date, '--allow-empty', '--amend', '-m' => 'Subject']],
+                [],
+                '',
+            );
+            $runner->setResult(['log', '--pretty=format:%H', '-n', '1'], [], self::TEST_COMMIT_ID);
+        });
+
+        $id = $repository->commit(
+            CommitMessage::fromParts('Subject'),
+            CommitOptions::default()
+                ->withAuthor('Jane', 'jane@example.com')
+                ->withAuthorDate(new \DateTimeImmutable($date))
+                ->withAllowEmpty()
+                ->withAmend(),
+        );
+
+        self::assertSame(self::TEST_COMMIT_ID, $id->__toString());
     }
 }

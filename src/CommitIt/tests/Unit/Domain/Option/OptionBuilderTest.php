@@ -62,4 +62,22 @@ final class OptionBuilderTest extends Unit
         self::assertTrue($options->amend);
         self::assertFalse($options->allowEmpty);
     }
+
+    public function testCloneOptionsBareFlag(): void
+    {
+        $options = CloneOptions::default()->withBare();
+
+        self::assertTrue($options->bare);
+        self::assertNull($options->branch);
+        self::assertNull($options->depth);
+    }
+
+    public function testCommitOptionsAllowEmptyFlag(): void
+    {
+        $options = CommitOptions::default()->withAllowEmpty();
+
+        self::assertTrue($options->allowEmpty);
+        self::assertFalse($options->amend);
+        self::assertNull($options->authorName);
+    }
 }

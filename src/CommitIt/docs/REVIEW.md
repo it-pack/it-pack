@@ -230,9 +230,14 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
     now holds `dispatchRun`/`dispatchRunVoid`/`dispatchNotify`; both decorators `use` it and forward
     `$this->observer`. The stacked docblock is gone. Behaviour parity confirmed by the existing
     `ObservedRepositoryTest`/`ObservedWorkingTreeTest` onStart/onSuccess/onFailure assertions.
-3. **(Medium, coverage)** Close the Unit gaps: value-object `equals()` for all types, the missing
-   `with*` builders, and a data-driven `ObservedRepository` test over `FakeRepository`. Re-measure;
-   target ≥95% lines.
+ 3. **(Medium, coverage)** Close the Unit gaps: value-object `equals()` for all types, the missing
+    `with*` builders, and a data-driven `ObservedRepository` test over `FakeRepository`. Re-measure;
+    target ≥95% lines.
+    **→ Implemented (M3).** Unit coverage: lines 98.54%, methods 97.78%, classes 96.00% (all ≥95%).
+    `ObservedRepositoryTest` is data-driven over `FakeRepository` (`observedOperationProvider`) covering every
+    operation's `onStart`/`onSuccess`/`onFailure` path; `OptionBuilderTest` covers the missing `with*` builders;
+    `ValueObjectTest` covers `equals()` same/different/case-sensitivity. Adapter Unit gaps were also closed via
+    `MemoryRunner`-backed cases (factory + working tree at 100% methods/lines; repository at 130/137 lines).
 4. **(Medium, coverage gate)** Make the coverage job run `Unit Functional` (skip Acceptance) and add
    `@mutation` to `composer quality`; raise infection `minMsi`/`minCoveredMsi` to ≥90/95.
 5. **(Low, modern PHP)** Declare `readonly class` on the eligible types (value objects, option builders,
