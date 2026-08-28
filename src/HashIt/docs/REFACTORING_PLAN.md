@@ -36,7 +36,7 @@ M3  Hexagonal repair + deptrac  (F-1, F-7 enforcement)  <- boundary closed & mec
 M4  Memory-bounded hashFile     (F-5)                   <- builds on M1 helpers + M2 taxonomy
 M5  Interface backing           (F-4)                   <- after surface stabilizes in M3/M4
 M6  final readonly consistency  (F-9)                   <- mechanical polish, floor guaranteed by M0
-M7  CI                          (rest of F-7)           <- last, so it runs the full gate set incl. architecture
+M7  CI                          (rest of F-7)           <- DONE; runs the full gate set incl. architecture
 M8  OPTIONAL keyed HMAC         (F-8)                   <- stretch; design decision first
 ```
 
@@ -269,7 +269,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M7 — CI workflow (remainder of F-7)
+## M7 — CI workflow (remainder of F-7) ✅ DONE
 
 **Goal:** Run the complete gate set automatically on every push/PR, matching sibling packages.
 
@@ -284,6 +284,15 @@ git status --porcelain   # var/ noise gone
 **Verification:** local run of all four scripts green; YAML parses (`php -l` is not applicable — eyeball against the sibling file or `actionlint` if available).
 **Dependencies:** M3 (so the architecture gate exists), M0 (floor).
 **Acceptance:** workflow file present, mirrors the sibling's job structure, executes the full gate set.
+
+### Completion note (2026-08-28)
+
+- Created `.github/workflows/quality.yml`, adapted from `../CommandIt/.github/workflows/quality.yml`.
+- Two jobs mirror the sibling: `quality` (matrix `php: ['8.4','8.5']` × `dependency: [highest, lowest]`) and `coding-style` (check-only, PHP 8.4).
+- Triggers: `pull_request`, `push: branches: [main]`, `workflow_dispatch` (dropped CommandIt's `schedule` cron — it only existed to drive the nightly mutation/benchmark jobs, which HashIt does not have; see below).
+- **Adaptation vs. the sibling:** HashIt's `composer.json` exposes `test:unit`, `cs:check`, `analyse`, `architecture` (no `test`, `mutation`, `benchmark` scripts). The `quality` job therefore runs `composer test:unit` (not `composer test`), and the `mutation`/`benchmark` nightly jobs from CommandIt were **omitted** — HashIt defines no `mutation`/`benchmark` scripts and has no infection/benchmark config, so those jobs would fail. `composer audit` (native composer command) and `composer validate --strict` are retained.
+- **Replication assumption:** the file is placed at the same relative path as CommandIt's (`src/<Pkg>/.github/workflows/quality.yml`), matching the established monorepo-per-package convention. If this repo's GitHub runner only discovers workflows at the repo-root `.github/workflows/`, the per-package file follows the same precedent as CommandIt and is the intended deliverable per M7; wiring it into a root orchestrator is out of scope for this milestone.
+- **Gates verified locally before commit:** 44 tests / 182 assertions ✅ · PHPStan 0 errors ✅ · PHP-CS-Fixer 0 of 25 ✅ · deptrac 0 violations ✅ · YAML parses (validated with a YAML loader) ✅. F-7 closed.
 
 ---
 
