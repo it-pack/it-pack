@@ -191,6 +191,7 @@ $source = DeriveIt::deriveAdapter(
 ## Documentation
 
 - **User Guide** (`docs/guide/`) — [overview & concepts](docs/guide/index.md),
+  [tutorial](docs/guide/tutorial.md), [cookbook](docs/guide/cookbook.md),
   [features](docs/guide/features.md), [architecture](docs/guide/architecture.md),
   and [usage / API reference](docs/guide/usage.md).
 - **Runnable examples** (`examples/`) — one script per feature; see

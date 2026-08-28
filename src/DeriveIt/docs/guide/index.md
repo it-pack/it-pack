@@ -11,6 +11,8 @@ This guide is the in-depth, user-facing documentation. It complements the
 
 ## Contents
 
+- [Tutorial](tutorial.md) — a hands-on, end-to-end walkthrough (adaptee → port → adapter → fake → CI guard).
+- [Cookbook](cookbook.md) — advanced adoption patterns: family derivation, the adapter lifecycle, drift detection, the leakage auditor, telemetry, performance.
 - [Features](features.md) — what DeriveIt can do, in depth.
 - [Architecture](architecture.md) — how it is built and why.
 - [Usage Guide](usage.md) — task-oriented recipes and the public API reference.
