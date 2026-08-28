@@ -18,6 +18,7 @@ final class TaskRecord
 {
     /**
      * @param list<StreamPollHandle> $handles
+     * @param \Fiber<mixed, mixed, mixed, mixed> $fiber
      */
     public function __construct(
         private readonly TaskInterface $task,
@@ -32,6 +33,9 @@ final class TaskRecord
         return $this->task;
     }
 
+    /**
+     * @return \Fiber<mixed, mixed, mixed, mixed>
+     */
     public function fiber(): Fiber
     {
         return $this->fiber;

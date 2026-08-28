@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Revolt;
 
+use ItPack\AsyncIt\Domain\FiberScopeSlot;
+use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -25,20 +27,26 @@ use LogicException;
 final class RevoltFiberContextStorage implements ContextStorageInterface
 {
     /**
-     * @var \WeakMap<\Fiber, object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}>
+     * @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot>
      */
     private \WeakMap $perFiber;
 
     /**
-     * @var object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}|null
+     * @var FiberScopeSlot|null
      */
-    private ?object $fallback = null;
+    private ?FiberScopeSlot $fallback = null;
+
+    private readonly FiberScopeSlotFactoryInterface $slotFactory;
 
     private int $counter = 0;
 
-    public function __construct()
+    /**
+     * @param \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber
+     */
+    public function __construct(\WeakMap $perFiber, FiberScopeSlotFactoryInterface $slotFactory)
     {
-        $this->perFiber = new \WeakMap();
+        $this->perFiber = $perFiber;
+        $this->slotFactory = $slotFactory;
     }
 
     public function current(): ?ExecutionScopeInterface
@@ -80,14 +88,11 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
         }
 
         unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id]);
-        $slot->stack = array_values($slot->stack);
     }
 
-    /**
-     * @return object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}
-     */
-    private function slot(): object
+    private function slot(): FiberScopeSlot
     {
+        /** @var \Fiber<mixed, mixed, mixed, mixed>|null $fiber */
         $fiber = \Fiber::getCurrent();
 
         if ($fiber === null) {
@@ -101,10 +106,7 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
         return $this->perFiber[$fiber];
     }
 
-    /**
-     * @return object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}
-     */
-    private function fallback(): object
+    private function fallback(): FiberScopeSlot
     {
         if ($this->fallback === null) {
             $this->fallback = $this->blank();
@@ -113,11 +115,8 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
         return $this->fallback;
     }
 
-    /**
-     * @return object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}
-     */
-    private function blank(): object
+    private function blank(): FiberScopeSlot
     {
-        return (object) ['stack' => [], 'scopes' => []];
+        return $this->slotFactory->create();
     }
 }

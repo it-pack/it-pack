@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Artifact;
 
+use ItPack\AsyncIt\Contract\ValueObjectInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 
 /**
@@ -15,7 +16,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class SchedulerFailureArtifact implements ExecutionArtifactInterface
+final class SchedulerFailureArtifact implements ExecutionArtifactInterface, ValueObjectInterface
 {
     public function __construct(public readonly string $message)
     {

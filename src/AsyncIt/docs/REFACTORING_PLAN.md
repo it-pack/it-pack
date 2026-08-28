@@ -152,6 +152,43 @@ Two compatible fixes (choose one, document the decision):
 **Gates (R1):** `cs:check` clean; `composer analyse` green in clean checkout;
 `FiberTaskSchedulerTest` + Phase 5 unit tests still pass.
 
+> **Status (2026-08-27, end of R1 session) — in progress.** User chose
+> "Expand R1 to fully green". The instantiation rule is now **fully reconciled**
+> (`forbidNew` 83 → 0, `forbidElse` 1 → 0) and many genuine code issues are fixed.
+> `composer analyse` stands at **129 errors** (down from 232). What changed:
+> - R1.1: the only `else` is gone.
+> - R1.2: added `ValueObjectInterface`; the rule exempts VOs + `Throwable` and now
+>   also recognizes `*\Factory`/`*\Builder` as a **last** namespace segment (a real
+>   bug — factory classes were previously forbidden from constructing). Rule
+>   rewritten to use `ReflectionProvider::getClass()` + `getObjectClassNames()`
+>   (the old `instanceof ObjectType` tripped `phpstanApi.instanceofType`).
+> - Factory-injected the formerly-forbidden constructions: `TaskRecord`
+>   (`TaskRecordFactory`), `WeakMap` (injected into `RevoltFiberContextStorage`),
+>   and the per-Fiber scope slot (`FiberScopeSlot` + `FiberScopeSlotFactory`, both
+>   in the neutral `Domain` layer so DepTrac stays clean — 21 violations, unchanged).
+> - Marked `MemoryContextToken` / `SchedulerFailureArtifact` as value objects.
+> - Replaced `object{stack,scopes}` shapes (read-only) in the three context
+>   storages with a mutable `FiberScopeSlot` (clears `assign.propertyReadOnly` etc.).
+> - Mechanical: removed redundant `array_values`, redundant `(string)` casts,
+>   stale `@param` docblock, added `Fiber` generic PHPDocs.
+>
+> **Remaining 129 — three buckets (per user's direction):**
+> 1. **Interface-unused (~60, `shipmonk.deadMethod`/`Unused` on interface methods)**
+>    → to be fixed via tests with anonymous inline implementers (later phase).
+> 2. **Environmental (~13):** `Swow\*`/`Amp\*`/`Revolt` `class.notFound` /
+>    `method.notFound` / `method_exists(...) always false` — clear once those
+>    runtime deps are installed; `Io\Poll` (PHP 8.6) is **postponed** pending a
+>    decision (PollerFactory version-check + `NativeRuntimeFixture`/`PollerFactory`).
+> 3. **Genuine in-tree code:** `ContextTokenInterface::$id` (3, RunIt contract
+>    decision), `offsetAccess.nonOffsetAccessible` (6, tests), `argument.type` (5),
+>    `assign.propertyType` (4), `return.type` (3), `missingType.generics` (5),
+>    `deadConstant` (3), `property.onlyWritten` (3), `return.unusedType` (2),
+>    `function.alreadyNarrowedType` (1). These are the next code fixes.
+>
+> `composer architecture` remains **21 violations** (baseline; all
+> `SDK\Factory\AsyncRuntimeFactory → Adapter\*`, i.e. R2 scope) — no new
+> DepTrac debt was introduced by R1's factory injection.
+
 ---
 
 ## 4. R2 — Unblock `composer architecture`  (F11)
@@ -327,8 +364,13 @@ scoped `@covers`.
 - **After R0:** the tooling blocker is gone (rector's bundled `php-parser` is
   isolated, not a collision); `composer quality` runs end-to-end and is
   codified in `.github/workflows/quality.yml`. Next: unblock `composer analyse` (R1).
-- **After R1:** `composer analyse` is green — the `else` is gone and the
-  instantiation rule permits value-object/exception construction. Next: architecture.
+- **After R1:** rule fully reconciled (`forbidNew` 83→0, `forbidElse` 1→0);
+  `TaskRecord`/`WeakMap`/fiber-slot factory-injected; `MemoryContextToken` &
+  `SchedulerFailureArtifact` are VOs; context storages use a mutable
+  `FiberScopeSlot`. Errors fell 232 → 129. `composer analyse` is **not** green
+  yet: ~60 interface-unused (→ fix via tests), ~13 environmental (deps/Io\Poll),
+  and ~56 genuine in-tree findings remain (see R1 status note). `architecture`
+  still 21 (baseline; R2 scope).
 - **After R2:** Deptrac reports 0 violations; `AsyncRuntimeFactory` no longer
   depends on `Adapter`. Next: abstraction rules.
 - **After R3:** no `abstract class`; the composition root and value objects are

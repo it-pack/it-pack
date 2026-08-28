@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use InvalidArgumentException;
+use ItPack\AsyncIt\Domain\FiberScopeSlot;
+use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -26,16 +28,23 @@ use LogicException;
 final class SwooleCoroutineContextStorage implements ContextStorageInterface
 {
     /**
-     * @var array<int, object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}>
+     * @var array<int, FiberScopeSlot>
      */
     private array $perCoroutine = [];
 
     /**
-     * @var object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}|null
+     * @var FiberScopeSlot|null
      */
-    private ?object $fallback = null;
+    private ?FiberScopeSlot $fallback = null;
+
+    private readonly FiberScopeSlotFactoryInterface $slotFactory;
 
     private int $counter = 0;
+
+    public function __construct(FiberScopeSlotFactoryInterface $slotFactory)
+    {
+        $this->slotFactory = $slotFactory;
+    }
 
     public function current(): ?ExecutionScopeInterface
     {
@@ -76,13 +85,9 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
         }
 
         unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id]);
-        $slot->stack = array_values($slot->stack);
     }
 
-    /**
-     * @return object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}
-     */
-    private function slot(): object
+    private function slot(): FiberScopeSlot
     {
         $cid = $this->coroutineId();
 
@@ -97,10 +102,7 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
         return $this->perCoroutine[$cid];
     }
 
-    /**
-     * @return object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}
-     */
-    private function fallback(): object
+    private function fallback(): FiberScopeSlot
     {
         if ($this->fallback === null) {
             $this->fallback = $this->blank();
@@ -122,11 +124,8 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
         }
     }
 
-    /**
-     * @return object{stack: list<int>, scopes: array<int, ExecutionScopeInterface>}
-     */
-    private function blank(): object
+    private function blank(): FiberScopeSlot
     {
-        return (object) ['stack' => [], 'scopes' => []];
+        return $this->slotFactory->create();
     }
 }

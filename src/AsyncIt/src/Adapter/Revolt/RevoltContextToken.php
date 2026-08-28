@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Revolt;
 
+use ItPack\AsyncIt\Contract\ValueObjectInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 
 /**
@@ -11,7 +12,7 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class RevoltContextToken implements ContextTokenInterface
+final readonly class RevoltContextToken implements ContextTokenInterface, ValueObjectInterface
 {
     public function __construct(public int $id)
     {

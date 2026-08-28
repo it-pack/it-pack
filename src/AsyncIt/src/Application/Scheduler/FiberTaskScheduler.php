@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Factory\CancellationScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\ExecutionScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
@@ -51,6 +52,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     public function __construct(
         private readonly TaskFactoryInterface $taskFactory,
         private readonly FiberFactoryInterface $fiberFactory,
+        private readonly TaskRecordFactoryInterface $taskRecordFactory,
         private readonly PollerPortInterface $poller,
         private readonly MonotonicClockInterface $clock,
         private readonly ContextStorageInterface $contextStorage,
@@ -63,7 +65,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     public function submit(TaskInterface $task, callable $operation): void
     {
         $fiber = $this->fiberFactory->create($operation);
-        $this->records[$task->id()->value] = new TaskRecord($task, $fiber);
+        $this->records[$task->id()->value] = $this->taskRecordFactory->create($task, $fiber);
     }
 
     public function run(): void
@@ -109,9 +111,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
             if ($fiber->isStarted()) {
                 $fiber->resume();
-            } else {
-                $fiber->start();
+
+                return;
             }
+
+            $fiber->start();
 
             if ($fiber->isTerminated()) {
                 $this->results[$record->task()->id()->value] = $fiber->getReturn();

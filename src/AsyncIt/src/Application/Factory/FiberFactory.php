@@ -13,6 +13,9 @@ use Fiber;
  */
 final class FiberFactory implements FiberFactoryInterface
 {
+    /**
+     * @return \Fiber<mixed, mixed, mixed, mixed>
+     */
     public function create(callable $operation): Fiber
     {
         return new Fiber($operation);

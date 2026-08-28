@@ -16,5 +16,8 @@ use Fiber;
  */
 interface FiberFactoryInterface
 {
+    /**
+     * @return \Fiber<mixed, mixed, mixed, mixed>
+     */
     public function create(callable $operation): Fiber;
 }

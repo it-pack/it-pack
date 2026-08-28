@@ -40,7 +40,9 @@
         "psr/http-server-handler": "^1.0",
         "open-telemetry/api": "^1.9",
         "open-telemetry/sdk": "^1.0",
-        "infection/codeception-adapter": "^0.4"
+        "infection/codeception-adapter": "^0.4",
+        "amphp/amp": "^3.1",
+        "react/react": "^1.0"
     },
     "repositories": [
         {

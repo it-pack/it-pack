@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Adapter\Swow\SwowCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swow\SwowPoller;
+use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 
 /**
  * Conformance fixture exercising the Swow runtime adapter.
@@ -16,7 +17,7 @@ final class SwowRuntimeFixture extends AbstractRuntimeFixture
 {
     public function __construct()
     {
-        parent::__construct(new SwowPoller(), new SwowCoroutineContextStorage(), new SwowPoller());
+        parent::__construct(new SwowPoller(), new SwowCoroutineContextStorage(new FiberScopeSlotFactory()), new SwowPoller());
     }
 
     public function portName(): string

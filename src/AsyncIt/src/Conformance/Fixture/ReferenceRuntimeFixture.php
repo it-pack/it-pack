@@ -11,6 +11,7 @@ use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
@@ -57,6 +58,7 @@ final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
         $this->scheduler = new FiberTaskScheduler(
             new TaskFactory(new RandomIdentifierGenerator()),
             new FiberFactory(),
+            new TaskRecordFactory(),
             new SelectPoller(),
             $this->clock,
             $this->storage,

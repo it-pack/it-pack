@@ -58,7 +58,7 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
         self::assertTrue(
             $result->isConformant(),
-            (string) $result->summary(),
+            $result->summary(),
         );
     }
 

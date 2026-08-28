@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Context;
 
+use ItPack\AsyncIt\Contract\ValueObjectInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 
 /**
@@ -14,7 +15,7 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class MemoryContextToken implements ContextTokenInterface
+final class MemoryContextToken implements ContextTokenInterface, ValueObjectInterface
 {
     public function __construct(public readonly int $id)
     {

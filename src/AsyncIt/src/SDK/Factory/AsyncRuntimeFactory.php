@@ -19,6 +19,8 @@ use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
+use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
@@ -87,6 +89,7 @@ final class AsyncRuntimeFactory
         $schedulerFactory = new SchedulerFactory(
             $taskFactory,
             $fiberFactory,
+            new TaskRecordFactory(),
             $poller,
             $clock,
             $storage,
@@ -178,9 +181,9 @@ final class AsyncRuntimeFactory
     private function buildStorage(RuntimeAdapterKind $kind): \ItPack\RunIt\Contract\Port\ContextStorageInterface
     {
         return match ($kind) {
-            RuntimeAdapterKind::Swoole => new SwooleCoroutineContextStorage(),
-            RuntimeAdapterKind::Swow => new SwowCoroutineContextStorage(),
-            RuntimeAdapterKind::Revolt => new RevoltFiberContextStorage(),
+            RuntimeAdapterKind::Swoole => new SwooleCoroutineContextStorage(new FiberScopeSlotFactory()),
+            RuntimeAdapterKind::Swow => new SwowCoroutineContextStorage(new FiberScopeSlotFactory()),
+            RuntimeAdapterKind::Revolt => new RevoltFiberContextStorage(new \WeakMap(), new FiberScopeSlotFactory()),
             RuntimeAdapterKind::Reference => new MemoryContextStorage(),
         };
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
+use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
 
 /**
@@ -16,7 +17,7 @@ final class SwooleRuntimeFixture extends AbstractRuntimeFixture
 {
     public function __construct()
     {
-        parent::__construct(new SwoolePoller(), new SwooleCoroutineContextStorage(), new SwoolePoller());
+        parent::__construct(new SwoolePoller(), new SwooleCoroutineContextStorage(new FiberScopeSlotFactory()), new SwoolePoller());
     }
 
     public function portName(): string

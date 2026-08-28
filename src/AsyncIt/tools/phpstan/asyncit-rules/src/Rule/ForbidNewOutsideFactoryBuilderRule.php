@@ -6,8 +6,10 @@ namespace Tools\PhpStan\AsyncItRules\Rule;
 
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
+use ItPack\AsyncIt\Contract\ValueObjectInterface;
 use Tools\PhpStan\AsyncItRules\Support\AbstractSrcRule;
 
 /**
@@ -28,6 +30,7 @@ final class ForbidNewOutsideFactoryBuilderRule extends AbstractSrcRule implement
      * @param list<string> $exemptNamespaces namespace prefixes exempt from the rule
      */
     public function __construct(
+        private readonly ReflectionProvider $reflectionProvider,
         private readonly array $exemptNamespaces = [],
         string $srcRoot = '',
     ) {
@@ -80,6 +83,19 @@ final class ForbidNewOutsideFactoryBuilderRule extends AbstractSrcRule implement
 
         $constructed = $class instanceof Node\Name ? $class->toString() : 'anonymous';
 
+        $type = $scope->getType($node);
+        foreach ($type->getObjectClassNames() as $className) {
+            if (!$this->reflectionProvider->hasClass($className)) {
+                continue;
+            }
+
+            $reflection = $this->reflectionProvider->getClass($className);
+            if ($reflection->implementsInterface(ValueObjectInterface::class)
+                || $reflection->implementsInterface(\Throwable::class)) {
+                return [];
+            }
+        }
+
         return [RuleErrorBuilder::message(sprintf(
             'Direct construction of %s outside a Factory/Builder namespace is forbidden; use an injected factory (AsyncIt M1).',
             $constructed,
@@ -88,6 +104,9 @@ final class ForbidNewOutsideFactoryBuilderRule extends AbstractSrcRule implement
 
     private function isAllowedNamespace(string $namespace): bool
     {
-        return str_contains($namespace, '\\Factory\\') || str_contains($namespace, '\\Builder\\');
+        return str_contains($namespace, '\\Factory\\')
+            || str_contains($namespace, '\\Builder\\')
+            || str_ends_with($namespace, '\\Factory')
+            || str_ends_with($namespace, '\\Builder');
     }
 }

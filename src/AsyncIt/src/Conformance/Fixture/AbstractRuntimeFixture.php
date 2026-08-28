@@ -9,6 +9,7 @@ use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
@@ -55,6 +56,7 @@ abstract class AbstractRuntimeFixture implements AsyncRuntimeFixtureInterface
         $this->scheduler = new FiberTaskScheduler(
             new TaskFactory(new RandomIdentifierGenerator()),
             new FiberFactory(),
+            new TaskRecordFactory(),
             $schedulerPoller,
             $this->clock,
             $storage,

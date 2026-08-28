@@ -27,6 +27,7 @@ final class SchedulerFactory implements SchedulerFactoryInterface
     public function __construct(
         private readonly TaskFactoryInterface $taskFactory,
         private readonly FiberFactoryInterface $fiberFactory,
+        private readonly TaskRecordFactoryInterface $taskRecordFactory,
         private readonly PollerPortInterface $poller,
         private readonly MonotonicClockInterface $clock,
         private readonly ContextStorageInterface $contextStorage,
@@ -40,6 +41,7 @@ final class SchedulerFactory implements SchedulerFactoryInterface
         return new FiberTaskScheduler(
             $this->taskFactory,
             $this->fiberFactory,
+            $this->taskRecordFactory,
             $this->poller,
             $this->clock,
             $this->contextStorage,

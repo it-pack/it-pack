@@ -33,7 +33,7 @@ final class RunItAdapterConformanceTest extends TestCase
     {
         $result = (new MonotonicClockVerifier())->verify(new SystemMonotonicClock());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testMemoryContextStorageConforms(): void
@@ -43,7 +43,7 @@ final class RunItAdapterConformanceTest extends TestCase
             new ReferenceExecutionScope('ctx'),
         );
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testFailSafeArtifactPublisherConforms(): void
@@ -58,7 +58,7 @@ final class RunItAdapterConformanceTest extends TestCase
 
         $result = (new ArtifactPublisherVerifier())->verify($publisher, new RunItPortFixture());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testDiscoveredRuntimeUsesRunItAdaptersEndToEnd(): void

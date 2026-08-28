@@ -24,9 +24,6 @@ use ItPack\AsyncIt\Contract\SchedulerInterface;
  */
 final readonly class AsyncRuntimeVerifier implements VerifierInterface
 {
-    /**
-     * @param iterable<VerifierInterface> $verifiers
-     */
     public function __construct(
         private ContextIsolationVerifier $contextIsolation,
         private DeterministicCleanupVerifier $cleanup,

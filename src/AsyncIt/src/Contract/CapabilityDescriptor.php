@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Contract;
 
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
+use ItPack\AsyncIt\Contract\ValueObjectInterface;
 
 /**
  * The negotiated capability descriptor — the single source of truth for the
@@ -21,7 +22,7 @@ use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
  *
  * @see https://w3id.org/itpack/asyncit#CapabilityDescriptor
  */
-final readonly class CapabilityDescriptor
+final readonly class CapabilityDescriptor implements ValueObjectInterface
 {
     /**
      * @param array<string, CapabilityStatus> $capabilities keyed by CapabilityKind value
