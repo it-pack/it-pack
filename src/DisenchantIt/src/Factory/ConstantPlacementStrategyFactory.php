@@ -19,9 +19,9 @@ use ItPack\DisenchantIt\Contract\NumericNameGeneratorInterface;
 final readonly class ConstantPlacementStrategyFactory implements ConstantPlacementStrategyFactoryInterface
 {
     public function __construct(
-        private readonly ConstantPlacementFactoryInterface $placements,
-        private readonly ConstantNameGeneratorInterface $generator,
-        private readonly NumericNameGeneratorInterface $numericGenerator,
+        private ConstantPlacementFactoryInterface $placements,
+        private ConstantNameGeneratorInterface    $generator,
+        private NumericNameGeneratorInterface     $numericGenerator,
     ) {
     }
 

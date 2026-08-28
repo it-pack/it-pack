@@ -30,12 +30,12 @@ use ItPack\DisenchantIt\ValueObject\DisenchantScope;
 final readonly class DetectorFactory implements DetectorFactoryInterface
 {
     public function __construct(
-        private readonly RoleClassifierInterface $classifier,
-        private readonly ParserFactoryInterface $parsers,
-        private readonly TraverserFactoryInterface $traversers,
-        private readonly MagicStringVisitorFactoryInterface $visitorFactory,
-        private readonly CandidateFilterInterface $filter,
-        private readonly CandidateGrouperInterface $grouper,
+        private RoleClassifierInterface $classifier,
+        private ParserFactoryInterface $parsers,
+        private TraverserFactoryInterface $traversers,
+        private MagicStringVisitorFactoryInterface $visitorFactory,
+        private CandidateFilterInterface $filter,
+        private CandidateGrouperInterface $grouper,
     ) {
     }
 

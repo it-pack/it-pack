@@ -17,9 +17,9 @@ use ItPack\DisenchantIt\ValueObject\DisenchantScopeInterface;
 final readonly class MagicStringVisitorFactory implements MagicStringVisitorFactoryInterface
 {
     public function __construct(
-        private readonly NamingContextExtractorInterface $extractor = new NamingContextExtractor(),
-        private readonly ContentClassifierInterface $contentClassifier = new ContentClassifier(),
-        private readonly int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS,
+        private NamingContextExtractorInterface $extractor = new NamingContextExtractor(),
+        private ContentClassifierInterface $contentClassifier = new ContentClassifier(),
+        private int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS,
     ) {
     }
 

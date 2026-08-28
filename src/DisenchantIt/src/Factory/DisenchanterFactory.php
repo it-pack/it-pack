@@ -36,14 +36,14 @@ use ItPack\DisenchantIt\ValueObject\SemConvConfig;
 final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
 {
     public function __construct(
-        private readonly DetectorFactory $detectors,
-        private readonly PromotionTargetFactory $promotion,
-        private readonly RewriterInterface $rewriter,
-        private readonly SemConvCollectorInterface $semconvCollector,
-        private readonly SemConvAliasRewriterInterface $semconvAliasRewriter,
-        private readonly ClosedSetDetectorInterface $closedSetDetector,
-        private readonly ?ExecutionRecorderInterface $recorder = null,
-        private readonly ?VerificationObserverInterface $observer = null,
+        private DetectorFactory $detectors,
+        private PromotionTargetFactory $promotion,
+        private RewriterInterface $rewriter,
+        private SemConvCollectorInterface $semconvCollector,
+        private SemConvAliasRewriterInterface $semconvAliasRewriter,
+        private ClosedSetDetectorInterface $closedSetDetector,
+        private ?ExecutionRecorderInterface $recorder = null,
+        private ?VerificationObserverInterface $observer = null,
     ) {
     }
 

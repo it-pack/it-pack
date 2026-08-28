@@ -324,21 +324,49 @@ create-first style with the rule.
 
 ---
 
-## 8. Milestone M6 — Closeout: docs sync & upgrade notes 🟡
+## 8. Milestone M6 — Closeout: docs sync & upgrade notes ✅ closed
 
-- [ ] **M6-T1** `docs/REVIEW.md`: add **Status** resolutions to the findings
+- [x] **M6-T1** `docs/REVIEW.md`: add **Status** resolutions to the findings
       table (F1–F8 → milestone/mechanism), mirroring the previous cycle's
       incremental maintenance pattern.
-- [ ] **M6-T2** Scan README/USER_GUIDE for constant-host references
+- [x] **M6-T2** Scan README/USER_GUIDE for constant-host references
       (`Detector::MAX_SOURCE_BYTES` etc.) introduced by M1 and update examples
       to port-hosted names.
-- [ ] **M6-T3** Upgrade-notes entry (this document, release-notes home):
+- [x] **M6-T3** Upgrade-notes entry (this document, release-notes home):
       the four constants moved onto ports (old class-hosted names removed,
       pre-1.0 policy).
-- [ ] **M6-T4** Record final metrics in the implementation log: coverage %,
+- [x] **M6-T4** Record final metrics in the implementation log: coverage %,
       MSI per scope, violation counts (order/length) — the next review's
       baseline.
-- [ ] **M6-T5** Final full gate run + `composer validate`.
+- [x] **M6-T5** Final full gate run + `composer validate`.
+
+---
+
+## 8.1 Upgrade notes (pre-1.0)
+
+DisenchantIt is pre-`1.0.0`, so breaking changes may land without a major-version
+bump. This is the running upgrade log for consumers (all in-repo). Each entry lists
+the old name, the new name, and the milestone that introduced the move.
+
+### M1 — public tunables moved from class to port (F3 + F7)
+
+Four *public* tuning constants were hoisted onto their owning interfaces and the
+old class-hosted names **removed**. Callers that referenced the class constants
+must retarget to the interface; callers already type-hinting the interface (or
+using `self::` inside the implementation) are unaffected.
+
+| Removed (class-hosted) | New host (port) | Value |
+|---|---|---|
+| `DisenchantIt\Adapter\Detector::MAX_SOURCE_BYTES` | `DisenchantIt\Contract\StringLiteralDetectorInterface::MAX_SOURCE_BYTES` | `1_000_000` |
+| `DisenchantIt\Adapter\ParsedSourceCache::DEFAULT_MAX_ENTRIES` | `DisenchantIt\Contract\ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES` | `32` (now `int`-typed) |
+| `DisenchantIt\Adapter\SemConvConfig::DEFAULT_INTERFACE_NAME` | `DisenchantIt\Contract\SemConvConfigInterface::DEFAULT_INTERFACE_NAME` | `'SemConv'` |
+| `DisenchantIt\Adapter\SemConvConfig::DEFAULT_NAMESPACE` | `DisenchantIt\Contract\SemConvConfigInterface::DEFAULT_NAMESPACE` | `'Generated'` |
+| `DisenchantIt\ValueObject\DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS` | `DisenchantIt\Contract\DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS` | `4096` |
+
+Rationale: public tunables bound consumers to implementations, weakening
+substitutability (the vocabulary-hosting rule in `docs/REVIEW.md` §6). Implementations
+still read the values via `self::` through inheritance, so internal behavior is
+unchanged. No method signatures or return types changed.
 
 ---
 
@@ -626,9 +654,55 @@ completion; this log captures outcomes, deviations, and API impact.
   format:check` → 0 files · PHPStan `src` level 9 → no errors · PHPArkitect → 0
   violations · unit suite **274 tests / 600 assertions** green. (PHPStan over
   `tests/` carries 690 pre-existing baseline errors unrelated to M5 — the M4 gate
-  is `src`-only, which is clean.)
+   is `src`-only, which is clean.)
+
+### 2026-08-28 — M6 closed (closeout: docs sync & upgrade notes)
+
+- **T1 — REVIEW.md finding resolutions.** Added a **Status** column to the
+  findings summary table (§12) mapping each finding to its closing milestone:
+  F1→M2+M3, F2→M4, F3→M1, F4→M5, F5→M1, F6→M5, F7→M1, F8→M4. All eight are now
+  **resolved**. Also refreshed the stale summary claims so the review is coherent
+  at closeout: scorecard intro test count (172/431 → 274/600), Code-organization
+  rating (Good→Strong, 13+ order deviations / 9 long lines → enforced, 0
+  violations), Test-quality rating (Needs work → Strong, 90.00 % → 95.54 % +
+  mutation adopted); §6 vocabulary-hosting deviation rewritten as resolved-port
+  hosting; §7.2/§7.3/§7.4 noted as resolved (port-hosted names, 0 order
+  violations, int-typed tunables).
+- **T2 — constant-host drift scan.** Grepped `README.md`, `USER_GUIDE.md`, and
+  `examples/` for the four pre-M1 class-hosted names (`Detector::MAX_SOURCE_BYTES`,
+  `ParsedSourceCache::DEFAULT_MAX_ENTRIES`, `SemConvConfig::DEFAULT_INTERFACE_NAME/_NAMESPACE`,
+  `DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS`). **No references found** — the
+  docs/examples already use port/interface vocabulary, so no edits were required.
+  (Only `docs/REVIEW.md` and `docs/archive/*` referenced the old names; REVIEW.md
+  corrected under T1, archive left as historical.)
+- **T3 — upgrade notes.** Added a new top-level **§8.1 Upgrade notes (pre-1.0)**
+  section as the release-notes home: a table mapping each removed class-hosted
+  constant to its new port host (M1), with the pre-1.0 breakage policy stated.
+- **T4 — final metrics (next review baseline):**
+  - **Coverage:** unit suite **95.54 %** aggregate line coverage (pcov, M3 final);
+    17/18 former gap files ≥95 %, one sanctioned exception (`PhpLintObserver`
+    88.9 %, M3-T13). M5/M6 added no `src` logic, so coverage is unchanged from M3.
+  - **Mutation (MSI per scope, M4):** LineBasedRewriter 89 % · FlagSetTarget 92 %
+    · ClassConstantTarget 96 % · ClassnameToClassConst 92 % · BackedEnumTarget 92 %
+    · ParsedSourceCache 85 % · ClosedSetDetector 73 %. Mutation Code Coverage 100 %
+    in every scope. Aggregate Covered-Code MSI ≈ 86 %; `min-covered-msi` gate
+    proposed at 80, `min-msi` held at 0 (user acceptance pending, M4-T6).
+  - **Style violations:** declaration-order `tools/order_check.php` → **0 / 135
+    files**; long lines → **1** (accepted: `InvalidCacheConfigurationException.php:17`,
+    121 cols, PSR12 `class_definition` unwrappable for a single-interface class).
+    Generated `tests/Support/_generated/*` exempt, as per policy.
+  - **Suite size:** **274 tests / 600 assertions** (was 172 / 431 at M0).
+- **T5 — final gates + validate:**
+  - `composer architecture` → PASS (0 violations)
+  - `vendor/bin/phpstan analyse src --level=9` → no errors
+  - `composer format:check` → 0 files
+  - `php tools/order_check.php` → 0 violations
+  - `vendor/bin/codecept run unit` → **OK (274 tests, 600 assertions)**
+  - `composer validate` → (run below)
+  - Source code untouched by M6 (docs + tools only); no behavior change.
 
 ### 2026-08-25 — M0 closed, baseline recorded
+
 
 - All four gates green on `main` (`1c24d00` tree): architecture PASS · PHPStan
   src lvl 9 clean · format 0 of 172 files · unit suite OK **172 tests / 431

@@ -1,7 +1,7 @@
 # DisenchantIt — In-Depth Engineering Review (post-consolidation)
 
 > Scope: the `src/` library after the M0–M6 refactoring plan completed (135 source
-> files; 172 unit tests / 431 assertions). Covers **features, architecture,
+> files; 274 unit tests / 600 assertions). Covers **features, architecture,
 > maintenance, performance, maintainability, security, DX, SOLID, DRY, hexagonal
 > architecture (ports/adapters/factories), modern-PHP leverage, interface backing,
 > code organization, and test quality**.
@@ -46,13 +46,13 @@
 | Interface backing | **Strong** | All 69 concrete classes port-backed; phparkitect rule passes; zero abstract classes. |
 | SOLID | **Strong** | SRP/ISP/OCP hold; the PromotionTarget seam remains exemplary. |
 | DRY | **Strong** | Post-M3/M5 consolidation: single-source regexes/patterns, one slugifier, one Visibility enum; no residual duplication found beyond intentional trait reuse. |
-| Code organization | **Good** | One type per file everywhere; imports complete; **but** declaration-order deviations exist in 13+ files (§7) and 9 code lines exceed 120 chars (§8). |
+| Code organization | **Strong** | One type per file everywhere; imports complete; declaration-order convention now enforced by `tools/order_check.php` (0 violations / 135 files, M5); no `>120`-char lines outside one accepted PSR12-bound exception (M5). |
 | Modern PHP | **Strong (selective)** | readonly ×52, hooks, traits, generator-lazy scanning; WeakMap/Fibers deliberately unused with documented rationale. |
 | Performance | **Good** | Bounded content-keyed parse cache (cap 32), parser reuse, O(lines) rewriter. |
 | Security | **Strong** | Source-text hard rule intact; `exec()` fully `escapeshellarg`'d; fail-closed store. |
 | Maintainability | **Good** | Small cohesive classes, green gates; ordering inconsistencies are mechanical to fix. |
 | DX | **Strong** | Single entry point, opt-in ports, current USER_GUIDE, examples smoke-run clean. |
-| Test quality | **Needs work** | Measured **90.00%** line coverage vs the 95% target (18 files below); mutation testing absent. |
+| Test quality | **Strong** | Measured **95.54%** aggregate unit line coverage (17/18 former gap files ≥95 %, one sanctioned exception); mutation testing adopted via Infection with per-scope MSI baselines (M4). |
 
 Overall: the consolidation plan landed cleanly — architecture and style discipline
 are excellent. The gap between current state and this review's bar is concentrated
@@ -135,13 +135,13 @@ No misuse found; opportunities remain intentionally closed with rationale.
   (`NAMESPACE_SEPARATOR`, `LINEBREAK`, `CONSTANT_SEPARATOR`) and in backed enums.
 - Internal tuning knobs are `private const` on their classes — fine as
   implementation detail.
-- **Deviation from the vocabulary rule:** four *public* tunables are hosted on
-  concrete classes rather than their ports:
-  `Detector::MAX_SOURCE_BYTES` (Adapter/Detector.php:61),
-  `ParsedSourceCache::DEFAULT_MAX_ENTRIES` (:30),
-  `SemConvConfig::DEFAULT_INTERFACE_NAME/_NAMESPACE` (:39–40), and
-  `DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS` (:50). Consumers referencing
-  defaults bind to implementations, weakening substitutability (Finding F3).
+- Four *public* tunables are hosted on their **ports** (resolved in M1, Finding
+  F3): `StringLiteralDetectorInterface::MAX_SOURCE_BYTES`,
+  `ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES` (int-typed, F7),
+  `SemConvConfigInterface::DEFAULT_INTERFACE_NAME` / `DEFAULT_NAMESPACE`, and
+  `DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS`. Implementations
+  reference them via `self::` through inheritance; the old class-hosted names are
+  removed (pre-1.0 move — see upgrade notes).
 
 ## 7. Code organization
 
@@ -168,6 +168,10 @@ non-static methods → static methods; public-first within non-static)*:
 | d | `Detector.php:61`, `DisenchantScope.php:50` | Class constants declared after properties/promoted-constructor properties. |
 | e | `ValueObject/ConstantPlacementInterface.php:35` | Hooked property `$occurrences` declared after method `typeKeyword()`. |
 
+*All cases (a–e) resolved in M5 — `create()` now sits right after the constructor,
+public methods precede private, and ports list properties before methods. The
+ordering is enforced by `tools/order_check.php` (0 violations / 135 files).*
+
 ### 7.3 Findings — line length
 Nine code lines exceed 120 characters (generated `tests/_support/_generated/*`
 excluded): `Contract/DisenchanterInterface.php:41,57` and
@@ -176,13 +180,17 @@ line here), `Adapter/LineBasedRewriter.php:96`, `Adapter/ScopeFilter.php:42`,
 `Adapter/NamingContextExtractor.php:113`, `Factory/MagicStringVisitorFactory.php:28`,
 `Exception/InvalidCacheConfigurationException.php:16` (extends/implements chain).
 
+*Resolved in M5 — every listed line (plus later drift) was wrapped to ≤120 cols;
+the only remaining exception is `InvalidCacheConfigurationException.php:17` at 121
+cols, which PSR12's `class_definition` cannot wrap for a single-interface class.*
+
 ### 7.4 Magic literals
-None outstanding: heredoc cap is `DisenchantScope::DEFAULT_MAX_HEREDOC_BODY_CHARS`,
+None outstanding: heredoc cap is `DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS`,
 trivial numerics are `CandidateFilter::TRIVIAL_NUMERIC_VALUES`, JSON depth `512`
 is the standard default, power-of-two bit-trick inherent, closed-set bounds are
-named (`MIN_DISTINCT`/`MAX_DISTINCT`). The one inconsistency: 
-`ParsedSourceCache::DEFAULT_MAX_ENTRIES` omits its scalar type (`const int`),
-unlike every other typed constant.
+named (`MIN_DISTINCT`/`MAX_DISTINCT`). All public tunables are now int-typed
+(`ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES` was the last untyped one,
+resolved with F7 in M1).
 
 ## 8. Performance
 
@@ -254,18 +262,18 @@ live in the archived plan; consider promoting them to a changelog when releases 
 
 ## 12. Findings summary
 
-| # | Area | Severity | Location(s) | Recommendation |
-|---|------|----------|-------------|----------------|
-| F1 | Test coverage | 🔴 High | 18 files (§11 table) | Close the 90%→95% gap; prioritize RoleClassifier, LineBasedRewriter, NamingContextExtractor, DictionaryNameResolver error paths. |
-| F2 | Mutation testing | 🟠 Med | composer.json (absent) | Add `infection/infection` dev-dep + `composer mutation`; scope first runs to LineBasedRewriter + promotion targets. |
-| F3 | Vocabulary hosting | 🟠 Med | `Detector:61`, `ParsedSourceCache:30`, `SemConvConfig:39-40`, `DisenchantScope:50` | Hoist public tunable constants onto their interfaces (`StringLiteralDetectorInterface`, `ParsedSourceCacheInterface`, `SemConvConfigInterface`, `DisenchantScopeInterface`). |
-| F4 | Declaration order | 🟡 Low | 13 sites (§7.2 tables a–e) | Mechanical reorder pass; first decide whether `create()`-first is the official convention (then update AGENTS.md/ADR-0002 wording) or the prescribed order wins. |
-| F5 | DI discipline | 🟠 Med | `MagicLiteralVisitor.php:47` | Remove `= new ContentClassifier()` parameter default; inject explicitly via `MagicStringVisitorFactory`. |
-| F6 | Line length | 🟡 Low | §7.3 list | Reformat signatures one-parameter-per-line; wrap the extends/implements clause. |
-| F7 | Const typing | ⚪ Info | `ParsedSourceCache.php:30` | `public const int DEFAULT_MAX_ENTRIES = 32;` for consistency. |
-| F8 | Leakage measurement | 🟠 Med | Tooling | Introduce per-test/per-mutant coverage attribution alongside F2 to make the no-leakage rule verifiable. |
+| # | Area | Severity | Location(s) | Recommendation | Status |
+|---|------|----------|-------------|----------------|--------|
+| F1 | Test coverage | 🔴 High | 18 files (§11 table) | Close the 90%→95% gap; prioritize RoleClassifier, LineBasedRewriter, NamingContextExtractor, DictionaryNameResolver error paths. | **Closed (M2 + M3)** — aggregate unit coverage raised to **95.54 %**; 17/18 gap files ≥95 %, one sanctioned exception (`PhpLintObserver` 88.9 %, M3-T13). |
+| F2 | Mutation testing | 🟠 Med | composer.json (absent) | Add `infection/infection` dev-dep + `composer mutation`; scope first runs to LineBasedRewriter + promotion targets. | **Closed (M4)** — Infection installed; `composer mutation` / `mutation:ci` added; per-scope MSI baselines recorded (§M4 log). |
+| F3 | Vocabulary hosting | 🟠 Med | `Detector:61`, `ParsedSourceCache:30`, `SemConvConfig:39-40`, `DisenchantScope:50` | Hoist public tunable constants onto their interfaces (`StringLiteralDetectorInterface`, `ParsedSourceCacheInterface`, `SemConvConfigInterface`, `DisenchantScopeInterface`). | **Closed (M1)** — all four tunables hosted on their ports (see §6 note). |
+| F4 | Declaration order | 🟡 Low | 13 sites (§7.2 tables a–e) | Mechanical reorder pass; first decide whether `create()`-first is the official convention (then update AGENTS.md/ADR-0002 wording) or the prescribed order wins. | **Closed (M5)** — convention decided (`create()` sits right after constructor); 9 factory files + 3 public-before-private + 1 port reorder applied; enforced by `tools/order_check.php` (0 violations / 135 files). |
+| F5 | DI discipline | 🟠 Med | `MagicLiteralVisitor.php:47` | Remove `= new ContentClassifier()` parameter default; inject explicitly via `MagicStringVisitorFactory`. | **Closed (M1)** — `ContentClassifier` injected explicitly; no inline collaborator `new` remains in Core/Adapter. |
+| F6 | Line length | 🟡 Low | §7.3 list | Reformat signatures one-parameter-per-line; wrap the extends/implements clause. | **Closed (M5)** — all `>120`-col lines in `src`/`tests`/`examples` (excl. generated) wrapped; one accepted deviation (`InvalidCacheConfigurationException` extends/implements, 121 cols). |
+| F7 | Const typing | ⚪ Info | `ParsedSourceCache.php:30` | `public const int DEFAULT_MAX_ENTRIES = 32;` for consistency. | **Closed (M1)** — `ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES` declared `int`-typed. |
+| F8 | Leakage measurement | 🟠 Med | Tooling | Introduce per-test/per-mutant coverage attribution alongside F2 to make the no-leakage rule verifiable. | **Closed (M4)** — Infection per-mutant kill attribution adopted as the leakage mechanism; test-naming audit clean. |
 
-No architectural, security, SOLID, or correctness defects were found.
+No architectural, security, SOLID, or correctness defects were found. **All eight findings (F1–F8) are resolved as of the M6 closeout.**
 
 ---
 
