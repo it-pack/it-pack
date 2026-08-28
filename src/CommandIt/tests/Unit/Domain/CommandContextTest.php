@@ -58,6 +58,30 @@ final class CommandContextTest extends Unit
         self::assertSame(Classification::Internal, $context->entries()['k']['classification']);
     }
 
+    public function testMalformedEntryThrowsAtConstruction(): void
+    {
+        $this->expectException(\ItPack\CommandIt\Contract\Exception\InvalidCommandException::class);
+        $this->expectExceptionMessage('Invalid context entry for key "token".');
+
+        $context = new CommandContext(['token' => ['value' => 'abc']]);
+        self::fail('Expected ' . \ItPack\CommandIt\Contract\Exception\InvalidCommandException::class . ' for a malformed entry.');
+    }
+
+    public function testRedactedEntriesHidesSecretsSymmetrically(): void
+    {
+        $context = new CommandContext()
+            ->with('user', 'alice', Classification::Public)
+            ->with('password', 'hunter2', Classification::Secret)
+        ;
+
+        $redacted = $context->redactedEntries();
+
+        self::assertSame('alice', $redacted['user']);
+        self::assertSame('***', $redacted['password']);
+        self::assertSame($context->redacted(), $redacted, 'redactedEntries mirrors redacted()');
+        self::assertSame('hunter2', $context->entries()['password']['value'], 'raw entries still expose secret');
+    }
+
     public function testClassificationFlags(): void
     {
         self::assertTrue(Classification::Secret->isSecret());

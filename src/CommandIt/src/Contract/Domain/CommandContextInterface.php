@@ -47,7 +47,24 @@ interface CommandContextInterface
     public function redacted(): array;
 
     /**
+     * Raw entries, including any {@see Classification::Secret} values.
+     *
+     * Security: the returned arrays expose secret values in plaintext. This view is
+     * for internal/serialization use only. General consumers must use
+     * {@see self::redacted()} or {@see self::redactedEntries()} instead.
+     *
      * @return array<string, array{value: mixed, classification: Classification}>
      */
     public function entries(): array;
+
+    /**
+     * Export-safe view of the entries: secret values are replaced with
+     * {@see self::REDACTED}, mirroring {@see self::redacted()}.
+     *
+     * Unlike {@see self::entries()}, this accessor never returns a raw secret value,
+     * so it is the correct choice for any general consumer.
+     *
+     * @return array<string, mixed>
+     */
+    public function redactedEntries(): array;
 }

@@ -29,7 +29,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M3 | Architecture-gate integrity & tooling hygiene | F-01, F-19 + config rot | — | — | M | **Done (2026-08-25)** |
 | M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | **Done (2026-08-28)** |
 | M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | **Done (2026-08-28)** |
-| M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | Planned |
+| M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | **Done (2026-08-29)** |
 | M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Planned |
 | M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Planned |
 | M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | Planned |
@@ -275,7 +275,7 @@ if (\count($value) > $this->maxArrayEntries) {
 
 ### Task 6.1 — Enforce the transition matrix (D4, recommend enforce)
 
-- [ ] In `CommandExecution::transition()`, restrict moves to legal predecessors:
+- [x] In `CommandExecution::transition()`, restrict moves to legal predecessors:
 
 ```text
 Defined   → Received
@@ -284,8 +284,8 @@ Executing → Succeeded | Failed        (via complete())
 (Cancelled reserved — no incoming edges until a CancellationPort exists)
 ```
 
-- [ ] Implementation: private const map `ALLOWED_TRANSITIONS` (status value → list of allowed next statuses) consulted before copying; violation ⇒ `CommandExecutionException` with both statuses interpolated. `complete()` additionally requires current status `Executing` (today any non-terminal completes).
-- [ ] Write `docs/adr/0005-execution-transition-matrix.md` (context: aggregate was terminal-only-permissive; decision: strict matrix matching AGENTS lifecycle diagram; consequences: custom coordinators driving unusual sequences must follow the machine).
+- [x] Implementation: private const map `ALLOWED_TRANSITIONS` (status value → list of allowed next statuses) consulted before copying; violation ⇒ `CommandExecutionException` with both statuses interpolated. `complete()` additionally requires current status `Executing` (today any non-terminal completes).
+- [x] Write `docs/adr/0005-execution-transition-matrix.md` (context: aggregate was terminal-only-permissive; decision: strict matrix matching AGENTS lifecycle diagram; consequences: custom coordinators driving unusual sequences must follow the machine).
 - Files: `src/Domain/CommandExecution.php`; coordinator already conforms (`begin` Defined→Received; `succeed/fail` Received→Executing→terminal).
 - Tests (`tests/Unit/Domain/CommandExecutionTest.php`): update/extend — Defined→Failed throws; Failed→Received throws; Received→Received throws; complete-from-Received throws; the happy chain still returns copies. Prior test asserting arbitrary non-terminal transitions gets inverted intentionally (behavior change — note in PR).
 - Mutation: the matrix is branching security/lifecycle logic — confirm Task 4.2's floors catch killed/alive mutants here.
@@ -293,15 +293,15 @@ Executing → Succeeded | Failed        (via complete())
 
 ### Task 6.2 — Constructor hardening
 
-- [ ] `CommandExecution::__construct` → **private**; `define()` remains the public factory; `transition()/complete()` construct internally (same class — allowed). Removes the terminal-without-result / result-without-terminal invalid states (REVIEW §8.2).
-- [ ] `complete()` validates `endedAt >= startedAt`, else `CommandExecutionException('Execution ended before it started.')`.
+- [x] `CommandExecution::__construct` → **private**; `define()` remains the public factory; `transition()/complete()` construct internally (same class — allowed). Removes the terminal-without-result / result-without-terminal invalid states (REVIEW §8.2).
+- [x] `complete()` validates `endedAt >= startedAt`, else `CommandExecutionException('Execution ended before it started.')`.
 - Files: `src/Domain/CommandExecution.php`; fix any test constructing directly (switch to `define()`).
 - Acceptance: suite green; `grep -rn "new CommandExecution(" src tests` shows only intra-class sites.
 
 ### Task 6.3 — `CommandContext` entry-shape validation + secret-exposure guidance (F-16)
 
-- [ ] Constructor (or a private `fromEntries` used by `with()`): iterate entries; each must be `array{value: mixed, classification: Classification}` — else `InvalidCommandException::malformed('Invalid context entry for key "%s".')`. Prevents the deferred fatal in `redacted()`.
-- [ ] `entries()`: docblock gains an explicit security warning (raw Secret values — internal/serialization use only) **and** add `redactedEntries(): array<string,mixed>` as the safe accessor for general consumers.
+- [x] Constructor (or a private `fromEntries` used by `with()`): iterate entries; each must be `array{value: mixed, classification: Classification}` — else `InvalidCommandException::malformed('Invalid context entry for key "%s".')`. Prevents the deferred fatal in `redacted()`.
+- [x] `entries()`: docblock gains an explicit security warning (raw Secret values — internal/serialization use only) **and** add `redactedEntries(): array<string,mixed>` as the safe accessor for general consumers.
 - Files: `src/Domain/CommandContext.php`, `src/Contract/Domain/CommandContextInterface.php` (additive method).
 - Tests: malformed entry throws at construction; `redactedEntries()` hides secrets symmetrically with `redacted()`.
 - Acceptance: green; interface addition documented as intentional pre-1.0 API growth.

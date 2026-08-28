@@ -368,3 +368,33 @@ Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16�
 - Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
   0 uncovered · full suite **180 tests** (169 unit / 9 functional / 2 integration) green ·
   cs-fixer clean.
+
+### 2026-08-29 — Refactoring plan milestone M6 landed
+
+- **D4 (enforce) implemented** — `CommandExecution::transition()` now consults a
+  private `ALLOWED_TRANSITIONS` matrix (`defined→received`, `received→executing`);
+  illegal predecessor pairs throw `CommandExecutionException` with both statuses
+  interpolated. `complete()` requires the current status to be `executing` (the only
+  legal predecessor of a terminal outcome), so completing a `defined`/`received`
+  execution now throws instead of silently producing a terminal copy. `cancelled`
+  keeps no incoming edge (reserved until a `CancellationPort`).
+- **Invalid states unrepresentable (REVIEW §8.2)** — `CommandExecution::__construct`
+  is now `private`; the only public factory is `define()` (always `defined`), and all
+  onward states come exclusively from `transition()`/`complete()`, which already
+  preserve the terminal-with-result invariant. `complete()` also rejects
+  `endedAt < startedAt` (`Execution ended before it started.`).
+- **F-16 entry-shape / secret-exposure guidance** — `CommandContext::__construct`
+  validates every entry has the `array{value, classification: Classification}` shape
+  (else `InvalidCommandException::malformed` for the offending key), preventing the
+  deferred fatal in `redacted()`. `entries()` now carries an explicit security
+  warning (raw secret values — internal/serialization only) and a new additive
+  `redactedEntries(): array<string, mixed>` is the export-safe accessor that mirrors
+  `redacted()`; documented as intentional pre-1.0 API growth.
+- **ADR 0005** (`docs/adr/0005-execution-transition-matrix.md`) records the
+  enforce-the-matrix decision, the unrepresentable-invalid-states design, and the
+  rejected permissive-aggregate alternative; linked from `transition()`'s docblock.
+- Behavior change: any caller completing a non-`executing` execution now throws —
+  no such call existed in `src/` or tests; the shipped coordinator already conformed.
+- Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
+  0 uncovered · full suite **187 tests** (176 unit / 9 functional / 2 integration) green ·
+  cs-fixer clean.

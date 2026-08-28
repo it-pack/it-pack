@@ -26,10 +26,27 @@ use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 final readonly class CommandExecution implements ExecutionArtifactInterface
 {
     /**
+     * Legal non-terminal transitions (D4 / ADR-0005).
+     *
+     * The lifecycle machine is enforced by {@see self::transition()}: a status maps
+     * to exactly the statuses it may legally enter. Terminal moves (succeeded/failed)
+     * are not listed here — they are produced only by {@see self::complete()}, which
+     * requires the execution to currently be `executing`. `cancelled` has no incoming
+     * edge until a `CancellationPort` is introduced.
+     *
+     * @var array<string, list<string>>
+     */
+    private const ALLOWED_TRANSITIONS = [
+        'defined' => ['received'],
+        'received' => ['executing'],
+        'executing' => [],
+    ];
+
+    /**
      * @param int $startedAt
      * @param int|null $endedAt
      */
-    public function __construct(
+    private function __construct(
         private CommandExecutionIdInterface $id,
         private CommandDefinitionInterface $definition,
         private CommandStatusInterface $status,
@@ -94,14 +111,29 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
     /**
      * Returns a copy carrying a new non-terminal status.
      *
-     * The receiver is never mutated. Throws when already terminal.
+     * The receiver is never mutated. Moves are restricted to the legal lifecycle
+     * predecessors ({@see self::ALLOWED_TRANSITIONS}); a terminal execution cannot
+     * transition and an illegal predecessor pair throws.
      *
      * @throws CommandExecutionException
+     *
+     * @see docs/adr/0005-execution-transition-matrix.md
      */
     public function transition(CommandStatusInterface $next): self
     {
         if ($this->isTerminal()) {
-            throw new CommandExecutionException('A terminal execution cannot transition.');
+            throw new CommandExecutionException(
+                \sprintf('A terminal execution (%s) cannot transition.', $this->status->label()),
+            );
+        }
+
+        $current = $this->status->label();
+        $allowed = self::ALLOWED_TRANSITIONS[$current] ?? [];
+
+        if (!\in_array($next->label(), $allowed, true)) {
+            throw new CommandExecutionException(
+                \sprintf('Illegal transition from "%s" to "%s".', $current, $next->label()),
+            );
         }
 
         return new self(
@@ -117,7 +149,9 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
     /**
      * Returns a terminal copy carrying the result and end time.
      *
-     * The receiver is never mutated. Throws when already terminal.
+     * The receiver is never mutated. Throws when already terminal, when the current
+     * status is not `executing` (the only legal predecessor of a terminal outcome),
+     * or when the execution ends before it started.
      *
      * @param int $endedAt
      *
@@ -127,6 +161,16 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
     {
         if ($this->isTerminal()) {
             throw new CommandExecutionException('A terminal execution cannot be completed again.');
+        }
+
+        if ($this->status->label() !== CommandStatus::Executing->value) {
+            throw new CommandExecutionException(
+                \sprintf('Only an executing execution can be completed (current: %s).', $this->status->label()),
+            );
+        }
+
+        if ($endedAt < $this->startedAt) {
+            throw new CommandExecutionException('Execution ended before it started.');
         }
 
         $next = $result->status() === CommandResultStatus::Succeeded
