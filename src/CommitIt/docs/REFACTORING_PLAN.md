@@ -28,7 +28,7 @@
 | # | Milestone | Priority | Risk | Depends on | Gate to add | Status |
 |---|---|---|---|---|---|---|
 | M1 | Secure locale pinning (env injection, no `putenv`) | Medium (security) | Low–Med | — | `composer quality` | ✅ Done |
-| M2 | Extract `ObserverDispatch` trait (DRY) | Medium | Low | — | `composer quality` |
+| M2 | Extract `ObserverDispatch` trait (DRY) | Medium | Low | — | `composer quality` | ✅ Done |
 | M3 | Close Unit coverage gap to ≥95% lines | Medium | Low | M2 (optional) | `composer coverage` |
 | M4 | Fix coverage job + enforce mutation | Medium | Low | M1, M3 | `coverage:all`, `quality:full` |
 | M5 | Declare `readonly class` on eligible types | Low | Low | — | `composer quality` |
@@ -119,6 +119,27 @@ private function dispatchRun<T>(RepositoryObserver $observer, string $operation,
 
 **Done criteria.** No duplicated dispatch body; single trait. Behaviour-identical (observer test asserts
 unchanged). `composer quality` green.
+
+#### M2 — Implementation notes (completed)
+
+- New `src/Application/ObserverDispatch.php` (`@internal` trait, no state). It exposes `dispatchRun()`
+  (generic, returns `T`), `dispatchRunVoid()` (returns `void`), and an internal `dispatchNotify()` that
+  swallows observer exceptions on a non-recursive path. The observer is passed **as a parameter** so the
+  trait cannot collide with the `private readonly RepositoryObserver $observer` held by each decorator.
+- **Deliberate deviations from the plan's pseudo-code:**
+  - A PHP `trait` cannot be declared `final`, so the trait is plain (not `final`) with an `@internal` tag.
+  - The plan's sketch omitted the `notify` swallow wrapper; behaviour would *not* have been identical
+    without it, so the swallow path is preserved inside `dispatchNotify` (mirrors the original `notify`).
+  - The trait signature keeps the original call-site argument order `(observer, operation, action,
+    context)` rather than the plan's `(observer, operation, context, action)`, which minimizes the diff in
+    every call site and avoids an accidental argument-swap.
+- `ObservedRepository.php` and `ObservedWorkingTree.php` now `use ObserverDispatch;` and forward `$this->observer`
+  to `dispatchRun`/`dispatchRunVoid`; their private `run`/`runVoid`/`notify` bodies were deleted.
+- `ObservedWorkingTree` also imports `WorktreeInfo` (was a docblock FQN) per M2.3.
+- **Verification:** `composer analyse` (0 errors), `composer cs:check` (0 files), `composer architecture`
+  (0 violations), `composer test:unit` (115 ✔ / 314 assertions), `composer test:functional` (31 ✔ / 89
+  assertions). Existing `ObservedRepositoryTest`/`ObservedWorkingTreeTest` onStart/onSuccess/onFailure
+  assertions pass unchanged, confirming behaviour parity.
 
 ---
 

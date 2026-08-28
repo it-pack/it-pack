@@ -224,8 +224,12 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
    **→ Implemented (M1).** `LocalePinningRunner` now forwards the full process env with `LC_ALL`/`LANG`
    pinned to `C` via the per-process `$env` array; no global `putenv`. Verified by `LocalePinningRunnerTest`
    (global env unchanged) and a green Functional suite.
-2. **(Medium, DRY/style)** Extract an `ObserverDispatch` trait (private `run`/`runVoid`/`notify`) used by
-   both `ObservedRepository` and `ObservedWorkingTree`; delete the duplicated docblock.
+ 2. **(Medium, DRY/style)** Extract an `ObserverDispatch` trait (private `run`/`runVoid`/`notify`) used by
+    both `ObservedRepository` and `ObservedWorkingTree`; delete the duplicated docblock.
+    **→ Implemented (M2).** `src/Application/ObserverDispatch.php` (`@internal` trait, observer passed in)
+    now holds `dispatchRun`/`dispatchRunVoid`/`dispatchNotify`; both decorators `use` it and forward
+    `$this->observer`. The stacked docblock is gone. Behaviour parity confirmed by the existing
+    `ObservedRepositoryTest`/`ObservedWorkingTreeTest` onStart/onSuccess/onFailure assertions.
 3. **(Medium, coverage)** Close the Unit gaps: value-object `equals()` for all types, the missing
    `with*` builders, and a data-driven `ObservedRepository` test over `FakeRepository`. Re-measure;
    target ≥95% lines.
