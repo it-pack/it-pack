@@ -7,6 +7,8 @@ namespace ItPack\HashIt\Adapter;
 use ItPack\HashIt\Hasher;
 use ItPack\HashIt\HasherInterface;
 use ItPack\HashIt\HmacHasherInterface;
+use ItPack\HashIt\KeyedHasher;
+use ItPack\HashIt\KeyedHasherInterface;
 
 /**
  * Composition root: binds the native (PHP hash extension) adapters into the
@@ -23,5 +25,10 @@ final readonly class NativeHashIt
     public static function hmacHasher(): HmacHasherInterface
     {
         return new NativeHmacHasher();
+    }
+
+    public static function keyedHasher(): KeyedHasherInterface
+    {
+        return new KeyedHasher(new NativeKeyedContextFactory());
     }
 }

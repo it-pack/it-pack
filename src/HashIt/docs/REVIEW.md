@@ -59,7 +59,7 @@ uses readonly classes (a PHP 8.2 feature) and the README claims `>= 8.1`.
 | F-5 | 🟡 | Performance | `hashFile()` loads whole files into memory (measured: 200 MiB file → +200 MiB peak) despite an existing streaming path |
 | F-6 | 🟡 | Contract robustness | Raw `ValueError`/`TypeError` leak through the public API; `HashContextInterface` lifecycle undocumented; non-seekable-stream semantics implicit |
 | F-7 | 🟡 | Maintenance | No CI workflow, no deptrac/phparkitect rule, no `license`/`description` fields, `var/` not gitignored, empty `fixtures/` and `tests/_envs/` dirs |
-| F-8 | 🟢 | Feature symmetry | HMAC path is hex-only and non-incremental (no keyed context factory port), while the plain path offers binary + stream + bulk |
+| F-8 | 🟢 | Feature symmetry | HMAC path was hex-only and non-incremental (no keyed context factory port), while the plain path offers binary + stream + bulk — closed by M8 (keyed context factory + `KeyedHasherInterface`) |
 | F-9 | 🟢 | Modern PHP consistency | Only 2 of 8 classes declare `final readonly`; four others are effectively immutable but undeclared (closed by M6) | ✅ closed by M6 |
 
 ---
@@ -79,9 +79,10 @@ Delivered capabilities, each verified against the running suite (37 tests / 168 
 | Timing-safe verification | `Hasher::verify()`, `verifyBinary()` | ✅ delegates to `Hash::equals()` → `hash_equals()` |
 | Incremental immutable builder | `HashBuilder` | ✅ branching/immutability tested; reuse-after-digest safe |
 | Algorithm catalogue | `HashAlgorithm` backed enum, 60 cases | ✅ 44 HMAC-safe cases derived from `#[HmacSafe]` attribute (count verified by probe; README's "44" accurate) |
-| HMAC | `HmacHasherInterface` / `NativeHmacHasher` | ✅ rejects non-HMAC-safe algorithms |
+| HMAC (one-shot) | `HmacHasherInterface` / `NativeHmacHasher` | ✅ rejects non-HMAC-safe algorithms |
+| HMAC binary / file / stream / bulk / verify | `KeyedHasherInterface` / `KeyedHasher` | ✅ M8 — mirrors `HasherInterface`; keyed context via `KeyedContextFactoryInterface` (`hash_init($algo, HASH_HMAC, $key)`); streamed/chunked HMAC equals native `hash_hmac` |
 
-Gaps (none blocking): no recursive directory mode; HMAC has no binary output, streaming, or bulk variant (**F-8**) even though PHP natively supports keyed contexts via `hash_init($algo, HASH_HMAC, $key)` — a keyed `ContextFactoryInterface` variant would unlock streaming/bulk HMAC with no new primitives.
+Gaps (none blocking): no recursive directory mode. The HMAC path previously had no binary output, streaming, or bulk variant (**F-8**), but that was closed in M8 — PHP's keyed contexts via `hash_init($algo, HASH_HMAC, $key)` are now exposed through a `KeyedContextFactoryInterface` port and a `KeyedHasherInterface` surface that mirrors `HasherInterface` (binary + stream + bulk + timing-safe verify), so the two paths are feature-symmetric.
 
 ---
 
@@ -92,10 +93,12 @@ The layout follows the monorepo doctrine (ports owned by core; technology isolat
 
 ```
 Core   (ItPack\HashIt)          ports: ContextFactoryInterface, HashContextInterface,
-                                       FilepathInterface, HashInterface, HmacHasherInterface
+                                      FilepathInterface, HashInterface, HmacHasherInterface,
+                                      KeyedContextFactoryInterface, KeyedHasherInterface
+                                      services: Hasher, HashBuilder, KeyedHasher
 VO     (ItPack\HashIt)          Hash implements HashInterface
 Edge   (ItPack\HashIt\Adapter)  Native{HashContext, ContextFactory, FilepathFileinfo,
-                                       HmacHasher} + NativeHashIt (composition root)
+                                      HmacHasher, KeyedContextFactory} + NativeHashIt (composition root)
 ```
 
 **What works well:**
@@ -116,7 +119,7 @@ Edge   (ItPack\HashIt\Adapter)  Native{HashContext, ContextFactory, FilepathFile
 | Class | Kind | Backed by interface? | Verdict |
 |-------|------|----------------------|---------|
 | `Hash` | value object | ✅ `HashInterface` | OK (VO exemption would also apply) |
-| `Hasher` | application service | ❌ none | **F-4** — primary public API is concrete-only; `NativeHashIt::create(): Hasher` propagates the concrete type |
+| `Hasher` | application service | ✅ `HasherInterface` | OK (F-4 closed by M5) |
 | `HashBuilder` | application service | ❌ none | **F-4** (acceptable if deemed internal, but it is used by `Hasher::hashStream()`'s public path and documented in README) |
 | `HashAlgorithm` | enum | exempt (enum = closed catalogue by design) | OK |
 | `HmacSafe` | attribute | exempt (marker) | OK |
@@ -124,11 +127,13 @@ Edge   (ItPack\HashIt\Adapter)  Native{HashContext, ContextFactory, FilepathFile
 | `NativeContextFactory` | adapter | ✅ `ContextFactoryInterface` | OK |
 | `NativeFilepathFileinfo` | adapter | ✅ `FilepathInterface` | OK |
 | `NativeHmacHasher` | adapter | ✅ `HmacHasherInterface` | OK |
+| `NativeKeyedContextFactory` | adapter | ✅ `KeyedContextFactoryInterface` | OK (M8) |
+| `KeyedHasher` | application service | ✅ `KeyedHasherInterface` | OK (M8 — restores HMAC feature symmetry with `HasherInterface`) |
 | `NativeHashIt` | composition root | exempt per house convention | OK |
 
-Net: adapters are 100% port-backed; the gap concentrates in the two core services (**F-4**).
-A `HasherInterface` (and optionally a builder interface) would let consumers inject fakes and
-would make the future bridge story symmetric with siblings that expose `Contract/` surfaces.
+Net: every concrete class is port-backed (adapters + core services `Hasher`/`KeyedHasher`); `HashBuilder`
+remains interface-less by design (internal immutable builder used by both `Hasher` and `KeyedHasher`
+public streaming paths, documented in README). F-4 closed by M5; F-8 closed by M8.
 
 ---
 
@@ -258,8 +263,9 @@ Items 1–2 are half-day changes that close the gap between "usable" and the pac
 | F-7 | M0 + M7 | gitignore `var/`, dropped empty dirs; CI workflow runs the four gates |
 | F-4 | M5 | `HasherInterface` port; `NativeHashIt::create(): HasherInterface`; consumers bind to port |
 | F-9 | M6 | all 10 classes `final readonly`; `grep -rn "^final class" src/` → empty |
+| F-8 | M8 | new `KeyedContextFactoryInterface` port (keyed `hash_init`) + `KeyedHasherInterface`/`KeyedHasher` core service restoring binary/stream/bulk/verify HMAC symmetry with `HasherInterface`; `HashBuilder::fromContext()` feeds the immutable builder |
 
-F-8 remains open (deferred to M8 decision point — keyed-context port for streaming/bulk/binary HMAC).
+F-8 closed by M8 (keyed-context port for streaming/bulk/binary HMAC).
 
 ---
 

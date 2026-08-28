@@ -87,13 +87,17 @@ src/
   FilepathInterface.php              port
   DirectoryListingInterface.php      port
   HasherInterface.php                port (the public hasher API)
+  KeyedContextFactoryInterface.php   port (keyed/HMAC context factory)
+  KeyedHasherInterface.php           port (keyed HMAC surface, mirrors HasherInterface)
   Hasher.php                         core service (depends only on ports)
+  KeyedHasher.php                    core service (keyed HMAC, depends only on ports)
   Adapter/
     NativeHashContext.php            wraps PHP \HashContext
     NativeContextFactory.php         builds a NativeHashContext
     NativeFilepathFileinfo.php       SplFileInfo -> FilepathInterface
     NativeDirectoryListing.php       enumerates regular files -> FilepathInterface
     NativeHmacHasher.php             HMAC via hash_hmac()
+    NativeKeyedContextFactory.php    keyed HMAC context via hash_init(..., HASH_HMAC, $key)
     NativeHashIt.php                 composition root (binds the adapters)
 ```
 

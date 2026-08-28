@@ -37,7 +37,7 @@ M4  Memory-bounded hashFile     (F-5)                   <- builds on M1 helpers 
 M5  Interface backing           (F-4)                   <- after surface stabilizes in M3/M4
 M6  final readonly consistency  (F-9)                   <- mechanical polish, floor guaranteed by M0
 M7  CI                          (rest of F-7)           <- DONE; runs the full gate set incl. architecture
-M8  OPTIONAL keyed HMAC         (F-8)                   <- stretch; design decision first
+M8  OPTIONAL keyed HMAC         (F-8)                   <- DONE; streaming/bulk/binary HMAC symmetry restored
 ```
 
 | Finding | Milestone | Finding | Milestone |
@@ -296,7 +296,7 @@ git status --porcelain   # var/ noise gone
 
 ---
 
-## M8 — OPTIONAL: keyed contexts → symmetric HMAC (F-8)
+## M8 — OPTIONAL: keyed contexts → symmetric HMAC (F-8) ✅ DONE
 
 **Goal:** Unlock streaming/incremental, binary, and bulk HMAC using the existing primitives, restoring feature symmetry with the plain-hashing path (review §2 gap).
 
@@ -313,11 +313,27 @@ git status --porcelain   # var/ noise gone
 **Dependencies:** M2 (taxonomy), M3 (deptrac guards the new adapter).
 **Acceptance:** incremental HMAC parity with native one-shot `hash_hmac()`; gates green.
 
+### Design decisions (written before code)
+
+1. **Where keyed variants live.** `HmacHasherInterface` was kept minimal (one-shot `hmac` only) to preserve the ISP-praised minimality from review §5. The keyed surface is split into two new core-owned ports:
+   - `KeyedContextFactoryInterface::build(string|HashAlgorithm $algorithm, string $key): HashContextInterface` — the incremental HMAC primitive. `NativeKeyedContextFactory` builds `hash_init($algorithm->value, HASH_HMAC, $key)` and wraps it in the existing `NativeHashContext` (a `HashContext` is a `HashContext`), so no new context adapter is needed and `HashBuilder` can feed it via a new `HashBuilder::fromContext()` entry without changing `HashBuilder::start()`.
+   - `KeyedHasherInterface` — the dedicated convenience surface mirroring `HasherInterface`: `hmac`, `hmacBinary`, `hmacFile`, `verify`, `verifyBinary`, `hmacStream`, `hmacFiles`. Implemented by a new core service `KeyedHasher` (constructed with the keyed factory only; bulk `hmacFiles` reuses `hmacFile`, so no directory-listing dependency — `hmacDirectory` was intentionally out of scope for M8).
+   - `NativeHashIt::keyedHasher(): KeyedHasherInterface` wires `NativeKeyedContextFactory` + `NativeDirectoryListing` → but since `KeyedHasher` no longer takes a listing, it wires only the keyed factory.
+2. **`#[Insecure]` attribute: deferred.** Algorithm-strength taxonomy (marking md5/sha1 etc. as broken) is a separate concern from HMAC feature symmetry; the M2 README note already documents broken-crypto guidance in prose. Adding a machine-readable `#[Insecure]` marker is left as a future, standalone change rather than bundled into M8.
+
+### Completion note (2026-08-28)
+
+- New files: `src/KeyedContextFactoryInterface.php` (Core port), `src/KeyedHasherInterface.php` (Core port), `src/KeyedHasher.php` (Core service), `src/Adapter/NativeKeyedContextFactory.php` (Adapter). Modified: `src/HashBuilder.php` (`fromContext()` static), `src/Adapter/NativeHashIt.php` (`keyedHasher()`).
+- Keyed context reuses `NativeHashContext`; HMAC-safe + unknown-algorithm guards live in `NativeKeyedContextFactory` (single source), so `KeyedHasher` trusts the factory. Non-HMAC-safe algorithms throw `InvalidArgumentException` through every keyed entry point.
+- `KeyedHasherInterface` restores the symmetry gap F-8 called out: binary, streamed/chunked, bulk (`hmacFiles`), and timing-safe `verify`/`verifyBinary` — all verified equal to native `hash_hmac()` (one-shot and streamed/chunk-spanning).
+- Tests (`tests/Unit/KeyedHasherTest.php`, 17 cases): native-parity for hmac/hmacBinary/hmacFile/hmacStream(64 KiB chunked)/hmacFiles; verify true+false; non-resource / non-positive-chunk errors; non-HMAC-safe rejection across hmac/hmacBinary/hmacStream; composition root returns the port; keyed factory produces an incrementally-equivalent digest (copy/branch/update/finalize).
+- **Gates (all green):** 61 tests / 207 assertions ✅ · PHPStan 0 errors ✅ · PHP-CS-Fixer 0 of 30 ✅ · deptrac 0 violations (Adapter→Adapter `NativeKeyedContextFactory`→`NativeHashContext` is intra-layer, allowed) ✅. F-8 closed.
+
 ---
 
 ## Definition of done (whole plan)
 
-- All findings F-1…F-9 closed or explicitly deferred with rationale in this document (expected: F-8 → M8 decision point).
+- All findings F-1…F-9 closed or explicitly deferred with rationale in this document (F-8 closed by M8; all others closed by M0–M7).
 - Review §10 "Suggested order of action" fully traced: items 1–2 → M0/M3, 3–6 → M1/M4/M2/M5, 7 → M0+M7, 8 → M6, 9 → M8.
 - Gates green at every commit; `docs/REVIEW.md` receives a follow-up note per milestone ID as findings close (mirroring DeriveIt's REVIEW_4 "verified closed" convention).
 - `ROADMAP.md`/`IMPLEMENTATION_PLAN.md` move to `docs/archive/` once M5 closes, per the sibling convention noted in review §9.
