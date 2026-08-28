@@ -101,7 +101,8 @@ final class Phase5VerifyObserverTest extends Unit
 
         // Pre-existing SemConv registry with a COLLIDING name/value under a
         // different value → SemConvCollisionException (a business exception).
-        $existingSemConv = "<?php\nnamespace Generated;\ninterface SemConv {\n    public const string ADMIN_USER = 'DIFFERENT';\n}\n";
+        $existingSemConv = "<?php\nnamespace Generated;\ninterface SemConv {\n"
+            . "    public const string ADMIN_USER = 'DIFFERENT';\n}\n";
 
         $this->expectException(\ItPack\DisenchantIt\Exception\SemConvCollisionException::class);
         $disenchanter->rewriteWithSemConv($code, 1, $existingSemConv);

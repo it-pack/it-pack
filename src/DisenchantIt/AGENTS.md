@@ -630,6 +630,7 @@ Expected tools include:
 - PHPArkitect (architecture rules — replaces Deptrac).
 - PHP-CS-Fixer (coding style).
 - Infection (mutation testing).
+- `tools/order_check.php` (declaration-order linter; see below).
 - Composer validation and audit.
 - Backward compatibility checks.
 - Codeception unit / integration test runners.
@@ -648,6 +649,20 @@ composer quality
 ```
 
 Do not assume these scripts exist. Verify them first.
+
+### Declaration-order linter
+
+`tools/order_check.php` is a dependency-free, tokenizer-based linter that enforces
+the class declaration-order convention: `trait use → constants → properties/hooks
+→ constructor → factory methods → non-static methods → static methods`, with
+public-first within non-static methods. A *factory method* is a named static
+constructor (`create()` / `default()` / `from*()`). Run it from the repo root
+(`php tools/order_check.php`); it exits non-zero on any violation. It is a
+pre-commit / CI aid — wiring it into the pipeline is a user decision. Note one
+known exception: `InvalidCacheConfigurationException`'s `extends … implements …`
+line is 121 columns because PHP-CS-Fixer's `@PSR12` `class_definition` rule
+collapses that header onto one line and offers no multi-line option for a
+single-interface class.
 
 ### PHPStan
 

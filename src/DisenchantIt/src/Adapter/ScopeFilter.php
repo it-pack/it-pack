@@ -39,7 +39,10 @@ final readonly class ScopeFilter implements ScopeFilterInterface
         }
 
         // 2. Explicit literal-value deny-list (file-independent).
-        if ($this->scope->getExcludeLiteralValues() !== [] && in_array($lit->value, $this->scope->getExcludeLiteralValues(), true)) {
+        if (
+            $this->scope->getExcludeLiteralValues() !== []
+            && in_array($lit->value, $this->scope->getExcludeLiteralValues(), true)
+        ) {
             return false;
         }
 

@@ -26,11 +26,6 @@ final readonly class DictionaryNameResolver implements DictionaryNameResolverInt
     ) {
     }
 
-    public function resolve(LiteralInterface $lit): ?string
-    {
-        return $this->map[$lit->value] ?? null;
-    }
-
     /**
      * @param array<string, string> $map
      */
@@ -59,5 +54,10 @@ final readonly class DictionaryNameResolver implements DictionaryNameResolverInt
         }
 
         return new self($map);
+    }
+
+    public function resolve(LiteralInterface $lit): ?string
+    {
+        return $this->map[$lit->value] ?? null;
     }
 }

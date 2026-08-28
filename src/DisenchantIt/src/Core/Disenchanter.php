@@ -57,18 +57,6 @@ final readonly class Disenchanter implements DisenchanterInterface
     }
 
     /**
-     * Records an immutable execution artifact through the recorder port. Core
-     * never depends on a concrete recorder, so a run is identical with or
-     * without an active recorder.
-     *
-     * @param array<string, mixed> $payload
-     */
-    private function record(string $name, array $payload = []): void
-    {
-        $this->recorder->record(new DisenchantOccurrence($name, $payload));
-    }
-
-    /**
      * @return array<string, CandidateInterface> keyed by the grouping key.
      *         For strings the key is the literal value; for numbers it is the
      *         value combined with the naming-context signature (see
@@ -98,8 +86,12 @@ final readonly class Disenchanter implements DisenchanterInterface
         return $detected;
     }
 
-    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null, bool $dryRun = false): string
-    {
+    public function rewrite(
+        string $code,
+        int $minOccurrences = 1,
+        ?string $relativePath = null,
+        bool $dryRun = false,
+    ): string {
         $candidates = $this->detect($code, $relativePath);
         $groups = $this->closedSetDetector->detect($candidates);
 
@@ -119,8 +111,12 @@ final readonly class Disenchanter implements DisenchanterInterface
         return $rewritten;
     }
 
-    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null, ?string $relativePath = null): DisenchantResultInterface
-    {
+    public function rewriteWithSemConv(
+        string $code,
+        int $minOccurrences = 1,
+        ?string $existingSemConvSource = null,
+        ?string $relativePath = null,
+    ): DisenchantResultInterface {
         $candidates = $this->detect($code, $relativePath);
         $this->record('disenchant.it.scan.v1', ['count' => count($candidates)]);
 
@@ -151,6 +147,18 @@ final readonly class Disenchanter implements DisenchanterInterface
         $this->invokeObserver($aliased);
 
         return new DisenchantResult($aliased, $semconvSource);
+    }
+
+    /**
+     * Records an immutable execution artifact through the recorder port. Core
+     * never depends on a concrete recorder, so a run is identical with or
+     * without an active recorder.
+     *
+     * @param array<string, mixed> $payload
+     */
+    private function record(string $name, array $payload = []): void
+    {
+        $this->recorder->record(new DisenchantOccurrence($name, $payload));
     }
 
     /**

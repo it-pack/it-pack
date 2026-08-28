@@ -52,7 +52,8 @@ final class ClosedSetDetectorTest extends Unit
 
     public function testClosedSetWhenSharedVariableAndSeveralDistinctValues(): void
     {
-        $group = $this->detector->detect(['k' => $this->candidate('status', ['new', 'active', 'closed'])])['ctx:status'];
+        $group = $this->detector
+            ->detect(['k' => $this->candidate('status', ['new', 'active', 'closed'])])['ctx:status'];
 
         $this->assertTrue($group->isClosedSet);
         $this->assertSame('status', $group->proposedEnumName);
@@ -72,8 +73,24 @@ final class ClosedSetDetectorTest extends Unit
     public function testDifferentVariablesAreNotClosed(): void
     {
         $occurrences = [
-            new StringLiteral(value: 'a', line: 1, role: LiteralRole::Unclassified, className: 'C', methodName: 'f', raw: "'a'", namingContext: new NamingContext(variableName: 'first')),
-            new StringLiteral(value: 'b', line: 2, role: LiteralRole::Unclassified, className: 'C', methodName: 'f', raw: "'b'", namingContext: new NamingContext(variableName: 'second')),
+            new StringLiteral(
+                value: 'a',
+                line: 1,
+                role: LiteralRole::Unclassified,
+                className: 'C',
+                methodName: 'f',
+                raw: "'a'",
+                namingContext: new NamingContext(variableName: 'first'),
+            ),
+            new StringLiteral(
+                value: 'b',
+                line: 2,
+                role: LiteralRole::Unclassified,
+                className: 'C',
+                methodName: 'f',
+                raw: "'b'",
+                namingContext: new NamingContext(variableName: 'second'),
+            ),
         ];
 
         $this->assertFalse($this->detect(new Candidate('a', 'NAME', $occurrences)));
@@ -83,8 +100,24 @@ final class ClosedSetDetectorTest extends Unit
     {
         // e.g. literals returned from a function — no variable to anchor to.
         $occurrences = [
-            new StringLiteral(value: 'x', line: 1, role: LiteralRole::Unclassified, className: 'C', methodName: 'f', raw: "'x'", namingContext: null),
-            new StringLiteral(value: 'y', line: 2, role: LiteralRole::Unclassified, className: 'C', methodName: 'f', raw: "'y'", namingContext: null),
+            new StringLiteral(
+                value: 'x',
+                line: 1,
+                role: LiteralRole::Unclassified,
+                className: 'C',
+                methodName: 'f',
+                raw: "'x'",
+                namingContext: null,
+            ),
+            new StringLiteral(
+                value: 'y',
+                line: 2,
+                role: LiteralRole::Unclassified,
+                className: 'C',
+                methodName: 'f',
+                raw: "'y'",
+                namingContext: null,
+            ),
         ];
 
         $this->assertFalse($this->detect(new Candidate('x', 'NAME', $occurrences)));
@@ -93,8 +126,25 @@ final class ClosedSetDetectorTest extends Unit
     public function testMixedKindsAreNotClosed(): void
     {
         $occurrences = [
-            new StringLiteral(value: 'a', line: 1, role: LiteralRole::Unclassified, className: 'C', methodName: 'f', raw: "'a'", namingContext: new NamingContext(variableName: 'v')),
-            new \ItPack\DisenchantIt\ValueObject\NumberLiteral(kind: LiteralKind::Int->value, value: '1', raw: '1', line: 2, role: LiteralRole::NumericExpression, className: 'C', methodName: 'f', namingContext: new NamingContext(variableName: 'v')),
+            new StringLiteral(
+                value: 'a',
+                line: 1,
+                role: LiteralRole::Unclassified,
+                className: 'C',
+                methodName: 'f',
+                raw: "'a'",
+                namingContext: new NamingContext(variableName: 'v'),
+            ),
+            new \ItPack\DisenchantIt\ValueObject\NumberLiteral(
+                kind: LiteralKind::Int->value,
+                value: '1',
+                raw: '1',
+                line: 2,
+                role: LiteralRole::NumericExpression,
+                className: 'C',
+                methodName: 'f',
+                namingContext: new NamingContext(variableName: 'v'),
+            ),
         ];
 
         $this->assertFalse($this->detect(new Candidate('a', 'NAME', $occurrences)));

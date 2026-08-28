@@ -10,13 +10,13 @@ use PhpParser\ParserFactory as NikicPhpParserFactory;
 
 final readonly class NikicParserFactory implements ParserFactoryInterface
 {
-    public function build(): Parser
-    {
-        return new NikicPhpParserFactory()->createForNewestSupportedVersion();
-    }
-
     public static function create(): self
     {
         return new self();
+    }
+
+    public function build(): Parser
+    {
+        return new NikicPhpParserFactory()->createForNewestSupportedVersion();
     }
 }

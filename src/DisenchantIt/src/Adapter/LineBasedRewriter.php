@@ -93,7 +93,12 @@ final class LineBasedRewriter implements RewriterInterface
 
             $pos = strpos($lines[$index], $replacement->needle);
             if ($pos !== false) {
-                $lines[$index] = substr_replace($lines[$index], $replacement->replacement, $pos, strlen($replacement->needle));
+                $lines[$index] = substr_replace(
+                    $lines[$index],
+                    $replacement->replacement,
+                    $pos,
+                    strlen($replacement->needle),
+                );
             }
         }
 

@@ -279,7 +279,7 @@ survivors either killed or documented.
 
 ---
 
-## 7. Milestone M5 — Declaration order & line length (F4, F6) 🟡
+## 7. Milestone M5 — Declaration order & line length (F4, F6) ✅ closed
 
 **Goal:** mechanical conformance pass, then keep it enforced.
 
@@ -291,33 +291,33 @@ create-first style with the rule.
 
 ### Tasks
 
-- [ ] **M5-T1 `static create()` placement (9 files):** move `create()` above the
-      first instance method in `ConstantNameGenerator`, `ConstantNameResolver`,
-      `DictionaryNameResolver`, `NumericNameGenerator`, `NikicParserFactory`,
-      `NikicTraverserFactory`, `ConstantPlacementFactory`,
-      `MagicStringVisitorFactory`, `SemConvConfigFactory` (in factory classes
-      that means `create()` before `build()`; classes whose ctor is absent get
-      `create()` as first member).
-- [ ] **M5-T2 Public-before-private:** `Core/Disenchanter.php` — relocate
-      private `record()` below the public API trio (before `invokeObserver`);
-      `ContentClassifier` — hoist `isClassNameString()` next to `classify()`;
-      `MagicLiteralVisitor` — hoist `getFound()` above the private helpers.
-- [ ] **M5-T3 Const-after-property residue:** `Detector.php` resolved by M1-T2
-      (constant left the class). Verify `DisenchantScope` similarly via M1-T5;
-      fix any remainder.
-- [ ] **M5-T4 Port member order:** `ValueObject/ConstantPlacementInterface.php`
-      — move hooked property `$occurrences` above `typeKeyword()`.
-- [ ] **M5-T5 Codify the checker:** promote the token-level analyzer used by
-      REVIEW §7 into `tools/order_check.php` (committed, documented header),
-      run it in this milestone; expect **0 violations**; note in AGENTS.md that
-      the tool exists for pre-commit checks (wiring into CI is a user decision).
-- [ ] **M5-T6 Line length (F6):** reformat the nine >120-col code lines —
-      `DisenchanterInterface:41,57` and `Core/Disenchanter:101,122` signatures
-      one-parameter-per-line; wrap `LineBasedRewriter:96`,
-      `ScopeFilter:42`, `NamingContextExtractor:113`,
-      `MagicStringVisitorFactory:28`; wrap
-      `InvalidCacheConfigurationException:16` extends/implements clause.
-      Generated `tests/_support/_generated/*` exempt.
+- [x] **M5-T1 `static create()` placement (9 files):** move `create()` above the
+       first instance method in `ConstantNameGenerator`, `ConstantNameResolver`,
+       `DictionaryNameResolver`, `NumericNameGenerator`, `NikicParserFactory`,
+       `NikicTraverserFactory`, `ConstantPlacementFactory`,
+       `MagicStringVisitorFactory`, `SemConvConfigFactory` (in factory classes
+       that means `create()` before `build()`; classes whose ctor is absent get
+       `create()` as first member).
+- [x] **M5-T2 Public-before-private:** `Core/Disenchanter.php` — relocate
+       private `record()` below the public API trio (before `invokeObserver`);
+       `ContentClassifier` — hoist `isClassNameString()` next to `classify()`;
+       `MagicLiteralVisitor` — hoist `getFound()` above the private helpers.
+- [x] **M5-T3 Const-after-property residue:** `Detector.php` resolved by M1-T2
+       (constant left the class). Verify `DisenchantScope` similarly via M1-T5;
+       fix any remainder.
+- [x] **M5-T4 Port member order:** `ValueObject/ConstantPlacementInterface.php`
+       — move hooked property `$occurrences` above `typeKeyword()`.
+- [x] **M5-T5 Codify the checker:** promote the token-level analyzer used by
+       REVIEW §7 into `tools/order_check.php` (committed, documented header),
+       run it in this milestone; expect **0 violations**; note in AGENTS.md that
+       the tool exists for pre-commit checks (wiring into CI is a user decision).
+- [x] **M5-T6 Line length (F6):** reformat the nine >120-col code lines —
+       `DisenchanterInterface:41,57` and `Core/Disenchanter:101,122` signatures
+       one-parameter-per-line; wrap `LineBasedRewriter:96`,
+       `ScopeFilter:42`, `NamingContextExtractor:113`,
+       `MagicStringVisitorFactory:28`; wrap
+       `InvalidCacheConfigurationException:16` extends/implements clause.
+       Generated `tests/_support/_generated/*` exempt.
 
 **Verification:** full gates + `php tools/order_check.php` → 0 +
 `awk 'length > 120'` over src/tests/examples excluding generated → empty.
@@ -565,6 +565,68 @@ completion; this log captures outcomes, deviations, and API impact.
   is 20 tests / 33 assertions, all green. Full green gate suite (architecture /
   PHPStan / format / unit) was last confirmed at M3 close and was not re-run as
   part of M4.
+
+### 2026-08-28 — M5 closed (F4, F6)
+
+- **T1 — `static create()` placement (9 files).** Moved every named static
+  constructor (`create()`, plus the `fromFile`/`fromConfig`/`default` factory
+  constructors) to sit **immediately after the constructor** (or as the first
+  member when no constructor exists) and before instance methods, per the
+  M5 convention decision. In factory classes this is `create()` before `build()`
+  (e.g. `NikicParserFactory`, `ConstantPlacementFactory`, `SemConvConfigFactory`,
+  `MagicStringVisitorFactory`). `DictionaryNameResolver` groups `create()` +
+  `fromFile()` above `resolve()`. No behaviour change — pure member reordering.
+- **T2 — public-before-private.** `Core/Disenchanter.php`: private `record()`
+  relocated below the public `detect()`/`rewrite()`/`rewriteWithSemConv()` trio
+  (still before `invokeObserver`). `ContentClassifier`: hoisted public
+  `isClassNameString()` next to `classify()`. `MagicLiteralVisitor`: hoisted
+  public `getFound()` above the private `rawOf`/`isInsideClassConstDeclaration`
+  helpers.
+- **T3 — const-after-property residue.** `Detector.php` had its constant moved
+  to the port by M1-T2; `DisenchantScope.php` had its constants moved to
+  `DisenchantScopeInterface` by M1-T5 — both already resolved. `tools/order_check.php`
+  now asserts the rule repo-wide (see T5) and confirms **0 const-after-property
+  violations** in `src`.
+- **T4 — port member order.** `ValueObject/ConstantPlacementInterface.php`: the
+  hooked property `$occurrences` moved above the `typeKeyword()` method, so all
+  properties/hooks precede methods.
+- **T5 — codified the checker.** `tools/order_check.php` is a dependency-free,
+  tokenizer-based declaration-order linter implementing the REVIEW §7 rule
+  (`trait use → constants → properties/hooks → constructor → factory methods →
+  non-static methods → static methods`, with public-first within non-static).
+  A `factory method` is a named static constructor (`create`/`default`/`from*`).
+  Enums are relaxed to `cases/constants before methods` (their static
+  constructors conventionally sit among the methods). Running it reports
+  **0 violations across 135 files**. `default()` tokenizes as `T_DEFAULT`, so
+  the name extractor captures reserved-word method names explicitly. The checker
+  also correctly skips `{$this->…}` string-interpolation braces (which otherwise
+  desync brace-depth tracking). Not wired into CI (user decision); documented in
+  AGENTS.md.
+- **T6 — line length (F6).** Rewrapped all `>120`-column lines in `src` (the nine
+  REVIEW §7.3 lines: `DisenchanterInterface`, `Core/Disenchanter` signatures
+  one-parameter-per-line; `LineBasedRewriter`, `ScopeFilter`,
+  `NamingContextExtractor`, `MagicStringVisitorFactory` bodies; `InvalidCacheConfigurationException`
+  extends/implements). Also wrapped the handful of `>120`-column lines that had
+  since crept into `tests/` and `examples/` (excluding generated) so the
+  `awk 'length > 120'` check is clean there too. Test string literals were
+  wrapped via concatenation, preserving exact content (unit suite re-ran green).
+  - **Documented exception (1 line):** `src/Exception/InvalidCacheConfigurationException.php:17`
+    — `final class InvalidCacheConfigurationException extends InvalidArgumentException
+    implements DisenchantItExceptionInterface` — is **121 columns**, one over the
+    120 ceiling. php-cs-fixer's `@PSR12` `class_definition` rule collapses
+    `extends X implements Y` onto one line and offers no option to keep a
+    single-interface class multi-line (`multi_line_extends_each_single_line`
+    only governs *single-item* form and still collapses), so this declaration
+    cannot be wrapped without disabling a mandated style rule. It is the only
+    line that does not meet the 120 ceiling; everything else in `src/tests/examples`
+    (excluding generated) is ≤120. `composer format` (the canonical style gate)
+    is clean on it. Recorded as a bounded, unavoidable deviation; revisit only if
+    php-cs-fixer gains a multi-line class-header option.
+- **Gates at M5 close:** `php tools/order_check.php` → 0 violations · `composer
+  format:check` → 0 files · PHPStan `src` level 9 → no errors · PHPArkitect → 0
+  violations · unit suite **274 tests / 600 assertions** green. (PHPStan over
+  `tests/` carries 690 pre-existing baseline errors unrelated to M5 — the M4 gate
+  is `src`-only, which is clean.)
 
 ### 2026-08-25 — M0 closed, baseline recorded
 

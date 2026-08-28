@@ -13,6 +13,11 @@ use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
  */
 final readonly class ConstantNameGenerator implements ConstantNameGeneratorInterface
 {
+    public static function create(): self
+    {
+        return new self();
+    }
+
     public function generate(string $rawValue, ?string $fallbackHint = null): string
     {
         $slug = preg_replace('/[^A-Za-z0-9]+/', '_', $rawValue) ?? $rawValue;
@@ -31,10 +36,5 @@ final readonly class ConstantNameGenerator implements ConstantNameGeneratorInter
         // Last resort: name it after the value's own character codes so it's
         // at least deterministic and non-empty, rather than throwing.
         return 'CHAR_' . implode('_', array_map('ord', str_split($rawValue)));
-    }
-
-    public static function create(): self
-    {
-        return new self();
     }
 }

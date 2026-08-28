@@ -29,8 +29,8 @@ interface ConstantPlacementInterface
      * `float`, `string`). Centralized through LiteralKind so emitters never
      * compare the raw `type` string against keywords directly.
      */
-    public function typeKeyword(): string;
-
     /** @var list<LiteralInterface> */
     public array $occurrences { get; }
+
+    public function typeKeyword(): string;
 }

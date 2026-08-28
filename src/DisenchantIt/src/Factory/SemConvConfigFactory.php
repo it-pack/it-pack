@@ -10,6 +10,11 @@ use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
 
 final readonly class SemConvConfigFactory implements SemConvConfigFactoryInterface
 {
+    public static function create(): self
+    {
+        return new self();
+    }
+
     public function build(
         ?string $interfaceName = null,
         ?string $namespace = null,
@@ -20,10 +25,5 @@ final readonly class SemConvConfigFactory implements SemConvConfigFactoryInterfa
             namespace: $namespace ?? SemConvConfigInterface::DEFAULT_NAMESPACE,
             outputPath: $outputPath,
         );
-    }
-
-    public static function create(): self
-    {
-        return new self();
     }
 }

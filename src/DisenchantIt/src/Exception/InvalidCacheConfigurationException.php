@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Exception;
 
+use InvalidArgumentException;
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
 
 /**
@@ -13,7 +14,7 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  *
  * @see \ItPack\DisenchantIt\Contract\ParsedSourceCacheInterface::DEFAULT_MAX_ENTRIES
  */
-final class InvalidCacheConfigurationException extends \InvalidArgumentException implements DisenchantItExceptionInterface
+final class InvalidCacheConfigurationException extends InvalidArgumentException implements DisenchantItExceptionInterface
 {
     public function __construct(int $maxEntries, ?\Throwable $previous = null)
     {

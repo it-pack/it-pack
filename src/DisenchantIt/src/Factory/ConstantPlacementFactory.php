@@ -10,6 +10,11 @@ use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
 
 final readonly class ConstantPlacementFactory implements ConstantPlacementFactoryInterface
 {
+    public static function create(): self
+    {
+        return new self();
+    }
+
     public function build(
         string $className,
         string $constantName,
@@ -18,10 +23,5 @@ final readonly class ConstantPlacementFactory implements ConstantPlacementFactor
         array $occurrences,
     ): ConstantPlacementInterface {
         return new ConstantPlacement($className, $constantName, $value, $type, $occurrences);
-    }
-
-    public static function create(): self
-    {
-        return new self();
     }
 }

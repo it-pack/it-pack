@@ -35,6 +35,17 @@ final readonly class ContentClassifier implements ContentClassifierInterface
         return LiteralSubkind::Unknown;
     }
 
+    public function isClassNameString(string $value): bool
+    {
+        if ($value === '' || str_contains($value, ' ')) {
+            return false;
+        }
+
+        // At least one namespace separator, and every segment identifier-shaped
+        // (`App\Foo\Bar`, `App\Foo\Bar\Baz`). A bare `Foo` is not a FQCN.
+        return (bool) preg_match('#^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)+$#', $value);
+    }
+
     private function classifyString(string $value): LiteralSubkind
     {
         if ($value === '') {
@@ -108,16 +119,5 @@ final readonly class ContentClassifier implements ContentClassifierInterface
         }
 
         return LiteralSubkind::Unknown;
-    }
-
-    public function isClassNameString(string $value): bool
-    {
-        if ($value === '' || str_contains($value, ' ')) {
-            return false;
-        }
-
-        // At least one namespace separator, and every segment identifier-shaped
-        // (`App\Foo\Bar`, `App\Foo\Bar\Baz`). A bare `Foo` is not a FQCN.
-        return (bool) preg_match('#^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)+$#', $value);
     }
 }

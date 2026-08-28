@@ -182,7 +182,11 @@ final class DetectorCacheTest extends Unit
 
         // Cache hit on the second call even though it is a different object:
         // no additional parser construction.
-        $this->assertSame(1, $this->parsers->builds, 're-scanning equal code in a distinct SourceCode reuses the cached result');
+        $this->assertSame(
+            1,
+            $this->parsers->builds,
+            're-scanning equal code in a distinct SourceCode reuses the cached result',
+        );
         $this->assertSame($first, $second, 'cached result is returned by reference-stable identity');
     }
 

@@ -16,6 +16,13 @@ namespace ItPack\DisenchantIt\ValueObject;
 interface DisenchantScopeInterface
 {
     /**
+     * Default cap (in characters) for heredoc/nowdoc bodies collected as
+     * candidate strings. Keeps the opt-in string-coverage scan bounded; a 50 KB
+     * prose heredoc is skipped by default.
+     */
+    public const int DEFAULT_MAX_HEREDOC_BODY_CHARS = 4096;
+
+    /**
      * @return list<string> glob patterns; a file is *allowed* only when it matches one (allow-list).
      */
     public function getIncludePaths(): array;
@@ -45,13 +52,6 @@ interface DisenchantScopeInterface
      * (tests/, fixtures/, var/) are rejected.
      */
     public function isIgnoreTests(): bool;
-
-    /**
-     * Default cap (in characters) for heredoc/nowdoc bodies collected as
-     * candidate strings. Keeps the opt-in string-coverage scan bounded; a 50 KB
-     * prose heredoc is skipped by default.
-     */
-    public const int DEFAULT_MAX_HEREDOC_BODY_CHARS = 4096;
 
     /**
      * Maximum accepted length (in characters) of a heredoc/nowdoc body that

@@ -23,13 +23,20 @@ final readonly class MagicStringVisitorFactory implements MagicStringVisitorFact
     ) {
     }
 
-    public function build(RoleClassifierInterface $classifier, string $code): MagicLiteralVisitorInterface
-    {
-        return new MagicLiteralVisitor($classifier, $this->extractor, $code, $this->contentClassifier, $this->maxHeredocBodyChars);
+    public static function create(
+        int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS,
+    ): self {
+        return new self(maxHeredocBodyChars: $maxHeredocBodyChars);
     }
 
-    public static function create(int $maxHeredocBodyChars = DisenchantScopeInterface::DEFAULT_MAX_HEREDOC_BODY_CHARS): self
+    public function build(RoleClassifierInterface $classifier, string $code): MagicLiteralVisitorInterface
     {
-        return new self(maxHeredocBodyChars: $maxHeredocBodyChars);
+        return new MagicLiteralVisitor(
+            $classifier,
+            $this->extractor,
+            $code,
+            $this->contentClassifier,
+            $this->maxHeredocBodyChars,
+        );
     }
 }

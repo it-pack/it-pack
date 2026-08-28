@@ -58,7 +58,8 @@ final class NumericDetectionTest extends Unit
     public function testFilterKeepsHintedNumberAndDropsNameless(): void
     {
         $factory = DetectorFactory::create();
-        $code = '<?php class C { public function f(): int { $timeoutMs = 30000; if ($x === 3) { return 0; } return $timeoutMs; } }';
+        $code = '<?php class C { public function f(): int { $timeoutMs = 30000;'
+            . ' if ($x === 3) { return 0; } return $timeoutMs; } }';
 
         $kept = $factory->buildFilter()->filterCandidates($factory->build()->scanSource(new SourceCode($code)));
         $keptNums = $this->numbers($kept);
@@ -71,7 +72,8 @@ final class NumericDetectionTest extends Unit
     public function testTrivialValuesAreExcluded(): void
     {
         $factory = DetectorFactory::create();
-        $code = '<?php class C { public function f(): int { $flagTrue = 1; $flagFalse = 0; return $flagTrue + $flagFalse; } }';
+        $code = '<?php class C { public function f(): int { $flagTrue = 1;'
+            . ' $flagFalse = 0; return $flagTrue + $flagFalse; } }';
 
         $kept = $factory->buildFilter()->filterCandidates($factory->build()->scanSource(new SourceCode($code)));
 

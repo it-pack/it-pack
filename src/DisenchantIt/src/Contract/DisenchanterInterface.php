@@ -38,7 +38,12 @@ interface DisenchanterInterface
      * `disenchant.it.dry_run.plan.v1` occurrence so a diff/report can be built
      * without mutating the source.
      */
-    public function rewrite(string $code, int $minOccurrences = 1, ?string $relativePath = null, bool $dryRun = false): string;
+    public function rewrite(
+        string $code,
+        int $minOccurrences = 1,
+        ?string $relativePath = null,
+        bool $dryRun = false,
+    ): string;
 
     /**
      * Full pipeline including the SemConv collect + alias steps: detect ->
@@ -54,5 +59,10 @@ interface DisenchanterInterface
      * @param string|null $relativePath
      * @return DisenchantResultInterface
      */
-    public function rewriteWithSemConv(string $code, int $minOccurrences = 1, ?string $existingSemConvSource = null, ?string $relativePath = null): DisenchantResultInterface;
+    public function rewriteWithSemConv(
+        string $code,
+        int $minOccurrences = 1,
+        ?string $existingSemConvSource = null,
+        ?string $relativePath = null,
+    ): DisenchantResultInterface;
 }

@@ -10,6 +10,11 @@ use PhpParser\NodeVisitor\ParentConnectingVisitor;
 
 final readonly class NikicTraverserFactory implements TraverserFactoryInterface
 {
+    public static function create(): self
+    {
+        return new self();
+    }
+
     public function build(): NodeTraverser
     {
         $traverser = new NodeTraverser();
@@ -18,10 +23,5 @@ final readonly class NikicTraverserFactory implements TraverserFactoryInterface
         $traverser->addVisitor(new ParentConnectingVisitor());
 
         return $traverser;
-    }
-
-    public static function create(): self
-    {
-        return new self();
     }
 }

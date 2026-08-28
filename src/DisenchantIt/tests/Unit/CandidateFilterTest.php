@@ -64,7 +64,8 @@ final class CandidateFilterTest extends Unit
 
     public function testDropsSentenceShapedLiteral(): void
     {
-        $kept = $this->filter->filterCandidates([$this->literal('Configuration key is empty.', LiteralRole::Unclassified)]);
+        $kept = $this->filter
+            ->filterCandidates([$this->literal('Configuration key is empty.', LiteralRole::Unclassified)]);
 
         $this->assertCount(0, $kept, 'prose is not identifier-shaped');
     }

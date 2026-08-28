@@ -40,7 +40,13 @@ if ($kept === []) {
     echo '  (none)' . PHP_EOL;
 }
 foreach ($kept as $value => $candidate) {
-    printf("  • %-16s → const %s (%s)%s", "'{$value}'", $candidate->constantName, $candidate->occurrences[0]->role, PHP_EOL);
+    printf(
+        "  • %-16s → const %s (%s)%s",
+        "'{$value}'",
+        $candidate->constantName,
+        $candidate->occurrences[0]->role,
+        PHP_EOL,
+    );
 }
 echo PHP_EOL;
 

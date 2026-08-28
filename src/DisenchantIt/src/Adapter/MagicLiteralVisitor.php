@@ -199,6 +199,14 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
     }
 
     /**
+     * @return list<LiteralInterface>
+     */
+    public function getFound(): array
+    {
+        return $this->found;
+    }
+
+    /**
      * Recovers the exact source token for a node from its file offsets against
      * the original code, so `0x1F` stays `0x1F` (not `31`) and `1_000_000`
      * stays `1_000_000`.
@@ -239,13 +247,5 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         }
 
         return false;
-    }
-
-    /**
-     * @return list<LiteralInterface>
-     */
-    public function getFound(): array
-    {
-        return $this->found;
     }
 }

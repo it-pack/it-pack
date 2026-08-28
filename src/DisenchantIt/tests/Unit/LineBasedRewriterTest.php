@@ -75,7 +75,8 @@ final class LineBasedRewriterTest extends Unit
 
     public function testMultiLineSpanReplacement(): void
     {
-        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        // start\n        \$x = 'aaa'\n        . 'bbb';\n        // end\n    }\n}";
+        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        // start\n"
+            . "        \$x = 'aaa'\n        . 'bbb';\n        // end\n    }\n}";
         $artifact = $this->artifact(
             [],
             [new Replacement(7, "'aaa'", 'self::FOO', 8)],
@@ -90,7 +91,8 @@ final class LineBasedRewriterTest extends Unit
 
     public function testMultiLineSpanNeedleNotFoundFallsBackToReplacement(): void
     {
-        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        // start\n        \$x = 'aaa'\n        . 'bbb';\n        // end\n    }\n}";
+        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        // start\n"
+            . "        \$x = 'aaa'\n        . 'bbb';\n        // end\n    }\n}";
         $artifact = $this->artifact(
             [],
             [new Replacement(7, "'zzz'", 'self::FOO', 8)],
@@ -208,7 +210,8 @@ final class LineBasedRewriterTest extends Unit
      */
     public function testStaleReplacementDoesNotSkipLaterReplacements(): void
     {
-        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n        \$x = 'admin';\n        \$y = 'user';\n    }\n}";
+        $code = "<?php\nclass C\n{\n    public function f(): void\n    {\n"
+            . "        \$x = 'admin';\n        \$y = 'user';\n    }\n}";
         $artifact = $this->artifact(
             [],
             [

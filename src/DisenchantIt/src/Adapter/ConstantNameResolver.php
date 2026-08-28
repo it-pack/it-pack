@@ -33,6 +33,18 @@ final readonly class ConstantNameResolver implements ConstantNameResolverInterfa
     ) {
     }
 
+    public static function create(
+        ?NamePolicy $policy = null,
+        ?DictionaryNameResolverInterface $dictionary = null,
+    ): self {
+        return new self(
+            ConstantNameGenerator::create(),
+            NumericNameGenerator::create(),
+            $policy,
+            $dictionary,
+        );
+    }
+
     public function resolve(LiteralInterface $lit): string
     {
         $base = null;
@@ -48,17 +60,5 @@ final readonly class ConstantNameResolver implements ConstantNameResolverInterfa
         }
 
         return $this->policy !== null ? $this->policy->apply($base) : $base;
-    }
-
-    public static function create(
-        ?NamePolicy $policy = null,
-        ?DictionaryNameResolverInterface $dictionary = null,
-    ): self {
-        return new self(
-            ConstantNameGenerator::create(),
-            NumericNameGenerator::create(),
-            $policy,
-            $dictionary,
-        );
     }
 }

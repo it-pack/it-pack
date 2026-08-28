@@ -21,6 +21,11 @@ use ItPack\DisenchantIt\ValueObject\NamingContextInterface;
  */
 final readonly class NumericNameGenerator implements NumericNameGeneratorInterface
 {
+    public static function create(): self
+    {
+        return new self();
+    }
+
     public function generate(LiteralInterface $lit, ?NamingContextInterface $ctx): ?string
     {
         if ($ctx === null) {
@@ -65,10 +70,5 @@ final readonly class NumericNameGenerator implements NumericNameGeneratorInterfa
         $slug = preg_replace('/[^A-Za-z0-9]+/', '_', $split ?? $value);
 
         return trim(strtoupper($slug ?? ''), '_');
-    }
-
-    public static function create(): self
-    {
-        return new self();
     }
 }
