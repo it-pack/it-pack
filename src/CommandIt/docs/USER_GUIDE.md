@@ -480,7 +480,7 @@ Classifications (`Contract\Domain\Classification`) control export and propagatio
 |---|---|---|
 | `Public` | Safe to emit | yes, as-is |
 | `Internal` | System bookkeeping (ids, names) | yes, as-is |
-| `Secret` | Sensitive (password, token, …) | **redacted to `***redacted***`** |
+| `Secret` | Sensitive (password, token, …) | **redacted to `***`** (classification stage; see below) |
 | `Debug` | Diagnostic, high-volume | policy-dependent |
 
 The executor enters a fresh context (`command`, `execution_id`) per dispatch and
@@ -500,8 +500,12 @@ $context->enrich(
 
 The enclosing token is preserved, so `leave()` still restores correctly. Because
 the coordinator merges the **redacted** context into every emitted occurrence,
-a `Secret` attached here reaches reporters as `***redacted***` (never plaintext),
-while a `Public`/`Internal` entry passes through.
+a `Secret` attached here reaches the reporter as `***` (never plaintext). When the
+reporter is wrapped by the **safe wrapper** (`RedactingExecutionReporter`), a
+second, policy-level stage additionally masks whole values whose *key* is
+sensitive with `***redacted***` (see below). A bare, unwrapped reporter sees only
+the `***` classification mask — apply the safe wrapper whenever sensitive data may
+flow through reporting.
 
 ### Storage backends
 
@@ -552,9 +556,14 @@ These wrap *any* `ExecutionReporterInterface` and stay in the `Adapter` layer:
   - `Throw` — raise `BufferOverflowException`.
 - **`RedactingExecutionReporter`** — applies a `RedactionPolicyInterface` to every
   context before it reaches the delegate. The default `RedactionPolicy` redacts
-  keys containing `password`, `token`, `secret`, `authorization`, `key`, `auth`,
-  `credential`, `cvv`, `ssn`, `private`, … (case-insensitive substring), truncates
-  oversized strings, caps array cardinality, and limits nesting depth.
+  whole values whose key matches (case-insensitive): by default a **substring** of
+  `password`, `token`, `secret`, `authorization`, `key`, `auth`, `credential`,
+  `cvv`, `ssn`, `private`, … (note the safe-direction over-redaction: `key` also
+  matches `monkey`); pass `exactKeyMatch: true` to compare whole keys only. It
+  also reduces objects — `toArray()`-bearing objects are reduced through that
+  method and their keys then redacted, `\Stringable` objects become their string
+  form, and any other object becomes `***redacted***(object)` — and bounds
+  oversized strings, array cardinality, and nesting depth.
 - **`GuardedExecutionReporter`** — wraps a delegate with a **recursion guard** and
   a **separate health reporter**: if publishing triggers a nested report (a
   self-observation loop) or throws, the signal is routed to the health reporter
@@ -629,8 +638,9 @@ These are invariants, not optional features:
   observation/storage path).
 - **No secret leakage.** `SafeReporterFactory` (the factory default reporter) applies
   redaction and the publication recursion guard. A `Secret` attached to context is
-  exported as `***redacted***`. A bare, unwrapped reporter applies **neither** —
-  always wrap sensitive sinks.
+  exported as `***` by the coordinator, and the safe wrapper additionally masks
+  sensitive-key values with `***redacted***`. A bare, unwrapped reporter applies
+  **neither** — always wrap sensitive sinks.
 - **No global mutable state.** Context is stored per-Fiber (`WeakMap`) or per
   call stack, never in process-global mutable state. The executor restores the
   prior context in `finally`, so repeated dispatch in a persistent worker leaves
