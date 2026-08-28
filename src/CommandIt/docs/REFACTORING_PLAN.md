@@ -30,7 +30,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M4 | Failure-injection proof & mutation gates | F-10, F-11 | M1 | — | M | **Done (2026-08-28)** |
 | M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | **Done (2026-08-28)** |
 | M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | **Done (2026-08-29)** |
-| M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Planned |
+| M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Done (2026-08-29) |
 | M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Planned |
 | M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | Planned |
 | M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike, perf micro-opts, changelog | M7, M8 | — | M | Planned |
@@ -316,29 +316,29 @@ Executing → Succeeded | Failed        (via complete())
 
 ### Task 7.1 — Split the reporter port along real usage (F-06)
 
-- [ ] New `Contract/Port/LifecycleReporterInterface`:
+- [x] New `Contract/Port/LifecycleReporterInterface`:
 
 ```php
 reportOccurrence(string $type, array $context = []): void
 reportMeasurement(string $name, int|float $value, string $unit): void
 ```
 
-- [ ] `ExecutionReporterInterface extends LifecycleReporterInterface` (keeps `reportObservation`, `beginActivity`, `endActivity`) — existing implementations and consumers compile unchanged.
-- [ ] Narrow consumption: `CommandExecutionCoordinator` constructor + property type become `LifecycleReporterInterface`; `CommandIt`/`CommandItFactory` keep accepting/wiring full reporters (superset satisfies subset).
-- [ ] ADR 0006 documents: core emits occurrences/measurements only today; activity/observation methods serve adapters and future model legs; the fat interface persists for composition compatibility, reviewed again when Activities land.
+- [x] `ExecutionReporterInterface extends LifecycleReporterInterface` (keeps `reportObservation`, `beginActivity`, `endActivity`) — existing implementations and consumers compile unchanged.
+- [x] Narrow consumption: `CommandExecutionCoordinator` constructor + property type become `LifecycleReporterInterface`; `CommandIt`/`CommandItFactory` keep accepting/wiring full reporters (superset satisfies subset).
+- [x] ADR 0006 documents: core emits occurrences/measurements only today; activity/observation methods serve adapters and future model legs; the fat interface persists for composition compatibility, reviewed again when Activities land.
 - Acceptance: `composer analyse` green; a test fixture implementing **only** `LifecycleReporterInterface` successfully drives a full dispatch through a hand-assembled executor (proves the seam).
 
 ### Task 7.2 — Make the coordinator contract tell the truth (F-07)
 
-- [ ] Change `CommandExecutionCoordinatorInterface` signatures from `ExecutionArtifactInterface` to the concrete `Domain\CommandExecution` (Application contracts may reference Domain — verified direction). Delete `toExecution()` and its `LogicException`.
-- [ ] Rationale in ADR 0006 (shared: contract honesty pre-1.0); polymorphic artifacts remain a post-model possibility, noted as such.
+- [x] Change `CommandExecutionCoordinatorInterface` signatures from `ExecutionArtifactInterface` to the concrete `Domain\CommandExecution` (Application contracts may reference Domain — verified direction). Delete `toExecution()` and its `LogicException`.
+- [x] Rationale in ADR 0006 (shared: contract honesty pre-1.0); polymorphic artifacts remain a post-model possibility, noted as such.
 - Files: `src/Contract/Application/CommandExecutionCoordinatorInterface.php`, `src/Application/CommandExecutionCoordinator.php`, any test doubles typed against the old signature.
 - Acceptance: no `instanceof` downcast remains in the coordinator; suites green. Breaking-signature change documented in PR (pre-1.0 policy).
 
 ### Task 7.3 — Default serializer wiring (D3, recommend wire)
 
-- [ ] `CommandItFactory::create()`: `$serializer ??= new SafeSerializer();` — payloads become normalized-before-store by default; explicit `null` passthrough removed (callers wanting verbatim storage pass a no-op `SerializerInterface` — provide `PassthroughSerializer` in `Adapter/Common` for that escape hatch).
-- [ ] ADR 0007: safe-by-default alignment; consequence — stored snapshots are primitive-only unless opted out.
+- [x] `CommandItFactory::create()`: `$serializer ??= new SafeSerializer();` — payloads become normalized-before-store by default; explicit `null` passthrough removed (callers wanting verbatim storage pass a no-op `SerializerInterface` — provide `PassthroughSerializer` in `Adapter/Common` for that escape hatch).
+- [x] ADR 0007: safe-by-default alignment; consequence — stored snapshots are primitive-only unless opted out.
 - Files: `src/Bootstrap/CommandItFactory.php`, new `src/Adapter/Common/PassthroughSerializer.php`, `examples/01-quickstart.php` output check (should be unaffected), USER_GUIDE factory-defaults table.
 - Tests: factory-produced instance stores a normalized snapshot for an object payload with `toArray()` (extend `CommandExecutorTest` integration case); example 05 (custom ports) still runs.
 - Acceptance: `php examples/05-custom-ports.php` exit 0; suites green.

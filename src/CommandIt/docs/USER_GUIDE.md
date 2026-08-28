@@ -132,7 +132,7 @@ CommandItFactory::create(
     reporter:  null,                              // → SafeReporterFactory::wrap(CollectingExecutionReporter)
     context:   null,                              // → FiberBoundContextStorage(FiberRuntimeDetector, AmbientContextStorage)
     storage:   null,                              // → NullCommandExecutionStorage
-    serializer: null,                            // → payload kept verbatim
+    serializer: null,                            // → SafeSerializer (payloads normalized to primitives)
     middlewares: [],                             // → no middleware
 );
 ```
@@ -343,8 +343,9 @@ final class ClearCacheHandler implements CommandHandlerInterface
 ```
 
 Return `CommandResult::succeed($payload)` or `CommandResult::fail($payload)`.
-The payload may be any value; if you pass a serializer to `CommandIt`/`CommandItFactory`,
-it is normalized before storage (best-effort — see [§11](#11-storage--serialization)).
+The payload may be any value. `CommandItFactory` normalizes it before storage by default
+via a `SafeSerializer` (best-effort — see [§11](#11-storage--serialization)); pass a
+`PassthroughSerializer` (or any `SerializerInterface`) to keep it verbatim.
 
 ### Registering
 
@@ -732,7 +733,7 @@ Ports you can supply:
 | `ExecutionContextProviderInterface` | ambient/fiber context | `FiberBoundContextStorage` |
 | `CommandExecutionStorageInterface` | retain executions | `NullCommandExecutionStorage` |
 | `RedactionPolicyInterface` | what/how to redact | `RedactionPolicy` |
-| `SerializerInterface` | normalize payloads | *(none — payload kept verbatim)* |
+| `SerializerInterface` | normalize payloads | `SafeSerializer` (primitive-only snapshots; pass `PassthroughSerializer` for verbatim) |
 
 Implement the narrow interface, keep concrete classes `final` and `readonly` where
 possible, and the rest of the pipeline is unchanged.

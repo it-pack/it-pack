@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\CommandIt\Bootstrap;
 
 use ItPack\CommandIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\CommandIt\Adapter\Common\SafeSerializer;
 use ItPack\CommandIt\Adapter\Common\SystemClock;
 use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Adapter\Context\FiberBoundContextStorage;
@@ -29,7 +30,10 @@ use ItPack\CommandIt\SDK\CommandIt;
  * `Bootstrap` layer that is allowed to depend on both `SDK` and `Adapter` — the
  * SDK facade itself must stay adapter-free per the architecture. Pass any port to
  * override the corresponding default; unmapped ports fall back to the safe-by-default
- * wiring (including the guarded + redacting reporter).
+ * wiring (including the guarded + redacting reporter and a {@see SafeSerializer} that
+ * normalizes result payloads before storage — primitive-only snapshots by default, per
+ * ADR 0007). Pass {@see \ItPack\CommandIt\Adapter\Common\PassthroughSerializer} (or any
+ * `SerializerInterface`) to opt out of normalization for verbatim storage.
  *
  * @api
  */
@@ -48,6 +52,8 @@ final class CommandItFactory
         array $middlewares = [],
     ): CommandIt {
         $runtime = new FiberRuntimeDetector();
+
+        $serializer ??= new SafeSerializer();
 
         return new CommandIt(
             $clock ?? new SystemClock(),

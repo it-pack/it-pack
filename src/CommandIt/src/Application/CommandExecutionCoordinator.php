@@ -7,9 +7,8 @@ namespace ItPack\CommandIt\Application;
 use ItPack\CommandIt\Contract\Application\CommandExecutionCoordinatorInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
-use ItPack\CommandIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionContextProviderInterface;
-use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
+use ItPack\CommandIt\Contract\Port\LifecycleReporterInterface;
 use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 use ItPack\CommandIt\Domain\CommandExecution;
 use ItPack\CommandIt\Domain\CommandResult;
@@ -22,6 +21,11 @@ use ItPack\CommandIt\Domain\CommandStatus;
  * emits the stable lifecycle occurrences. Reporter failures are best-effort and
  * never replace the original business exception (the executor owns rethrow).
  *
+ * The coordinator depends only on {@see LifecycleReporterInterface}: the core pipeline
+ * emits occurrences and measurements, never observations or activity boundaries, so a
+ * narrow reporter satisfies it (a full {@see \ItPack\CommandIt\Contract\Port\ExecutionReporterInterface}
+ * is a structural superset and is what the SDK wires in).
+ *
  * When an {@see ExecutionContextProviderInterface} is supplied, the classified
  * ambient context (redacted) is merged into every emitted occurrence so that
  * middleware- or handler-attached entries flow to reporters without extra wiring.
@@ -31,7 +35,7 @@ use ItPack\CommandIt\Domain\CommandStatus;
 final class CommandExecutionCoordinator implements CommandExecutionCoordinatorInterface
 {
     public function __construct(
-        private ExecutionReporterInterface $reporter,
+        private LifecycleReporterInterface $reporter,
         private ?ExecutionContextProviderInterface $context = null,
     ) {
     }
@@ -40,70 +44,61 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
         CommandDefinitionInterface $definition,
         CommandExecutionIdInterface $id,
         int $startedAt,
-    ): ExecutionArtifactInterface {
+    ): CommandExecution {
         $execution = CommandExecution::define($definition, $id, $startedAt)
             ->transition(CommandStatus::Received)
         ;
 
-        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_RECEIVED, $this->withContext([
-            ExecutionReporterInterface::CONTEXT_EXECUTION_ID => $id->toString(),
-            ExecutionReporterInterface::CONTEXT_COMMAND => $definition->name()->toString(),
+        $this->reportOccurrence(LifecycleReporterInterface::COMMAND_RECEIVED, $this->withContext([
+            LifecycleReporterInterface::CONTEXT_EXECUTION_ID => $id->toString(),
+            LifecycleReporterInterface::CONTEXT_COMMAND => $definition->name()->toString(),
         ]));
 
         return $execution;
     }
 
     public function succeed(
-        ExecutionArtifactInterface $execution,
+        CommandExecution $execution,
         CommandResultInterface $result,
         int $endedAt,
         int $durationMs,
-    ): ExecutionArtifactInterface {
-        $completed = $this->toExecution($execution)
+    ): CommandExecution {
+        $completed = $execution
             ->transition(CommandStatus::Executing)
             ->complete($result, $endedAt)
         ;
 
-        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_HANDLED, $this->withContext([
-            ExecutionReporterInterface::CONTEXT_EXECUTION_ID => $completed->id()->toString(),
-            ExecutionReporterInterface::CONTEXT_COMMAND => $completed->definition()->name()->toString(),
-            ExecutionReporterInterface::CONTEXT_STATUS => $result->status()->label(),
+        $this->reportOccurrence(LifecycleReporterInterface::COMMAND_HANDLED, $this->withContext([
+            LifecycleReporterInterface::CONTEXT_EXECUTION_ID => $completed->id()->toString(),
+            LifecycleReporterInterface::CONTEXT_COMMAND => $completed->definition()->name()->toString(),
+            LifecycleReporterInterface::CONTEXT_STATUS => $result->status()->label(),
         ]));
-        $this->reportMeasurement(ExecutionReporterInterface::MEASUREMENT_DURATION, $durationMs);
+        $this->reportMeasurement(LifecycleReporterInterface::MEASUREMENT_DURATION, $durationMs);
 
         return $completed;
     }
 
     public function fail(
-        ExecutionArtifactInterface $execution,
+        CommandExecution $execution,
         \Throwable $error,
         int $endedAt,
         int $durationMs,
-    ): ExecutionArtifactInterface {
+    ): CommandExecution {
         $failed = CommandResult::fail();
-        $completed = $this->toExecution($execution)
+        $completed = $execution
             ->transition(CommandStatus::Executing)
             ->complete($failed, $endedAt)
         ;
 
-        $this->reportOccurrence(ExecutionReporterInterface::COMMAND_FAILED, $this->withContext([
-            ExecutionReporterInterface::CONTEXT_EXECUTION_ID => $completed->id()->toString(),
-            ExecutionReporterInterface::CONTEXT_COMMAND => $completed->definition()->name()->toString(),
-            ExecutionReporterInterface::CONTEXT_ERROR_CLASS => $error::class,
-            ExecutionReporterInterface::CONTEXT_ERROR_MESSAGE => $error->getMessage(),
+        $this->reportOccurrence(LifecycleReporterInterface::COMMAND_FAILED, $this->withContext([
+            LifecycleReporterInterface::CONTEXT_EXECUTION_ID => $completed->id()->toString(),
+            LifecycleReporterInterface::CONTEXT_COMMAND => $completed->definition()->name()->toString(),
+            LifecycleReporterInterface::CONTEXT_ERROR_CLASS => $error::class,
+            LifecycleReporterInterface::CONTEXT_ERROR_MESSAGE => $error->getMessage(),
         ]));
-        $this->reportMeasurement(ExecutionReporterInterface::MEASUREMENT_DURATION, $durationMs);
+        $this->reportMeasurement(LifecycleReporterInterface::MEASUREMENT_DURATION, $durationMs);
 
         return $completed;
-    }
-
-    private function toExecution(ExecutionArtifactInterface $execution): CommandExecution
-    {
-        if (!$execution instanceof CommandExecution) {
-            throw new \LogicException('Coordinator requires a CommandExecution artifact.');
-        }
-
-        return $execution;
     }
 
     /**
@@ -142,7 +137,7 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
     private function reportMeasurement(string $name, int $value): void
     {
         try {
-            $this->reporter->reportMeasurement($name, $value, ExecutionReporterInterface::DURATION_UNIT_MS);
+            $this->reporter->reportMeasurement($name, $value, LifecycleReporterInterface::DURATION_UNIT_MS);
         } catch (\Throwable) {
         }
     }

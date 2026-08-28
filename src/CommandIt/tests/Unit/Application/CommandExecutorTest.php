@@ -29,6 +29,7 @@ use ItPack\CommandIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
+use ItPack\CommandIt\Contract\Port\LifecycleReporterInterface;
 use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 
 /**
@@ -388,25 +389,25 @@ final class CommandExecutorTest extends Unit
                 CommandDefinitionInterface $definition,
                 CommandExecutionIdInterface $id,
                 int $startedAt,
-            ): ExecutionArtifactInterface {
+            ): CommandExecution {
                 return $this->inner->begin($definition, $id, $startedAt);
             }
 
             public function succeed(
-                ExecutionArtifactInterface $execution,
+                CommandExecution $execution,
                 CommandResultInterface $result,
                 int $endedAt,
                 int $durationMs,
-            ): ExecutionArtifactInterface {
+            ): CommandExecution {
                 return $this->inner->succeed($execution, $result, $endedAt, $durationMs);
             }
 
             public function fail(
-                ExecutionArtifactInterface $execution,
+                CommandExecution $execution,
                 \Throwable $error,
                 int $endedAt,
                 int $durationMs,
-            ): ExecutionArtifactInterface {
+            ): CommandExecution {
                 throw new \LogicException('coordinator could not record the failure');
             }
         };
@@ -660,6 +661,88 @@ final class CommandExecutorTest extends Unit
         self::assertSame('failed', $spy->lastStored->status()->label());
     }
 
+    /**
+     * ISP seam (Task 7.1 / ADR 0006): the coordinator depends only on
+     * LifecycleReporterInterface, so a reporter implementing just that subset must
+     * drive a full dispatch and still receive the lifecycle occurrences + duration.
+     */
+    public function testCoordinatorDrivesFullDispatchWithNarrowLifecycleReporterOnly(): void
+    {
+        $reporter = new LifecycleOnlyReporter();
+
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($reporter),
+            $this->context,
+            $this->storage,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+        );
+
+        $this->register('demo:run', new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed('ok');
+            }
+        });
+
+        $result = $executor->dispatch($this->command('demo:run'));
+        self::assertSame('succeeded', $result->status()->label());
+
+        $names = \array_map(static fn (array $o): string => $o['type'], $reporter->occurrences);
+        self::assertContains('command.received.v1', $names);
+        self::assertContains('command.handled.v1', $names);
+        self::assertNotEmpty($reporter->measurements, 'duration measurement emitted through the narrow seam');
+    }
+
+    /**
+     * Safe-by-default serialization (Task 7.3 / ADR 0007): an object payload that
+     * exposes toArray() is normalized to a primitive array before it is stored.
+     */
+    public function testDefaultSerializerNormalizesObjectPayloadBeforeStorage(): void
+    {
+        $spy = $this->storageSpy();
+
+        $executor = new CommandExecutor(
+            $this->registry,
+            new HandlerResolver($this->registry),
+            new CommandExecutionCoordinator($this->reporter),
+            $this->context,
+            $spy,
+            new SystemClock(),
+            new RandomIdentifierGenerator(),
+            middlewares: [],
+            serializer: new SafeSerializer(),
+        );
+
+        $this->register('demo:run', new class () implements CommandHandlerInterface {
+            public function handles(): string
+            {
+                return 'demo:run';
+            }
+
+            public function handle(CommandInterface $command): CommandResultInterface
+            {
+                return CommandResult::succeed(new DtoPayload('widget', 7));
+            }
+        });
+
+        $executor->dispatch($this->command('demo:run'));
+
+        self::assertNotNull($spy->lastStored);
+        self::assertInstanceOf(CommandExecution::class, $spy->lastStored);
+        $storedResult = $spy->lastStored->result();
+        self::assertNotNull($storedResult);
+        self::assertIsArray($storedResult->payload(), 'object payload normalized to a primitive array');
+        self::assertSame(['name' => 'widget', 'count' => 7], $storedResult->payload());
+    }
+
     private function storageSpy(): StorageSpy
     {
         return new StorageSpy();
@@ -733,5 +816,48 @@ final class CommandExecutorTest extends Unit
         }
 
         return $names;
+    }
+}
+
+/**
+ * Records only the lifecycle subset (occurrences + measurements) to prove the
+ * coordinator seam accepts a {@see LifecycleReporterInterface} implementation.
+ */
+final class LifecycleOnlyReporter implements LifecycleReporterInterface
+{
+    /** @var list<array{type: string, context: array<string, mixed>}> */
+    public array $occurrences = [];
+
+    /** @var list<array{name: string, value: int|float, unit: string}> */
+    public array $measurements = [];
+
+    public function reportOccurrence(string $type, array $context = []): void
+    {
+        $this->occurrences[] = ['type' => $type, 'context' => $context];
+    }
+
+    public function reportMeasurement(string $name, int|float $value, string $unit): void
+    {
+        $this->measurements[] = ['name' => $name, 'value' => $value, 'unit' => $unit];
+    }
+}
+
+/**
+ * Object payload that the safe serializer reduces to primitives via its toArray() method.
+ */
+final class DtoPayload
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly int $count,
+    ) {
+    }
+
+    /**
+     * @return array{name: string, count: int}
+     */
+    public function toArray(): array
+    {
+        return ['name' => $this->name, 'count' => $this->count];
     }
 }

@@ -43,7 +43,8 @@ deptrac:
         - type: classNameRegex
           value: '/^ItPack\\RunIt/'
   ruleset:
-    Contract: ~
+    Contract:
+      - Domain
     Domain:
       - Contract
     Port:

@@ -398,3 +398,34 @@ Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16�
 - Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
   0 uncovered · full suite **187 tests** (176 unit / 9 functional / 2 integration) green ·
   cs-fixer clean.
+
+### 2026-08-29 — Refactoring plan milestone M7 landed
+
+- **F-06 (reporter ISP) implemented** — new `Contract/Port/LifecycleReporterInterface`
+  carries only `reportOccurrence(string, array=[])` + `reportMeasurement(string, int|float, string)`
+  and the stable occurrence/measurement vocabulary constants. `ExecutionReporterInterface
+  extends LifecycleReporterInterface` (keeps `reportObservation`/`beginActivity`/`endActivity`);
+  existing reporters and consumers compile unchanged. `CommandExecutionCoordinator` now
+  depends only on `LifecycleReporterInterface`, and `CommandIt`/`CommandItFactory` still wire
+  the full reporter (superset satisfies subset). Proven by a new fixture implementing only
+  `LifecycleReporterInterface` that drives a full dispatch (occurrences + duration recorded).
+- **F-07 (coordinator LSP) implemented** — `CommandExecutionCoordinatorInterface` signatures
+  now name the concrete `Domain\CommandExecution` instead of the `ExecutionArtifactInterface`
+  marker; the `toExecution()` downcast and its `LogicException` are gone (zero `instanceof`
+  in the coordinator). The `Contract` layer is deliberately permitted to depend on `Domain` in
+  `deptrac.yaml` so the contract can describe the concrete RunIt-shaped execution; `Domain`
+  stays independent of `Application`/`SDK`/adapters/external standards (the binding AGENTS.md
+  rule). Polymorphic artifacts remain a future, deliberate re-introduction.
+- **D3 (serializer default) implemented — wire** — `CommandItFactory::create()` now wires
+  `SafeSerializer` by default (`$serializer ??= new SafeSerializer()`); the implicit `null`
+  = verbatim passthrough is removed. `Adapter/Common/PassthroughSerializer` is the explicit
+  opt-out escape hatch. Stored snapshots are primitive-only by default; object payloads with
+  `toArray()` are normalized before persistence (covered by a new integration case).
+- **ADRs 0006 / 0007** record the segregation + contract-honesty decision and the
+  safe-by-default serialization decision (rejected alternatives documented).
+- Behavior change (pre-1.0): third-party coordinator/reporter doubles typed against
+  `ExecutionArtifactInterface` must adopt `CommandExecution`; factory-assembled pipelines now
+  normalize payloads by default.
+- Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
+  0 uncovered · full suite **189 tests** (178 unit / 9 functional / 2 integration) green ·
+  cs-fixer clean · `php examples/05-custom-ports.php` exits 0 · example 01 unaffected.
