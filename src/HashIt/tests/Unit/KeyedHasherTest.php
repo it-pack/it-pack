@@ -224,6 +224,11 @@ class KeyedHasherTest extends Unit
             {
                 return $this->value === $other->value();
             }
+
+            public function toUrn(): string
+            {
+                return sprintf('urn:hashit:%s:%s', $this->algorithm(), $this->value);
+            }
         };
 
         verify($hash->value())->equals(hash_hmac('sha256', 'hello world', 'secret'));

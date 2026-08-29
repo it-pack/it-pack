@@ -51,4 +51,11 @@ final readonly class Hash implements HashInterface
 
         return hash_equals($this->value, $other->value());
     }
+
+    public function toUrn(): string
+    {
+        $hex = $this->binary ? bin2hex($this->value) : $this->value;
+
+        return sprintf('urn:hashit:%s:%s', $this->algorithm, $hex);
+    }
 }

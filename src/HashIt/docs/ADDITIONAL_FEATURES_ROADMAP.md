@@ -105,11 +105,11 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Dependencies:** none.
 **Acceptance:** every case annotated; `info()`/`recommendedAlgorithms()`/`brokenAlgorithms()` correct; gates green; no hashing behavior changed.
 
-**Completion note (2026-08-29):** Implemented exactly as specced. New core files `src/AlgorithmStatus.php` (enum), `src/AlgorithmMetadata.php` (`#[Attribute]` on class constants), `src/AlgorithmInfo.php` (read-only value object exposing `outputBits()`, `blockBits()`, `status()`, `isBroken()`, `isRecommended()`). Every `HashAlgorithm` case now carries `#[AlgorithmMetadata(...)]` with `outputBits`/`blockBits`/`status`. `HashAlgorithm` gained `info(): AlgorithmInfo` (memoized via reflection), `recommendedAlgorithms(): list<self>`, `brokenAlgorithms(): list<self>`. Orthogonality preserved: `MD5`/`SHA1` are `Broken` yet remain `#[HmacSafe]` (still `isHmacSafe() === true`). `AlgorithmInfoTest` added (6 cases, reads `blockBits()` so PHPStan's dead-method rule stays satisfied). All gates green: `composer test:unit` (67 tests), `analyse`, `cs:check`, `architecture`. No hashing behavior changed; no `src/` dependency introduced.
+Completion note (2026-08-29):** Implemented exactly as specced. New core files `src/AlgorithmStatus.php` (enum), `src/AlgorithmMetadata.php` (`#[Attribute]` on class constants), `src/AlgorithmInfo.php` (read-only value object exposing `outputBits()`, `blockBits()`, `status()`, `isBroken()`, `isRecommended()`). Every `HashAlgorithm` case now carries `#[AlgorithmMetadata(...)]` with `outputBits`/`blockBits`/`status`. `HashAlgorithm` gained `info(): AlgorithmInfo` (memoized via reflection), `recommendedAlgorithms(): list<self>`, `brokenAlgorithms(): list<self>`. Orthogonality preserved: `MD5`/`SHA1` are `Broken` yet remain `#[HmacSafe]` (still `isHmacSafe() === true`). `AlgorithmInfoTest` added (6 cases, reads `blockBits()` so PHPStan's dead-method rule stays satisfied). All gates green: `composer test:unit` (67 tests), `analyse`, `cs:check`, `architecture`. No hashing behavior changed; no `src/` dependency introduced.
 
 ---
 
-## NF-A2 — Content-addressing sliver `Hash::toUrn()` (H6) — ⬜ TODO
+## NF-A2 — Content-addressing sliver `Hash::toUrn()` (H6) — ✅ DONE
 
 **Goal:** The only §7-allowed sliver of content-addressing: a deterministic URN from a `Hash`. Full CAS storage stays a separate package (out of scope).
 
@@ -128,6 +128,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Dependencies:** none.
 **Acceptance:** URN stable/deterministic; gates green.
 
+Completion note (2026-08-29):** Implemented as specced. `HashInterface` gained `toUrn(): string`; `Hash` implements it. URN format `urn:hashit:<algorithm>:<hex>` where `<hex>` is the hex of the raw digest: for a non-binary `Hash` the stored value is already hex (used directly), for a binary `Hash` `bin2hex()` is applied — so binary and non-binary of the same digest produce an identical URN (verified by test). Pure string-building, no external dependencies; full CAS storage remains out of scope (separate package). One existing test fake in `tests/Unit/KeyedHasherTest.php` (anonymous `HashInterface` subclass) was extended with `toUrn()`. All gates green: `composer test:unit` (71 tests), `analyse`, `cs:check`, `architecture`. Note: `toUrn()` is consumed through a `HashInterface`-typed helper in the test so PHPStan's `deadMethod` rule stays satisfied.
 ---
 
 ## NF-A3 — Framework DI / service config (H5) — ⬜ TODO

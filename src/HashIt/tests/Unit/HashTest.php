@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use Codeception\Test\Unit;
 use ItPack\HashIt\Hash;
+use ItPack\HashIt\HashInterface;
 
 class HashTest extends Unit
 {
@@ -65,5 +66,45 @@ class HashTest extends Unit
         $b = new Hash('deadbeef', 'sha256', true);
 
         verify($a->equals($b))->false();
+    }
+
+    public function testToUrnUsesHexRegardlessOfBinaryFlag(): void
+    {
+        $hash = new Hash('deadbeef', 'sha256', false);
+
+        verify($this->urn($hash))->equals('urn:hashit:sha256:deadbeef');
+    }
+
+    public function testToUrnIdenticalForEqualHashes(): void
+    {
+        $a = new Hash('deadbeef', 'sha256', false);
+        $b = new Hash('deadbeef', 'sha256', false);
+
+        verify($this->urn($a))->equals($this->urn($b));
+    }
+
+    public function testToUrnDiffersByAlgorithm(): void
+    {
+        $a = new Hash('deadbeef', 'sha256', false);
+        $b = new Hash('deadbeef', 'md5', false);
+
+        verify($this->urn($a))->notEquals($this->urn($b));
+    }
+
+    public function testToUrnIdenticalForBinaryAndNonBinarySameDigest(): void
+    {
+        $hex = hash('sha256', 'hello world');
+        $raw = hex2bin($hex);
+
+        $nonBinary = new Hash($hex, 'sha256', false);
+        $binary = new Hash($raw, 'sha256', true);
+
+        verify($this->urn($nonBinary))->equals($this->urn($binary));
+        verify($this->urn($nonBinary))->equals('urn:hashit:sha256:' . $hex);
+    }
+
+    private function urn(HashInterface $hash): string
+    {
+        return $hash->toUrn();
     }
 }
