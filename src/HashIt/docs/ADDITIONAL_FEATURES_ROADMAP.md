@@ -211,7 +211,7 @@ Completion note (2026-08-29):** Implemented exactly as specced, no core logic to
 
 ---
 
-## NF-O1 — Observability port & core wiring (O1) — ⬜ TODO
+## NF-O1 — Observability port & core wiring (O1) — ✅ DONE
 
 **Goal:** Define the core-owned observability port + value objects and wire them optionally into the hashers, so OpenTelemetry/CloudEvents adapters (NF-O2/O3) can observe hashing without core depending on either SDK. The core itself adds **no** runtime dependency (the SDKs live only in `require-dev` via `just-bases/php-obs-dev-base`).
 
@@ -238,6 +238,10 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 ```
 **Dependencies:** NF-A2 (`Hash::toUrn()` for `resultUrn`, optional), NF-A4 (progress hook, optional), NF-B2 (optional `AlgorithmSourceInterface` param — order independently).
 **Acceptance:** observer fires on every op when injected; default-null keeps BC; core adds no `require` dependency; gates green; port lives in core.
+
+**Completion note (2026-08-29):** Implemented exactly as specced with zero new runtime requirements. New core files: `src/HashOperation.php` (backed enum over all 11 public ops, `HashOperation::HASH … VERIFY`), `src/HashObservation.php` (immutable VO with the four named ctors `started`/`progress`/`completed`/`failed`; a `bin2hex(random_bytes(8))` correlation `id` pairs start→complete→failed), and `src/HashingObserverInterface.php` (single `observe(HashObservation): void` method, ISP-clean). Both `Hasher` and `KeyedHasher` gained an optional `?HashingObserverInterface $observer = null` constructor param (BC-safe) and emit `started` → `progress`(per chunk/file, reusing the NF-A4 `onBytes` hook) → `completed`/`failed` in every public method; the original `Throwable` is re-thrown unchanged so its `previous` chain is preserved (guardrail #2). `NativeHashIt::create()`/`keyedHasher()` accept an optional observer and pass it down. `failed` events carry the original `Throwable` via a `?Throwable $error` field; `completed`'s `resultUrn` is populated from `Hash::toUrn()` (NF-A2). `tests/Unit/HashingObserverTest.php` uses a `SpyObserver` asserting `hash()` → exactly `[started, completed]` (id matches, `resultUrn` matches the produced hash, `bytes`/`durationMs` set), a chunked `hashStream()` → `[started, ≥1 progress, completed]` with a shared `id`, a missing-file `hashFile()` → `[started, failed]` carrying the original `RuntimeException`, and that `create()` with no observer keeps prior behaviour. `composer cs:fix` was applied. **Deviation from Task 5:** `NativeHashIt::create()`/`keyedHasher()` take only the observer param for now — the `?AlgorithmSourceInterface $source` param is intentionally deferred to NF-B2 (not yet implemented) to avoid a non-existent type; NF-B2 can add it alongside without breaking callers. All gates green: `composer test:unit` (85 tests, 313 assertions), `analyse`, `cs:check`, `architecture`.
+
+**Next:** NF-O2 / NF-O3 implement `HashingObserverInterface` (OpenTelemetry / CloudEvents) as guarded adapters; NF-O1's port is now ready for them.
 
 ---
 

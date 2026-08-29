@@ -6,6 +6,7 @@ namespace ItPack\HashIt\Adapter;
 
 use ItPack\HashIt\Hasher;
 use ItPack\HashIt\HasherInterface;
+use ItPack\HashIt\HashingObserverInterface;
 use ItPack\HashIt\HmacHasherInterface;
 use ItPack\HashIt\KeyedHasher;
 use ItPack\HashIt\KeyedHasherInterface;
@@ -17,9 +18,9 @@ use ItPack\HashIt\KeyedHasherInterface;
  */
 final readonly class NativeHashIt
 {
-    public static function create(): HasherInterface
+    public static function create(?HashingObserverInterface $observer = null): HasherInterface
     {
-        return new Hasher(new NativeContextFactory(), new NativeDirectoryListing());
+        return new Hasher(new NativeContextFactory(), new NativeDirectoryListing(), $observer);
     }
 
     public static function hmacHasher(): HmacHasherInterface
@@ -27,8 +28,8 @@ final readonly class NativeHashIt
         return new NativeHmacHasher();
     }
 
-    public static function keyedHasher(): KeyedHasherInterface
+    public static function keyedHasher(?HashingObserverInterface $observer = null): KeyedHasherInterface
     {
-        return new KeyedHasher(new NativeKeyedContextFactory());
+        return new KeyedHasher(new NativeKeyedContextFactory(), $observer);
     }
 }

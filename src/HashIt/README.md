@@ -78,6 +78,25 @@ The adapter depends only on `psr/http-message` (added as a `suggest`ed package) 
 the core ports; it produces a plain `HashInterface`. **SRI / base64 digest formatting
 is intentionally out of scope here** and belongs with the dedicated formatters (NF-C1).
 
+### Observability
+
+The hashers can emit a structured event stream through the core
+`ItPack\HashIt\HashingObserverInterface` port, without the core depending on any
+observability SDK. Inject an observer via the composition root and it receives a
+`HashObservation` (`started` → `progress` → `completed`/`failed`) for every operation,
+each carrying a correlation `id` so an adapter can pair a span's start with its end:
+
+```php
+use ItPack\HashIt\Adapter\NativeHashIt;
+
+$hasher = NativeHashIt::create($myObserver); // $myObserver implements HashingObserverInterface
+$hasher->hash('hello');                       // -> [started, completed] on the observer
+```
+
+The observer parameter defaults to `null`, so existing code keeps working unchanged.
+Concrete adapters (OpenTelemetry traces, CloudEvents) are added separately and live in
+the `Adapter\*` namespace — the core only defines the port and the `HashOperation`
+enum / `HashObservation` value object.
 
 ## Algorithms
 

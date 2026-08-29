@@ -6,53 +6,126 @@ namespace ItPack\HashIt;
 
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 final readonly class Hasher implements HasherInterface
 {
     public function __construct(
         private ContextFactoryInterface $factory,
         private DirectoryListingInterface $listing,
+        private ?HashingObserverInterface $observer = null,
     ) {
     }
 
     public function hash(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
-        return $this->hashString($data, $algorithm, false);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::HASH, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $algorithm, false);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HASH, $e));
+            throw $e;
+        }
+
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $hash;
     }
 
     public function hashBinary(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
-        return $this->hashString($data, $algorithm, true);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::HASH_BINARY, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $algorithm, true);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_BINARY, $e));
+            throw $e;
+        }
+
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $hash;
     }
 
     public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
         $file = (string) $path;
+        $total = $this->fileBytes($file);
+        $this->observe(HashObservation::started(HashOperation::HASH_FILE, $id, $algorithmName, $total));
+        $begin = hrtime(true);
 
         if (!is_file($file)) {
-            throw $this->unreadable($file);
+            $error = $this->unreadable($file);
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_FILE, $error));
+            throw $error;
         }
 
         $handle = fopen($file, 'rb');
         if ($handle === false) {
-            throw $this->unreadable($file);
+            $error = $this->unreadable($file);
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_FILE, $error));
+            throw $error;
         }
 
         try {
-            return $this->hashStream($handle, $algorithm);
+            $hash = $this->hashStream($handle, $algorithm);
         } finally {
             fclose($handle);
         }
+
+        $this->observe($this->completed($id, $algorithmName, $total ?? 0, $begin, $hash));
+
+        return $hash;
     }
 
     public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
-        return $this->hash($data, $algorithm)->equals($expected);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::VERIFY, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $algorithm, false);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::VERIFY, $e));
+            throw $e;
+        }
+
+        $match = $hash->equals($expected);
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $match;
     }
 
     public function verifyBinary(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
-        return $this->hashBinary($data, $algorithm)->equals($expected);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::VERIFY, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $algorithm, true);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::VERIFY, $e));
+            throw $e;
+        }
+
+        $match = $hash->equals($expected);
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $match;
     }
 
     public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface
@@ -65,6 +138,11 @@ final readonly class Hasher implements HasherInterface
             throw new InvalidArgumentException('Chunk size must be at least 1 byte');
         }
 
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $total = $this->streamTotalBytes($stream);
+        $this->observe(HashObservation::started(HashOperation::HASH_STREAM, $id, $algorithmName, $total));
+
         $builder = HashBuilder::start($this->factory, $algorithm);
         $position = ftell($stream);
         if ($position === false) {
@@ -72,38 +150,59 @@ final readonly class Hasher implements HasherInterface
         }
         fseek($stream, 0);
 
-        $total = $this->streamTotalBytes($stream);
+        $begin = hrtime(true);
         $processed = 0;
 
-        while (!feof($stream)) {
-            $chunk = fread($stream, $chunkSize);
-            if ($chunk === false || $chunk === '') {
-                break;
+        try {
+            while (!feof($stream)) {
+                $chunk = fread($stream, $chunkSize);
+                if ($chunk === false || $chunk === '') {
+                    break;
+                }
+                $builder = $builder->append($chunk);
+                $processed += strlen($chunk);
+                $progress?->onBytes($processed, $total);
+                $this->observe(HashObservation::progress($id, $processed, $total));
             }
-            $builder = $builder->append($chunk);
-            $processed += strlen($chunk);
-            $progress?->onBytes($processed, $total);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_STREAM, $e));
+            throw $e;
         }
 
         fseek($stream, $position);
 
-        return $builder->digest();
+        $hash = $builder->digest();
+        $this->observe($this->completed($id, $algorithmName, $processed, $begin, $hash));
+
+        return $hash;
     }
 
     public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array
     {
-        $result = [];
-
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
         $total = $progress === null ? null : $this->iterableTotalBytes($paths);
+        $this->observe(HashObservation::started(HashOperation::HASH_FILES, $id, $algorithmName, $total));
+
+        $begin = hrtime(true);
+        $result = [];
         $processed = 0;
 
-        foreach ($paths as $path) {
-            $result[(string) $path] = $this->hashFile($path, $algorithm);
+        try {
+            foreach ($paths as $path) {
+                $result[(string) $path] = $this->hashFile($path, $algorithm);
 
-            $size = filesize((string) $path);
-            $processed += $size === false ? 0 : $size;
-            $progress?->onBytes($processed, $total);
+                $size = filesize((string) $path);
+                $processed += $size === false ? 0 : $size;
+                $progress?->onBytes($processed, $total);
+                $this->observe(HashObservation::progress($id, $processed, $total));
+            }
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_FILES, $e));
+            throw $e;
         }
+
+        $this->observe($this->completed($id, $algorithmName, $processed, $begin, null));
 
         return $result;
     }
@@ -114,7 +213,22 @@ final readonly class Hasher implements HasherInterface
             throw new RuntimeException('Not a directory: ' . $directory);
         }
 
-        return $this->hashFiles($this->listing->regularFiles($directory), $algorithm, $progress);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::HASH_DIRECTORY, $id, $algorithmName));
+
+        $begin = hrtime(true);
+
+        try {
+            $result = $this->hashFiles($this->listing->regularFiles($directory), $algorithm, $progress);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_DIRECTORY, $e));
+            throw $e;
+        }
+
+        $this->observe($this->completed($id, $algorithmName, 0, $begin, null));
+
+        return $result;
     }
 
     private function hashString(string $data, string|HashAlgorithm $algorithm, bool $binary): HashInterface
@@ -124,6 +238,39 @@ final readonly class Hasher implements HasherInterface
         $context->update($data);
 
         return new Hash($context->finalize($binary), $algorithm, $binary);
+    }
+
+    private function fileBytes(string $file): ?int
+    {
+        if (!is_file($file)) {
+            return null;
+        }
+
+        $size = filesize($file);
+
+        return $size === false ? null : $size;
+    }
+
+    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?HashInterface $hash): HashObservation
+    {
+        $durationMs = (int) round((hrtime(true) - $beginNs) / 1_000_000);
+
+        return HashObservation::completed($id, $algorithm, $bytes, $durationMs, $hash?->toUrn());
+    }
+
+    private function observe(HashObservation $observation): void
+    {
+        $this->observer?->observe($observation);
+    }
+
+    private function observationId(): string
+    {
+        return bin2hex(random_bytes(8));
+    }
+
+    private function algorithmName(string|HashAlgorithm $algorithm): string
+    {
+        return $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
     }
 
     private function unreadable(string $file): RuntimeException

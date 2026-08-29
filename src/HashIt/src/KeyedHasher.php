@@ -6,52 +6,125 @@ namespace ItPack\HashIt;
 
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 final readonly class KeyedHasher implements KeyedHasherInterface
 {
     public function __construct(
         private KeyedContextFactoryInterface $factory,
+        private ?HashingObserverInterface $observer = null,
     ) {
     }
 
     public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
-        return $this->hashString($data, $key, $algorithm, false);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::HMAC, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $key, $algorithm, false);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HMAC, $e));
+            throw $e;
+        }
+
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $hash;
     }
 
     public function hmacBinary(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
-        return $this->hashString($data, $key, $algorithm, true);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::HMAC, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $key, $algorithm, true);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HMAC, $e));
+            throw $e;
+        }
+
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $hash;
     }
 
     public function hmacFile(FilepathInterface $path, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
     {
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
         $file = (string) $path;
+        $total = $this->fileBytes($file);
+        $this->observe(HashObservation::started(HashOperation::HMAC_FILE, $id, $algorithmName, $total));
+        $begin = hrtime(true);
 
         if (!is_file($file)) {
-            throw $this->unreadable($file);
+            $error = $this->unreadable($file);
+            $this->observe(HashObservation::failed($id, HashOperation::HMAC_FILE, $error));
+            throw $error;
         }
 
         $handle = fopen($file, 'rb');
         if ($handle === false) {
-            throw $this->unreadable($file);
+            $error = $this->unreadable($file);
+            $this->observe(HashObservation::failed($id, HashOperation::HMAC_FILE, $error));
+            throw $error;
         }
 
         try {
-            return $this->hmacStream($handle, $key, $algorithm);
+            $hash = $this->hmacStream($handle, $key, $algorithm);
         } finally {
             fclose($handle);
         }
+
+        $this->observe($this->completed($id, $algorithmName, $total ?? 0, $begin, $hash));
+
+        return $hash;
     }
 
     public function verify(string $data, string $key, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
-        return $this->hmac($data, $key, $algorithm)->equals($expected);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::VERIFY, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $key, $algorithm, false);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::VERIFY, $e));
+            throw $e;
+        }
+
+        $match = $hash->equals($expected);
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $match;
     }
 
     public function verifyBinary(string $data, string $key, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
-        return $this->hmacBinary($data, $key, $algorithm)->equals($expected);
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::VERIFY, $id, $algorithmName, strlen($data)));
+        $begin = hrtime(true);
+
+        try {
+            $hash = $this->hashString($data, $key, $algorithm, true);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::VERIFY, $e));
+            throw $e;
+        }
+
+        $match = $hash->equals($expected);
+        $this->observe($this->completed($id, $algorithmName, strlen($data), $begin, $hash));
+
+        return $match;
     }
 
     public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface
@@ -64,6 +137,11 @@ final readonly class KeyedHasher implements KeyedHasherInterface
             throw new InvalidArgumentException('Chunk size must be at least 1 byte');
         }
 
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $total = $this->streamTotalBytes($stream);
+        $this->observe(HashObservation::started(HashOperation::HMAC_STREAM, $id, $algorithmName, $total));
+
         $builder = HashBuilder::fromContext($this->factory->build($algorithm, $key), $algorithm);
         $position = ftell($stream);
         if ($position === false) {
@@ -71,38 +149,59 @@ final readonly class KeyedHasher implements KeyedHasherInterface
         }
         fseek($stream, 0);
 
-        $total = $this->streamTotalBytes($stream);
+        $begin = hrtime(true);
         $processed = 0;
 
-        while (!feof($stream)) {
-            $chunk = fread($stream, $chunkSize);
-            if ($chunk === false || $chunk === '') {
-                break;
+        try {
+            while (!feof($stream)) {
+                $chunk = fread($stream, $chunkSize);
+                if ($chunk === false || $chunk === '') {
+                    break;
+                }
+                $builder = $builder->append($chunk);
+                $processed += strlen($chunk);
+                $progress?->onBytes($processed, $total);
+                $this->observe(HashObservation::progress($id, $processed, $total));
             }
-            $builder = $builder->append($chunk);
-            $processed += strlen($chunk);
-            $progress?->onBytes($processed, $total);
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HMAC_STREAM, $e));
+            throw $e;
         }
 
         fseek($stream, $position);
 
-        return $builder->digest();
+        $hash = $builder->digest();
+        $this->observe($this->completed($id, $algorithmName, $processed, $begin, $hash));
+
+        return $hash;
     }
 
     public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array
     {
-        $result = [];
-
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
         $total = $progress === null ? null : $this->iterableTotalBytes($paths);
+        $this->observe(HashObservation::started(HashOperation::HMAC_FILES, $id, $algorithmName, $total));
+
+        $begin = hrtime(true);
+        $result = [];
         $processed = 0;
 
-        foreach ($paths as $path) {
-            $result[(string) $path] = $this->hmacFile($path, $key, $algorithm);
+        try {
+            foreach ($paths as $path) {
+                $result[(string) $path] = $this->hmacFile($path, $key, $algorithm);
 
-            $size = filesize((string) $path);
-            $processed += $size === false ? 0 : $size;
-            $progress?->onBytes($processed, $total);
+                $size = filesize((string) $path);
+                $processed += $size === false ? 0 : $size;
+                $progress?->onBytes($processed, $total);
+                $this->observe(HashObservation::progress($id, $processed, $total));
+            }
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HMAC_FILES, $e));
+            throw $e;
         }
+
+        $this->observe($this->completed($id, $algorithmName, $processed, $begin, null));
 
         return $result;
     }
@@ -114,6 +213,39 @@ final readonly class KeyedHasher implements KeyedHasherInterface
         $context->update($data);
 
         return new Hash($context->finalize($binary), $algorithm, $binary);
+    }
+
+    private function fileBytes(string $file): ?int
+    {
+        if (!is_file($file)) {
+            return null;
+        }
+
+        $size = filesize($file);
+
+        return $size === false ? null : $size;
+    }
+
+    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?HashInterface $hash): HashObservation
+    {
+        $durationMs = (int) round((hrtime(true) - $beginNs) / 1_000_000);
+
+        return HashObservation::completed($id, $algorithm, $bytes, $durationMs, $hash?->toUrn());
+    }
+
+    private function observe(HashObservation $observation): void
+    {
+        $this->observer?->observe($observation);
+    }
+
+    private function observationId(): string
+    {
+        return bin2hex(random_bytes(8));
+    }
+
+    private function algorithmName(string|HashAlgorithm $algorithm): string
+    {
+        return $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
     }
 
     private function unreadable(string $file): RuntimeException
