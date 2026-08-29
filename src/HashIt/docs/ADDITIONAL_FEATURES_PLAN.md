@@ -3,8 +3,9 @@
 > Companion to `docs/REVIEW.md`, `docs/REFACTORING_PLAN.md` (M0–M8 ✅) and the
 > archived roadmap `docs/archive/ROADMAP_1.md`. Purpose: brainstorm and reason
 > about features that take HashIt beyond the M0–M8 refactor — split into
-> **vertical** (deeper in the hashing domain) and **horizontal** (broader reach
-> while staying a single-purpose hashing library).
+> **vertical** (deeper in the hashing domain), **horizontal** (broader reach
+> while staying a single-purpose hashing library), and **observability** (OpenTelemetry
+> traces + CloudEvents, §6).
 >
 > Status: proposal / not yet scheduled. Nothing here is committed.
 
@@ -48,8 +49,9 @@ HashIt core logic-only.
   algorithm strength, pluggable algorithms, deterministic structured input, and the
   two research-grade depths (tree/parallel, resumable).
 - **Horizontal** = widen *who can use* the existing primitives without bloating the
-  core: progress/observability, PSR stream/HTTP bodies, framework DI, async orchestration
-  (sibling `AsyncIt`), and manifest/SRI verification workflows.
+  core: progress/observability (incl. OpenTelemetry traces + CloudEvents adapters),
+  PSR stream/HTTP bodies, framework DI, async orchestration (sibling `AsyncIt`), and
+  manifest/SRI verification workflows.
 - Each item is scored on **Alignment** (to §5), **Effort**, **Risk**, **Impact**, and
   a suggested **Phase**.
 
@@ -205,17 +207,78 @@ HashIt core logic-only.
 
 ---
 
-## 6. Cross-cutting enablers (build these first; they unblock several items)
+## 6. Observability (o11y) features — OpenTelemetry + CloudEvents
+
+> The `just-bases/php-obs-dev-base` meta-package already pulls `open-telemetry/api`
+> (^1.9, plus sdk / exporter-otlp / transport-grpc / context) and `cloudevents/sdk-php`
+> (^1.2) into `require-dev`. They are **runtime-optional**: the core must not
+> hard-depend on them. The pattern therefore mirrors the PSR/bridge rule — core-owned
+> **ports + value objects**, and **optional, `class_exists`-guarded adapters** for the SDKs.
+
+### O1 — Observability port & core wiring  ·  *enabler, quick win*
+- **Problem:** hashing operations are opaque — no spans, no auditable events. We want
+  distributed traces (OpenTelemetry) and standards-based events (CloudEvents) without
+  coupling the core to either SDK.
+- **Proposal:**
+  - `HashOperation` enum (`HASH`, `HASH_BINARY`, `HASH_FILE`, `HASH_STREAM`, `HASH_FILES`,
+    `HASH_DIRECTORY`, `HMAC`, `HMAC_FILE`, `HMAC_STREAM`, `HMAC_FILES`, `VERIFY`) — removes
+    magic operation strings.
+  - `HashObservation` immutable value object: `kind` (`started`|`progress`|`completed`|`failed`),
+    `operation`, `id` (correlation token), `algorithm`, `bytesProcessed`, `bytesTotal`,
+    `durationMs`, `resultUrn` (from `Hash::toUrn()`, H6), `error`. Named ctors
+    `started()` / `progress()` / `completed()` / `failed()`.
+  - `HashingObserverInterface { observe(HashObservation $o): void; }` — single method, ISP-clean.
+  - Wire **optionally** into `Hasher` and `KeyedHasher`: add
+    `?HashingObserverInterface $observer = null` to their constructors (BC-safe default null);
+    `NativeHashIt::create(?HashingObserverInterface $observer = null,
+    ?AlgorithmSourceInterface $source = null)` passes it down. Emit `started`/`progress`/
+    `completed`/`failed` around each operation; the `progress` notification also forwards to
+    the observer so NF-A4's byte callback and O1's observer coexist.
+- **Fit:** observation *of hashing* → in scope; core depends only on its own port + value object.
+- **Effort:** low–medium. **Risk:** low (fully optional, default null). **Impact:** high
+  (unblocks O2/O3 and richer DX beyond NF-A4 progress).
+
+### O2 — OpenTelemetry tracing adapter  ·  *high value, dev-dep*
+- **Proposal:** `Adapter/Observability/OtelHashingObserver` implements
+  `HashingObserverInterface`; holds a `TracerInterface` from `open-telemetry/api`
+  (`OpenTelemetry\API\Globals::tracerProvider()->getTracer('it-pack/hash-it')`). On
+  `started` it opens a span (name = operation, attributes = algorithm/bytes) keyed by
+  `observation->id()`; `progress` adds an event/attribute; `completed` sets status OK +
+  duration + result URN then ends the span; `failed` records the exception and ends. The
+  host application owns the OTel SDK + OTLP exporter (via `OTEL_*` env), so HashIt stays
+  dependency-free at runtime.
+- **Fit:** adapter only — core untouched; consistent with deptrac (adapter may use the SDK).
+- **Effort:** low–medium. **Risk:** low (guarded by `class_exists`; SDK configured by host).
+  **Impact:** high (APM / distributed tracing of hashing workloads).
+
+### O3 — CloudEvents emitter adapter  ·  *high value, dev-dep*
+- **Proposal:** `Adapter/Observability/CloudEventsHashingObserver` implements
+  `HashingObserverInterface`; on `completed`/`failed` it builds a `CloudEvent`
+  (`cloudevents/sdk-php` `CloudEvents\V1\CloudEvent`): `id` (random/UUID), `source`
+  (configurable, default `hash-it://<host>`), `type`
+  (`io.itpack.hashit.hash.completed.v1` / `…failed.v1`), `datacontenttype` `application/json`,
+  `data` = `{algorithm, bytes, durationMs, urn, error?}`. Serialize via
+  `CloudEvents\Serializers\JsonMarshaller`; optionally deliver to an event broker through a
+  PSR-18 client (`symfony/http-client` + `nyholm/psr7` are already dev deps).
+- **Fit:** adapter only — emits CNCF-standard events for event meshes (Knative, etc.);
+  core untouched.
+- **Effort:** low–medium. **Risk:** low (guarded). **Impact:** high (audit trail /
+  event-driven pipelines without custom plumbing).
+
+---
+
+## 7. Cross-cutting enablers (build these first; they unblock several items)
 
 | Enabler | Unblocks | Phase |
 |---|---|---|
 | **E1 `AlgorithmInfo`/metadata (V2)** | safer defaults, advisory logging, URN annotations, manifest metadata | A |
 | **E2 `HashProgressInterface` (H1)** | CLI progress (H2), async progress (H3), monitoring | A |
 | **E3 `AlgorithmSourceInterface` (V3)** | custom/KMS-backed algos, discovery beyond the enum | B |
+| **E4 `HashingObserverInterface` (O1)** | OTel tracing (O2), CloudEvents (O3), richer DX beyond NF-A4 progress | A |
 
 ---
 
-## 7. Prioritization matrix
+## 8. Prioritization matrix
 
 | ID | Feature | Type | Align §5 | Effort | Risk | Impact | Phase |
 |---|---|---|---|---|---|---|---|
@@ -224,6 +287,9 @@ HashIt core logic-only.
 | H5 | Framework DI config | Horiz | ✅ | Low | Low | Med | **A** |
 | H1/E2 | Progress & observability port | Horiz | ✅ | Low | Low | Med | **A** |
 | H4 | PSR stream/body hashing | Horiz | ✅ | Low | Low | Med | **A** |
+| O1 | Observability port & core wiring | Horiz | ✅ | Low–Med | Low | High | **A** |
+| O2 | OpenTelemetry tracing adapter | Horiz | ✅(dev-dep) | Low–Med | Low | High | **A** |
+| O3 | CloudEvents emitter adapter | Horiz | ✅(dev-dep) | Low–Med | Low | High | **A** |
 | V1 | KDF (HKDF/PBKDF2/Argon2) | Vert | ✅ | Med | Low | High | **B** |
 | V3/E3 | `AlgorithmSource` port | Vert | ✅ | Med | Med | Med | **B** |
 | V6 | Canonical `HashInput` | Vert | ✅ | Med | Low–Med | Med–High | **B** |
@@ -236,11 +302,12 @@ Legend: ✅ fully aligned · ⚠️ needs a scope/design decision · *conditiona
 
 ---
 
-## 8. Proposed phased roadmap ("next level")
+## 9. Proposed phased roadmap ("next level")
 
-- **Phase A — Polish & quick wins (low risk, high alignment):** V2, H6, H5, H1/E2, H4.
+- **Phase A — Polish & quick wins (low risk, high alignment):** V2, H6, H5, H1/E2, H4,
+  **O1/O2/O3 (observability: core port + OpenTelemetry & CloudEvents adapters)**.
   Establishes metadata + observability + framework readiness + PSR reach. Green gates
-  throughout; no scope expansion needed.
+  throughout; OTel/CloudEvents adapters are dev/optional (guarded), so no core scope expansion.
 - **Phase B — Vertical depth (crypto & extensibility):** V1 KDF (HKDF built on
   `KeyedHasher`, then PBKDF2/Argon2 adapters), V3 `AlgorithmSource`, V6 `HashInput`.
   This is where HashIt becomes a *complete* hashing toolkit.
@@ -249,21 +316,28 @@ Legend: ✅ fully aligned · ⚠️ needs a scope/design decision · *conditiona
 - **Phase D — Research / speculative:** V4 tree hashing (adopt an existing spec), V5
   resumable (likely defer unless a custom engine is justified).
 
-## 9. Scope-boundary recommendation (keep HashIt honest)
+## 10. Scope-boundary recommendation (keep HashIt honest)
 
-**Keep in HashIt core (logic-only, encoding-free):**
-all hashing primitives, V1–V3/V6, H1/H4/H5/H6, and the *logic* of H2 (manifest value
-object + verification).
+**Keep in HashIt core (logic-only, encoding-free, dependency-free at runtime):**
+all hashing primitives, V1–V3/V6, H1/H4/H5/H6, O1 (observer port + value objects +
+optional wiring), and the *logic* of H2 (manifest value object + verification).
 
 **Push out (sibling package or clearly-separated formatter) — [SCOPE]:**
 text (de)serialization of manifests, SRI/base64 strings, full content-addressable
 storage. These are serialization/transport concerns excluded by §7; isolating them
 protects the single-purpose boundary while still delivering the workflows.
 
+**Push out of core runtime deps (kept as dev/optional adapters) — [OBS]:**
+the OpenTelemetry (`OtelHashingObserver`) and CloudEvents (`CloudEventsHashingObserver`)
+adapters (O2/O3) depend on `open-telemetry/*` and `cloudevents/sdk-php`, which live in
+`require-dev` via `just-bases/php-obs-dev-base`. They are `class_exists`-guarded and must
+never be promoted to `require`; for production they should follow the H3 bridge pattern
+into a separate `hash-it-obs` package. The core depends only on `HashingObserverInterface`.
+
 **Do NOT add (per §7):** base64/encoding helper libs, "hash all algos at once",
 exotic non-string/non-stream inputs.
 
-## 10. Open questions / research spikes
+## 11. Open questions / research spikes
 
 1. **V5 resumability** — confirm infeasibility with the native ext; only pursue if a
    self-implemented engine is separately justified.
@@ -274,8 +348,11 @@ exotic non-string/non-stream inputs.
    Keep bridges as separate packages with optional deps to avoid hard coupling.
 4. **H2 serialization home** — decide whether manifest/SRI formatters live in a new
    `HashIt\Format` namespace (clearly separated) or a sibling package, before building.
+5. **O2/O3 o11y packaging** — keep the OTel/CloudEvents adapters in-package (guarded,
+   dev-deps) or extract to a separate `hash-it-obs` package for production (mirrors H3)?
+   Also decide the CloudEvents transport seam (injected PSR-18 client vs host-provided).
 
-## 11. References
+## 12. References
 
 - `docs/REVIEW.md` (F-1…F-9 closure log; §2/§3/§4 catalogues)
 - `docs/REFACTORING_PLAN.md` (M0–M8 ✅; M8 deferred `#[Insecure]` note)
@@ -284,3 +361,6 @@ exotic non-string/non-stream inputs.
   `src/HashBuilder.php`, `src/HashAlgorithm.php`, `src/Adapter/NativeHashIt.php`
 - Sibling monorepo packages for bridges: `AsyncIt` (concurrency), `DeriveIt`
   (telemetry), `CommandIt` (CLI conventions), `ConfigureIt` (DI/wiring)
+- `composer.json` — `require-dev` pulls `just-bases/php-obs-dev-base` (^0.1.0) →
+  `open-telemetry/api` (^1.9) + `cloudevents/sdk-php` (^1.2); `symfony/http-client` +
+  `nyholm/psr7` available for optional CloudEvents transport.

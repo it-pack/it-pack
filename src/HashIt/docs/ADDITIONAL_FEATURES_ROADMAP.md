@@ -1,6 +1,6 @@
 # HashIt — Additional Features Roadmap (next-level)
 
-- **Source plan:** [`docs/ADDITIONAL_FEATURES_PLAN.md`](./ADDITIONAL_FEATURES_PLAN.md) (vertical V1–V6, horizontal H1–H6, enablers E1–E3, phased A→D).
+- **Source plan:** [`docs/ADDITIONAL_FEATURES_PLAN.md`](./ADDITIONAL_FEATURES_PLAN.md) (vertical V1–V6, horizontal H1–H6, observability O1–O3, enablers E1–E4, phased A→D).
 - **Baseline:** post-M8 state — all `REFACTORING_PLAN.md` milestones M0–M8 ✅ done; gates green (61 tests / 207 assertions · PHPStan 0 · php-cs-fixer 0 · deptrac 0). Every new milestone must keep all gates green.
 - **Scope:** `src/HashIt` (`it-pack/hash-it`, pre-1.0). New public surface is allowed here (unlike the refactor, this is feature work, not pure refactor) **but must obey §5/§7 of `docs/archive/ROADMAP_1.md`** and the scope boundary in the plan (serialization/encoding stays out of core).
 - **How to use this document:** work top-down through the execution order. Every milestone lists Goal, Affected files, Tasks, Tests, Verification, Dependencies, Acceptance. A milestone is done only when all quality gates are green **and** its acceptance criteria hold. Land one commit per milestone following the repository convention (`Complete additional features - Milestone NF-x: <title>`).
@@ -11,6 +11,7 @@
 - New ports stay in the core namespace (`src/`), 1–3 methods each, implemented only under `Adapter/` (or a clearly-named sub-namespace for aggregates). Bridges to sibling packages (H3) are **separate packages**, not core changes.
 - `[SCOPE]` items (manifest/SRI text serialization) touch §7's "no encoding/serialization" exclusion. Each such task carries an explicit scope decision as its first sub-task; the recommended home is a **separate `Format` namespace or sibling package**, keeping HashIt core logic-only.
 - Sibling integrations reference the monorepo packages already present (`AsyncIt` for concurrency, `DeriveIt` for telemetry conventions, `CommandIt` for CLI conventions). They are `suggest`-only to avoid hard coupling.
+- Observability (O1–O3) relies on `open-telemetry/api` and `cloudevents/sdk-php`, which are already in `require-dev` via `just-bases/php-obs-dev-base`. They stay **runtime-optional** (guarded by `class_exists`); the core never depends on them. They may later move to a separate `hash-it-obs` package (mirroring the H3 bridge).
 
 ---
 
@@ -26,6 +27,7 @@ Carried from `REFACTORING_PLAN.md`, plus two new rules for this phase.
 6. **Verification per milestone:** `composer test:unit`, `composer analyse`, `composer cs:check`, `composer architecture` must pass before moving on.
 7. **§7 serialization boundary.** Anything that turns a `Hash`/manifest into *text* (base64/SRI lines, `sha256sum` formatting, URN strings beyond the `Hash::toUrn()` sliver) lives in a separated `Format` namespace or a sibling package — never mixed into the hashing core.
 8. **Bridges are separate packages.** Concurrency (H3) and optional framework integrations are their own packages depending on HashIt via `suggest`; they do not alter HashIt's gates.
+9. **Optional SDK adapters are guarded & dev-only.** Adapters depending on `open-telemetry/*` / `cloudevents/sdk-php` (NF-O2/NF-O3) are `class_exists`-guarded, never promoted to `require`, and run only under the `php-obs-dev-base` dev deps. Core depends solely on `HashingObserverInterface`.
 
 ---
 
@@ -38,6 +40,9 @@ Phase A — quick wins (low risk, high alignment)
   NF-A3  H5  Framework DI / service config               [wiring only, no core]
   NF-A4  H1  Progress & observability port (E2)          [core port + wiring]
   NF-A5  H4  PSR stream / HTTP-body hashing              [adapter, optional dep]
+  NF-O1  O1  Observability port & core wiring            [core port + wiring]
+  NF-O2  O2  OpenTelemetry tracing adapter               [dev-dep, guarded]
+  NF-O3  O3  CloudEvents emitter adapter                 [dev-dep, guarded]
 
 Phase B — vertical depth (crypto & extensibility)
   NF-B1  V1  Key Derivation (HKDF / PBKDF2 / Argon2)      [core + adapters]
@@ -60,6 +65,9 @@ Phase D — research / speculative (gated on spike approval)
 | H5 | **NF-A3** | Horiz | A | — |
 | H1 (E2) | **NF-A4** | Horiz | A | — |
 | H4 | **NF-A5** | Horiz | A | SRI → [SCOPE] |
+| O1 | **NF-O1** | Horiz | A | — |
+| O2 | **NF-O2** | Horiz | A | dev-dep, guarded |
+| O3 | **NF-O3** | Horiz | A | dev-dep, guarded |
 | V1 | **NF-B1** | Vert | B | — |
 | V3 (E3) | **NF-B2** | Vert | B | — |
 | V6 | **NF-B3** | Vert | B | — |
@@ -190,6 +198,81 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Verification:** gates (guardrail #6). `composer architecture` must still pass (adapter may depend on `psr/http-message` only, not on core internals).
 **Dependencies:** none (NF-A4 progress optional — could wire progress later).
 **Acceptance:** PSR-stream hashing matches string hashing; gates green; SRI explicitly deferred to NF-C1.
+
+---
+
+## NF-O1 — Observability port & core wiring (O1) — ⬜ TODO
+
+**Goal:** Define the core-owned observability port + value objects and wire them optionally into the hashers, so OpenTelemetry/CloudEvents adapters (NF-O2/O3) can observe hashing without core depending on either SDK. The core itself adds **no** runtime dependency (the SDKs live only in `require-dev` via `just-bases/php-obs-dev-base`).
+
+**Affected files:**
+- `src/HashOperation.php` (NEW enum)
+- `src/HashObservation.php` (NEW core value object)
+- `src/HashingObserverInterface.php` (NEW core port)
+- `src/Hasher.php` + `src/KeyedHasher.php` (optional `?HashingObserverInterface` ctor param; emit observations)
+- `src/Adapter/NativeHashIt.php` (`create()`/`keyedHasher()` accept an optional observer; align with the optional `AlgorithmSourceInterface` param from NF-B2)
+
+**Tasks:**
+1. Add `HashOperation` enum covering every public op (`HASH`, `HASH_BINARY`, `HASH_FILE`, `HASH_STREAM`, `HASH_FILES`, `HASH_DIRECTORY`, `HMAC`, `HMAC_FILE`, `HMAC_STREAM`, `HMAC_FILES`, `VERIFY`) — removes magic operation strings.
+2. Add `HashObservation` immutable value object with named ctors `started(operation, id, algorithm, ?bytesTotal)`, `progress(id, processed, ?total)`, `completed(id, algorithm, bytes, durationMs, ?resultUrn)`, `failed(id, operation, \Throwable $error)`; carry a correlation `id` (e.g. `bin2hex(random_bytes(8))`) so adapters can pair start→complete.
+3. Add `HashingObserverInterface::observe(HashObservation $o): void` (single method, ISP-clean).
+4. Give `Hasher`/`KeyedHasher` an optional `?HashingObserverInterface $observer = null` constructor param (BC-safe default null). In each public method: emit `started` before work, `progress` after each chunk/file (reuse NF-A4's hook), `completed` after the digest, `failed` in the catch block — preserving the original `Throwable` as `previous` (guardrail #2).
+5. `NativeHashIt::create(?HashingObserverInterface $observer = null, ?AlgorithmSourceInterface $source = null)` (and `keyedHasher`) pass the observer down.
+6. **No external dependency** is introduced by this milestone; only the dev meta-package is needed later by NF-O2/O3.
+
+**Tests to add:** `HashingObserverTest` — a spy `HashingObserverInterface` capturing observations; assert a `hash()` call yields exactly `[started, completed]`; a stream hash yields `[started, ≥1 progress, completed]`; a failed read yields `[started, failed]`; the correlation `id` matches across the pair.
+
+**Verification:**
+```bash
+composer test:unit && composer analyse && composer cs:check && composer architecture
+```
+**Dependencies:** NF-A2 (`Hash::toUrn()` for `resultUrn`, optional), NF-A4 (progress hook, optional), NF-B2 (optional `AlgorithmSourceInterface` param — order independently).
+**Acceptance:** observer fires on every op when injected; default-null keeps BC; core adds no `require` dependency; gates green; port lives in core.
+
+---
+
+## NF-O2 — OpenTelemetry tracing adapter (O2) — ⬜ TODO
+
+**Goal:** Implement `HashingObserverInterface` with OpenTelemetry spans. Uses `open-telemetry/api` (present in `require-dev` via `just-bases/php-obs-dev-base`). The adapter is **optional/guarded** — it must not force the OTel SDK into HashIt's runtime `require`.
+
+**Affected files:**
+- `src/Adapter/Observability/OtelHashingObserver.php` (NEW adapter)
+- `composer.json` (add `open-telemetry/api` to `suggest`; already in `require-dev` via the obs base)
+
+**Tasks:**
+1. Implement `OtelHashingObserver` holding a `OpenTelemetry\API\Trace\TracerInterface` obtained from `OpenTelemetry\API\Globals::tracerProvider()->getTracer('it-pack/hash-it')`; constructor accepts an optional `TracerInterface` for testing.
+2. On `observe()` with `kind=started`: `tracer->spanBuilder($operation->name)->startSpan()`, store the `SpanInterface` keyed by `observation->id()`; set attributes `hashit.algorithm`, `hashit.bytes_total`.
+3. On `progress`: add a span event / attribute `hashit.bytes_processed`.
+4. On `completed`: set span status `Ok`, attribute `hashit.duration_ms` + `hashit.result_urn` (if present), then `span->end()`.
+5. On `failed`: `span->recordException($error)` + status `Error`, then `end()`.
+6. **Guard:** the class is only instantiable when `class_exists(\OpenTelemetry\API\Trace\TracerInterface::class)`; the composition root never auto-instantiates it unless the consumer injects one. The host app owns the OTel SDK + OTLP exporter (`OTEL_*` env).
+
+**Tests to add:** `OtelHashingObserverTest` (dev-only, deps present) — a fake/no-op `TracerInterface` (e.g. `OpenTelemetry\API\Trace\NoopTracer`) captures spans; assert started→completed produces one ended span with expected attributes; failure produces an error-status span. Gate behind `class_exists` so they skip cleanly without the dev deps.
+
+**Verification:** gates (guardrail #6) — `composer architecture` must keep the adapter in `Adapter\*` and never let core import OTel.
+**Dependencies:** NF-O1.
+**Acceptance:** spans emitted with correct attributes; adapter guarded; gates green; no change to core runtime deps.
+
+---
+
+## NF-O3 — CloudEvents emitter adapter (O3) — ⬜ TODO
+
+**Goal:** Implement `HashingObserverInterface` that emits CNCF CloudEvents for completed/failed hashing operations. Uses `cloudevents/sdk-php` (present in `require-dev`). Optional/guarded like NF-O2.
+
+**Affected files:**
+- `src/Adapter/Observability/CloudEventsHashingObserver.php` (NEW adapter)
+- `composer.json` (add `cloudevents/sdk-php` to `suggest`)
+
+**Tasks:**
+1. Implement `CloudEventsHashingObserver` with `observe()`: on `kind=completed`/`failed`, build a `CloudEvents\V1\CloudEvent` — `withId(bin2hex(random_bytes(16)))`, `withSource($this->source)` (configurable, default `hash-it://<host>`), `withType('io.itpack.hashit.hash.completed.v1'` or `…failed.v1`), `withDataContentType('application/json')`, `withData([...])` (`algorithm`, `bytes`, `durationMs`, `urn`, and `error` for failures).
+2. Serialize via `CloudEvents\Serializers\JsonMarshaller::marshall($event)`; keep the JSON, or deliver through an injected `Psr\Http\Client\ClientInterface` (POST to a broker — `symfony/http-client` + `nyholm/psr7` are already dev deps). Keep transport optional (inject a `callable`/`ClientInterface` or no-op).
+3. **Guard:** only instantiable when `class_exists(\CloudEvents\V1\CloudEvent::class)`; delivery is the host's concern.
+
+**Tests to add:** `CloudEventsHashingObserverTest` (dev-only) — assert a completed observation yields a `CloudEvent` of the right `type` with JSON `data` containing the algorithm + urn; round-trip via `JsonUnmarshaller`. Gate behind `class_exists`.
+
+**Verification:** gates.
+**Dependencies:** NF-O1, NF-A2 (`resultUrn`).
+**Acceptance:** standards-shaped CloudEvent produced; adapter guarded; gates green; no core runtime dep.
 
 ---
 
@@ -354,7 +437,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 
 ## 2. Definition of Done (whole next-level effort)
 
-- All non-deferred milestones (NF-A1…NF-C2, NF-D1 if approved) implemented with green gates:
+- All non-deferred milestones (NF-A1…NF-C2, NF-O1…NF-O3, NF-D1 if approved) implemented with green gates:
   `composer test:unit` · `composer analyse` · `composer cs:check` · `composer architecture`.
 - Each milestone has a completion note in this file (mirroring `REFACTORING_PLAN.md`).
 - `[SCOPE]` items (NF-A5 SRI, NF-C1 formatters) resolved per guardrail #7 with a recorded scope decision and no serialization logic inside the hashing core.
@@ -367,3 +450,4 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 2. **NF-D1 tree hash** — pick a stable, interoperable combiner (BLAKE3 chunking / THEX) before coding.
 3. **Cross-package policy** — confirm HashIt may `suggest` `AsyncIt`/`DeriveIt`; keep bridges optional to avoid hard coupling.
 4. **NF-C1 serialization home** — finalize whether formatters live in `ItPack\HashIt\Format\*` or a sibling `hash-it-format` package before building them.
+5. **O2/O3 o11y packaging** — keep the OpenTelemetry/CloudEvents adapters in-package (guarded, dev-deps) or extract to a separate `hash-it-obs` package for production (mirrors the H3 bridge)? Also decide the CloudEvents transport seam (injected PSR-18 client vs host-provided).
