@@ -68,6 +68,7 @@ final class GitPhpWorkingTreeTest extends Unit
 
         self::assertSame('/repo/detached', $trees[2]->path);
         self::assertNull($trees[2]->branch);
+        $this->assertCommandRan(['worktree', 'list', '--porcelain']);
     }
 
     public function testAddFormulatesCommand(): void
@@ -79,6 +80,7 @@ final class GitPhpWorkingTreeTest extends Unit
 
         $workingTree->add(RepositoryPath::from($target), BranchName::from('feature'));
 
+        $this->assertCommandRan(['worktree', 'add', '-b', 'feature', $target]);
     }
 
     public function testRemoveFormulatesCommand(): void
@@ -90,6 +92,7 @@ final class GitPhpWorkingTreeTest extends Unit
 
         $workingTree->remove(RepositoryPath::from($target));
 
+        $this->assertCommandRan(['worktree', 'remove', $target]);
     }
 
     public function testAddWithoutBranchFormulatesCommand(): void
@@ -101,6 +104,7 @@ final class GitPhpWorkingTreeTest extends Unit
 
         $workingTree->add(RepositoryPath::from($target));
 
+        $this->assertCommandRan(['worktree', 'add', $target]);
     }
 
     public function testAddRejectsPathOutsideRepositoryParent(): void
@@ -171,6 +175,7 @@ final class GitPhpWorkingTreeTest extends Unit
         self::assertCount(2, $trees);
         self::assertSame('/repo/a', $trees[0]->path);
         self::assertSame('/repo/b', $trees[1]->path);
+        $this->assertCommandRan(['worktree', 'list', '--porcelain']);
     }
 
     public function testAddRejectsWhenParentDoesNotExist(): void

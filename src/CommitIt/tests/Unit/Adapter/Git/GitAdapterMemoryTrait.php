@@ -8,6 +8,7 @@ use CzProject\GitPhp\GitRepository;
 use CzProject\GitPhp\Runners\MemoryRunner;
 use ItPack\CommitIt\Adapter\Git\GitPhpRepository;
 use ItPack\CommitIt\Adapter\Git\GitPhpWorkingTree;
+use PHPUnit\Framework\Assert;
 use RuntimeException;
 
 /**
@@ -19,6 +20,8 @@ trait GitAdapterMemoryTrait
     protected string $repoDir = '';
 
     public const TEST_COMMIT_ID = '1111111111111111111111111111111111111111';
+
+    protected ?RecordingMemoryRunner $capturedRunner = null;
 
     protected function setUpRepoDir(): void
     {
@@ -63,19 +66,38 @@ trait GitAdapterMemoryTrait
 
     protected function buildRepository(callable $seed): GitPhpRepository
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $seed($runner);
         $gitRepository = new GitRepository($this->repoDir, $runner);
+
+        $this->capturedRunner = $runner;
 
         return new GitPhpRepository($gitRepository);
     }
 
     protected function buildWorkingTree(callable $seed): GitPhpWorkingTree
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $seed($runner);
         $gitRepository = new GitRepository($this->repoDir, $runner);
 
+        $this->capturedRunner = $runner;
+
         return new GitPhpWorkingTree($gitRepository);
+    }
+
+    /**
+     * Assert that the adapter dispatched the given git command (kills
+     * `MethodCallRemoval` mutants by proving the backend call happened).
+     *
+     * @param array<int, mixed> $expected
+     */
+    protected function assertCommandRan(array $expected): void
+    {
+        Assert::assertNotNull($this->capturedRunner, 'No recording runner was captured; call buildRepository/buildWorkingTree first.');
+        Assert::assertTrue(
+            $this->capturedRunner->ran($expected),
+            'Expected git command was not dispatched by the adapter.',
+        );
     }
 }

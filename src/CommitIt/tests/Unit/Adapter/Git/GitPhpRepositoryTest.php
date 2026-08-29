@@ -46,6 +46,7 @@ final class GitPhpRepositoryTest extends Unit
 
         self::assertInstanceOf(CommitId::class, $id);
         self::assertSame(self::TEST_COMMIT_ID, $id->__toString());
+        $this->assertCommandRan(['commit', null, ['-m' => 'Subject line']]);
     }
 
     public function testCommitFailureIsMapped(): void
@@ -150,6 +151,9 @@ final class GitPhpRepositoryTest extends Unit
 
         $repository->stage('file.txt');
         $repository->stageAll();
+
+        $this->assertCommandRan(['add', '--end-of-options', 'file.txt']);
+        $this->assertCommandRan(['add', '--all']);
     }
 
     public function testStageRejectsPathOutsideWorkingTree(): void
@@ -182,6 +186,9 @@ final class GitPhpRepositoryTest extends Unit
         $repository->checkoutBranch(BranchName::from('feature'));
         $repository->deleteBranch(BranchName::from('feature'));
 
+        $this->assertCommandRan(['branch', '--end-of-options', 'feature']);
+        $this->assertCommandRan(['checkout', 'feature']);
+        $this->assertCommandRan(['branch', ['-d' => 'feature']]);
     }
 
     public function testListBranches(): void
@@ -207,6 +214,9 @@ final class GitPhpRepositoryTest extends Unit
         $repository->createTag(TagName::from('v1.0'), CommitId::from(self::TEST_COMMIT_ID));
         $repository->deleteTag(TagName::from('v1.0'));
 
+        $this->assertCommandRan(['tag', null, '--end-of-options', 'v1.0']);
+        $this->assertCommandRan(['tag', '--end-of-options', 'v1.0', self::TEST_COMMIT_ID]);
+        $this->assertCommandRan(['tag', ['-d' => 'v1.0']]);
     }
 
     public function testListTags(): void
@@ -231,8 +241,12 @@ final class GitPhpRepositoryTest extends Unit
         $repository->addRemote(RemoteName::from('origin'), 'https://example.com/repo.git');
         $repository->removeRemote(RemoteName::from('origin'));
 
+        $this->assertCommandRan(['remote', 'add', null, '--end-of-options', 'origin', 'https://example.com/repo.git']);
+        $this->assertCommandRan(['remote', 'remove', '--end-of-options', 'origin']);
+
         $remotes = $repository->listRemotes();
         self::assertSame(['origin' => 'https://example.com/repo.git'], $remotes);
+        $this->assertCommandRan(['remote', '-v']);
     }
 
     public function testFetchPullPush(): void
@@ -249,6 +263,10 @@ final class GitPhpRepositoryTest extends Unit
         $repository->pull(RemoteName::from('origin'), BranchName::from('main'));
         $repository->push(RemoteName::from('origin'), BranchName::from('main'));
 
+        $this->assertCommandRan(['fetch', null, '--end-of-options', null]);
+        $this->assertCommandRan(['fetch', null, '--end-of-options', 'origin']);
+        $this->assertCommandRan(['pull', 'origin', 'main']);
+        $this->assertCommandRan(['push', 'origin', 'main']);
     }
 
     public function testExecutePassthroughReturnsJoinedOutput(): void
@@ -256,6 +274,7 @@ final class GitPhpRepositoryTest extends Unit
         $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['status', '--short'], [], 'M file.txt'));
 
         self::assertSame('M file.txt', $repository->execute('status', ['--short']));
+        $this->assertCommandRan(['status', '--short']);
     }
 
     public function testWorkingTreeIsExposed(): void
@@ -296,6 +315,8 @@ final class GitPhpRepositoryTest extends Unit
         self::assertSame($id, $commit->id->__toString());
         self::assertSame('Subject', $commit->subject);
         self::assertSame('Author Name', $commit->authorName);
+        $this->assertCommandRan(['rev-parse', '--verify', 'HEAD']);
+        $this->assertCommandRan(['log', '--pretty=format:%H', '-n', '1']);
     }
 
     public function testCommitWithOptionsFormulatesParameters(): void
@@ -321,5 +342,8 @@ final class GitPhpRepositoryTest extends Unit
         );
 
         self::assertSame(self::TEST_COMMIT_ID, $id->__toString());
+        $this->assertCommandRan(
+            ['commit', null, ['--author' => 'Jane <jane@example.com>', '--date' => $date, '--allow-empty', '--amend', '-m' => 'Subject']],
+        );
     }
 }

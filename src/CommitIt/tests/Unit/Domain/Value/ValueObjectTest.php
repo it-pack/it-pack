@@ -127,6 +127,39 @@ final class ValueObjectTest extends Unit
         CommitMessage::fromParts('Subject', '   ');
     }
 
+    public function testCommitMessageTrimsSurroundingWhitespace(): void
+    {
+        $message = CommitMessage::fromParts('  Subject  ', '  Body text  ');
+
+        self::assertSame('Subject', $message->subject);
+        self::assertSame('Body text', $message->body);
+
+        $parsed = CommitMessage::fromString("  Subject  \n\n  Body text  ");
+
+        self::assertSame('Subject', $parsed->subject);
+        self::assertSame('Body text', $parsed->body);
+    }
+
+    public function testCommitMessagePreservesMultipleParagraphs(): void
+    {
+        $message = CommitMessage::fromString("Subject\n\nA\n\nB\n\nC");
+
+        self::assertSame('Subject', $message->subject);
+        self::assertSame("A\n\nB\n\nC", $message->body);
+    }
+
+    public function testCommitIdTrimsWhitespace(): void
+    {
+        self::assertSame('abc123', CommitId::from('  abc123  ')->__toString());
+    }
+
+    public function testCommitIdRejectsWhitespaceOnly(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        CommitId::from('   ');
+    }
+
     public function testCommitSnapshotIsImmutable(): void
     {
         $commit = new Commit(

@@ -216,4 +216,79 @@ final class ObservedRepositoryTest extends Unit
         self::assertInstanceOf(CommitId::class, $id);
         self::assertContains('commit', $inner->calls);
     }
+
+    /**
+     * Every context-bearing operation must record its structured parameters in both the `onStart`
+     * and `onSuccess` events. Asserting the exact context kills `ArrayItem` / `ArrayItemRemoval`
+     * mutants that would otherwise drop or corrupt an observed parameter.
+     *
+     * @return iterable<string, array{0: callable, 1: array<string, mixed>}>
+     */
+    public function operationContextProvider(): iterable
+    {
+        yield 'stage' => [static fn (ObservedRepository $r) => $r->stage('file.txt'), ['file' => 'file.txt']];
+        yield 'commitWithOptions' => [
+            static fn (ObservedRepository $r) => $r->commit(
+                CommitMessage::fromParts('Subject'),
+                CommitOptions::default()->withAllowEmpty()->withAmend(),
+            ),
+            ['allowEmpty' => true, 'amend' => true],
+        ];
+        yield 'getCommit' => [
+            static fn (ObservedRepository $r) => $r->getCommit(CommitId::from(self::SOME_ID)),
+            ['commit' => self::SOME_ID],
+        ];
+        yield 'createBranch' => [
+            static fn (ObservedRepository $r) => $r->createBranch(BranchName::from('feature')),
+            ['branch' => 'feature'],
+        ];
+        yield 'checkoutBranch' => [
+            static fn (ObservedRepository $r) => $r->checkoutBranch(BranchName::from('feature')),
+            ['branch' => 'feature'],
+        ];
+        yield 'deleteBranch' => [
+            static fn (ObservedRepository $r) => $r->deleteBranch(BranchName::from('feature')),
+            ['branch' => 'feature'],
+        ];
+        yield 'createTag' => [
+            static fn (ObservedRepository $r) => $r->createTag(TagName::from('v1')),
+            ['tag' => 'v1'],
+        ];
+        yield 'createTagWithTarget' => [
+            static fn (ObservedRepository $r) => $r->createTag(TagName::from('v1'), CommitId::from(self::SOME_ID)),
+            ['tag' => 'v1', 'target' => self::SOME_ID],
+        ];
+        yield 'deleteTag' => [
+            static fn (ObservedRepository $r) => $r->deleteTag(TagName::from('v1')),
+            ['tag' => 'v1'],
+        ];
+        yield 'addRemote' => [
+            static fn (ObservedRepository $r) => $r->addRemote(RemoteName::from('origin'), 'https://example.com/repo.git'),
+            ['remote' => 'origin'],
+        ];
+        yield 'removeRemote' => [
+            static fn (ObservedRepository $r) => $r->removeRemote(RemoteName::from('origin')),
+            ['remote' => 'origin'],
+        ];
+        yield 'execute' => [
+            static fn (ObservedRepository $r) => $r->execute('status', ['--short']),
+            ['command' => 'status'],
+        ];
+    }
+
+    /**
+     * @dataProvider operationContextProvider
+     * @param array<string, mixed> $expectedContext
+     */
+    public function testOperationRecordsStructuredContext(callable $operation, array $expectedContext): void
+    {
+        $inner = new FakeRepository();
+        $observer = new RecordingObserver();
+        $repository = new ObservedRepository($inner, $observer);
+
+        $operation($repository);
+
+        self::assertSame($expectedContext, $observer->events[0]['context']);
+        self::assertSame($expectedContext, $observer->events[1]['context']);
+    }
 }

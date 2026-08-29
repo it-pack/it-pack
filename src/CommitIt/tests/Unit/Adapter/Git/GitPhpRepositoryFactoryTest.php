@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Git;
 
 use Codeception\Test\Unit;
-use CzProject\GitPhp\Runners\MemoryRunner;
 use ItPack\CommitIt\Adapter\Git\GitPhpRepository;
 use ItPack\CommitIt\Adapter\Git\GitPhpRepositoryFactory;
 use ItPack\CommitIt\Domain\Exception\RepositoryNotFoundException;
@@ -13,6 +12,7 @@ use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 use ItPack\CommitIt\Domain\Option\CloneOptions;
 use ItPack\CommitIt\Domain\Option\InitOptions;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use PHPUnit\Framework\Assert;
 
 /**
  * @covers \ItPack\CommitIt\Adapter\Git\GitPhpRepositoryFactory
@@ -36,26 +36,35 @@ final class GitPhpRepositoryFactoryTest extends Unit
 
     public function testOpenMissingPathThrowsRepositoryNotFound(): void
     {
-        $factory = new GitPhpRepositoryFactory(new MemoryRunner(sys_get_temp_dir()));
+        $factory = new GitPhpRepositoryFactory(new RecordingMemoryRunner(sys_get_temp_dir()));
+
+        $path = '/path/that/does/not/exist/commitit_' . bin2hex(random_bytes(4));
 
         $this->expectException(RepositoryNotFoundException::class);
-        $factory->open(RepositoryPath::from('/path/that/does/not/exist/commitit_' . bin2hex(random_bytes(4))));
+        $this->expectExceptionMessage('Failed to open repository');
+        $factory->open(RepositoryPath::from($path));
     }
 
     public function testOpenExistingNonRepoThrowsRepositoryNotFound(): void
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(['rev-parse', '--git-dir'], $this->pinnedEnv(), '', 'fatal: not a git repository', 128);
 
         $factory = new GitPhpRepositoryFactory($runner);
 
-        $this->expectException(RepositoryNotFoundException::class);
-        $factory->open(RepositoryPath::from($this->repoDir));
+        try {
+            $factory->open(RepositoryPath::from($this->repoDir));
+            Assert::fail('Expected RepositoryNotFoundException.');
+        } catch (RepositoryNotFoundException $error) {
+            Assert::assertStringContainsString('Path is not a git repository', $error->getMessage());
+            Assert::assertStringContainsString($this->repoDir, $error->getMessage());
+            Assert::assertSame(0, $error->getCode());
+        }
     }
 
     public function testInitCreatesRepository(): void
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(['init', null, '--end-of-options', $this->repoDir], $this->pinnedEnv(), '');
 
         $factory = new GitPhpRepositoryFactory($runner);
@@ -63,12 +72,13 @@ final class GitPhpRepositoryFactoryTest extends Unit
 
         self::assertInstanceOf(GitPhpRepository::class, $repository);
         self::assertSame($this->repoDir, $repository->getPath()->toString());
+        self::assertTrue($runner->ran(['init', null, '--end-of-options', $this->repoDir]));
     }
 
     public function testCloneCreatesRepository(): void
     {
         $url = 'https://example.com/repo.git';
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(['clone', '-q', '--end-of-options', $url, $this->repoDir], $this->pinnedEnv(), '');
 
         $factory = new GitPhpRepositoryFactory($runner);
@@ -76,11 +86,12 @@ final class GitPhpRepositoryFactoryTest extends Unit
 
         self::assertInstanceOf(GitPhpRepository::class, $repository);
         self::assertSame($this->repoDir, $repository->getPath()->toString());
+        self::assertTrue($runner->ran(['clone', '-q', '--end-of-options', $url, $this->repoDir]));
     }
 
     public function testOpenExistingRepositoryReturnsHandle(): void
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(['rev-parse', '--git-dir'], $this->pinnedEnv(), $this->repoDir . '/.git');
 
         $factory = new GitPhpRepositoryFactory($runner);
@@ -88,11 +99,12 @@ final class GitPhpRepositoryFactoryTest extends Unit
 
         self::assertInstanceOf(GitPhpRepository::class, $repository);
         self::assertSame($this->repoDir, $repository->getPath()->toString());
+        self::assertTrue($runner->ran(['rev-parse', '--git-dir']));
     }
 
     public function testInitHonoursBareAndInitialBranch(): void
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(
             ['init', ['--bare', '--initial-branch' => 'trunk'], '--end-of-options', $this->repoDir],
             $this->pinnedEnv(),
@@ -106,12 +118,13 @@ final class GitPhpRepositoryFactoryTest extends Unit
         );
 
         self::assertInstanceOf(GitPhpRepository::class, $repository);
+        self::assertTrue($runner->ran(['init', ['--bare', '--initial-branch' => 'trunk'], '--end-of-options', $this->repoDir]));
     }
 
     public function testCloneHonoursOptions(): void
     {
         $url = 'https://example.com/repo.git';
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(
             ['clone', ['--bare', '--branch' => 'trunk', '--depth' => '1'], '--end-of-options', $url, $this->repoDir],
             $this->pinnedEnv(),
@@ -126,29 +139,40 @@ final class GitPhpRepositoryFactoryTest extends Unit
         );
 
         self::assertInstanceOf(GitPhpRepository::class, $repository);
+        self::assertTrue($runner->ran(['clone', ['--bare', '--branch' => 'trunk', '--depth' => '1'], '--end-of-options', $url, $this->repoDir]));
     }
 
     public function testInitFailureIsMapped(): void
     {
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(['init', null, '--end-of-options', $this->repoDir], $this->pinnedEnv(), '', 'fatal: cannot init', 1);
 
         $factory = new GitPhpRepositoryFactory($runner);
 
-        $this->expectException(VcsOperationException::class);
-        $factory->init(RepositoryPath::from($this->repoDir));
+        try {
+            $factory->init(RepositoryPath::from($this->repoDir));
+            Assert::fail('Expected VcsOperationException.');
+        } catch (VcsOperationException $error) {
+            Assert::assertStringContainsString('Failed to init repository', $error->getMessage());
+            Assert::assertStringContainsString($this->repoDir, $error->getMessage());
+        }
     }
 
     public function testCloneFailureIsMapped(): void
     {
         $url = 'https://example.com/repo.git';
-        $runner = new MemoryRunner($this->repoDir);
+        $runner = new RecordingMemoryRunner($this->repoDir);
         $runner->setResult(['clone', '-q', '--end-of-options', $url, $this->repoDir], $this->pinnedEnv(), '', 'fatal: clone failed', 1);
 
         $factory = new GitPhpRepositoryFactory($runner);
 
-        $this->expectException(VcsOperationException::class);
-        $factory->cloneRepository($url, RepositoryPath::from($this->repoDir));
+        try {
+            $factory->cloneRepository($url, RepositoryPath::from($this->repoDir));
+            Assert::fail('Expected VcsOperationException.');
+        } catch (VcsOperationException $error) {
+            Assert::assertStringContainsString('Failed to clone repository', $error->getMessage());
+            Assert::assertStringContainsString($this->repoDir, $error->getMessage());
+        }
     }
 
     /**

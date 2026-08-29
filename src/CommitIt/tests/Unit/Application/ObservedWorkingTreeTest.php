@@ -44,6 +44,7 @@ final class ObservedWorkingTreeTest extends Unit
         $tree->add(RepositoryPath::from('/wt'), BranchName::from('wt-branch'));
 
         self::assertSame(['start:add', 'success:add'], $observer->sequence());
+        self::assertContains('add', $inner->calls);
         self::assertSame(
             ['path' => '/wt', 'branch' => 'wt-branch'],
             $observer->events[0]['context'],
@@ -59,6 +60,7 @@ final class ObservedWorkingTreeTest extends Unit
         $tree->remove(RepositoryPath::from('/wt'));
 
         self::assertSame(['start:remove', 'success:remove'], $observer->sequence());
+        self::assertContains('remove', $inner->calls);
         self::assertSame(['path' => '/wt'], $observer->events[0]['context']);
     }
 

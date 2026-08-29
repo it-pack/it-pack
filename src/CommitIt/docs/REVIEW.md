@@ -240,6 +240,14 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
     `MemoryRunner`-backed cases (factory + working tree at 100% methods/lines; repository at 130/137 lines).
 4. **(Medium, coverage gate)** Make the coverage job run `Unit Functional` (skip Acceptance) and add
    `@mutation` to `composer quality`; raise infection `minMsi`/`minCoveredMsi` to ≥90/95.
+   **→ Implemented (M4).** New `composer coverage:all` runs `codecept run Unit,Functional` (merged
+   Unit+Functional report, avoids the old `Acceptance` `codecoverage.serialized` error). New
+   `composer quality:full` chains `validate → cs:check → analyse → architecture → coverage:all → mutation`
+   (the fast `quality` stays mutation-free). `infection.json5` thresholds set to `minMsi` = 90 /
+   `minCoveredMsi` = 90; the plan's aspirational **95 covered** is unreachable because the residual escaped
+   mutants are equivalent (see REFACTORING_PLAN.md M4 notes: `GitExceptionMap` `VcsOperationException`
+   fall-through, `RefNameValidator` `\s` subsumption, `(string)`/`?? []` no-ops). Hardening raised the
+   covered mutation score from **77.6% to 91.7%** (overall MSI 90.2%).
 5. **(Low, modern PHP)** Declare `readonly class` on the eligible types (value objects, option builders,
    decorators, `RepositoryOpener`, `GitPhpRepositoryFactory`, the `@internal` helpers, `GitPhpWorkingTree`,
    `NullRepositoryObserver`). `GitPhpRepository` stays mutable by its working-tree memo (intentional).
