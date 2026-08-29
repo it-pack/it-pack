@@ -206,7 +206,7 @@ final class FakeRepository implements Repository
 
     public static function fakeCommit(CommitId $id): Commit
     {
-        return new Commit(
+        return Commit::from(
             $id,
             'subject',
             null,

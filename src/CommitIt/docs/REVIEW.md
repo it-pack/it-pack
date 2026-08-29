@@ -130,7 +130,7 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
 | No Yoda conditions | **Pass** | No `false === $x` / `null === $x` patterns found. |
 | All referenced types imported at top | **Pass** | Resolved in M6.2: `InvalidArgumentException` is now imported (not FQN'd) in `GitPhpRepository`, `GitPhpWorkingTree`, `RepositoryPath`, `CommitId`; `ObservedWorkingTree` already imported `WorktreeInfo`. `\Throwable` in `catch` remains idiomatic FQN (low priority). |
 | No line > 120 chars | **Pass** | Resolved in M6.5: all `src` lines wrapped to ≤120 (multi-line `SDK\CommitIt` signatures, the two exception class declarations via a multiline `implements`, `ObserverDispatch` signatures, the `ObservedRepository`/`ObservedWorkingTree` `dispatchRun(Void)` call sites, and the `RepositoryPath` exclusion comment). **Note:** php-cs-fixer 3.95 no longer ships the `line_length` fixer, so the planned `'line_length'` rule could not be added; the 120-char limit is instead enforced by a grep gate (`grep -rnE ".{121}" src` → 0 matches) rather than by `cs:check`. `tests` (excl. `_generated`): 16 lines remain out of M6 scope. |
-| Constants/enums over magic literals; vocabularies in interfaces | **Partial** | `CommitMessageValidator::MAX_SUBJECT_LENGTH` is a constant (good). But observer operation names (`'getPath'`, `'stage'`, `'commit'`, …) are magic strings in `ObservedRepository`/`ObservedWorkingTree`; git CLI flags/args are inline literals in the adapter; `'(fetch)'` (`GitPhpRepository.php:195`) and the `'C'` locale (`LocalePinningRunner`) are bare literals. Recommend: an `enum RepositoryOperation` in `Contract` for the observer vocabulary; `private const` for `'C'`, `'(fetch)'`, and the `strlen('worktree ')` / `strlen('branch ')` literals (`GitPhpWorkingTree.php:95`,`:104`). |
+| Constants/enums over magic literals; vocabularies in interfaces | **Pass** | Resolved in M7: observer operation names are now the `RepositoryOperation` backed enum (`src/Contract/RepositoryOperation.php`) referenced via `->value` in `ObservedRepository`/`ObservedWorkingTree`; `'(fetch)'` is `GitPhpRepository::FETCH_REF` (regex derived via `preg_quote`); `'worktree '`/`'branch '` are `GitPhpWorkingTree::WORKTREE_PREFIX`/`BRANCH_PREFIX`; `'C'` locale was already `LocalePinningRunner::LOCALE` (M1). The remaining inline literals are git CLI flag/arg tokens (`'remote'`, `'-v'`, `'worktree'`, …) inside the adapter, which are intentionally left as literals — they are backend command syntax, not domain vocabulary. |
 | Duplicated PHPDoc | **Fail (minor)** | `ObservedRepository::run` has two stacked `@template` docblocks (`src/Application/ObservedRepository.php:181-191`). Collapse to one (also removed by the §3 trait extraction). |
 
 ## 7. Security
@@ -177,8 +177,9 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
   `CommitId::from`), immutable builders (`InitOptions`/`CloneOptions`/`CommitOptions`), and a thin
   `SDK\CommitIt` facade. Documentation exists (`README.md`, `USER_GUIDE.md`, ADRs).
 - The duplicate/stacked docblock (§6) was resolved by M2; the `line_length` rule cannot be enforced
-  via php-cs-fixer 3.95 (fixer removed) and is instead gated by a grep check (M6). The remaining style
-  nit is the magic-literal vocabulary work tracked as M7.
+  via php-cs-fixer 3.95 (fixer removed) and is instead gated by a grep check (M6). The magic-literal
+  vocabulary work (observer `RepositoryOperation` enum, `FETCH_REF`/`WORKTREE_PREFIX`/`BRANCH_PREFIX`
+  consts, `Commit::from`) was resolved by M7.
 
 ## 10. Test coverage & mutation
 
@@ -268,9 +269,12 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
  7. **(Low, declaration order)** Reorder `GitPhpRepository` (property before ctor; private methods after
     all public) and `GitPhpWorkingTree` (non-static private before static private).
     → **Implemented (M6).** See REFACTORING_PLAN.md M6 notes (M6.3/M6.4).
-8. **(Low, magic literals)** Introduce `enum RepositoryOperation` in `Contract` for observer operation
-   names; add `private const` for the `'C'` locale, `'(fetch)'`, and the `worktree `/`branch ` prefixes.
-9. **(Low, consistency)** Add `Commit::from(...)` named constructor; use it in `GitPhpRepository::mapCommit`.
+ 8. **(Low, magic literals)** Introduce `enum RepositoryOperation` in `Contract` for observer operation
+    names; add `private const` for the `'C'` locale, `'(fetch)'`, and the `worktree `/`branch ` prefixes.
+    → **Implemented (M7).** `RepositoryOperation` enum created; `GitPhpRepository::FETCH_REF`,
+    `GitPhpWorkingTree::WORKTREE_PREFIX`/`BRANCH_PREFIX` consts added (`LocalePinningRunner::LOCALE` predates M7, from M1).
+ 9. **(Low, consistency)** Add `Commit::from(...)` named constructor; use it in `GitPhpRepository::mapCommit`.
+    → **Implemented (M7).** `Commit` now has a private constructor + `from` named constructor (mirrors `CommitId`); `mapCommit` uses it, and the two test doubles (`ValueObjectTest`, `FakeRepository`) were updated to `Commit::from` since the constructor is no longer public.
 10. **(Low, rule reconciliation)** Confirm whether `SDK\CommitIt` and `RepositoryOpener` should be
     interface-backed, or document them as intentional facades/seams outside the §5 carve-out.
 

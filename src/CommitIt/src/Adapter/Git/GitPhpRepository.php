@@ -29,6 +29,8 @@ use ItPack\CommitIt\Domain\Value\TagName;
 // Intentionally NOT `readonly`: the lazy `$workingTree` memo at line 34 is mutated after construction.
 final class GitPhpRepository implements Repository
 {
+    private const string FETCH_REF = '(fetch)';
+
     private ?GitPhpWorkingTree $workingTree = null;
 
     public function __construct(private GitRepository $repository)
@@ -195,13 +197,17 @@ final class GitPhpRepository implements Repository
             $remotes = [];
 
             foreach ($lines as $line) {
-                if (!str_contains($line, '(fetch)')) {
+                if (!str_contains($line, self::FETCH_REF)) {
                     continue;
                 }
 
                 $parts = explode("\t", $line, 2);
                 $name = $parts[0];
-                $url = (string) preg_replace('/ \(fetch\)$/', '', rtrim($parts[1] ?? ''));
+                $url = (string) preg_replace(
+                    '/ ' . preg_quote(self::FETCH_REF, '/') . '$/',
+                    '',
+                    rtrim($parts[1] ?? ''),
+                );
 
                 $remotes[$name] = $url;
             }
@@ -344,7 +350,7 @@ final class GitPhpRepository implements Repository
 
     private static function mapCommit(GitCommit $commit): Commit
     {
-        return new Commit(
+        return Commit::from(
             CommitId::from($commit->getId()->toString()),
             $commit->getSubject(),
             $commit->getBody() !== '' ? $commit->getBody() : null,

@@ -24,6 +24,9 @@ use ItPack\CommitIt\Domain\Value\WorktreeInfo;
  */
 final readonly class GitPhpWorkingTree implements WorkingTree
 {
+    private const string WORKTREE_PREFIX = 'worktree ';
+    private const string BRANCH_PREFIX = 'branch ';
+
     public function __construct(private readonly GitRepository $repository)
     {
     }
@@ -113,22 +116,22 @@ final readonly class GitPhpWorkingTree implements WorkingTree
                 continue;
             }
 
-            if (str_starts_with($line, 'worktree ')) {
+            if (str_starts_with($line, self::WORKTREE_PREFIX)) {
                 if ($current !== null) {
                     $blocks[] = $current;
                 }
 
                 $current = [
-                    'path' => substr($line, strlen('worktree ')),
+                    'path' => substr($line, strlen(self::WORKTREE_PREFIX)),
                     'branch' => null,
                 ];
 
                 continue;
             }
 
-            if (str_starts_with($line, 'branch ') && $current !== null) {
+            if (str_starts_with($line, self::BRANCH_PREFIX) && $current !== null) {
                 /** @var string $branch */
-                $branch = (string) preg_replace('/^refs\/heads\//', '', substr($line, strlen('branch ')));
+                $branch = (string) preg_replace('/^refs\/heads\//', '', substr($line, strlen(self::BRANCH_PREFIX)));
                 $current['branch'] = $branch === '' ? null : $branch;
             }
         }

@@ -6,6 +6,7 @@ namespace ItPack\CommitIt\Application;
 
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\RepositoryObserver;
+use ItPack\CommitIt\Contract\RepositoryOperation;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
 use ItPack\CommitIt\Domain\Value\BranchName;
@@ -35,31 +36,63 @@ final readonly class ObservedRepository implements Repository
     use ObserverDispatch;
 
     public function __construct(
-        private readonly Repository $inner,
-        private readonly RepositoryObserver $observer,
+        private Repository $inner,
+        private RepositoryObserver $observer,
     ) {
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function getPath(): RepositoryPath
     {
-        return $this->dispatchRun($this->observer, 'getPath', fn (): RepositoryPath => $this->inner->getPath());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::GetPath->value,
+            fn (): RepositoryPath => $this->inner->getPath(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function hasChanges(): bool
     {
-        return $this->dispatchRun($this->observer, 'hasChanges', fn (): bool => $this->inner->hasChanges());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::HasChanges->value,
+            fn (): bool => $this->inner->hasChanges(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function stage(string $file): void
     {
-        $this->dispatchRunVoid($this->observer, 'stage', fn () => $this->inner->stage($file), ['file' => $file]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::Stage->value,
+            fn () => $this->inner->stage($file),
+            ['file' => $file],
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function stageAll(): void
     {
-        $this->dispatchRunVoid($this->observer, 'stageAll', fn () => $this->inner->stageAll());
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::StageAll->value,
+            fn () => $this->inner->stageAll(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function commit(CommitMessage $message, ?CommitOptions $options = null): CommitId
     {
         $context = $options === null
@@ -68,52 +101,71 @@ final readonly class ObservedRepository implements Repository
 
         return $this->dispatchRun(
             $this->observer,
-            'commit',
+            RepositoryOperation::Commit->value,
             fn (): CommitId => $this->inner->commit($message, $options),
             $context,
         );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function getLastCommit(): ?Commit
     {
-        return $this->dispatchRun($this->observer, 'getLastCommit', fn (): ?Commit => $this->inner->getLastCommit());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::GetLastCommit->value,
+            fn (): ?Commit => $this->inner->getLastCommit(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function getCommit(CommitId $id): Commit
     {
         return $this->dispatchRun(
             $this->observer,
-            'getCommit',
+            RepositoryOperation::GetCommit->value,
             fn (): Commit => $this->inner->getCommit($id),
             ['commit' => $id->__toString()],
         );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function createBranch(BranchName $name): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'createBranch',
+            RepositoryOperation::CreateBranch->value,
             fn () => $this->inner->createBranch($name),
             ['branch' => $name->__toString()],
         );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function checkoutBranch(BranchName $name): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'checkoutBranch',
+            RepositoryOperation::CheckoutBranch->value,
             fn () => $this->inner->checkoutBranch($name),
             ['branch' => $name->__toString()],
         );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function deleteBranch(BranchName $name): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'deleteBranch',
+            RepositoryOperation::DeleteBranch->value,
             fn () => $this->inner->deleteBranch($name),
             ['branch' => $name->__toString()],
         );
@@ -121,12 +173,20 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @return list<BranchName>
+     * @throws \Throwable
      */
     public function listBranches(): array
     {
-        return $this->dispatchRun($this->observer, 'listBranches', fn (): array => $this->inner->listBranches());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::ListBranches->value,
+            fn (): array => $this->inner->listBranches(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function createTag(TagName $name, ?CommitId $target = null): void
     {
         $context = ['tag' => $name->__toString()];
@@ -137,17 +197,20 @@ final readonly class ObservedRepository implements Repository
 
         $this->dispatchRunVoid(
             $this->observer,
-            'createTag',
+            RepositoryOperation::CreateTag->value,
             fn () => $this->inner->createTag($name, $target),
             $context,
         );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function deleteTag(TagName $name): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'deleteTag',
+            RepositoryOperation::DeleteTag->value,
             fn () => $this->inner->deleteTag($name),
             ['tag' => $name->__toString()],
         );
@@ -155,27 +218,38 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @return list<TagName>
+     * @throws \Throwable
      */
     public function listTags(): array
     {
-        return $this->dispatchRun($this->observer, 'listTags', fn (): array => $this->inner->listTags());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::ListTags->value,
+            fn (): array => $this->inner->listTags(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function addRemote(RemoteName $name, string $url): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'addRemote',
+            RepositoryOperation::AddRemote->value,
             fn () => $this->inner->addRemote($name, $url),
             ['remote' => $name->__toString()],
         );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function removeRemote(RemoteName $name): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'removeRemote',
+            RepositoryOperation::RemoveRemote->value,
             fn () => $this->inner->removeRemote($name),
             ['remote' => $name->__toString()],
         );
@@ -183,25 +257,51 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @return array<string, string>
+     * @throws \Throwable
      */
     public function listRemotes(): array
     {
-        return $this->dispatchRun($this->observer, 'listRemotes', fn (): array => $this->inner->listRemotes());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::ListRemotes->value,
+            fn (): array => $this->inner->listRemotes(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function fetch(?RemoteName $remote = null): void
     {
-        $this->dispatchRunVoid($this->observer, 'fetch', fn () => $this->inner->fetch($remote));
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::Fetch->value,
+            fn () => $this->inner->fetch($remote),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function pull(?RemoteName $remote = null, ?BranchName $branch = null): void
     {
-        $this->dispatchRunVoid($this->observer, 'pull', fn () => $this->inner->pull($remote, $branch));
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::Pull->value,
+            fn () => $this->inner->pull($remote, $branch),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function push(?RemoteName $remote = null, ?BranchName $branch = null): void
     {
-        $this->dispatchRunVoid($this->observer, 'push', fn () => $this->inner->push($remote, $branch));
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::Push->value,
+            fn () => $this->inner->push($remote, $branch),
+        );
     }
 
     public function getWorkingTree(): WorkingTree
@@ -211,12 +311,13 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @param list<string> $args
+     * @throws \Throwable
      */
     public function execute(string $command, array $args = []): string
     {
         return $this->dispatchRun(
             $this->observer,
-            'execute',
+            RepositoryOperation::Execute->value,
             fn (): string => $this->inner->execute($command, $args),
             ['command' => $command],
         );

@@ -162,7 +162,7 @@ final class ValueObjectTest extends Unit
 
     public function testCommitSnapshotIsImmutable(): void
     {
-        $commit = new Commit(
+        $commit = Commit::from(
             CommitId::from('abc'),
             'Subject',
             null,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\CommitIt\Application;
 
 use ItPack\CommitIt\Contract\RepositoryObserver;
+use ItPack\CommitIt\Contract\RepositoryOperation;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
@@ -28,19 +29,27 @@ final readonly class ObservedWorkingTree implements WorkingTree
     use ObserverDispatch;
 
     public function __construct(
-        private readonly WorkingTree $inner,
-        private readonly RepositoryObserver $observer,
+        private WorkingTree $inner,
+        private RepositoryObserver $observer,
     ) {
     }
 
     /**
      * @return list<WorktreeInfo>
+     * @throws \Throwable
      */
     public function listWorktrees(): array
     {
-        return $this->dispatchRun($this->observer, 'listWorktrees', fn (): array => $this->inner->listWorktrees());
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::ListWorktrees->value,
+            fn (): array => $this->inner->listWorktrees(),
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function add(RepositoryPath $path, ?BranchName $name = null): void
     {
         $context = ['path' => $path->toString()];
@@ -49,14 +58,22 @@ final readonly class ObservedWorkingTree implements WorkingTree
             $context['branch'] = $name->__toString();
         }
 
-        $this->dispatchRunVoid($this->observer, 'add', fn () => $this->inner->add($path, $name), $context);
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::AddWorktree->value,
+            fn () => $this->inner->add($path, $name),
+            $context,
+        );
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function remove(RepositoryPath $path): void
     {
         $this->dispatchRunVoid(
             $this->observer,
-            'remove',
+            RepositoryOperation::RemoveWorktree->value,
             fn () => $this->inner->remove($path),
             ['path' => $path->toString()],
         );

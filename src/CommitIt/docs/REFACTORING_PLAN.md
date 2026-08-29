@@ -33,7 +33,7 @@
 | M4 | Fix coverage job + enforce mutation | Medium | Low | M1, M3 | `coverage:all`, `quality:full` | ✅ Done |
 | M5 | Declare `readonly class` on eligible types | Low | Low | — | `composer quality` | ✅ Done |
 | M6 | Enforce `line_length` + import FQNs + decl order | Low | Low | — | `cs:check` | ✅ Done |
-| M7 | Magic literals → const/enum; `Commit::from` | Low | Low | — | `composer quality` |
+| M7 | Magic literals → const/enum; `Commit::from` | Low | Low | — | `composer quality` | ✅ Done |
 | M8 | Interface-backing reconciliation (decision) | Low | Low | — | decision only |
 
 ## 2. Milestones in detail
@@ -375,6 +375,38 @@ a `Commit` named constructor for mapper consistency.
 
 **Done criteria.** No bare observer-name / locale / `'(fetch)'` / `worktree `/`branch ` literals remain
 (verify with grep). `Commit` mapper uses the named constructor. `composer quality` green.
+
+#### M7 — Implementation notes (completed)
+
+- **M7.1 (`RepositoryOperation` enum).** Created `src/Contract/RepositoryOperation.php` as `enum
+  RepositoryOperation: string`. The plan listed an illustrative subset of cases; the final enum mirrors
+  **every** operation string actually dispatched by `ObservedRepository`/`ObservedWorkingTree` (23 cases).
+  Worktree operations are named `AddWorktree`/`RemoveWorktree` with values `'add'`/`'remove'` so the enum
+  vocabulary stays unambiguous while the observer still receives the original `'add'`/`'remove'` strings.
+  Deptrac confirms `Contract → Common, Domain` (the enum has no dependencies).
+- **M7.2 (observer vocabulary).** All operation arguments in `ObservedRepository`/`ObservedWorkingTree` now
+  use `RepositoryOperation::*->value` (the dispatched string is unchanged, so observers see identical
+  payloads). Context keys such as the `'commit'` payload key in `ObservedRepository::getCommit` are
+  *not* operation names and were left as-is.
+- **M7.3 (locale).** Skipped — `LocalePinningRunner::LOCALE = 'C'` was already added during M1, so no change
+  was needed.
+- **M7.4 (`(fetch)` literal).** Added `GitPhpRepository::FETCH_REF = '(fetch)'`. The URL-stripping regex
+  (`/ \(fetch\)$/`) is now built from the const via `preg_quote(self::FETCH_REF, '/')` so the literal is not
+  re-embedded and stays single-sourced.
+- **M7.5 (worktree/branch prefixes).** Added `GitPhpWorkingTree::WORKTREE_PREFIX`/`BRANCH_PREFIX` and used
+  them for both the `str_starts_with` check and the `substr(..., strlen(...))` offset.
+- **M7.6 / M7.7 (`Commit::from`).** `Commit` now has a `private` constructor + `public static from(...)`
+  named constructor (mirrors `CommitId`). `GitPhpRepository::mapCommit` uses `Commit::from(...)`. Because the
+  constructor is no longer public, the two test doubles that built `Commit` directly
+  (`tests/Unit/Domain/Value/ValueObjectTest.php`, `tests/Unit/Application/FakeRepository.php`) were updated to
+  `Commit::from(...)` with identical arguments — no behaviour change.
+- **120-char gate (style).** `RepositoryOperation::<Case>->value` is verbose, so the previously single-line
+  dispatch calls were reformatted to the multi-line `dispatchRun(...)` form already used for multi-argument
+  calls. `grep -rnE ".{121}" src` → **0 lines > 120**; `composer cs:check` → **0 files**.
+- **Verification:** `composer analyse` (0 errors), `composer architecture` (0 violations), `composer
+  cs:check` (0 files), `composer test:unit` (197 ✔ / 611 assertions), `composer test:functional` (31 ✔ / 89
+  assertions) all pass. Mutation was not re-run (M7 is a pure vocabulary/style refactor with no logic
+  change; M5's Mutation Covered MSI 91% still represents the code).
 
 ---
 
