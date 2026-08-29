@@ -78,7 +78,7 @@ Phase D — research / speculative (gated on spike approval)
 
 ---
 
-## NF-A1 — Algorithm strength metadata (V2 / E1) — ⬜ TODO
+## NF-A1 — Algorithm strength metadata (V2 / E1) — ✅ DONE
 
 **Goal:** Add machine-readable algorithm strength so callers (and later milestones V1/H2/H6) can make safer choices. Resurrects the M8-deferred `#[Insecure]` as a richer attribute. Pure enum metadata — zero runtime cost, no behavior change yet.
 
@@ -104,6 +104,8 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 ```
 **Dependencies:** none.
 **Acceptance:** every case annotated; `info()`/`recommendedAlgorithms()`/`brokenAlgorithms()` correct; gates green; no hashing behavior changed.
+
+**Completion note (2026-08-29):** Implemented exactly as specced. New core files `src/AlgorithmStatus.php` (enum), `src/AlgorithmMetadata.php` (`#[Attribute]` on class constants), `src/AlgorithmInfo.php` (read-only value object exposing `outputBits()`, `blockBits()`, `status()`, `isBroken()`, `isRecommended()`). Every `HashAlgorithm` case now carries `#[AlgorithmMetadata(...)]` with `outputBits`/`blockBits`/`status`. `HashAlgorithm` gained `info(): AlgorithmInfo` (memoized via reflection), `recommendedAlgorithms(): list<self>`, `brokenAlgorithms(): list<self>`. Orthogonality preserved: `MD5`/`SHA1` are `Broken` yet remain `#[HmacSafe]` (still `isHmacSafe() === true`). `AlgorithmInfoTest` added (6 cases, reads `blockBits()` so PHPStan's dead-method rule stays satisfied). All gates green: `composer test:unit` (67 tests), `analyse`, `cs:check`, `architecture`. No hashing behavior changed; no `src/` dependency introduced.
 
 ---
 
