@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Domain\ValueObject;
 
+use ItPack\CommandIt\Behavior\Domain\IdentifierNameBehavior;
 use ItPack\CommandIt\Behavior\Domain\ValidatedStringValueBehavior;
-use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
 use ItPack\CommandIt\Contract\ValueObject\ArgumentNameInterface;
 
 /**
@@ -19,13 +19,10 @@ use ItPack\CommandIt\Contract\ValueObject\ArgumentNameInterface;
 final readonly class ArgumentName implements ArgumentNameInterface
 {
     use ValidatedStringValueBehavior;
+    use IdentifierNameBehavior;
 
     protected static function assertAdditionalRules(string $value): void
     {
-        if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]*$/', $value) !== 1) {
-            throw InvalidCommandException::malformed(
-                'Argument name must be a valid identifier (letters, digits, underscore, hyphen), starting with a letter.',
-            );
-        }
+        static::assertIdentifierName($value);
     }
 }

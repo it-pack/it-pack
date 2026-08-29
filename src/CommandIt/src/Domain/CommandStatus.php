@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Domain;
 
+use ItPack\CommandIt\Behavior\Domain\LabelableBehavior;
 use ItPack\CommandIt\Contract\Domain\CommandStatusInterface;
 
 /**
@@ -15,6 +16,8 @@ use ItPack\CommandIt\Contract\Domain\CommandStatusInterface;
  */
 enum CommandStatus: string implements CommandStatusInterface
 {
+    use LabelableBehavior;
+
     case Defined = 'defined';
     case Received = 'received';
     case Executing = 'executing';
@@ -26,11 +29,6 @@ enum CommandStatus: string implements CommandStatusInterface
      * is introduced. See `docs/architecture/MODEL.md`.
      */
     case Cancelled = 'cancelled';
-
-    public function label(): string
-    {
-        return $this->value;
-    }
 
     public function isTerminal(): bool
     {

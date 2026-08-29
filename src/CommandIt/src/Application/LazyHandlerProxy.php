@@ -27,12 +27,18 @@ final class LazyHandlerProxy implements CommandHandlerInterface
 {
     private ?CommandHandlerInterface $resolved = null;
 
+    /** @var \Closure(): CommandHandlerInterface */
+    private \Closure $factory;
+
     /**
      * @param callable(): CommandHandlerInterface $factory
      */
     public function __construct(
-        private $factory,
+        callable $factory,
     ) {
+        $this->factory = $factory instanceof \Closure
+            ? $factory
+            : \Closure::fromCallable($factory);
     }
 
     private function resolve(): CommandHandlerInterface

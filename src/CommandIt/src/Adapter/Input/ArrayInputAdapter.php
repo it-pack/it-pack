@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace ItPack\CommandIt\Adapter\Input;
 
 use ItPack\CommandIt\Behavior\Domain\InputCoercionBehavior;
-use ItPack\CommandIt\Contract\Command\ArgumentInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandInputInterface;
-use ItPack\CommandIt\Contract\Command\OptionInterface;
 use ItPack\CommandIt\Domain\CommandInput;
 
 /**
@@ -52,15 +50,5 @@ final class ArrayInputAdapter
             $this->resolveInputs($definition->arguments(), $arguments, 'argument'),
             $this->resolveInputs($definition->options(), $options, 'option'),
         );
-    }
-
-    /**
-     * @param list<ArgumentInterface|OptionInterface> $specs
-     *
-     * @return list<string>
-     */
-    private function names(array $specs): array
-    {
-        return \array_map(static fn (ArgumentInterface|OptionInterface $spec): string => $spec->name()->toString(), $specs);
     }
 }

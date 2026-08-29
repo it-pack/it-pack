@@ -31,7 +31,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M5 | Publication-pipeline hardening & reporting vocabulary | F-13, F-14, F-15 + §12 register (reporting half) | M1 | — | M | **Done (2026-08-28)** |
 | M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | **Done (2026-08-29)** |
 | M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Done (2026-08-29) |
-| M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Planned |
+| M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Done (2026-08-29) |
 | M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | Planned |
 | M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike, perf micro-opts, changelog | M7, M8 | — | M | Planned |
 
@@ -353,34 +353,34 @@ reportMeasurement(string $name, int|float $value, string $unit): void
 
 ### Task 8.1 — Shared input-spec behavior (F-09)
 
-- [ ] New `Behavior/Domain/InputSpecBehavior`: stateless getters derived from abstract primitives `name()` and `kind()` (mirrors `CommandNamedBehavior`'s abstract-method harmony): `isRequired()`, `defaultValueOrNull()`, `typeOrString()`, plus a `describe(): string` used by coercion error messages.
-- [ ] Slim `Argument`/`Option` to promoted-constructor + primitives + trait; interfaces untouched (twin contracts stay — they are semantically distinct seams).
+- [x] New `Behavior/Domain/InputSpecBehavior`: stateless getters derived from abstract primitives `name()` and `kind()` (mirrors `CommandNamedBehavior`'s abstract-method harmony): `isRequired()`, `defaultValueOrNull()`, `typeOrString()`, plus a `describe(): string` used by coercion error messages.
+- [x] Slim `Argument`/`Option` to promoted-constructor + primitives + trait; interfaces untouched (twin contracts stay — they are semantically distinct seams).
 - Acceptance: `composer analyse` + full suites green with **zero** test edits; LOC delta negative in Domain.
 
 ### Task 8.2 — Identifier-name validation behavior
 
-- [ ] New `Behavior/Domain/IdentifierNameBehavior extends` the `assertAdditionalRules()` hook pattern shared by `ArgumentName`/`OptionName` (regex + message live once).
+- [x] New `Behavior/Domain/IdentifierNameBehavior extends` the `assertAdditionalRules()` hook pattern shared by `ArgumentName`/`OptionName` (regex + message live once).
 - Acceptance: VO suites green; duplicated regex gone (single definition site).
 
 ### Task 8.3 — Enum label trait + missing label contracts
 
-- [ ] `Behavior/Domain/LabelableBehavior` providing `label(): string { return $this->value; }`; adopted by `CommandStatus`, `CommandResultStatus`, `InputKind` (enums may use traits).
-- [ ] Add dedicated label interfaces mirroring the existing pattern for the two bare enums: `ClassificationInterface` (Contract/Domain), `OverflowPolicyInterface` (Adapter/Reporting); enums implement.
+- [x] `Behavior/Domain/LabelableBehavior` providing `label(): string { return $this->value; }`; adopted by `CommandStatus`, `CommandResultStatus`, `InputKind` (enums may use traits).
+- [x] Add dedicated label interfaces mirroring the existing pattern for the two bare enums: `ClassificationInterface` (Contract/Domain), `OverflowPolicyInterface` (Adapter/Reporting); enums implement.
 - Acceptance: `ClosedEnumsTest` extended to cover the two newly contracted enums.
 
 ### Task 8.4 — Coercion vocabulary & micro-typing
 
-- [ ] `final class InputType` (Behavior/Domain) with `const STRING/INT/FLOAT/BOOL` + `normalize('double'): FLOAT` legacy alias map; `InputCoercionBehavior` match arms consume the constants; the unreachable `'double'` arm disappears after normalization (behavior identical — `'double'` inputs still coerce as float, now documented as legacy alias).
-- [ ] Bool aliases → `private const BOOL_TRUE_ALIASES / BOOL_FALSE_ALIASES`.
-- [ ] `ValidatedStringValueBehavior::MAX_LENGTH = 255` public const replaces the twice-used literal.
-- [ ] Deduplicate `names()` into `InputCoercionBehavior` (protected final); delete the two private copies.
-- [ ] Extract the unreachable-arm throw to a `private static function rejectUnknownType(string $type): never`.
-- [ ] `LazyHandlerProxy::$factory` → typed `private Closure $factory` (constructor validates `is_callable` / accepts `Closure`).
+- [x] `final class InputType` (Behavior/Domain) with `const STRING/INT/FLOAT/BOOL` + `normalize('double'): FLOAT` legacy alias map; `InputCoercionBehavior` match arms consume the constants; the unreachable `'double'` arm disappears after normalization (behavior identical — `'double'` inputs still coerce as float, now documented as legacy alias).
+- [x] Bool aliases → `private const BOOL_TRUE_ALIASES / BOOL_FALSE_ALIASES`.
+- [x] `ValidatedStringValueBehavior::MAX_LENGTH = 255` public const replaces the twice-used literal.
+- [x] Deduplicate `names()` into `InputCoercionBehavior` (protected final); delete the two private copies.
+- [x] Extract the unreachable-arm throw to a `private static function rejectUnknownType(string $type): never`.
+- [x] `LazyHandlerProxy::$factory` → typed `private Closure $factory` (constructor validates `is_callable` / accepts `Closure`).
 - Acceptance: suites green; `composer mutation` still above floors (coercion branches are mutation targets — verify kills survived the refactor).
 
 ### Task 8.5 — Exception markers (optional, additive)
 
-- [ ] Dedicated marker interfaces for the remaining four exceptions (`HandlerNotFoundExceptionInterface`, `InvalidCommandExceptionInterface`, `CommandExecutionExceptionInterface`, plus `BufferOverflowException` under the Reporting namespace) implementing `CommandExceptionInterface`; concrete finals implement them. Enables precise catching without coupling to concrete classes.
+- [x] Dedicated marker interfaces for the remaining four exceptions (`HandlerNotFoundExceptionInterface`, `InvalidCommandExceptionInterface`, `CommandExecutionExceptionInterface`, plus `BufferOverflowException` under the Reporting namespace) implementing `CommandExceptionInterface`; concrete finals implement them. Enables precise catching without coupling to concrete classes.
 - Acceptance: `composer analyse` green; no consumer break (pure addition).
 
 ---

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Domain;
 
+use ItPack\CommandIt\Behavior\Domain\InputSpecBehavior;
 use ItPack\CommandIt\Contract\Command\OptionInterface;
 use ItPack\CommandIt\Contract\Domain\InputKindInterface;
 use ItPack\CommandIt\Contract\ValueObject\OptionNameInterface;
@@ -15,6 +16,8 @@ use ItPack\CommandIt\Contract\ValueObject\OptionNameInterface;
  */
 final readonly class Option implements OptionInterface
 {
+    use InputSpecBehavior;
+
     public function __construct(
         private OptionNameInterface $name,
         private bool $required = false,
@@ -32,25 +35,5 @@ final readonly class Option implements OptionInterface
     public function kind(): InputKindInterface
     {
         return InputKind::Option;
-    }
-
-    public function required(): bool
-    {
-        return $this->required;
-    }
-
-    public function defaultValue(): mixed
-    {
-        return $this->defaultValue;
-    }
-
-    public function description(): string
-    {
-        return $this->description;
-    }
-
-    public function type(): string
-    {
-        return $this->type;
     }
 }

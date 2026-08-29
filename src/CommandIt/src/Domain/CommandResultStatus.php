@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Domain;
 
+use ItPack\CommandIt\Behavior\Domain\LabelableBehavior;
 use ItPack\CommandIt\Contract\Domain\CommandResultStatusInterface;
 
 /**
@@ -13,11 +14,8 @@ use ItPack\CommandIt\Contract\Domain\CommandResultStatusInterface;
  */
 enum CommandResultStatus: string implements CommandResultStatusInterface
 {
+    use LabelableBehavior;
+
     case Succeeded = 'succeeded';
     case Failed = 'failed';
-
-    public function label(): string
-    {
-        return $this->value;
-    }
 }

@@ -12,7 +12,7 @@ namespace ItPack\CommandIt\Contract\Exception;
  *
  * @api
  */
-final class HandlerNotFoundException extends \RuntimeException implements CommandExceptionInterface
+final class HandlerNotFoundException extends \RuntimeException implements CommandExceptionInterface, HandlerNotFoundExceptionInterface
 {
     public static function forCommand(string $name): self
     {

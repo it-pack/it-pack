@@ -10,6 +10,6 @@ namespace ItPack\CommandIt\Contract\Exception;
  *
  * @api
  */
-final class CommandExecutionException extends \LogicException implements CommandExceptionInterface
+final class CommandExecutionException extends \LogicException implements CommandExceptionInterface, CommandExecutionExceptionInterface
 {
 }

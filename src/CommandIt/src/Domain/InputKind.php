@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Domain;
 
+use ItPack\CommandIt\Behavior\Domain\LabelableBehavior;
 use ItPack\CommandIt\Contract\Domain\InputKindInterface;
 
 /**
@@ -13,11 +14,8 @@ use ItPack\CommandIt\Contract\Domain\InputKindInterface;
  */
 enum InputKind: string implements InputKindInterface
 {
+    use LabelableBehavior;
+
     case Argument = 'argument';
     case Option = 'option';
-
-    public function label(): string
-    {
-        return $this->value;
-    }
 }

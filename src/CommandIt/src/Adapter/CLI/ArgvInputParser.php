@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace ItPack\CommandIt\Adapter\CLI;
 
 use ItPack\CommandIt\Behavior\Domain\InputCoercionBehavior;
-use ItPack\CommandIt\Contract\Command\ArgumentInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandInputInterface;
-use ItPack\CommandIt\Contract\Command\OptionInterface;
 use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
 use ItPack\CommandIt\Domain\CommandInput;
 
@@ -120,15 +118,5 @@ final class ArgvInputParser
         }
 
         return [$arguments, $options];
-    }
-
-    /**
-     * @param list<ArgumentInterface|OptionInterface> $specs
-     *
-     * @return list<string>
-     */
-    private function names(array $specs): array
-    {
-        return \array_map(static fn (ArgumentInterface|OptionInterface $spec): string => $spec->name()->toString(), $specs);
     }
 }

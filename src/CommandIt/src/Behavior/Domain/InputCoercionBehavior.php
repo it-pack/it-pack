@@ -22,6 +22,16 @@ use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
 trait InputCoercionBehavior
 {
     /**
+     * Boolean truth aliases accepted (case-insensitively) by {@see self::coerceBool()}.
+     */
+    private const BOOL_TRUE_ALIASES = ['1', 'true', 'yes', 'on'];
+
+    /**
+     * Boolean falsity aliases accepted (case-insensitively) by {@see self::coerceBool()}.
+     */
+    private const BOOL_FALSE_ALIASES = ['0', 'false', 'no', 'off'];
+
+    /**
      * Coerces a raw input value to the expected PHP type name.
      *
      * Scalars are cast; a non-scalar (array, object, resource, null, closure) for
@@ -37,9 +47,11 @@ trait InputCoercionBehavior
      */
     protected function coerceInputValue(mixed $value, string $type): mixed
     {
+        $type = InputType::normalize($type);
+
         return match ($type) {
-            'int', 'float', 'double', 'string' => $this->coerceScalar($value, $type),
-            'bool' => $this->coerceBool($value),
+            InputType::INT, InputType::FLOAT, InputType::STRING => $this->coerceScalar($value, $type),
+            InputType::BOOL => $this->coerceBool($value),
             default => $value,
         };
     }
@@ -60,11 +72,10 @@ trait InputCoercionBehavior
         }
 
         return match ($type) {
-            'int' => (int) $value,
-            'double' => (float) $value,
-            'float' => (float) $value,
-            'string' => (string) $value,
-            default => throw new \LogicException(\sprintf('Unsupported input type "%s".', $type)),
+            InputType::INT => (int) $value,
+            InputType::FLOAT => (float) $value,
+            InputType::STRING => (string) $value,
+            default => self::rejectUnknownType($type),
         };
     }
 
@@ -104,6 +115,16 @@ trait InputCoercionBehavior
         return $out;
     }
 
+    /**
+     * @param list<ArgumentInterface|OptionInterface> $specs
+     *
+     * @return list<string>
+     */
+    final protected function names(array $specs): array
+    {
+        return \array_map(static fn (ArgumentInterface|OptionInterface $spec): string => $spec->name()->toString(), $specs);
+    }
+
     private function coerceBool(mixed $value): bool
     {
         if (\is_bool($value)) {
@@ -111,13 +132,27 @@ trait InputCoercionBehavior
         }
 
         if (\is_string($value)) {
-            return match (\strtolower($value)) {
-                '1', 'true', 'yes', 'on' => true,
-                '0', 'false', 'no', 'off' => false,
-                default => (bool) $value,
-            };
+            $normalized = \strtolower($value);
+
+            if (\in_array($normalized, self::BOOL_TRUE_ALIASES, true)) {
+                return true;
+            }
+
+            if (\in_array($normalized, self::BOOL_FALSE_ALIASES, true)) {
+                return false;
+            }
+
+            return (bool) $value;
         }
 
         return \is_scalar($value) ? (bool) $value : false;
+    }
+
+    /**
+     * @throws \LogicException always — guards the unreachable default arm of {@see self::coerceScalar()}
+     */
+    private static function rejectUnknownType(string $type): never
+    {
+        throw new \LogicException(\sprintf('Unsupported input type "%s".', $type));
     }
 }

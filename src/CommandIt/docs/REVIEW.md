@@ -429,3 +429,44 @@ Verification: phpstan level max clean, DepTrac 0 violations (uncovered grew 16�
 - Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
   0 uncovered · full suite **189 tests** (178 unit / 9 functional / 2 integration) green ·
   cs-fixer clean · `php examples/05-custom-ports.php` exits 0 · example 01 unaffected.
+
+### 2026-08-29 — Refactoring plan milestone M8 landed
+
+Pure refactor (no observable behavior change); all gates green with **zero** behavioral
+test edits.
+
+- **F-09 (input-spec DRY) implemented** — new `Behavior/Domain/InputSpecBehavior` carries the
+  shared `required()/defaultValue()/description()/type()` projections (and the derived
+  conveniences `isRequired()/defaultValueOrNull()/typeOrString()/describe()`); `Argument`
+  and `Option` slim to a promoted constructor + the per-kind primitives `name()`/`kind()`,
+  dropping their duplicated getters. The twin `ArgumentInterface`/`OptionInterface` contracts
+  are untouched (semantically distinct seams preserved). Domain LOC delta is negative.
+- **F-08 (name-format DRY) implemented** — new `Behavior/Domain/IdentifierNameBehavior`
+  owns the identifier regex + message once; `ArgumentName`/`OptionName` call it from their
+  `assertAdditionalRules()` hook. The duplicated regex is gone (single definition site).
+- **Enum label DRY + contracts** — new `Behavior/Domain/LabelableBehavior` provides
+  `label(): string => $this->value`; adopted by `CommandStatus`, `CommandResultStatus`,
+  `InputKind`, `Classification`, and `OverflowPolicy`. New label interfaces
+  (`ClassificationInterface` in Contract/Domain, `OverflowPolicyInterface` in
+  Adapter/Reporting) mirror the existing `InputKindInterface` pattern; both enums implement
+  them. `ClosedEnumsTest` extended to cover the two newly contracted enums.
+- **Coercion micro-typing (§12 register typing half)** — new `Behavior/Domain/InputType`
+  with `STRING/INT/FLOAT/BOOL` + `DOUBLE` constants and `normalize('double') => FLOAT`
+  (legacy alias now documented in one place); `InputCoercionBehavior` match arms consume the
+  constants, the unreachable `'double'` arm disappears, boolean aliases live in
+  `BOOL_TRUE_ALIASES`/`BOOL_FALSE_ALIASES`, the unreachable default arm is extracted to
+  `rejectUnknownType()`, and `ValidatedStringValueBehavior::MAX_LENGTH = 255` replaces the
+  twice-used literal. `names()` is deduplicated into the trait (`protected final`) and the
+  two private adapter copies deleted.
+- **Typed lazy factory** — `LazyHandlerProxy::$factory` is now a typed `private \Closure`
+  (accepts any `callable`, normalized via `Closure::fromCallable`).
+- **Exception markers (optional, additive)** — `HandlerNotFoundExceptionInterface`,
+  `InvalidCommandExceptionInterface`, `CommandExecutionExceptionInterface` (Contract/Exception)
+  and `BufferOverflowExceptionInterface` (Adapter/Reporting) extend `CommandExceptionInterface`;
+  the four concrete finals implement them for precise, decoupled catching.
+- Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations /
+  0 uncovered (Allowed 544) · full suite **191 tests** (180 unit / 9 functional / 2 integration)
+  green · cs-fixer clean · `php examples/01-quickstart.php` and `php examples/05-custom-ports.php`
+  exit 0 · targeted mutation on `InputCoercionBehavior` keeps Covered-Code MSI at 83% (floor 65),
+  confirming the coercion branches are still killed after the refactor (full-suite mutation
+  exceeded the available run timeout in this environment and was not completed end-to-end).

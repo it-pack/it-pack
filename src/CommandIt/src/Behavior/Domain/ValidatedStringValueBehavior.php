@@ -20,6 +20,11 @@ use ItPack\CommandIt\Contract\ValueObject\ValidatedStringInterface;
  */
 trait ValidatedStringValueBehavior
 {
+    /**
+     * Maximum length of any validated string value (characters, UTF-8).
+     */
+    public const MAX_LENGTH = 255;
+
     private function __construct(
         private readonly string $value,
     ) {
@@ -60,8 +65,8 @@ trait ValidatedStringValueBehavior
             throw InvalidCommandException::emptyValue();
         }
 
-        if (mb_strlen($value, 'UTF-8') > 255) {
-            throw InvalidCommandException::valueTooLong(255);
+        if (mb_strlen($value, 'UTF-8') > self::MAX_LENGTH) {
+            throw InvalidCommandException::valueTooLong(self::MAX_LENGTH);
         }
 
         if (preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {

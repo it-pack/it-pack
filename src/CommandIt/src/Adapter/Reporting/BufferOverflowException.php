@@ -12,7 +12,7 @@ use ItPack\CommandIt\Contract\Exception\CommandExceptionInterface;
  *
  * @api
  */
-final class BufferOverflowException extends \RuntimeException implements CommandExceptionInterface
+final class BufferOverflowException extends \RuntimeException implements CommandExceptionInterface, BufferOverflowExceptionInterface
 {
     public static function forLimit(int $limit): self
     {

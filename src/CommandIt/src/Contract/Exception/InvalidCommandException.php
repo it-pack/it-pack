@@ -10,7 +10,7 @@ namespace ItPack\CommandIt\Contract\Exception;
  *
  * @api
  */
-final class InvalidCommandException extends \InvalidArgumentException implements CommandExceptionInterface
+final class InvalidCommandException extends \InvalidArgumentException implements CommandExceptionInterface, InvalidCommandExceptionInterface
 {
     public static function emptyValue(): self
     {

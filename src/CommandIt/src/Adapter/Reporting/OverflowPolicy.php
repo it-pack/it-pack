@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Adapter\Reporting;
 
+use ItPack\CommandIt\Behavior\Domain\LabelableBehavior;
+
 /**
  * Defines what happens when the in-memory reporter buffer is full.
  *
  * @api
  */
-enum OverflowPolicy: string
+enum OverflowPolicy: string implements OverflowPolicyInterface
 {
+    use LabelableBehavior;
+
     /**
      * Drop the oldest retained entry and append the new one (default). Keeps the
      * most recent activity at the cost of losing history.
