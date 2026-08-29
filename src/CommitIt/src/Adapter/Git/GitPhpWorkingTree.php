@@ -21,9 +21,9 @@ use ItPack\CommitIt\Domain\Value\WorktreeInfo;
  *
  * @api
  */
-final class GitPhpWorkingTree implements WorkingTree
+final readonly class GitPhpWorkingTree implements WorkingTree
 {
-    public function __construct(private GitRepository $repository)
+    public function __construct(private readonly GitRepository $repository)
     {
     }
 

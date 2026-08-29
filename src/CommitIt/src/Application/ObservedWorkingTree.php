@@ -23,7 +23,7 @@ use ItPack\CommitIt\Domain\Value\WorktreeInfo;
  *
  * @api
  */
-final class ObservedWorkingTree implements WorkingTree
+final readonly class ObservedWorkingTree implements WorkingTree
 {
     use ObserverDispatch;
 

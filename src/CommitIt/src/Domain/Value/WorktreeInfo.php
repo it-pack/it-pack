@@ -9,7 +9,7 @@ namespace ItPack\CommitIt\Domain\Value;
  *
  * @api
  */
-final class WorktreeInfo
+final readonly class WorktreeInfo
 {
     public function __construct(
         public readonly string $path,

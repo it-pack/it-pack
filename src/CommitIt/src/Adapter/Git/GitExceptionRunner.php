@@ -17,7 +17,7 @@ use CzProject\GitPhp\GitException;
  *
  * @internal adapter-internal helper; not part of the public contract.
  */
-final class GitExceptionRunner
+final readonly class GitExceptionRunner
 {
     /**
      * @template T

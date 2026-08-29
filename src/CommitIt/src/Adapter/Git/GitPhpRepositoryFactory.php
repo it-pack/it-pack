@@ -25,9 +25,9 @@ use ItPack\CommitIt\Domain\Value\RepositoryPath;
  *
  * @api
  */
-final class GitPhpRepositoryFactory implements RepositoryFactory
+final readonly class GitPhpRepositoryFactory implements RepositoryFactory
 {
-    private Git $git;
+    private readonly Git $git;
 
     public function __construct(?IRunner $runner = null)
     {

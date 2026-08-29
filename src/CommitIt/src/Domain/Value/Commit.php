@@ -10,7 +10,7 @@ namespace ItPack\CommitIt\Domain\Value;
  *
  * @api
  */
-final class Commit
+final readonly class Commit
 {
     public function __construct(
         public readonly CommitId $id,

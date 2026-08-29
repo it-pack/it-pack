@@ -22,7 +22,7 @@ use ItPack\CommitIt\Domain\Exception\VcsOperationException;
  *
  * @internal adapter-internal mapping; not part of the public contract.
  */
-final class GitExceptionMap
+final readonly class GitExceptionMap
 {
     /**
      * @return VcsOperationExceptionContract

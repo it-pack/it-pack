@@ -15,7 +15,7 @@ use ItPack\CommitIt\Domain\Exception\InvalidReferenceNameException;
  * these constraints; the {@see RefKind} is recorded in the thrown message so the
  * vocabulary maps cleanly to the contract exception.
  */
-final class RefNameValidator
+final readonly class RefNameValidator
 {
     /**
      * Returns a human-readable reason the name is invalid, or null when valid.

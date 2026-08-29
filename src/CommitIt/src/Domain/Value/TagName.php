@@ -13,7 +13,7 @@ use ItPack\CommitIt\Domain\Validation\RefNameValidator;
  *
  * @api
  */
-final class TagName
+final readonly class TagName
 {
     private function __construct(public readonly string $name)
     {

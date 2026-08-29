@@ -14,7 +14,7 @@ use ItPack\CommitIt\Domain\Exception\InvalidCommitMessageException;
  * before passing). The subject length guard prevents unbounded input from
  * reaching the backend.
  */
-final class CommitMessageValidator
+final readonly class CommitMessageValidator
 {
     public const MAX_SUBJECT_LENGTH = 72;
 

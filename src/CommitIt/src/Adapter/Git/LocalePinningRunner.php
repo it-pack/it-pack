@@ -29,11 +29,11 @@ use CzProject\GitPhp\RunnerResult;
  *
  * @internal adapter-internal helper; not part of the public contract.
  */
-final class LocalePinningRunner implements IRunner
+final readonly class LocalePinningRunner implements IRunner
 {
     private const LOCALE = 'C';
 
-    public function __construct(private IRunner $inner)
+    public function __construct(private readonly IRunner $inner)
     {
     }
 

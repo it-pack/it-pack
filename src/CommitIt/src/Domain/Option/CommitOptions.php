@@ -9,7 +9,7 @@ namespace ItPack\CommitIt\Domain\Option;
  *
  * @api
  */
-final class CommitOptions
+final readonly class CommitOptions
 {
     private function __construct(
         public readonly ?string $authorName,

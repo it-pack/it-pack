@@ -15,6 +15,7 @@ namespace ItPack\CommitIt\Domain\Value;
  */
 final class RepositoryPath
 {
+    // Intentionally NOT a `readonly` class: `$resolvedRealPath` is a write-once cache filled by the `realPath` get-hook.
     private ?string $resolvedRealPath = null;
 
     private function __construct(public readonly string $path)

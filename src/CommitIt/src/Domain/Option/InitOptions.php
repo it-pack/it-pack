@@ -9,7 +9,7 @@ namespace ItPack\CommitIt\Domain\Option;
  *
  * @api
  */
-final class InitOptions
+final readonly class InitOptions
 {
     private function __construct(
         public readonly ?string $initialBranch,

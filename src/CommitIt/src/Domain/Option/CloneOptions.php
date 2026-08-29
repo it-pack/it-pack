@@ -9,7 +9,7 @@ namespace ItPack\CommitIt\Domain\Option;
  *
  * @api
  */
-final class CloneOptions
+final readonly class CloneOptions
 {
     private function __construct(
         public readonly ?string $branch,

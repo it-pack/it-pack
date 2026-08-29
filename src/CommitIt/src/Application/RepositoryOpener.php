@@ -22,7 +22,7 @@ use ItPack\CommitIt\Domain\Value\RepositoryPath;
  *
  * @api
  */
-final class RepositoryOpener
+final readonly class RepositoryOpener
 {
     private readonly RepositoryObserver $observer;
 

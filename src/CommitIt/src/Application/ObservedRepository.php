@@ -30,7 +30,7 @@ use ItPack\CommitIt\Domain\Value\TagName;
  *
  * @api
  */
-final class ObservedRepository implements Repository
+final readonly class ObservedRepository implements Repository
 {
     use ObserverDispatch;
 

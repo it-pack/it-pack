@@ -9,7 +9,7 @@ namespace ItPack\CommitIt\Contract;
  *
  * @api
  */
-final class NullRepositoryObserver implements RepositoryObserver
+final readonly class NullRepositoryObserver implements RepositoryObserver
 {
     public function onStart(string $operation, array $context = []): void
     {

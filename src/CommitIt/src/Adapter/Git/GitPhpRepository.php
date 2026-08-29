@@ -25,6 +25,7 @@ use ItPack\CommitIt\Domain\Value\TagName;
  *
  * @api
  */
+// Intentionally NOT `readonly`: the lazy `$workingTree` memo at line 34 is mutated after construction.
 final class GitPhpRepository implements Repository
 {
     public function __construct(private GitRepository $repository)

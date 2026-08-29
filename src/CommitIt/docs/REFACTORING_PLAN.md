@@ -269,17 +269,42 @@ hardening). Per REVIEW §4, `GitPhpRepository` is **excluded** (its `$workingTre
 
 **Tasks**
 
-| ID | File | Action | Verification | Risk |
-|---|---|---|---|---|
-| M5.1 | Value objects `src/Domain/Value/*` | Add `readonly` to class declarations (`RepositoryPath`, `Commit`, `CommitId`, `BranchName`, `TagName`, `RemoteName`, `CommitMessage`, `WorktreeInfo`, …). | `composer analyse` | Low |
-| M5.2 | Option builders `src/Domain/Option/*` | Add `readonly` (`InitOptions`, `CloneOptions`, `CommitOptions`). | `composer analyse` | Low |
-| M5.3 | `src/Application/ObservedRepository.php`, `ObservedWorkingTree.php`, `RepositoryOpener.php` | Add `readonly`. | `composer analyse` | Low |
-| M5.4 | `src/Adapter/Git/GitPhpRepositoryFactory.php`, `GitPhpWorkingTree.php`, `GitExceptionMap.php`, `GitExceptionRunner.php`, `LocalePinningRunner.php` | Add `readonly`. | `composer analyse` | Low |
-| M5.5 | `src/Contract/NullRepositoryObserver.php` and any other fully-readonly concrete | Add `readonly`. | `composer analyse` | Low |
-| M5.6 | `src/Adapter/Git/GitPhpRepository.php` | **Leave as-is** (working-tree memo). Add a one-line comment noting the deliberate exclusion. | `composer analyse` | Low |
+| ID | File | Action | Verification | Risk | Done |
+|---|---|---|---|---|---|
+| M5.1 | Value objects `src/Domain/Value/*` | Add `readonly` to class declarations (`RepositoryPath`, `Commit`, `CommitId`, `BranchName`, `TagName`, `RemoteName`, `CommitMessage`, `WorktreeInfo`, …). `RepositoryPath` **excluded** (mutable `realPath` get-hook cache — see notes). | `composer analyse` | Low | ✅ Done |
+| M5.2 | Option builders `src/Domain/Option/*` | Add `readonly` (`InitOptions`, `CloneOptions`, `CommitOptions`). | `composer analyse` | Low | ✅ Done |
+| M5.3 | `src/Application/ObservedRepository.php`, `ObservedWorkingTree.php`, `RepositoryOpener.php` | Add `readonly`. | `composer analyse` | Low | ✅ Done |
+| M5.4 | `src/Adapter/Git/GitPhpRepositoryFactory.php`, `GitPhpWorkingTree.php`, `GitExceptionMap.php`, `GitExceptionRunner.php`, `LocalePinningRunner.php` | Add `readonly`. Three classes first had a non-`readonly` property promoted to `readonly` (`$git`, `$repository`, `$inner`) since they are assigned once in the constructor. | `composer analyse` | Low | ✅ Done |
+| M5.5 | `src/Contract/NullRepositoryObserver.php` and any other fully-readonly concrete | Add `readonly`. | `composer analyse` | Low | ✅ Done |
+| M5.6 | `src/Adapter/Git/GitPhpRepository.php` | **Left as-is** (working-tree memo). Added a one-line comment noting the deliberate exclusion. | `composer analyse` | Low | ✅ Done |
 
-**Done criteria.** `phpstan` reports no new error; `composer quality` green. `GitPhpRepository` remains
-non-`readonly` with an explanatory comment.
+**Done criteria.** `phpstan` reports no new error; `composer quality:full` green (the fast `quality` still
+fails only on the pre-existing `security:audit` abandoned-package advisory, excluded from `quality:full` in
+M4). `GitPhpRepository` and `RepositoryPath` remain non-`readonly` with explanatory comments.
+
+#### M5 - Implementation notes (completed)
+
+- `readonly class` added to **21** concrete types across `Domain\Value`, `Domain\Option`, `Application`,
+  `Adapter\Git`, and `Contract`. All were already behaviour-neutral: every instance property was either
+  `readonly` (promoted or declared) or absent, and no property is reassigned after construction.
+- **Property promotions (M5.4, behaviour-neutral).** Three adapter classes held a property that was assigned
+  exactly once (in the constructor) but not yet `readonly`:
+  - `GitPhpRepositoryFactory::$git` → `private readonly Git $git;`
+  - `GitPhpWorkingTree::$repository` (ctor promotion) → `private readonly GitRepository $repository;`
+  - `LocalePinningRunner::$inner` (ctor promotion) → `private readonly IRunner $inner;`
+  These are write-once by construction, so promoting them to `readonly` is safe and lets the enclosing class
+  become `readonly`.
+- **Deliberate exclusions (not `readonly`):**
+  - `GitPhpRepository` — the lazy `$workingTree` memo is mutated after construction on first `getWorkingTree()`
+    access (per REVIEW §4). Comment added at the class declaration.
+  - `RepositoryPath` — the `$resolvedRealPath` cache is filled by the `realPath` get-hook (write-once lazy
+    cache), so the class cannot be `readonly`. Comment added at the property.
+  - `ObserverDispatch` is a `trait` (carries no state of its own), so `readonly` does not apply.
+- `GitExceptionMap` / `GitExceptionRunner` and the two validators (`RefNameValidator`, `CommitMessageValidator`) are stateless
+  (only static methods / a `public const`); marking them `readonly`
+  (no instance properties) is harmless and documents the immutability intent.
+- **Verification.** `composer quality:full` green: PHPStan `[OK] No errors`, deptrac `0 violations`,
+  `OK (228 tests, 700 assertions)`, Mutation `Covered Code MSI: 91%` (≥ 90). No production behaviour changed.
 
 ---
 

@@ -251,6 +251,13 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
 5. **(Low, modern PHP)** Declare `readonly class` on the eligible types (value objects, option builders,
    decorators, `RepositoryOpener`, `GitPhpRepositoryFactory`, the `@internal` helpers, `GitPhpWorkingTree`,
    `NullRepositoryObserver`). `GitPhpRepository` stays mutable by its working-tree memo (intentional).
+   **→ Implemented (M5).** `readonly class` added to 21 concrete types in `Domain\Value`, `Domain\Option`,
+   `Application`, `Adapter\Git`, and `Contract`. Three adapter classes (`GitPhpRepositoryFactory::$git`,
+   `GitPhpWorkingTree::$repository`, `LocalePinningRunner::$inner`) first had their write-once constructor
+   property promoted to `readonly` so the class could become `readonly`. Deliberate exclusions with comments:
+   `GitPhpRepository` (lazy `$workingTree` memo) and `RepositoryPath` (lazy `realPath` get-hook cache).
+   `ObserverDispatch` is a stateless trait so `readonly` does not apply. `phpstan` clean, `composer
+   quality:full` green (228 tests, Mutation covered MSI 91%). See REFACTORING_PLAN.md M5 notes.
 6. **(Low, style)** Add `'line_length' => ['length' => 120]` to `.php-cs-fixer.php`; wrap the 6 `src`
    lines >120 (notably the `SDK\CommitIt` signatures). Import `\InvalidArgumentException` where used as
    FQN; import `WorktreeInfo` in `ObservedWorkingTree`.

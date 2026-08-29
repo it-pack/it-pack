@@ -15,7 +15,7 @@ use ItPack\CommitIt\Domain\Validation\CommitMessageValidator;
  *
  * @api
  */
-final class CommitMessage
+final readonly class CommitMessage
 {
     private function __construct(
         public readonly string $subject,
