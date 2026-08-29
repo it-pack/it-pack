@@ -61,6 +61,23 @@ $hasher->hashStream($stream, 'sha256', 65536, $progress);
 only calls `onBytes()` — rendering (CLI bars, async notifications) lives in the
 adapter that implements the port.
 
+### PSR-7 stream hashing
+
+`ItPack\HashIt\Adapter\PsrStreamHasher` hashes a `Psr\Http\Message\StreamInterface`
+body in chunks without loading it fully into memory, and never detaches the stream,
+so the same request/response body can be hashed *and* forwarded:
+
+```php
+use ItPack\HashIt\Adapter\NativeContextFactory;
+use ItPack\HashIt\Adapter\PsrStreamHasher;
+
+$hash = (new PsrStreamHasher(new NativeContextFactory()))->hash($request->getBody(), 'sha256');
+```
+
+The adapter depends only on `psr/http-message` (added as a `suggest`ed package) and
+the core ports; it produces a plain `HashInterface`. **SRI / base64 digest formatting
+is intentionally out of scope here** and belongs with the dedicated formatters (NF-C1).
+
 
 ## Algorithms
 

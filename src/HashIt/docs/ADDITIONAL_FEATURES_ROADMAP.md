@@ -186,7 +186,7 @@ Completion note (2026-08-29):** Implemented exactly as specced, no core logic to
 
 ---
 
-## NF-A5 — PSR stream / HTTP-body hashing (H4) — ⬜ TODO
+## NF-A5 — PSR stream / HTTP-body hashing (H4) — ✅ DONE
 
 **Goal:** Hash a `Psr\Http\Message\StreamInterface` in chunks without full in-memory load. The *hashing* is in-scope; the SRI **string** formatter is [SCOPE] and deferred to NF-C1.
 
@@ -206,6 +206,8 @@ Completion note (2026-08-29):** Implemented exactly as specced, no core logic to
 **Verification:** gates (guardrail #6). `composer architecture` must still pass (adapter may depend on `psr/http-message` only, not on core internals).
 **Dependencies:** none (NF-A4 progress optional — could wire progress later).
 **Acceptance:** PSR-stream hashing matches string hashing; gates green; SRI explicitly deferred to NF-C1.
+
+**Completion note (2026-08-29):** Implemented as specced. New `src/Adapter/PsrStreamHasher.php` hashes a `Psr\Http\Message\StreamInterface` by reading it in `read($chunkSize)` chunks into an immutable `HashBuilder` (`start`/`append`/`digest`); it never calls `detach()`, so the stream stays usable (the test rewinds + re-reads to prove it). Rewind happens only when `isSeekable()`, and non-readable / non-positive chunk sizes throw `InvalidArgumentException` — mirroring `Hasher::hashStream` semantics. **Port decision:** kept as a concrete adapter only (no `PsrStreamHashingInterface` port) — a port with a single consumer would be flagged unused by PHPStan's `deadMethod` rule and adds no value until a second implementation exists; it can be promoted later without touching callers. `composer.json` gained `psr/http-message` as `require-dev` (already transitively present via `nyholm/psr7`) and as a `suggest`ed runtime dependency. The adapter injects a `ContextFactoryInterface` via constructor so it depends only on Core (deptrac-clean: Adapter → Core + external `Psr\Http\Message`, no Adapter→Adapter coupling). **SRI / base64 formatting explicitly NOT added** — recorded as deferred to NF-C1 formatters. Tests in `tests/Unit/Adapter/PsrStreamHasherTest.php` use a `SpyStream` decorator counting `read()` calls: assert digest equals `Hasher::hash()` of the same content, that reading is chunked (`reads > 1`), and that the stream remains usable afterwards. All gates green: `composer test:unit` (81 tests, 273 assertions), `analyse`, `cs:check`, `architecture`.
 
 ---
 

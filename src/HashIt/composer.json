@@ -17,6 +17,9 @@
             "Tests\\": "tests/"
         }
     },
+    "suggest": {
+        "psr/http-message": "Install to hash PSR-7 streams via ItPack\\HashIt\\Adapter\\PsrStreamHasher"
+    },
     "authors": [
         {
             "name": "tidal",
@@ -28,7 +31,8 @@
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "symfony/http-client": "^8.1",
-        "nyholm/psr7": "^1.8"
+        "nyholm/psr7": "^1.8",
+        "psr/http-message": "^2.0"
     },
     "config": {
         "allow-plugins": {
