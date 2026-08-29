@@ -43,6 +43,25 @@ $hash = $hasher->hashFile(
 
 `Hasher` always returns an immutable `Hash` value object (`HashInterface`).
 
+Streaming and bulk operations (`hashStream`, `hashFiles`, `hashDirectory` and the
+keyed `hmacStream`/`hmacFiles`) accept an optional `?HashProgressInterface $progress`
+(last argument, default `null`) that reports byte-level progress as hashing proceeds:
+
+```php
+use ItPack\HashIt\HashProgress;
+
+$progress = HashProgress::fromCallable(
+    static fn (int $processed, ?int $total) => printf("%d/%d bytes\n", $processed, $total ?? -1),
+);
+
+$hasher->hashStream($stream, 'sha256', 65536, $progress);
+```
+
+`progress` is a no-op when `null`, so existing calls keep working unchanged. The core
+only calls `onBytes()` — rendering (CLI bars, async notifications) lives in the
+adapter that implements the port.
+
+
 ## Algorithms
 
 `HashAlgorithm` is a backed enum and the **single source of truth** for the algorithm

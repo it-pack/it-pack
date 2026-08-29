@@ -40,14 +40,16 @@ interface KeyedHasherInterface
      * current position and left where reading stopped.
      *
      * @param resource $stream
+     * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each chunk)
      *
      * @throws InvalidArgumentException when $stream is not a stream resource or $chunkSize is not positive
      */
-    public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES): HashInterface;
+    public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface;
 
     /**
      * @param iterable<FilepathInterface> $paths
+     * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each file)
      * @return array<string, HashInterface>
      */
-    public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): array;
+    public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
 }

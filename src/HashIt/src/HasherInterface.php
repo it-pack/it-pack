@@ -33,19 +33,22 @@ interface HasherInterface
      * current position and left where reading stopped.
      *
      * @param resource $stream
+     * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each chunk)
      *
      * @throws InvalidArgumentException when $stream is not a stream resource or $chunkSize is not positive
      */
-    public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES): HashInterface;
+    public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface;
 
     /**
      * @param iterable<FilepathInterface> $paths
+     * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each file)
      * @return array<string, HashInterface>
      */
-    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): array;
+    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
 
     /**
+     * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each file)
      * @return array<string, HashInterface>
      */
-    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): array;
+    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
 }

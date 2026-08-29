@@ -160,7 +160,7 @@ Completion note (2026-08-29):** Implemented exactly as specced, no core logic to
 
 ---
 
-## NF-A4 — Progress & observability port (H1 / E2) — ⬜ TODO
+## NF-A4 — Progress & observability port (H1 / E2) — ✅ DONE
 
 **Goal:** Let streaming/bulk operations report progress without coupling to a logging lib. This port is an **enabler** for NF-C1 (CLI progress) and NF-C2 (async progress).
 
@@ -181,6 +181,8 @@ Completion note (2026-08-29):** Implemented exactly as specced, no core logic to
 **Verification:** gates.
 **Dependencies:** none.
 **Acceptance:** progress fires on chunk/file boundaries; BC preserved (default null); gates green; port lives in core.
+
+**Completion note (2026-08-29):** Implemented as specced; no adapter changes, `NativeHashIt` untouched. New core port `src/HashProgressInterface.php` declares `onBytes(int $processed, ?int $total): void`; a convenience `src/HashProgress.php` (`HashProgress::fromCallable(callable): self`) backs it so callers/adapters can wire progress from a closure (also keeps the port's method genuinely consumed). `HasherInterface`/`Hasher` gained `?HashProgressInterface $progress = null` on `hashStream` (fires after each chunk, `total` = stream size when seekable else null), `hashFiles` (fires after each file; `total` = sum of file sizes when paths is a re-iterable array, else null), and `hashDirectory` (passes progress through). `KeyedHasherInterface`/`KeyedHasher` mirror the same on `hmacStream`/`hmacFiles`. `progress = null` is a no-op, preserving BC; existing suite stays green. `README.md` gained a usage note for the optional parameter. Tests in `tests/Unit/HashProgressTest.php` use `HashProgress::fromCallable` as a spy recording `(processed, total)` tuples — asserting monotonic non-decreasing `processed`, final `processed === total` for known-size stream/file/directory, keyed-stream wiring, and that `null` leaves the digest unchanged. All gates green: `composer test:unit` (78 tests, 269 assertions), `analyse`, `cs:check`, `architecture`. Note: the convenience class lives in its own `src/HashProgress.php` file (not the interface file) so PSR-4 autoloading resolves it.
 
 ---
 
