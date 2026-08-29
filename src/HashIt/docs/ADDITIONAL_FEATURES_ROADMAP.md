@@ -129,9 +129,10 @@ Completion note (2026-08-29):** Implemented exactly as specced. New core files `
 **Acceptance:** URN stable/deterministic; gates green.
 
 Completion note (2026-08-29):** Implemented as specced. `HashInterface` gained `toUrn(): string`; `Hash` implements it. URN format `urn:hashit:<algorithm>:<hex>` where `<hex>` is the hex of the raw digest: for a non-binary `Hash` the stored value is already hex (used directly), for a binary `Hash` `bin2hex()` is applied — so binary and non-binary of the same digest produce an identical URN (verified by test). Pure string-building, no external dependencies; full CAS storage remains out of scope (separate package). One existing test fake in `tests/Unit/KeyedHasherTest.php` (anonymous `HashInterface` subclass) was extended with `toUrn()`. All gates green: `composer test:unit` (71 tests), `analyse`, `cs:check`, `architecture`. Note: `toUrn()` is consumed through a `HashInterface`-typed helper in the test so PHPStan's `deadMethod` rule stays satisfied.
+
 ---
 
-## NF-A3 — Framework DI / service config (H5) — ⬜ TODO
+## NF-A3 — Framework DI / service config (H5) — ✅ DONE
 
 **Goal:** Ship wiring that exposes the hashers as services, with **no change to core logic**.
 
@@ -154,6 +155,8 @@ Completion note (2026-08-29):** Implemented as specced. `HashInterface` gained `
 **Verification:** gates.
 **Dependencies:** none.
 **Acceptance:** `config/services.php` present and well-formed; smoke test passes; gates green; no `src/` hashing logic touched.
+
+Completion note (2026-08-29):** Implemented exactly as specced, no core logic touched. New `config/services.php` returns a framework-agnostic definition array mapping each port to a `NativeHashIt` factory closure: `HasherInterface` → `NativeHashIt::create()`, `KeyedHasherInterface` → `NativeHashIt::keyedHasher()`, `HmacHasherInterface` → `NativeHashIt::hmacHasher()`. The file is plain PHP (no class/autoload needed; consumed via `require`), so no `composer.json` autoload change was necessary. A thin `HashItBundle` was intentionally skipped (marked optional in the roadmap) to avoid a Symfony hard dependency. New `tests/Unit/Integration/ServiceConfigTest.php` is a no-container smoke test: it requires the file and asserts each factory resolves to an instance of the interface it is registered under. All gates green: `composer test:unit` (73 tests), `analyse`, `cs:check`, `architecture`. No `src/` files modified.
 
 ---
 
