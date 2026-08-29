@@ -125,11 +125,11 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
 | Rule (from brief) | Status | Evidence / action |
 |---|---|---|
 | One type per file (PSR-4) | **Pass** | Each `src`/`tests` file declares exactly one class/interface/trait/enum. |
-| Declaration order (trait → const → props → ctor → factory → non-static → static; public before private) | **Partial** | `GitPhpRepository` declares `$workingTree` *after* the constructor (`src/Adapter/Git/GitPhpRepository.php:34` vs `:30`) and interleaves private `assertWithinWorkingTree`/`canonicalizePath` (`:262`,`:298`) *before* the public `execute` (`:326`). `GitPhpWorkingTree` places private static `parseWorktreeList` (`:72`) before private non-static `assertWithinRepositoryScope` (`:124`) — static before non-static. Reorder. |
+| Declaration order (trait → const → props → ctor → factory → non-static → static; public before private) | **Pass** | Resolved in M6.3/M6.4: `GitPhpRepository` now declares `$workingTree` *before* the constructor and moves `assertWithinWorkingTree`/`canonicalizePath` *after* `execute`; `GitPhpWorkingTree` places non-static `assertWithinRepositoryScope` *before* static `parseWorktreeList`. |
 | No `else` / `elseif` | **Pass (src)** | None in `src`. Only `tests/Unit/Adapter/Git/GitAdapterMemoryTrait.php` uses `else`; flag for tests. |
 | No Yoda conditions | **Pass** | No `false === $x` / `null === $x` patterns found. |
-| All referenced types imported at top | **Partial** | `\InvalidArgumentException` used as FQN instead of imported in `GitPhpRepository` (`:268`,`:290`), `GitPhpWorkingTree` (`:132`,`:144`), `RepositoryPath` (`:29`,`:33`), `CommitId` (`:27`); `ObservedWorkingTree` references `WorktreeInfo` only as an FQN docblock (`:34`) without importing it. Import these. `\Throwable` in `catch` is idiomatic FQN — low priority. |
-| No line > 120 chars | **Partial** | `src`: 6 lines exceed 120 — `ObservedRepository.php:95` (122), `InvalidReferenceNameException.php:16` (121), `InvalidCommitMessageException.php:15` (121), `CommitIt.php:29` (131), `:34` (161), `:44` (176). `tests` (excl. `_generated`): 16 lines. `.php-cs-fixer.php` does **not** enable `line_length`, so this is not enforced. Recommend adding `'line_length' => ['length' => 120]`. Wrap the `src` lines (multi-line the `SDK\CommitIt` signatures). |
+| All referenced types imported at top | **Pass** | Resolved in M6.2: `InvalidArgumentException` is now imported (not FQN'd) in `GitPhpRepository`, `GitPhpWorkingTree`, `RepositoryPath`, `CommitId`; `ObservedWorkingTree` already imported `WorktreeInfo`. `\Throwable` in `catch` remains idiomatic FQN (low priority). |
+| No line > 120 chars | **Pass** | Resolved in M6.5: all `src` lines wrapped to ≤120 (multi-line `SDK\CommitIt` signatures, the two exception class declarations via a multiline `implements`, `ObserverDispatch` signatures, the `ObservedRepository`/`ObservedWorkingTree` `dispatchRun(Void)` call sites, and the `RepositoryPath` exclusion comment). **Note:** php-cs-fixer 3.95 no longer ships the `line_length` fixer, so the planned `'line_length'` rule could not be added; the 120-char limit is instead enforced by a grep gate (`grep -rnE ".{121}" src` → 0 matches) rather than by `cs:check`. `tests` (excl. `_generated`): 16 lines remain out of M6 scope. |
 | Constants/enums over magic literals; vocabularies in interfaces | **Partial** | `CommitMessageValidator::MAX_SUBJECT_LENGTH` is a constant (good). But observer operation names (`'getPath'`, `'stage'`, `'commit'`, …) are magic strings in `ObservedRepository`/`ObservedWorkingTree`; git CLI flags/args are inline literals in the adapter; `'(fetch)'` (`GitPhpRepository.php:195`) and the `'C'` locale (`LocalePinningRunner`) are bare literals. Recommend: an `enum RepositoryOperation` in `Contract` for the observer vocabulary; `private const` for `'C'`, `'(fetch)'`, and the `strlen('worktree ')` / `strlen('branch ')` literals (`GitPhpWorkingTree.php:95`,`:104`). |
 | Duplicated PHPDoc | **Fail (minor)** | `ObservedRepository::run` has two stacked `@template` docblocks (`src/Application/ObservedRepository.php:181-191`). Collapse to one (also removed by the §3 trait extraction). |
 
@@ -176,8 +176,9 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
 - API is clear: named constructors (`RepositoryPath::from`, `CommitMessage::fromParts`,
   `CommitId::from`), immutable builders (`InitOptions`/`CloneOptions`/`CommitOptions`), and a thin
   `SDK\CommitIt` facade. Documentation exists (`README.md`, `USER_GUIDE.md`, ADRs).
-- The duplicate/stacked docblock (§6) and the unenforced `line_length` rule are the only maintainability
-  nits.
+- The duplicate/stacked docblock (§6) was resolved by M2; the `line_length` rule cannot be enforced
+  via php-cs-fixer 3.95 (fixer removed) and is instead gated by a grep check (M6). The remaining style
+  nit is the magic-literal vocabulary work tracked as M7.
 
 ## 10. Test coverage & mutation
 
@@ -258,11 +259,15 @@ decorators use it. This also eliminates the duplicated PHPDoc block on `Observed
    `GitPhpRepository` (lazy `$workingTree` memo) and `RepositoryPath` (lazy `realPath` get-hook cache).
    `ObserverDispatch` is a stateless trait so `readonly` does not apply. `phpstan` clean, `composer
    quality:full` green (228 tests, Mutation covered MSI 91%). See REFACTORING_PLAN.md M5 notes.
-6. **(Low, style)** Add `'line_length' => ['length' => 120]` to `.php-cs-fixer.php`; wrap the 6 `src`
-   lines >120 (notably the `SDK\CommitIt` signatures). Import `\InvalidArgumentException` where used as
-   FQN; import `WorktreeInfo` in `ObservedWorkingTree`.
-7. **(Low, declaration order)** Reorder `GitPhpRepository` (property before ctor; private methods after
-   all public) and `GitPhpWorkingTree` (non-static private before static private).
+ 6. **(Low, style)** Add `'line_length' => ['length' => 120]` to `.php-cs-fixer.php`; wrap the 6 `src`
+    lines >120 (notably the `SDK\CommitIt` signatures). Import `\InvalidArgumentException` where used as
+    FQN; import `WorktreeInfo` in `ObservedWorkingTree`.
+    → **Implemented (M6).** The `line_length` rule could not be added (php-cs-fixer 3.95 removed the
+    fixer); the 120-char limit is enforced by a grep gate instead. All `src` lines wrapped, `InvalidArgumentException`
+    imported in 4 files, `WorktreeInfo` already imported. `composer cs:check` → 0 files; 0 `src` lines >120.
+ 7. **(Low, declaration order)** Reorder `GitPhpRepository` (property before ctor; private methods after
+    all public) and `GitPhpWorkingTree` (non-static private before static private).
+    → **Implemented (M6).** See REFACTORING_PLAN.md M6 notes (M6.3/M6.4).
 8. **(Low, magic literals)** Introduce `enum RepositoryOperation` in `Contract` for observer operation
    names; add `private const` for the `'C'` locale, `'(fetch)'`, and the `worktree `/`branch ` prefixes.
 9. **(Low, consistency)** Add `Commit::from(...)` named constructor; use it in `GitPhpRepository::mapCommit`.

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Domain\Value;
 
+use InvalidArgumentException;
+
 /**
  * Validated, opaque commit identifier.
  *
@@ -24,7 +26,7 @@ final readonly class CommitId
         $trimmed = trim($value);
 
         if ($trimmed === '') {
-            throw new \InvalidArgumentException('Commit id must not be empty.');
+            throw new InvalidArgumentException('Commit id must not be empty.');
         }
 
         return new self($trimmed);

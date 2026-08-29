@@ -12,6 +12,7 @@ use ItPack\CommitIt\Contract\Exception\InvalidCommitMessageException as InvalidC
  *
  * @api
  */
-final class InvalidCommitMessageException extends InvalidArgumentException implements InvalidCommitMessageExceptionMarker
+final class InvalidCommitMessageException extends InvalidArgumentException implements
+    InvalidCommitMessageExceptionMarker
 {
 }

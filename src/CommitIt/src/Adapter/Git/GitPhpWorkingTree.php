@@ -6,6 +6,7 @@ namespace ItPack\CommitIt\Adapter\Git;
 
 use CzProject\GitPhp\GitException;
 use CzProject\GitPhp\GitRepository;
+use InvalidArgumentException;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
@@ -65,6 +66,32 @@ final readonly class GitPhpWorkingTree implements WorkingTree
         });
     }
 
+    private function assertWithinRepositoryScope(RepositoryPath $path): void
+    {
+        $repoParent = dirname($this->repository->getRepositoryPath());
+        $targetParent = dirname($path->toString());
+
+        $realTargetParent = realpath($targetParent);
+
+        if ($realTargetParent === false) {
+            throw new InvalidArgumentException(
+                'Worktree parent directory does not exist: ' . $targetParent,
+            );
+        }
+
+        $realRepoParent = realpath($repoParent);
+
+        $separator = DIRECTORY_SEPARATOR;
+        $inside = $realTargetParent === $realRepoParent
+            || str_starts_with($realTargetParent . $separator, $realRepoParent . $separator);
+
+        if ($realRepoParent === false || !$inside) {
+            throw new InvalidArgumentException(
+                'Worktree path must be located inside the repository parent directory.',
+            );
+        }
+    }
+
     /**
      * @param array<string> $lines
      * @return list<WorktreeInfo>
@@ -120,33 +147,6 @@ final readonly class GitPhpWorkingTree implements WorkingTree
 
         return $result;
     }
-
-    private function assertWithinRepositoryScope(RepositoryPath $path): void
-    {
-        $repoParent = dirname($this->repository->getRepositoryPath());
-        $targetParent = dirname($path->toString());
-
-        $realTargetParent = realpath($targetParent);
-
-        if ($realTargetParent === false) {
-            throw new \InvalidArgumentException(
-                'Worktree parent directory does not exist: ' . $targetParent,
-            );
-        }
-
-        $realRepoParent = realpath($repoParent);
-
-        $separator = DIRECTORY_SEPARATOR;
-        $inside = $realTargetParent === $realRepoParent
-            || str_starts_with($realTargetParent . $separator, $realRepoParent . $separator);
-
-        if ($realRepoParent === false || !$inside) {
-            throw new \InvalidArgumentException(
-                'Worktree path must be located inside the repository parent directory.',
-            );
-        }
-    }
-
     /**
      * @template T
      * @param callable(): T $operation

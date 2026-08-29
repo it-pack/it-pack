@@ -91,17 +91,32 @@ final readonly class ObservedRepository implements Repository
 
     public function createBranch(BranchName $name): void
     {
-        $this->dispatchRunVoid($this->observer, 'createBranch', fn () => $this->inner->createBranch($name), ['branch' => $name->__toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'createBranch',
+            fn () => $this->inner->createBranch($name),
+            ['branch' => $name->__toString()],
+        );
     }
 
     public function checkoutBranch(BranchName $name): void
     {
-        $this->dispatchRunVoid($this->observer, 'checkoutBranch', fn () => $this->inner->checkoutBranch($name), ['branch' => $name->__toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'checkoutBranch',
+            fn () => $this->inner->checkoutBranch($name),
+            ['branch' => $name->__toString()],
+        );
     }
 
     public function deleteBranch(BranchName $name): void
     {
-        $this->dispatchRunVoid($this->observer, 'deleteBranch', fn () => $this->inner->deleteBranch($name), ['branch' => $name->__toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'deleteBranch',
+            fn () => $this->inner->deleteBranch($name),
+            ['branch' => $name->__toString()],
+        );
     }
 
     /**
@@ -120,12 +135,22 @@ final readonly class ObservedRepository implements Repository
             $context['target'] = $target->__toString();
         }
 
-        $this->dispatchRunVoid($this->observer, 'createTag', fn () => $this->inner->createTag($name, $target), $context);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'createTag',
+            fn () => $this->inner->createTag($name, $target),
+            $context,
+        );
     }
 
     public function deleteTag(TagName $name): void
     {
-        $this->dispatchRunVoid($this->observer, 'deleteTag', fn () => $this->inner->deleteTag($name), ['tag' => $name->__toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'deleteTag',
+            fn () => $this->inner->deleteTag($name),
+            ['tag' => $name->__toString()],
+        );
     }
 
     /**
@@ -138,12 +163,22 @@ final readonly class ObservedRepository implements Repository
 
     public function addRemote(RemoteName $name, string $url): void
     {
-        $this->dispatchRunVoid($this->observer, 'addRemote', fn () => $this->inner->addRemote($name, $url), ['remote' => $name->__toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'addRemote',
+            fn () => $this->inner->addRemote($name, $url),
+            ['remote' => $name->__toString()],
+        );
     }
 
     public function removeRemote(RemoteName $name): void
     {
-        $this->dispatchRunVoid($this->observer, 'removeRemote', fn () => $this->inner->removeRemote($name), ['remote' => $name->__toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'removeRemote',
+            fn () => $this->inner->removeRemote($name),
+            ['remote' => $name->__toString()],
+        );
     }
 
     /**
@@ -179,6 +214,11 @@ final readonly class ObservedRepository implements Repository
      */
     public function execute(string $command, array $args = []): string
     {
-        return $this->dispatchRun($this->observer, 'execute', fn (): string => $this->inner->execute($command, $args), ['command' => $command]);
+        return $this->dispatchRun(
+            $this->observer,
+            'execute',
+            fn (): string => $this->inner->execute($command, $args),
+            ['command' => $command],
+        );
     }
 }

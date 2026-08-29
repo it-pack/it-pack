@@ -54,6 +54,11 @@ final readonly class ObservedWorkingTree implements WorkingTree
 
     public function remove(RepositoryPath $path): void
     {
-        $this->dispatchRunVoid($this->observer, 'remove', fn () => $this->inner->remove($path), ['path' => $path->toString()]);
+        $this->dispatchRunVoid(
+            $this->observer,
+            'remove',
+            fn () => $this->inner->remove($path),
+            ['path' => $path->toString()],
+        );
     }
 }

@@ -26,13 +26,20 @@ use ItPack\CommitIt\Domain\Value\RepositoryPath;
  */
 final class CommitIt
 {
-    public static function open(RepositoryPath $path, RepositoryFactory $factory, ?RepositoryObserver $observer = null): Repository
-    {
+    public static function open(
+        RepositoryPath $path,
+        RepositoryFactory $factory,
+        ?RepositoryObserver $observer = null,
+    ): Repository {
         return new RepositoryOpener($factory, $observer)->open($path);
     }
 
-    public static function init(RepositoryPath $path, RepositoryFactory $factory, ?InitOptions $options = null, ?RepositoryObserver $observer = null): Repository
-    {
+    public static function init(
+        RepositoryPath $path,
+        RepositoryFactory $factory,
+        ?InitOptions $options = null,
+        ?RepositoryObserver $observer = null,
+    ): Repository {
         return new RepositoryOpener($factory, $observer)->init($path, $options);
     }
 
@@ -41,8 +48,13 @@ final class CommitIt
      *
      * @param non-empty-string $url
      */
-    public static function clone(string $url, RepositoryPath $path, RepositoryFactory $factory, ?CloneOptions $options = null, ?RepositoryObserver $observer = null): Repository
-    {
+    public static function clone(
+        string $url,
+        RepositoryPath $path,
+        RepositoryFactory $factory,
+        ?CloneOptions $options = null,
+        ?RepositoryObserver $observer = null,
+    ): Repository {
         return new RepositoryOpener($factory, $observer)->cloneRepository($url, $path, $options);
     }
 }

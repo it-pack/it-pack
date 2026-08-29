@@ -7,6 +7,7 @@ namespace ItPack\CommitIt\Adapter\Git;
 use CzProject\GitPhp\Commit as GitCommit;
 use CzProject\GitPhp\GitException;
 use CzProject\GitPhp\GitRepository;
+use InvalidArgumentException;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
@@ -28,11 +29,12 @@ use ItPack\CommitIt\Domain\Value\TagName;
 // Intentionally NOT `readonly`: the lazy `$workingTree` memo at line 34 is mutated after construction.
 final class GitPhpRepository implements Repository
 {
+    private ?GitPhpWorkingTree $workingTree = null;
+
     public function __construct(private GitRepository $repository)
     {
     }
 
-    private ?GitPhpWorkingTree $workingTree = null;
 
     public function getPath(): RepositoryPath
     {
@@ -254,6 +256,11 @@ final class GitPhpRepository implements Repository
         return $this->workingTree ??= new GitPhpWorkingTree($this->repository);
     }
 
+    public function execute(string $command, array $args = []): string
+    {
+        return $this->run(fn (): string => implode("\n", $this->repository->execute($command, ...$args)));
+    }
+
     /**
      * Ensures a staged path resolves inside the repository working tree. The
      * check is enforced by CommitIt (not delegated to git) so the scope
@@ -266,7 +273,7 @@ final class GitPhpRepository implements Repository
         $realRepoRoot = realpath($repoRoot);
 
         if ($realRepoRoot === false) {
-            throw new \InvalidArgumentException('Repository working tree is not accessible.');
+            throw new InvalidArgumentException('Repository working tree is not accessible.');
         }
 
         $target = $file;
@@ -288,7 +295,7 @@ final class GitPhpRepository implements Repository
             || str_starts_with($realTarget . $separator, $realRepoRoot . $separator);
 
         if (!$inside) {
-            throw new \InvalidArgumentException('Staged path must be located inside the repository working tree.');
+            throw new InvalidArgumentException('Staged path must be located inside the repository working tree.');
         }
     }
 
@@ -324,10 +331,6 @@ final class GitPhpRepository implements Repository
         return ($isAbsolute ? DIRECTORY_SEPARATOR : '') . implode(DIRECTORY_SEPARATOR, $stack);
     }
 
-    public function execute(string $command, array $args = []): string
-    {
-        return $this->run(fn (): string => implode("\n", $this->repository->execute($command, ...$args)));
-    }
 
     /**
      * @template T

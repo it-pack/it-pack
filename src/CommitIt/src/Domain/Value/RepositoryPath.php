@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Domain\Value;
 
+use InvalidArgumentException;
+
 /**
  * Validated, opaque repository path.
  *
@@ -15,7 +17,8 @@ namespace ItPack\CommitIt\Domain\Value;
  */
 final class RepositoryPath
 {
-    // Intentionally NOT a `readonly` class: `$resolvedRealPath` is a write-once cache filled by the `realPath` get-hook.
+    // Intentionally NOT a `readonly` class: `$resolvedRealPath` is a write-once cache filled by the
+    // `realPath` get-hook.
     private ?string $resolvedRealPath = null;
 
     private function __construct(public readonly string $path)
@@ -27,11 +30,11 @@ final class RepositoryPath
         $trimmed = trim($path);
 
         if ($trimmed === '') {
-            throw new \InvalidArgumentException('Repository path must not be empty.');
+            throw new InvalidArgumentException('Repository path must not be empty.');
         }
 
         if (preg_match('/[\x00-\x1f\x7f]/', $trimmed) === 1) {
-            throw new \InvalidArgumentException('Repository path must not contain control characters.');
+            throw new InvalidArgumentException('Repository path must not contain control characters.');
         }
 
         return new self($trimmed);

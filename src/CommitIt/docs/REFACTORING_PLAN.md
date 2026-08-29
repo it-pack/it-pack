@@ -30,9 +30,9 @@
 | M1 | Secure locale pinning (env injection, no `putenv`) | Medium (security) | Low–Med | — | `composer quality` | ✅ Done |
 | M2 | Extract `ObserverDispatch` trait (DRY) | Medium | Low | — | `composer quality` | ✅ Done |
 | M3 | Close Unit coverage gap to ≥95% lines | Medium | Low | M2 (optional) | `composer coverage` | ✅ Done |
-| M4 | Fix coverage job + enforce mutation | Medium | Low | M1, M3 | `coverage:all`, `quality:full` |
-| M5 | Declare `readonly class` on eligible types | Low | Low | — | `composer quality` |
-| M6 | Enforce `line_length` + import FQNs + decl order | Low | Low | — | `cs:check` |
+| M4 | Fix coverage job + enforce mutation | Medium | Low | M1, M3 | `coverage:all`, `quality:full` | ✅ Done |
+| M5 | Declare `readonly class` on eligible types | Low | Low | — | `composer quality` | ✅ Done |
+| M6 | Enforce `line_length` + import FQNs + decl order | Low | Low | — | `cs:check` | ✅ Done |
 | M7 | Magic literals → const/enum; `Commit::from` | Low | Low | — | `composer quality` |
 | M8 | Interface-backing reconciliation (decision) | Low | Low | — | decision only |
 
@@ -323,8 +323,36 @@ usages, fix declaration order in the two adapters.
 | M6.4 | `src/Adapter/Git/GitPhpWorkingTree.php` | Move private non-static `assertWithinRepositoryScope` (`:124`) *before* private static `parseWorktreeList` (`:72`); keep static-after-non-static ordering. | `composer cs:check` | Low |
 | M6.5 | `src/SDK/CommitIt.php` (`:29` 131, `:34` 161, `:44` 176), `ObservedRepository.php:95` (122), `InvalidReferenceNameException.php:16` (121), `InvalidCommitMessageException.php:15` (121) | Wrap signatures/messages to ≤120 chars (multi-line the `SDK\CommitIt` constructor/method signatures). | `composer cs:check` reports 0 >120 | Low |
 
-**Done criteria.** `composer cs:check` shows 0 files to fix and 0 lines >120 in `src`. `composer quality`
-green.
+ **Done criteria.** `composer cs:check` shows 0 files to fix and 0 lines >120 in `src`. `composer quality`
+ green.
+
+#### M6 — Implementation notes (completed)
+
+- **M6.1 (`line_length` rule) — deviation.** php-cs-fixer **3.95** no longer ships the
+  `line_length` fixer (it was removed upstream), so the planned `'line_length' => ['length' => 120]`
+  rule cannot be added — it makes `cs:check`/`cs:fix` fail with *unknown fixers*. The 120-char
+  intent is still satisfied by the manual wrapping in M6.5 plus a grep gate (`grep -rnE ".{121}" src`);
+  after M6 there are **0** `src` lines exceeding 120 chars. No replacement rule was added to avoid
+  introducing a new dependency.
+- **M6.2 (FQN imports).** Imported `InvalidArgumentException` in
+  `GitPhpRepository.php`, `GitPhpWorkingTree.php`, `RepositoryPath.php`, `CommitId.php` and replaced
+  every `\InvalidArgumentException` usage with the imported name. (The plan's `ObservedWorkingTree.php`
+  `WorktreeInfo` FQN was already imported in the current code, so no change was needed there.)
+- **M6.3 (`GitPhpRepository` declaration order).** Moved the lazy `private ?GitPhpWorkingTree
+  $workingTree = null;` property *above* the constructor, and moved the private helpers
+  `assertWithinWorkingTree` + `canonicalizePath` to *after* the public `execute` method.
+- **M6.4 (`GitPhpWorkingTree` declaration order).** Moved the non-static private
+  `assertWithinRepositoryScope` *before* the static private `parseWorktreeList` (non-static-before-static).
+- **M6.5 (wrap to ≤120).** Wrapped the long `SDK\CommitIt` static-signature lines, the two exception
+  class declarations (`final class … extends … implements …` — kept multiline via the `implements`
+  keyword on its own line, a form php-cs-fixer 3.95 preserves), the `ObserverDispatch` private
+  signatures, the `ObservedRepository`/`ObservedWorkingTree` `dispatchRun(Void)` call sites, and the
+  `RepositoryPath` exclusion comment.
+- **Verification.** `composer cs:check` → 0 files; `composer analyse` (PHPStan) → no errors;
+  `codecept run Unit,Functional` → `OK (228 tests, 700 assertions)`; `deptrac` → 0 errors.
+  Mutation testing was not re-run because M6 is a pure style refactor (method reorder + import
+  aliasing + line wrapping) with zero logic change; the M5 `quality:full` result (Covered MSI 91%)
+  still represents the code.
 
 ---
 

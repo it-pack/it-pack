@@ -34,8 +34,12 @@ trait ObserverDispatch
      * @param array<string, mixed> $context
      * @return T
      */
-    private function dispatchRun(RepositoryObserver $observer, string $operation, callable $action, array $context = []): mixed
-    {
+    private function dispatchRun(
+        RepositoryObserver $observer,
+        string $operation,
+        callable $action,
+        array $context = [],
+    ): mixed {
         $this->dispatchNotify(fn () => $observer->onStart($operation, $context));
 
         try {
@@ -59,8 +63,12 @@ trait ObserverDispatch
      * @param callable(): void $action
      * @param array<string, mixed> $context
      */
-    private function dispatchRunVoid(RepositoryObserver $observer, string $operation, callable $action, array $context = []): void
-    {
+    private function dispatchRunVoid(
+        RepositoryObserver $observer,
+        string $operation,
+        callable $action,
+        array $context = [],
+    ): void {
         $this->dispatchNotify(fn () => $observer->onStart($operation, $context));
 
         try {

@@ -13,6 +13,7 @@ use ItPack\CommitIt\Contract\Exception\InvalidReferenceNameException as InvalidR
  *
  * @api
  */
-final class InvalidReferenceNameException extends InvalidArgumentException implements InvalidReferenceNameExceptionMarker
+final class InvalidReferenceNameException extends InvalidArgumentException implements
+    InvalidReferenceNameExceptionMarker
 {
 }
