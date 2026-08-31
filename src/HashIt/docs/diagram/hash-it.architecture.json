@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "hash-it — Runtime Architecture",
+    "output": "hash-it.architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/it-pack/it-pack.git",
+      "revision": "eacf5cc860deea9e1e0a0fcae410f469aaf5183c"
+    },
+    "views": [
+      { "id": "primary-hash", "label": "Primary hash path", "focus": ["hasher", "builder", "native", "crypto", "hash"], "note": "Follow a single hash/file/stream request from the facade to the native crypto engine and back." },
+      { "id": "keyed-kdf", "label": "Keyed hashing & KDF", "focus": ["hasher", "tree", "keyed", "native", "crypto"], "note": "HMAC, RFC 5869 HKDF and tree hashing all bottom out in the ext-hash primitive." },
+      { "id": "verify", "label": "Manifest verification", "focus": ["hasher", "manifest", "format"], "note": "Re-hash expected paths and compare, with walled manifest (de)serialization." }
+    ]
+  },
+  "components": [
+    { "id": "algorithm", "type": "backend", "label": "HashAlgorithm", "sublabel": "catalogue + metadata", "pos": [110, 50], "size": [180, 76], "sources": [ { "path": "src/HashIt/src/HashAlgorithm.php", "line": 24, "label": "enum HashAlgorithm" } ] },
+    { "id": "observers", "type": "external", "label": "OTel / CloudEvents Observers", "sublabel": "optional emit", "pos": [1060, 50], "size": [200, 76], "sources": [ { "path": "src/HashIt/src/Adapter/Observability/OtelHashingObserver.php", "line": 28, "label": "OtelHashingObserver" } ] },
+    { "id": "hasher", "type": "backend", "label": "Hasher", "sublabel": "facade / orchestrator", "pos": [110, 300], "size": [180, 80], "sources": [ { "path": "src/HashIt/src/Hasher.php", "line": 13, "label": "final readonly class Hasher" } ] },
+    { "id": "tree", "type": "backend", "label": "TreeHasher", "sublabel": "chunked tree combiner", "pos": [730, 50], "size": [180, 76], "sources": [ { "path": "src/HashIt/src/TreeHasher.php", "line": 27, "label": "TreeHasher" } ] },
+    { "id": "builder", "type": "backend", "label": "HashBuilder", "sublabel": "incremental state", "pos": [390, 300], "size": [180, 80], "sources": [ { "path": "src/HashIt/src/HashBuilder.php", "line": 11, "label": "HashBuilder" } ] },
+    { "id": "native", "type": "backend", "label": "Native adapters", "sublabel": "context, file/dir, KDF", "pos": [730, 300], "size": [190, 80], "sources": [ { "path": "src/HashIt/src/Adapter/NativeContextFactory.php", "line": 11, "label": "NativeContextFactory" }, { "path": "src/HashIt/src/Adapter/NativeHashContext.php", "line": 10, "label": "NativeHashContext" }, { "path": "src/HashIt/src/Adapter/NativeHashIt.php", "line": 28, "label": "NativeHashIt (composition root)" } ] },
+    { "id": "crypto", "type": "external", "label": "PHP crypto engine", "sublabel": "ext-hash / ext-password", "pos": [1060, 300], "size": [180, 80] },
+    { "id": "input", "type": "backend", "label": "HashInput", "sublabel": "framed inputs", "pos": [110, 560], "size": [180, 80], "sources": [ { "path": "src/HashIt/src/HashInput/CompositeInput.php", "line": 20, "label": "CompositeInput" } ] },
+    { "id": "manifest", "type": "backend", "label": "ManifestVerifier", "sublabel": "+ HashManifest", "pos": [390, 560], "size": [180, 80], "sources": [ { "path": "src/HashIt/src/ManifestVerifier.php", "line": 16, "label": "ManifestVerifier" } ] },
+    { "id": "hash", "type": "backend", "label": "Hash", "sublabel": "value object / result", "pos": [730, 540], "size": [190, 80], "sources": [ { "path": "src/HashIt/src/Hash.php", "line": 7, "label": "final readonly class Hash" } ] },
+    { "id": "keyed", "type": "backend", "label": "KeyedHasher + HKDF", "sublabel": "HMAC / RFC 5869", "pos": [1060, 560], "size": [190, 80], "sources": [ { "path": "src/HashIt/src/KeyedHasher.php", "line": 12, "label": "KeyedHasher" }, { "path": "src/HashIt/src/KeyDerivation/Hkdf.php", "line": 24, "label": "Hkdf" } ] },
+    { "id": "format", "type": "backend", "label": "Format", "sublabel": "walled serialization", "pos": [390, 720], "size": [180, 76], "sources": [ { "path": "src/HashIt/src/Format/BsdFormat.php", "line": 1, "label": "Format namespace (walled)" } ] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Core — owned, depends only on its own Contract", "wraps": ["algorithm", "hasher", "input", "builder", "tree", "keyed", "manifest", "hash"] },
+    { "kind": "security-group", "label": "Native crypto & platform boundary", "wraps": ["native", "crypto"] },
+    { "kind": "region", "label": "Walled format layer (roadmap guardrail #7)", "wraps": ["format"] }
+  ],
+  "connections": [
+    { "id": "hash-path", "from": "hasher", "to": "builder", "variant": "emphasis", "label": "start + append", "fromSide": "right", "toSide": "left", "labelAt": [335, 265] },
+    { "id": "ctx-drive", "from": "builder", "to": "native", "label": "HashContext update()/copy()", "fromSide": "right", "toSide": "left", "labelAt": [645, 265] },
+    { "id": "crypto-primitive", "from": "native", "to": "crypto", "variant": "security", "label": "ext-hash: hash_update/finalize", "fromSide": "right", "toSide": "left", "labelAt": [1015, 265] },
+    { "id": "result", "from": "native", "to": "hash", "label": "finalize() → Hash", "fromSide": "bottom", "toSide": "top", "labelAt": [885, 460] },
+    { "id": "algo", "from": "hasher", "to": "algorithm", "variant": "dashed", "label": "resolve + metadata", "fromSide": "top", "toSide": "bottom", "labelAt": [305, 180] },
+    { "id": "input-fed", "from": "hasher", "to": "input", "variant": "dashed", "label": "HashInput.writeTo()", "fromSide": "bottom", "toSide": "top", "labelAt": [55, 470] },
+    { "id": "tree-fed", "from": "hasher", "to": "tree", "variant": "dashed", "label": "chunked tree hash", "fromSide": "top", "toSide": "bottom", "labelAt": [505, 180] },
+    { "id": "observe", "from": "hasher", "to": "observers", "variant": "dashed", "label": "observe() events", "fromSide": "top", "toSide": "bottom", "labelAt": [680, 180] },
+    { "id": "keyed-crypto", "from": "keyed", "to": "crypto", "variant": "security", "label": "HMAC via ext-hash", "fromSide": "top", "toSide": "bottom", "labelAt": [1210, 470] },
+    { "id": "manifest-format", "from": "manifest", "to": "format", "label": "serialize / parse (walled)", "fromSide": "bottom", "toSide": "top", "labelAt": [530, 690] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Facade & incremental state", "items": [ "Hasher is the public orchestrator: hash / hashFile / hashStream / hashFiles / hashDirectory / hashInput / verify.", "HashBuilder is immutable copy-on-write: each append() copies the HashContext and returns a new builder.", "Hash is a constant-time-comparable value object (hash_equals, toUrn: urn:hashit:<algo>:<hex>)." ] },
+    { "dot": "emerald", "title": "Algorithm catalogue", "items": [ "HashAlgorithm enum enumerates every PHP hash_algos() id, normalised to SCREAMING_SNAKE_CASE.", "#[AlgorithmMetadata] carries output/block bits + collision status (Recommended / Legacy / Weak / Broken).", "#[HmacSafe] gates hash_hmac(); supports(), resolve(), recommendedAlgorithms() and brokenAlgorithms() derive from attributes." ] },
+    { "dot": "violet", "title": "Input & tree framing", "items": [ "HashInput (String / File / Stream / Composite) exposes writeTo(HashSink) with 8-byte LE length framing (NF-B3).", "CompositeInput frames children recursively so order/boundaries are canonical.", "TreeHasher hashes chunks then THEX-style combines leaves: node = H(frame(L)||frame(R)); a single chunk equals hash()." ] },
+    { "dot": "amber", "title": "Keyed hashing & KDF", "items": [ "KeyedHasher performs HMAC; Hkdf (RFC 5869) is built only on the keyed hasher, so derivations stay observable.", "PBKDF2 (hash_pbkdf2) and Argon2id (password_hash/verify) are Native adapters behind ports.", "TreeHasher, Hkdf and ManifestVerifier live in core and depend on nothing but the Contract." ] },
+    { "dot": "rose", "title": "Trust & observability boundaries", "items": [ "Core crosses a walled boundary only at NativeHashIt (composition root) into ext-hash / ext-password.", "OpenTelemetry (API-only) and CNCF CloudEvents (via PSR-18) observers emit to host-owned sinks; both are optional suggested deps.", "Format is a deliberately walled namespace for manifest (de)serialization, isolated from core hashing logic." ] }
+  ]
+}
