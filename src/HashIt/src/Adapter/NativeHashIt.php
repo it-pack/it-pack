@@ -15,6 +15,8 @@ use ItPack\HashIt\KeyDerivationInterface;
 use ItPack\HashIt\KeyedHasher;
 use ItPack\HashIt\KeyedHasherInterface;
 use ItPack\HashIt\Pbkdf2Interface;
+use ItPack\HashIt\ResumableHasher;
+use ItPack\HashIt\ResumableHashingInterface;
 use ItPack\HashIt\TreeHasher;
 use ItPack\HashIt\TreeHashingInterface;
 
@@ -73,5 +75,15 @@ final readonly class NativeHashIt
     public static function treeHasher(): TreeHashingInterface
     {
         return new TreeHasher(new NativeContextFactory());
+    }
+
+    /**
+     * Resumable (pausable) hashing — checkpoint an in-progress stream hash and
+     * resume it later (even in another process). Plain algorithms only; HMAC
+     * contexts cannot be serialized (docs/ADR-0002).
+     */
+    public static function resumable(): ResumableHashingInterface
+    {
+        return new ResumableHasher(new NativeContextFactory());
     }
 }

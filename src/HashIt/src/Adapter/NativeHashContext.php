@@ -30,4 +30,16 @@ final readonly class NativeHashContext implements HashContextInterface
     {
         return new self(hash_copy($this->context));
     }
+
+    public function checkpoint(): string
+    {
+        try {
+            return serialize($this->context);
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(
+                'Unable to serialize the hashing context (keyed/HMAC contexts are not serializable)',
+                previous: $e,
+            );
+        }
+    }
 }

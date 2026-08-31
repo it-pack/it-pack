@@ -57,4 +57,61 @@ class NativeHashContextTest extends Unit
         verify(str_contains($thrown->getMessage(), 'not-an-algorithm'))->true();
         self::assertInstanceOf(\ValueError::class, $thrown->getPrevious());
     }
+
+    public function testCheckpointAndRestoreRoundTrip(): void
+    {
+        $factory = new NativeContextFactory();
+
+        $ctx = $factory->build('sha256');
+        $ctx->update('abc');
+        $checkpoint = $ctx->checkpoint();
+
+        $restored = $factory->restore($checkpoint);
+        $restored->update('def');
+
+        verify($restored->finalize(false))->equals(hash('sha256', 'abcdef'));
+    }
+
+    public function testCheckpointDoesNotConsumeLiveContext(): void
+    {
+        $factory = new NativeContextFactory();
+
+        $ctx = $factory->build('sha256');
+        $ctx->update('abc');
+        $ctx->checkpoint();
+
+        $ctx->update('def');
+        verify($ctx->finalize(false))->equals(hash('sha256', 'abcdef'));
+    }
+
+    public function testRestoreRejectsInvalidBlob(): void
+    {
+        $factory = new NativeContextFactory();
+
+        $thrown = null;
+        try {
+            $factory->restore('not-a-checkpoint');
+        } catch (\InvalidArgumentException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(\InvalidArgumentException::class, $thrown);
+    }
+
+    public function testHmacContextCheckpointThrows(): void
+    {
+        // Keyed/HMAC contexts cannot be serialized by the native hash extension.
+        $hmac = new \ItPack\HashIt\Adapter\NativeHashContext(
+            hash_init('sha256', HASH_HMAC, 'secret'),
+        );
+
+        $thrown = null;
+        try {
+            $hmac->checkpoint();
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        }
+
+        self::assertInstanceOf(\RuntimeException::class, $thrown);
+    }
 }

@@ -284,6 +284,16 @@ class HasherTest extends Unit
         return new class () implements ContextFactoryInterface {
             public function build(string $algorithm): HashContextInterface
             {
+                return self::fakeContext();
+            }
+
+            public function restore(string $checkpoint): HashContextInterface
+            {
+                return self::fakeContext();
+            }
+
+            private static function fakeContext(): HashContextInterface
+            {
                 return new class () implements HashContextInterface {
                     public function update(string $data): void
                     {
@@ -297,6 +307,11 @@ class HasherTest extends Unit
                     public function copy(): HashContextInterface
                     {
                         return $this;
+                    }
+
+                    public function checkpoint(): string
+                    {
+                        return 'fakecheckpoint';
                     }
                 };
             }

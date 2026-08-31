@@ -253,6 +253,38 @@ with `Hash` / `HashInterface::equals`. The on-wire root is *not* compatible with
 THEX or BLAKE3; it is HashIt's own stable scheme (cross-impl interop with a named
 external spec would live in a separate package).
 
+## Resumable (pausable) hashing
+
+`NativeHashIt::resumable()` lets you hash a large stream in stages and **pause /
+resume** across requests or processes. A checkpoint is a portable blob you persist;
+resuming rebuilds the exact in-progress state — no re-hashing of what was already
+consumed.
+
+```php
+use ItPack\HashIt\Adapter\NativeHashIt;
+
+$resumable = NativeHashIt::resumable();
+
+$handle = $resumable->start();           // default SHA-256
+$handle->update($chunk1);
+$checkpoint = $handle->checkpoint();      // persist this (e.g. to a store)
+
+// …later, possibly a different process…
+$resumed = $resumable->resume($checkpoint);
+$resumed->update($chunk2);
+$hash = $resumed->finalize();             // == Hasher::hash($chunk1 . $chunk2)
+```
+
+`checkpoint()` does **not** consume the live handle — you can keep `update()`-ing
+the same handle afterwards. The checkpoint envelope carries the algorithm and the
+binary flag, so `resume()` needs only the blob.
+
+**Plain algorithms only.** Keyed / HMAC contexts cannot be serialized by the native
+`hash` extension (it throws), so `checkpoint()` raises a `RuntimeException` for them
+— HMAC resumption is intentionally not offered (it would also embed the secret key
+in the persisted blob). Full spike + rationale:
+[`docs/ADR-0002-resumable-hashing.md`](./docs/ADR-0002-resumable-hashing.md).
+
 ## Manifest verify & formatters
 
 `HashManifest` is an immutable value object pairing one algorithm with a map of

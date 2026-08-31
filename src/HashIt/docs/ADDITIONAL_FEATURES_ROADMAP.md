@@ -480,11 +480,11 @@ Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / m
 
 Tests `tests/Unit/TreeHasherTest.php` (9 cases, 10 assertions): single-chunk input (chunkSize ≥ size) equals `hash()`; empty input equals `hash('')`; deterministic for identical (input, chunkSize); multi-chunk differs from `hash()`; different `chunkSize` ⇒ different tree hash; **matches an independent reference implementation** of ADR-0001 written purely on the native `hash()` extension (no shared code with `TreeHasher`), proving the two agree on the canonical scheme; `StreamInput`/`FileInput`/`StringInput` of the same content agree; an odd (3-leaf) chunk count combines correctly; non-positive `chunkSize` throws `InvalidArgumentException`. All gates green: `composer test:unit` (163 tests, 475 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations). README gained a "Tree / chunked hashing" section documenting the scheme and that `chunkSize` is part of the digest.
 
-**Next:** NF-D2 (Resumable hashing) — still a research gate; `native \HashContext` is not serializable, so likely defer with a written rationale (no code until the spike decides otherwise).
+**Next:** NF-D2 (Resumable hashing) — implemented (see its completion note): the spike proved plain `\HashContext` IS serializable, so pause/resume is feasible for plain algorithms; only HMAC is excluded (native throws on serialize).
 
 ---
 
-## NF-D2 — Resumable hashing (V5) — ⬜ TODO (research → likely defer)
+## NF-D2 — Resumable hashing (V5) — ✅ DONE
 
 **Goal:** Pause/resume a large stream hash across requests. Native `\HashContext` is **not serializable**, so this is likely infeasible with the native-backed design.
 
@@ -498,6 +498,19 @@ Tests `tests/Unit/TreeHasherTest.php` (9 cases, 10 assertions): single-chunk inp
 **Dependencies:** none.
 **Acceptance:** documented, reviewed decision. **Likely deferred** — do not promise a runtime feature without the spike.
 
+**Completion note (2026-08-31):** The spike (run on PHP 8.4) **overturned the defer assumption**: the roadmap claimed "native `\HashContext` is not serializable", but in fact a plain `\HashContext` (from `hash_init($algo)`) *is* serializable, `serialize()` does **not** consume the live context, and the blob **resumes in a separate process** (`unserialize` → `update` → `finalize` yields the exact digest of the concatenated input). `hash_copy()` only clones in-memory (no persistence), confirming resume-across-processes needs the serialization path — which plain contexts provide. **Hard boundary:** a keyed / HMAC `\HashContext` (`hash_init($algo, HASH_HMAC, $key)`) **throws** `"HashContext with HASH_HMAC option cannot be serialized"`, so HMAC resumption is infeasible (and would otherwise embed the secret key in the persisted blob). Decision recorded in `docs/ADR-0002-resumable-hashing.md` → **implement** (not defer), for plain algorithms only.
+
+**Implementation:** extended the context port rather than forking it.
+- `HashContextInterface` gained `checkpoint(): string` (portable snapshot, non-consuming; throws `RuntimeException` for non-serializable/HMAC contexts). `ContextFactoryInterface` gained `restore(string): HashContextInterface`.
+- `NativeHashContext::checkpoint()` serializes the `\HashContext` (wrapped in `try/catch` → `RuntimeException`); `NativeContextFactory::restore()` rebuilds via `unserialize(..., ['allowed_classes' => [\HashContext::class]])` (no object injection) and rejects invalid blobs with `InvalidArgumentException`.
+- New core port `src/ResumableHashInterface.php` (`update` / `checkpoint` / `finalize`) + `src/ResumableHashingInterface.php` (`start` / `resume`), and core service `src/ResumableHasher.php` (final, deptrac-clean — only the context ports + `Hash`). A checkpoint is a self-describing envelope `serialize(['algorithm' => string, 'binary' => bool, 'state' => string])`; `resume()` decodes it (with `allowed_classes => false` for the envelope) and rebuilds the context via `restore()`. `NativeHashIt::resumable()` exposes it from the composition root. The test fake in `HasherTest` was updated to implement the two new port methods.
+
+**Deliberate deviations from the literal "affected files: none" / defer path:** the spike evidence justified implementing instead of deferring, so the milestone delivered code. The design kept HMAC out (native guard) and chose an envelope format (vs exposing the raw serialized context) so `resume()` is self-describing and the inner state is unserialized with a restricted class allow-list.
+
+Tests: `tests/Unit/ResumableHasherTest.php` (8 cases) — resume-across-handles equals `hash()`; multiple checkpoints/resumes; checkpoint does not consume the live handle; binary flag carried by envelope; works for SHA-3; invalid checkpoint rejected; tampered (corrupted inner state) checkpoint rejected. `tests/Unit/NativeHashContextTest.php` extended (5 cases) — checkpoint/restore round-trip, checkpoint non-consuming, `restore` rejects invalid blob, HMAC `checkpoint()` throws. All gates green: `composer test:unit` (174 tests, 487 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations). README gained a "Resumable (pausable) hashing" section noting the plain-algorithms-only boundary and the HMAC caveat.
+
+**Next:** NF-D2 was the last open research gate. All non-deferred roadmap milestones (NF-A1…NF-C2, NF-O1…NF-O3, NF-D1, NF-D2) are now implemented with green gates — the next-level effort is complete.
+
 ---
 
 ## 2. Definition of Done (whole next-level effort)
@@ -507,11 +520,11 @@ Tests `tests/Unit/TreeHasherTest.php` (9 cases, 10 assertions): single-chunk inp
 - Each milestone has a completion note in this file (mirroring `REFACTORING_PLAN.md`).
 - `[SCOPE]` items (NF-A5 SRI, NF-C1 formatters) resolved per guardrail #7 with a recorded scope decision and no serialization logic inside the hashing core.
 - Bridges (NF-C2) live in separate packages and do not alter HashIt's gates.
-- `docs/ADDITIONAL_FEATURES_PLAN.md` findings (V1–V6, H1–H6) each map to a milestone above; any deferred item (NF-D2) has a written rationale.
+- `docs/ADDITIONAL_FEATURES_PLAN.md` findings (V1–V6, H1–H6) each map to a milestone above; no milestone was deferred (NF-D2's research gate concluded *implement*, not defer).
 
 ## 3. Open questions / research gates (carry from the plan)
 
-1. **NF-D2 resumability** — confirm infeasibility with native ext; only pursue if a self-implemented engine is justified.
+1. **NF-D2 resumability** — ✅ resolved: the spike proved plain `\HashContext` *is* serializable and resumes across processes, so it was **implemented** (not deferred) for plain algorithms; HMAC contexts throw on serialize, so HMAC resumption is excluded by design. See `docs/ADR-0002-resumable-hashing.md`.
 2. **NF-D1 tree hash** — ✅ resolved: `docs/ADR-0001-tree-hash-combiner.md` chose fixed-size chunking + THEX-style length-prefixed binary reduction (over BLAKE3 SIMD chunking, which would require the BLAKE3 compression function unavailable via the PHP `hash` extension). Implemented and gated green. Note: on-wire root is *not* compatible with THEX/BLAKE3 by design — cross-impl interop with a named external spec would be a separate package.
 3. **Cross-package policy** — confirm HashIt may `suggest` `AsyncIt`/`DeriveIt`; keep bridges optional to avoid hard coupling.
 4. **NF-C1 serialization home** — finalize whether formatters live in `ItPack\HashIt\Format\*` or a sibling `hash-it-format` package before building them.

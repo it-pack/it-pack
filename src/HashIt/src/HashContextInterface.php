@@ -22,4 +22,15 @@ interface HashContextInterface
     public function finalize(bool $binary): string;
 
     public function copy(): HashContextInterface;
+
+    /**
+     * Return a portable serialization of the current state without consuming it,
+     * so the live handle may keep being updated after the call. The blob can be
+     * restored via {@see ContextFactoryInterface::restore()}.
+     *
+     * Throws \RuntimeException when the backing engine cannot serialize the state
+     * (e.g. keyed / HMAC contexts, which the native hash extension refuses to
+     * serialize).
+     */
+    public function checkpoint(): string;
 }
