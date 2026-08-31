@@ -135,6 +135,41 @@ use ItPack\HashIt\Adapter\Observability\CloudEventsHashingObserver;
 $hasher = NativeHashIt::create(new CloudEventsHashingObserver()); // source defaults to hash-it://<host>
 ```
 
+## Key derivation
+
+Three families, behind small ports obtained from the composition root.
+
+**HKDF (RFC 5869)** — turns strong but short input keying material into any amount
+of keying material, bound by an `info` label. Built purely on the keyed HMAC surface,
+so every derivation is observable when an observer is supplied:
+
+```php
+use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\HashAlgorithm;
+
+$okm = NativeHashIt::kdf()->derive(
+    $ikm,                       // input keying material
+    $salt,                      // optional; omitted/empty => HashLen zero octets (RFC 5869 §3.1)
+    42,                         // output length in bytes
+    'encryption-key',           // info context label
+    HashAlgorithm::SHA256,
+);
+```
+
+**PBKDF2** — iteration-hardened, for stretching weak passwords:
+
+```php
+$derived = NativeHashIt::pbkdf2()->derive($password, $salt, iterations: 100_000, length: 32);
+```
+
+**Argon2id** — verify-oriented password hashing (no raw `derive` step; the salt and
+costs are folded into the returned hash string):
+
+```php
+$hash = NativeHashIt::argon2()->hash($password);          // $argon2id$…
+if (NativeHashIt::argon2()->verify($password, $hash)) { /* … */ }
+```
+
 ## Algorithms
 
 `HashAlgorithm` is a backed enum and the **single source of truth** for the algorithm

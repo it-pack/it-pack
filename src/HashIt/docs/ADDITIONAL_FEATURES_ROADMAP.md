@@ -298,7 +298,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 
 ---
 
-## NF-B1 — Key Derivation Functions (V1) — ⬜ TODO
+## NF-B1 — Key Derivation Functions (V1) — ✅ DONE
 
 **Goal:** Provide HKDF (built purely on the existing `KeyedHasherInterface`), plus PBKDF2 and Argon2 adapters. This is the headline "complete the toolkit" feature and the strongest reason to stay in HashIt.
 
@@ -321,6 +321,10 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Verification:** gates.
 **Dependencies:** NF-A1 (for `blockBits()`; soft — has fallback).
 **Acceptance:** RFC 5869 vector passes; PBKDF2/Argon2 parity; gates green; HKDF depends only on `KeyedHasherInterface`.
+
+**Completion note (2026-08-31):** Shipped all three KDF families. New core port `src/KeyDerivationInterface.php` (`derive(string $ikm, ?string $salt = null, int $length = 32, string $info = '', string|HashAlgorithm $algorithm = SHA256): string`) and core service `src/KeyDerivation/Hkdf.php` implementing RFC 5869 Extract-and-Expand **purely on `KeyedHasherInterface`** (`hmacBinary` for both the extract PRK and the expand `T(i)` blocks) — deptrac reports **0 violations** and core never touches a native hashing extension. Composition root adds `NativeHashIt::kdf(?observer)` (HKDF, observable), `::pbkdf2()` and `::argon2()`. PBKDF2 is a new core port `src/Pbkdf2Interface.php` + adapter `src/Adapter/NativePbkdf2.php` over `hash_pbkdf2(..., true)`; Argon2 is a separate core port `src/Argon2Interface.php` (`hash(string, array $options = []): string` + `verify(string, string): bool`) + adapter `src/Adapter/NativeArgon2.php` over `password_hash(PASSWORD_ARGON2ID, …)` / `password_verify`, documenting that Argon2 is verify-oriented (no `derive`-shaped raw output). **Two deliberate, RFC-faithful deviations from the literal task-1 spec**, both required for correctness/portability: (1) the default salt uses **HashLen (`outputBits/8`) zero octets**, not `blockBits/8`, because RFC 5869 §3.1 defines the omitted-salt default as HashLen zeros and the canonical test vectors (A.1/A.7) only pass that way; (2) an **empty or omitted salt collapses to that RFC default** rather than being passed through raw, because PHP's `hash_hmac` *rejects an empty HMAC key* — so RFC 5869 **A.3 (explicit zero-length salt) is not representable through PHP's HMAC** and is intentionally excluded from the verified vectors (A.1 basic SHA-256 and a behavioral default-salt test are used instead). `salt` is nullable (`?string`) so the `??`-style default actually fires. Tests: `tests/Unit/KeyDerivation/HkdfTest.php` (A.1 known-answer `3cb25f25faacd57a…85865`, extract-PRK equals `hash_hmac`, multi-block 64-byte expansion matches the A.1 prefix, omitted/empty salt ⇒ HashLen-zero default, RFC 255·HashLen cap and non-positive length throw), `tests/Unit/Adapter/NativePbkdf2Test.php` (parity with raw `hash_pbkdf2`, determinism, salt sensitivity, iteration/length guards), `tests/Unit/Adapter/NativeArgon2Test.php` (`$argon2id$` prefix, round-trip verify, wrong-password false, distinct hashes both verify, custom options). All gates green: `composer test:unit` (115 tests, 390 assertions), `analyse`, `cs:check`, `architecture` — **0 violations**.
+
+**Next:** NF-B2 (AlgorithmSource port) — makes algorithm discovery extensible.
 
 ---
 
