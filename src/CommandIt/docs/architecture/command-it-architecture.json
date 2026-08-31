@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "CommandIt — Library Architecture",
+    "subtitle": "Hexagonal command bus: ports in, vendor-neutral, RunIt-agnostic",
+    "quality_profile": "showcase",
+    "viewBox": [1320, 900]
+  },
+  "components": [
+    {
+      "id": "caller",
+      "type": "external",
+      "label": "User application",
+      "sublabel": "caller code",
+      "pos": [30, 420],
+      "size": [130, 70]
+    },
+    {
+      "id": "facade",
+      "type": "backend",
+      "label": "CommandIt facade",
+      "sublabel": "src/SDK/CommandIt.php",
+      "pos": [195, 420],
+      "size": [150, 70]
+    },
+    {
+      "id": "executor",
+      "type": "backend",
+      "label": "CommandExecutor",
+      "sublabel": "Application core",
+      "pos": [380, 420],
+      "size": [170, 70]
+    },
+    {
+      "id": "coordinator",
+      "type": "backend",
+      "label": "CommandExecutionCoordinator",
+      "sublabel": "lifecycle & duration_ms",
+      "pos": [585, 420],
+      "size": [210, 70]
+    },
+    {
+      "id": "resolver",
+      "type": "backend",
+      "label": "HandlerResolver (lazy)",
+      "sublabel": "LazyHandlerProxy",
+      "pos": [830, 420],
+      "size": [170, 70]
+    },
+    {
+      "id": "handler",
+      "type": "external",
+      "label": "CommandHandler",
+      "sublabel": "user code",
+      "pos": [1035, 420],
+      "size": [140, 70]
+    },
+    {
+      "id": "input_parser",
+      "type": "backend",
+      "label": "InputParser + ArrayInputAdapter",
+      "sublabel": "validate + coerce",
+      "pos": [195, 220],
+      "size": [210, 60]
+    },
+    {
+      "id": "reporter",
+      "type": "messagebus",
+      "label": "ExecutionReporter",
+      "sublabel": "Collecting · Redacting · Guarded",
+      "pos": [585, 220],
+      "size": [210, 60]
+    },
+    {
+      "id": "ecosystem",
+      "type": "cloud",
+      "label": "Optional ecosystem",
+      "sublabel": "suggest, not required",
+      "pos": [1035, 220],
+      "size": [210, 60]
+    },
+    {
+      "id": "storage",
+      "type": "database",
+      "label": "CommandExecutionStorage",
+      "sublabel": "InMemory (bounded) · Null",
+      "pos": [380, 620],
+      "size": [170, 60]
+    },
+    {
+      "id": "ports",
+      "type": "security",
+      "label": "Runtime ports",
+      "sublabel": "Clock · Id · Context · Serializer",
+      "pos": [585, 620],
+      "size": [210, 60]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "CommandIt library (vendor code, DepTrac-enforced layering)",
+      "wraps": ["facade", "executor", "coordinator", "resolver", "input_parser", "reporter", "ports", "storage"],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    {
+      "id": "dispatch",
+      "from": "caller",
+      "to": "facade",
+      "label": "dispatch(command)",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": -50
+    },
+    {
+      "id": "execute",
+      "from": "facade",
+      "to": "executor",
+      "label": "execute()",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": -50
+    },
+    {
+      "id": "lifecycle",
+      "from": "executor",
+      "to": "coordinator",
+      "label": "run lifecycle",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": -50
+    },
+    {
+      "id": "resolve",
+      "from": "coordinator",
+      "to": "resolver",
+      "label": "resolve handler",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": -50
+    },
+    {
+      "id": "handle",
+      "from": "resolver",
+      "to": "handler",
+      "label": "handle(command) → result",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelDy": -50
+    },
+    {
+      "id": "parse-input",
+      "from": "caller",
+      "to": "input_parser",
+      "label": "validate + coerce",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "via": [[95, 300], [300, 300]]
+    },
+    {
+      "id": "report",
+      "from": "coordinator",
+      "to": "reporter",
+      "label": "CommandReceived / Handled / Failed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "runtime-ports",
+      "from": "coordinator",
+      "to": "ports",
+      "label": "clock · id · context",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "persist",
+      "from": "executor",
+      "to": "storage",
+      "label": "save CommandExecution",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Lifecycle (one execution per command)",
+      "items": [
+        "DEFINED → validate(name, required input)",
+        "RECEIVED — occurrence: CommandReceived",
+        "EXECUTING — activity begins; monotonic duration_ms starts",
+        "SUCCEEDED — occurrence: CommandHandled, snapshot: CommandResult",
+        "FAILED — occurrence: CommandFailed, original Throwable preserved",
+        "CANCELLED — reserved in CommandStatus; not wired (no CancellationPort yet)"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Port contracts (src/Contract/Port)",
+      "items": [
+        "ClockInterface, IdentifierGeneratorInterface",
+        "ExecutionContextProviderInterface, ContextTokenInterface",
+        "ExecutionReporterInterface (ISP-split into LifecycleReporterInterface)",
+        "CommandExecutionStorageInterface",
+        "RuntimeContextDetectorInterface (Fiber / coroutine detection)",
+        "SerializerInterface, RedactionPolicyInterface",
+        "Used by both executor (now(), id(), serialize) and coordinator (duration_ms)"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Default concrete adapters (src/Adapter/*)",
+      "items": [
+        "SystemClock, RandomIdentifierGenerator",
+        "AmbientContextStorage / FiberBoundContextStorage (WeakMap, no process globals)",
+        "CollectingExecutionReporter + RedactingExecutionReporter + GuardedExecutionReporter + SafeReporterFactory",
+        "InMemoryCommandExecutionStorage (bounded, FIFO eviction)",
+        "SafeSerializer (cycle + depth guards, no arbitrary object serialization)",
+        "ArgvInputParser, ConsoleCommandBridge, ConsoleCommandRegistry (Symfony optional)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Security & redaction defaults",
+      "items": [
+        "Context values are classified; secrets are never exported",
+        "RedactionPolicy + redaction markers redact before publication",
+        "Bounded buffers, overflow policy, recursion guard (per-Fiber WeakMap)",
+        "Arbitrary object serialization is prohibited; max depth + cycle detection",
+        "Original business exception is always rethrown on failure"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Optional external ecosystem (adapters, not deps)",
+      "items": [
+        "symfony/console — CLI projection via Adapter/CLI (suggest, not required)",
+        "psr/log, psr/event-dispatcher — adapter surface, not a core contract",
+        "psr/clock — ClockInterface has a bring-your-own PSR-20 adapter",
+        "it-pack/command-it-run-it — future RunIt pipeline via ports only",
+        "Core imports zero Symfony / RunIt / PSR types (DepTrac 0 violations)"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,9 @@
 > their mapping to the shared It_Pack execution model (`docs/EXECUTION.md`).
 > It is filled in progressively as milestones land.
 
+For the visual overview, see [`command-it-architecture.html`](./command-it-architecture.html)
+(interactive; spec: [`command-it-architecture.json`](./command-it-architecture.json)).
+
 ## Status
 
 - **Milestone 0 (skeleton & quality gates)**: shipped.
