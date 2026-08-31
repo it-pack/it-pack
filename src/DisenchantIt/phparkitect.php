@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../tools/qa/phparkitect/base.php';
+
 use Arkitect\Analyzer\ClassDescription;
 use Arkitect\Analyzer\FullyQualifiedClassName;
 use Arkitect\ClassSet;
@@ -11,12 +13,12 @@ use Arkitect\Expression\Expression;
 use Arkitect\Expression\ForClasses\HaveNameMatching;
 use Arkitect\Expression\ForClasses\IsFinal;
 use Arkitect\Expression\ForClasses\IsInterface;
-use Arkitect\Expression\ForClasses\NotDependsOnTheseNamespaces;
 use Arkitect\RuleBuilders\Architecture\Architecture;
 use Arkitect\Rules\Rule;
 use Arkitect\Rules\Violation;
 use Arkitect\Rules\ViolationMessage;
 use Arkitect\Rules\Violations;
+use function ItPack\Qa\PhpArkitect\forbidSibling;
 
 return static function (Config $config): void {
     $classSet = ClassSet::fromDir(__DIR__ . '/src');
@@ -232,11 +234,15 @@ return static function (Config $config): void {
     // ---------------------------------------------------------------------
     // Rule: Core must never depend on RunIt (future base execution layer).
     // DisenchantIt stays RunIt-free; RunIt is wired in later via a bridge
-    // package (REFACTORING_PLAN §17 / ADR-0005).
+    // package (REFACTORING_PLAN §17 / ADR-0005). Implemented via the shared
+    // it-pack phparkitect helper (tools/qa/phparkitect/forbid-sibling.php),
+    // making DisenchantIt the first consumer of the consolidated base.
     // ---------------------------------------------------------------------
-    $coreNotRunItRule = Rule::namespace('ItPack\DisenchantIt\Core')
-        ->should(new NotDependsOnTheseNamespaces(['ItPack\RunIt\*']))
-        ->because('Core must not depend on the future RunIt execution layer');
+    $coreNotRunItRule = forbidSibling(
+        'ItPack\DisenchantIt\Core',
+        'ItPack\RunIt\*',
+        'Core must not depend on the future RunIt execution layer',
+    );
 
     $config->add(
         $classSet,
