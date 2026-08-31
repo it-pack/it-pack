@@ -402,6 +402,23 @@ The core→adapter boundary is enforced by `composer architecture` (deptrac): th
 core namespace cannot reference `Adapter\*`, and `NativeHashIt` is the single
 allowed wiring point.
 
+## Examples
+
+Runnable, copy-pasteable examples that teach and showcase every feature, split into
+**horizontal** modalities (strings, files, streams, bulk, verify, progress, the `Hash`
+value object, algorithm catalogue & metadata) and **vertical** feature families (HMAC,
+HKDF, PBKDF2, Argon2, structured/composite, tree, resumable, manifests & formats,
+observability, PSR-7, a custom algorithm catalogue, and the composition root).
+
+```bash
+php examples/00-quick-start.php
+php examples/horizontal/01-hash-strings.php
+php examples/vertical/20-hmac.php
+```
+
+See [`examples/README.md`](examples/README.md) for the full index and what each example
+demonstrates.
+
 ## Testing & quality gates
 
 ```bash
