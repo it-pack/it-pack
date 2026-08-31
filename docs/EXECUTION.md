@@ -478,6 +478,53 @@ External standards are adapters.
 
 ---
 
+# Tooling Standard
+
+Every it-pack package converges on one QA / tooling stack (see
+`docs/CONSOLIDATION_PLAN.md`):
+
+- **Tests:** Codeception (the `Unit` suite subclasses `PHPUnit\Framework\TestCase`).
+- **Architecture / dependency verification:** phparkitect (replaces deptrac).
+- **Dev baseline:** `just-bases/*` for phpstan / php-cs-fixer / infection pins.
+- **Shared templates:** `tools/qa/` holds the canonical configs that every
+  package copies or includes.
+
+## QA lane contract
+
+Every package with source code exposes these composer scripts (the lead
+packages already do; migrants align to them):
+
+| Script | Command | Notes |
+|---|---|---|
+| `test` | `vendor/bin/codecept run` | All suites. |
+| `test:unit` | `vendor/bin/codecept run Unit` | Fast dev-loop subset. |
+| `cs:check` | `vendor/bin/php-cs-fixer fix --dry-run --diff` | |
+| `cs:fix` | `vendor/bin/php-cs-fixer fix` | |
+| `analyse` | `vendor/bin/phpstan analyse` | |
+| `architecture` | `vendor/bin/phparkitect` | Replaces deptrac. |
+| `mutation` | `vendor/bin/infection --min-msi=<pkg-appropriate>` | Codeception adapter. |
+| `quality` | `cs:check` → `analyse` → `architecture` → `test` → `mutation` → `security:audit` | Single green gate. |
+
+Optional but encouraged: `security:audit` (`composer audit --abandoned=report`),
+`lint:length`, `lint:types`.
+
+## Architecture rules
+
+The hexagonal layer contract and the "ports-not-imports" doctrine are encoded
+in shared phparkitect helpers (`tools/qa/phparkitect/`):
+
+- `layeredArchitecture($root, $components, $dependencies)` — builds the standard
+  Domain / Contract / Application / SDK / Adapter layer rules.
+- `forbidSibling($namespace, $forbiddenPrefix, $because)` — forbids a namespace
+  from importing a sibling (e.g. a consumer's `Core` must not import
+  `ItPack\RunIt\*`; RunIt is wired in via a bridge package instead).
+
+RunIt is the base execution layer. Consumers must not import `ItPack\RunIt\*`
+directly; they depend on it through a bridge package (`it-pack/run-it-<consumer>`
+or `<consumer>-run-it`).
+
+---
+
 # Vision
 
 Execution becomes the semantic backbone of the It_Pack ecosystem.

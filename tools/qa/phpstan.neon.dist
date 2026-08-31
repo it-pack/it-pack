@@ -1,0 +1,17 @@
+# Base PHPStan configuration for it-pack packages.
+#
+# Copy or `includes:` this from a package's phpstan.neon(.dist). Packages may
+# extend it (add `paths`, extra `includes`, or package-specific `ignoreErrors`),
+# but the level and the strict-analysis posture below are the monorepo standard.
+#
+# Shared across the monorepo by docs/CONSOLIDATION_PLAN.md (Phase 0).
+parameters:
+    tmpDir: var/cache/phpstan
+    level: max
+    paths:
+        - ./src
+        - ./tests
+    parallel:
+        maximumNumberOfProcesses: 1
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors: []
