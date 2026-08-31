@@ -9,7 +9,7 @@ use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\AlgorithmSource\CompositeAlgorithmSource;
 use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
-use ItPack\HashIt\AlgorithmSourceInterface;
+use ItPack\HashIt\Contract\AlgorithmSourceInterface;
 use ItPack\HashIt\HashAlgorithm;
 
 class AlgorithmSourceTest extends Unit

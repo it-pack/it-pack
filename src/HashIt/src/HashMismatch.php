@@ -11,8 +11,8 @@ final readonly class HashMismatch
 {
     public function __construct(
         public string $path,
-        public HashInterface $expected,
-        public HashInterface $actual,
+        public \ItPack\HashIt\Contract\HashInterface $expected,
+        public \ItPack\HashIt\Contract\HashInterface $actual,
     ) {
     }
 }

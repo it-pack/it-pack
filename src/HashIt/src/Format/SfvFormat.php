@@ -15,7 +15,7 @@ use ItPack\HashIt\HashManifest;
  * `# algorithm <value>` comment header (defaulting to SHA-256 when absent). Paths
  * must not contain whitespace (SFV convention).
  */
-final class SfvFormat implements ManifestFormatInterface
+final class SfvFormat implements \ItPack\HashIt\Contract\ManifestFormatInterface
 {
     public function serialize(HashManifest $manifest): string
     {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 /**
  * A structured hashing input. Implementations write their canonical (framed)

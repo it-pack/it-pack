@@ -6,8 +6,8 @@ namespace Tests\Unit;
 
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\HashProgressInterface;
 use ItPack\HashIt\HashProgress;
-use ItPack\HashIt\HashProgressInterface;
 
 class HashProgressTest extends Unit
 {

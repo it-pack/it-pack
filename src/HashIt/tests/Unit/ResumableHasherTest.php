@@ -6,14 +6,14 @@ namespace ItPack\HashIt\Tests\Unit;
 
 use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\ResumableHashingInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\ResumableHashingInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @covers \ItPack\HashIt\ResumableHasher
  * @covers \ItPack\HashIt\ResumableHash
- * @covers \ItPack\HashIt\ResumableHashingInterface
+ * @covers \ItPack\HashIt\Contract\ResumableHashingInterface
  */
 final class ResumableHasherTest extends TestCase
 {

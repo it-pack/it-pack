@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 use InvalidArgumentException;
+use ItPack\HashIt\HashAlgorithm;
 
 /**
  * Pausable (resumable) hashing. Begin a streaming hash with {@see self::start()}

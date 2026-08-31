@@ -7,7 +7,7 @@ namespace Tests\Unit\Adapter;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeArgon2;
 use ItPack\HashIt\Adapter\NativeHashIt;
-use ItPack\HashIt\Argon2Interface;
+use ItPack\HashIt\Contract\Argon2Interface;
 
 class NativeArgon2Test extends Unit
 {

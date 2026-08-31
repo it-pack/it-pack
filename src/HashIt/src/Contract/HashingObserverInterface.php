@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
+
+use ItPack\HashIt\HashObservation;
 
 /**
  * Core-owned observability port. Adapters (OpenTelemetry, CloudEvents) implement

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\Test\Unit\Format;
 
-use ItPack\HashIt\Format\ManifestFormatInterface;
+use ItPack\HashIt\Contract\ManifestFormatInterface;
 use ItPack\HashIt\Format\SfvFormat;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;

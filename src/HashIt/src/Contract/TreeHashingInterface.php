@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 use InvalidArgumentException;
+use ItPack\HashIt\HashAlgorithm;
 
 /**
  * Tree (chunked) hashing — split a large input into fixed-size chunks, hash each

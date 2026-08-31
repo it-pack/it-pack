@@ -143,9 +143,9 @@ Completion note (2026-08-29):** Implemented as specced. `HashInterface` gained `
 
 **Tasks:**
 1. Add `config/services.php` returning a definition array mapping:
-   - `ItPack\HashIt\HasherInterface` → `ItPack\HashIt\Adapter\NativeHashIt::create()`
-   - `ItPack\HashIt\KeyedHasherInterface` → `NativeHashIt::keyedHasher()`
-   - `ItPack\HashIt\HmacHasherInterface` → `NativeHashIt::hmacHasher()`
+   - `ItPack\HashIt\Contract\HasherInterface` → `ItPack\HashIt\Adapter\NativeHashIt::create()`
+   - `ItPack\HashIt\Contract\KeyedHasherInterface` → `NativeHashIt::keyedHasher()`
+   - `ItPack\HashIt\Contract\HmacHasherInterface` → `NativeHashIt::hmacHasher()`
    (Symfony/PHP-DI both consume such arrays; keep it framework-agnostic.)
 2. Optional: a thin `HashItBundle` for Symfony that loads `config/services.php`.
 3. Documentation only — no core API change.

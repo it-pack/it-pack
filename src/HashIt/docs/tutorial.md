@@ -94,7 +94,7 @@ $hasher->verify('abcd', $expected); // false
 **Goal:** show a progress bar while hashing a large stream or many files.
 
 ```php
-use ItPack\HashIt\HashProgressInterface;
+use ItPack\HashIt\Contract\HashProgressInterface;
 
 $progress = new class implements HashProgressInterface {
     public function onBytes(int $processed, ?int $total): void {

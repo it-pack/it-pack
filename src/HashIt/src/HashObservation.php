@@ -9,7 +9,7 @@ use Throwable;
 /**
  * Immutable observation emitted by the hashers for each hashing operation.
  *
- * Adapters (OpenTelemetry, CloudEvents, ...) implement {@see HashingObserverInterface}
+ * Adapters (OpenTelemetry, CloudEvents, ...) implement {@see \ItPack\HashIt\Contract\HashingObserverInterface}
  * and pair the lifecycle events through the correlation {@see self::$id}.
  */
 final class HashObservation

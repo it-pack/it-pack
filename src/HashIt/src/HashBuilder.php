@@ -8,17 +8,17 @@ namespace ItPack\HashIt;
  * Immutable incremental hashing builder. Each append returns a new builder with
  * a copied context, so the original is never mutated — safe to share and reuse.
  */
-final readonly class HashBuilder implements HashSinkInterface
+final readonly class HashBuilder implements \ItPack\HashIt\Contract\HashSinkInterface
 {
     private function __construct(
-        private HashContextInterface $context,
+        private \ItPack\HashIt\Contract\HashContextInterface $context,
         private string               $algorithm,
         private bool                 $binary,
     ) {
     }
 
     public static function start(
-        ContextFactoryInterface $factory,
+        \ItPack\HashIt\Contract\ContextFactoryInterface $factory,
         string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
         bool $binary = false,
     ): self {
@@ -29,11 +29,11 @@ final readonly class HashBuilder implements HashSinkInterface
 
     /**
      * Start from a context that has already been initialized (e.g. a keyed HMAC
-     * context from {@see KeyedContextFactoryInterface}), so callers can feed the
+     * context from {@see \ItPack\HashIt\Contract\KeyedContextFactoryInterface}), so callers can feed the
      * immutable builder without re-deriving the algorithm configuration.
      */
     public static function fromContext(
-        HashContextInterface $context,
+        \ItPack\HashIt\Contract\HashContextInterface $context,
         string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
         bool $binary = false,
     ): self {
@@ -50,7 +50,7 @@ final readonly class HashBuilder implements HashSinkInterface
         return new self($next, $this->algorithm, $this->binary);
     }
 
-    public function digest(): HashInterface
+    public function digest(): \ItPack\HashIt\Contract\HashInterface
     {
         return new Hash($this->context->copy()->finalize($this->binary), $this->algorithm, $this->binary);
     }

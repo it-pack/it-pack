@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\HashIt;
 
 /**
- * Convenience no-framework implementation of {@see HashProgressInterface}: adapt
+ * Convenience no-framework implementation of {@see \ItPack\HashIt\Contract\HashProgressInterface}: adapt
  * any callable into a progress sink. Useful for tests and quick adapters.
  *
  * @final
  */
-final class HashProgress implements HashProgressInterface
+final class HashProgress implements \ItPack\HashIt\Contract\HashProgressInterface
 {
     /**
      * @param callable(int $processed, ?int $total): void $callback

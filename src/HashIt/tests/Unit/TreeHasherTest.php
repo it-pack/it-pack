@@ -6,17 +6,17 @@ namespace ItPack\HashIt\Tests\Unit;
 
 use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\TreeHashingInterface;
 use ItPack\HashIt\Filepath;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashInput\FileInput;
 use ItPack\HashIt\HashInput\StreamInput;
 use ItPack\HashIt\HashInput\StringInput;
-use ItPack\HashIt\TreeHashingInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @covers \ItPack\HashIt\TreeHasher
- * @covers \ItPack\HashIt\TreeHashingInterface
+ * @covers \ItPack\HashIt\Contract\TreeHashingInterface
  */
 final class TreeHasherTest extends TestCase
 {

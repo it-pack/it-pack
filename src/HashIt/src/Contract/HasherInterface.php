@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 use InvalidArgumentException;
+use ItPack\HashIt\HashAlgorithm;
 use RuntimeException;
 
 interface HasherInterface
@@ -54,7 +55,7 @@ interface HasherInterface
 
     /**
      * The algorithm catalogue this hasher was composed with (extensible via a
-     * custom {@see \ItPack\HashIt\AlgorithmSourceInterface}).
+     * custom {@see \ItPack\HashIt\Contract\AlgorithmSourceInterface}).
      *
      * @return list<HashAlgorithm>
      */

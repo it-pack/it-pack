@@ -6,11 +6,11 @@ namespace ItPack\HashIt\Adapter;
 
 use InvalidArgumentException;
 use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
-use ItPack\HashIt\AlgorithmSourceInterface;
+use ItPack\HashIt\Contract\AlgorithmSourceInterface;
+use ItPack\HashIt\Contract\HashInterface;
+use ItPack\HashIt\Contract\HmacHasherInterface;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\HashInterface;
-use ItPack\HashIt\HmacHasherInterface;
 
 final readonly class NativeHmacHasher implements HmacHasherInterface
 {

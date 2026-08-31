@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\Adapter;
 
-use ItPack\HashIt\AlgorithmSourceInterface;
-use ItPack\HashIt\Argon2Interface;
+use ItPack\HashIt\Contract\AlgorithmSourceInterface;
+use ItPack\HashIt\Contract\Argon2Interface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HashingObserverInterface;
+use ItPack\HashIt\Contract\HmacHasherInterface;
+use ItPack\HashIt\Contract\KeyDerivationInterface;
+use ItPack\HashIt\Contract\KeyedHasherInterface;
+use ItPack\HashIt\Contract\Pbkdf2Interface;
+use ItPack\HashIt\Contract\ResumableHashingInterface;
+use ItPack\HashIt\Contract\TreeHashingInterface;
 use ItPack\HashIt\Hasher;
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HashingObserverInterface;
-use ItPack\HashIt\HmacHasherInterface;
 use ItPack\HashIt\KeyDerivation\Hkdf;
-use ItPack\HashIt\KeyDerivationInterface;
 use ItPack\HashIt\KeyedHasher;
-use ItPack\HashIt\KeyedHasherInterface;
-use ItPack\HashIt\Pbkdf2Interface;
 use ItPack\HashIt\ResumableHasher;
-use ItPack\HashIt\ResumableHashingInterface;
 use ItPack\HashIt\TreeHasher;
-use ItPack\HashIt\TreeHashingInterface;
 
 /**
  * Composition root: binds the native (PHP hash extension) adapters into the

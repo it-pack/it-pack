@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\HashInput;
 
-use ItPack\HashIt\FilepathInterface;
-use ItPack\HashIt\HashInputInterface;
-use ItPack\HashIt\HashSinkInterface;
+use ItPack\HashIt\Contract\FilepathInterface;
+use ItPack\HashIt\Contract\HashInputInterface;
+use ItPack\HashIt\Contract\HashSinkInterface;
 use RuntimeException;
 
 final readonly class FileInput implements HashInputInterface

@@ -7,7 +7,7 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
-use ItPack\HashIt\HashingObserverInterface;
+use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\HashObservation;
 use ItPack\HashIt\HashOperation;
 use RuntimeException;

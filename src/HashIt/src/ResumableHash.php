@@ -6,14 +6,14 @@ namespace ItPack\HashIt;
 
 /**
  * Mutable, in-progress hash handle returned by
- * {@see ResumableHashingInterface::start()} and rebuilt by
- * {@see ResumableHashingInterface::resume()}. Not readonly: {@see self::update()}
+ * {@see \ItPack\HashIt\Contract\ResumableHashingInterface::start()} and rebuilt by
+ * {@see \ItPack\HashIt\Contract\ResumableHashingInterface::resume()}. Not readonly: {@see self::update()}
  * and {@see self::checkpoint()} mutate / snapshot the underlying context.
  */
-final readonly class ResumableHash implements ResumableHashInterface
+final readonly class ResumableHash implements \ItPack\HashIt\Contract\ResumableHashInterface
 {
     public function __construct(
-        private HashContextInterface $context,
+        private \ItPack\HashIt\Contract\HashContextInterface $context,
         private string               $algorithm,
         private bool                 $binary,
     ) {
@@ -31,7 +31,7 @@ final readonly class ResumableHash implements ResumableHashInterface
         return serialize(['algorithm' => $this->algorithm, 'binary' => $this->binary, 'state' => $state]);
     }
 
-    public function finalize(): HashInterface
+    public function finalize(): \ItPack\HashIt\Contract\HashInterface
     {
         return new Hash($this->context->finalize($this->binary), $this->algorithm, $this->binary);
     }

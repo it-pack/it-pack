@@ -15,7 +15,7 @@ use ItPack\HashIt\HashManifest;
  * is fixed to SHA256 — this format has no algorithm field — so serializing a
  * manifest with any other algorithm is rejected, and parsing always yields SHA256.
  */
-final class GnuSha256Format implements ManifestFormatInterface
+final class GnuSha256Format implements \ItPack\HashIt\Contract\ManifestFormatInterface
 {
     public function serialize(HashManifest $manifest): string
     {

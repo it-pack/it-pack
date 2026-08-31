@@ -88,7 +88,7 @@ is intentionally out of scope here** and belongs with the dedicated formatters (
 ### Observability
 
 The hashers can emit a structured event stream through the core
-`ItPack\HashIt\HashingObserverInterface` port, without the core depending on any
+`ItPack\HashIt\Contract\HashingObserverInterface` port, without the core depending on any
 observability SDK. Inject an observer via the composition root and it receives a
 `HashObservation` (`started` → `progress` → `completed`/`failed`) for every operation,
 each carrying a correlation `id` so an adapter can pair a span's start with its end:

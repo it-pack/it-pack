@@ -6,8 +6,8 @@ namespace ItPack\HashIt\Test\Unit;
 
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\HasherInterface;
 use ItPack\HashIt\HashManifest;
 use ItPack\HashIt\ManifestVerifier;
 use PHPUnit\Framework\TestCase;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Contract\HashContextInterface;
+use ItPack\HashIt\Contract\KeyedContextFactoryInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\HashContextInterface;
-use ItPack\HashIt\KeyedContextFactoryInterface;
 
 final readonly class NativeKeyedContextFactory implements KeyedContextFactoryInterface
 {

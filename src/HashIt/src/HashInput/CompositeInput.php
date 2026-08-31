@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\HashInput;
 
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HashInputInterface;
-use ItPack\HashIt\HashSinkInterface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HashInputInterface;
+use ItPack\HashIt\Contract\HashSinkInterface;
 
 /**
- * An ordered collection of {@see HashInputInterface} children, framed so that the
+ * An ordered collection of {@see \ItPack\HashIt\Contract\HashInputInterface} children, framed so that the
  * same logical sequence always digests identically regardless of how it was
  * assembled, while a different order (or different boundaries) digests differently.
  *
  * Framing: for each child, write an 8-byte little-endian unsigned length
- * ({@see HashInputInterface::FRAME_LENGTH_BYTES}) followed by the child's own
+ * ({@see \ItPack\HashIt\Contract\HashInputInterface::FRAME_LENGTH_BYTES}) followed by the child's own
  * framed bytes. Children are framed recursively, so nesting is canonical too.
  */
 final readonly class CompositeInput implements HashInputInterface
 {
     /**
-     * @param list<HashInputInterface> $children
+     * @param list<\ItPack\HashIt\Contract\HashInputInterface> $children
      */
     public function __construct(private array $children)
     {
@@ -46,7 +46,7 @@ final readonly class CompositeInput implements HashInputInterface
     }
 
     /**
-     * Encode $length as a {@see HashInputInterface::FRAME_LENGTH_BYTES}-byte
+     * Encode $length as a {@see \ItPack\HashIt\Contract\HashInputInterface::FRAME_LENGTH_BYTES}-byte
      * unsigned little-endian prefix. The constant is the single source of truth
      * for the frame width.
      */

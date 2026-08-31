@@ -8,10 +8,10 @@ use InvalidArgumentException;
 use ItPack\HashIt\HashInput\TempSink;
 
 /**
- * Reference implementation of {@see TreeHashingInterface}.
+ * Reference implementation of {@see \ItPack\HashIt\Contract\TreeHashingInterface}.
  *
  * Scheme (see docs/ADR-0001-tree-hash-combiner.md):
- *   1. Capture $input's raw bytes via {@see HashInputInterface::writeTo} into a
+ *   1. Capture $input's raw bytes via {@see \ItPack\HashIt\Contract\HashInputInterface::writeTo} into a
  *      rewindable {@see TempSink}, then read them back in $chunkSize windows.
  *   2. Each leaf = raw binary digest H(chunk) (outputBits/8 bytes).
  *   3. Combine leaves pairwise: node = H( frame(left) || frame(right) ), where
@@ -21,20 +21,20 @@ use ItPack\HashIt\HashInput\TempSink;
  *   4. A single chunk returns the plain hash() (hex), so treeHash is a strict
  *      generalization of hash().
  *
- * Built only with {@see HashBuilder} and {@see HashInputInterface} framing
+ * Built only with {@see HashBuilder} and {@see \ItPack\HashIt\Contract\HashInputInterface} framing
  * (NF-B3); the core depends on nothing but itself (deptrac-clean).
  */
-final readonly class TreeHasher implements TreeHashingInterface
+final readonly class TreeHasher implements \ItPack\HashIt\Contract\TreeHashingInterface
 {
-    public function __construct(private ContextFactoryInterface $factory)
+    public function __construct(private \ItPack\HashIt\Contract\ContextFactoryInterface $factory)
     {
     }
 
     public function treeHash(
-        HashInputInterface $input,
-        int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
+        \ItPack\HashIt\Contract\HashInputInterface $input,
+        int $chunkSize = \ItPack\HashIt\Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
         string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
-    ): HashInterface {
+    ): \ItPack\HashIt\Contract\HashInterface {
         if ($chunkSize < 1) {
             throw new InvalidArgumentException('Chunk size must be at least 1 byte');
         }
@@ -92,14 +92,14 @@ final readonly class TreeHasher implements TreeHashingInterface
 
     /**
      * 8-byte unsigned little-endian length prefix (mirrors
-     * {@see HashInputInterface::FRAME_LENGTH_BYTES}).
+     * {@see \ItPack\HashIt\Contract\HashInputInterface::FRAME_LENGTH_BYTES}).
      */
     private function lengthPrefix(int $length): string
     {
         $bytes = '';
         $remaining = $length;
 
-        for ($i = 0; $i < HashInputInterface::FRAME_LENGTH_BYTES; $i++) {
+        for ($i = 0; $i < \ItPack\HashIt\Contract\HashInputInterface::FRAME_LENGTH_BYTES; $i++) {
             $bytes .= chr($remaining & 0xFF);
             $remaining >>= 8;
         }

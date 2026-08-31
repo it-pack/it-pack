@@ -10,17 +10,17 @@ use Random\RandomException;
 use RuntimeException;
 use Throwable;
 
-final readonly class Hasher implements HasherInterface
+final readonly class Hasher implements \ItPack\HashIt\Contract\HasherInterface
 {
     public function __construct(
-        private ContextFactoryInterface $factory,
-        private DirectoryListingInterface $listing,
-        private ?HashingObserverInterface $observer = null,
-        private ?AlgorithmSourceInterface $source = null,
+        private \ItPack\HashIt\Contract\ContextFactoryInterface $factory,
+        private \ItPack\HashIt\Contract\DirectoryListingInterface $listing,
+        private ?\ItPack\HashIt\Contract\HashingObserverInterface $observer = null,
+        private ?\ItPack\HashIt\Contract\AlgorithmSourceInterface $source = null,
     ) {
     }
 
-    public function hash(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
+    public function hash(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -39,7 +39,7 @@ final readonly class Hasher implements HasherInterface
         return $hash;
     }
 
-    public function hashBinary(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
+    public function hashBinary(string $data, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -58,7 +58,7 @@ final readonly class Hasher implements HasherInterface
         return $hash;
     }
 
-    public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
+    public function hashFile(\ItPack\HashIt\Contract\FilepathInterface $path, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -91,7 +91,7 @@ final readonly class Hasher implements HasherInterface
         return $hash;
     }
 
-    public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
+    public function verify(string $data, \ItPack\HashIt\Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -111,7 +111,7 @@ final readonly class Hasher implements HasherInterface
         return $match;
     }
 
-    public function verifyBinary(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
+    public function verifyBinary(string $data, \ItPack\HashIt\Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -131,7 +131,7 @@ final readonly class Hasher implements HasherInterface
         return $match;
     }
 
-    public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface
+    public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES, ?\ItPack\HashIt\Contract\HashProgressInterface $progress = null): \ItPack\HashIt\Contract\HashInterface
     {
         if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
             throw new InvalidArgumentException('hashStream() expects a stream resource');
@@ -180,7 +180,7 @@ final readonly class Hasher implements HasherInterface
         return $hash;
     }
 
-    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array
+    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?\ItPack\HashIt\Contract\HashProgressInterface $progress = null): array
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -210,7 +210,7 @@ final readonly class Hasher implements HasherInterface
         return $result;
     }
 
-    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array
+    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?\ItPack\HashIt\Contract\HashProgressInterface $progress = null): array
     {
         if (!is_dir($directory)) {
             throw new RuntimeException('Not a directory: ' . $directory);
@@ -249,7 +249,7 @@ final readonly class Hasher implements HasherInterface
         return $this->source()->resolve($identifier);
     }
 
-    public function hashInput(HashInputInterface $input, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
+    public function hashInput(\ItPack\HashIt\Contract\HashInputInterface $input, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -272,12 +272,12 @@ final readonly class Hasher implements HasherInterface
         return $hash;
     }
 
-    private function source(): AlgorithmSourceInterface
+    private function source(): \ItPack\HashIt\Contract\AlgorithmSourceInterface
     {
         return $this->source ?? new NativeAlgorithmSource();
     }
 
-    private function hashString(string $data, string|HashAlgorithm $algorithm, bool $binary): HashInterface
+    private function hashString(string $data, string|HashAlgorithm $algorithm, bool $binary): \ItPack\HashIt\Contract\HashInterface
     {
         $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
         $context = $this->factory->build($algorithm);
@@ -297,7 +297,7 @@ final readonly class Hasher implements HasherInterface
         return $size === false ? null : $size;
     }
 
-    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?HashInterface $hash): HashObservation
+    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?\ItPack\HashIt\Contract\HashInterface $hash): HashObservation
     {
         $durationMs = (int) round((hrtime(true) - $beginNs) / 1_000_000);
 
@@ -352,7 +352,7 @@ final readonly class Hasher implements HasherInterface
      * (so it can be walked twice); null for one-shot traversables whose total is
      * not known upfront.
      *
-     * @param iterable<FilepathInterface> $paths
+     * @param iterable<\ItPack\HashIt\Contract\FilepathInterface> $paths
      */
     private function iterableTotalBytes(iterable $paths): ?int
     {

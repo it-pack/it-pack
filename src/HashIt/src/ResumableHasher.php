@@ -7,29 +7,29 @@ namespace ItPack\HashIt;
 use InvalidArgumentException;
 
 /**
- * Reference implementation of {@see ResumableHashingInterface}, built only on the
- * {@see ContextFactoryInterface} port. Checkpoints are self-describing envelopes
+ * Reference implementation of {@see \ItPack\HashIt\Contract\ResumableHashingInterface}, built only on the
+ * {@see \ItPack\HashIt\Contract\ContextFactoryInterface} port. Checkpoints are self-describing envelopes
  * ({@see ResumableHash::checkpoint()}) carrying the algorithm + binary flag plus
  * the serialized native context; resume rebuilds the context through
- * {@see ContextFactoryInterface::restore()}.
+ * {@see \ItPack\HashIt\Contract\ContextFactoryInterface::restore()}.
  *
  * Core depends on nothing but itself (deptrac-clean). HMAC resumption is not
  * offered — the native HMAC context cannot be serialized (docs/ADR-0002).
  */
-final readonly class ResumableHasher implements ResumableHashingInterface
+final readonly class ResumableHasher implements \ItPack\HashIt\Contract\ResumableHashingInterface
 {
-    public function __construct(private ContextFactoryInterface $factory)
+    public function __construct(private \ItPack\HashIt\Contract\ContextFactoryInterface $factory)
     {
     }
 
-    public function start(string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, bool $binary = false): ResumableHashInterface
+    public function start(string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, bool $binary = false): \ItPack\HashIt\Contract\ResumableHashInterface
     {
         $name = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
 
         return new ResumableHash($this->factory->build($name), $name, $binary);
     }
 
-    public function resume(string $checkpoint): ResumableHashInterface
+    public function resume(string $checkpoint): \ItPack\HashIt\Contract\ResumableHashInterface
     {
         $decoded = $this->decode($checkpoint);
 

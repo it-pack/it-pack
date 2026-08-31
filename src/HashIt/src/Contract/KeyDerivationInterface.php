@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
+
+use ItPack\HashIt\HashAlgorithm;
 
 /**
  * Key derivation port, HKDF/PBKDF2-shaped: turn input keying material (plus an

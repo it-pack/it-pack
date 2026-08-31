@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\AlgorithmSource;
 
 use InvalidArgumentException;
-use ItPack\HashIt\AlgorithmSourceInterface;
+use ItPack\HashIt\Contract\AlgorithmSourceInterface;
 use ItPack\HashIt\HashAlgorithm;
 
 /**

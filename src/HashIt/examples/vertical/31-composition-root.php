@@ -8,7 +8,7 @@ use ItPack\HashIt\Adapter\NativeContextFactory;
 use ItPack\HashIt\Adapter\NativeDirectoryListing;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\HashObservation;
-use ItPack\HashIt\HashingObserverInterface;
+use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\Hasher;
 
 banner('Composition root — the hexagonal wiring lives in one place');

@@ -7,7 +7,7 @@ namespace Tests\Unit\Adapter\Observability;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\Observability\OtelHashingObserver;
-use ItPack\HashIt\HashingObserverInterface;
+use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\HashObservation;
 use ItPack\HashIt\HashOperation;
 use OpenTelemetry\API\Trace\SpanBuilderInterface;

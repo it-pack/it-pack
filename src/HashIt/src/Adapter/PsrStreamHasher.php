@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use InvalidArgumentException;
-use ItPack\HashIt\ContextFactoryInterface;
+use ItPack\HashIt\Contract\ContextFactoryInterface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HashInterface;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashBuilder;
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HashInterface;
 use Psr\Http\Message\StreamInterface;
 
 /**
@@ -19,7 +19,7 @@ use Psr\Http\Message\StreamInterface;
  * request body can be hashed *and* forwarded).
  *
  * SRI / base64 formatting of the resulting digest is OUT OF SCOPE here and lives
- * with the NF-C1 formatters — this adapter only produces a plain {@see HashInterface}.
+ * with the NF-C1 formatters — this adapter only produces a plain {@see \ItPack\HashIt\Contract\HashInterface}.
  */
 final class PsrStreamHasher
 {

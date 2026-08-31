@@ -34,8 +34,8 @@ class ServiceConfigTest extends Unit
         /** @var array<class-string, callable(): object> $services */
         $services = require __DIR__ . '/../../../config/services.php';
 
-        $hasher = $services[\ItPack\HashIt\HasherInterface::class]();
+        $hasher = $services[\ItPack\HashIt\Contract\HasherInterface::class]();
 
-        verify($hasher instanceof \ItPack\HashIt\HasherInterface)->true();
+        verify($hasher instanceof \ItPack\HashIt\Contract\HasherInterface)->true();
     }
 }

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use HashContext;
-use ItPack\HashIt\ContextFactoryInterface;
-use ItPack\HashIt\HashContextInterface;
+use ItPack\HashIt\Contract\ContextFactoryInterface;
+use ItPack\HashIt\Contract\HashContextInterface;
 
 final readonly class NativeContextFactory implements ContextFactoryInterface
 {

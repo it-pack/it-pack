@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit;
 
 use Codeception\Test\Unit;
+use ItPack\HashIt\Contract\HashInterface;
 use ItPack\HashIt\Hash;
-use ItPack\HashIt\HashInterface;
 
 class HashTest extends Unit
 {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\Adapter;
 
-use ItPack\HashIt\FilepathInterface;
+use ItPack\HashIt\Contract\FilepathInterface;
 use SplFileInfo;
 
 final readonly class NativeFilepathFileinfo implements FilepathInterface

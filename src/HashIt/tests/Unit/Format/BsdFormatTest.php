@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\Test\Unit\Format;
 
+use ItPack\HashIt\Contract\ManifestFormatInterface;
 use ItPack\HashIt\Format\BsdFormat;
-use ItPack\HashIt\Format\ManifestFormatInterface;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Config;
 
 use ItPack\HashIt\Adapter\NativeHashIt;
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HmacHasherInterface;
-use ItPack\HashIt\KeyedHasherInterface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HmacHasherInterface;
+use ItPack\HashIt\Contract\KeyedHasherInterface;
 
 /**
  * Framework-agnostic service wiring for the HashIt hashers.

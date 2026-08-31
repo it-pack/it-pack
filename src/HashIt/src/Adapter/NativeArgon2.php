@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\Adapter;
 
-use ItPack\HashIt\Argon2Interface;
+use ItPack\HashIt\Contract\Argon2Interface;
 
 /**
  * Native Argon2id adapter over the PHP {@see password_hash} / {@see password_verify}

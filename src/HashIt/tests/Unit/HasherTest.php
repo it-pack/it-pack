@@ -7,14 +7,14 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
-use ItPack\HashIt\ContextFactoryInterface;
-use ItPack\HashIt\DirectoryListingInterface;
-use ItPack\HashIt\FilepathInterface;
+use ItPack\HashIt\Contract\ContextFactoryInterface;
+use ItPack\HashIt\Contract\DirectoryListingInterface;
+use ItPack\HashIt\Contract\FilepathInterface;
+use ItPack\HashIt\Contract\HashContextInterface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HmacHasherInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\HashContextInterface;
 use ItPack\HashIt\Hasher;
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HmacHasherInterface;
 
 class HasherTest extends Unit
 {

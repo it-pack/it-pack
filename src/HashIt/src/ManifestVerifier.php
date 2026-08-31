@@ -8,14 +8,14 @@ use RuntimeException;
 
 /**
  * Verify a {@see HashManifest} against the filesystem by re-hashing each expected
- * path with the supplied hasher and comparing with {@see HashInterface::equals()}
+ * path with the supplied hasher and comparing with {@see \ItPack\HashIt\Contract\HashInterface::equals()}
  * (constant time). Logic lives in the core; the text (de)serialization of manifests
  * is deliberately out of scope here and lives in the walled {@see \ItPack\HashIt\Format}
  * namespace (roadmap guardrail #7).
  */
 final class ManifestVerifier
 {
-    public function verify(HashManifest $expected, HasherInterface $hasher): VerificationReport
+    public function verify(HashManifest $expected, \ItPack\HashIt\Contract\HasherInterface $hasher): VerificationReport
     {
         $matched = [];
         $mismatched = [];

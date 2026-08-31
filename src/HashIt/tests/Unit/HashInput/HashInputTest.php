@@ -6,13 +6,13 @@ namespace ItPack\HashIt\Test\Unit;
 
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HashInputInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\HasherInterface;
 use ItPack\HashIt\HashInput\CompositeInput;
 use ItPack\HashIt\HashInput\FileInput;
 use ItPack\HashIt\HashInput\StreamInput;
 use ItPack\HashIt\HashInput\StringInput;
-use ItPack\HashIt\HashInputInterface;
 use PHPUnit\Framework\TestCase;
 
 use function verify;

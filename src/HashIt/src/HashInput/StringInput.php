@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\HashInput;
 
-use ItPack\HashIt\HashInputInterface;
-use ItPack\HashIt\HashSinkInterface;
+use ItPack\HashIt\Contract\HashInputInterface;
+use ItPack\HashIt\Contract\HashSinkInterface;
 
 final readonly class StringInput implements HashInputInterface
 {

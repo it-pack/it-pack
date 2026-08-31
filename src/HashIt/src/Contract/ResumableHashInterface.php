@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 /**
  * An in-progress, pausable hash. Produced by

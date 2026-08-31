@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace ItPack\HashIt\KeyDerivation;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Contract\KeyDerivationInterface;
+use ItPack\HashIt\Contract\KeyedHasherInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\KeyDerivationInterface;
-use ItPack\HashIt\KeyedHasherInterface;
 
 /**
  * RFC 5869 HKDF (Extract-and-Expand) built solely on the HMAC surface exposed by
- * {@see KeyedHasherInterface}, so it lives in core and never touches a native
+ * {@see \ItPack\HashIt\Contract\KeyedHasherInterface}, so it lives in core and never touches a native
  * hashing extension directly.
  *
  *   Extract:  PRK = HMAC-Hash(salt, IKM)

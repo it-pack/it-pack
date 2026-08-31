@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 /**
  * Progress sink for streaming / bulk hashing operations. Implemented by callers

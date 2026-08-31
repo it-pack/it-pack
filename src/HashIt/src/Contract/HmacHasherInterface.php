@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
+
+use ItPack\HashIt\HashAlgorithm;
 
 interface HmacHasherInterface
 {
@@ -10,7 +12,7 @@ interface HmacHasherInterface
 
     /**
      * The algorithm catalogue this hasher was composed with (extensible via a
-     * custom {@see \ItPack\HashIt\AlgorithmSourceInterface}).
+     * custom {@see \ItPack\HashIt\Contract\AlgorithmSourceInterface}).
      *
      * @return list<HashAlgorithm>
      */

@@ -8,7 +8,7 @@ use CloudEvents\Exceptions\UnsupportedSpecVersionException;
 use CloudEvents\Serializers\JsonSerializer;
 use CloudEvents\V1\CloudEventImmutable;
 use CloudEvents\V1\CloudEventInterface;
-use ItPack\HashIt\HashingObserverInterface;
+use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\HashObservation;
 use LogicException;
 use Nyholm\Psr7\Request;
@@ -18,7 +18,7 @@ use Random\RandomException;
 use Throwable;
 
 /**
- * CNCF CloudEvents emitter adapter for the core {@see HashingObserverInterface} port.
+ * CNCF CloudEvents emitter adapter for the core {@see \ItPack\HashIt\Contract\HashingObserverInterface} port.
  *
  * On each `completed` / `failed` observation it builds a standards-shaped CloudEvent
  * (spec 1.0) carrying the hashing result or failure as structured JSON `data`, then

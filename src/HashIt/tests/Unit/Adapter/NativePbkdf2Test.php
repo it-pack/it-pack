@@ -8,8 +8,8 @@ use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\NativePbkdf2;
+use ItPack\HashIt\Contract\Pbkdf2Interface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\Pbkdf2Interface;
 
 class NativePbkdf2Test extends Unit
 {

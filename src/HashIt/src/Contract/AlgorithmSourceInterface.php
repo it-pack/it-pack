@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 use InvalidArgumentException;
+use ItPack\HashIt\HashAlgorithm;
 
 /**
  * Algorithm *discovery* port — a queryable catalogue of the algorithms a given

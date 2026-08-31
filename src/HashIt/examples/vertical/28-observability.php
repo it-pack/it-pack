@@ -9,7 +9,7 @@ use ItPack\HashIt\Adapter\Observability\CloudEventsHashingObserver;
 use ItPack\HashIt\Adapter\Observability\OtelHashingObserver;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashObservation;
-use ItPack\HashIt\HashingObserverInterface;
+use ItPack\HashIt\Contract\HashingObserverInterface;
 
 banner('Observability — plug a listener into every hashing operation');
 

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
+
+use ItPack\HashIt\HashAlgorithm;
 
 /**
  * Builds an incremental HMAC context for one algorithm/key pair.

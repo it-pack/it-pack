@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace ItPack\HashIt\HashInput;
 
 use InvalidArgumentException;
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HashInputInterface;
-use ItPack\HashIt\HashSinkInterface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HashInputInterface;
+use ItPack\HashIt\Contract\HashSinkInterface;
 
 final class StreamInput implements HashInputInterface
 {

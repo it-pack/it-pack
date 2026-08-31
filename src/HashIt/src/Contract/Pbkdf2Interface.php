@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
+
+use ItPack\HashIt\HashAlgorithm;
 
 /**
  * Password-based key derivation port (PBKDF2 shape). Unlike HKDF this is

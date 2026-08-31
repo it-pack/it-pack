@@ -8,10 +8,10 @@ use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\NativeKeyedContextFactory;
+use ItPack\HashIt\Contract\HashContextInterface;
+use ItPack\HashIt\Contract\HashInterface;
+use ItPack\HashIt\Contract\KeyedHasherInterface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\HashContextInterface;
-use ItPack\HashIt\HashInterface;
-use ItPack\HashIt\KeyedHasherInterface;
 
 class KeyedHasherTest extends Unit
 {

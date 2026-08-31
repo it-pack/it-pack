@@ -284,7 +284,7 @@ Pass a `HashProgressInterface` (one method: `onBytes(int $processed, ?int $total
 total means "unknown length" (e.g. a live stream).
 
 ```php
-$progress = new class implements \ItPack\HashIt\HashProgressInterface {
+$progress = new class implements \ItPack\HashIt\Contract\HashProgressInterface {
     public function onBytes(int $processed, ?int $total): void {
         printf("%.1f%%\n", $total === null ? NAN : 100 * $processed / $total);
     }
@@ -564,7 +564,7 @@ policy at the type level — e.g. "only recommended algorithms" — and inject i
 factory via the `$source` argument:
 
 ```php
-final class RecommendedOnlySource implements \ItPack\HashIt\AlgorithmSourceInterface
+final class RecommendedOnlySource implements \ItPack\HashIt\Contract\AlgorithmSourceInterface
 {
     public function algorithms(): array { return HashAlgorithm::recommendedAlgorithms(); }
     public function supports(string $id): bool { /* … */ }

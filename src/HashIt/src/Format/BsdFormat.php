@@ -14,7 +14,7 @@ use ItPack\HashIt\HashManifest;
  * `SHA256 (file.txt) = <hex>`. The algorithm is carried in the prefix, so any
  * supported algorithm round-trips (not just SHA-256).
  */
-final class BsdFormat implements ManifestFormatInterface
+final class BsdFormat implements \ItPack\HashIt\Contract\ManifestFormatInterface
 {
     public function serialize(HashManifest $manifest): string
     {

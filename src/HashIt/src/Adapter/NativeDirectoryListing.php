@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use DirectoryIterator;
-use ItPack\HashIt\DirectoryListingInterface;
-use ItPack\HashIt\FilepathInterface;
+use ItPack\HashIt\Contract\DirectoryListingInterface;
+use ItPack\HashIt\Contract\FilepathInterface;
 
 final readonly class NativeDirectoryListing implements DirectoryListingInterface
 {

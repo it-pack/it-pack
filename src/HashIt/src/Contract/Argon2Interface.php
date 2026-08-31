@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\HashIt;
+namespace ItPack\HashIt\Contract;
 
 /**
  * Argon2 port. Argon2 is verify-oriented rather than derive-shaped: it folds the

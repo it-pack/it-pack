@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Contract\Pbkdf2Interface;
 use ItPack\HashIt\HashAlgorithm;
-use ItPack\HashIt\Pbkdf2Interface;
 
 /**
  * Native PBKDF2 adapter over the PHP {@see hash_pbkdf2()} extension function.

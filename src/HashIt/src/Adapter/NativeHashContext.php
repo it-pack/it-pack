@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use HashContext;
-use ItPack\HashIt\HashContextInterface;
+use ItPack\HashIt\Contract\HashContextInterface;
 
 final readonly class NativeHashContext implements HashContextInterface
 {

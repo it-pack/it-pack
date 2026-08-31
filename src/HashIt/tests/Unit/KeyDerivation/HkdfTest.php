@@ -7,9 +7,9 @@ namespace Tests\Unit\KeyDerivation;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\KeyDerivationInterface;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\KeyDerivation\Hkdf;
-use ItPack\HashIt\KeyDerivationInterface;
 
 class HkdfTest extends Unit
 {

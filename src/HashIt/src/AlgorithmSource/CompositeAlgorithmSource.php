@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\AlgorithmSource;
 
 use InvalidArgumentException;
-use ItPack\HashIt\AlgorithmSourceInterface;
+use ItPack\HashIt\Contract\AlgorithmSourceInterface;
 use ItPack\HashIt\HashAlgorithm;
 
 /**
@@ -16,7 +16,7 @@ use ItPack\HashIt\HashAlgorithm;
 final readonly class CompositeAlgorithmSource implements AlgorithmSourceInterface
 {
     /**
-     * @param iterable<AlgorithmSourceInterface> $sources
+     * @param iterable<\ItPack\HashIt\Contract\AlgorithmSourceInterface> $sources
      */
     public function __construct(
         private iterable $sources,
