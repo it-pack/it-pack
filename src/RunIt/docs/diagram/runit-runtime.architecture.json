@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "RunIt Runtime Architecture",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "viewBox": [920, 700],
+    "views": [
+      {
+        "id": "request-path",
+        "label": "Primary execution path",
+        "focus": ["consumer", "runner", "engine", "lifecycle", "scope", "recorders", "domain"],
+        "note": "A consumer's run() flows through the runner, engine, and lifecycle into the immutable domain."
+      },
+      {
+        "id": "publication",
+        "label": "Artifact publication & adapters",
+        "focus": ["lifecycle", "publication", "ports", "adapters", "external"],
+        "note": "Lifecycle artifacts leave the core through ports to optional external adapters."
+      }
+    ]
+  },
+  "components": [
+    { "id": "consumer", "type": "external", "label": "Consumer", "sublabel": "App / SDK caller", "pos": [30, 100], "size": [130, 60] },
+    { "id": "runner", "type": "backend", "label": "Execution Runner", "sublabel": "DefaultExecutionRunner", "pos": [186, 100], "size": [150, 60] },
+    { "id": "engine", "type": "backend", "label": "Execution Engine", "sublabel": "SyncExecutionEngine", "pos": [362, 100], "size": [150, 60] },
+    { "id": "lifecycle", "type": "backend", "label": "Lifecycle Coordinator", "sublabel": "state machine", "pos": [538, 100], "size": [150, 60] },
+    { "id": "scope", "type": "backend", "label": "Execution Scope", "sublabel": "Execution & Activity", "pos": [714, 100], "size": [150, 60] },
+    { "id": "context", "type": "backend", "label": "Context Propagation", "sublabel": "Context storage & current", "pos": [362, 250], "size": [160, 60] },
+    { "id": "publication", "type": "backend", "label": "Publication Pipeline", "sublabel": "validate → sample → route", "pos": [538, 250], "size": [168, 60] },
+    { "id": "external", "type": "cloud", "label": "Vendor Runtime", "sublabel": "OTel · CloudEvents · Swoole", "pos": [30, 440], "size": [160, 64] },
+    { "id": "adapters", "type": "external", "label": "Adapters", "sublabel": "OTel · CloudEvents · PSR", "pos": [216, 440], "size": [170, 64] },
+    { "id": "ports", "type": "backend", "label": "Ports", "sublabel": "6 vendor-neutral ports", "pos": [538, 440], "size": [168, 64] },
+    { "id": "recorders", "type": "backend", "label": "Recorders", "sublabel": "4 artifact recorders", "pos": [714, 440], "size": [150, 64] },
+    { "id": "domain", "type": "backend", "label": "Domain Model", "sublabel": "Execution root aggregate", "pos": [714, 580], "size": [168, 64] }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "RunIt core — first-party, trusted",
+      "wraps": ["runner", "engine", "lifecycle", "scope", "context", "publication", "ports", "recorders", "domain"],
+      "pad": 26
+    },
+    {
+      "kind": "security-group",
+      "label": "External integration trust boundary",
+      "wraps": ["adapters", "external"],
+      "pad": 22
+    }
+  ],
+  "connections": [
+    { "id": "c1", "from": "consumer", "to": "runner", "label": "runner.run()", "variant": "emphasis", "labelAt": [173, 178] },
+    { "id": "c2", "from": "runner", "to": "engine", "label": "orchestrate", "labelAt": [349, 178] },
+    { "id": "c3", "from": "engine", "to": "lifecycle", "label": "state transition", "labelAt": [525, 178] },
+    { "id": "c4", "from": "lifecycle", "to": "scope", "label": "provide scope", "labelAt": [701, 178] },
+    { "id": "c5", "from": "scope", "to": "recorders", "label": "operation records", "fromSide": "bottom", "toSide": "top", "labelAt": [770, 300] },
+    { "id": "c6", "from": "recorders", "to": "domain", "label": "attach artifacts", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [785, 542] },
+    { "id": "c7", "from": "lifecycle", "to": "publication", "label": "publish artifacts", "fromSide": "bottom", "toSide": "top", "labelAt": [630, 200] },
+    { "id": "c8", "from": "publication", "to": "ports", "label": "via port", "fromSide": "bottom", "toSide": "top", "labelAt": [720, 330] },
+    { "id": "c9", "from": "ports", "to": "adapters", "label": "implement", "labelAt": [462, 490] },
+    { "id": "c10", "from": "adapters", "to": "external", "label": "vendor SDK", "labelAt": [203, 530] },
+    { "id": "c11", "from": "engine", "to": "context", "label": "propagate", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [330, 200] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Execution model",
+      "items": [
+        "Execution is the root aggregate; every artifact belongs to exactly one execution",
+        "Six immutable artifacts: Context, Activity, Measurement, Observation, Occurrence, Snapshot",
+        "Terminal states: SUCCEEDED · FAILED · CANCELLED · TIMED_OUT"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Publication pipeline",
+      "items": [
+        "Stages: validate → enrich → classify → redact → sample → route → publish",
+        "Redact secrets before external export; fail-open default with fallback reporting",
+        "Recursion guard prevents self-instrumentation loops"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Ports (vendor-neutral effects)",
+      "items": [
+        "MonotonicClock, IdentifierGenerator, Serializer",
+        "ContextStorage, ArtifactPublisher, SnapshotStore, SnapshotSigner",
+        "Adapters implement ports; domain/app depend only on the port, never the adapter (ADR-006/010)"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Context & propagation",
+      "items": [
+        "Context is immutable; changes produce a new context",
+        "Secrets are never exported (deny-by-default classification)",
+        "Per-call / per-Fiber / per-coroutine storage; restored in finally"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Security & trust",
+      "items": [
+        "Domain is the trusted center; external adapters sit at the edge",
+        "Cardinality bounds and payload size limits on artifacts",
+        "Original business exception has priority over adapter failures"
+      ]
+    }
+  ]
+}
