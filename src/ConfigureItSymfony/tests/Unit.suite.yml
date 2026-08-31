@@ -1,0 +1,7 @@
+# Codeception Unit suite — scans the flat tests/ tree.
+path: .
+actor: UnitTester
+modules:
+    enabled:
+        - Asserts
+step_decorators: ~

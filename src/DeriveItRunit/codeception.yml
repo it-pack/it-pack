@@ -1,0 +1,29 @@
+# Base Codeception configuration for it-pack packages.
+#
+# Copy this to a package's codeception.yml and adjust `paths` if the package
+# uses non-default test directories. Codeception reads codeception.yml (not the
+# .dist), so each package owns its own copy and inherits only the shape below.
+#
+# Shared across the monorepo by docs/CONSOLIDATION_PLAN.md (Phase 0).
+namespace: Tests
+support_namespace: Support
+paths:
+    tests: tests
+    output: tests/_output
+    data: tests/Support/Data
+    support: tests/Support
+    envs: tests/_envs
+actor_suffix: Tester
+extensions:
+    enabled:
+        - Codeception\Extension\RunFailed
+
+coverage:
+    enabled: true
+    show_uncovered: true
+    include:
+        - src/*
+    exclude:
+        - tests/*
+        - src/*/docs/*
+        - vendor/*

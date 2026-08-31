@@ -4,6 +4,12 @@ This page explains how DeriveIt is structured and why. It is the user-facing
 overview; the binding design decisions live in the
 [ADRs](../architecture/decisions/).
 
+> **One-page visual summary:** the
+> [runtime architecture diagram](../diagram/derive-it-architecture.html)
+> shows the eleven core runtime components, the primary derivation path, the
+> external dependencies, and the ownership / leakage-trust boundary at a
+> glance. (Spec: [`derive-it-architecture.json`](../diagram/derive-it-architecture.json).)
+
 ## Layers
 
 DeriveIt is organised into deptrac layers (enforced by `composer architecture`):

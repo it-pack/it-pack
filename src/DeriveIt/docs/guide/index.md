@@ -16,6 +16,10 @@ This guide is the in-depth, user-facing documentation. It complements the
 - [Features](features.md) — what DeriveIt can do, in depth.
 - [Architecture](architecture.md) — how it is built and why.
 - [Usage Guide](usage.md) — task-oriented recipes and the public API reference.
+- [**Runtime architecture diagram**](../diagram/derive-it-architecture.html) — an
+  interactive, one-page view of the eleven core runtime components, the primary
+  derivation path, the external dependencies, and the ownership / leakage-trust
+  boundary. Spec: [`derive-it-architecture.json`](../diagram/derive-it-architecture.json).
 
 ## Why DeriveIt exists
 

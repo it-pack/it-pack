@@ -19,28 +19,41 @@ All reusable config lives in `tools/qa/`:
 
 ## Recipe: PHPUnit → Codeception (pilot = ConfigureItPsr11)
 
-1. `composer remove phpunit/phpunit --dev` (and delete `phpunit.xml.dist`).
-2. `composer require --dev just-bases/php-unit-test-base:^1.0 just-bases/php-qa-base:^1.0 codeception/module-asserts:^3.0`
-   (add `codeception/module-phpbrowser:^3.0` only where HTTP is tested).
-3. Copy `tools/qa/codeception.dist.yml` → `codeception.yml`.
-4. In each test: `extends \PHPUnit\Framework\TestCase` → `extends \Codeception\Test\Unit`
-   (assertions / `setUp` / `tearDown` / data providers keep working).
-5. composer scripts: `test` → `vendor/bin/codecept run`, `test:unit` → `vendor/bin/codecept run Unit`.
-6. Verify: `composer test` green.
+The it-pack **lead** packages (RunIt, AsyncIt, CommandIt, …) run their Unit
+suites under Codeception **while keeping `class XTest extends \PHPUnit\Framework\TestCase`**
+— Codeception's Unit runner is a thin wrapper over PHPUnit, so the test classes
+themselves need **no change**. The AGENTS.md / EXECUTION.md standard therefore
+states "the Unit suite subclasses `PHPUnit\Framework\TestCase`".
 
-## Recipe: deptrac → phparkitect (pilot = HashItAsync)
+So the mechanical conversion is config-only:
 
-1. Create `phparkitect.php` importing `tools/qa/phparkitect/base.php`; port layer
-   rules from `deptrac.yaml` via `layeredArchitecture()`.
-2. Rename `deptrac.yaml` → `deptrac.archive.yaml` (keep for dual-run diff).
-3. composer script `architecture` → `vendor/bin/phparkitect`.
-4. Dual-run: compare `phparkitect` output vs
-   `vendor/bin/deptrac --config-file=deptrac.archive.yaml`; both must flag the
-   same violations (if any) before the deptrac config is retired.
-5. For "forbid sibling import" rules use `forbidSibling()` from the shared base.
+1. `composer.json` `require-dev`: remove `phpunit/phpunit`, `phpstan/phpstan`,
+   `friendsofphp/php-cs-fixer` (and `squizlabs/php_codesniffer`, `infection/infection`
+   in the RunIt-bridge packages); add `codeception/codeception`,
+   `codeception/module-asserts`, `just-bases/php-unit-test-base`,
+   `just-bases/php-qa-base` (plus `codeception/module-phpbrowser` for web packages).
+2. Add `infection/extension-installer` (and `dantleech/what-changed`,
+   `tbachert/spi: false`) to `config.allow-plugins` — `just-bases/php-qa-base`
+   pulls `infection/infection`, whose composer plugin must be allowed (mirrors
+   the lead packages).
+3. `scripts`: `test` → `vendor/bin/codecept run`, `test:unit` →
+   `vendor/bin/codecept run Unit`. Drop the non-standard `cs:lines` (phpcs) script.
+4. Copy `tools/qa/codeception.dist.yml` → `codeception.yml`.
+5. Add `tests/Unit.suite.yml` (`path: .`, `actor: UnitTester`,
+   `modules: [Asserts]`) and `tests/Support/UnitTester.php` (copied from a lead
+   package). `codecept build` (run in CI) generates `tests/Support/_generated/*`.
+6. Delete `phpunit.xml.dist`.
 
 ## Migration log
 
 | Package | Phase | Notes |
 |---|---|---|
 | DisenchantIt | 0 | First consumer of `tools/qa/phparkitect/base.php` (`forbidSibling` for Core ≠ RunIt). |
+| ConfigureItPsr11 | 1 | Pilot. PHPUnit→Codeception (config-only; tests unchanged). |
+| ConfigureItExplorer | 1 | PHPUnit→Codeception; web pkg (+module-phpbrowser). |
+| ConfigureItSchemaDocs | 1 | PHPUnit→Codeception. |
+| ConfigureItSymfony | 1 | PHPUnit→Codeception; web pkg (+module-phpbrowser). |
+| ConfigureItTesting | 1 | PHPUnit→Codeception. |
+| ConfigureItRunit | 1 | PHPUnit→Codeception; dropped phpcs/infection direct + `cs:lines`. |
+| DeriveItRunit | 1 | PHPUnit→Codeception; dropped phpcs/infection direct + `cs:lines`. |
+| RunItThirdPartySample | 1 | PHPUnit→Codeception; dropped phpcs/infection direct + `cs:lines`. |

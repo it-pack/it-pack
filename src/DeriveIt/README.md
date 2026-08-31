@@ -194,6 +194,10 @@ $source = DeriveIt::deriveAdapter(
   [tutorial](docs/guide/tutorial.md), [cookbook](docs/guide/cookbook.md),
   [features](docs/guide/features.md), [architecture](docs/guide/architecture.md),
   and [usage / API reference](docs/guide/usage.md).
+- **Runtime architecture diagram** — see [`docs/diagram/derive-it-architecture.html`](docs/diagram/derive-it-architecture.html)
+  (spec: [`docs/diagram/derive-it-architecture.json`](docs/diagram/derive-it-architecture.json)).
+  One glance: the eleven core runtime components, the primary derivation path,
+  external dependencies, and the ownership / leakage-trust boundary.
 - **Runnable examples** (`examples/`) — one script per feature; see
   [`examples/README.md`](examples/README.md).
 - **Design decisions** — ADRs under `docs/architecture/decisions/`.
