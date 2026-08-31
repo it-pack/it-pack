@@ -8,10 +8,10 @@ use InvalidArgumentException;
 use ItPack\HashIt\HashInput\TempSink;
 
 /**
- * Reference implementation of {@see \ItPack\HashIt\Contract\TreeHashingInterface}.
+ * Reference implementation of {@see Contract\TreeHashingInterface}.
  *
  * Scheme (see docs/ADR-0001-tree-hash-combiner.md):
- *   1. Capture $input's raw bytes via {@see \ItPack\HashIt\Contract\HashInputInterface::writeTo} into a
+ *   1. Capture $input's raw bytes via {@see Contract\HashInputInterface::writeTo} into a
  *      rewindable {@see TempSink}, then read them back in $chunkSize windows.
  *   2. Each leaf = raw binary digest H(chunk) (outputBits/8 bytes).
  *   3. Combine leaves pairwise: node = H( frame(left) || frame(right) ), where
@@ -21,20 +21,20 @@ use ItPack\HashIt\HashInput\TempSink;
  *   4. A single chunk returns the plain hash() (hex), so treeHash is a strict
  *      generalization of hash().
  *
- * Built only with {@see HashBuilder} and {@see \ItPack\HashIt\Contract\HashInputInterface} framing
+ * Built only with {@see HashBuilder} and {@see Contract\HashInputInterface} framing
  * (NF-B3); the core depends on nothing but itself (deptrac-clean).
  */
-final readonly class TreeHasher implements \ItPack\HashIt\Contract\TreeHashingInterface
+final readonly class TreeHasher implements Contract\TreeHashingInterface
 {
-    public function __construct(private \ItPack\HashIt\Contract\ContextFactoryInterface $factory)
+    public function __construct(private Contract\ContextFactoryInterface $factory)
     {
     }
 
     public function treeHash(
-        \ItPack\HashIt\Contract\HashInputInterface $input,
-        int $chunkSize = \ItPack\HashIt\Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
+        Contract\HashInputInterface $input,
+        int $chunkSize = Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
         string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
-    ): \ItPack\HashIt\Contract\HashInterface {
+    ): Contract\HashInterface {
         if ($chunkSize < 1) {
             throw new InvalidArgumentException('Chunk size must be at least 1 byte');
         }
@@ -92,14 +92,14 @@ final readonly class TreeHasher implements \ItPack\HashIt\Contract\TreeHashingIn
 
     /**
      * 8-byte unsigned little-endian length prefix (mirrors
-     * {@see \ItPack\HashIt\Contract\HashInputInterface::FRAME_LENGTH_BYTES}).
+     * {@see Contract\HashInputInterface::FRAME_LENGTH_BYTES}).
      */
     private function lengthPrefix(int $length): string
     {
         $bytes = '';
         $remaining = $length;
 
-        for ($i = 0; $i < \ItPack\HashIt\Contract\HashInputInterface::FRAME_LENGTH_BYTES; $i++) {
+        for ($i = 0; $i < Contract\HashInputInterface::FRAME_LENGTH_BYTES; $i++) {
             $bytes .= chr($remaining & 0xFF);
             $remaining >>= 8;
         }

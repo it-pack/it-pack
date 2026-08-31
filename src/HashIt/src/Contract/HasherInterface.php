@@ -55,7 +55,7 @@ interface HasherInterface
 
     /**
      * The algorithm catalogue this hasher was composed with (extensible via a
-     * custom {@see \ItPack\HashIt\Contract\AlgorithmSourceInterface}).
+     * custom {@see AlgorithmSourceInterface}).
      *
      * @return list<HashAlgorithm>
      */

@@ -437,6 +437,11 @@ composer cs:check     # PHP-CS-Fixer
 The package gates on a green Codeception suite, PHPStan at level 5 with a dead-code
 detector, and PHP-CS-Fixer.
 
+A stricter review bar (no `else`/`elseif`, imports at top of file, ≤120 columns, factory-only
+instantiation, ≥95% coverage, mutation testing) is tracked separately in `docs/REVIEW.md` and
+enforced by `composer cs:strict` plus the `strict-gates` CI job. Those gates stay red until the
+refactoring milestones in `docs/REFACTORING_PLAN.md` clear them.
+
 ## Status
 
 Usable. The full motivation, defects found, and the roadmap that produced this design live

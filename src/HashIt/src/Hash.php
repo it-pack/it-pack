@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
-final readonly class Hash implements \ItPack\HashIt\Contract\HashInterface
+final readonly class Hash implements Contract\HashInterface
 {
     public function __construct(
         private string $value,
@@ -43,7 +43,7 @@ final readonly class Hash implements \ItPack\HashIt\Contract\HashInterface
         return new self($value, $algorithm, $binary);
     }
 
-    public function equals(\ItPack\HashIt\Contract\HashInterface $other): bool
+    public function equals(Contract\HashInterface $other): bool
     {
         if ($this->algorithm !== $other->algorithm() || $this->binary !== $other->binary()) {
             return false;

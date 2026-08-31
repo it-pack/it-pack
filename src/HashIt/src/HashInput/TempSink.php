@@ -9,7 +9,7 @@ use ItPack\HashIt\Contract\HashSinkInterface;
 use RuntimeException;
 
 /**
- * A measuring, rewindable {@see \ItPack\HashIt\Contract\HashSinkInterface} backed by an in-memory /
+ * A measuring, rewindable {@see HashSinkInterface} backed by an in-memory /
  * spill-to-temp stream. Used by {@see CompositeInput} to frame each child: it
  * captures the child's framed bytes, reports their length, then yields them back
  * in chunks so the length prefix can be written *before* the bytes — without the

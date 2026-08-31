@@ -8,13 +8,13 @@ use RuntimeException;
 
 /**
  * Result of {@see ManifestVerifier::verify()}: what matched, what diverged, and
- * what could not be read. Comparison uses {@see \ItPack\HashIt\Contract\HashInterface::equals()} (constant
+ * what could not be read. Comparison uses {@see Contract\HashInterface::equals()} (constant
  * time), so mismatches never leak timing.
  */
 final readonly class VerificationReport
 {
     /**
-     * @param array<string, \ItPack\HashIt\Contract\HashInterface> $matched
+     * @param array<string, Contract\HashInterface> $matched
      * @param list<HashMismatch> $mismatched
      * @param list<string> $missing
      */
@@ -26,7 +26,7 @@ final readonly class VerificationReport
     }
 
     /**
-     * @return array<string, \ItPack\HashIt\Contract\HashInterface>
+     * @return array<string, Contract\HashInterface>
      */
     public function matched(): array
     {

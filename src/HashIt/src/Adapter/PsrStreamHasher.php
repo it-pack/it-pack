@@ -19,7 +19,7 @@ use Psr\Http\Message\StreamInterface;
  * request body can be hashed *and* forwarded).
  *
  * SRI / base64 formatting of the resulting digest is OUT OF SCOPE here and lives
- * with the NF-C1 formatters — this adapter only produces a plain {@see \ItPack\HashIt\Contract\HashInterface}.
+ * with the NF-C1 formatters — this adapter only produces a plain {@see HashInterface}.
  */
 final class PsrStreamHasher
 {

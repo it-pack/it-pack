@@ -11,7 +11,7 @@ use ItPack\HashIt\HashAlgorithm;
 
 /**
  * RFC 5869 HKDF (Extract-and-Expand) built solely on the HMAC surface exposed by
- * {@see \ItPack\HashIt\Contract\KeyedHasherInterface}, so it lives in core and never touches a native
+ * {@see KeyedHasherInterface}, so it lives in core and never touches a native
  * hashing extension directly.
  *
  *   Extract:  PRK = HMAC-Hash(salt, IKM)

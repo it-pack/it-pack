@@ -7,12 +7,12 @@ namespace ItPack\HashIt;
 /**
  * Immutable description of an expected set of file hashes for a single algorithm,
  * the unit of work for {@see ManifestVerifier}. Paths are keys; values are the
- * expected {@see \ItPack\HashIt\Contract\HashInterface}. Build incrementally with {@see self::with()}.
+ * expected {@see Contract\HashInterface}. Build incrementally with {@see self::with()}.
  */
 final readonly class HashManifest
 {
     /**
-     * @param array<string, \ItPack\HashIt\Contract\HashInterface> $entries
+     * @param array<string, Contract\HashInterface> $entries
      */
     public function __construct(
         private HashAlgorithm $algorithm,
@@ -26,7 +26,7 @@ final readonly class HashManifest
     }
 
     /**
-     * @return array<string, \ItPack\HashIt\Contract\HashInterface>
+     * @return array<string, Contract\HashInterface>
      */
     public function entries(): array
     {
@@ -36,7 +36,7 @@ final readonly class HashManifest
     /**
      * Return a copy with $path mapped to $hash, replacing any prior entry.
      */
-    public function with(string $path, \ItPack\HashIt\Contract\HashInterface $hash): self
+    public function with(string $path, Contract\HashInterface $hash): self
     {
         $entries = $this->entries;
         $entries[$path] = $hash;

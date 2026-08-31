@@ -16,7 +16,7 @@ use ItPack\HashIt\HashAlgorithm;
 final readonly class CompositeAlgorithmSource implements AlgorithmSourceInterface
 {
     /**
-     * @param iterable<\ItPack\HashIt\Contract\AlgorithmSourceInterface> $sources
+     * @param iterable<AlgorithmSourceInterface> $sources
      */
     public function __construct(
         private iterable $sources,

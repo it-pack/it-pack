@@ -18,7 +18,7 @@ use Random\RandomException;
 use Throwable;
 
 /**
- * CNCF CloudEvents emitter adapter for the core {@see \ItPack\HashIt\Contract\HashingObserverInterface} port.
+ * CNCF CloudEvents emitter adapter for the core {@see HashingObserverInterface} port.
  *
  * On each `completed` / `failed` observation it builds a standards-shaped CloudEvent
  * (spec 1.0) carrying the hashing result or failure as structured JSON `data`, then

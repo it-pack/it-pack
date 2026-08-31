@@ -13,7 +13,7 @@ use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerInterface;
 
 /**
- * OpenTelemetry tracing adapter for the core {@see \ItPack\HashIt\Contract\HashingObserverInterface} port.
+ * OpenTelemetry tracing adapter for the core {@see HashingObserverInterface} port.
  *
  * Each hashing operation becomes an OpenTelemetry span: `started` opens the span,
  * `progress` reports `hashit.bytes_processed`, `completed` closes it with an `Ok`

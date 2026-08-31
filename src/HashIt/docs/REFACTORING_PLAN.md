@@ -45,15 +45,26 @@
 
 ### Tasks
 - **M0.1** Update `.php-cs-fixer.php`:
-  - Add `no_superfluous_else` (the bare `else` ban; `elseif` already covered by `no_superfluous_elseif`).
-  - Add `line_length` rule set to `120` (or `phpcsfixer` `ordered_imports` + a custom `concat_with_spaces`/`method_argument_space` to wrap long signatures).
-  - Ensure `no_unused_imports`, `ordered_imports`, `fully_qualified_strict_types` are on (drives F-5).
-  - Add `visibility_required`, `declare_strict_types` (already likely present — verify).
-- **M0.2** Add a CI grep "safety net" (or a Rector rule) that fails the build on any `\ItPack\HashIt` FQCN appearing outside `use` and on `\belse\b`/`elseif`.
-- **M0.3** Document the new rules in `AGENTS.md` / `CONTRIBUTING.md` (or `README` "Development" section) so future sessions run them.
-- **M0.4** Dry-run `composer cs:check` and `composer cs:fix` to confirm no *behavioral* changes; commit only formatting.
+  - ✅ Enable `no_superfluous_elseif` (already on) — bare `else` is *not* a valid php-cs-fixer fixer, so it is enforced by `composer cs:strict` instead (see M0.2).
+  - ✅ Enable `fully_qualified_strict_types` (shortens inline-FQCN type hints to relative names — drives F-5; rector adds the `use` import in M4).
+  - ✅ Enable `method_argument_space` → `on_multiline: ensure_fully_multiline` (standardises long signatures; does not auto-wrap single-line ones — F-6 line-wrapping is finished in M4).
+  - ✅ Confirmed `no_unused_imports`, `ordered_imports`, `declare_strict_types`, `visibility_required` already present/effective.
+- **M0.2** ✅ Add `bin/strict-gates.sh` (grep safety net) gating F-3 / F-5 / F-6, wired as `composer cs:strict`. It fails the build on any bare `else`/`elseif`, on any inline `\ItPack\HashIt\…` FQCN in code, and on any line > 120 cols (generated `_generated` / `_output` paths excluded, mirroring the cs-fixer finder).
+- **M0.3** ✅ Document the strict bar in new `AGENTS.md` and in `README.md` "Testing & quality gates"; reference `composer cs:strict` + the `strict-gates` CI job.
+- **M0.4** ✅ Ran `composer cs:check` (clean, 0/90 files) and applied `composer cs:fix` (safe cosmetic reformat of 25 files: FQCN type-hint shortening + multiline arg standardisation). `composer test:unit` still green (174 tests / 487 assertions, no behavioral change).
 
-**Verification:** `composer cs:check`, `composer architecture`, `composer analyse` all pass; doc updated.
+### Status — DONE
+- `.php-cs-fixer.php`, `composer.json` (`cs:strict` script), `.github/workflows/quality.yml` (`strict-gates` job), `AGENTS.md`, `README.md`, `bin/strict-gates.sh` added/updated.
+- `composer cs:check` passes; suite green.
+- `composer cs:strict` is intentionally **RED** until M3/M4 clear the baseline violations below:
+
+| Gate | Baseline after M0 | Cleared by |
+|---|---|---|
+| F-3 `else`/`elseif` | 5 lines (3 code: `TreeHasher.php:80`, `BsdFormat.php:45`, `ManifestVerifier.php:34`; 2 doc-comment-only: `Hasher.php:331`, `KeyedHasher.php:279`) | M3 |
+| F-5 inline FQCN (code) | 12 lines | M4 (rector imports) |
+| F-6 > 120 cols | 42 lines in `src` + a few in `tests` | M4 (wrapping) |
+
+**Verification:** `composer cs:check` ✅; `composer test:unit` ✅ (174/487); `composer cs:strict` ✅ script present (gates red by design); `composer architecture` / `composer analyse` unchanged.
 
 ---
 

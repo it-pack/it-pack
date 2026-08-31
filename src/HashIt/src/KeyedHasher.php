@@ -9,16 +9,16 @@ use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
 use RuntimeException;
 use Throwable;
 
-final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherInterface
+final readonly class KeyedHasher implements Contract\KeyedHasherInterface
 {
     public function __construct(
-        private \ItPack\HashIt\Contract\KeyedContextFactoryInterface $factory,
-        private ?\ItPack\HashIt\Contract\HashingObserverInterface $observer = null,
-        private ?\ItPack\HashIt\Contract\AlgorithmSourceInterface $source = null,
+        private Contract\KeyedContextFactoryInterface $factory,
+        private ?Contract\HashingObserverInterface $observer = null,
+        private ?Contract\AlgorithmSourceInterface $source = null,
     ) {
     }
 
-    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
+    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -37,7 +37,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $hash;
     }
 
-    public function hmacBinary(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
+    public function hmacBinary(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -56,7 +56,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $hash;
     }
 
-    public function hmacFile(\ItPack\HashIt\Contract\FilepathInterface $path, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): \ItPack\HashIt\Contract\HashInterface
+    public function hmacFile(Contract\FilepathInterface $path, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): Contract\HashInterface
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -89,7 +89,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $hash;
     }
 
-    public function verify(string $data, string $key, \ItPack\HashIt\Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
+    public function verify(string $data, string $key, Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -109,7 +109,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $match;
     }
 
-    public function verifyBinary(string $data, string $key, \ItPack\HashIt\Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
+    public function verifyBinary(string $data, string $key, Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -129,7 +129,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $match;
     }
 
-    public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = \ItPack\HashIt\Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES, ?\ItPack\HashIt\Contract\HashProgressInterface $progress = null): \ItPack\HashIt\Contract\HashInterface
+    public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES, ?Contract\HashProgressInterface $progress = null): Contract\HashInterface
     {
         if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
             throw new InvalidArgumentException('hmacStream() expects a stream resource');
@@ -178,7 +178,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $hash;
     }
 
-    public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?\ItPack\HashIt\Contract\HashProgressInterface $progress = null): array
+    public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?Contract\HashProgressInterface $progress = null): array
     {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
@@ -223,12 +223,12 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $this->source()->resolve($identifier);
     }
 
-    private function source(): \ItPack\HashIt\Contract\AlgorithmSourceInterface
+    private function source(): Contract\AlgorithmSourceInterface
     {
         return $this->source ?? new NativeAlgorithmSource();
     }
 
-    private function hashString(string $data, string $key, string|HashAlgorithm $algorithm, bool $binary): \ItPack\HashIt\Contract\HashInterface
+    private function hashString(string $data, string $key, string|HashAlgorithm $algorithm, bool $binary): Contract\HashInterface
     {
         $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
         $context = $this->factory->build($algorithm, $key);
@@ -248,7 +248,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
         return $size === false ? null : $size;
     }
 
-    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?\ItPack\HashIt\Contract\HashInterface $hash): HashObservation
+    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?Contract\HashInterface $hash): HashObservation
     {
         $durationMs = (int) round((hrtime(true) - $beginNs) / 1_000_000);
 
@@ -300,7 +300,7 @@ final readonly class KeyedHasher implements \ItPack\HashIt\Contract\KeyedHasherI
      * (so it can be walked twice); null for one-shot traversables whose total is
      * not known upfront.
      *
-     * @param iterable<\ItPack\HashIt\Contract\FilepathInterface> $paths
+     * @param iterable<Contract\FilepathInterface> $paths
      */
     private function iterableTotalBytes(iterable $paths): ?int
     {
