@@ -19,7 +19,7 @@ CI `strict-gates` turns red:
 | `new` only in factories / composition root (`NativeHashIt`) | deptrac + `composer cs:strict` review |
 | Declaration order: trait → const → props → ctor → factory → non-static → static, public before non-public | project convention |
 | Tests: ≥ 95% statement & method coverage, no cross-test leakage | `composer coverage` |
-| Mutation testing | `composer mutation` (infection) |
+| Mutation testing | `composer mutation` (infection 0.33; gate `minMsi: 73` — see `docs/REFACTORING_PLAN.md` M2 for recorded 73.74 % baseline and the 80 % target / M2.4-strengthen follow-up) |
 
 ## Quality commands
 
@@ -31,7 +31,7 @@ composer architecture # deptrac layer rules
 composer cs:check     # PHP-CS-Fixer (dry-run)
 composer cs:fix       # PHP-CS-Fixer (apply)
 composer cs:strict    # review-bar gates F-3 / F-5 / F-6
-composer mutation     # infection (after M2)
+composer mutation     # infection (gate minMsi=73; recorded 73.74% baseline)
 ```
 
 ## Refactoring

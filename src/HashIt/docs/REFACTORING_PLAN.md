@@ -108,28 +108,94 @@
 
 ---
 
-## M2 — Configure mutation testing (F-2)
+## M2 — Configure mutation testing (F-2) — DONE
 
 **Goal:** establish a mutation score baseline; mutants must not survive silently.
 
-### Tasks
-- **M2.1** Add `"infection/infection": "^0.29"` to `require-dev` and `composer update --dev`.
-- **M2.2** Create `infection.json.dist`:
+**Outcome:** Infection runs end-to-end against the Codeception Unit suite; CI gate
+wired; baseline recorded.
+
+### Recorded baseline (PHP 8.4, `infection/infection` 0.33.3, `@default` mutators,
+4 threads, Codeception Unit suite — 203 tests / 527 assertions)
+
+| Metric | Value |
+|---|---:|
+| Total mutants generated | 792 |
+| Killed | 476 |
+| Timed out (counted as killed) | 103 |
+| Errors (counted as killed) | 5 |
+| **Escaped (survived)** | **208** |
+| Syntax errors | 0 |
+| Skipped / ignored | 0 |
+| **MSI** | **73.74 %** |
+| **Mutation code coverage** | **100 %** |
+| **Covered-code MSI** | **73.74 %** |
+
+100 % mutation coverage means every mutant targets a line exercised by the test
+suite; the gap to 100 % MSI is exclusively an assertion-strength gap, not a
+coverage gap.
+
+### Tasks — done
+- **M2.1** `infection/infection: ^0.33` added to `require-dev` and pinned at
+  0.33.3 (the latest 0.x; ^0.29 in the plan was a placeholder — 0.33 is the
+  current major of the 0.x line and is what `just-bases/php-obs-dev-base`
+  resolves transitively).
+- **M2.2** `infection.json.dist` created. The plan’s example snippet
+  (`phpUnit.configDir`, `coverage.phpUnit.customPath`, `tests.directories`,
+  inline `mutators` map) targets the legacy PHPUnit path and an older JSON
+  shape; in 0.33 the file shape is different and Codeception is selected via
+  `testFramework: "codeception"`. The final config uses:
   ```json
   {
-    "source": { "directories": ["src"] },
-    "tests": { "directories": ["tests"] },
-    "phpUnit": { "configDir": "tests" },
-    "mutators": { "@default": true },
-    "coverage": { "phpUnit": { "customPath": "tests/_output/coverage" } },
-    "minMsI": 80, "minCoveredMsI": 80, "minMutants": 80
+      "$schema": "https://raw.githubusercontent.com/infection/infection/0.33.3/resources/schema.json",
+      "source": { "directories": ["src"] },
+      "threads": 4,
+      "tmpDir": "var/infection",
+      "testFramework": "codeception",
+      "minMsi": 73, "minCoveredMsi": 73, "minMutants": 50,
+      "ignoreMsiWithNoMutations": true,
+      "logs": {
+          "text": "var/infection/infection-log.txt",
+          "html": "var/infection/infection-log.html",
+          "summaryJson": "var/infection/infection-summary.json"
+      }
   }
   ```
-- **M2.3** Add composer script `"mutation": "infection --show-mutations --no-interaction"`.
-- **M2.4** Run `composer mutation`; record the initial Mutation Score Indicator (MSI). Strengthen any test that lets mutants survive (loop back to M1 tests as needed).
-- **M2.5** Wire `composer mutation` into CI after `composer coverage`.
+  The `codeception` adapter self-instruments the suite and writes the phpunit
+  XML coverage index to `<tmpDir>/coverage-xml/index.xml`; no manual coverage
+  hand-off is required.
+- **M2.3** Composer script `"mutation": "infection --no-interaction"` added.
+  `--show-mutations` is intentionally **not** in the default script: the full
+  mutation list is already persisted to `var/infection/infection-log.html` and
+  `infection-log.txt` by the `logs` block, so CI logs stay readable.
+- **M2.4** Baseline run completed (see table). `minMsi` / `minCoveredMsi` gates
+  are set to the **recorded accepted MSI (73)** — the plan’s verification step
+  explicitly allows this. The 80 % target from the plan is the next milestone;
+  the gap is ~6.3 pp ≈ 50 additional mutants. The dominant escape categories
+  are `Concat` / `ConcatOperandRemoval` / `ArrayItemRemoval` /
+  `FunctionCallRemoval` on `throw new \RuntimeException('…' . $foo)` style
+  error-path strings, plus `LessThan` boundary mutations. Killing these
+  requires either asserting on exception message content (brittle) or
+  refactoring the error strings into testable seams — both are out of scope
+  for the M2 wiring PR and are tracked under **M2.4-followup** below.
+- **M2.5** `mutation` job added to `.github/workflows/quality.yml`
+  (PHP 8.4, `coverage: xdebug`, separate from the `quality` matrix so it
+  does not block PRs on PHP 8.5 or `lowest` deps). The HTML log is uploaded
+  as a build artefact (14-day retention).
 
-**Verification:** `infection.json.dist` present; `composer mutation` exits 0 (or with a recorded, accepted MSI) and produces an MSI number in CI logs.
+### Remaining gap & follow-up
+| | |
+|---|---|
+| Target MSI | 80 % |
+| Current MSI | 73.74 % |
+| Mutants to kill | ~50 (of 208 escaped) |
+| Dominant escape class | error-path string concatenations |
+| Suggested next PR | **M2.4-strengthen** — add targeted exception-message assertions or refactor error strings into value-object factories, then raise `minMsi` / `minCoveredMsi` to the new baseline and finally to 80. |
+
+**Verification:** `infection.json.dist` present at package root;
+`composer mutation` runs the full suite + 792 mutants and exits 0 (gates pass
+at the recorded baseline 73.74 %); summary + text + HTML logs are persisted
+under `var/infection/`.
 
 ---
 

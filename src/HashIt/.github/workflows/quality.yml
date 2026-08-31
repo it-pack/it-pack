@@ -56,3 +56,21 @@ jobs:
           coverage: none
       - uses: ramsey/composer-install@v3
       - run: composer cs:strict
+
+  mutation:
+    name: Mutation testing (Infection)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: xdebug
+      - uses: ramsey/composer-install@v3
+      - run: composer mutation
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: infection-log
+          path: var/infection/infection-log.html
+          retention-days: 14

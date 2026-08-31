@@ -430,17 +430,21 @@ demonstrates.
 
 ```bash
 composer test:unit    # Codeception unit suite
+composer coverage     # unit suite + coverage (target ≥95%)
 composer analyse      # PHPStan
 composer cs:check     # PHP-CS-Fixer
+composer cs:strict    # review-bar gates F-3 / F-5 / F-6
+composer mutation     # infection (current MSI 73.74 %; target 80 %)
 ```
 
-The package gates on a green Codeception suite, PHPStan at level 5 with a dead-code
-detector, and PHP-CS-Fixer.
+The package gates on a green Codeception suite (95.96 % stmt / 100 % meth
+coverage), PHPStan at level 5 with a dead-code detector, and PHP-CS-Fixer.
 
 A stricter review bar (no `else`/`elseif`, imports at top of file, ≤120 columns, factory-only
 instantiation, ≥95% coverage, mutation testing) is tracked separately in `docs/REVIEW.md` and
-enforced by `composer cs:strict` plus the `strict-gates` CI job. Those gates stay red until the
-refactoring milestones in `docs/REFACTORING_PLAN.md` clear them.
+enforced by `composer cs:strict` plus the `strict-gates` and `mutation` CI jobs. M0 (gates) and
+M1 (coverage) are green; M2 (mutation) is wired with a recorded accepted MSI of 73.74 % and a
+follow-up to reach the 80 % target — see `docs/REFACTORING_PLAN.md`.
 
 ## Status
 
