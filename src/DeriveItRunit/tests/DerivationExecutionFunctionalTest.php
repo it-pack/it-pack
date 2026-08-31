@@ -10,6 +10,7 @@ use ItPack\DeriveIt\Contract\Telemetry\DeriveUnits;
 use ItPack\DeriveIt\DeriveIt;
 use ItPack\DeriveIt\Generator\DeriveConfig;
 use ItPack\DeriveItRunit\DeriveItExecutions;
+use ItPack\DeriveItRunit\Tests\Fixture\ReportWidget;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
@@ -23,22 +24,6 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\TestCase;
-
-/**
- * Sample derivation target, autoloadable inside the bridge test namespace.
- */
-class ReportWidget
-{
-    public function render(string $template): string
-    {
-        return $template;
-    }
-
-    public function name(): string
-    {
-        return 'report';
-    }
-}
 
 /**
  * End-to-end proof of the decoupled contract: a real DeriveIt derivation runs
