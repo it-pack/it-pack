@@ -177,6 +177,11 @@ Each step is pure source-text-in / data-structure-out. There is no file I/O
 inside DisenchantIt; your code supplies source strings and decides where the
 result goes.
 
+> A visual map of the runtime — the 10 core components, the primary rewrite
+> path, the trust boundary around the analysed source, and the external
+> dependencies (nikic/php-parser, OpenTelemetry) — lives in the
+> [DisenchantIt runtime architecture diagram](diagram/disenchantit-architecture.html).
+
 ---
 
 ## 5. Detection details

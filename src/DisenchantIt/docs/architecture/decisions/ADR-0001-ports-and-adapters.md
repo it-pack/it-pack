@@ -43,3 +43,4 @@ changes their meaning.
 
 - `docs/REFACTORING_PLAN.md` §16
 - `phparkitect.php` (layered `where(...)->mayDependOnComponents(...)` rules)
+- [DisenchantIt runtime architecture diagram](../../diagram/disenchantit-architecture.html) — visualises the Contract / ValueObject / Core / Adapter / Factory layers and the runtime trust boundary.

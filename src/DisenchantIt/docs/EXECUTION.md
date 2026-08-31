@@ -14,6 +14,14 @@ Rather than modelling observability, configuration or tracing independently, It_
 
 Everything that happens during runtime belongs to an execution.
 
+> How DisenchantIt maps this model to its runtime — `Disenchanter` as the
+> activity, `DisenchantContext` as the context, `DisenchantOccurrence` as the
+> occurrence type, and the `ExecutionRecorderInterface` as the reporting port —
+> is illustrated in the
+> [DisenchantIt runtime architecture diagram](diagram/disenchantit-architecture.html)
+> (see the `Recorder` component and the `core → recorder` edge labelled
+> `record(occurrence)`).
+
 Examples include:
 
 - configuration resolution

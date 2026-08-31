@@ -123,6 +123,12 @@ The library is being shaped around Ports & Adapters:
 This keeps every piece independently testable (mock the port) and lets the rewrite
 engine be swapped (e.g. a future Rector-based adapter) without touching callers.
 
+For a visual overview of the runtime — the 10 core components (Caller,
+DisenchanterFactory, Disenchanter, Detector, Grouper, Resolver, Placement,
+Rewriter, SemConv, Recorder), the primary rewrite path, the trust boundary
+around the analysed source, and the external dependencies — see the
+[DisenchantIt runtime architecture diagram](docs/diagram/disenchantit-architecture.html).
+
 ## Status
 
 Maturing. The hexagonal, port/adapter layout is in place: detection, filtering,

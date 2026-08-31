@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DisenchantIt — Runtime Architecture",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "primary-rewrite-path",
+        "label": "Primary rewrite path",
+        "focus": ["caller", "factory", "core", "detector", "grouper", "resolver", "placement", "rewriter", "semconv"],
+        "note": "Follow one PHP source string through detect, decide, rewrite, and SemConv collect/alias."
+      },
+      {
+        "id": "trust-boundary",
+        "label": "Trust & source-text boundary",
+        "focus": ["core", "detector", "rewriter", "recorder", "target", "otel"],
+        "note": "Analyzed source crosses the boundary only as text; it is never required, included, or executed."
+      }
+    ]
+  },
+  "components": [
+    { "id": "caller", "type": "external", "label": "Caller", "sublabel": "CLI / IDE / bot", "pos": [30, 330], "size": [130, 76], "tag": "driver" },
+    { "id": "target", "type": "external", "label": "Analyzed PHP Source", "sublabel": "untrusted text", "pos": [30, 540], "size": [160, 64], "tag": "never executed" },
+    { "id": "factory", "type": "backend", "label": "DisenchanterFactory", "sublabel": "composition root", "pos": [240, 330], "size": [150, 76], "tag": "build()" },
+    { "id": "core", "type": "backend", "label": "Disenchanter", "sublabel": "Core orchestrator", "pos": [490, 330], "size": [160, 76], "tag": "detect + decide" },
+    { "id": "detector", "type": "backend", "label": "StringLiteralDetector", "sublabel": "Adapter\\Detection", "pos": [770, 90], "size": [160, 64], "tag": "nikic AST" },
+    { "id": "grouper", "type": "backend", "label": "CandidateFilter + Grouper", "sublabel": "Adapter\\Grouping", "pos": [770, 220], "size": [160, 64] },
+    { "id": "resolver", "type": "backend", "label": "ConstantNameResolver", "sublabel": "Adapter\\Naming", "pos": [770, 350], "size": [160, 64] },
+    { "id": "placement", "type": "backend", "label": "PromotionTarget + Placement", "sublabel": "Adapter\\Rewriting", "pos": [758, 480], "size": [184, 64] },
+    { "id": "rewriter", "type": "backend", "label": "LineBasedRewriter", "sublabel": "Adapter\\Rewriting", "pos": [990, 350], "size": [160, 64] },
+    { "id": "semconv", "type": "backend", "label": "SemConv Collect + Alias", "sublabel": "Adapter\\SemConv", "pos": [990, 500], "size": [160, 64] },
+    { "id": "recorder", "type": "backend", "label": "ExecutionRecorder", "sublabel": "Adapter\\Reporting", "pos": [490, 600], "size": [160, 64], "tag": "occurrences" },
+    { "id": "nikic", "type": "external", "label": "nikic/php-parser", "sublabel": "vendor ^5.8", "pos": [990, 90], "size": [150, 64] },
+    { "id": "otel", "type": "external", "label": "OpenTelemetry SDK", "sublabel": "optional adapter", "pos": [990, 620], "size": [150, 64] }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "DisenchantIt trust zone (ports + adapters)",
+      "wraps": ["factory", "core", "detector", "grouper", "resolver", "placement", "rewriter", "semconv", "recorder"]
+    }
+  ],
+  "connections": [
+    { "id": "caller-factory", "from": "caller", "to": "factory", "label": "build()", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [200, 312] },
+    { "id": "factory-core", "from": "factory", "to": "core", "label": "inject ports", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [430, 312] },
+    { "id": "core-detect", "from": "core", "to": "detector", "label": "scanSource(code)", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [700, 260] },
+    { "id": "detect-group", "from": "detector", "to": "grouper", "label": "literals", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [944, 188] },
+    { "id": "group-resolve", "from": "grouper", "to": "resolver", "label": "groups", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [944, 318] },
+    { "id": "resolve-place", "from": "resolver", "to": "placement", "label": "name + target", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [1010, 450] },
+    { "id": "place-rewrite", "from": "placement", "to": "rewriter", "label": "artifacts", "variant": "emphasis", "fromSide": "right", "toSide": "left", "labelAt": [1010, 430] },
+    { "id": "rewrite-semconv", "from": "rewriter", "to": "semconv", "label": "rewritten + placements", "variant": "emphasis", "fromSide": "bottom", "toSide": "top", "labelAt": [1156, 460] },
+    { "id": "core-recorder", "from": "core", "to": "recorder", "label": "record(occurrence)", "fromSide": "bottom", "toSide": "top", "labelAt": [380, 498] },
+    { "id": "core-target", "from": "core", "to": "target", "label": "source text — never executed", "variant": "security", "fromSide": "left", "toSide": "right", "labelAt": [220, 450] },
+    { "id": "detect-nikic", "from": "detector", "to": "nikic", "label": "parse AST", "fromSide": "right", "toSide": "left", "labelAt": [870, 72] },
+    { "id": "recorder-otel", "from": "recorder", "to": "otel", "label": "emit (optional)", "variant": "dashed", "fromSide": "right", "toSide": "left", "labelAt": [800, 642] }
+  ],
+  "cards": [
+    { "dot": "violet", "title": "Detection pipeline", "items": [
+      "Scans string + (hinted) numeric literals via the nikic AST, recording class/method/line/role.",
+      "Drops exception messages, sprintf/printf formats, enum backing values, and non-identifier prose.",
+      "Numeric candidates need a naming hint (var/prop name, array key, // unit comment) and exclude trivial 0/1/0.0/1.0.",
+      "Survivors are grouped by value — repetition across sites signals a shared constant."
+    ] },
+    { "dot": "emerald", "title": "Placement & rewrite", "items": [
+      "CompositeConstantPlacementStrategy picks SameClass vs PerClass automatically.",
+      "LineBasedRewriter inserts `private const` after the opening brace and replaces each literal with self::CONST strictly per recorded line.",
+      "Untouched lines stay byte-for-byte identical; formatting is preserved by convention.",
+      "Numeric literals become typed `private const int/float` preserving the raw token (0x1F stays 0x1F)."
+    ] },
+    { "dot": "amber", "title": "SemConv", "items": [
+      "Collects the same constants from across the scanned tree into one dependency-free registry.",
+      "Each class's local const is aliased to `SemConv::X`; existing self::X call sites are unchanged.",
+      "A name collision with a differing value is a hard error, never a silent override."
+    ] },
+    { "dot": "rose", "title": "Trust & safety", "items": [
+      "Hard rule: analyzed source is never required, included, autoloaded, or executed.",
+      "The parse-result cache is a bounded content-keyed store, not a WeakMap.",
+      "The OpenTelemetry recorder is an optional adapter; the library never configures global providers."
+    ] }
+  ]
+}
