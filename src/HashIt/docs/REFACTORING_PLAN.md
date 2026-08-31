@@ -199,17 +199,44 @@ under `var/infection/`.
 
 ---
 
-## M3 — Eliminate `else` / `elseif` (F-3)
+## M3 — Eliminate `else` / `elseif` (F-3) — DONE
 
 **Goal:** rewrite the 3 violating sites using early-return / `continue` / inverted conditions.
 
-### Tasks
-- **M3.1** `src/TreeHasher.php:80` — convert the trailing `} else {` in the reduction loop to an early `continue` when the node is not the trailing odd one.
-- **M3.2** `src/Format/BsdFormat.php:44-49` — replace `if (…) {…} elseif ($manifest->algorithm() !== $algorithm) {…}` with early `return`/inverted branches (also improves the F-1 test for the mismatch path).
-- **M3.3** `src/ManifestVerifier.php:34` — after `if ($actual->equals($expectedHash)) { $matched[] = …; continue; }`, the `else` body becomes the fall-through (no `else` needed).
-- **M3.4** Re-run suite + `cs:check` (the `no_superfluous_else` rule from M0.1 will now enforce this).
+### Tasks — done
+- **M3.1** `src/TreeHasher.php:74-83` — `for ($i = 0; $i < $count; $i += 2)` reduction loop. The
+  `} else { $next[] = $nodes[$i]; }` trailing-odd branch is now an early `continue`
+  (the `if` was inverted from "have a pair" to "no pair, so it's the trailing odd
+  node"), and the pair-hash branch falls through. `src/TreeHasher.php:74`.
+- **M3.2** `src/Format/BsdFormat.php:43-49` — the `if ($manifest === null) {…}
+  elseif ($manifest->algorithm() !== $algorithm) {…}` chain is now two plain
+  `if` statements: the algorithm-mismatch guard first (combined `null !== &&
+  !== algorithm`, so it no-ops on the first line), then the manifest
+  initialization. `src/Format/BsdFormat.php:43-49`.
+- **M3.3** `src/ManifestVerifier.php:32-36` — the `if ($actual->equals($expectedHash))
+  { $matched[…] } else { $mismatched[] }` is now `if (equals) { matched; continue; }
+  $mismatched[] = …` (per the plan). `src/ManifestVerifier.php:32`.
+- **M3.4** The two doc-comment-only `else` mentions in `Hasher.php:331` and
+  `KeyedHasher.php:279` (the `streamTotalBytes()` docblock, "…else null.") were
+  rephrased to "…otherwise null." so the strict-gates grep finds no matches at
+  all. The `bin/strict-gates.sh` F-3 grep was also tightened to exclude
+  docblock (`*`-prefixed), `//` and `#` comment lines — mirroring the existing
+  F-5 inline-FQCN exclusion, matching the plan's stated verification criterion
+  ("doc comments excluded"), and removing the footgun of a violation triggered
+  by an English sentence in a docblock.
 
-**Verification:** `rg '\belse\b|elseif' src` returns 0 matches in code (doc comments excluded); `composer cs:check` green.
+### Status — DONE
+- All F-3 baseline violations cleared. The `bin/strict-gates.sh` F-3 grep returns
+  no matches in `src/`.
+- `composer cs:check` clean (0/92).
+- `composer cs:strict` F-3 ✅; remaining F-5 and F-6 violations are M4 scope (and
+  the script correctly labels them as such).
+- `composer test:unit` green (203 tests / 527 assertions, no behavioral change).
+- `composer architecture` green (0 violations, 0 errors).
+- `vendor/bin/phpstan analyse` exit 0.
+
+**Verification:** `grep -rnE '\b(else|elseif)\b' src | grep -vE '^[0-9]+:\s*(\*|//|#)'` returns
+no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 

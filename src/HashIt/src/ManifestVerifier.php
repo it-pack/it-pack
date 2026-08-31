@@ -31,9 +31,9 @@ final class ManifestVerifier
 
             if ($actual->equals($expectedHash)) {
                 $matched[$path] = $actual;
-            } else {
-                $mismatched[] = new HashMismatch($path, $expectedHash, $actual);
+                continue;
             }
+            $mismatched[] = new HashMismatch($path, $expectedHash, $actual);
         }
 
         return new VerificationReport($matched, $mismatched, $missing);

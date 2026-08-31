@@ -72,14 +72,14 @@ final readonly class TreeHasher implements Contract\TreeHashingInterface
         $next = [];
         $count = count($nodes);
         for ($i = 0; $i < $count; $i += 2) {
-            if ($i + 1 < $count) {
-                $next[] = $this->rawHash(
-                    $this->frame($nodes[$i]) . $this->frame($nodes[$i + 1]),
-                    $algorithm,
-                );
-            } else {
+            if ($i + 1 >= $count) {
                 $next[] = $nodes[$i];
+                continue;
             }
+            $next[] = $this->rawHash(
+                $this->frame($nodes[$i]) . $this->frame($nodes[$i + 1]),
+                $algorithm,
+            );
         }
 
         return $this->combine($next, $algorithm);

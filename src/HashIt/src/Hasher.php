@@ -328,7 +328,7 @@ final readonly class Hasher implements Contract\HasherInterface
     }
 
     /**
-     * Total bytes of a stream when it is seekable (so its size is known), else null.
+     * Total bytes of a stream when it is seekable (so its size is known), otherwise null.
      *
      * @param resource $stream
      */

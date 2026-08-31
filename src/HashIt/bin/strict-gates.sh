@@ -18,7 +18,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STATUS=0
 
 echo "== Strict gate F-3: no else / elseif in src =="
-if grep -rnE '\b(else|elseif)\b' "$ROOT/src"; then
+# The rule is about *control flow*; docblock / line comments are excluded
+# (mirrors the F-5 inline-FQCN grep below). The plain `grep -E` form is used
+# so `set -e` keeps working when there are no matches.
+if grep -rnE '\b(else|elseif)\b' "$ROOT/src" \
+   | grep -vE '^[0-9]+:\s*\*' \
+   | grep -vE '^[0-9]+://' \
+   | grep -vE '^[0-9]+:#'; then
   echo "  -> F-3 violation(s) found (fix in M3)"; STATUS=1
 else
   echo "  OK"

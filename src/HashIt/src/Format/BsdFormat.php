@@ -40,12 +40,13 @@ final class BsdFormat implements \ItPack\HashIt\Contract\ManifestFormatInterface
                 throw new InvalidArgumentException('Unknown algorithm in BSD line: ' . $m[1]);
             }
 
-            if ($manifest === null) {
-                $manifest = new HashManifest($algorithm);
-            } elseif ($manifest->algorithm() !== $algorithm) {
+            if ($manifest !== null && $manifest->algorithm() !== $algorithm) {
                 throw new InvalidArgumentException('BSD manifest mixes algorithms: ' . $m[1]);
             }
 
+            if ($manifest === null) {
+                $manifest = new HashManifest($algorithm);
+            }
             $manifest = $manifest->with($m[2], Hash::create(strtolower($m[3]), $algorithm->value));
         }
 
