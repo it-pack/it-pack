@@ -28,8 +28,11 @@ final class PsrStreamHasher
     ) {
     }
 
-    public function hash(StreamInterface $body, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES): HashInterface
-    {
+    public function hash(
+        StreamInterface $body,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
+    ): HashInterface {
         if (!$body->isReadable()) {
             throw new InvalidArgumentException('PsrStreamHasher requires a readable stream');
         }

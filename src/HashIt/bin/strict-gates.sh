@@ -21,10 +21,12 @@ echo "== Strict gate F-3: no else / elseif in src =="
 # The rule is about *control flow*; docblock / line comments are excluded
 # (mirrors the F-5 inline-FQCN grep below). The plain `grep -E` form is used
 # so `set -e` keeps working when there are no matches.
+# Note: `grep -rn` prefixes lines with `path:linenum:`, so the docblock/comment
+# anchors must come AFTER the first colon (i.e. after the filename).
 if grep -rnE '\b(else|elseif)\b' "$ROOT/src" \
-   | grep -vE '^[0-9]+:\s*\*' \
-   | grep -vE '^[0-9]+://' \
-   | grep -vE '^[0-9]+:#'; then
+   | grep -vE ':[0-9]+:\s*\*' \
+   | grep -vE ':[0-9]+://' \
+   | grep -vE ':[0-9]+:#'; then
   echo "  -> F-3 violation(s) found (fix in M3)"; STATUS=1
 else
   echo "  OK"
@@ -33,11 +35,13 @@ fi
 echo "== Strict gate F-5: no inline FQCN in code =="
 # Leading-backslash FQCN (the inline form), excluding docblock/comment lines
 # and `use` / `namespace` declarations (those are legitimately fully qualified).
+# Note: see F-3 comment above — `grep -rn` prefixes with `path:linenum:`, so
+# the comment/use/namespace anchors come after the first colon.
 if grep -rn '\\ItPack\\HashIt\\' "$ROOT/src" \
-   | grep -vE '^[0-9]+:\s*\*' \
-   | grep -vE '^[0-9]+://' \
-   | grep -vE '^[0-9]+:#' \
-   | grep -vE '^[0-9]+:\s*(use|namespace) '; then
+   | grep -vE ':[0-9]+:\s*\*' \
+   | grep -vE ':[0-9]+://' \
+   | grep -vE ':[0-9]+:#' \
+   | grep -vE ':[0-9]+:\s*(use|namespace) '; then
   echo "  -> F-5 violation(s) found (fix in M4)"; STATUS=1
 else
   echo "  OK"

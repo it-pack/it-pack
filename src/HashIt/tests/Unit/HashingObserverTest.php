@@ -51,7 +51,10 @@ class HashingObserverTest extends Unit
         self::assertSame(HashObservation::STARTED, $kinds[0]);
         self::assertSame(HashObservation::COMPLETED, end($kinds));
 
-        $progress = array_filter($spy->observations, static fn (HashObservation $o) => $o->kind === HashObservation::PROGRESS);
+        $progress = array_filter(
+            $spy->observations,
+            static fn (HashObservation $o) => $o->kind === HashObservation::PROGRESS,
+        );
         self::assertNotEmpty($progress);
         self::assertGreaterThan(1, count($progress));
         foreach ($progress as $p) {

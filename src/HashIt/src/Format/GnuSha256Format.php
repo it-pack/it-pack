@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Format;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Contract\ManifestFormatInterface;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;
@@ -15,7 +16,7 @@ use ItPack\HashIt\HashManifest;
  * is fixed to SHA256 — this format has no algorithm field — so serializing a
  * manifest with any other algorithm is rejected, and parsing always yields SHA256.
  */
-final class GnuSha256Format implements \ItPack\HashIt\Contract\ManifestFormatInterface
+final class GnuSha256Format implements ManifestFormatInterface
 {
     public function serialize(HashManifest $manifest): string
     {

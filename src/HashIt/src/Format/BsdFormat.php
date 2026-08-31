@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Format;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Contract\ManifestFormatInterface;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;
@@ -14,7 +15,7 @@ use ItPack\HashIt\HashManifest;
  * `SHA256 (file.txt) = <hex>`. The algorithm is carried in the prefix, so any
  * supported algorithm round-trips (not just SHA-256).
  */
-final class BsdFormat implements \ItPack\HashIt\Contract\ManifestFormatInterface
+final class BsdFormat implements ManifestFormatInterface
 {
     public function serialize(HashManifest $manifest): string
     {

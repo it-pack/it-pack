@@ -20,11 +20,22 @@ interface HasherInterface
      * @throws RuntimeException when the file cannot be read
      * @throws InvalidArgumentException when the algorithm is unknown
      */
-    public function hashFile(FilepathInterface $path, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
+    public function hashFile(
+        FilepathInterface $path,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface;
 
-    public function verify(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool;
+    public function verify(
+        string $data,
+        HashInterface $expected,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): bool;
 
-    public function verifyBinary(string $data, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool;
+    public function verifyBinary(
+        string $data,
+        HashInterface $expected,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): bool;
 
     /**
      * Hash a readable stream in fixed chunks without loading it fully into memory.
@@ -38,20 +49,33 @@ interface HasherInterface
      *
      * @throws InvalidArgumentException when $stream is not a stream resource or $chunkSize is not positive
      */
-    public function hashStream($stream, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface;
+    public function hashStream(
+        $stream,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        int $chunkSize = self::DEFAULT_CHUNK_SIZE_BYTES,
+        ?HashProgressInterface $progress = null,
+    ): HashInterface;
 
     /**
      * @param iterable<FilepathInterface> $paths
      * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each file)
      * @return array<string, HashInterface>
      */
-    public function hashFiles(iterable $paths, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
+    public function hashFiles(
+        iterable $paths,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        ?HashProgressInterface $progress = null,
+    ): array;
 
     /**
      * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each file)
      * @return array<string, HashInterface>
      */
-    public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
+    public function hashDirectory(
+        string $directory,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        ?HashProgressInterface $progress = null,
+    ): array;
 
     /**
      * The algorithm catalogue this hasher was composed with (extensible via a
@@ -71,5 +95,8 @@ interface HasherInterface
      * The same logical content always digests identically regardless of how it was
      * assembled; see {@see \ItPack\HashIt\HashInput\CompositeInput} for the framing.
      */
-    public function hashInput(HashInputInterface $input, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
+    public function hashInput(
+        HashInputInterface $input,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface;
 }

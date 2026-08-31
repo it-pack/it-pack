@@ -8,7 +8,11 @@ use ItPack\HashIt\HashAlgorithm;
 
 interface HmacHasherInterface
 {
-    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
+    public function hmac(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface;
 
     /**
      * The algorithm catalogue this hasher was composed with (extensible via a

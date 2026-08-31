@@ -94,7 +94,8 @@ final class BsdFormatTest extends TestCase
         ;
 
         $text = $this->format()->serialize($manifest);
-        $withBlank = 'SHA256 (a.txt) = ' . hash('sha256', 'alpha') . "\n\nSHA256 (b.txt) = " . hash('sha256', 'beta') . "\n";
+        $withBlank = 'SHA256 (a.txt) = ' . hash('sha256', 'alpha')
+            . "\n\nSHA256 (b.txt) = " . hash('sha256', 'beta') . "\n";
 
         $parsed = $this->format()->parse($withBlank);
 

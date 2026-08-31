@@ -14,9 +14,9 @@ namespace ItPack\HashIt;
 final readonly class AlgorithmMetadata
 {
     /**
-     * @param int            $outputBits Digest size in bits (e.g. SHA-256 → 256).
-     * @param int            $blockBits  Internal block/rate size in bits (0 when not block-based, e.g. non-crypto checksums).
-     * @param AlgorithmStatus $status    Collision/cryptographic strength rating.
+     * @param int             $outputBits Digest size in bits (e.g. SHA-256 → 256).
+     * @param int             $blockBits  Internal block/rate size in bits (0 for non-block primitives).
+     * @param AlgorithmStatus $status     Collision / cryptographic strength rating.
      */
     public function __construct(
         public int $outputBits,

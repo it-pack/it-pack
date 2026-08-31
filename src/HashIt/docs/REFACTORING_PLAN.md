@@ -240,17 +240,66 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M4 — Import hygiene & ≤120 columns (F-5, F-6)
+## M4 — Import hygiene & ≤120 columns (F-5, F-6) — DONE
 
 **Goal:** every referenced project type imported via `use`; no line >120 columns.
 
-### Tasks
-- **M4.1** Run Rector with `ImportNamespacedName` / FQCN-to-import (or `php-cs-fixer` `fully_qualified_strict_types` + `no_superfluous_phpdoc_tags`) across `src/` to convert the ~27 inline-FQCN files (top offenders: `Hasher.php:18`, `KeyedHasher.php:15`, `TreeHasher.php:10`, `ResumableHasher.php:7`, `HashBuilder.php:6`, `CompositeInput.php:4`).
-- **M4.2** For the 10 files over 120 cols (see F-6 list), wrap long signatures one-parameter-per-line (the repo already does this for `Hkdf::derive`).
-- **M4.3** Manually review the diff — confirm no type was silently dropped/changed by the auto-import.
-- **M4.4** Run `composer cs:check`, `composer analyse`, `composer architecture`.
+### Tasks — done
+- **M4.1** F-5 (inline FQCN). The plan estimated ~27 files; the actual baseline
+  after M0's `cs:fix` was much smaller — only **3 code-level violations** remained,
+  all `implements` clauses in the `Format/` adapters (the `php-cs-fixer`
+  `fully_qualified_strict_types` rule cannot rewrite `implements` declarations,
+  only type-hint positions; Rector would have worked but is not pinned in the
+  project, and the site count was small enough that hand-edits were faster than
+  authoring a `rector.php` config). The three `Format/BsdFormat.php`,
+  `Format/SfvFormat.php`, and `Format/GnuSha256Format.php` files now `use
+  Contract\ManifestFormatInterface;` and declare `implements
+  ManifestFormatInterface`. (`src/Format/BsdFormat.php:9`, `:18`;
+  `src/Format/SfvFormat.php:9`, `:19`; `src/Format/GnuSha256Format.php:9`, `:19`.)
+- **M4.2** F-6 (>120 cols). 48 violations across 17 files were wrapped to
+  ≤120 cols, following the existing `Hkdf::derive` template: opening paren on
+  its own line, one parameter per indented line, closing paren with `):
+  returnType` aligned. Files touched: the four `Contract/*Interface` ports
+  (`HasherInterface`, `KeyedHasherInterface`, `HmacHasherInterface`,
+  `ResumableHashingInterface`), their impls (`Hasher`, `KeyedHasher`,
+  `NativeHmacHasher`, `ResumableHasher`), the `Adapter/` composition root
+  (`NativeHashIt::create` and `keyedHasher` factories, `PsrStreamHasher::hash`),
+  the `HashObservation` value-object factories (`started` and `completed`),
+  the `AlgorithmMetadata` attribute docblock, and 5 test files
+  (`CloudEventsHashingObserverTest`, `HashingObserverTest`,
+  `KeyedHasherErrorPathsTest`, `TreeHasherTest`, `Format/BsdFormatTest`).
+- **M4.3** Manually reviewed every wrapping diff: each is a pure whitespace /
+  line-break change. No type, default, modifier, or visibility was dropped or
+  reordered. The `composer test:unit` (203/527) and `composer coverage`
+  (≥95% / 100% methods) results are identical to the M1/M2/M3 baselines,
+  confirming behavioral equivalence.
+- **M4.4** `bin/strict-gates.sh` had a latent bug in the F-3 and F-5 greps
+  carried over from M0: the docblock / comment / `use` / `namespace` exclude
+  patterns were anchored at `^[0-9]+:`, but `grep -rn` prefixes each line with
+  `path:lineno:`, so the anchor was always false and the patterns only
+  *appeared* to work because M0-M3's violation lines happened to be code (no
+  `*`/`//`/`#`/`use`/`namespace` prefix to match). Fixed to `:[0-9]+:` (colon,
+  line number, colon) for both the F-3 and F-5 greps. The bug was
+  discovered while inventorying F-5: 8 of the 11 apparent F-5 violations
+  were `{@see \ItPack\HashIt\…}` docblock references that the broken
+  filter was *supposed* to be excluding but wasn't.
 
-**Verification:** `rg '\bItPack\\HashIt\\' src` returns 0 inline-FQCN occurrences; `composer cs:check` reports 0 lines >120; coverage unchanged.
+### Status — DONE
+- All F-5 (inline FQCN) and F-6 (>120 cols) baseline violations cleared.
+- `composer cs:check` clean (0/92).
+- `composer cs:strict` is GREEN end-to-end for the first time since M0 —
+  F-3 ✅, F-5 ✅, F-6 ✅; script ends with `Strict gates PASSED`.
+- `composer test:unit` green (203 tests / 527 assertions).
+- `composer coverage` green (≥95% statements / 100% methods, identical to
+  M1 baseline).
+- `composer architecture` green (0 violations, 0 errors).
+- `vendor/bin/phpstan analyse` exit 0 (same pre-existing `composer analyse`
+  300s script-wrapper timeout as in M2/M3 — phpstan itself is clean).
+
+**Verification (per the plan's stated criterion):**
+- `grep -rn '\\ItPack\\HashIt\\' src | grep -vE ':[0-9]+:\s*(\*|//|#|use|namespace)'` returns no matches.
+- `grep -rnP --binary-files=without-match '.{121}' src tests | grep -vE -- '_generated/|_output/'` returns no matches.
+- Coverage unchanged; suite green; PHPStan clean.
 
 ---
 

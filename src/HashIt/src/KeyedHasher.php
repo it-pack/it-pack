@@ -18,8 +18,11 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
     ) {
     }
 
-    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): Contract\HashInterface
-    {
+    public function hmac(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): Contract\HashInterface {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
         $this->observe(HashObservation::started(HashOperation::HMAC, $id, $algorithmName, strlen($data)));
@@ -37,8 +40,11 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $hash;
     }
 
-    public function hmacBinary(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): Contract\HashInterface
-    {
+    public function hmacBinary(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): Contract\HashInterface {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
         $this->observe(HashObservation::started(HashOperation::HMAC, $id, $algorithmName, strlen($data)));
@@ -56,8 +62,11 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $hash;
     }
 
-    public function hmacFile(Contract\FilepathInterface $path, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): Contract\HashInterface
-    {
+    public function hmacFile(
+        Contract\FilepathInterface $path,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): Contract\HashInterface {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
         $file = (string) $path;
@@ -89,8 +98,12 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $hash;
     }
 
-    public function verify(string $data, string $key, Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
-    {
+    public function verify(
+        string $data,
+        string $key,
+        Contract\HashInterface $expected,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): bool {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
         $this->observe(HashObservation::started(HashOperation::VERIFY, $id, $algorithmName, strlen($data)));
@@ -109,8 +122,12 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $match;
     }
 
-    public function verifyBinary(string $data, string $key, Contract\HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool
-    {
+    public function verifyBinary(
+        string $data,
+        string $key,
+        Contract\HashInterface $expected,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): bool {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
         $this->observe(HashObservation::started(HashOperation::VERIFY, $id, $algorithmName, strlen($data)));
@@ -129,8 +146,13 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $match;
     }
 
-    public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES, ?Contract\HashProgressInterface $progress = null): Contract\HashInterface
-    {
+    public function hmacStream(
+        $stream,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        int $chunkSize = Contract\HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
+        ?Contract\HashProgressInterface $progress = null,
+    ): Contract\HashInterface {
         if (!is_resource($stream) || get_resource_type($stream) !== 'stream') {
             throw new InvalidArgumentException('hmacStream() expects a stream resource');
         }
@@ -178,8 +200,12 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $hash;
     }
 
-    public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?Contract\HashProgressInterface $progress = null): array
-    {
+    public function hmacFiles(
+        iterable $paths,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        ?Contract\HashProgressInterface $progress = null,
+    ): array {
         $id = $this->observationId();
         $algorithmName = $this->algorithmName($algorithm);
         $total = $progress === null ? null : $this->iterableTotalBytes($paths);
@@ -228,8 +254,12 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $this->source ?? new NativeAlgorithmSource();
     }
 
-    private function hashString(string $data, string $key, string|HashAlgorithm $algorithm, bool $binary): Contract\HashInterface
-    {
+    private function hashString(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm,
+        bool $binary,
+    ): Contract\HashInterface {
         $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
         $context = $this->factory->build($algorithm, $key);
         $context->update($data);
@@ -248,8 +278,13 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         return $size === false ? null : $size;
     }
 
-    private function completed(string $id, string $algorithm, int $bytes, int $beginNs, ?Contract\HashInterface $hash): HashObservation
-    {
+    private function completed(
+        string $id,
+        string $algorithm,
+        int $bytes,
+        int $beginNs,
+        ?Contract\HashInterface $hash,
+    ): HashObservation {
         $durationMs = (int) round((hrtime(true) - $beginNs) / 1_000_000);
 
         return HashObservation::completed($id, $algorithm, $bytes, $durationMs, $hash?->toUrn());

@@ -19,19 +19,41 @@ use RuntimeException;
  */
 interface KeyedHasherInterface
 {
-    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
+    public function hmac(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface;
 
-    public function hmacBinary(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
+    public function hmacBinary(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface;
 
     /**
      * @throws RuntimeException when the file cannot be read
      * @throws InvalidArgumentException when the algorithm is unknown or not HMAC-safe
      */
-    public function hmacFile(FilepathInterface $path, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
+    public function hmacFile(
+        FilepathInterface $path,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface;
 
-    public function verify(string $data, string $key, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool;
+    public function verify(
+        string $data,
+        string $key,
+        HashInterface $expected,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): bool;
 
-    public function verifyBinary(string $data, string $key, HashInterface $expected, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): bool;
+    public function verifyBinary(
+        string $data,
+        string $key,
+        HashInterface $expected,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): bool;
 
     /**
      * Hash a readable stream in fixed chunks without loading it fully into memory.
@@ -45,14 +67,25 @@ interface KeyedHasherInterface
      *
      * @throws InvalidArgumentException when $stream is not a stream resource or $chunkSize is not positive
      */
-    public function hmacStream($stream, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES, ?HashProgressInterface $progress = null): HashInterface;
+    public function hmacStream(
+        $stream,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
+        ?HashProgressInterface $progress = null,
+    ): HashInterface;
 
     /**
      * @param iterable<FilepathInterface> $paths
      * @param HashProgressInterface|null $progress optional byte-level progress sink (fires after each file)
      * @return array<string, HashInterface>
      */
-    public function hmacFiles(iterable $paths, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
+    public function hmacFiles(
+        iterable $paths,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        ?HashProgressInterface $progress = null,
+    ): array;
 
     /**
      * The algorithm catalogue this hasher was composed with (extensible via a

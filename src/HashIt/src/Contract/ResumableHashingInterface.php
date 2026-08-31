@@ -25,7 +25,10 @@ interface ResumableHashingInterface
      * @param string|HashAlgorithm $algorithm plain algorithm (HMAC is unsupported)
      * @param bool $binary when true, {@see ResumableHashInterface::finalize()} returns the raw digest
      */
-    public function start(string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, bool $binary = false): ResumableHashInterface;
+    public function start(
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        bool $binary = false,
+    ): ResumableHashInterface;
 
     /**
      * Resume a previously checkpointed hash. The checkpoint envelope carries the

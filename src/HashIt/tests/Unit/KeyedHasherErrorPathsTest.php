@@ -64,7 +64,12 @@ final class KeyedHasherErrorPathsTest extends Unit
 
         $thrown = null;
         try {
-            $hasher->verifyBinary('hello', 'secret', new Hash('deadbeef', 'sha256', true), 'this-is-not-a-real-algorithm');
+            $hasher->verifyBinary(
+                'hello',
+                'secret',
+                new Hash('deadbeef', 'sha256', true),
+                'this-is-not-a-real-algorithm',
+            );
         } catch (\InvalidArgumentException $e) {
             $thrown = $e;
         }

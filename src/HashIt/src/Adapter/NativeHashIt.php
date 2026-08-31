@@ -27,8 +27,10 @@ use ItPack\HashIt\TreeHasher;
  */
 final readonly class NativeHashIt
 {
-    public static function create(?HashingObserverInterface $observer = null, ?AlgorithmSourceInterface $source = null): HasherInterface
-    {
+    public static function create(
+        ?HashingObserverInterface $observer = null,
+        ?AlgorithmSourceInterface $source = null,
+    ): HasherInterface {
         return new Hasher(new NativeContextFactory(), new NativeDirectoryListing(), $observer, $source);
     }
 
@@ -37,8 +39,10 @@ final readonly class NativeHashIt
         return new NativeHmacHasher($source);
     }
 
-    public static function keyedHasher(?HashingObserverInterface $observer = null, ?AlgorithmSourceInterface $source = null): KeyedHasherInterface
-    {
+    public static function keyedHasher(
+        ?HashingObserverInterface $observer = null,
+        ?AlgorithmSourceInterface $source = null,
+    ): KeyedHasherInterface {
         return new KeyedHasher(new NativeKeyedContextFactory(), $observer, $source);
     }
 

@@ -19,8 +19,11 @@ final readonly class NativeHmacHasher implements HmacHasherInterface
     ) {
     }
 
-    public function hmac(string $data, string $key, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
-    {
+    public function hmac(
+        string $data,
+        string $key,
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+    ): HashInterface {
         if (!$algorithm instanceof HashAlgorithm) {
             $algorithm = $this->normalize($algorithm);
         }

@@ -33,8 +33,12 @@ final class HashObservation
     ) {
     }
 
-    public static function started(HashOperation $operation, string $id, string $algorithm, ?int $bytesTotal = null): self
-    {
+    public static function started(
+        HashOperation $operation,
+        string $id,
+        string $algorithm,
+        ?int $bytesTotal = null,
+    ): self {
         return new self(self::STARTED, $id, $operation, $algorithm, $bytesTotal, null, null, null, null, null);
     }
 
@@ -43,8 +47,13 @@ final class HashObservation
         return new self(self::PROGRESS, $id, null, null, $total, $processed, null, null, null, null);
     }
 
-    public static function completed(string $id, string $algorithm, int $bytes, int $durationMs, ?string $resultUrn = null): self
-    {
+    public static function completed(
+        string $id,
+        string $algorithm,
+        int $bytes,
+        int $durationMs,
+        ?string $resultUrn = null,
+    ): self {
         return new self(self::COMPLETED, $id, null, $algorithm, null, null, $bytes, $durationMs, $resultUrn, null);
     }
 

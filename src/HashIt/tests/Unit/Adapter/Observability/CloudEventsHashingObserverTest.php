@@ -105,14 +105,21 @@ class CloudEventsHashingObserverTest extends Unit
     public function testTransportPostsSerializedEventToBroker(): void
     {
         $client = new SpyClient();
-        $observer = new CloudEventsHashingObserver(source: 'hash-it://host', client: $client, brokerUrl: 'https://broker.test/ce');
+        $observer = new CloudEventsHashingObserver(
+            source: 'hash-it://host',
+            client: $client,
+            brokerUrl: 'https://broker.test/ce',
+        );
 
         $observer->observe(HashObservation::completed('op6', 'sha256', 9, 2, 'urn:hashit:sha256:feed'));
 
         self::assertCount(1, $client->requests);
         self::assertSame('POST', $client->requests[0]->getMethod());
         self::assertSame('https://broker.test/ce', (string) $client->requests[0]->getUri());
-        self::assertStringContainsString('io.itpack.hashit.hash.completed.v1', (string) $client->requests[0]->getBody());
+        self::assertStringContainsString(
+            'io.itpack.hashit.hash.completed.v1',
+            (string) $client->requests[0]->getBody(),
+        );
     }
 
     public function testWiredIntoCompositionRoot(): void

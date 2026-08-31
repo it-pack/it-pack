@@ -22,8 +22,10 @@ final readonly class ResumableHasher implements Contract\ResumableHashingInterfa
     {
     }
 
-    public function start(string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, bool $binary = false): Contract\ResumableHashInterface
-    {
+    public function start(
+        string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
+        bool $binary = false,
+    ): Contract\ResumableHashInterface {
         $name = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
 
         return new ResumableHash($this->factory->build($name), $name, $binary);

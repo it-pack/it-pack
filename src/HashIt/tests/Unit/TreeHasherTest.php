@@ -162,7 +162,11 @@ final class TreeHasherTest extends TestCase
         $count = count($nodes);
         for ($i = 0; $i < $count; $i += 2) {
             if ($i + 1 < $count) {
-                $next[] = hash($algorithm, $this->referenceFrame($nodes[$i]) . $this->referenceFrame($nodes[$i + 1]), true);
+                $next[] = hash(
+                    $algorithm,
+                    $this->referenceFrame($nodes[$i]) . $this->referenceFrame($nodes[$i + 1]),
+                    true,
+                );
             } else {
                 $next[] = $nodes[$i];
             }
