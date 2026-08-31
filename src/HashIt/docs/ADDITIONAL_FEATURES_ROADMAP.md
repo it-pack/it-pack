@@ -515,7 +515,7 @@ Tests: `tests/Unit/ResumableHasherTest.php` (8 cases) — resume-across-handles 
 
 ## 2. Definition of Done (whole next-level effort)
 
-- All non-deferred milestones (NF-A1…NF-C2, NF-O1…NF-O3, NF-D1 if approved) implemented with green gates:
+- All non-deferred milestones (NF-A1…NF-C2, NF-O1…NF-O3, NF-D1, NF-D2) implemented with green gates:
   `composer test:unit` · `composer analyse` · `composer cs:check` · `composer architecture`.
 - Each milestone has a completion note in this file (mirroring `REFACTORING_PLAN.md`).
 - `[SCOPE]` items (NF-A5 SRI, NF-C1 formatters) resolved per guardrail #7 with a recorded scope decision and no serialization logic inside the hashing core.
@@ -526,6 +526,7 @@ Tests: `tests/Unit/ResumableHasherTest.php` (8 cases) — resume-across-handles 
 
 1. **NF-D2 resumability** — ✅ resolved: the spike proved plain `\HashContext` *is* serializable and resumes across processes, so it was **implemented** (not deferred) for plain algorithms; HMAC contexts throw on serialize, so HMAC resumption is excluded by design. See `docs/ADR-0002-resumable-hashing.md`.
 2. **NF-D1 tree hash** — ✅ resolved: `docs/ADR-0001-tree-hash-combiner.md` chose fixed-size chunking + THEX-style length-prefixed binary reduction (over BLAKE3 SIMD chunking, which would require the BLAKE3 compression function unavailable via the PHP `hash` extension). Implemented and gated green. Note: on-wire root is *not* compatible with THEX/BLAKE3 by design — cross-impl interop with a named external spec would be a separate package.
-3. **Cross-package policy** — confirm HashIt may `suggest` `AsyncIt`/`DeriveIt`; keep bridges optional to avoid hard coupling.
-4. **NF-C1 serialization home** — finalize whether formatters live in `ItPack\HashIt\Format\*` or a sibling `hash-it-format` package before building them.
-5. **O2/O3 o11y packaging** — keep the OpenTelemetry/CloudEvents adapters in-package (guarded, dev-deps) or extract to a separate `hash-it-obs` package for production (mirrors the H3 bridge)? Also decide the CloudEvents transport seam (injected PSR-18 client vs host-provided).
+3. **Cross-package policy** — ✅ resolved: HashIt core stays decoupled. Its `composer.json` `suggest`s only adapters it directly references (`psr/http-message`, `open-telemetry/api`, `cloudevents/sdk-php`); it does **not** `suggest` `AsyncIt`/`DeriveIt`. Sibling bridges (the `hash-it-async` package) are separate packages that `suggest`/`require` each other from their own `composer.json` (guardrail #8) — no hard coupling is introduced.
+4. **NF-C1 serialization home** — ✅ resolved (stale entry): NF-C1's completion note already records the decision — the formatters live in the in-package `ItPack\HashIt\Format\*` namespace (the roadmap's recommended option), so no sibling `hash-it-format` package was needed.
+5. **O2/O3 o11y packaging** — ⬜ still open (not a defect): NF-O2/O3 shipped the OpenTelemetry/CloudEvents adapters **in-package**, guarded and dev-only, per guardrail #9. Extracting them to a separate `hash-it-obs` package for production (mirroring the H3 bridge) and deciding the CloudEvents transport seam (injected PSR-18 client vs host-provided) remains a future packaging option.
+6. **Observability coverage of tree/resumable hashing** — ⬜ open (consistency gap, not a defect): `HashingObserverInterface` (NF-O1) is wired into `Hasher`/`KeyedHasher` only. `TreeHashingInterface`/`ResumableHashingInterface` deliberately do **not** emit observations (documented deviations in NF-D1/NF-D2 to keep their surface minimal). To make observability uniform, add `HashOperation::TREE_HASH`/`RESUMABLE` and give `TreeHasher`/`ResumableHasher` an optional `?HashingObserverInterface` (like `Hasher`). No roadmap milestone required it, so it was intentionally left out.
