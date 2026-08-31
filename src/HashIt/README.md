@@ -12,6 +12,13 @@ composer require it-pack/hash-it
 
 Requires PHP `^8.4` and the `hash` extension (`ext-hash`).
 
+## Documentation
+
+- **[User Guide](docs/user-guide.md)** — concepts, full API reference, and *when to use which feature* (HMAC, HKDF/PBKDF2/Argon2, tree, resumable, manifests, observability, PSR-7, custom sources, security).
+- **[Tutorial](docs/tutorial.md)** — a progressive, hands-on walkthrough (13 lessons) that links to a runnable example at each step.
+- **[Examples](examples/README.md)** — index of all 22 runnable examples, mapped to features.
+- **Architecture decisions** — [ADR-0001 tree hash combiner](docs/ADR-0001-tree-hash-combiner.md), [ADR-0002 resumable hashing](docs/ADR-0002-resumable-hashing.md).
+
 ## Usage
 
 ```php
