@@ -51,4 +51,16 @@ interface HasherInterface
      * @return array<string, HashInterface>
      */
     public function hashDirectory(string $directory, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256, ?HashProgressInterface $progress = null): array;
+
+    /**
+     * The algorithm catalogue this hasher was composed with (extensible via a
+     * custom {@see \ItPack\HashIt\AlgorithmSourceInterface}).
+     *
+     * @return list<HashAlgorithm>
+     */
+    public function algorithms(): array;
+
+    public function supports(string $identifier): bool;
+
+    public function resolve(string $identifier): HashAlgorithm;
 }

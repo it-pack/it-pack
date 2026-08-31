@@ -187,6 +187,26 @@ HashAlgorithm::hmacSafeAlgorithms();        // list<HashAlgorithm> (44 cases)
 > interoperability with formats that require them. For security-sensitive use, prefer
 > SHA-256 or stronger.
 
+### Algorithm discovery
+
+Beyond the enum, every hasher exposes a queryable **algorithm source** so callers can
+enumerate, check and resolve identifiers without forking the enum — e.g. to plug in
+custom or KMS-backed algorithms through a custom `AlgorithmSourceInterface`:
+
+```php
+$hasher = NativeHashIt::create();      // default NativeAlgorithmSource (all enum cases)
+$hasher->algorithms();                 // list<HashAlgorithm>
+$hasher->supports('sha256');           // true
+$hasher->resolve('sha256');            // HashAlgorithm::SHA256
+
+// extensible: inject your own catalogue
+$custom = new MyKmsAlgorithmSource();
+$hasher = NativeHashIt::create(null, $custom);
+```
+
+`NativeHashIt::keyedHasher()` and `NativeHashIt::hmacHasher()` accept the same optional
+source. `CompositeAlgorithmSource` merges several sources and dedups by algorithm value.
+
 ## Why ports — and why the core never sees `HashContext`
 
 The hashing state type (`\HashContext`) is a PHP implementation detail, not part of the

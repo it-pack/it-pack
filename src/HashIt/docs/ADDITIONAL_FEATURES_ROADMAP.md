@@ -328,7 +328,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 
 ---
 
-## NF-B2 — AlgorithmSource port (V3 / E3) — ⬜ TODO
+## NF-B2 — AlgorithmSource port (V3 / E3) — ✅ DONE
 
 **Goal:** Make algorithm *discovery* extensible (custom/KMS-backed algos) without forking the enum. Note: `ContextFactoryInterface::build(string)` already accepts arbitrary string identifiers, so this only adds the *catalogue/discovery* layer.
 
@@ -349,6 +349,10 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Verification:** gates.
 **Dependencies:** none (pairs well with NF-A1 for metadata-rich sources).
 **Acceptance:** sources work; default behavior unchanged; gates green.
+
+**Completion note (2026-08-31):** Shipped the algorithm *discovery* catalogue, kept fully separate from the hashing surface (which still takes arbitrary string identifiers via `ContextFactoryInterface::build`). New core port `src/AlgorithmSourceInterface.php` (`algorithms(): list<HashAlgorithm>`, `supports(string): bool`, `resolve(string): HashAlgorithm` — `resolve` throws `InvalidArgumentException`) plus two core implementations in `src/AlgorithmSource/`: `NativeAlgorithmSource` (enumerates `HashAlgorithm::cases()`, resolving by enum *value* `"sha256"` or enum *name* `"SHA256"`) and `CompositeAlgorithmSource` (merges sources, dedups by `->value`, delegates `resolve`/`supports` to the first source that knows the identifier). The composition root `src/Adapter/NativeHashIt.php` now accepts an optional `?AlgorithmSourceInterface` on `create()`, `keyedHasher()` and `hmacHasher()` (default `new NativeAlgorithmSource()`), and that source is threaded into `Hasher`/`KeyedHasher`/`NativeHmacHasher` and exposed through three new port methods `algorithms()`/`supports()`/`resolve()` on `HasherInterface`/`KeyedHasherInterface`/`HmacHasherInterface`. **Design note / deliberate expansion beyond the literal task-4 "affected files":** the original list only named the port + two sources + the composition root, but a source accepted by the factory and then dropped would be dead weight — so it is threaded into the hashers and surfaced as discovery API (additive; the hashing path is untouched, hence *no behavior change when omitted*). This also makes algorithm discovery genuinely extensible for custom/KMS-backed identifiers without forking the enum. Tests: `tests/Unit/AlgorithmSource/AlgorithmSourceTest.php` — Native returns all enum cases; resolves by value and name; `resolve` throws on unknown; Composite merges + dedups + delegates + throws on unknown; `NativeHashIt::create()/keyedHasher()/hmacHasher()` all expose the default source; and a custom source injected via `create(null, $custom)` changes the exposed catalogue (proves extensibility). All gates green: `composer test:unit` (127 tests, 415 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations).
+
+**Next:** NF-B3 (Canonical HashInput).
 
 ---
 

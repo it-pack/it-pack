@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt;
 
 use InvalidArgumentException;
+use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
+use Random\RandomException;
 use RuntimeException;
 use Throwable;
 
@@ -14,6 +16,7 @@ final readonly class Hasher implements HasherInterface
         private ContextFactoryInterface $factory,
         private DirectoryListingInterface $listing,
         private ?HashingObserverInterface $observer = null,
+        private ?AlgorithmSourceInterface $source = null,
     ) {
     }
 
@@ -231,6 +234,26 @@ final readonly class Hasher implements HasherInterface
         return $result;
     }
 
+    public function algorithms(): array
+    {
+        return $this->source()->algorithms();
+    }
+
+    public function supports(string $identifier): bool
+    {
+        return $this->source()->supports($identifier);
+    }
+
+    public function resolve(string $identifier): HashAlgorithm
+    {
+        return $this->source()->resolve($identifier);
+    }
+
+    private function source(): AlgorithmSourceInterface
+    {
+        return $this->source ?? new NativeAlgorithmSource();
+    }
+
     private function hashString(string $data, string|HashAlgorithm $algorithm, bool $binary): HashInterface
     {
         $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
@@ -263,6 +286,9 @@ final readonly class Hasher implements HasherInterface
         $this->observer?->observe($observation);
     }
 
+    /**
+     * @throws RandomException
+     */
     private function observationId(): string
     {
         return bin2hex(random_bytes(8));
