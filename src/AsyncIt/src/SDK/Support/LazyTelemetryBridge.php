@@ -20,10 +20,10 @@ use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
  */
 final class LazyTelemetryBridge implements TelemetryBridgeInterface
 {
-    private ?ArrayTelemetryRecorder $recorder = null;
+    private ?TelemetryRecorderInterface $recorder = null;
 
     /**
-     * @param Closure(): ArrayTelemetryRecorder $factory builds the recorder on first use
+     * @param Closure(): TelemetryRecorderInterface $factory builds the recorder on first use
      */
     public function __construct(private readonly Closure $factory)
     {
@@ -38,5 +38,15 @@ final class LazyTelemetryBridge implements TelemetryBridgeInterface
     public function isInitialized(): bool
     {
         return $this->recorder !== null;
+    }
+
+    /**
+     * Recorded events so far, deferred-materialising the recorder on first read.
+     *
+     * @return list<array{event: string, context: array<string, mixed>}>
+     */
+    public function events(): array
+    {
+        return $this->recorder?->events() ?? [];
     }
 }

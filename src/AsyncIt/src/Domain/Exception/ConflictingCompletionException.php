@@ -18,7 +18,9 @@ use RuntimeException;
  * id and both statuses so the coordinator can diagnose the conflict.
  *
  * @see https://w3id.org/itpack/asyncit#TaskStatus
- */
+  * @api
+
+  */
 final class ConflictingCompletionException extends RuntimeException implements AsyncItExceptionInterface
 {
     public function __construct(

@@ -50,10 +50,10 @@ final class ContextIsolationVerifierTest extends TestCase
         $storage = new class implements ContextStorageInterface {
             private ?ExecutionScopeInterface $sentinel = null;
 
-            public function current(): ?ExecutionScopeInterface
+            public function current(): ExecutionScopeInterface
             {
                 if ($this->sentinel === null) {
-                    $this->sentinel = new FakeExecutionScope('sentinel');
+                    $this->sentinel = new FakeExecutionScope();
                 }
 
                 return $this->sentinel;
@@ -62,6 +62,10 @@ final class ContextIsolationVerifierTest extends TestCase
             public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
                 return new class implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
                 };
             }
 
@@ -89,6 +93,10 @@ final class ContextIsolationVerifierTest extends TestCase
                 $this->stack[] = $scope;
 
                 return new class implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
                 };
             }
 

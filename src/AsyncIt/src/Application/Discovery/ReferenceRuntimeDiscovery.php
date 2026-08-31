@@ -16,7 +16,9 @@ use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
  * the same contract.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
- */
+  * @api
+
+  */
 final class ReferenceRuntimeDiscovery implements RuntimeDiscoveryInterface
 {
     public function __construct(private readonly CapabilityDescriptor $descriptor)

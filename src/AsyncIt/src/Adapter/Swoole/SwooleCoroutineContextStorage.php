@@ -24,7 +24,9 @@ use LogicException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
- */
+  * @api
+
+  */
 final class SwooleCoroutineContextStorage implements ContextStorageInterface
 {
     /**
@@ -80,11 +82,11 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
         }
 
         $top = $slot->stack[array_key_last($slot->stack)];
-        if ($top !== $token->id) {
+        if ($top !== $token->id()) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }
 
-        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id]);
+        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id()]);
     }
 
     private function slot(): FiberScopeSlot
@@ -113,15 +115,17 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
 
     private function coroutineId(): int
     {
-        if (!class_exists('Swoole\\Coroutine') || !method_exists('Swoole\\Coroutine', 'getCid')) {
+        if (!class_exists('Swoole\\Coroutine')) {
             return -1;
         }
 
         try {
-            return \Swoole\Coroutine::getCid();
+            $id = \Swoole\Coroutine::getCid();
         } catch (\Throwable) {
             return -1;
         }
+
+        return is_int($id) ? $id : -1;
     }
 
     private function blank(): FiberScopeSlot

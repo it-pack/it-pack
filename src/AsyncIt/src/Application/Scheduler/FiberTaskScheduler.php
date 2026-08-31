@@ -6,10 +6,8 @@ namespace ItPack\AsyncIt\Application\Scheduler;
 
 use Fiber;
 use ItPack\AsyncIt\Application\Artifact\SchedulerFailureArtifact;
-use ItPack\AsyncIt\Application\Factory\CancellationScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\ExecutionScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
-use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
@@ -19,7 +17,6 @@ use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
-use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use Throwable;
 
 /**
@@ -36,7 +33,9 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 final class FiberTaskScheduler implements EngineSchedulerInterface
 {
     /**
@@ -50,13 +49,10 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     private array $results = [];
 
     public function __construct(
-        private readonly TaskFactoryInterface $taskFactory,
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
         private readonly PollerPortInterface $poller,
-        private readonly MonotonicClockInterface $clock,
         private readonly ContextStorageInterface $contextStorage,
-        private readonly CancellationScopeFactoryInterface $cancellationScopeFactory,
         private readonly ExecutionScopeFactoryInterface $scopeFactory,
         private readonly ArtifactPublisherInterface $publisher,
     ) {
@@ -109,21 +105,19 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         try {
             $record->task()->transitionTo(TaskStatus::Running);
 
-            if ($fiber->isStarted()) {
+            if ($fiber->isSuspended()) {
                 $fiber->resume();
-
-                return;
             }
 
-            $fiber->start();
+            if (!$fiber->isStarted()) {
+                $fiber->start();
+            }
 
             if ($fiber->isTerminated()) {
                 $this->results[$record->task()->id()->value] = $fiber->getReturn();
                 $record->task()->complete(TaskStatus::Succeeded);
                 $this->releaseHandles($record);
                 $record->markDone();
-
-                return;
             }
         } catch (Throwable $error) {
             $this->publisher->publish(new SchedulerFailureArtifact($error->getMessage()));

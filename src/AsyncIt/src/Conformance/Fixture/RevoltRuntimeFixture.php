@@ -17,7 +17,10 @@ final class RevoltRuntimeFixture extends AbstractRuntimeFixture
 {
     public function __construct()
     {
-        parent::__construct(new RevoltPoller(), new RevoltFiberContextStorage(new \WeakMap(), new FiberScopeSlotFactory()), new RevoltPoller());
+        /** @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot> $perFiber */
+        $perFiber = new \WeakMap();
+
+        parent::__construct(new RevoltPoller(), new RevoltFiberContextStorage($perFiber, new FiberScopeSlotFactory()), new RevoltPoller());
     }
 
     public function portName(): string

@@ -53,7 +53,7 @@ final class RevoltPoller implements PollerPortInterface
 
         if (isset($this->revoltIds[$id])) {
             try {
-                \Revolt\EventLoop::offReadable($this->revoltIds[$id]);
+                \Revolt\EventLoop::cancel($this->revoltIds[$id]);
             } catch (\Throwable) {
                 // Loop may not be running; bookkeeping below is the source of truth.
             }
@@ -104,7 +104,7 @@ final class RevoltPoller implements PollerPortInterface
         // we ignore — readiness is still probed via stream_select in await().
         $callbackId = @\Revolt\EventLoop::onReadable($stream, static fn (): null => null);
 
-        if (is_string($callbackId) && $callbackId !== '') {
+        if ($callbackId !== '') {
             $this->revoltIds[$id] = $callbackId;
         }
     }

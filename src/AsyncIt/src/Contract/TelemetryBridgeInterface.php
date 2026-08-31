@@ -12,7 +12,9 @@ namespace ItPack\AsyncIt\Contract;
  * underlying recorder is deferred until the first {@see self::record()} call.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
- */
+  * @api
+
+  */
 interface TelemetryBridgeInterface
 {
     /**

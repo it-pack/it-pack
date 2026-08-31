@@ -17,7 +17,9 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 interface EngineSchedulerInterface extends SchedulerInterface
 {
     /**

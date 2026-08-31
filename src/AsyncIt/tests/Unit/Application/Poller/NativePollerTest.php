@@ -13,41 +13,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class NativePollerTest extends TestCase
 {
-    private function fakePoll(): object
+    private function fakePoll(): FakeNativePoll
     {
-        return new class {
-            /** @var list<mixed> */
-            public array $registered = [];
-
-            /** @var list<mixed> */
-            public array $unregistered = [];
-
-            public int $pollCalls = 0;
-
-            public function register(mixed $stream, int $events): bool
-            {
-                $this->registered[] = $stream;
-
-                return true;
-            }
-
-            public function unregister(mixed $stream): bool
-            {
-                $this->unregistered[] = $stream;
-
-                return true;
-            }
-
-            /**
-             * @return array<int, mixed>
-             */
-            public function poll(int $timeout): array
-            {
-                $this->pollCalls++;
-
-                return [];
-            }
-        };
+        return new FakeNativePoll();
     }
 
     public function testRegisterTracksHandleAndRegistersWithPoll(): void
@@ -86,5 +54,40 @@ final class NativePollerTest extends TestCase
         $poller->await(1_500_000);
 
         self::assertSame(1, $poll->pollCalls);
+    }
+}
+
+final class FakeNativePoll
+{
+    /** @var list<mixed> */
+    public array $registered = [];
+
+    /** @var list<mixed> */
+    public array $unregistered = [];
+
+    public int $pollCalls = 0;
+
+    public function register(mixed $stream, int $events): bool
+    {
+        $this->registered[] = $stream;
+
+        return true;
+    }
+
+    public function unregister(mixed $stream): bool
+    {
+        $this->unregistered[] = $stream;
+
+        return true;
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    public function poll(int $timeout): array
+    {
+        $this->pollCalls++;
+
+        return [];
     }
 }

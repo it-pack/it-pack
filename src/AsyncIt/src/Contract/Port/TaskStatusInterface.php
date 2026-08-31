@@ -12,7 +12,9 @@ namespace ItPack\AsyncIt\Contract\Port;
  * before they corrupt the lifecycle matrix.
  *
  * @see https://w3id.org/itpack/asyncit#TaskStatus
- */
+  * @api
+
+  */
 interface TaskStatusInterface
 {
     public function canTransitionTo(TaskStatus $next): bool;

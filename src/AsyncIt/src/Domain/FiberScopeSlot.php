@@ -20,11 +20,13 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  * direction rules.
  *
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 final class FiberScopeSlot
 {
     /**
-     * @var list<int>
+     * @var array<int, int>
      */
     public array $stack = [];
 

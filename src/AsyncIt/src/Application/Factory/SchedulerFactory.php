@@ -10,7 +10,6 @@ use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
-use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 
 /**
  * Assembles the reference {@see FiberTaskScheduler} for one execution scope.
@@ -25,13 +24,10 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 final class SchedulerFactory implements SchedulerFactoryInterface
 {
     public function __construct(
-        private readonly TaskFactoryInterface $taskFactory,
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
         private readonly PollerPortInterface $poller,
-        private readonly MonotonicClockInterface $clock,
         private readonly ContextStorageInterface $contextStorage,
-        private readonly CancellationScopeFactoryInterface $cancellationScopeFactory,
         private readonly ArtifactPublisherInterface $publisher,
     ) {
     }
@@ -39,13 +35,10 @@ final class SchedulerFactory implements SchedulerFactoryInterface
     public function create(ExecutionScopeInterface $scope): EngineSchedulerInterface
     {
         return new FiberTaskScheduler(
-            $this->taskFactory,
             $this->fiberFactory,
             $this->taskRecordFactory,
             $this->poller,
-            $this->clock,
             $this->contextStorage,
-            $this->cancellationScopeFactory,
             new PerRunExecutionScopeFactory($scope),
             $this->publisher,
         );

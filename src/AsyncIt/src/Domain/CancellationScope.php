@@ -16,7 +16,9 @@ use ItPack\AsyncIt\Domain\Exception\CancellationException;
  * cancelled. The scope is never used to preemptively kill a Fiber.
  *
  * @see https://w3id.org/itpack/asyncit#CancellationScope
- */
+  * @api
+
+  */
 final class CancellationScope implements CancellationScopeInterface
 {
     private bool $cancelled = false;

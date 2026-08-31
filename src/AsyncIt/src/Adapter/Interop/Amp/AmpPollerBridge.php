@@ -97,7 +97,7 @@ final class AmpPollerBridge implements PollerPortInterface
     {
         $amp = 'Amp\\Loop';
 
-        if (!is_resource($stream) || !class_exists($amp) || !method_exists($amp, 'onReadable')) {
+        if (!is_resource($stream) || !class_exists($amp)) {
             return;
         }
 
@@ -114,7 +114,7 @@ final class AmpPollerBridge implements PollerPortInterface
     {
         $amp = 'Amp\\Loop';
 
-        if (!class_exists($amp) || !method_exists($amp, 'cancel')) {
+        if (!class_exists($amp)) {
             return;
         }
 

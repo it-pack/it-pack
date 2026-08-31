@@ -68,6 +68,10 @@ final class DeterministicCleanupVerifierTest extends TestCase
             public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
                 return new class implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
                 };
             }
 
@@ -91,6 +95,11 @@ final class DeterministicCleanupVerifierTest extends TestCase
 
             public function await(int $timeoutNanoseconds): void
             {
+            }
+
+            public function activeHandleCount(): int
+            {
+                return 0;
             }
         };
     }

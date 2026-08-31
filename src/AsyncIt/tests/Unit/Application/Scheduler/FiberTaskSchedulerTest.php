@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Scheduler;
 
 use Fiber;
-use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
@@ -34,15 +33,12 @@ final class FiberTaskSchedulerTest extends TestCase
     private function scheduler(): FiberTaskScheduler
     {
         return new FiberTaskScheduler(
-            new TaskFactory(new RandomIdentifierGenerator()),
             new FiberFactory(),
             new TaskRecordFactory(),
             (new PollerFactory())->create(new CapabilityDescriptor([
                 CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
             ])),
-            new DeterministicMonotonicClock(),
             new MemoryContextStorage(),
-            new CancellationScopeFactory(),
             new ReferenceExecutionScopeFactory(),
             new NullArtifactPublisher(),
         );

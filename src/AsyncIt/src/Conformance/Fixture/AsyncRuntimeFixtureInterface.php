@@ -28,7 +28,9 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  *
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 interface AsyncRuntimeFixtureInterface extends PortFixtureInterface
 {
     public function scheduler(): SchedulerInterface;

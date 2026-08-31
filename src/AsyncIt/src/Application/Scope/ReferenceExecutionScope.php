@@ -23,7 +23,9 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
  * of the reference scheduling contract.
  *
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 final class ReferenceExecutionScope implements ExecutionScopeInterface
 {
     public function __construct(public readonly string $discriminant)

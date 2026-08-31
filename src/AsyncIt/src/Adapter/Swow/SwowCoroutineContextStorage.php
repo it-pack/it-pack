@@ -23,7 +23,9 @@ use LogicException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swow
- */
+  * @api
+
+  */
 final class SwowCoroutineContextStorage implements ContextStorageInterface
 {
     /**
@@ -79,11 +81,11 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
         }
 
         $top = $slot->stack[array_key_last($slot->stack)];
-        if ($top !== $token->id) {
+        if ($top !== $token->id()) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }
 
-        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id]);
+        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id()]);
     }
 
     private function slot(): FiberScopeSlot
@@ -112,15 +114,17 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
 
     private function coroutineId(): int
     {
-        if (!class_exists('Swow\\Coroutine') || !method_exists('Swow\\Coroutine', 'getCid')) {
+        if (!class_exists('Swow\\Coroutine')) {
             return -1;
         }
 
         try {
-            return \Swow\Coroutine::getCid();
+            $id = \Swow\Coroutine::getCid();
         } catch (\Throwable) {
             return -1;
         }
+
+        return is_int($id) ? $id : -1;
     }
 
     private function blank(): FiberScopeSlot

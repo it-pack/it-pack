@@ -17,7 +17,9 @@ use ItPack\AsyncIt\Domain\Exception\ChannelClosedException;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
- */
+  * @api
+
+  */
 final class SwooleChannel implements TaskChannelInterface
 {
     private bool $closed = false;

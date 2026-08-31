@@ -13,25 +13,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class ReactPhpPollerBridgeTest extends TestCase
 {
-    private function fakeLoop(): object
+    private function fakeLoop(): FakeReactLoop
     {
-        return new class {
-            /** @var list<mixed> */
-            public array $added = [];
-
-            /** @var list<mixed> */
-            public array $removed = [];
-
-            public function addReadStream(mixed $stream, callable $callback): void
-            {
-                $this->added[] = $stream;
-            }
-
-            public function removeReadStream(mixed $stream): void
-            {
-                $this->removed[] = $stream;
-            }
-        };
+        return new FakeReactLoop();
     }
 
     public function testRegisterTracksHandleAndAddsToLoop(): void
@@ -69,5 +53,24 @@ final class ReactPhpPollerBridgeTest extends TestCase
         $bridge->await(0);
 
         self::assertSame(1, $bridge->activeHandleCount());
+    }
+}
+
+final class FakeReactLoop
+{
+    /** @var list<mixed> */
+    public array $added = [];
+
+    /** @var list<mixed> */
+    public array $removed = [];
+
+    public function addReadStream(mixed $stream, callable $callback): void
+    {
+        $this->added[] = $stream;
+    }
+
+    public function removeReadStream(mixed $stream): void
+    {
+        $this->removed[] = $stream;
     }
 }

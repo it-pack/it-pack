@@ -28,7 +28,7 @@ final class PollerFactory implements PollerFactoryInterface
         if (self::nativePollAvailable()
             && $descriptor->statusFor(CapabilityKind::EdgeTriggeredPolling) === CapabilityStatus::Supported) {
             $nativeClass = 'Io\\Poll';
-            /** @var object $native */
+            /** @var \Io\Poll $native */
             $native = new $nativeClass();
 
             return new NativePoller($native);
@@ -42,6 +42,9 @@ final class PollerFactory implements PollerFactoryInterface
      */
     public static function nativePollAvailable(): bool
     {
+        // Resolved as always-false under PHP < 8.6 analysis; in CI on PHP 8.6 the
+        // native `Io\Poll` poller is selected. `class_exists` guards the runtime.
+        /** @phpstan-ignore-next-line greaterOrEqual.alwaysFalse, booleanAnd.alwaysFalse */
         return \PHP_VERSION_ID >= 80600 && class_exists('Io\\Poll');
     }
 }

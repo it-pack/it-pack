@@ -25,7 +25,9 @@ use ItPack\AsyncIt\Contract\SchedulerInterface;
  *
  * @see https://w3id.org/itpack/asyncit#CancellationScope
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 final class ContextIsolationVerifier implements VerifierInterface
 {
     public const ASSERTION = 'A';

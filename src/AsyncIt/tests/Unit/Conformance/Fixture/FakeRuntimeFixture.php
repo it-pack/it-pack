@@ -76,6 +76,6 @@ final class FakeRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function makeExecutionScope(string $discriminant): ExecutionScopeInterface
     {
-        return new FakeExecutionScope($discriminant);
+        return new FakeExecutionScope();
     }
 }

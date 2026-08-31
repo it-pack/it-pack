@@ -7,9 +7,13 @@ parameters:
     paths:
         - ./src
         - ./tests/Unit
+        - ./tests/Conformance
         - ./tools/phpstan/asyncit-rules/src
     parallel:
         maximumNumberOfProcesses: 1
     reportUnmatchedIgnoredErrors: false
+
+    scanFiles:
+        - tools/phpstan/extensions.stub.php
 
     ignoreErrors: []

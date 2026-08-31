@@ -17,7 +17,7 @@ final class NativeRuntimeFixture extends AbstractRuntimeFixture
     public function __construct()
     {
         $nativeClass = 'Io\\Poll';
-        /** @var object $native */
+        /** @var \Io\Poll $native */
         $native = new $nativeClass();
 
         parent::__construct(new NativePoller($native), new MemoryContextStorage(), new NativePoller($native));

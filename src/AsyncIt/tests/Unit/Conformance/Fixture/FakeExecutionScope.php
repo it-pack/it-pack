@@ -23,7 +23,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
  */
 final class FakeExecutionScope implements ExecutionScopeInterface
 {
-    public function __construct(public readonly string $discriminant)
+    public function __construct()
     {
     }
 

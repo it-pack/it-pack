@@ -10,7 +10,7 @@ use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
-use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
@@ -33,7 +33,9 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 final readonly class AsyncRuntime implements ExecutionEngineInterface
 {
     public function __construct(
@@ -41,7 +43,7 @@ final readonly class AsyncRuntime implements ExecutionEngineInterface
         private TaskFactoryInterface              $taskFactory,
         private CancellationScopeFactoryInterface $cancellationScopeFactory,
         private IdentifierGeneratorInterface      $idGenerator,
-        private EngineCapabilityInterface         $capability,
+        private EngineCapability                 $capability,
         private TaskChannelInterface              $channel,
         private TelemetryBridgeInterface          $telemetry,
     ) {
@@ -84,7 +86,7 @@ final readonly class AsyncRuntime implements ExecutionEngineInterface
         return $this->schedulerFactory->create($scope)->dispatch($task, $operation);
     }
 
-    public function capability(): EngineCapabilityInterface
+    public function capability(): EngineCapability
     {
         return $this->capability;
     }

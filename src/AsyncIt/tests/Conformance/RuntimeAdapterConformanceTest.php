@@ -39,7 +39,7 @@ final class RuntimeAdapterConformanceTest extends TestCase
 
         $result = $this->verifier()->verify(new SwooleRuntimeFixture());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testRevoltAdapterConforms(): void
@@ -50,7 +50,7 @@ final class RuntimeAdapterConformanceTest extends TestCase
 
         $result = $this->verifier()->verify(new RevoltRuntimeFixture());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testSwowAdapterConforms(): void
@@ -61,7 +61,7 @@ final class RuntimeAdapterConformanceTest extends TestCase
 
         $result = $this->verifier()->verify(new SwowRuntimeFixture());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testNativePollerConforms(): void
@@ -72,11 +72,12 @@ final class RuntimeAdapterConformanceTest extends TestCase
 
         $result = $this->verifier()->verify(new NativeRuntimeFixture());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testReactPhpInteropConforms(): void
     {
+        // @phpstan-ignore-next-line function.impossibleType (ReactPHP is an optional dependency)
         if (!class_exists('React\\EventLoop\\LoopInterface')) {
             self::markTestSkipped('ReactPHP not available.');
         }
@@ -84,11 +85,12 @@ final class RuntimeAdapterConformanceTest extends TestCase
         $loopClass = 'React\\EventLoop\\Loop';
         /** @var callable $get */
         $get = $loopClass . '::get';
+        /** @var object $loop */
         $loop = $get();
 
         $result = $this->verifier()->verify(new ReactPhpRuntimeFixture($loop));
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testAmpInteropConforms(): void
@@ -99,7 +101,7 @@ final class RuntimeAdapterConformanceTest extends TestCase
 
         $result = $this->verifier()->verify(new AmpRuntimeFixture());
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testNegotiatedEngineConformsToRunIt(): void
@@ -109,6 +111,6 @@ final class RuntimeAdapterConformanceTest extends TestCase
             new \ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope('engine'),
         );
 
-        self::assertTrue($result->isConformant(), (string) $result->summary());
+        self::assertTrue($result->isConformant(), $result->summary());
     }
 }

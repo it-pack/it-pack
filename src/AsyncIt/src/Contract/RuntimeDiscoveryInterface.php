@@ -13,7 +13,9 @@ use ItPack\AsyncIt\Contract\CapabilityDescriptor;
  * a {@see CapabilityDescriptor}; they never branch on `extension_loaded(...)`.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
- */
+  * @api
+
+  */
 interface RuntimeDiscoveryInterface
 {
     public function discover(): CapabilityDescriptor;

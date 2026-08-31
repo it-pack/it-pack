@@ -20,4 +20,9 @@ final class MemoryContextToken implements ContextTokenInterface, ValueObjectInte
     public function __construct(public readonly int $id)
     {
     }
+
+    public function id(): int
+    {
+        return $this->id;
+    }
 }

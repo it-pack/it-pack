@@ -67,10 +67,10 @@ final class AsyncRuntimeVerifierTest extends TestCase
         $storage = new class implements ContextStorageInterface {
             private ?ExecutionScopeInterface $sentinel = null;
 
-            public function current(): ?ExecutionScopeInterface
+            public function current(): ExecutionScopeInterface
             {
                 if ($this->sentinel === null) {
-                    $this->sentinel = new FakeExecutionScope('sentinel');
+                    $this->sentinel = new FakeExecutionScope();
                 }
 
                 return $this->sentinel;
@@ -79,6 +79,10 @@ final class AsyncRuntimeVerifierTest extends TestCase
             public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
                 return new class implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
                 };
             }
 
@@ -99,6 +103,11 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
             public function await(int $timeoutNanoseconds): void
             {
+            }
+
+            public function activeHandleCount(): int
+            {
+                return 0;
             }
         };
 

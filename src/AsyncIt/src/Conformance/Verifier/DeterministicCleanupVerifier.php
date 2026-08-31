@@ -20,7 +20,9 @@ use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
  *
  * @see https://w3id.org/itpack/asyncit#StreamPollHandle
  * @see https://w3id.org/itpack/asyncit#Poller
- */
+  * @api
+
+  */
 final class DeterministicCleanupVerifier implements VerifierInterface
 {
     public const ASSERTION = 'C';

@@ -36,4 +36,14 @@ interface PollerPortInterface
      * timeout (nanoseconds) elapses.
      */
     public function await(int $timeoutNanoseconds): void;
+
+    /**
+     * Number of handles currently registered with the poller.
+     *
+     * Used by conformance Assertion C to prove every {@see StreamPollHandle} is
+     * released on terminal transition (no dangling watchers).
+     *
+     * @see https://w3id.org/itpack/asyncit#StreamPollHandle
+     */
+    public function activeHandleCount(): int;
 }

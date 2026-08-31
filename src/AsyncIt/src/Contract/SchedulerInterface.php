@@ -15,7 +15,9 @@ use ItPack\AsyncIt\Contract\TaskInterface;
  * injected (see the `*Factory*` contracts in `Application\Factory`).
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
- */
+  * @api
+
+  */
 interface SchedulerInterface
 {
     /**

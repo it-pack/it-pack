@@ -15,7 +15,9 @@ namespace ItPack\AsyncIt\Contract\Port;
  * @see https://w3id.org/itpack/asyncit#ViolationSeverity
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-cancellation-observed
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-handle-released
- */
+  * @api
+
+  */
 interface ViolationVocabulary
 {
     public const CONTEXT_BLEED = 'ctx-bleed';

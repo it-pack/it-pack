@@ -14,7 +14,9 @@ namespace ItPack\AsyncIt\Contract;
  * learn which backend is active.
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
- */
+  * @api
+
+  */
 interface TaskChannelInterface
 {
     /**

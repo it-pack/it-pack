@@ -16,12 +16,14 @@ use ItPack\AsyncIt\Contract\TaskChannelInterface;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swow
- */
+  * @api
+
+  */
 final class SwowChannel implements TaskChannelInterface
 {
     private bool $closed = false;
 
-    public function __construct(private readonly object $channel)
+    public function __construct(private readonly \Swow\Coroutine\Channel $channel)
     {
     }
 

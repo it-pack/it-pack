@@ -54,13 +54,10 @@ abstract class AbstractRuntimeFixture implements AsyncRuntimeFixtureInterface
         $this->publisher = new NullArtifactPublisher();
 
         $this->scheduler = new FiberTaskScheduler(
-            new TaskFactory(new RandomIdentifierGenerator()),
             new FiberFactory(),
             new TaskRecordFactory(),
             $schedulerPoller,
-            $this->clock,
             $storage,
-            new CancellationScopeFactory(),
             new ReferenceExecutionScopeFactory(),
             $this->publisher,
         );

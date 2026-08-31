@@ -56,13 +56,10 @@ final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
         $this->publisher = new NullArtifactPublisher();
 
         $this->scheduler = new FiberTaskScheduler(
-            new TaskFactory(new RandomIdentifierGenerator()),
             new FiberFactory(),
             new TaskRecordFactory(),
             new SelectPoller(),
-            $this->clock,
             $this->storage,
-            new CancellationScopeFactory(),
             new ReferenceExecutionScopeFactory(),
             $this->publisher,
         );

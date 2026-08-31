@@ -13,7 +13,9 @@ use ItPack\AsyncIt\Contract\TaskInterface;
  * it registered, and its terminal state.
  *
  * @see https://w3id.org/itpack/asyncit#Task
- */
+  * @api
+
+  */
 final class TaskRecord
 {
     /**

@@ -18,7 +18,9 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
  *
  * @see https://w3id.org/itpack/asyncit#Task
  * @see https://w3id.org/itpack/runit#Execution
- */
+  * @api
+
+  */
 interface TaskInterface
 {
     public function id(): TaskId;

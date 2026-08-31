@@ -26,7 +26,7 @@ use LogicException;
 final class MemoryContextStorage implements ContextStorageInterface
 {
     /**
-     * @var list<ContextTokenInterface>
+     * @var array<int, ContextTokenInterface>
      */
     private array $stack = [];
 

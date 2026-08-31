@@ -13,7 +13,9 @@ use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
  * drives which runtime is assembled.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
- */
+  * @api
+
+  */
 interface RuntimeDiscoveryFactoryInterface
 {
     public function create(CapabilityDescriptor $descriptor): RuntimeDiscoveryInterface;

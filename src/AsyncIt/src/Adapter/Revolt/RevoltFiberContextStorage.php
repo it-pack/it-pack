@@ -23,7 +23,9 @@ use LogicException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-revolt
- */
+  * @api
+
+  */
 final class RevoltFiberContextStorage implements ContextStorageInterface
 {
     /**
@@ -83,11 +85,11 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
         }
 
         $top = $slot->stack[array_key_last($slot->stack)];
-        if ($top !== $token->id) {
+        if ($top !== $token->id()) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }
 
-        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id]);
+        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id()]);
     }
 
     private function slot(): FiberScopeSlot

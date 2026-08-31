@@ -15,7 +15,9 @@ use RuntimeException;
  * state that is not a conflicting terminal-to-terminal move).
  *
  * @see https://w3id.org/itpack/asyncit#TaskStatus
- */
+  * @api
+
+  */
 final class InvalidLifecycleTransitionException extends RuntimeException implements AsyncItExceptionInterface
 {
     public function __construct(

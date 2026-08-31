@@ -17,4 +17,9 @@ final readonly class RevoltContextToken implements ContextTokenInterface, ValueO
     public function __construct(public int $id)
     {
     }
+
+    public function id(): int
+    {
+        return $this->id;
+    }
 }

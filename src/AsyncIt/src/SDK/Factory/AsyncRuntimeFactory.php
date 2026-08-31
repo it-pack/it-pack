@@ -32,7 +32,6 @@ use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
-use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
@@ -64,7 +63,6 @@ final class AsyncRuntimeFactory
     {
         [$kind, $descriptor] = (new self())->negotiate();
 
-        $clock = new SystemMonotonicClock();
         $poller = (new self())->buildPoller($kind, $descriptor);
         $storage = (new self())->buildStorage($kind);
         $channel = (new self())->buildChannel($kind);
@@ -87,13 +85,10 @@ final class AsyncRuntimeFactory
         );
 
         $schedulerFactory = new SchedulerFactory(
-            $taskFactory,
             $fiberFactory,
             new TaskRecordFactory(),
             $poller,
-            $clock,
             $storage,
-            $cancellationScopeFactory,
             $publisher,
         );
 
@@ -183,9 +178,22 @@ final class AsyncRuntimeFactory
         return match ($kind) {
             RuntimeAdapterKind::Swoole => new SwooleCoroutineContextStorage(new FiberScopeSlotFactory()),
             RuntimeAdapterKind::Swow => new SwowCoroutineContextStorage(new FiberScopeSlotFactory()),
-            RuntimeAdapterKind::Revolt => new RevoltFiberContextStorage(new \WeakMap(), new FiberScopeSlotFactory()),
+            RuntimeAdapterKind::Revolt => new RevoltFiberContextStorage($this->revoltPerFiberMap(), new FiberScopeSlotFactory()),
             RuntimeAdapterKind::Reference => new MemoryContextStorage(),
         };
+    }
+
+    /**
+     * Per-Fiber WeakMap backing {@see RevoltFiberContextStorage}.
+     *
+     * @return \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot>
+     */
+    private function revoltPerFiberMap(): \WeakMap
+    {
+        /** @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot> $map */
+        $map = new \WeakMap();
+
+        return $map;
     }
 
     private function buildChannel(RuntimeAdapterKind $kind): TaskChannelInterface

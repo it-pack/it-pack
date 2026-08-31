@@ -18,7 +18,9 @@ use ItPack\RunIt\Domain\Shared\Duration;
  *
  * @see https://w3id.org/itpack/runit#instant
  * @see https://w3id.org/itpack/runit#duration
- */
+  * @api
+
+  */
 final class DeterministicMonotonicClock implements MonotonicClockInterface
 {
     private int $nanoseconds = 0;

@@ -16,7 +16,9 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-revolt
- */
+  * @api
+
+  */
 final class RevoltChannel implements TaskChannelInterface
 {
     public function __construct(private readonly EmulatedChannel $channel)

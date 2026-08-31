@@ -14,7 +14,9 @@ namespace ItPack\AsyncIt\Contract;
  * scope is cancelled.
  *
  * @see https://w3id.org/itpack/asyncit#CancellationScope
- */
+  * @api
+
+  */
 interface CancellationScopeInterface
 {
     public function isCancelled(): bool;

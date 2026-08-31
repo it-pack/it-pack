@@ -16,7 +16,9 @@ use RuntimeException;
  * the conformance result / health path rather than silently lost.
  *
  * @see https://w3id.org/itpack/asyncit#StreamPollHandle
- */
+  * @api
+
+  */
 final class StreamPollHandleLeakException extends RuntimeException implements AsyncItExceptionInterface
 {
     public function __construct(public readonly StreamPollHandle $handle)
