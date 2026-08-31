@@ -452,7 +452,7 @@ Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / m
 
 ---
 
-## NF-D1 — Tree / parallel chunk hashing (V4) — ⬜ TODO (gated on spike)
+## NF-D1 — Tree / parallel chunk hashing (V4) — ✅ DONE
 
 **Goal:** Split large inputs into chunks, hash each, combine with a **stable, specified combiner** into a *tree hash* (a distinct digest from plain `hash()`). Differentiator, but introduces a new concept → requires an approved spec first.
 
@@ -471,6 +471,16 @@ Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / m
 **Verification:** gates.
 **Dependencies:** NF-B3 (framing), NF-A4 (progress optional).
 **Acceptance:** ADR approved; implementation matches chosen spec; gates green. **Conditional** — only after the spike is approved; otherwise defer.
+
+**Completion note (2026-08-31):** The mandatory spike was written as `docs/ADR-0001-tree-hash-combiner.md` and **accepted**, lifting the "gated on spike" precondition. Decision: fixed-size, caller-supplied `chunkSize` (default 64 KiB) — *not* BLAKE3 SIMD chunking (which would couple the scheme to the BLAKE3 compression function, unavailable through the PHP `hash` extension); combiner = recursive binary reduction `H( LE64(len(left))||left || LE64(len(right))||right )` reusing `HashInputInterface::FRAME_LENGTH_BYTES = 8` for the length prefix, with the trailing odd node promoted unchanged (THEX-style). New core port `src/TreeHashingInterface.php` (`treeHash(HashInputInterface $input, int $chunkSize = DEFAULT_CHUNK_SIZE_BYTES, string|HashAlgorithm = SHA256): HashInterface`) and core service `src/TreeHasher.php` (final, deptrac-clean: built only on `HashBuilder` + `HashInput\TempSink` framing from NF-B3; reads the input's raw bytes via `writeTo(TempSink)`, re-chunks at the tree `chunkSize`, hashes each leaf as a **raw binary** digest, then reduces recursively; the single root is surfaced as a hex `Hash`). The root length equals the base algorithm digest length, so a tree hash composes with `Hash`/`equals`. `NativeHashIt::treeHasher()` exposes it from the composition root (no `HasherInterface`/`HashOperation` change — kept minimal and faithful to the spec's affected-files list).
+
+**Deliberate deviations from the literal task-2 signature (necessary, documented):**
+1. The spec wrote `treeHash(HashInputInterface|stream $input, …)`. A bare `stream` is already representable as a `HashInputInterface` (`StreamInput`), so the parameter is typed `HashInputInterface` only — this avoids a second parallel byte-source abstraction and keeps the core decoupled from PSR streams (consistent with NF-B3's `hashInput` taking `HashInputInterface`). All source kinds (string/stream/file/composite) are still supported.
+2. Progress (`NF-A4`) was intentionally *not* wired into `TreeHasher` — the milestone lists only the two new core files and the spec's tasks make no mention of it; keeping the surface tight avoids scope creep. The combiner is deterministic and bounded, so progress can be added later without touching callers.
+
+Tests `tests/Unit/TreeHasherTest.php` (9 cases, 10 assertions): single-chunk input (chunkSize ≥ size) equals `hash()`; empty input equals `hash('')`; deterministic for identical (input, chunkSize); multi-chunk differs from `hash()`; different `chunkSize` ⇒ different tree hash; **matches an independent reference implementation** of ADR-0001 written purely on the native `hash()` extension (no shared code with `TreeHasher`), proving the two agree on the canonical scheme; `StreamInput`/`FileInput`/`StringInput` of the same content agree; an odd (3-leaf) chunk count combines correctly; non-positive `chunkSize` throws `InvalidArgumentException`. All gates green: `composer test:unit` (163 tests, 475 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations). README gained a "Tree / chunked hashing" section documenting the scheme and that `chunkSize` is part of the digest.
+
+**Next:** NF-D2 (Resumable hashing) — still a research gate; `native \HashContext` is not serializable, so likely defer with a written rationale (no code until the spike decides otherwise).
 
 ---
 
@@ -502,7 +512,7 @@ Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / m
 ## 3. Open questions / research gates (carry from the plan)
 
 1. **NF-D2 resumability** — confirm infeasibility with native ext; only pursue if a self-implemented engine is justified.
-2. **NF-D1 tree hash** — pick a stable, interoperable combiner (BLAKE3 chunking / THEX) before coding.
+2. **NF-D1 tree hash** — ✅ resolved: `docs/ADR-0001-tree-hash-combiner.md` chose fixed-size chunking + THEX-style length-prefixed binary reduction (over BLAKE3 SIMD chunking, which would require the BLAKE3 compression function unavailable via the PHP `hash` extension). Implemented and gated green. Note: on-wire root is *not* compatible with THEX/BLAKE3 by design — cross-impl interop with a named external spec would be a separate package.
 3. **Cross-package policy** — confirm HashIt may `suggest` `AsyncIt`/`DeriveIt`; keep bridges optional to avoid hard coupling.
 4. **NF-C1 serialization home** — finalize whether formatters live in `ItPack\HashIt\Format\*` or a sibling `hash-it-format` package before building them.
 5. **O2/O3 o11y packaging** — keep the OpenTelemetry/CloudEvents adapters in-package (guarded, dev-deps) or extract to a separate `hash-it-obs` package for production (mirrors the H3 bridge)? Also decide the CloudEvents transport seam (injected PSR-18 client vs host-provided).

@@ -210,6 +210,49 @@ produces the same digest, while a different order (or different child boundaries
 a different digest. The frame width is fixed at 8 bytes; do not change it without bumping
 the wire format, since existing digests would no longer verify.
 
+## Tree / chunked hashing
+
+`NativeHashIt::treeHasher()` produces a **tree hash** of a large input: the input
+is split into fixed-size chunks, each chunk is hashed independently, and the chunk
+digests are combined with a stable, specified combiner into a *single* root digest
+that is **distinct** from `hash()` of the same bytes. It is a strict generalization
+of `hash()` — a single-chunk input returns the plain `hash()`.
+
+```php
+use ItPack\HashIt\HashInput\StringInput;
+
+$tree = NativeHashIt::treeHasher();
+
+// chunkSize >= input length  → identical to Hasher::hash()
+$tree->treeHash(new StringInput($data), 1_048_576);
+
+// chunkSize < input length    → a distinct tree hash
+$tree->treeHash(new StringInput($data), 64 * 1024);
+```
+
+The input is any `HashInputInterface` (string / stream / file / composite), so
+`treeHash()` works over in-memory data, files and streams without loading the
+whole input into memory at once.
+
+**Scheme & framing (must be recorded with the digest):** the tree hash is a pure
+function of `(input bytes, chunkSize, algorithm)`. Full specification and the
+rationale (why fixed-size chunking over BLAKE3-style SIMD chunking) are in
+[`docs/ADR-0001-tree-hash-combiner.md`](./docs/ADR-0001-tree-hash-combiner.md).
+In short:
+
+- Each leaf = `H(chunk)` (raw binary digest, `outputBits/8` bytes).
+- Each internal node combines two children as `H( frame(left) || frame(right) )`
+  where `frame(x) = LE64(length(x)) || x`; the trailing odd node is promoted
+  unchanged. Recurse to a single root.
+- The **chunk size is part of the digest** — a different `chunkSize` yields a
+  different tree hash. There is no single canonical size; record `chunkSize`
+  alongside the value.
+
+Output length equals the base algorithm's digest length, so a tree hash composes
+with `Hash` / `HashInterface::equals`. The on-wire root is *not* compatible with
+THEX or BLAKE3; it is HashIt's own stable scheme (cross-impl interop with a named
+external spec would live in a separate package).
+
 ## Manifest verify & formatters
 
 `HashManifest` is an immutable value object pairing one algorithm with a map of

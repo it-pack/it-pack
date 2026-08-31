@@ -15,6 +15,8 @@ use ItPack\HashIt\KeyDerivationInterface;
 use ItPack\HashIt\KeyedHasher;
 use ItPack\HashIt\KeyedHasherInterface;
 use ItPack\HashIt\Pbkdf2Interface;
+use ItPack\HashIt\TreeHasher;
+use ItPack\HashIt\TreeHashingInterface;
 
 /**
  * Composition root: binds the native (PHP hash extension) adapters into the
@@ -61,5 +63,15 @@ final readonly class NativeHashIt
     public static function argon2(): Argon2Interface
     {
         return new NativeArgon2();
+    }
+
+    /**
+     * Tree (chunked) hashing — splits a large input into chunks, hashes each,
+     * and combines the chunk digests into a single root digest distinct from
+     * hash(). Scheme and framing: docs/ADR-0001-tree-hash-combiner.md.
+     */
+    public static function treeHasher(): TreeHashingInterface
+    {
+        return new TreeHasher(new NativeContextFactory());
     }
 }
