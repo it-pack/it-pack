@@ -170,6 +170,46 @@ $hash = NativeHashIt::argon2()->hash($password);          // $argon2id$…
 if (NativeHashIt::argon2()->verify($password, $hash)) { /* … */ }
 ```
 
+## Structured / canonical hashing
+
+`Hasher::hashInput()` deterministically hashes *structured* content — strings,
+streams and files composed in a fixed order — so the same logical content always
+digests identically regardless of how it was assembled. Inputs implement the
+`HashInputInterface` port and write their canonical bytes through `writeTo()`:
+
+```php
+use ItPack\HashIt\HashInput\CompositeInput;
+use ItPack\HashIt\HashInput\StringInput;
+use ItPack\HashIt\HashInput\FileInput;
+
+$hash = NativeHashIt::create()->hashInput(
+    new CompositeInput([
+        new StringInput('header'),
+        new FileInput(NativeFilepathFileinfo::of($configPath)),
+        new StringInput('footer'),
+    ]),
+);
+```
+
+The allowed input kinds (no exotic inputs — see roadmap §7):
+
+| Input | Written bytes |
+|-------|---------------|
+| `StringInput` | the raw string bytes |
+| `StreamInput` | the stream bytes, read in 64 KiB chunks (`DEFAULT_CHUNK_SIZE_BYTES`) |
+| `FileInput` | the file bytes (opens the path and delegates to `StreamInput`) |
+| `CompositeInput` | **length-prefixed framing** of its ordered children (below) |
+
+**Framing (cross-implementation parity):** for each child of a `CompositeInput`,
+write an **8-byte unsigned little-endian length** (`HashInputInterface::FRAME_LENGTH_BYTES`)
+followed by the child's own framed bytes. Children are framed recursively, so nested
+composites are canonical too. A *bare* `StringInput`/`StreamInput`/`FileInput` writes
+its raw bytes with **no** prefix — consequently `hashInput(new StringInput('x'))` equals
+`hash('x')`. Because every child is length-delimited, the same ordered sequence always
+produces the same digest, while a different order (or different child boundaries) produces
+a different digest. The frame width is fixed at 8 bytes; do not change it without bumping
+the wire format, since existing digests would no longer verify.
+
 ## Algorithms
 
 `HashAlgorithm` is a backed enum and the **single source of truth** for the algorithm

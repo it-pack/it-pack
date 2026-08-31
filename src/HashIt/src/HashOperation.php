@@ -17,4 +17,5 @@ enum HashOperation: string
     case HMAC_STREAM = 'HMAC_STREAM';
     case HMAC_FILES = 'HMAC_FILES';
     case VERIFY = 'VERIFY';
+    case HASH_INPUT = 'HASH_INPUT';
 }

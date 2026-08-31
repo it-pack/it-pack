@@ -8,7 +8,7 @@ namespace ItPack\HashIt;
  * Immutable incremental hashing builder. Each append returns a new builder with
  * a copied context, so the original is never mutated — safe to share and reuse.
  */
-final readonly class HashBuilder
+final readonly class HashBuilder implements HashSinkInterface
 {
     private function __construct(
         private HashContextInterface $context,

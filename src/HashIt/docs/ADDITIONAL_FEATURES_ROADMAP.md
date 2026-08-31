@@ -356,7 +356,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 
 ---
 
-## NF-B3 — Canonical HashInput (V6) — ⬜ TODO
+## NF-B3 — Canonical HashInput (V6) — ✅ DONE
 
 **Goal:** Deterministically hash *structured* content (strings/streams/files composed in a fixed order) so the same logical content digests identically regardless of assembly. Built only from allowed input kinds (respects §7 "no exotic inputs").
 
@@ -377,6 +377,16 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Verification:** gates.
 **Dependencies:** none.
 **Acceptance:** deterministic framing; gates green; uses only string/stream/file inputs.
+
+**Completion note (2026-08-31):** Shipped deterministic structured hashing. New core port `src/HashInputInterface.php` (`writeTo(HashSinkInterface): HashSinkInterface`; `FRAME_LENGTH_BYTES = 8`) plus four core implementations in `src/HashInput/`: `StringInput` (raw bytes), `StreamInput` (reads the stream in `DEFAULT_CHUNK_SIZE_BYTES` chunks via `append`, restores the stream position), `FileInput` (opens the `FilepathInterface` path and delegates to `StreamInput`, throws `RuntimeException` when unreadable — mirrors `Hasher::hashFile`), and `CompositeInput` (ordered, length-prefixed framing). Framing: for each child write an 8-byte little-endian unsigned length then the child's own framed bytes; `CompositeInput::lengthPrefix()` encodes the width straight from `FRAME_LENGTH_BYTES`, so the constant is the single source of truth for the wire format. A bare `StringInput`/`StreamInput`/`FileInput` writes raw bytes with no prefix, so `hashInput(new StringInput('x'))` equals `hash('x')`. `HasherInterface` + `Hasher` gained `hashInput(HashInputInterface, string|HashAlgorithm = SHA256): HashInterface` (new `HashOperation::HASH_INPUT` observation); it starts a `HashBuilder`, feeds the input, and digests.
+
+**Deliberate deviations from the literal task spec (all necessary, documented):**
+1. The roadmap wrote `HashInputInterface::writeTo(HashBuilder $builder): void`. `HashBuilder` is immutable (`append()` returns a *new* builder), so a `void` return cannot accumulate — the canonical signature is `writeTo(HashSinkInterface): HashSinkInterface`, and the top-level passes a `HashBuilder` (which now `implements HashSinkInterface`). New core helper `src/HashSinkInterface.php` is the sink abstraction; new `src/HashInput/TempSink.php` is a measuring/rewindable `php://temp` sink used by `CompositeInput` to capture each child's framed bytes so the 8-byte length can be written *before* the bytes — without loading the child's source stream fully into memory at once (it streams the captured bytes back in `DEFAULT_CHUNK_SIZE_BYTES` chunks). This keeps `StreamInput`/`FileInput` memory-bounded, which the spec's "reads in chunks via append" intent requires.
+2. `StreamInput` is **not** `readonly` (a `resource` property cannot be typed, and PHP forbids `readonly` on an untyped property) — a minor consistency deviation from the other value-object inputs.
+
+Tests: `tests/Unit/HashInput/HashInputTest.php` — (a) single `StringInput('x')` equals `hash('x')`; (b) equivalent composites built via two different code paths but identical order digest identically; (c) different order → different digest; (d) `StreamInput` over a file and `FileInput` both equal `hashFile`; plus framing-vs-concatenation divergence and nested-composite canonicity and algorithm selection. All gates green: `composer test:unit` (135 tests, 425 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations). README gained a "Structured / canonical hashing" section documenting the framing for cross-implementation parity.
+
+**Next:** NF-C1 (Manifest verify + formatters).
 
 ---
 

@@ -63,4 +63,12 @@ interface HasherInterface
     public function supports(string $identifier): bool;
 
     public function resolve(string $identifier): HashAlgorithm;
+
+    /**
+     * Deterministically hash *structured* content built from the allowed input
+     * kinds (string, stream, file) composed in a fixed order via {@see HashInputInterface}.
+     * The same logical content always digests identically regardless of how it was
+     * assembled; see {@see \ItPack\HashIt\HashInput\CompositeInput} for the framing.
+     */
+    public function hashInput(HashInputInterface $input, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface;
 }

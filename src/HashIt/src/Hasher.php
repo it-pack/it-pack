@@ -249,6 +249,29 @@ final readonly class Hasher implements HasherInterface
         return $this->source()->resolve($identifier);
     }
 
+    public function hashInput(HashInputInterface $input, string|HashAlgorithm $algorithm = HashAlgorithm::SHA256): HashInterface
+    {
+        $id = $this->observationId();
+        $algorithmName = $this->algorithmName($algorithm);
+        $this->observe(HashObservation::started(HashOperation::HASH_INPUT, $id, $algorithmName, null));
+        $begin = hrtime(true);
+
+        try {
+            $sink = $input->writeTo(HashBuilder::start($this->factory, $algorithm));
+            if (!$sink instanceof HashBuilder) {
+                throw new RuntimeException('HashInput did not return the expected hashing builder');
+            }
+            $hash = $sink->digest();
+        } catch (Throwable $e) {
+            $this->observe(HashObservation::failed($id, HashOperation::HASH_INPUT, $e));
+            throw $e;
+        }
+
+        $this->observe($this->completed($id, $algorithmName, 0, $begin, $hash));
+
+        return $hash;
+    }
+
     private function source(): AlgorithmSourceInterface
     {
         return $this->source ?? new NativeAlgorithmSource();
