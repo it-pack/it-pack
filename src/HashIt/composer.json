@@ -19,7 +19,8 @@
     },
     "suggest": {
         "psr/http-message": "Install to hash PSR-7 streams via ItPack\\HashIt\\Adapter\\PsrStreamHasher",
-        "open-telemetry/api": "Install to emit OpenTelemetry tracing spans via ItPack\\HashIt\\Adapter\\Observability\\OtelHashingObserver"
+        "open-telemetry/api": "Install to emit OpenTelemetry tracing spans via ItPack\\HashIt\\Adapter\\Observability\\OtelHashingObserver",
+        "cloudevents/sdk-php": "Install to emit CNCF CloudEvents via ItPack\\HashIt\\Adapter\\Observability\\CloudEventsHashingObserver"
     },
     "authors": [
         {

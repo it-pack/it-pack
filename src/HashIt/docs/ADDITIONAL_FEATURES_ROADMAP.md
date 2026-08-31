@@ -273,7 +273,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 
 ---
 
-## NF-O3 — CloudEvents emitter adapter (O3) — ⬜ TODO
+## NF-O3 — CloudEvents emitter adapter (O3) — ✅ DONE
 
 **Goal:** Implement `HashingObserverInterface` that emits CNCF CloudEvents for completed/failed hashing operations. Uses `cloudevents/sdk-php` (present in `require-dev`). Optional/guarded like NF-O2.
 
@@ -291,6 +291,10 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Verification:** gates.
 **Dependencies:** NF-O1, NF-A2 (`resultUrn`).
 **Acceptance:** standards-shaped CloudEvent produced; adapter guarded; gates green; no core runtime dep.
+
+**Completion note (2026-08-29):** Implemented exactly as specced. New `src/Adapter/Observability/CloudEventsHashingObserver.php` implements `HashingObserverInterface` and emits CNCF CloudEvents (spec 1.0). `observe()` ignores `started`/`progress` and, on `completed`, builds one event (`type io.itpack.hashit.hash.completed.v1`, `datacontenttype application/json`) whose `data` is `{algorithm, bytes, durationMs, urn}`; on `failed` it builds `…failed.v1` with `{operation, error, errorType}`. Each event id is `bin2hex(random_bytes(16))` and `source` defaults to `hash-it://<host>` (overridable). Events are retained for inspection via `collected()` and, when a PSR-18 `ClientInterface` + broker URL are injected, serialized with `CloudEvents\Serializers\JsonSerializer` and POSTed (`Content-Type: application/cloudevents+json`) — transport stays fully optional. **Guardrail compliance:** the constructor throws `LogicException` unless `class_exists(\CloudEvents\V1\CloudEventImmutable::class)`, so the adapter is only instantiable when `cloudevents/sdk-php` is installed; it lives in `Adapter\*` and deptrac reports **0 violations** — core still never imports CloudEvents, and there is no new runtime `require` (the SDK arrives via `just-bases/php-obs-dev-base`, already in `require-dev`; added to `composer.json` `suggest`). Composition root does not auto-instantiate it. `tests/Unit/Adapter/Observability/CloudEventsHashingObserverTest.php` asserts: a completed observation yields the completed-type event with the right JSON `data` (algorithm + urn), a failed observation yields the failed-type event carrying the exception message/class, started/progress emit nothing, the event round-trips through `JsonSerializer`→`JsonDeserializer` (asserting `type`/`source`/`data`), a configurable source is honored, an injected client POSTs the serialized event to the broker, and the observer wired via `NativeHashIt::create($observer)` produces a completed event whose `urn` matches the computed hash. All gates green: `composer test:unit` (97 tests, 361 assertions), `analyse`, `cs:check`, `architecture`.
+
+**Next:** NF-B1 (Key Derivation Functions) — the headline toolkit feature. The observability port/observation model (`HashOperation` / `HashObservation` / `HashingObserverInterface`) is now fully exercised by two sibling adapters (OTel, CloudEvents).
 
 ---
 

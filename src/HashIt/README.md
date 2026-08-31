@@ -116,6 +116,25 @@ use ItPack\HashIt\Adapter\Observability\OtelHashingObserver;
 $hasher = NativeHashIt::create(new OtelHashingObserver()); // uses the app's global TracerProvider
 ```
 
+### CloudEvents emitter (optional)
+
+`ItPack\HashIt\Adapter\Observability\CloudEventsHashingObserver` turns the same
+observations into CNCF CloudEvents (spec 1.0): each completed operation becomes an
+event of type `io.itpack.hashit.hash.completed.v1` whose JSON `data` carries
+`algorithm`, `bytes`, `durationMs` and `urn`; each failure becomes
+`io.itpack.hashit.hash.failed.v1` with the `error` message and class. Events are produced
+only for terminal observations (`started`/`progress` are ignored) and are kept for
+inspection via `collected()`; pass a PSR-18 client plus a broker URL to also POST them
+(`Content-Type: application/cloudevents+json`). Like the OTel adapter it is optional —
+install `cloudevents/sdk-php` and inject the observer yourself:
+
+```php
+use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Adapter\Observability\CloudEventsHashingObserver;
+
+$hasher = NativeHashIt::create(new CloudEventsHashingObserver()); // source defaults to hash-it://<host>
+```
+
 ## Algorithms
 
 `HashAlgorithm` is a backed enum and the **single source of truth** for the algorithm
