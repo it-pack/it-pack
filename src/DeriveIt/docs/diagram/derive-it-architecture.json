@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DeriveIt — Runtime Architecture",
+    "output": "derive-it-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "views": [
+      {
+        "id": "primary-path",
+        "label": "Primary derivation path",
+        "focus": ["cli", "facade", "factory", "derivers", "engine", "renderer"],
+        "note": "Follow one derivation from the entry point to the emitted port source string."
+      },
+      {
+        "id": "trust-boundary",
+        "label": "Leakage trust boundary",
+        "focus": ["derivers", "engine", "renderer", "auditor", "reflection"],
+        "note": "The generation core that must stay free of any adaptee parent/trait/interface leakage."
+      },
+      {
+        "id": "graph-walk",
+        "label": "Class-graph walk",
+        "focus": ["derivers", "resolvers", "reflection"],
+        "note": "How a target class is walked to its parent, trait, and interface members."
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "adaptee",
+      "type": "external",
+      "label": "Adaptee",
+      "sublabel": "untrusted",
+      "tag": "input",
+      "pos": [760, 20],
+      "size": [200, 58]
+    },
+    {
+      "id": "resolvers",
+      "type": "backend",
+      "label": "Recursive Resolvers",
+      "sublabel": "graph walkers",
+      "tag": "Recursive*Resolver",
+      "pos": [20, 150],
+      "size": [150, 60]
+    },
+    {
+      "id": "reflection",
+      "type": "backend",
+      "label": "Reflection + Cache",
+      "sublabel": "ClassReflection",
+      "tag": "ReflectionCacheInterface",
+      "pos": [20, 340],
+      "size": [150, 60]
+    },
+    {
+      "id": "nette",
+      "type": "external",
+      "label": "nette/php-generator",
+      "sublabel": "nette v4",
+      "tag": "external lib",
+      "pos": [1140, 150],
+      "size": [150, 58]
+    },
+    {
+      "id": "cli",
+      "type": "frontend",
+      "label": "CLI",
+      "sublabel": "bin/derive",
+      "tag": "DeriveCommand",
+      "pos": [190, 340],
+      "size": [150, 60]
+    },
+    {
+      "id": "facade",
+      "type": "backend",
+      "label": "DeriveIt",
+      "sublabel": "static facade",
+      "tag": "DeriveIt",
+      "pos": [380, 340],
+      "size": [150, 60]
+    },
+    {
+      "id": "factory",
+      "type": "backend",
+      "label": "DeriveItFactory",
+      "sublabel": "composition root",
+      "tag": "DeriveItFactory",
+      "pos": [570, 340],
+      "size": [150, 60]
+    },
+    {
+      "id": "derivers",
+      "type": "backend",
+      "label": "Derivers",
+      "sublabel": "4 derivers",
+      "tag": "DeriverInterface",
+      "pos": [760, 340],
+      "size": [150, 60]
+    },
+    {
+      "id": "engine",
+      "type": "backend",
+      "label": "Signature & Substitution",
+      "sublabel": "build signatures",
+      "tag": "DerivationCore",
+      "pos": [950, 340],
+      "size": [160, 60]
+    },
+    {
+      "id": "renderer",
+      "type": "backend",
+      "label": "SourceRenderer",
+      "sublabel": "→ port source",
+      "tag": "SourceRenderer",
+      "pos": [1140, 340],
+      "size": [150, 60]
+    },
+    {
+      "id": "auditor",
+      "type": "security",
+      "label": "LeakageAuditor",
+      "sublabel": "leakage guard",
+      "tag": "LeakageAuditor",
+      "pos": [760, 530],
+      "size": [150, 60]
+    },
+    {
+      "id": "config",
+      "type": "backend",
+      "label": "DeriveConfig",
+      "sublabel": "presets + flags",
+      "tag": "DeriveConfig",
+      "pos": [380, 530],
+      "size": [150, 60]
+    },
+    {
+      "id": "telemetry",
+      "type": "backend",
+      "label": "Telemetry",
+      "sublabel": "facts-only",
+      "tag": "DeriveEventSink",
+      "pos": [570, 530],
+      "size": [150, 60]
+    },
+    {
+      "id": "phprefl",
+      "type": "external",
+      "label": "PHP Reflection",
+      "sublabel": "built-in API",
+      "tag": "external",
+      "pos": [20, 530],
+      "size": [150, 58]
+    },
+    {
+      "id": "psrcache",
+      "type": "external",
+      "label": "psr/cache",
+      "sublabel": "optional cache",
+      "tag": "external",
+      "pos": [190, 530],
+      "size": [150, 58]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "DeriveIt runtime",
+      "wraps": ["cli", "facade", "factory", "derivers", "engine", "renderer", "auditor", "config", "telemetry"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Leakage trust boundary",
+      "wraps": ["engine", "renderer"]
+    }
+  ],
+  "connections": [
+    { "id": "c-cli-facade", "from": "cli", "to": "facade", "label": "invoke", "variant": "emphasis", "labelAt": [265, 312] },
+    { "id": "c-facade-factory", "from": "facade", "to": "factory", "label": "compose", "variant": "emphasis", "labelAt": [455, 312] },
+    { "id": "c-factory-derivers", "from": "factory", "to": "derivers", "label": "build derivers", "variant": "emphasis", "labelAt": [645, 312] },
+    { "id": "c-derivers-engine", "from": "derivers", "to": "engine", "label": "build signatures", "variant": "emphasis", "labelAt": [965, 285] },
+    { "id": "c-engine-renderer", "from": "engine", "to": "renderer", "label": "InterfaceType", "variant": "emphasis", "labelAt": [1110, 312] },
+    { "id": "c-renderer-nette", "from": "renderer", "to": "nette", "label": "Nette PhpFile", "labelDx": 12, "labelAt": [1225, 240] },
+    { "id": "c-derivers-resolvers", "from": "derivers", "to": "resolvers", "label": "walk graph", "labelAt": [450, 248] },
+    { "id": "c-resolvers-reflection", "from": "resolvers", "to": "reflection", "label": "reflect", "fromSide": "bottom", "toSide": "top", "labelAt": [90, 250] },
+    { "id": "c-derivers-auditor", "from": "derivers", "to": "auditor", "label": "assert self-contained", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [900, 438] },
+    { "id": "c-facade-config", "from": "facade", "to": "config", "label": "configure", "fromSide": "bottom", "toSide": "top", "labelAt": [365, 438] },
+    { "id": "c-factory-telemetry", "from": "factory", "to": "telemetry", "label": "emit facts", "fromSide": "bottom", "toSide": "top", "labelAt": [555, 438] },
+    { "id": "c-adaptee-derivers", "from": "adaptee", "to": "derivers", "label": "class to derive", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [850, 180] },
+    { "id": "c-reflection-phprefl", "from": "reflection", "to": "phprefl", "label": "PHP Reflection", "fromSide": "bottom", "toSide": "top", "labelAt": [90, 432] },
+    { "id": "c-reflection-psrcache", "from": "reflection", "to": "psrcache", "label": "psr/cache (opt)", "variant": "dashed", "labelAt": [275, 455] }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Entry & composition",
+      "items": [
+        "DeriveIt is a thin, stateless static facade over the public API.",
+        "DeriveItFactory is the composition root: wires the 4 derivers behind interfaces and shares one ReflectionCache + one Nette Factory.",
+        "CLI: bin/derive → DeriveCommand → ArgParser → FileTargetResolver."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Derivers & graph walk",
+      "items": [
+        "InterfaceDeriver (flat + per-trait), FamilyDeriver (cross-reference rewrite), AdapterGenerator (delegating adapter).",
+        "RecursiveClass / Interface / TraitResolver walk the parent, trait, and interface graph (getClassesRecursively / getTraitsRecursively).",
+        "Flat mode uses ReflectionClass::getMethods(IS_PUBLIC) on the concrete class; per-trait mode walks traits recursively."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Reflection & cache",
+      "items": [
+        "ClassReflection is a facade over the PHP Reflection API.",
+        "Three swappable caches implement ReflectionCacheInterface: InMemory, Weak, PsrCache (psr/cache).",
+        "Reflection is memoized per run so each type is reflected at most once."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Signature & substitution",
+      "items": [
+        "MethodExtractor applies visibility / static / magic / constructor filters.",
+        "MethodSignatureFactory reuses Nette Factory::fromMethodReflection as the single typing source of truth.",
+        "TypeSubstitutor rewrites self/static/parent plus typeSubstitutionMap + namespacePrefixMap; Naming handles collisions and adapter short names."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Self-containment & config",
+      "items": [
+        "LeakageAuditor (opt-in auditLeakage) scans every return/param FQCN for non-port types.",
+        "assertSelfContained forbids extends of any non-owned interface; reExposeOwnedInterfaces is the only allow-list.",
+        "DeriveConfig presets strict() / forAdapter() / forFamily() drive every filter flag; DeriveEventEmitter + NullDeriveEventSink are facts-only and opt-in."
+      ]
+    }
+  ]
+}
