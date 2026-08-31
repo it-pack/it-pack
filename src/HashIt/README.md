@@ -98,6 +98,24 @@ Concrete adapters (OpenTelemetry traces, CloudEvents) are added separately and l
 the `Adapter\*` namespace — the core only defines the port and the `HashOperation`
 enum / `HashObservation` value object.
 
+### OpenTelemetry tracing (optional)
+
+`ItPack\HashIt\Adapter\Observability\OtelHashingObserver` turns those observations into
+OpenTelemetry spans: each operation becomes an `INTERNAL` span named after the operation
+(`HASH`, `HMAC_FILE`, …) carrying `hashit.algorithm`, `hashit.bytes_total`, per-chunk
+`hashit.bytes_processed`, and on completion `hashit.duration_ms` / `hashit.result_urn`
+(`Ok` status) — or `recordException` + `Error` status on failure. It depends only on the
+OTel **API**, so the SDK, tracer provider and OTLP exporter (`OTEL_*` env) stay owned by
+the host app. Install `open-telemetry/api` and inject the observer yourself — the library
+never instantiates it automatically:
+
+```php
+use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Adapter\Observability\OtelHashingObserver;
+
+$hasher = NativeHashIt::create(new OtelHashingObserver()); // uses the app's global TracerProvider
+```
+
 ## Algorithms
 
 `HashAlgorithm` is a backed enum and the **single source of truth** for the algorithm

@@ -245,7 +245,7 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 
 ---
 
-## NF-O2 — OpenTelemetry tracing adapter (O2) — ⬜ TODO
+## NF-O2 — OpenTelemetry tracing adapter (O2) — ✅ DONE
 
 **Goal:** Implement `HashingObserverInterface` with OpenTelemetry spans. Uses `open-telemetry/api` (present in `require-dev` via `just-bases/php-obs-dev-base`). The adapter is **optional/guarded** — it must not force the OTel SDK into HashIt's runtime `require`.
 
@@ -266,6 +266,10 @@ composer test:unit && composer analyse && composer cs:check && composer architec
 **Verification:** gates (guardrail #6) — `composer architecture` must keep the adapter in `Adapter\*` and never let core import OTel.
 **Dependencies:** NF-O1.
 **Acceptance:** spans emitted with correct attributes; adapter guarded; gates green; no change to core runtime deps.
+
+**Completion note (2026-08-29):** Implemented exactly as specced. New `src/Adapter/Observability/OtelHashingObserver.php` implements `HashingObserverInterface` and depends only on the OTel **API** (never the SDK): `OpenTelemetry\API\Globals::tracerProvider()->getTracer('it-pack/hash-it')` by default, overridable via a constructor-injected `?TracerInterface $tracer` for testing. `observe()` maps each `HashObservation` to span lifecycle: `started` → `spanBuilder($operation->name)->setSpanKind(INTERNAL)->setAttribute('hashit.algorithm'|'hashit.bytes_total')->startSpan()` (span stored keyed by `observation->id`); `progress` → `setAttribute('hashit.bytes_processed')`; `completed` → `setStatus(Ok)` + `hashit.duration_ms`/`hashit.result_urn` + `end()`; `failed` → `recordException($error)` + `setStatus(Error)` + `end()`. Unknown ids (e.g. an orphan `completed`) are handled gracefully (no throw). **Guardrail compliance:** the adapter lives in `Adapter\*` and imports only the OTel API namespace — deptrac confirms core never imports OTel (0 violations), and `composer` shows no new runtime `require` (OTel API arrives via `just-bases/php-obs-dev-base`, already in `require-dev`; it was added to `composer.json` `suggest`). The composition root (`NativeHashIt`) deliberately does **not** instantiate this observer — consumers inject it, so the OTel dependency stays optional in production. `tests/Unit/Adapter/Observability/OtelHashingObserverTest.php` uses a self-contained `SpyTracer`/`SpySpan` fake (implementing the OTel `TracerInterface`/`SpanInterface`/`ImplicitContextKeyedInterface`/`ScopeInterface`) asserting: a started→progress→completed cycle yields exactly one `Ok` span named by the operation with all `hashit.*` attributes set; a started→failed cycle yields an `Error` span recording the original `Throwable`; an orphan `completed` is a no-op; the default-tracer path (driven through `Globals`) does not throw; and the observer wired via `NativeHashIt::create($observer)` produces a span whose `result_urn` matches the computed hash. All gates green: `composer test:unit` (90 tests, 332 assertions), `analyse`, `cs:check`, `architecture`.
+
+**Next:** NF-O3 implements the sibling `CloudEventsHashingObserver` (also `HashingObserverInterface`), reusing this same port/observation model.
 
 ---
 

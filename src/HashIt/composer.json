@@ -18,7 +18,8 @@
         }
     },
     "suggest": {
-        "psr/http-message": "Install to hash PSR-7 streams via ItPack\\HashIt\\Adapter\\PsrStreamHasher"
+        "psr/http-message": "Install to hash PSR-7 streams via ItPack\\HashIt\\Adapter\\PsrStreamHasher",
+        "open-telemetry/api": "Install to emit OpenTelemetry tracing spans via ItPack\\HashIt\\Adapter\\Observability\\OtelHashingObserver"
     },
     "authors": [
         {
