@@ -46,6 +46,108 @@ class PsrStreamHasherTest extends Unit
         $spy->rewind();
         verify($spy->getContents())->equals($content);
     }
+
+    public function testRejectsNonReadableStream(): void
+    {
+        $stream = new NonReadableStream();
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        new PsrStreamHasher(new NativeContextFactory())->hash($stream, 'sha256');
+    }
+
+    public function testRejectsNonPositiveChunkSize(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        new PsrStreamHasher(new NativeContextFactory())->hash(Stream::create('x'), 'sha256', 0);
+    }
+
+    public function testHashesEmptyStreamToDigestOfEmptyString(): void
+    {
+        $hash = new PsrStreamHasher(new NativeContextFactory())->hash(Stream::create(''), 'sha256');
+
+        verify($hash->value())->equals(hash('sha256', ''));
+    }
+}
+
+/**
+ * Minimal PSR-7 stream that reports itself as not readable, so we can drive
+ * {@see PsrStreamHasher::hash()} down the "not readable" guard.
+ */
+final class NonReadableStream implements StreamInterface
+{
+    public function __toString(): string
+    {
+        return '';
+    }
+
+    public function close(): void
+    {
+    }
+
+    public function detach()
+    {
+        return null;
+    }
+
+    public function getSize(): ?int
+    {
+        return 0;
+    }
+
+    public function tell(): int
+    {
+        return 0;
+    }
+
+    public function eof(): bool
+    {
+        return true;
+    }
+
+    public function isSeekable(): bool
+    {
+        return false;
+    }
+
+    public function seek(int $offset, int $whence = SEEK_SET): void
+    {
+    }
+
+    public function rewind(): void
+    {
+    }
+
+    public function isWritable(): bool
+    {
+        return true;
+    }
+
+    public function write(string $string): int
+    {
+        return strlen($string);
+    }
+
+    public function isReadable(): bool
+    {
+        return false;
+    }
+
+    public function read(int $length): string
+    {
+        return '';
+    }
+
+    public function getContents(): string
+    {
+        return '';
+    }
+
+    public function getMetadata($key = null)
+    {
+        return null;
+    }
 }
 
 /**

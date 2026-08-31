@@ -66,4 +66,25 @@ final class SfvFormatTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->format()->parse("# algorithm sha256\nbad line here\n");
     }
+
+    public function testRejectsUnknownAlgorithmHeader(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->format()->parse("# algorithm this-is-not-a-real-algorithm\n");
+    }
+
+    public function testParseSkipsBlankLines(): void
+    {
+        $hex = hash('sha256', 'alpha');
+        $text = "# algorithm sha256\n\na.txt {$hex}\n";
+
+        $parsed = $this->format()->parse($text);
+
+        verify($parsed->entries())->equals(
+            new HashManifest(HashAlgorithm::SHA256)
+                ->with('a.txt', Hash::create($hex, 'sha256'))
+                ->entries(),
+        );
+    }
 }

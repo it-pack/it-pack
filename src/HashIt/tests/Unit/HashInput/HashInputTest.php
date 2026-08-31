@@ -13,6 +13,7 @@ use ItPack\HashIt\HashInput\CompositeInput;
 use ItPack\HashIt\HashInput\FileInput;
 use ItPack\HashIt\HashInput\StreamInput;
 use ItPack\HashIt\HashInput\StringInput;
+use ItPack\HashIt\HashInput\TempSink;
 use PHPUnit\Framework\TestCase;
 
 use function verify;
@@ -153,5 +154,41 @@ final class HashInputTest extends TestCase
 
         verify($hash->algorithm())->equals('sha512');
         verify($hash->value())->equals(hash('sha512', 'x'));
+    }
+
+    public function testStreamInputRejectsNonResource(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->hasher()->hashInput(new StreamInput('not a resource'));
+    }
+
+    public function testStreamInputRejectsNonPositiveChunkSize(): void
+    {
+        $stream = fopen('php://memory', 'rb');
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->hasher()->hashInput(new StreamInput($stream, 0));
+        } finally {
+            fclose($stream);
+        }
+    }
+
+    public function testFileInputThrowsOnMissingFile(): void
+    {
+        $this->expectException(\RuntimeException::class);
+
+        $this->hasher()->hashInput(new FileInput(NativeFilepathFileinfo::of('/nonexistent/path/xyz')));
+    }
+
+    public function testTempSinkRejectsNonPositiveChunkSize(): void
+    {
+        $sink = new TempSink();
+
+        // chunks() is a generator: calling it returns a Generator without
+        // running the body. Iterating drives the body and hits the size guard.
+        $this->expectException(\InvalidArgumentException::class);
+        iterator_to_array($sink->chunks(0));
     }
 }

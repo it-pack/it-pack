@@ -120,4 +120,45 @@ final class ManifestVerifierTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $report->throwOnFailure();
     }
+
+    public function testThrowOnFailureIsNoOpWhenAllMatched(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'hashit');
+        file_put_contents($tmp, 'payload');
+
+        $manifest = new HashManifest(HashAlgorithm::SHA256)
+            ->with($tmp, $this->hasher()->hashFile(NativeFilepathFileinfo::of($tmp)))
+        ;
+
+        $report = $this->verifier()->verify($manifest, $this->hasher());
+
+        // No exception expected: the report is clean.
+        $report->throwOnFailure();
+        self::assertTrue($report->allMatched());
+
+        unlink($tmp);
+    }
+
+    public function testThrowOnFailureReportsMismatched(): void
+    {
+        $tmp = tempnam(sys_get_temp_dir(), 'hashit');
+        file_put_contents($tmp, 'original');
+
+        $manifest = new HashManifest(HashAlgorithm::SHA256)
+            ->with($tmp, $this->hasher()->hashFile(NativeFilepathFileinfo::of($tmp)))
+        ;
+
+        file_put_contents($tmp, 'tampered');
+
+        $report = $this->verifier()->verify($manifest, $this->hasher());
+
+        try {
+            $report->throwOnFailure();
+            self::fail('Expected RuntimeException');
+        } catch (\RuntimeException $e) {
+            self::assertStringContainsString('1 mismatched', $e->getMessage());
+        }
+
+        unlink($tmp);
+    }
 }

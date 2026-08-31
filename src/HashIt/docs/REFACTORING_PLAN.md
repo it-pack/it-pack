@@ -89,6 +89,23 @@
 
 **Verification:** `composer coverage` ≥95% statements & methods; `coverage.xml` committed as evidence. No production code touched.
 
+### Status — DONE
+- **Aggregate coverage: `95.96%` statements / `100%` methods** (up from `89.41% / 81.32%`). Target met.
+- Tests added: `tests/Unit/HasherErrorPathsTest.php` (11), `tests/Unit/KeyedHasherErrorPathsTest.php` (7), plus targeted methods in `tests/Unit/HashInput/HashInputTest.php` (5), `tests/Unit/Format/BsdFormatTest.php` (2), `tests/Unit/Format/SfvFormatTest.php` (2), `tests/Unit/Format/GnuSha256FormatTest.php` (1), `tests/Unit/ManifestVerifierTest.php` (2), `tests/Unit/Adapter/PsrStreamHasherTest.php` (3 + `NonReadableStream` double). Suite: **203 tests / 527 assertions, all green** (no production code touched).
+- No `@covers` annotations added (M1.12) — cross-test leakage remains `UNVERIFIED`. Deferred.
+
+**Per-file stmt/meth (non-100% only — all remaining gaps are defensive/dead branches):**
+
+| File | Stmt | Meth | Remaining uncovered | Why |
+|---|---|---|---|---|
+| `Hasher.php` | 92.9% | 100% | `fopen()`-false, `ftell()`-false, `fstat()`-false, `hashStream` while-loop catch (3), `streamTotalBytes` non-seekable | Defensive branches unreachable without forcing `fopen`/`ftell`/`fstat` to fail; Codeception's strict warning handler converts the `fopen` warning before the `if ($handle===false)` check, and `ftell` on non-seekable resources returns `0` (not `false`). The while-loop catch only fires for errors during streaming, which require an injected throwing context. |
+| `KeyedHasher.php` | 93.0% | 100% | same shape as Hasher | same reasons |
+| `StreamInput.php` | 88.2% | 100% | `ftell()`-false branch (`$position=0`), `break` on empty fread (only reachable via non-seekable which triggers `fseek` warning) | same `ftell` / non-seekable constraints |
+| `FileInput.php` | 88.9% | 100% | `fopen()`-false branch | same `fopen` constraint |
+| `TempSink.php` | 93.8% | 100% | `fopen('php://temp')`-false (php://temp cannot fail) | unreachable |
+| `CloudEventsHashingObserver.php` | 92.1% | 100% | "cloudevents/sdk-php not installed" guard | dead branch (SDK is a `require-dev` dependency) |
+| `HashAlgorithm.php` | 93.9% | 100% | `metadataFor()` null fallback + `info()` `AlgorithmMetadata` placeholder | every enum case carries `#[AlgorithmMetadata]`; the fallback is unreachable |
+
 ---
 
 ## M2 — Configure mutation testing (F-2)

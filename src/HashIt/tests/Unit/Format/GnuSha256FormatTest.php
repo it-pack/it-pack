@@ -66,4 +66,21 @@ final class GnuSha256FormatTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->format()->parse("not-a-valid-line\n");
     }
+
+    public function testParseSkipsBlankLines(): void
+    {
+        $hexA = hash('sha256', 'alpha');
+        $hexB = hash('sha256', 'beta');
+
+        $text = "{$hexA}  a.txt\n\n{$hexB}  b.txt\n";
+
+        $parsed = $this->format()->parse($text);
+
+        verify($parsed->entries())->equals(
+            new HashManifest(HashAlgorithm::SHA256)
+                ->with('a.txt', Hash::create($hexA, 'sha256'))
+                ->with('b.txt', Hash::create($hexB, 'sha256'))
+                ->entries(),
+        );
+    }
 }

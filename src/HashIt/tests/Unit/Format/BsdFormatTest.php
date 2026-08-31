@@ -78,4 +78,26 @@ final class BsdFormatTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->format()->parse("not a bsd line\n");
     }
+
+    public function testParseEmptyTextThrows(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->format()->parse('');
+    }
+
+    public function testParseSkipsBlankLines(): void
+    {
+        $manifest = new HashManifest(HashAlgorithm::SHA256)
+            ->with('a.txt', Hash::create(hash('sha256', 'alpha'), 'sha256'))
+            ->with('b.txt', Hash::create(hash('sha256', 'beta'), 'sha256'))
+        ;
+
+        $text = $this->format()->serialize($manifest);
+        $withBlank = 'SHA256 (a.txt) = ' . hash('sha256', 'alpha') . "\n\nSHA256 (b.txt) = " . hash('sha256', 'beta') . "\n";
+
+        $parsed = $this->format()->parse($withBlank);
+
+        verify($parsed->entries())->equals($manifest->entries());
+    }
 }
