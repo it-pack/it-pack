@@ -77,6 +77,58 @@ final class MiscAdaptersTest extends Unit
         $storage->leave($outer);
     }
 
+    public function testInMemoryStorageEvictsOldestBeyondCap(): void
+    {
+        $storage = new InMemoryCommandExecutionStorage(2);
+
+        $storage->store(CommandExecutionId::fromString('a'), $this->execution());
+        $storage->store(CommandExecutionId::fromString('b'), $this->execution());
+        $storage->store(CommandExecutionId::fromString('c'), $this->execution());
+
+        self::assertNull($storage->find(CommandExecutionId::fromString('a')), 'oldest evicted');
+        self::assertNotNull($storage->find(CommandExecutionId::fromString('b')));
+        self::assertNotNull($storage->find(CommandExecutionId::fromString('c')));
+        self::assertSame(2, $storage->count());
+    }
+
+    public function testInMemoryStorageZeroCapIsUnbounded(): void
+    {
+        $storage = new InMemoryCommandExecutionStorage(0);
+
+        for ($i = 0; $i < 50; ++$i) {
+            $storage->store(CommandExecutionId::fromString((string) $i), $this->execution());
+        }
+
+        self::assertSame(50, $storage->count());
+        self::assertNotNull($storage->find(CommandExecutionId::fromString('0')), 'nothing evicted');
+    }
+
+    public function testInMemoryStorageOverwriteDoesNotEvict(): void
+    {
+        $storage = new InMemoryCommandExecutionStorage(2);
+        $first = $this->execution();
+        $second = $this->execution();
+
+        $storage->store(CommandExecutionId::fromString('a'), $first);
+        $storage->store(CommandExecutionId::fromString('b'), $second);
+        $storage->store(CommandExecutionId::fromString('a'), $first);
+
+        self::assertSame(2, $storage->count(), 're-storing an existing key is not a new insertion');
+        self::assertNotNull($storage->find(CommandExecutionId::fromString('b')), 'newer sibling survived');
+    }
+
+    public function testInMemoryStorageClearEmptiesAndCountReflects(): void
+    {
+        $storage = new InMemoryCommandExecutionStorage();
+
+        $storage->store(CommandExecutionId::fromString('a'), $this->execution());
+        self::assertSame(1, $storage->count());
+
+        $storage->clear();
+        self::assertSame(0, $storage->count());
+        self::assertNull($storage->find(CommandExecutionId::fromString('a')));
+    }
+
     private function execution(): CommandExecution
     {
         return CommandExecution::define(

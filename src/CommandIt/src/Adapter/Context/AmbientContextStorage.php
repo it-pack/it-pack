@@ -46,4 +46,14 @@ final class AmbientContextStorage implements ExecutionContextProviderInterface
     {
         $this->stack->enrich($patch);
     }
+
+    /**
+     * Clears the ambient stack. Operational concern only — see ADR 0008; kept off
+     * the {@see ExecutionContextProviderInterface} port so it is never mistaken for
+     * a domain capability.
+     */
+    public function reset(): void
+    {
+        $this->stack->reset();
+    }
 }

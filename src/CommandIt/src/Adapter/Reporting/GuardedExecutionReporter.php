@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Adapter\Reporting;
 
+use Fiber;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
+use WeakMap;
 
 /**
  * Wraps a publication delegate with a recursion guard and a separate health path.
@@ -17,6 +19,12 @@ use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
  *    delegate — breaking the loop without swallowing the original signal.
  *  - **Publication failure:** if the delegate throws, the error is reported to the
  *    {@see $health} reporter and never rethrown into the business flow.
+ *
+ * The depth counter is isolated per Fiber (F-12): a {@see WeakMap} keyed by the
+ * currently executing {@see Fiber} tracks each Fiber's nesting independently, with
+ * a plain field as the fallback for synchronous (main-scope) code. This prevents a
+ * delegate that synchronously drives a *different* Fiber from inflating the calling
+ * Fiber's depth and being false-routed to health.
  *
  * The health reporter is a distinct instance, so health signals never route back
  * through the (possibly failing) publisher. The guard only wraps publication, so
@@ -41,12 +49,25 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     private const KIND_ACTIVITY_START = 'activity_start';
     private const KIND_ACTIVITY_END = 'activity_end';
 
-    private int $depth = 0;
+    /**
+     * Per-Fiber recursion depth. Keyed by the executing {@see Fiber} so concurrent
+     * Fibers never share a counter; the WeakMap releases entries once a Fiber is
+     * detached and no longer referenced.
+     *
+     * @var WeakMap<object, int>
+     */
+    private WeakMap $fiberDepth;
+
+    /**
+     * Recursion depth for synchronous (main-scope, non-Fiber) publication.
+     */
+    private int $mainDepth = 0;
 
     public function __construct(
         private ExecutionReporterInterface $delegate,
         private ExecutionReporterInterface $health,
     ) {
+        $this->fiberDepth = new WeakMap();
     }
 
     public function reportObservation(string $message, array $context = []): void
@@ -104,10 +125,10 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
      */
     private function guard(\Closure $publish, string $kind, string $label): mixed
     {
-        ++$this->depth;
+        $depth = $this->enterGuard();
 
         try {
-            if ($this->depth > 1) {
+            if ($depth > 1) {
                 $this->health->reportObservation(self::SIGNAL_RECURSION_GUARDED, [
                     'kind' => $kind,
                     'label' => $label,
@@ -126,7 +147,47 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
 
             return null;
         } finally {
-            --$this->depth;
+            $this->leaveGuard();
+        }
+    }
+
+    /**
+     * Increments and returns the recursion depth for the calling Fiber (or the
+     * main scope), starting a fresh counter for a Fiber not seen before.
+     */
+    private function enterGuard(): int
+    {
+        $fiber = Fiber::getCurrent();
+
+        if ($fiber === null) {
+            return ++$this->mainDepth;
+        }
+
+        $depth = ($this->fiberDepth[$fiber] ?? 0) + 1;
+        $this->fiberDepth[$fiber] = $depth;
+
+        return $depth;
+    }
+
+    /**
+     * Decrements the recursion depth for the calling Fiber (or the main scope).
+     */
+    private function leaveGuard(): void
+    {
+        $fiber = Fiber::getCurrent();
+
+        if ($fiber === null) {
+            if ($this->mainDepth > 0) {
+                --$this->mainDepth;
+            }
+
+            return;
+        }
+
+        $depth = $this->fiberDepth[$fiber] ?? 0;
+
+        if ($depth > 0) {
+            $this->fiberDepth[$fiber] = $depth - 1;
         }
     }
 }

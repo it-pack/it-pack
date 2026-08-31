@@ -9,6 +9,7 @@ use Fiber;
 use ItPack\CommandIt\Adapter\Context\AmbientContextStorage;
 use ItPack\CommandIt\Adapter\Context\FiberBoundContextStorage;
 use ItPack\CommandIt\Contract\Domain\Classification;
+use ItPack\CommandIt\Contract\Exception\InvalidContextTokenException;
 use ItPack\CommandIt\Contract\Port\RuntimeContextDetectorInterface;
 use ItPack\CommandIt\Domain\CommandContext;
 
@@ -127,6 +128,55 @@ final class FiberBoundContextStorageTest extends Unit
         }
 
         self::assertNull($storage->current());
+    }
+
+    public function testResetClearsMainStack(): void
+    {
+        $detector = new FakeFiberDetector();
+        $storage = new FiberBoundContextStorage($detector, new AmbientContextStorage());
+        $detector->setCurrent(null);
+        $storage->enter($this->context('main'));
+
+        self::assertSame('main', $this->currentValue($storage, 'k'));
+
+        $storage->reset();
+
+        self::assertNull($storage->current(), 'reset cleared the ambient (main) scope');
+    }
+
+    public function testResetClearsOnlyCallingFiber(): void
+    {
+        $detector = new FakeFiberDetector();
+        $storage = new FiberBoundContextStorage($detector, new AmbientContextStorage());
+
+        $fiberA = new Fiber(static fn () => null);
+        $fiberB = new Fiber(static fn () => null);
+
+        $detector->setCurrent($fiberA);
+        $storage->enter($this->context('A'));
+        $detector->setCurrent($fiberB);
+        $storage->enter($this->context('B'));
+
+        // reset() clears only the *calling* (B) fiber's stack.
+        $storage->reset();
+
+        $detector->setCurrent($fiberB);
+        self::assertNull($storage->current(), 'fiber B cleared');
+        $detector->setCurrent($fiberA);
+        self::assertSame('A', $this->currentValue($storage, 'k'), 'fiber A untouched by B reset');
+    }
+
+    public function testPopAfterResetRejectsTokenLoudly(): void
+    {
+        $detector = new FakeFiberDetector();
+        $storage = new FiberBoundContextStorage($detector, new AmbientContextStorage());
+        $detector->setCurrent(null);
+        $token = $storage->enter($this->context('main'));
+
+        $storage->reset();
+
+        $this->expectException(InvalidContextTokenException::class);
+        $storage->leave($token);
     }
 }
 

@@ -124,4 +124,24 @@ final class PersistentWorkerIsolationTest extends Unit
         $this->detector->setCurrent(null);
         self::assertNull($this->storage->current());
     }
+
+    public function testResetClearsMainScopeBetweenRequests(): void
+    {
+        $this->detector->setCurrent(null);
+        $this->storage->enter(new CommandContext()->with('tenant', 'A', Classification::Internal));
+
+        for ($i = 0; $i < 10; ++$i) {
+            $this->dispatchCommand('demo:run');
+        }
+
+        $before = $this->storage->current();
+        self::assertNotNull($before, 'ambient context survived the dispatches');
+        self::assertSame('A', $before->get('tenant'));
+        self::assertFalse($before->has('command'), 'command context never leaked into ambient');
+
+        // Operator resets the main scope between requests (ADR 0008).
+        $this->storage->reset();
+
+        self::assertNull($this->storage->current(), 'reset cleared the main scope');
+    }
 }

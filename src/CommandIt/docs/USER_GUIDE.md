@@ -520,6 +520,12 @@ flow through reporting.
 You only choose a context provider when you override the factory; otherwise the
 fiber-aware default is correct.
 
+In persistent-worker runtimes, call `reset()` on the provider between requests to
+drop the current stack: `FiberBoundContextStorage::reset()` clears the **calling**
+Fiber's stack only, and clears the ambient (main) scope when no Fiber is current.
+`reset()` is an adapter operational method, deliberately absent from the
+`ExecutionContextProviderInterface` port (see ADR 0008).
+
 ---
 
 ## 10. Reporting & observability
@@ -608,7 +614,10 @@ interface CommandExecutionStorageInterface
 - **`NullCommandExecutionStorage`** (factory default) discards everything — safe
   when you don't need to retain executions.
 - **`InMemoryCommandExecutionStorage`** keeps them for the process lifetime
-  (handy for tests and local inspection).
+  (handy for tests and local inspection). It is **bounded**: by default it retains
+  at most `InMemoryCommandExecutionStorage::DEFAULT_MAX_ENTRIES` (1000) executions
+  and evicts the oldest on overflow (pass `0` for an unbounded store, or any
+  positive cap). `clear()` drops everything and `count()` reports the current size.
 
 A future `it-pack/command-it-run-it` adapter will persist/transport executions
 via this same port — the domain shape is intentionally RunIt-like but
@@ -620,7 +629,10 @@ self-contained.
 structure (no PHP objects, resources, or closures), so downstream encoding is
 explicit, deterministic, and free of arbitrary object serialization. The default
 `SafeSerializer` rejects resources, closures, and objects without `toArray()` /
-`Stringable` with a `SerializationException`.
+`Stringable` with a `SerializationException`. It also refuses to loop forever on
+hostile input: a repeated object (or a self-referencing array) throws
+`SerializationException::cyclic()`, and nesting deeper than `SafeSerializer::DEFAULT_MAX_DEPTH`
+(32, configurable via the constructor) throws `SerializationException::tooDeep()`.
 
 Pass a serializer to `CommandItFactory::create(serializer: …)` (or the
 `CommandIt` constructor). It is used to **normalize the result payload before

@@ -76,4 +76,13 @@ final class ContextStack implements ExecutionContextProviderInterface
 
         \array_pop($this->items);
     }
+
+    /**
+     * Drops every entered context. Operational concern only — see ADR 0008; this
+     * is intentionally not part of the {@see ExecutionContextProviderInterface} port.
+     */
+    public function reset(): void
+    {
+        $this->items = [];
+    }
 }

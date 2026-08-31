@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Reporting;
 
 use Codeception\Test\Unit;
+use Fiber;
 use ItPack\CommandIt\Adapter\Reporting\CollectingExecutionReporter;
 use ItPack\CommandIt\Adapter\Reporting\GuardedExecutionReporter;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
@@ -176,5 +177,83 @@ final class GuardedExecutionReporterTest extends Unit
         }
 
         self::fail(\sprintf('Health reporter did not record "%s".', $message));
+    }
+
+    public function testFiberInterleavingKeepsDepthIndependent(): void
+    {
+        $health = new CollectingExecutionReporter();
+        $holder = new SelfObserveHolder();
+        $delegate = new class ($holder) implements ExecutionReporterInterface {
+            /**
+             * @var list<string>
+             */
+            public array $reached = [];
+
+            public function __construct(
+                private SelfObserveHolder $holder,
+            ) {
+            }
+
+            public function reportObservation(string $message, array $context = []): void
+            {
+            }
+
+            public function reportOccurrence(string $type, array $context = []): void
+            {
+                // The outer 'a' publication (running inside fiber A) synchronously
+                // drives a *different* fiber B, which publishes through the same
+                // guarded reporter. B must get its own depth (1), not inherit A's.
+                if ($type === 'a') {
+                    $reporter = $this->holder->reporter;
+                    \assert($reporter instanceof GuardedExecutionReporter);
+
+                    $b = new Fiber(static function () use ($reporter): void {
+                        $reporter->reportOccurrence('b', []);
+                    });
+                    $b->start();
+
+                    return;
+                }
+
+                $this->reached[] = $type;
+            }
+
+            public function reportMeasurement(string $name, int|float $value, string $unit): void
+            {
+            }
+
+            public function beginActivity(string $name): string
+            {
+                return '';
+            }
+
+            public function endActivity(string $activityId): void
+            {
+            }
+        };
+
+        $reporter = new GuardedExecutionReporter($delegate, $health);
+        $holder->reporter = $reporter;
+
+        // Drive the outer publication inside a real Fiber so the per-Fiber depth
+        // keying is exercised (WeakMap keyed by Fiber::getCurrent()).
+        $a = new Fiber(static function () use ($reporter): void {
+            $reporter->reportOccurrence('a', []);
+        });
+        $a->start();
+
+        self::assertSame(
+            ['b'],
+            $delegate->reached,
+            'fiber B reached the delegate (depth independent of fiber A)',
+        );
+
+        foreach ($health->entries() as $entry) {
+            self::assertNotSame(
+                'publication.recursion-guarded',
+                $entry['message'] ?? null,
+                'fiber B was not false-routed to health (the F-12 bug)',
+            );
+        }
     }
 }

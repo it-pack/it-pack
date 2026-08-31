@@ -87,4 +87,64 @@ final class SafeSerializerTest extends Unit
 
         $this->serializer->normalize(['item' => new stdClass()]);
     }
+
+    public function testSelfReferentialArrayIsRejected(): void
+    {
+        $a = [];
+        $a['self'] = &$a;
+
+        $this->expectException(SerializationExceptionInterface::class);
+
+        $this->serializer->normalize($a);
+    }
+
+    public function testObjectCycleThroughToArrayIsRejected(): void
+    {
+        $value = new class () {
+            public object $self;
+
+            /**
+             * @return array<string, mixed>
+             */
+            public function toArray(): array
+            {
+                return ['self' => $this->self];
+            }
+        };
+        $value->self = $value;
+
+        $this->expectException(SerializationExceptionInterface::class);
+
+        $this->serializer->normalize($value);
+    }
+
+    public function testExcessiveNestingIsRejected(): void
+    {
+        $this->expectException(SerializationExceptionInterface::class);
+
+        $this->serializer->normalize($this->deepArray(40));
+    }
+
+    public function testCustomMaxDepthIsHonored(): void
+    {
+        $serializer = new SafeSerializer(2);
+
+        $this->expectException(SerializationExceptionInterface::class);
+
+        $serializer->normalize($this->deepArray(5));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function deepArray(int $levels): array
+    {
+        $a = [];
+
+        if ($levels > 0) {
+            $a['n'] = $this->deepArray($levels - 1);
+        }
+
+        return $a;
+    }
 }

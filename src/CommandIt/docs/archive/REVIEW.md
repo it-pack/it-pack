@@ -469,4 +469,42 @@ test edits.
   green · cs-fixer clean · `php examples/01-quickstart.php` and `php examples/05-custom-ports.php`
   exit 0 · targeted mutation on `InputCoercionBehavior` keeps Covered-Code MSI at 83% (floor 65),
   confirming the coercion branches are still killed after the refactor (full-suite mutation
-  exceeded the available run timeout in this environment and was not completed end-to-end).
+   exceeded the available run timeout in this environment and was not completed end-to-end).
+
+### 2026-08-29 — Refactoring plan milestone M9 landed
+
+Bounds & concurrency robustness (F-17, F-12); closes the two production-shaped gaps. All gates
+green; **no public-contract signatures changed** — every addition is additive or a tightened
+default.
+
+- **F-17 (unbounded retention) addressed** — `InMemoryCommandExecutionStorage` is now bounded:
+  `int $maxEntries = 1000` (D5, `DEFAULT_MAX_ENTRIES`); insertions beyond the cap evict the
+  oldest entry via `array_key_first` + `unset` (no `array_shift` reindex). `0` deliberately
+  means unbounded. Additive `clear(): void` and `count(): int`. `NullCommandExecutionStorage`
+  unchanged. The factory still passes the default, so unattended runtimes can no longer retain
+  executions without limit.
+- **F-12 (fiber-unsafe recursion guard) fixed** — `GuardedExecutionReporter` replaces the single
+  `private int $depth` with a `WeakMap<object, int>` keyed by `Fiber::getCurrent()`, falling back
+  to a plain `int` field for synchronous (main-scope) code. A delegate that synchronously drives a
+  *different* Fiber now gets an independent depth (1), so it reaches the delegate instead of being
+  false-routed to the health reporter. The previous shared counter was the bug; verified by a new
+  interleaving test that runs the outer publication inside a real Fiber.
+- **Serializer cycle & depth guards (§9.1)** — `SafeSerializer::normalize()` now carries a
+  `SplObjectStorage` visited-set and a `DEFAULT_MAX_DEPTH = 32` (configurable via the new
+  constructor). A repeated object or a self-referencing array throws
+  `SerializationException::cyclic()`; nesting deeper than the limit throws
+  `SerializationException::tooDeep($maxDepth)`. Both named constructors added to the exception.
+  Existing SafeSerializer tests untouched (BC: `new SafeSerializer()` still works).
+- **Context provider reset semantics (§9.3, ADR 0008)** — additive `reset(): void` on
+  `ContextStack` (clears items), `AmbientContextStorage` (delegates), and `FiberBoundContextStorage`
+  (clears the *calling* Fiber's stack only; the WeakMap is not iterable, so process-wide reset is
+  impossible by design). `reset()` is deliberately **off** the `ExecutionContextProviderInterface`
+  port (adapter-specific operational concern, not a domain capability). ADR 0008 records the
+  persistent-worker guidance (call `reset()` between requests on the main scope). Tests: a
+  mismatched-token `leave()` after `reset()` now throws `InvalidContextTokenException` loudly.
+- Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations / 0 uncovered
+  (Allowed 544) · full suite **204 tests** (189 unit / 13 functional / 2 integration) green · cs-fixer
+  clean · all six examples (`examples/01..06`) exit 0. The new hostile-input (cyclic / too-deep) and
+  fiber-interleaving branches are covered by behavioral assertions (full-suite mutation exceeded the
+  available run timeout in this environment and was not completed end-to-end; the M4.5 todo to switch
+  Infection's `testFramework` to phpunit remains open).

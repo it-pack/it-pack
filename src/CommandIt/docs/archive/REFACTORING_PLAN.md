@@ -32,7 +32,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M6 | Lifecycle semantics & domain invariant hardening | transition matrix, ctors, `endedAt`, F-16 | M4 (proof harness helps) | 0005 | M/L | **Done (2026-08-29)** |
 | M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Done (2026-08-29) |
 | M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Done (2026-08-29) |
-| M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | Planned |
+| M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | **Done (2026-08-29)** |
 | M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike, perf micro-opts, changelog | M7, M8 | — | M | Planned |
 
 ### Traceability — every REVIEW.md finding lands somewhere
@@ -393,27 +393,27 @@ reportMeasurement(string $name, int|float $value, string $unit): void
 
 ### Task 9.1 — Serializer cycle & depth guards
 
-- [ ] `SafeSerializer::normalize()`: carry a visited-set (`SplObjectStorage`) through recursion; revisiting an object ⇒ `SerializationException::cyclic()`. Add `maxDepth` guard (default 32) ⇒ `SerializationException::tooDeep()` (named constructors).
+- [x] `SafeSerializer::normalize()`: carry a visited-set (`SplObjectStorage`) through recursion; revisiting an object ⇒ `SerializationException::cyclic()`. Add `maxDepth` guard (default 32) ⇒ `SerializationException::tooDeep()` (named constructors).
 - Tests: self-referential array throws `cyclic`; `toArray()` returning a structure containing the original object throws `cyclic`; 40-level nesting throws `tooDeep`.
 - Acceptance: hostile-input tests green; existing SafeSerializer tests untouched.
 
 ### Task 9.2 — Bounded in-memory storage (D5, recommend bounded)
 
-- [ ] `InMemoryCommandExecutionStorage` ctor: `int $maxEntries = 1000` (0 = unbounded, documented); insertions beyond the cap evict oldest (preserving insertion order via `array_key_first` + `unset` — avoids `array_shift` reindex cost).
-- [ ] Additive API: `clear(): void`, `count(): int`.
+- [x] `InMemoryCommandExecutionStorage` ctor: `int $maxEntries = 1000` (0 = unbounded, documented); insertions beyond the cap evict oldest (preserving insertion order via `array_key_first` + `unset` — avoids `array_shift` reindex cost).
+- [x] Additive API: `clear(): void`, `count(): int`.
 - Tests: eviction order; zero means unbounded; round-trip after eviction of a middle entry.
 - Acceptance: green; USER_GUIDE storage section updated; Null storage unchanged.
 
 ### Task 9.3 — Context provider reset semantics (+ ADR 0008)
 
-- [ ] Additive API: `ContextStack::reset(): void` (clears items); `AmbientContextStorage::reset()` delegates; `FiberBoundContextStorage::reset()` resets **the calling fiber's** stack only (WeakMap is not iterable — process-wide reset is impossible by design; document that).
-- [ ] ADR 0008: why reset is scoped per-fiber, persistent-worker guidance (call `reset()` between requests on the main scope), and why `reset()` stays off the port interface (adapter-specific operational concern, not a domain capability).
+- [x] Additive API: `ContextStack::reset(): void` (clears items); `AmbientContextStorage::reset()` delegates; `FiberBoundContextStorage::reset()` resets **the calling fiber's** stack only (WeakMap is not iterable — process-wide reset is impossible by design; document that).
+- [x] ADR 0008: why reset is scoped per-fiber, persistent-worker guidance (call `reset()` between requests on the main scope), and why `reset()` stays off the port interface (adapter-specific operational concern, not a domain capability).
 - Tests: Functional — repeated dispatch + `reset()` leaves zero residue on main and current fiber; mismatched-token pop after reset throws `InvalidContextTokenException` (loud, not silent).
 - Acceptance: `PersistentWorkerIsolationTest` extended; suites green.
 
 ### Task 9.4 — Fiber-safe recursion counter (F-12)
 
-- [ ] `GuardedExecutionReporter`: replace `private int $depth` with `WeakMap<object,int>` keyed by `Fiber::getCurrent()`; fall back to a plain int field when not suspended in a fiber (main scope). Increment/decrement helpers encapsulate both modes.
+- [x] `GuardedExecutionReporter`: replace `private int $depth` with `WeakMap<object,int>` keyed by `Fiber::getCurrent()`; fall back to a plain int field when not suspended in a fiber (main scope). Increment/decrement helpers encapsulate both modes.
 - Tests (Functional): fiber A publishes; its delegate synchronously suspends into fiber B which publishes through the **same** reporter ⇒ B reaches the delegate (depth independent), A's outermost frame unaffected; previously this false-routed to health.
 - Acceptance: new interleaving test green; `GuardedExecutionReporterTest` green unchanged.
 

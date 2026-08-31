@@ -20,6 +20,10 @@ use WeakMap;
  * collection without manual cleanup. The synchronous (main) stack is delegated
  * to the ambient {@see AmbientContextStorage} passed in.
  *
+ * {@see self::reset()} clears the *calling* Fiber's stack only. The WeakMap is not
+ * iterable, so a process-wide reset is impossible by design; see ADR 0008 for the
+ * persistent-worker guidance (call `reset()` between requests on the main scope).
+ *
  * @api
  *
  * @see https://w3id.org/itpack/runit#Execution
@@ -31,7 +35,7 @@ final class FiberBoundContextStorage implements ExecutionContextProviderInterfac
 
     public function __construct(
         private RuntimeContextDetectorInterface $detector,
-        private ExecutionContextProviderInterface $ambient,
+        private AmbientContextStorage $ambient,
     ) {
         $this->stacks = new WeakMap();
     }
@@ -73,5 +77,29 @@ final class FiberBoundContextStorage implements ExecutionContextProviderInterfac
     public function enrich(\Closure $patch): void
     {
         $this->provider()->enrich($patch);
+    }
+
+    /**
+     * Clears the context stack of the *calling* Fiber only.
+     *
+     * The main (synchronous) scope delegates to the ambient provider; a Fiber
+     * scope clears only its own WeakMap entry. A process-wide reset is intentionally
+     * impossible — the WeakMap is not iterable — so callers must reset each scope
+     * they own (see ADR 0008). This is an operational concern, deliberately absent
+     * from the {@see ExecutionContextProviderInterface} port.
+     */
+    public function reset(): void
+    {
+        $fiber = $this->detector->currentFiber();
+
+        if ($fiber === null) {
+            $this->ambient->reset();
+
+            return;
+        }
+
+        if (isset($this->stacks[$fiber])) {
+            $this->stacks[$fiber]->reset();
+        }
     }
 }
