@@ -42,6 +42,7 @@ Ship a working integration.
 Implement a port or consume RunIt without coupling to internals.
 1. [Architecture](architecture/hexagonal-architecture.md) — the port boundary.
 2. [Dependency graph](architecture/dependency-graph.md) — enforced edges.
+3. [Runtime architecture diagram](diagram/runit-runtime.html) — components, request path, and the adapter trust boundary.
 3. [Base contracts](concepts/base-contracts.md) + [semantic model](concepts/semantic-model.md).
 4. [Third-party adapter recipe](recipes/third-party-adapter.md) + [conformance](conformance.md).
 5. [ADR index](adr/README.md) — read the load-bearing decisions before publishing.
@@ -56,6 +57,7 @@ Implement a port or consume RunIt without coupling to internals.
 | **Tutorial** | [tutorial/](tutorial/01-hello-execution.md) | 7 progressive, build-up lessons mapped to the domain model. |
 | **Concepts** | [concepts/semantic-model.md](concepts/semantic-model.md) | Canonical per-artifact reference (execution, activity, …). |
 | **Architecture** | [architecture/](architecture/hexagonal-architecture.md) | Hexagonal design, dependency rules, lifecycle, publication, security, performance. |
+| **Diagrams** | [diagram/runit-runtime.html](diagram/runit-runtime.html) | Interactive runtime architecture: components, primary request path, ports/adapters, and the trust boundary. |
 | **Integrations** | [integrations/README.md](integrations/README.md) | OpenTelemetry, CloudEvents, PSR-3/14, HTTP, Swoole, Fibers, failure policies. |
 | **Recipes** | [recipes/](../README.md#recipes) | Task-oriented snippets: CLI, HTTP, queue, worker, scheduler, testing, … |
 | **Use cases** | [use-cases.md](use-cases.md) | Fit, decision guides, and "RunIt vs X". |

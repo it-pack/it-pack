@@ -84,3 +84,7 @@ mandatory external integration"). They are reviewed and accepted; they are not
 architecture violations and are not suppressed via skips.
 
 Run `composer architecture` to reproduce the zero-violation report.
+
+For a component-level runtime view — the primary request path, ports, adapters, and
+the external-integration trust boundary — see
+[`runit-runtime.html`](../diagram/runit-runtime.html).

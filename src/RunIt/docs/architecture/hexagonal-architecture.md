@@ -63,6 +63,10 @@ The full, machine-generated layer graph with edge counts is maintained in
 `vendor/bin/deptrac analyse --formatter=mermaidjs`). `composer architecture`
 reproduces the zero-violation report that enforces these edges.
 
+An interactive, component-level view of this model — runtime components, the primary
+request path, ports/adapters, and the external-integration trust boundary — is
+available as [`runit-runtime.html`](../diagram/runit-runtime.html).
+
 ## Ports
 
 Ports are interfaces in `src/Contract/Port` for every external effect:

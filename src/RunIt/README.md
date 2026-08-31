@@ -251,7 +251,8 @@ The domain never depends on application services, the SDK, or any adapter; exter
 adapters are optional and never referenced by the domain (ADR-006, ADR-010).
 
 - Dependency rules and the generated layer graph: [`docs/architecture/dependency-graph.md`](docs/architecture/dependency-graph.md).
-- Lifecycle, publication, context propagation, security, performance, self-instrumentation: [`docs/architecture/`](docs/architecture/hexagonal-architecture.md).
+    - Lifecycle, publication, context propagation, security, performance, self-instrumentation: [`docs/architecture/`](docs/architecture/hexagonal-architecture.md).
+    - Runtime architecture diagram (components, primary request path, ports/adapters, trust boundary): [`docs/diagram/runit-runtime.html`](docs/diagram/runit-runtime.html).
 
 ---
 
