@@ -30,7 +30,7 @@ use ItPack\CommandIt\Domain\CommandInput;
  *
  * @api
  */
-final class ArgvInputParser
+final readonly class ArgvInputParser
 {
     use InputCoercionBehavior;
 

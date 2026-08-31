@@ -63,7 +63,9 @@ final class CommandExecutor implements CommandExecutorInterface
         }
 
         $definition = $this->registry->definition($name);
+        $definitionName = $definition->name()->toString();
         $executionId = CommandExecutionId::fromString($this->ids->generate());
+        $executionIdString = $executionId->toString();
 
         $startedAt = $this->clock->nowSeconds();
         $monoStart = $this->clock->monotonicNanoseconds();
@@ -73,7 +75,7 @@ final class CommandExecutor implements CommandExecutorInterface
 
         $handler = $this->resolver->resolve($command);
         $chain = new MiddlewareChain($this->middlewares);
-        $contextToken = $this->context->enter($this->buildContext($definition->name()->toString(), $executionId->toString()));
+        $contextToken = $this->context->enter($this->buildContext($definitionName, $executionIdString));
 
         try {
             try {

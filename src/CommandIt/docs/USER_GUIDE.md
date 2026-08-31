@@ -858,9 +858,15 @@ a new, composed interface.
 ## 19. Where to go next
 
 - `docs/architecture/MODEL.md` — the domain model in depth.
-- `docs/adr/` — load-bearing decisions: RunIt integration via ports (0001),
-  lazy handler resolution (0002), fiber-bound context (0003).
-- `docs/archive/ROADMAP_1.md` — the milestone plan (M0–M12) and confidence tooling.
+- `docs/adr/` — load-bearing decisions (0001–0008): RunIt integration via ports
+  (0001), lazy handler resolution (0002), fiber-bound context (0003), Symfony
+  Console bridge stderr + serializer port (0004), transition matrix (0005),
+  `LifecycleReporterInterface` ISP split + concrete `CommandExecution` coordinator
+  (0006), `SafeSerializer` as the default reporter payload normalizer (0007), and
+  context provider `reset()` semantics (0008).
+- `docs/archive/REFACTORING_PLAN.md` — the live refactoring milestone tracker
+  (M1–M10), including parked-feature records.
+- `docs/archive/ROADMAP_1.md` — the broader roadmap (M0–M12) and confidence tooling.
 - `docs/archive/REFACTORING_PLAN_1.md`, `docs/archive/REVIEW_1.md`,
   `docs/archive/IMPLEMENTATION_PLAN_1.md` — historical working docs.
 

@@ -11,7 +11,7 @@ use ItPack\CommandIt\Contract\Port\ClockInterface;
  *
  * @api
  */
-final class SystemClock implements ClockInterface
+final readonly class SystemClock implements ClockInterface
 {
     public function nowSeconds(): int
     {

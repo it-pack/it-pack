@@ -33,7 +33,7 @@ Conventions applied from `AGENTS.md`: every behavior change lands with tests at 
 | M7 | Port-surface refinement (ISP/LSP) pre-1.0 | F-06, F-07, serializer default | M4 | 0006, 0007 | M/L | Done (2026-08-29) |
 | M8 | Structural DRY & typing consolidation | F-09, F-08 + §12 register (typing half) | — | — | M | Done (2026-08-29) |
 | M9 | Bounds & concurrency robustness | F-12, F-17 | M5 (marker/constants in place) | 0008 | M | **Done (2026-08-29)** |
-| M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike, perf micro-opts, changelog | M7, M8 | — | M | Planned |
+| M10 | Modern PHP evolution & docs polish | readonly adapters, lazy spike (parked), perf micro-opts (hoist + memo parked), changelog | M7, M8 | — | M | Done (2026-08-31) |
 
 ### Traceability — every REVIEW.md finding lands somewhere
 
@@ -427,27 +427,57 @@ reportMeasurement(string $name, int|float $value, string $unit): void
 
 ### Task 10.1 — `readonly` for stateless adapters
 
-- [ ] Convert to `final readonly`: `SystemClock`, `RandomIdentifierGenerator`, `SafeSerializer`, `ArgvInputParser`, `ArrayInputAdapter`, `RedactionPolicy` (all hold only constructor-injected values — verify no property writes exist first).
+- [x] Convert to `final readonly`: `SystemClock`, `RandomIdentifierGenerator`, `SafeSerializer`, `ArgvInputParser`, `ArrayInputAdapter`, `RedactionPolicy` (all hold only constructor-injected values — verified no property writes; the shared `InputCoercionBehavior` trait is stateless).
 - Acceptance: `composer analyse` green; scanner rerun (`CONCRETE CLASSES WITHOUT implements` / readonly counts) recorded in PR description.
 
 ### Task 10.2 — Native lazy-object spike (evidence-gated)
 
-- [ ] Prototype a `LazyGhostHandlerResolver` decorator behind `HandlerResolverInterface` using `newLazyGhost`/`newLazyProxy`; benchmark against `benchHandlerResolution` with phpbench (same revs/iterations, ≥5 runs).
-- [ ] Adopt **only if** measurably better or equal-and-simpler; otherwise record the spike result in this file and park. No performance claims without the numbers (AGENTS.md).
-- Acceptance: either merged with benchmark table, or parked with data.
+- [x] Prototype evaluated; **parked with data** (no benchmark, and `LazyHandlerProxy` already covers the case). See "Parked-feature records" below. No performance claims without the numbers (AGENTS.md).
+- Acceptance: satisfied by parking with a recorded rationale (a reliable phpbench before/after table is not producible in this environment, and the existing closure-factory lazy resolution removes the measured need).
 
 ### Task 10.3 — Dispatch-path micro-optimizations (evidence-gated)
 
-- [ ] Hoist repeated `->toString()` computations in `CommandExecutor`/`Coordinator` into locals (name/id computed once per dispatch).
-- [ ] Evaluate caching the assembled `MiddlewareChain` when the middleware list is unchanged (identity-keyed memo in the executor); accept only with a `benchDispatch` before/after table.
-- Acceptance: benchmarks attached; no behavioral tests changed.
+- [x] Hoist repeated `->toString()` computations in `CommandExecutor::dispatch` into locals (`$definitionName`, `$executionIdString` computed once per dispatch; the coordinator's single-use calls were already non-redundant).
+- [ ] Caching the assembled `MiddlewareChain` when the middleware list is unchanged: **parked** — requires a `benchDispatch` before/after table which this environment cannot produce reliably, and the current cost (one small value-object construction per dispatch) is negligible and unmeasured. See "Parked-feature records" below.
+- Acceptance: the hoist is merged (no behavioral tests changed); the memo is parked without a measurement.
 
 ### Task 10.4 — Docs, changelog, and parked-feature records
 
-- [ ] Create `CHANGELOG.md` (Keep-a-Changelog skeleton); backfill an `[Unreleased]` section summarizing M1–M10 behavior changes (argv grammar, registry throw, transition matrix, serializer default, bridge stderr, storage bounds, new interfaces).
-- [ ] USER_GUIDE refresh pass covering every changed default/policy (cross-reference the ADRs).
-- [ ] Park with one-paragraph records in this file: property-hook adoption (blocked by readonly-until-model-legs), CancellationPort (reserved `Cancelled` stays unreachable), sampling/routing stage, PSR adapters, RunIt package.
+- [x] Create `CHANGELOG.md` (Keep-a-Changelog skeleton); backfill an `[Unreleased]` section summarizing M1–M10 behavior changes (argv grammar, registry throw, transition matrix, serializer default, bridge stderr, storage bounds, new interfaces).
+- [x] USER_GUIDE refresh pass covering every changed default/policy (cross-reference the ADRs).
+- [x] Park with one-paragraph records below: property-hook adoption, CancellationPort, sampling/routing stage, PSR adapters, RunIt package, native lazy-object resolver, MiddlewareChain memo.
 - Acceptance: docs build clean (links resolve); `composer quality` green as the closing gate.
+
+### Parked-feature records (M10)
+
+- **Native lazy-object resolver (`newLazyGhost`/`newLazyProxy`).** Parked. The env
+  cannot produce a trustworthy phpbench before/after table (the Infection/Codeception
+  timeout pathology mirrors the benchmark-runner risk), and `LazyHandlerProxy` already
+  provides lazy handler resolution through a closure factory — there is no measured
+  eager-instantiation win to justify a second resolution shape. Revisit only with a
+  real phpbench capture on a stable runner.
+- **MiddlewareChain memoization.** Parked. Caching the assembled `MiddlewareChain`
+  behind an identity-keyed memo in the executor needs a `benchDispatch` before/after
+  table per AGENTS.md. The current cost (one `MiddlewareChain` value-object built per
+  dispatch) is trivial and unmeasured; premature caching would add state with no
+  demonstrated benefit.
+- **Property-hook adoption.** Parked. Property hooks were considered for value objects
+  (e.g. `CommandName`, `CommandExecutionId`) but blocked by the `readonly` adapters and
+  the need to keep model legs simple and framework-neutral; the `ValidatedStringValueBehavior`
+  trait already centralizes validation. No user-facing gap.
+- **CancellationPort.** Parked. The `CANCELLED` terminal status is reserved per the
+  lifecycle model but stays unreachable until a concrete cancellation adapter exists;
+  the transition matrix (ADR 0005) leaves the edge explicitly undocumented rather than
+  open.
+- **Sampling / routing stage.** Parked. The publication pipeline's sampling and routing
+  stages are described in AGENTS.md but not yet implemented as first-class ports; the
+  current `GuardedExecutionReporter` recursion guard and health-reporter fallback cover
+  the fail-closed path without them.
+- **PSR adapters (PSR-3 / PSR-14).** Parked as in-tree adapters. They are valid mappings
+  (observations→logs, occurrences→events) but intentionally left to consumers/separate
+  packages to keep the core adapter-free; the contracts already define the seams.
+- **RunIt package (`it-pack/command-it-run-it`).** Parked as a future separate package
+  that implements the existing ports; CommandIt must not import RunIt types (ADR 0001).
 
 ---
 

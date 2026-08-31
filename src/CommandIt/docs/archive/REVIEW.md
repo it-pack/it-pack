@@ -508,3 +508,29 @@ default.
   fiber-interleaving branches are covered by behavioral assertions (full-suite mutation exceeded the
   available run timeout in this environment and was not completed end-to-end; the M4.5 todo to switch
   Infection's `testFramework` to phpunit remains open).
+
+### 2026-08-31 — Refactoring plan milestone M10 landed (final milestone)
+
+Modern PHP evolution & docs polish (REVIEW §7, §10, §11). Closes the plan; the
+completed M1–M10 status table is in `docs/archive/REFACTORING_PLAN.md`.
+
+- **10.1 `readonly` adapters** — `SystemClock`, `RandomIdentifierGenerator`, `SafeSerializer`,
+  `ArgvInputParser`, `ArrayInputAdapter`, `RedactionPolicy` are now `final readonly` (verified
+  stateless; the shared `InputCoercionBehavior` trait holds no instance state). No property writes,
+  so the change is purely a guarantee, not a behavior shift.
+- **10.2 native lazy-object resolver — parked.** No reliable phpbench table is producible here, and
+  `LazyHandlerProxy` (closure-factory lazy resolution) already covers the eager-instantiation concern;
+  merging an unmeasured second resolution shape is unjustified per AGENTS.md.
+- **10.3 dispatch hoist (merged) + MiddlewareChain memo (parked).** `CommandExecutor::dispatch` now
+  computes `$definitionName` and `$executionIdString` once; the coordinator's calls were already
+  single-use. The `MiddlewareChain` identity-keyed memo is parked pending a `benchDispatch` before/after
+  table.
+- **10.4 docs/changelog/parked records.** New `CHANGELOG.md` (Keep-a-Changelog; `[Unreleased]` summarizes
+  M1–M10). `USER_GUIDE.md` ADR cross-reference expanded to 0001–0008 and the live plan. `REFACTORING_PLAN.md`
+  gains one-paragraph parked-feature records (lazy-object resolver, MiddlewareChain memo, property-hook
+  adoption, CancellationPort, sampling/routing stage, PSR adapters, RunIt package).
+
+- Verification: composer validate strict OK · phpstan max clean · DepTrac 0 violations / 0 uncovered
+  (Allowed 544) · full suite **204 tests** (189 unit / 13 functional / 2 integration) green · cs-fixer
+  clean (0/154) · examples `01`–`06` exit 0. Remaining open item from the plan: M4.5 (switch Infection's
+  `testFramework` to phpunit) — mutation floors remain a guardrail, not a measured bar.

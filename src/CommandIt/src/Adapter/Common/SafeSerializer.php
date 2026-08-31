@@ -25,7 +25,7 @@ use SplObjectStorage;
  *
  * @api
  */
-final class SafeSerializer implements SerializerInterface
+final readonly class SafeSerializer implements SerializerInterface
 {
     /**
      * Maximum recursion depth before {@see SerializationException::tooDeep()} is thrown.

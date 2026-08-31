@@ -19,7 +19,7 @@ use ItPack\CommandIt\Domain\CommandInput;
  *
  * @api
  */
-final class ArrayInputAdapter
+final readonly class ArrayInputAdapter
 {
     use InputCoercionBehavior;
 

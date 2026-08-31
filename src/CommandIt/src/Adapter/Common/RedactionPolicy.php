@@ -33,7 +33,7 @@ use ItPack\CommandIt\Contract\Port\RedactionPolicyInterface;
  *
  * @api
  */
-final class RedactionPolicy implements RedactionPolicyInterface
+final readonly class RedactionPolicy implements RedactionPolicyInterface
 {
     /**
      * @param list<string> $sensitiveKeys case-insensitive key fragments (substring) or whole keys (exact, see $exactKeyMatch)

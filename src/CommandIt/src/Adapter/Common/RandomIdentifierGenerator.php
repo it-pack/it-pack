@@ -11,7 +11,7 @@ use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
  *
  * @api
  */
-final class RandomIdentifierGenerator implements IdentifierGeneratorInterface
+final readonly class RandomIdentifierGenerator implements IdentifierGeneratorInterface
 {
     public function generate(): string
     {
