@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\CommandIt\Adapter\Common;
 
 use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
+use Random\RandomException;
 
 /**
  * Generates RFC 4122 v4 (random) UUIDs without external dependencies.
@@ -13,6 +14,9 @@ use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
  */
 final readonly class RandomIdentifierGenerator implements IdentifierGeneratorInterface
 {
+    /**
+     * @throws RandomException
+     */
     public function generate(): string
     {
         $bytes = \random_bytes(16);

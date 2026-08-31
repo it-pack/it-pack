@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Contract;
 
+use Closure;
 use ItPack\CommandIt\Contract\Domain\CommandContextInterface;
 
 /**
@@ -26,7 +27,7 @@ interface ContextEnricherInterface
      * the replacement. The enclosing token is preserved, so the executor's leave
      * still restores the previous context correctly.
      *
-     * @param \Closure(CommandContextInterface): CommandContextInterface $patch
+     * @param Closure(CommandContextInterface): CommandContextInterface $patch
      */
-    public function enrich(\Closure $patch): void;
+    public function enrich(Closure $patch): void;
 }

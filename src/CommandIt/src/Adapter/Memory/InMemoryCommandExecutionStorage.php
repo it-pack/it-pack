@@ -23,7 +23,7 @@ final class InMemoryCommandExecutionStorage implements CommandExecutionStorageIn
     /**
      * Default bound: retain at most this many executions, evicting the oldest.
      */
-    public const DEFAULT_MAX_ENTRIES = 1000;
+    public const int DEFAULT_MAX_ENTRIES = 1000;
 
     /**
      * @var array<string, ExecutionArtifactInterface>
@@ -31,7 +31,7 @@ final class InMemoryCommandExecutionStorage implements CommandExecutionStorageIn
     private array $store = [];
 
     public function __construct(
-        private int $maxEntries = self::DEFAULT_MAX_ENTRIES,
+        private readonly int $maxEntries = self::DEFAULT_MAX_ENTRIES,
     ) {
     }
 

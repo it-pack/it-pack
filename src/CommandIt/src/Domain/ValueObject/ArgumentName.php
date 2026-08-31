@@ -23,6 +23,6 @@ final readonly class ArgumentName implements ArgumentNameInterface
 
     protected static function assertAdditionalRules(string $value): void
     {
-        static::assertIdentifierName($value);
+        self::assertIdentifierName($value);
     }
 }

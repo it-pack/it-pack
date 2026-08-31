@@ -6,6 +6,7 @@ namespace ItPack\CommandIt\Adapter\Reporting;
 
 use Fiber;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
+use Throwable;
 use WeakMap;
 
 /**
@@ -37,17 +38,17 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     /**
      * Health-signal occurrence types emitted to the separate {@see $health} reporter.
      */
-    public const SIGNAL_RECURSION_GUARDED = 'publication.recursion-guarded';
-    public const SIGNAL_PUBLICATION_FAILED = 'publication.failed';
+    public const string SIGNAL_RECURSION_GUARDED = 'publication.recursion-guarded';
+    public const string SIGNAL_PUBLICATION_FAILED = 'publication.failed';
 
     /**
      * Internal labels describing which reporter method was being guarded.
      */
-    private const KIND_OBSERVATION = 'observation';
-    private const KIND_OCCURRENCE = 'occurrence';
-    private const KIND_MEASUREMENT = 'measurement';
-    private const KIND_ACTIVITY_START = 'activity_start';
-    private const KIND_ACTIVITY_END = 'activity_end';
+    private const string KIND_OBSERVATION = 'observation';
+    private const string KIND_OCCURRENCE = 'occurrence';
+    private const string KIND_MEASUREMENT = 'measurement';
+    private const string KIND_ACTIVITY_START = 'activity_start';
+    private const string KIND_ACTIVITY_END = 'activity_end';
 
     /**
      * Per-Fiber recursion depth. Keyed by the executing {@see Fiber} so concurrent
@@ -64,8 +65,8 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
     private int $mainDepth = 0;
 
     public function __construct(
-        private ExecutionReporterInterface $delegate,
-        private ExecutionReporterInterface $health,
+        private readonly ExecutionReporterInterface $delegate,
+        private readonly ExecutionReporterInterface $health,
     ) {
         $this->fiberDepth = new WeakMap();
     }
@@ -121,6 +122,9 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
      * Runs the delegate under the recursion guard. Nested calls (depth > 1) and
      * delegate failures are sent to the health reporter; nothing is rethrown.
      *
+     * @param \Closure $publish
+     * @param string $kind
+     * @param string $label
      * @return mixed
      */
     private function guard(\Closure $publish, string $kind, string $label): mixed
@@ -138,7 +142,7 @@ final class GuardedExecutionReporter implements ExecutionReporterInterface
             }
 
             return $publish();
-        } catch (\Throwable $error) {
+        } catch (Throwable $error) {
             $this->health->reportObservation(self::SIGNAL_PUBLICATION_FAILED, [
                 'kind' => $kind,
                 'label' => $label,

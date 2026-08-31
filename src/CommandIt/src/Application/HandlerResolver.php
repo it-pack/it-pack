@@ -18,7 +18,7 @@ use ItPack\CommandIt\Contract\Command\CommandInterface;
  *
  * @api
  */
-final class HandlerResolver implements HandlerResolverInterface
+final readonly class HandlerResolver implements HandlerResolverInterface
 {
     public function __construct(
         private CommandRegistryInterface $registry,

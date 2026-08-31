@@ -20,7 +20,7 @@ use ItPack\CommandIt\Contract\ContextEnricherInterface;
  *
  * @api
  */
-final class MiddlewareChain implements MiddlewareChainInterface
+final readonly class MiddlewareChain implements MiddlewareChainInterface
 {
     /**
      * @param list<CommandMiddlewareInterface> $middlewares
@@ -36,7 +36,7 @@ final class MiddlewareChain implements MiddlewareChainInterface
         CommandHandlerInterface $handler,
         ContextEnricherInterface $context,
     ): CommandResultInterface {
-        $next = function (CommandInterface $command) use ($handler): CommandResultInterface {
+        $next = static function (CommandInterface $command) use ($handler): CommandResultInterface {
             return $handler->handle($command);
         };
 
@@ -56,7 +56,7 @@ final class MiddlewareChain implements MiddlewareChainInterface
         callable $next,
         ContextEnricherInterface $context,
     ): callable {
-        return function (CommandInterface $command) use ($middleware, $next, $context): CommandResultInterface {
+        return static function (CommandInterface $command) use ($middleware, $next, $context): CommandResultInterface {
             return $middleware->process($command, $next, $context);
         };
     }

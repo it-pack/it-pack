@@ -11,6 +11,7 @@ use ItPack\CommandIt\Contract\Port\SerializerInterface;
 use ItPack\CommandIt\Domain\Command;
 use ItPack\CommandIt\Domain\CommandInput;
 use ItPack\CommandIt\Domain\CommandResultStatus;
+use JsonException;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
@@ -18,6 +19,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * Projects one CommandIt definition onto a Symfony Console command.
@@ -181,7 +183,7 @@ final class ConsoleCommandBridge extends SymfonyCommand
         if ($this->serializer !== null) {
             try {
                 $normalized = $this->serializer->normalize($payload);
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 return $this->refusePayload($output, 'unserializable payload');
             }
 
@@ -203,7 +205,7 @@ final class ConsoleCommandBridge extends SymfonyCommand
     {
         try {
             $encoded = \json_encode($payload, \JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
+        } catch (JsonException) {
             return $this->refusePayload($output, 'unencodable payload');
         }
 
@@ -222,7 +224,7 @@ final class ConsoleCommandBridge extends SymfonyCommand
     }
 
     /**
-     * @param array<mixed> $payload
+     * @param array $payload
      */
     private function containsObject(array $payload, int $depth = 0): bool
     {

@@ -12,7 +12,9 @@ use ItPack\CommandIt\Contract\Application\CommandExecutorInterface;
 use ItPack\CommandIt\Contract\Application\CommandRegistryInterface;
 use ItPack\CommandIt\Contract\Command\CommandBusInterface;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
+use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
+use ItPack\CommandIt\Contract\Command\CommandMiddlewareInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
 use ItPack\CommandIt\Contract\Port\ClockInterface;
 use ItPack\CommandIt\Contract\Port\CommandExecutionStorageInterface;
@@ -20,6 +22,7 @@ use ItPack\CommandIt\Contract\Port\ExecutionContextProviderInterface;
 use ItPack\CommandIt\Contract\Port\ExecutionReporterInterface;
 use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\CommandIt\Contract\Port\SerializerInterface;
+use Throwable;
 
 /**
  * Ergonomic entry point that assembles the application core and wires it to the
@@ -40,7 +43,7 @@ final class CommandIt
     private CommandExecutorInterface $executor;
 
     /**
-     * @param list<\ItPack\CommandIt\Contract\Command\CommandMiddlewareInterface> $middlewares
+     * @param list<CommandMiddlewareInterface> $middlewares
      */
     public function __construct(
         ClockInterface $clock,
@@ -72,13 +75,16 @@ final class CommandIt
     /**
      * Binds a definition to a (lazy) handler factory.
      *
-     * @param callable(): \ItPack\CommandIt\Contract\Command\CommandHandlerInterface $handlerFactory
+     * @param callable(): CommandHandlerInterface $handlerFactory
      */
     public function register(CommandDefinitionInterface $definition, callable $handlerFactory): void
     {
         $this->registry->register($definition, $handlerFactory);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function dispatch(CommandInterface $command): CommandResultInterface
     {
         return $this->executor->dispatch($command);

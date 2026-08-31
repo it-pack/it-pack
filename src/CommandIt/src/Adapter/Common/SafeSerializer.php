@@ -30,7 +30,7 @@ final readonly class SafeSerializer implements SerializerInterface
     /**
      * Maximum recursion depth before {@see SerializationException::tooDeep()} is thrown.
      */
-    public const DEFAULT_MAX_DEPTH = 32;
+    public const int DEFAULT_MAX_DEPTH = 32;
 
     public function __construct(
         private int $maxDepth = self::DEFAULT_MAX_DEPTH,

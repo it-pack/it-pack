@@ -6,6 +6,7 @@ namespace ItPack\CommandIt\Contract\Application;
 
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
+use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 
 /**
  * Name → definition + handler reference registry.
@@ -29,21 +30,21 @@ interface CommandRegistryInterface
     public function has(string $name): bool;
 
     /**
-     * @throws \ItPack\CommandIt\Contract\Exception\HandlerNotFoundException when no command is registered under $name
+     * @throws HandlerNotFoundException when no command is registered under $name
      */
     public function definition(string $name): CommandDefinitionInterface;
 
     /**
      * @return callable(): CommandHandlerInterface
      *
-     * @throws \ItPack\CommandIt\Contract\Exception\HandlerNotFoundException when no command is registered under $name
+     * @throws HandlerNotFoundException when no command is registered under $name
      */
     public function handlerFactory(string $name): callable;
 
     /**
      * Returns every registered definition, for enumeration (e.g. CLI registration).
      *
-     * @return list<\ItPack\CommandIt\Contract\Command\CommandDefinitionInterface>
+     * @return list<CommandDefinitionInterface>
      */
     public function definitions(): array;
 }

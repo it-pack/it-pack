@@ -35,34 +35,30 @@ final class CommandDefinitionBuilder
 
     public function name(CommandNameInterface|string $name): self
     {
-        $clone = clone $this;
-        $clone->name = \is_string($name) ? CommandName::fromString($name) : $name;
-
-        return $clone;
+        return clone($this, [
+            "name" => \is_string($name) ? CommandName::fromString($name) : $name
+        ]);
     }
 
     public function description(string $description): self
     {
-        $clone = clone $this;
-        $clone->description = $description;
-
-        return $clone;
+        return clone($this, [
+            "description" => $description
+        ]);
     }
 
     public function argument(ArgumentInterface $argument): self
     {
-        $clone = clone $this;
-        $clone->arguments = [...$this->arguments, $argument];
-
-        return $clone;
+        return clone($this, [
+            "arguments" => [...$this->arguments, $argument]
+        ]);
     }
 
     public function option(OptionInterface $option): self
     {
-        $clone = clone $this;
-        $clone->options = [...$this->options, $option];
-
-        return $clone;
+        return clone($this, [
+            "options" => [...$this->options, $option]
+        ]);
     }
 
     public function build(): CommandDefinitionInterface

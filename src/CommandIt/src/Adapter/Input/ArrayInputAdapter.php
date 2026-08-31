@@ -7,6 +7,7 @@ namespace ItPack\CommandIt\Adapter\Input;
 use ItPack\CommandIt\Behavior\Domain\InputCoercionBehavior;
 use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandInputInterface;
+use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
 use ItPack\CommandIt\Domain\CommandInput;
 
 /**
@@ -40,7 +41,7 @@ final readonly class ArrayInputAdapter
             } elseif (\in_array($key, $optionNames, true)) {
                 $options[$key] = $value;
             } else {
-                throw new \ItPack\CommandIt\Contract\Exception\InvalidCommandException(
+                throw new InvalidCommandException(
                     \sprintf('Unknown input key "%s".', $key),
                 );
             }

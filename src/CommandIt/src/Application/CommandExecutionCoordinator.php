@@ -13,6 +13,7 @@ use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 use ItPack\CommandIt\Domain\CommandExecution;
 use ItPack\CommandIt\Domain\CommandResult;
 use ItPack\CommandIt\Domain\CommandStatus;
+use Throwable;
 
 /**
  * Default lifecycle coordinator.
@@ -130,7 +131,7 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
     {
         try {
             $this->reporter->reportOccurrence($type, $context);
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
     }
 
@@ -138,7 +139,7 @@ final class CommandExecutionCoordinator implements CommandExecutionCoordinatorIn
     {
         try {
             $this->reporter->reportMeasurement($name, $value, LifecycleReporterInterface::DURATION_UNIT_MS);
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
     }
 }

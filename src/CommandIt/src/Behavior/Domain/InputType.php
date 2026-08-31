@@ -23,7 +23,7 @@ final class InputType
     /**
      * Legacy alias emitted by some type systems and CLIs; normalized to {@see self::FLOAT}.
      */
-    public const DOUBLE = 'double';
+    public const string DOUBLE = 'double';
 
     public static function normalize(string $type): string
     {

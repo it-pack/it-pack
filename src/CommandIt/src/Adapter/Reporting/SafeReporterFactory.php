@@ -26,10 +26,10 @@ use ItPack\CommandIt\Contract\Port\RedactionPolicyInterface;
  *
  * @api
  */
-final class SafeReporterFactory
+final readonly class SafeReporterFactory
 {
     public function __construct(
-        private RedactionPolicyInterface $redaction = new RedactionPolicy(),
+        private RedactionPolicyInterface   $redaction = new RedactionPolicy(),
         private ExecutionReporterInterface $health = new NullExecutionReporter(),
     ) {
     }

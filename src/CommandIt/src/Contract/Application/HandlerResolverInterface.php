@@ -6,6 +6,7 @@ namespace ItPack\CommandIt\Contract\Application;
 
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
+use ItPack\CommandIt\Contract\Exception\HandlerNotFoundException;
 
 /**
  * Resolves the handler that should run a command.
@@ -20,7 +21,7 @@ use ItPack\CommandIt\Contract\Command\CommandInterface;
 interface HandlerResolverInterface
 {
     /**
-     * @throws \ItPack\CommandIt\Contract\Exception\HandlerNotFoundException when no handler is registered for the command
+     * @throws HandlerNotFoundException when no handler is registered for the command
      */
     public function resolve(CommandInterface $command): CommandHandlerInterface;
 }

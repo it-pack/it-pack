@@ -34,8 +34,8 @@ final class FiberBoundContextStorage implements ExecutionContextProviderInterfac
     private WeakMap $stacks;
 
     public function __construct(
-        private RuntimeContextDetectorInterface $detector,
-        private AmbientContextStorage $ambient,
+        private readonly RuntimeContextDetectorInterface $detector,
+        private readonly AmbientContextStorage           $ambient,
     ) {
         $this->stacks = new WeakMap();
     }

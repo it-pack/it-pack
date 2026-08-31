@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Contract\Command;
 
+use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
+
 /**
  * Immutable resolved input for a command: argument values and option values.
  *
@@ -31,14 +33,14 @@ interface CommandInputInterface
     /**
      * @return mixed
      *
-     * @throws \ItPack\CommandIt\Contract\Exception\InvalidCommandException when the argument is absent
+     * @throws InvalidCommandException when the argument is absent
      */
     public function argument(string $name): mixed;
 
     /**
      * @return mixed
      *
-     * @throws \ItPack\CommandIt\Contract\Exception\InvalidCommandException when the option is absent
+     * @throws InvalidCommandException when the option is absent
      */
     public function option(string $name): mixed;
 }

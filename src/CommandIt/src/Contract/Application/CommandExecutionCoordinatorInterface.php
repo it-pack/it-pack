@@ -8,6 +8,7 @@ use ItPack\CommandIt\Contract\Command\CommandDefinitionInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
 use ItPack\CommandIt\Contract\ValueObject\CommandExecutionIdInterface;
 use ItPack\CommandIt\Domain\CommandExecution;
+use Throwable;
 
 /**
  * Owns the command lifecycle state machine and occurrence emission.
@@ -31,7 +32,7 @@ use ItPack\CommandIt\Domain\CommandExecution;
 interface CommandExecutionCoordinatorInterface
 {
     /**
-     * Marks a freshly-defined execution as received and emits `command.received.v1`.
+     * Marks a freshly defined execution as received and emits `command.received.v1`.
      */
     public function begin(
         CommandDefinitionInterface $definition,
@@ -40,7 +41,7 @@ interface CommandExecutionCoordinatorInterface
     ): CommandExecution;
 
     /**
-     * Completes a successfully-handled execution, emits `command.handled.v1`, and records the duration.
+     * Completes a successfully handled execution, emits `command.handled.v1`, and records the duration.
      */
     public function succeed(
         CommandExecution $execution,
@@ -54,7 +55,7 @@ interface CommandExecutionCoordinatorInterface
      */
     public function fail(
         CommandExecution $execution,
-        \Throwable $error,
+        Throwable $error,
         int $endedAt,
         int $durationMs,
     ): CommandExecution;

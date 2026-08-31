@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Application;
 
+use Closure;
 use ItPack\CommandIt\Contract\Application\CommandExecutionCoordinatorInterface;
 use ItPack\CommandIt\Contract\Application\CommandExecutorInterface;
 use ItPack\CommandIt\Contract\Application\CommandRegistryInterface;
@@ -22,6 +23,7 @@ use ItPack\CommandIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\CommandIt\Contract\Port\SerializerInterface;
 use ItPack\CommandIt\Domain\CommandContext;
 use ItPack\CommandIt\Domain\ValueObject\CommandExecutionId;
+use Throwable;
 
 /**
  * The application-core command executor.
@@ -139,11 +141,11 @@ final class CommandExecutor implements CommandExecutorInterface
      * Best-effort persistence/observation: a storage or reporter failure must
      * never replace the business result or the original business exception.
      */
-    private function record(\Closure $operation): void
+    private function record(Closure $operation): void
     {
         try {
             $operation();
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
     }
 }

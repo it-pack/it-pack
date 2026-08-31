@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\CommandIt\Adapter\Reporting;
 
 use ItPack\CommandIt\Contract\Exception\CommandExceptionInterface;
+use RuntimeException;
 
 /**
  * Thrown by {@see CollectingExecutionReporter} when its bounded buffer overflows
@@ -12,7 +13,7 @@ use ItPack\CommandIt\Contract\Exception\CommandExceptionInterface;
  *
  * @api
  */
-final class BufferOverflowException extends \RuntimeException implements CommandExceptionInterface, BufferOverflowExceptionInterface
+final class BufferOverflowException extends RuntimeException implements CommandExceptionInterface, BufferOverflowExceptionInterface
 {
     public static function forLimit(int $limit): self
     {

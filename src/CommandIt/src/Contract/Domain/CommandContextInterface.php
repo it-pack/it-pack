@@ -26,7 +26,7 @@ interface CommandContextInterface
      *
      * @see https://w3id.org/itpack/runit#ExecutionContext
      */
-    public const REDACTED = '***';
+    public const string REDACTED = '***';
 
     public function has(string $key): bool;
 

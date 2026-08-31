@@ -21,7 +21,7 @@ final class CollectingExecutionReporter implements ExecutionReporterInterface
     /**
      * Prefix for activity ids synthesized by {@see self::beginActivity()}.
      */
-    public const ACTIVITY_ID_PREFIX = 'act-';
+    public const string ACTIVITY_ID_PREFIX = 'act-';
 
     /**
      * @var list<array<string, mixed>>
@@ -29,8 +29,8 @@ final class CollectingExecutionReporter implements ExecutionReporterInterface
     private array $entries = [];
 
     public function __construct(
-        private int $limit = 1000,
-        private OverflowPolicy $overflow = OverflowPolicy::DropOldest,
+        private readonly int            $limit = 1000,
+        private readonly OverflowPolicy $overflow = OverflowPolicy::DropOldest,
     ) {
     }
 

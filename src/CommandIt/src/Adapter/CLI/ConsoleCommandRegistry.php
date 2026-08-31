@@ -17,11 +17,11 @@ use Symfony\Component\Console\Command\Command as SymfonyCommand;
  *
  * @api
  */
-final class ConsoleCommandRegistry
+final readonly class ConsoleCommandRegistry
 {
     public function __construct(
         private CommandRegistryInterface $registry,
-        private CommandBusInterface $bus,
+        private CommandBusInterface      $bus,
     ) {
     }
 

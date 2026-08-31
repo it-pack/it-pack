@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\CommandIt\Application;
 
+use Closure;
 use ItPack\CommandIt\Contract\Command\CommandHandlerInterface;
 use ItPack\CommandIt\Contract\Command\CommandInterface;
 use ItPack\CommandIt\Contract\Command\CommandResultInterface;
@@ -27,8 +28,8 @@ final class LazyHandlerProxy implements CommandHandlerInterface
 {
     private ?CommandHandlerInterface $resolved = null;
 
-    /** @var \Closure(): CommandHandlerInterface */
-    private \Closure $factory;
+    /** @var Closure(): CommandHandlerInterface */
+    private Closure $factory;
 
     /**
      * @param callable(): CommandHandlerInterface $factory
@@ -36,9 +37,9 @@ final class LazyHandlerProxy implements CommandHandlerInterface
     public function __construct(
         callable $factory,
     ) {
-        $this->factory = $factory instanceof \Closure
+        $this->factory = $factory instanceof Closure
             ? $factory
-            : \Closure::fromCallable($factory);
+            : $factory(...);
     }
 
     private function resolve(): CommandHandlerInterface

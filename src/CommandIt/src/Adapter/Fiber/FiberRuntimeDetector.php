@@ -15,7 +15,7 @@ use ItPack\CommandIt\Contract\Port\RuntimeContextDetectorInterface;
 final class FiberRuntimeDetector implements RuntimeContextDetectorInterface
 {
     /**
-     * @return \Fiber<mixed, mixed, mixed, mixed>|null
+     * @return Fiber<mixed, mixed, mixed, mixed>|null
      */
     public function currentFiber(): ?Fiber
     {

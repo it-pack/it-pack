@@ -7,6 +7,7 @@ namespace ItPack\CommandIt\Behavior\Domain;
 use ItPack\CommandIt\Contract\Command\ArgumentInterface;
 use ItPack\CommandIt\Contract\Command\OptionInterface;
 use ItPack\CommandIt\Contract\Exception\InvalidCommandException;
+use LogicException;
 
 /**
  * Stateless coercion + resolution for command input values.
@@ -24,12 +25,12 @@ trait InputCoercionBehavior
     /**
      * Boolean truth aliases accepted (case-insensitively) by {@see self::coerceBool()}.
      */
-    private const BOOL_TRUE_ALIASES = ['1', 'true', 'yes', 'on'];
+    private const array BOOL_TRUE_ALIASES = ['1', 'true', 'yes', 'on'];
 
     /**
      * Boolean falsity aliases accepted (case-insensitively) by {@see self::coerceBool()}.
      */
-    private const BOOL_FALSE_ALIASES = ['0', 'false', 'no', 'off'];
+    private const array BOOL_FALSE_ALIASES = ['0', 'false', 'no', 'off'];
 
     /**
      * Coerces a raw input value to the expected PHP type name.
@@ -41,9 +42,10 @@ trait InputCoercionBehavior
      * aliases (`1/true/yes/on`, `0/false/no/off`). Unknown declared types are
      * passed through verbatim (e.g. `array`).
      *
+     * @param mixed $value
+     * @param string $type
      * @return mixed
      *
-     * @throws InvalidCommandException when a non-scalar is given for a scalar type
      */
     protected function coerceInputValue(mixed $value, string $type): mixed
     {
@@ -145,14 +147,14 @@ trait InputCoercionBehavior
             return (bool) $value;
         }
 
-        return \is_scalar($value) ? (bool) $value : false;
+        return \is_scalar($value) && (bool)$value;
     }
 
     /**
-     * @throws \LogicException always — guards the unreachable default arm of {@see self::coerceScalar()}
+     * @throws LogicException always — guards the unreachable default arm of {@see self::coerceScalar()}
      */
     private static function rejectUnknownType(string $type): never
     {
-        throw new \LogicException(\sprintf('Unsupported input type "%s".', $type));
+        throw new LogicException(\sprintf('Unsupported input type "%s".', $type));
     }
 }

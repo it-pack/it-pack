@@ -36,7 +36,7 @@ final readonly class CommandExecution implements ExecutionArtifactInterface
      *
      * @var array<string, list<string>>
      */
-    private const ALLOWED_TRANSITIONS = [
+    private const array ALLOWED_TRANSITIONS = [
         'defined' => ['received'],
         'received' => ['executing'],
         'executing' => [],

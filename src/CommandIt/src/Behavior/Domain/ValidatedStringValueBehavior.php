@@ -23,7 +23,7 @@ trait ValidatedStringValueBehavior
     /**
      * Maximum length of any validated string value (characters, UTF-8).
      */
-    public const MAX_LENGTH = 255;
+    public const int MAX_LENGTH = 255;
 
     private function __construct(
         private readonly string $value,

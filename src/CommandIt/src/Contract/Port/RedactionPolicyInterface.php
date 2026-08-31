@@ -25,7 +25,7 @@ interface RedactionPolicyInterface
      * (the always-on classification mask); the two-stage model is documented in
      * the user guide.
      */
-    public const DEFAULT_MARKER = '***redacted***';
+    public const string DEFAULT_MARKER = '***redacted***';
 
     /**
      * Returns a redacted copy of the given context.
