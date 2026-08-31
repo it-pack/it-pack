@@ -427,7 +427,7 @@ Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / m
 
 ---
 
-## NF-C2 — Async bridge (H3, sibling AsyncIt) — ⬜ TODO
+## NF-C2 — Async bridge (H3, sibling AsyncIt) — ✅ DONE
 
 **Goal:** Hash many files concurrently using the monorepo `AsyncIt` scheduler. Shipped as a **separate package** so HashIt core is untouched (guardrail #8).
 
@@ -447,6 +447,8 @@ Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / m
 **Verification:** the bridge package's own gates (its `composer test:unit` etc.). **Not** part of HashIt's gates.
 **Dependencies:** `AsyncIt` runtime API (sibling), HashIt `hashFile`/`hashFiles`.
 **Acceptance:** bridge yields identical map to sequential hashing; HashIt core unchanged.
+
+**Completion note (2026-08-31):** Shipped the async bridge as a standalone sibling package `it-pack/hash-it-async` (namespace `ItPack\HashItAsync`, dir `src/HashItAsync`) — HashIt core is **untouched** (guardrail #8, confirmed: no file under `src/HashIt` was modified). New `src/ConcurrentFileHasher.php` exposes `hashFiles(iterable<FilepathInterface> $paths, HasherInterface $hasher, AsyncRuntime $runtime, ?HashProgressInterface $progress = null): array<string, HashInterface>`; it fans each file out as one `AsyncRuntime::run(new ReferenceExecutionScope((string) $path), static fn (): HashInterface => $hasher->hashFile($path))` task and collects results keyed by the path string **in input order**. It reuses `HasherInterface::hashFile` verbatim, so the digest map is identical to a sequential `HasherInterface::hashFiles` and the *same* `RuntimeException` HashIt throws for an unreadable file surfaces unchanged. An optional NF-A4 `HashProgressInterface` fires once per completed file with a running byte total (computed only when the input is a re-iterable array, mirroring HashIt's own `hashFiles`). The package carries its own full QA scaffold (composer.json `require`-ing `it-pack/hash-it` + `it-pack/async-it` via path repos, plus `phpstan.neon`, `extension.neon`, `.php-cs-fixer.php`, `deptrac.yaml`, `codeception.yml`, unit suite) and its own four gates. `deptrac` enforces `Bridge → [HashIt, AsyncIt]` only — the `HashIt` regex is anchored with a trailing `\` so it does not swallow `HashItAsync`. Tests `tests/Unit/ConcurrentFileHasherTest.php`: parity-with-sequential + order preserved, empty input → `[]`, missing file → same `RuntimeException`, per-file progress with running total. All bridge gates green: `composer test:unit` (4 tests, 5 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations). README documents the §7/guardrail-#8 separation and the concurrency caveat (each file is an independent runtime task; genuine cooperative interleaving depends on the selected AsyncIt adapter yielding on I/O, but the contract holds across every adapter — which the suite asserts).
 
 ---
 
