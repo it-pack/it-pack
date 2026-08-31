@@ -18,4 +18,9 @@ namespace ItPack\RunIt\Contract\Port;
  */
 interface ContextTokenInterface
 {
+    /**
+     * Stable integer identity of the attached scope, used by storages to
+     * enforce last-in-first-out detachment of the correct scope.
+     */
+    public function id(): int;
 }
