@@ -6,11 +6,18 @@ namespace ItPack\HashIt;
 
 use InvalidArgumentException;
 use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
-use RuntimeException;
+use ItPack\HashIt\Observability\HashingInstrumentation;
 use Throwable;
 
+/**
+ * @property-read ?Contract\HashingObserverInterface $observer supplied by the constructor; declared
+ *               here so static analysis (PHPStan, intelephense) sees the collaborator that the
+ *               {@see HashingInstrumentation} trait reads via `$this->observer?->observe()`.
+ */
 final readonly class KeyedHasher implements Contract\KeyedHasherInterface
 {
+    use HashingInstrumentation;
+
     public function __construct(
         private Contract\KeyedContextFactoryInterface $factory,
         private ?Contract\HashingObserverInterface $observer = null,
@@ -265,92 +272,5 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         $context->update($data);
 
         return new Hash($context->finalize($binary), $algorithm, $binary);
-    }
-
-    private function fileBytes(string $file): ?int
-    {
-        if (!is_file($file)) {
-            return null;
-        }
-
-        $size = filesize($file);
-
-        return $size === false ? null : $size;
-    }
-
-    private function completed(
-        string $id,
-        string $algorithm,
-        int $bytes,
-        int $beginNs,
-        ?Contract\HashInterface $hash,
-    ): HashObservation {
-        $durationMs = (int) round((hrtime(true) - $beginNs) / 1_000_000);
-
-        return HashObservation::completed($id, $algorithm, $bytes, $durationMs, $hash?->toUrn());
-    }
-
-    private function observe(HashObservation $observation): void
-    {
-        $this->observer?->observe($observation);
-    }
-
-    private function observationId(): string
-    {
-        return bin2hex(random_bytes(8));
-    }
-
-    private function algorithmName(string|HashAlgorithm $algorithm): string
-    {
-        return $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
-    }
-
-    private function unreadable(string $file): RuntimeException
-    {
-        return new RuntimeException('Unable to read file: ' . $file);
-    }
-
-    /**
-     * Total bytes of a stream when it is seekable (so its size is known), otherwise null.
-     *
-     * @param resource $stream
-     */
-    private function streamTotalBytes($stream): ?int
-    {
-        $meta = stream_get_meta_data($stream);
-        if (!$meta['seekable']) {
-            return null;
-        }
-
-        $stat = fstat($stream);
-        if ($stat === false) {
-            return null;
-        }
-
-        return $stat['size'] >= 0 ? $stat['size'] : null;
-    }
-
-    /**
-     * Sum of file sizes across an iterable of paths, when the iterable is an array
-     * (so it can be walked twice); null for one-shot traversables whose total is
-     * not known upfront.
-     *
-     * @param iterable<Contract\FilepathInterface> $paths
-     */
-    private function iterableTotalBytes(iterable $paths): ?int
-    {
-        if (!is_array($paths)) {
-            return null;
-        }
-
-        $total = 0;
-        foreach ($paths as $path) {
-            $size = filesize((string) $path);
-            if ($size !== false) {
-                $total += $size;
-            }
-        }
-
-        return $total;
     }
 }

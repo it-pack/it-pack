@@ -303,17 +303,75 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M5 — Extract DRY instrumentation (F-4)
+## M5 — Extract DRY instrumentation (F-4) — DONE
 
 **Goal:** remove the duplicated observation/progress/file-size helper block from `Hasher` and `KeyedHasher`.
 
-### Tasks
-- **M5.1** Define `src/Observability/HashingInstrumentation.php` (a `trait`, per "prefer traits/composition"): methods `observationId()`, `completed()`, `observe()`, `algorithmName()`, `streamTotalBytes()`, `iterableTotalBytes()`, `fileBytes()`, `unreadable()`.
-- **M5.2** Ensure the trait depends only on the same collaborators the two classes already hold (the observer + `NativeAlgorithmSource`/`HashAlgorithm`), so no constructor signature changes.
-- **M5.3** `use HashingInstrumentation;` in `Hasher` (`Hasher.php:300-359` region) and `KeyedHasher` (`KeyedHasher.php:240-308` region); delete the duplicated private methods.
-- **M5.4** Confirm both classes still compile and the identical public behavior holds; run `composer coverage` (must remain ≥95% — M1 already covers both).
+### Tasks — done
+- **M5.1** New `src/Observability/HashingInstrumentation.php` (Core layer per the
+  `deptrac.yaml` regex `/^ItPack\\HashIt(?!\\Adapter|\\Format)/`). It is a
+  `trait` with the 8 methods the plan listed: `observationId()`, `completed()`,
+  `observe()`, `algorithmName()`, `unreadable()`, `fileBytes()`,
+  `streamTotalBytes()`, `iterableTotalBytes()`. The trait declares its own
+  `use` imports for `HashAlgorithm`, `HashObservation`, `HashInterface`,
+  `FilepathInterface`, `Random\RandomException`, and `RuntimeException`, so
+  neither host class needs to know about them. The trait body is a verbatim
+  copy of the (identical) helper blocks previously inlined in `Hasher` and
+  `KeyedHasher` — no semantic change.
+- **M5.2** The trait depends on one collaborator supplied by the using class:
+  a `?Contract\HashingObserverInterface $observer` property. Both `Hasher`
+  and `KeyedHasher` already declare this property via constructor
+  promotion, so **no constructor signature changes were required**. A
+  `@property-read` docblock was added on each host class so PHPStan and
+  static analysers see the collaborator the trait reads via
+  `$this->observer?->observe()` (this is a tooling affordance; PHP itself
+  is happy because the property does exist on the host at runtime).
+- **M5.3** Both host classes now `use HashingInstrumentation;` directly
+  after the `final readonly class X implements Y` line. The 8 duplicated
+  private methods were deleted from each. `HashingInstrumentation` is
+  declared *before* the constructor so the project convention "trait →
+  const → props → ctor → factory → non-static → static, public before
+  non-public" holds. `KeyedHasher` lost the now-unused `RuntimeException`
+  import; `cs:fix` flagged it on the first pass. `Hasher` kept its
+  `RuntimeException` import because it still `throw`s
+  `new RuntimeException('Not a directory: …')` and
+  `new RuntimeException('HashInput did not return …')` in its public
+  methods. The two class-specific helpers that did NOT move (`source()`
+  and `hashString()`) are intentionally left in each host because their
+  bodies differ (KeyedHasher's `hashString` adds a `$key` parameter and
+  calls `factory->build($algo, $key)`).
+- **M5.4** Suite green; the trait refactor is provably equivalent because
+  every helper was byte-for-byte identical between the two hosts (confirmed
+  with `diff <(awk …Hasher) <(awk …KeyedHasher)` — the only delta was
+  `hashString`, which was intentionally not extracted). `composer test:unit`
+  passes 203/527; `composer coverage` passes with **lines 96.10% / methods
+  92.53%** — *higher* than the pre-M5 M4 aggregate of **93.05% / 88.42%**.
+  The metric gain is the deduplication effect: the 8 private methods were
+  previously counted twice (once per host), and 2 of the 8 had defensive
+  branches that the coverage tool marks as "uncovered method" at the
+  per-class level; counting them once on the trait, with the same 2
+  defensive branches still uncovered, gives a strictly higher aggregate.
 
-**Verification:** no duplicate helper definitions remain in the two classes; full suite green; deptrac unchanged (trait lives in Core, used by Core).
+### Status — DONE
+- `src/Observability/HashingInstrumentation.php` added (113 lines, 1 type).
+- `src/Hasher.php`: 8 private methods removed; `use HashingInstrumentation;`
+  added; `Random\RandomException` import removed (no longer used after
+  the deletion); file shrunk from 400 → 335 lines.
+- `src/KeyedHasher.php`: 8 private methods removed; `use
+  HashingInstrumentation;` added; `RuntimeException` import removed (the
+  only call site moved into the trait); file shrunk from 356 → 292 lines.
+- Net: −16 duplicate method definitions, +1 trait (8 method definitions).
+- `composer cs:check` clean (0/93).
+- `composer cs:strict` F-3 ✅ / F-5 ✅ / F-6 ✅.
+- `composer test:unit` 203 tests / 527 assertions green.
+- `composer coverage` lines 96.10% / methods 92.53% / classes 78.05% (32/41)
+  — all above the plan's ≥95% line target; method coverage improved vs.
+  the M4 baseline.
+- `composer architecture` 0 violations, 0 errors, 0 warnings (the trait
+  lives in the Core layer; Core's `ruleset: ~` allows Core→Core use).
+- `vendor/bin/phpstan analyse` exit 0.
+
+**Verification:** `diff <(awk '/^    private function/,/^    }$/' src/Hasher.php) <(awk '/^    private function/,/^    }$/' src/KeyedHasher.php)` after the refactor is empty apart from the deliberate `hashString` delta; the trait file is the only place any of the 8 helpers are defined. `composer coverage` lines ≥95%, suite green, deptrac unchanged.
 
 ---
 
