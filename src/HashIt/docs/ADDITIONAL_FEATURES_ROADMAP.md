@@ -390,7 +390,7 @@ Tests: `tests/Unit/HashInput/HashInputTest.php` — (a) single `StringInput('x')
 
 ---
 
-## NF-C1 — Manifest verify (logic) + [SCOPE] formatters (H2) — ⬜ TODO
+## NF-C1 — Manifest verify (logic) + [SCOPE] formatters (H2) — ✅ DONE
 
 **Goal:** `HashManifest` value object + `ManifestVerifier` (logic, in core) for generate/verify workflows. **[SCOPE]** the *text* (de)serialization (GNU/BSD/SFV, SRI) is serialization → separated per guardrail #7.
 
@@ -411,6 +411,19 @@ Tests: `tests/Unit/HashInput/HashInputTest.php` — (a) single `StringInput('x')
 **Verification:** gates (guardrail #6) + `composer architecture` (verify `Format\` does not reach into core hashing internals — if it does, that violates guardrail #7 and must be fixed).
 **Dependencies:** NF-A4 (progress optional), NF-A2 (URN optional).
 **Acceptance:** verify produces correct report; formatters round-trip; scope decision recorded; gates green.
+
+**Completion note (2026-08-31):** **Scope decision (required, Task 1):** chose the roadmap's *recommended* option (a) — a walled `ItPack\HashIt\Format\*` namespace inside this package, **not** a sibling `hash-it-format` package. Rationale: one package / one gate run, and the §7 boundary (text serialization out of the hashing core) is enforced structurally rather than by convention — see deptrac below. The formatters import only the core value objects (`Hash`, `HashManifest`, `HashAlgorithm`); they never reference hashers, contexts or factories. A new deptrac `Format` layer (depends only on `Core`) was added and `Core` now excludes `Format`, so the hashing core can never reach the serializers (guardrail #7). `composer architecture` passes with 0 violations.
+
+**Implementation — core logic:** `src/HashManifest.php` (immutable; `algorithm()`/`entries()`/`with()`); `src/ManifestVerifier.php` (`verify(HashManifest, HasherInterface): VerificationReport` — re-hashes each entry via `hasher->hashFile(new Filepath($path))`, catches `RuntimeException` → `missing`, compares with the constant-time `HashInterface::equals()`); supporting `src/VerificationReport.php` (`matched`/`mismatched`/`missing`, `allMatched()`, fail-closed `throwOnFailure()`) and `src/HashMismatch.php`. **Supporting core type `src/Filepath.php`:** a `FilepathInterface` value object so the verifier can turn a manifest's stored path *string* into the `FilepathInterface` the hasher expects without depending on the adapter (`NativeFilepathFileinfo`), which deptrac forbids from Core. **Formatters:** `src/Format/ManifestFormatInterface.php` (`serialize`/`parse`), `GnuSha256Format` (fixed SHA-256; text `  ` and binary ` *` lines; rejects non-SHA-256 manifests), `BsdFormat` (algorithm from the `SHA*` prefix, any algo; rejects mixed/unknown algos), `SfvFormat` (`<path> <hex>` + `# algorithm <value>` header, default SHA-256). All strict: malformed lines throw `InvalidArgumentException`; hex is normalized to lowercase on parse so round-trips are exact.
+
+**Deliberate deviations from the literal affected-files list (necessary, documented):**
+1. Added core `Filepath` (implements `FilepathInterface`) — the verifier needed a Core-legal way to build a `FilepathInterface` from a path string; the only other impl (`NativeFilepathFileinfo`) is an adapter and unreachable from Core. Without it `ManifestVerifier` could not call `hashFile()` without breaking deptrac.
+2. Added `VerificationReport` + `HashMismatch` as explicit result types (the spec said "a report with matched/mismatched/missing") instead of ad-hoc arrays — typed, testable, and fail-closed via `throwOnFailure()`.
+3. `GnuSha256Format` *rejects* manifests whose algorithm ≠ SHA-256 (the GNU format has no algorithm field) rather than silently emitting a misleading file.
+
+Tests: `tests/Unit/ManifestVerifierTest.php` (matched / mismatched / missing / mixed / fail-closed throw) and `tests/Unit/Format/{GnuSha256FormatTest,BsdFormatTest,SfvFormatTest}.php` (serialize→parse round-trip equality per format; cross-check against `sha256sum`-style and BSD fixtures; strict rejection of malformed / mixed / unknown-algorithm lines). All gates green: `composer test:unit` (154 tests, 464 assertions), `analyse` (0 errors), `cs:check` (0), `architecture` (0 violations). README gained a "Manifest verify & formatters" section noting the §7 wall and the three formats.
+
+**Next:** NF-C2 (Async bridge — separate sibling package `hash-it-async`, not part of this package's gates).
 
 ---
 

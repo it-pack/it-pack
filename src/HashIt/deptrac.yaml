@@ -5,7 +5,11 @@ deptrac:
     - name: Core
       collectors:
         - type: classNameRegex
-          value: '/^ItPack\\HashIt(?!\\Adapter)/'
+          value: '/^ItPack\\HashIt(?!\\Adapter|\\Format)/'
+    - name: Format
+      collectors:
+        - type: classNameRegex
+          value: '/^ItPack\\HashIt\\Format/'
     - name: Adapter
       collectors:
         - type: classNameRegex
@@ -17,6 +21,11 @@ deptrac:
   ruleset:
     # The core depends on nothing but itself: ports it owns and the value object.
     Core: ~
+    # The text (de)serialization formatters (NF-C1, [SCOPE]) live in a walled
+    # namespace and may use core value objects only — never hashing internals.
+    # They must not be referenced by the core (guardrail #7).
+    Format:
+      - Core
     # Adapters may implement core ports and use core types — never the reverse.
     Adapter:
       - Core

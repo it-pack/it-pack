@@ -210,6 +210,41 @@ produces the same digest, while a different order (or different child boundaries
 a different digest. The frame width is fixed at 8 bytes; do not change it without bumping
 the wire format, since existing digests would no longer verify.
 
+## Manifest verify & formatters
+
+`HashManifest` is an immutable value object pairing one algorithm with a map of
+`path → expected HashInterface`. `ManifestVerifier::verify($manifest, $hasher)` re-hashes
+each path and returns a `VerificationReport` (`matched` / `mismatched` / `missing`),
+comparing with the constant-time `HashInterface::equals()` and treating unreadable paths
+as `missing`:
+
+```php
+use ItPack\HashIt\HashManifest;
+use ItPack\HashIt\ManifestVerifier;
+
+$manifest = (new HashManifest(HashAlgorithm::SHA256))
+    ->with('/etc/hosts', $expected);
+
+$report = (new ManifestVerifier())->verify($manifest, $hasher);
+if (!$report->allMatched()) {
+    $report->throwOnFailure(); // fail-closed RuntimeException
+}
+```
+
+The text (de)serialization of manifests is **out of scope for the hashing core** (guardrail #7)
+and lives in a walled `ItPack\HashIt\Format\*` namespace that may import only the core value
+objects (`Hash`, `HashManifest`, `HashAlgorithm`) — never hashers or contexts (enforced by
+`composer architecture`). Three formats ship:
+
+| Formatter | Line shape | Algorithm |
+|-----------|------------|-----------|
+| `GnuSha256Format` | `<hash>  <path>` (or `<hash> *<path>`) | fixed SHA-256 |
+| `BsdFormat` | `SHA256 (<path>) = <hash>` | from the prefix (any algorithm) |
+| `SfvFormat` | `<path> <hash>` + `# algorithm <value>` header | from header, default SHA-256 |
+
+Each is strict: malformed lines throw `InvalidArgumentException`, and `serialize()`→`parse()`
+round-trips exactly. Hex digests are normalized to lowercase on parse.
+
 ## Algorithms
 
 `HashAlgorithm` is a backed enum and the **single source of truth** for the algorithm
