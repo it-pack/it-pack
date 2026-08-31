@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\PhpLintObserver;
-use ItPack\DisenchantIt\Contract\VerificationObserverInterface;
+use ItPack\DisenchantIt\Adapter\Reporting\PhpLintObserver;
+use ItPack\DisenchantIt\Contract\Reporting\VerificationObserverInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConv;
+use ItPack\DisenchantIt\Exception\SemConvCollisionException;
 use ItPack\DisenchantIt\Exception\VerificationException;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 

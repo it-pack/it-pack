@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacement;
 
 final class ConstantPlacementTest extends Unit
 {

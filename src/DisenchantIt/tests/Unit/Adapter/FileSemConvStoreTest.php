@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\FileSemConvStore;
+use ItPack\DisenchantIt\Adapter\SemConv\FileSemConvStore;
 
 final class FileSemConvStoreTest extends Unit
 {

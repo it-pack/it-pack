@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\LineBasedRewriter;
-use ItPack\DisenchantIt\ValueObject\Insertion;
-use ItPack\DisenchantIt\ValueObject\PromotionArtifact;
-use ItPack\DisenchantIt\ValueObject\Replacement;
-use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter;
+use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifact;
+use ItPack\DisenchantIt\ValueObject\Rewrite\Insertion;
+use ItPack\DisenchantIt\ValueObject\Rewrite\Replacement;
+use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
 
 final class LineBasedRewriterTest extends Unit
 {

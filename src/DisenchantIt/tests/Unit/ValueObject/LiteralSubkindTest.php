@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
 
 final class LiteralSubkindTest extends Unit
 {

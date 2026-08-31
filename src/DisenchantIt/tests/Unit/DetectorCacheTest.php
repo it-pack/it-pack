@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\Detector;
-use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
-use ItPack\DisenchantIt\Adapter\RoleClassifier;
-use ItPack\DisenchantIt\Contract\ParsedSourceCacheInterface;
-use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\Adapter\Detection\Detector;
+use ItPack\DisenchantIt\Adapter\Detection\ParsedSourceCache;
+use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
+use ItPack\DisenchantIt\Contract\Detection\ParsedSourceCacheInterface;
+use ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Exception\InvalidCacheConfigurationException;
 use ItPack\DisenchantIt\Exception\SourceTooLargeException;
 use ItPack\DisenchantIt\Factory\MagicStringVisitorFactory;
 use ItPack\DisenchantIt\Factory\NikicTraverserFactory;
-use ItPack\DisenchantIt\ValueObject\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
 final class DetectorCacheTest extends Unit
 {

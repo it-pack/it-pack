@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Adapter\CompositeConstantPlacementStrategy;
-use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
-use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
-use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
-use ItPack\DisenchantIt\Adapter\PerClassConstantStrategy;
-use ItPack\DisenchantIt\Adapter\SameClassConstantStrategy;
-use ItPack\DisenchantIt\Contract\ConstantNameGeneratorInterface;
-use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
-use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyFactoryInterface;
-use ItPack\DisenchantIt\Contract\ConstantPlacementStrategyInterface;
-use ItPack\DisenchantIt\Contract\NumericNameGeneratorInterface;
+use ItPack\DisenchantIt\Adapter\Grouping\CompositeConstantPlacementStrategy;
+use ItPack\DisenchantIt\Adapter\Grouping\PerClassConstantStrategy;
+use ItPack\DisenchantIt\Adapter\Grouping\SameClassConstantStrategy;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\Naming\NumericNameGenerator;
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementFactoryInterface;
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementStrategyFactoryInterface;
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementStrategyInterface;
+use ItPack\DisenchantIt\Contract\Naming\ConstantNameGeneratorInterface;
+use ItPack\DisenchantIt\Contract\Naming\NumericNameGeneratorInterface;
 
 final readonly class ConstantPlacementStrategyFactory implements ConstantPlacementStrategyFactoryInterface
 {

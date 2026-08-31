@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\ValueObject;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
 
 final class TargetKindTest extends Unit
 {

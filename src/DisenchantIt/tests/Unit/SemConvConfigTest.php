@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 final class SemConvConfigTest extends Unit
 {

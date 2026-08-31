@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvAliasRewriter;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacement;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 final class SemConvAliasRewriterTest extends Unit
 {

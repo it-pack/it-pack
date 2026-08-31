@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Tests\Unit;
 
-use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
+use ItPack\DisenchantIt\Adapter\Detection\Detector;
+use ItPack\DisenchantIt\Contract\Detection\ParserFactoryInterface;
 use PhpParser\Parser;
 use PhpParser\ParserFactory as NikicPhpParserFactory;
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\NamingContextExtractor;
-use ItPack\DisenchantIt\ValueObject\NamingContextInterface;
+use ItPack\DisenchantIt\Adapter\Detection\NamingContextExtractor;
+use ItPack\DisenchantIt\ValueObject\Source\NamingContextInterface;
 use PhpParser\Node\Scalar\LNumber;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\NameSlugifier;
+use ItPack\DisenchantIt\Adapter\Naming\NameSlugifier;
 
 final class NameSlugifierTest extends Unit
 {

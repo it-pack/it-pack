@@ -3,7 +3,6 @@ parameters:
     level: 9
     paths:
         - src
-        - tests
 
     # Codeception auto-generates these support classes (actors + their trait
     # actions); they are not first-party code and fail strict analysis, so

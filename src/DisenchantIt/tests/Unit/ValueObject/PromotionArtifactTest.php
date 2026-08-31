@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\ValueObject;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\Candidate;
-use ItPack\DisenchantIt\ValueObject\Insertion;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
-use ItPack\DisenchantIt\ValueObject\PromotionArtifact;
-use ItPack\DisenchantIt\ValueObject\Replacement;
-use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifact;
+use ItPack\DisenchantIt\ValueObject\Rewrite\Insertion;
+use ItPack\DisenchantIt\ValueObject\Rewrite\Replacement;
+use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
 
 final class PromotionArtifactTest extends Unit
 {

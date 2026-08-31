@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Contract\SemConvConfigFactoryInterface;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
-use ItPack\DisenchantIt\ValueObject\SemConvConfigInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConvConfigFactoryInterface;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfigInterface;
 
 final readonly class SemConvConfigFactory implements SemConvConfigFactoryInterface
 {

@@ -1,0 +1,55 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ItPack\DisenchantIt\Adapter\Grouping;
+
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementFactoryInterface;
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementStrategyInterface;
+use ItPack\DisenchantIt\Contract\Naming\ConstantNameResolverInterface;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
+
+final class SameClassConstantStrategy implements ConstantPlacementStrategyInterface
+{
+    public function __construct(
+        private readonly ConstantPlacementFactoryInterface $placements,
+        private readonly ConstantNameResolverInterface $resolver,
+    ) {
+    }
+
+    public function supports(int $distinctClassCount): bool
+    {
+        return $distinctClassCount <= 1;
+    }
+
+    /**
+     * @param list<LiteralInterface> $occurrences
+     */
+    public function decide(array $occurrences): array
+    {
+        if ($occurrences === []) {
+            return [];
+        }
+
+        $classNames = array_unique(array_map(
+            static fn (LiteralInterface $lit): string => $lit->className,
+            $occurrences,
+        ));
+
+        if (count($classNames) !== 1) {
+            // Not this strategy's job — caller should have routed this
+            // group to PerClassConstantStrategy instead.
+            return [];
+        }
+
+        $value = $occurrences[0]->value;
+
+        return [$this->placements->build(
+            className: $classNames[0],
+            constantName: $this->resolver->resolve($occurrences[0]),
+            value: $value,
+            type: $occurrences[0]->kind,
+            occurrences: $occurrences,
+        )];
+    }
+}

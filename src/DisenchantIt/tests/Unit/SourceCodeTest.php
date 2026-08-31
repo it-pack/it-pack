@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
 final class SourceCodeTest extends Unit
 {

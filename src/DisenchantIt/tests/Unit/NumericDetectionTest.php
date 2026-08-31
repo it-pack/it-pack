@@ -7,8 +7,8 @@ namespace ItPack\DisenchantIt\Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
 final class NumericDetectionTest extends Unit
 {

@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
-use ItPack\DisenchantIt\Adapter\DictionaryNameResolver;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\Naming\DictionaryNameResolver;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\NameCasing;
-use ItPack\DisenchantIt\ValueObject\NamePolicy;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Naming\NameCasing;
+use ItPack\DisenchantIt\ValueObject\Naming\NamePolicy;
 
 final class Phase5NamingPolicyTest extends Unit
 {

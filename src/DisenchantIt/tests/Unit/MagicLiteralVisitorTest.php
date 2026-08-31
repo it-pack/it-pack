@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\MagicLiteralVisitor;
-use ItPack\DisenchantIt\Adapter\NamingContextExtractor;
-use ItPack\DisenchantIt\Adapter\RoleClassifier;
-use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
+use ItPack\DisenchantIt\Adapter\Detection\MagicLiteralVisitor;
+use ItPack\DisenchantIt\Adapter\Detection\NamingContextExtractor;
+use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
+use ItPack\DisenchantIt\Contract\Detection\ContentClassifierInterface;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 use PhpParser\NodeTraverser;
 use PhpParser\ParserFactory;
 

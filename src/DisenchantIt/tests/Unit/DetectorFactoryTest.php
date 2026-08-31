@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\Detector;
-use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
-use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
-use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\Adapter\Detection\Detector;
+use ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateFilterInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateGrouperInterface;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
 final class DetectorFactoryTest extends Unit
 {

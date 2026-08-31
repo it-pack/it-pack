@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ByValueAndContextGroupingStrategy;
-use ItPack\DisenchantIt\Adapter\ByValueGroupingStrategy;
-use ItPack\DisenchantIt\Adapter\CandidateGrouper;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\Adapter\Grouping\ByValueAndContextGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\Grouping\ByValueGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\Grouping\CandidateGrouper;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteralInterface;
 
 final class CandidateGrouperTest extends Unit
 {

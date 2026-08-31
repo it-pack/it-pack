@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameGenerator;
 
 final class ConstantNameGeneratorTest extends Unit
 {

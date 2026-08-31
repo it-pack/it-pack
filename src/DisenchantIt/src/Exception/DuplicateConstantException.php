@@ -12,7 +12,7 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  * in the same class. Prevents emitting a PHP fatal (`Cannot redeclare class
  * constant`) or silently overwriting an existing constant.
  *
- * @see \ItPack\DisenchantIt\Adapter\LineBasedRewriter
+ * @see \ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter
  */
 final class DuplicateConstantException extends \RuntimeException implements DisenchantItExceptionInterface
 {

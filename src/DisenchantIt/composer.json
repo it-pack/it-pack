@@ -46,7 +46,7 @@
     },
     "config": {
         "sort-packages": true,
-        "optimize-autoloader": true,
+        "optimize-autoloader": false,
         "preferred-install": "dist",
         "allow-plugins": {
             "php-http/discovery": true,

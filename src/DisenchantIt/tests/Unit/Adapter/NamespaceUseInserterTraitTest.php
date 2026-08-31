@@ -8,7 +8,7 @@ use Codeception\Test\Unit;
 
 final class UseInserterHarness
 {
-    use \ItPack\DisenchantIt\Adapter\NamespaceUseInserterTrait;
+    use \ItPack\DisenchantIt\Adapter\Rewriting\NamespaceUseInserterTrait;
 
     public function run(string $code, string $fqcn): string
     {

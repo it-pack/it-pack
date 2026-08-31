@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Adapter\ContentClassifier;
-use ItPack\DisenchantIt\Adapter\MagicLiteralVisitor;
-use ItPack\DisenchantIt\Adapter\NamingContextExtractor;
-use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
-use ItPack\DisenchantIt\Contract\MagicLiteralVisitorInterface;
-use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
-use ItPack\DisenchantIt\Contract\NamingContextExtractorInterface;
-use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
-use ItPack\DisenchantIt\ValueObject\DisenchantScopeInterface;
+use ItPack\DisenchantIt\Adapter\Detection\ContentClassifier;
+use ItPack\DisenchantIt\Adapter\Detection\MagicLiteralVisitor;
+use ItPack\DisenchantIt\Adapter\Detection\NamingContextExtractor;
+use ItPack\DisenchantIt\Contract\Detection\ContentClassifierInterface;
+use ItPack\DisenchantIt\Contract\Detection\MagicLiteralVisitorInterface;
+use ItPack\DisenchantIt\Contract\Detection\MagicStringVisitorFactoryInterface;
+use ItPack\DisenchantIt\Contract\Detection\NamingContextExtractorInterface;
+use ItPack\DisenchantIt\Contract\Detection\RoleClassifierInterface;
+use ItPack\DisenchantIt\ValueObject\Scope\DisenchantScopeInterface;
 
 final readonly class MagicStringVisitorFactory implements MagicStringVisitorFactoryInterface
 {

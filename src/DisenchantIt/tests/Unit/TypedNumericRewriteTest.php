@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\SemConvCollector;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
 use ItPack\DisenchantIt\Factory\ConstantPlacementFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 final class TypedNumericRewriteTest extends Unit
 {

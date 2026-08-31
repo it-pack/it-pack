@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Adapter\ByValueAndContextGroupingStrategy;
-use ItPack\DisenchantIt\Adapter\ByValueGroupingStrategy;
-use ItPack\DisenchantIt\Adapter\CandidateFilter;
-use ItPack\DisenchantIt\Adapter\CandidateGrouper;
-use ItPack\DisenchantIt\Adapter\Detector;
-use ItPack\DisenchantIt\Adapter\ParsedSourceCache;
-use ItPack\DisenchantIt\Adapter\RoleClassifier;
-use ItPack\DisenchantIt\Adapter\ScopeFilter;
-use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
-use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
-use ItPack\DisenchantIt\Contract\DetectorFactoryInterface;
-use ItPack\DisenchantIt\Contract\MagicStringVisitorFactoryInterface;
-use ItPack\DisenchantIt\Contract\ParserFactoryInterface;
-use ItPack\DisenchantIt\Contract\RoleClassifierInterface;
-use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
-use ItPack\DisenchantIt\Contract\TraverserFactoryInterface;
-use ItPack\DisenchantIt\ValueObject\DisenchantScope;
+use ItPack\DisenchantIt\Adapter\Detection\Detector;
+use ItPack\DisenchantIt\Adapter\Detection\ParsedSourceCache;
+use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
+use ItPack\DisenchantIt\Adapter\Detection\ScopeFilter;
+use ItPack\DisenchantIt\Adapter\Grouping\ByValueAndContextGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\Grouping\ByValueGroupingStrategy;
+use ItPack\DisenchantIt\Adapter\Grouping\CandidateFilter;
+use ItPack\DisenchantIt\Adapter\Grouping\CandidateGrouper;
+use ItPack\DisenchantIt\Contract\Detection\DetectorFactoryInterface;
+use ItPack\DisenchantIt\Contract\Detection\MagicStringVisitorFactoryInterface;
+use ItPack\DisenchantIt\Contract\Detection\ParserFactoryInterface;
+use ItPack\DisenchantIt\Contract\Detection\RoleClassifierInterface;
+use ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface;
+use ItPack\DisenchantIt\Contract\Detection\TraverserFactoryInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateFilterInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateGrouperInterface;
+use ItPack\DisenchantIt\ValueObject\Scope\DisenchantScope;
 
 /**
  * Composition root for the detection half. Builds the nikic/AST scanner and

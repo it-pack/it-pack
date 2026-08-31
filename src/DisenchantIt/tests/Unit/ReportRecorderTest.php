@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\JsonReportRecorder;
-use ItPack\DisenchantIt\Adapter\SarifRecorder;
+use ItPack\DisenchantIt\Adapter\Reporting\JsonReportRecorder;
+use ItPack\DisenchantIt\Adapter\Reporting\SarifRecorder;
 use ItPack\DisenchantIt\ValueObject\Execution\DisenchantOccurrence;
 
 final class ReportRecorderTest extends Unit

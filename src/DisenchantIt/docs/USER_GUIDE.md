@@ -590,7 +590,7 @@ use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\LineBasedRewriter;
 use ItPack\DisenchantIt\SemConvAliasRewriter;
 use ItPack\DisenchantIt\SemConvCollector;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 $semconv = new SemConvConfig(interfaceName: 'AppConstants', namespace: 'App\Generated');
 

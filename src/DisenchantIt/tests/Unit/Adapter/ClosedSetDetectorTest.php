@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ClosedSetDetector;
-use ItPack\DisenchantIt\ValueObject\Candidate;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\NamingContext;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
+use ItPack\DisenchantIt\Adapter\Grouping\ClosedSetDetector;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 
 final class ClosedSetDetectorTest extends Unit
 {
@@ -135,7 +135,7 @@ final class ClosedSetDetectorTest extends Unit
                 raw: "'a'",
                 namingContext: new NamingContext(variableName: 'v'),
             ),
-            new \ItPack\DisenchantIt\ValueObject\NumberLiteral(
+            new \ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral(
                 kind: LiteralKind::Int->value,
                 value: '1',
                 raw: '1',

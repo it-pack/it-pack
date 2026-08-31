@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\CandidateFilter;
-use ItPack\DisenchantIt\Adapter\RoleClassifier;
-use ItPack\DisenchantIt\Adapter\ScopeFilter;
-use ItPack\DisenchantIt\ValueObject\DisenchantScope;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
-use ItPack\DisenchantIt\ValueObject\StringLiteralInterface;
+use ItPack\DisenchantIt\Adapter\Detection\RoleClassifier;
+use ItPack\DisenchantIt\Adapter\Detection\ScopeFilter;
+use ItPack\DisenchantIt\Adapter\Grouping\CandidateFilter;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteralInterface;
+use ItPack\DisenchantIt\ValueObject\Scope\DisenchantScope;
 
 final class CandidateFilterTest extends Unit
 {

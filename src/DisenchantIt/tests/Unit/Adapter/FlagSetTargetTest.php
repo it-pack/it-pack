@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\FlagSetTarget;
-use ItPack\DisenchantIt\Adapter\NameSlugifier;
+use ItPack\DisenchantIt\Adapter\Naming\NameSlugifier;
+use ItPack\DisenchantIt\Adapter\Rewriting\FlagSetTarget;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
 use ItPack\DisenchantIt\Factory\PromotionTargetFactory;
-use ItPack\DisenchantIt\ValueObject\Candidate;
-use ItPack\DisenchantIt\ValueObject\GroupedCandidate;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
-use ItPack\DisenchantIt\ValueObject\NamingContext;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
-use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidate;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
+use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 
 final class FlagSetTargetTest extends Unit
 {

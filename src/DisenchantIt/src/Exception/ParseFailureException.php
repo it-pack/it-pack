@@ -11,7 +11,7 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  * (syntax error / unrecoverable parse failure). Distinguishes a parse problem
  * from a successful-but-empty scan (which yields no literals, not an error).
  *
- * @see \ItPack\DisenchantIt\Adapter\Detector
+ * @see \ItPack\DisenchantIt\Adapter\Detection\Detector
  */
 final class ParseFailureException extends \RuntimeException implements DisenchantItExceptionInterface
 {

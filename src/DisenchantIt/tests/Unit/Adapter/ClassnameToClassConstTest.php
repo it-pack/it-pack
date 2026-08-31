@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ClassnameToClassConst;
-use ItPack\DisenchantIt\ValueObject\Candidate;
-use ItPack\DisenchantIt\ValueObject\GroupedCandidate;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
-use ItPack\DisenchantIt\ValueObject\TargetKind;
+use ItPack\DisenchantIt\Adapter\Rewriting\ClassnameToClassConst;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidate;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Rewrite\TargetKind;
 
 final class ClassnameToClassConstTest extends Unit
 {

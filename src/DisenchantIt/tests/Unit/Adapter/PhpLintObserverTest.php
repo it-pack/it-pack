@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\PhpLintObserver;
+use ItPack\DisenchantIt\Adapter\Reporting\PhpLintObserver;
 use ItPack\DisenchantIt\Exception\VerificationException;
 
 final class PhpLintObserverTest extends Unit

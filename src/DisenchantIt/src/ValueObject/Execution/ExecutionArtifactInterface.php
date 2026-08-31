@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Execution;
 
+use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
+
 /**
  * Immutable carrier produced by Core during a DisenchantIt run and handed to
  * an ExecutionRecorderInterface. Every artifact is immutable and serializes

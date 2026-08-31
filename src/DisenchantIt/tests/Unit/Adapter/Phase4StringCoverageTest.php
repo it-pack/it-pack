@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ContentClassifier;
+use ItPack\DisenchantIt\Adapter\Detection\ContentClassifier;
 use ItPack\DisenchantIt\Factory\DetectorFactory;
 use ItPack\DisenchantIt\Factory\DisenchanterFactory;
-use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
 final class Phase4StringCoverageTest extends Unit
 {

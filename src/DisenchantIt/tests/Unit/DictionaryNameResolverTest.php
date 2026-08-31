@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\DictionaryNameResolver;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
+use ItPack\DisenchantIt\Adapter\Naming\DictionaryNameResolver;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
 
 final class DictionaryNameResolverTest extends Unit
 {

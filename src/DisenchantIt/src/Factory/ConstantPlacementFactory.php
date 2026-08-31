@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementFactoryInterface;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacement;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface;
 
 final readonly class ConstantPlacementFactory implements ConstantPlacementFactoryInterface
 {

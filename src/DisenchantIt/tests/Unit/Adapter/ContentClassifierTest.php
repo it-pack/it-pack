@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\ContentClassifier;
-use ItPack\DisenchantIt\Contract\ContentClassifierInterface;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\LiteralSubkind;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
-use ItPack\DisenchantIt\ValueObject\StringLiteral;
+use ItPack\DisenchantIt\Adapter\Detection\ContentClassifier;
+use ItPack\DisenchantIt\Contract\Detection\ContentClassifierInterface;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralSubkind;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Literal\StringLiteral;
 
 final class ContentClassifierTest extends Unit
 {

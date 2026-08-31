@@ -11,7 +11,7 @@ use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
  * Bounding input size keeps a single maliciously/accidentally huge file from
  * exhausting memory in the (expensive) parse+traverse step.
  *
- * @see \ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface::MAX_SOURCE_BYTES
+ * @see \ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface::MAX_SOURCE_BYTES
  */
 final class SourceTooLargeException extends \RuntimeException implements DisenchantItExceptionInterface
 {

@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Adapter\BackedEnumTarget;
-use ItPack\DisenchantIt\Adapter\ClassConstantTarget;
-use ItPack\DisenchantIt\Adapter\ClassnameToClassConst;
-use ItPack\DisenchantIt\Adapter\CompositePromotionTarget;
-use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
-use ItPack\DisenchantIt\Adapter\FlagSetTarget;
-use ItPack\DisenchantIt\Adapter\NameSlugifier;
-use ItPack\DisenchantIt\Contract\ConstantNameResolverInterface;
-use ItPack\DisenchantIt\Contract\ConstantPlacementFactoryInterface;
-use ItPack\DisenchantIt\Contract\DictionaryNameResolverInterface;
-use ItPack\DisenchantIt\Contract\PromotionTargetFactoryInterface;
-use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
-use ItPack\DisenchantIt\ValueObject\NamePolicy;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\Naming\NameSlugifier;
+use ItPack\DisenchantIt\Adapter\Rewriting\BackedEnumTarget;
+use ItPack\DisenchantIt\Adapter\Rewriting\ClassConstantTarget;
+use ItPack\DisenchantIt\Adapter\Rewriting\ClassnameToClassConst;
+use ItPack\DisenchantIt\Adapter\Rewriting\CompositePromotionTarget;
+use ItPack\DisenchantIt\Adapter\Rewriting\FlagSetTarget;
+use ItPack\DisenchantIt\Contract\Grouping\ConstantPlacementFactoryInterface;
+use ItPack\DisenchantIt\Contract\Naming\ConstantNameResolverInterface;
+use ItPack\DisenchantIt\Contract\Naming\DictionaryNameResolverInterface;
+use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetFactoryInterface;
+use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
+use ItPack\DisenchantIt\ValueObject\Naming\NamePolicy;
 
 /**
  * Composition root for the composite promotion target. Builds the

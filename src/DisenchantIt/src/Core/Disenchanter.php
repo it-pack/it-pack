@@ -4,28 +4,30 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Core;
 
-use ItPack\DisenchantIt\Contract\CandidateFilterInterface;
-use ItPack\DisenchantIt\Contract\CandidateGrouperInterface;
-use ItPack\DisenchantIt\Contract\ClosedSetDetectorInterface;
-use ItPack\DisenchantIt\Contract\ConstantNameResolverInterface;
+use ItPack\DisenchantIt\Adapter\Grouping\CandidateGrouper;
+use ItPack\DisenchantIt\Contract\Detection\StringLiteralDetectorInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
-use ItPack\DisenchantIt\Contract\ExecutionRecorderInterface;
-use ItPack\DisenchantIt\Contract\PromotionTargetInterface;
-use ItPack\DisenchantIt\Contract\RewriterInterface;
-use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
-use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
-use ItPack\DisenchantIt\Contract\StringLiteralDetectorInterface;
-use ItPack\DisenchantIt\Contract\VerificationObserverInterface;
-use ItPack\DisenchantIt\ValueObject\Candidate;
-use ItPack\DisenchantIt\ValueObject\CandidateInterface;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacementInterface;
-use ItPack\DisenchantIt\ValueObject\DisenchantResult;
-use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateFilterInterface;
+use ItPack\DisenchantIt\Contract\Grouping\CandidateGrouperInterface;
+use ItPack\DisenchantIt\Contract\Grouping\ClosedSetDetectorInterface;
+use ItPack\DisenchantIt\Contract\Naming\ConstantNameResolverInterface;
+use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
+use ItPack\DisenchantIt\Contract\Reporting\VerificationObserverInterface;
+use ItPack\DisenchantIt\Contract\Rewriting\PromotionTargetInterface;
+use ItPack\DisenchantIt\Contract\Rewriting\RewriterInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConv;
+use ItPack\DisenchantIt\Contract\SemConv\SemConvAliasRewriterInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConvCollectorInterface;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Candidate\CandidateInterface;
+use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidateInterface;
 use ItPack\DisenchantIt\ValueObject\Execution\DisenchantOccurrence;
-use ItPack\DisenchantIt\ValueObject\GroupedCandidateInterface;
-use ItPack\DisenchantIt\ValueObject\LiteralInterface;
-use ItPack\DisenchantIt\ValueObject\PromotionArtifactInterface;
-use ItPack\DisenchantIt\ValueObject\SourceCode;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
+use ItPack\DisenchantIt\ValueObject\Result\DisenchantResult;
+use ItPack\DisenchantIt\ValueObject\Result\DisenchantResultInterface;
+use ItPack\DisenchantIt\ValueObject\Result\PromotionArtifactInterface;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacementInterface;
+use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 
 /**
  * Detection and placement orchestrator (the "Detect" and "Decide/Rewrite" steps

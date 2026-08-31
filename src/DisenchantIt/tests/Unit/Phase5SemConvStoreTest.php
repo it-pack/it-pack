@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\FileSemConvStore;
-use ItPack\DisenchantIt\Adapter\SemConvCollector;
+use ItPack\DisenchantIt\Adapter\SemConv\FileSemConvStore;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector;
 use ItPack\DisenchantIt\Exception\SemConvCollisionException;
-use ItPack\DisenchantIt\ValueObject\ConstantPlacement;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\Rewrite\ConstantPlacement;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 final class Phase5SemConvStoreTest extends Unit
 {

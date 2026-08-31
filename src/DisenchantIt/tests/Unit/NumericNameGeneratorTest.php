@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\NamingContext;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
+use ItPack\DisenchantIt\Adapter\Naming\NumericNameGenerator;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Source\NamingContext;
 
 final class NumericNameGeneratorTest extends Unit
 {

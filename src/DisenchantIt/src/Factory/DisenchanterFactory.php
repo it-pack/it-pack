@@ -4,27 +4,28 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Factory;
 
-use ItPack\DisenchantIt\Adapter\ClosedSetDetector;
-use ItPack\DisenchantIt\Adapter\ConstantNameGenerator;
-use ItPack\DisenchantIt\Adapter\ConstantNameResolver;
-use ItPack\DisenchantIt\Adapter\LineBasedRewriter;
-use ItPack\DisenchantIt\Adapter\NullExecutionRecorder;
-use ItPack\DisenchantIt\Adapter\NumericNameGenerator;
-use ItPack\DisenchantIt\Adapter\SemConvAliasRewriter;
-use ItPack\DisenchantIt\Adapter\SemConvCollector;
-use ItPack\DisenchantIt\Contract\ClosedSetDetectorInterface;
-use ItPack\DisenchantIt\Contract\DictionaryNameResolverInterface;
+use ItPack\DisenchantIt\Adapter\Grouping\ClosedSetDetector;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameGenerator;
+use ItPack\DisenchantIt\Adapter\Naming\ConstantNameResolver;
+use ItPack\DisenchantIt\Adapter\Naming\NumericNameGenerator;
+use ItPack\DisenchantIt\Adapter\Reporting\NullExecutionRecorder;
+use ItPack\DisenchantIt\Adapter\Rewriting\LineBasedRewriter;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvAliasRewriter;
+use ItPack\DisenchantIt\Adapter\SemConv\SemConvCollector;
 use ItPack\DisenchantIt\Contract\DisenchanterFactoryInterface;
 use ItPack\DisenchantIt\Contract\DisenchanterInterface;
-use ItPack\DisenchantIt\Contract\ExecutionRecorderInterface;
-use ItPack\DisenchantIt\Contract\RewriterInterface;
-use ItPack\DisenchantIt\Contract\SemConvAliasRewriterInterface;
-use ItPack\DisenchantIt\Contract\SemConvCollectorInterface;
-use ItPack\DisenchantIt\Contract\SemConvStoreInterface;
-use ItPack\DisenchantIt\Contract\VerificationObserverInterface;
+use ItPack\DisenchantIt\Contract\Grouping\ClosedSetDetectorInterface;
+use ItPack\DisenchantIt\Contract\Naming\DictionaryNameResolverInterface;
+use ItPack\DisenchantIt\Contract\Reporting\ExecutionRecorderInterface;
+use ItPack\DisenchantIt\Contract\Reporting\VerificationObserverInterface;
+use ItPack\DisenchantIt\Contract\Rewriting\RewriterInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConv;
+use ItPack\DisenchantIt\Contract\SemConv\SemConvAliasRewriterInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConvCollectorInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConvStoreInterface;
 use ItPack\DisenchantIt\Core\Disenchanter;
-use ItPack\DisenchantIt\ValueObject\NamePolicy;
-use ItPack\DisenchantIt\ValueObject\SemConvConfig;
+use ItPack\DisenchantIt\ValueObject\Naming\NamePolicy;
+use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 
 /**
  * Composition root for the detection + placement (+ SemConv) orchestrator.

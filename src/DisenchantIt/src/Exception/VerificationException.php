@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Exception;
 
+use ItPack\DisenchantIt\Adapter\Reporting\PhpLintObserver;
 use ItPack\DisenchantIt\Contract\DisenchantItExceptionInterface;
 
 /**

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\ValueObject;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\ValueObject\Candidate;
-use ItPack\DisenchantIt\ValueObject\GroupedCandidate;
-use ItPack\DisenchantIt\ValueObject\LiteralKind;
-use ItPack\DisenchantIt\ValueObject\LiteralRole;
-use ItPack\DisenchantIt\ValueObject\NumberLiteral;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Candidate\GroupedCandidate;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
+use ItPack\DisenchantIt\ValueObject\Literal\LiteralRole;
+use ItPack\DisenchantIt\ValueObject\Literal\NumberLiteral;
 
 final class GroupedCandidateTest extends Unit
 {

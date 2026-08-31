@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\Contract;
 
-use ItPack\DisenchantIt\ValueObject\CandidateInterface;
-use ItPack\DisenchantIt\ValueObject\DisenchantResultInterface;
+use ItPack\DisenchantIt\Contract\SemConv\SemConv;
+use ItPack\DisenchantIt\Core\Disenchanter;
+use ItPack\DisenchantIt\ValueObject\Candidate\Candidate;
+use ItPack\DisenchantIt\ValueObject\Candidate\CandidateInterface;
+use ItPack\DisenchantIt\ValueObject\Result\DisenchantResultInterface;
 
 /**
  * Port for the detection + placement orchestration over one PHP source string.

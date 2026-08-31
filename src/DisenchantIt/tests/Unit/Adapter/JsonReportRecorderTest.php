@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-use ItPack\DisenchantIt\Adapter\JsonReportRecorder;
+use ItPack\DisenchantIt\Adapter\Reporting\JsonReportRecorder;
 use ItPack\DisenchantIt\ValueObject\Execution\ExecutionArtifactInterface;
 
 final class JsonReportRecorderTest extends Unit
