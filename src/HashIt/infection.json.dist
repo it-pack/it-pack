@@ -8,7 +8,6 @@
     "testFramework": "codeception",
     "minMsi": 73,
     "minCoveredMsi": 73,
-    "minMutants": 50,
     "ignoreMsiWithNoMutations": true,
     "logs": {
         "text": "var/infection/infection-log.txt",

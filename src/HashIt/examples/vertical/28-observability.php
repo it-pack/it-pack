@@ -9,6 +9,7 @@ use ItPack\HashIt\Adapter\Observability\CloudEventsHashingObserver;
 use ItPack\HashIt\Adapter\Observability\OtelHashingObserver;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashObservation;
+use ItPack\HashIt\HashObservationKind;
 use ItPack\HashIt\Contract\HashingObserverInterface;
 
 banner('Observability — plug a listener into every hashing operation');
@@ -22,10 +23,10 @@ final class PrintingObserver implements HashingObserverInterface
         $id = substr($o->id, 0, 6);
 
         echo match ($o->kind) {
-            HashObservation::STARTED => "  [start #$id] $op algo={$o->algorithm} bytes={$o->bytesTotal}\n",
-            HashObservation::PROGRESS => "  [progress #$id] {$o->bytesProcessed}/{$o->bytesTotal}\n",
-            HashObservation::COMPLETED => "  [done #$id] {$o->bytes} bytes in {$o->durationMs} ms -> {$o->resultUrn}\n",
-            HashObservation::FAILED => "  [fail #$id] " . ($o->error?->getMessage() ?? '') . "\n",
+            HashObservationKind::STARTED => "  [start #$id] $op algo={$o->algorithm} bytes={$o->bytesTotal}\n",
+            HashObservationKind::PROGRESS => "  [progress #$id] {$o->bytesProcessed}/{$o->bytesTotal}\n",
+            HashObservationKind::COMPLETED => "  [done #$id] {$o->bytes} bytes in {$o->durationMs} ms -> {$o->resultUrn}\n",
+            HashObservationKind::FAILED => "  [fail #$id] " . ($o->error?->getMessage() ?? '') . "\n",
             default => '',
         };
     }

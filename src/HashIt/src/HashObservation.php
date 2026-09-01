@@ -12,24 +12,19 @@ use Throwable;
  * Adapters (OpenTelemetry, CloudEvents, ...) implement {@see Contract\HashingObserverInterface}
  * and pair the lifecycle events through the correlation {@see self::$id}.
  */
-final class HashObservation
+final readonly class HashObservation
 {
-    public const string STARTED = 'started';
-    public const string PROGRESS = 'progress';
-    public const string COMPLETED = 'completed';
-    public const string FAILED = 'failed';
-
     private function __construct(
-        public readonly string $kind,
-        public readonly string $id,
-        public readonly ?HashOperation $operation,
-        public readonly ?string $algorithm,
-        public readonly ?int $bytesTotal,
-        public readonly ?int $bytesProcessed,
-        public readonly ?int $bytes,
-        public readonly ?int $durationMs,
-        public readonly ?string $resultUrn,
-        public readonly ?Throwable $error,
+        public HashObservationKind $kind,
+        public string              $id,
+        public ?HashOperation      $operation,
+        public ?string             $algorithm,
+        public ?int                $bytesTotal,
+        public ?int                $bytesProcessed,
+        public ?int                $bytes,
+        public ?int                $durationMs,
+        public ?string             $resultUrn,
+        public ?Throwable          $error,
     ) {
     }
 
@@ -39,12 +34,34 @@ final class HashObservation
         string $algorithm,
         ?int $bytesTotal = null,
     ): self {
-        return new self(self::STARTED, $id, $operation, $algorithm, $bytesTotal, null, null, null, null, null);
+        return new self(
+            HashObservationKind::STARTED,
+            $id,
+            $operation,
+            $algorithm,
+            $bytesTotal,
+            null,
+            null,
+            null,
+            null,
+            null,
+        );
     }
 
     public static function progress(string $id, int $processed, ?int $total = null): self
     {
-        return new self(self::PROGRESS, $id, null, null, $total, $processed, null, null, null, null);
+        return new self(
+            HashObservationKind::PROGRESS,
+            $id,
+            null,
+            null,
+            $total,
+            $processed,
+            null,
+            null,
+            null,
+            null
+        );
     }
 
     public static function completed(
@@ -54,11 +71,33 @@ final class HashObservation
         int $durationMs,
         ?string $resultUrn = null,
     ): self {
-        return new self(self::COMPLETED, $id, null, $algorithm, null, null, $bytes, $durationMs, $resultUrn, null);
+        return new self(
+            HashObservationKind::COMPLETED,
+            $id,
+            null,
+            $algorithm,
+            null,
+            null,
+            $bytes,
+            $durationMs,
+            $resultUrn,
+            null,
+        );
     }
 
     public static function failed(string $id, HashOperation $operation, Throwable $error): self
     {
-        return new self(self::FAILED, $id, $operation, null, null, null, null, null, null, $error);
+        return new self(
+            HashObservationKind::FAILED,
+            $id,
+            $operation,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $error
+        );
     }
 }

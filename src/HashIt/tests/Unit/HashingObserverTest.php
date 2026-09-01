@@ -9,6 +9,7 @@ use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\HashObservation;
+use ItPack\HashIt\HashObservationKind;
 use ItPack\HashIt\HashOperation;
 use RuntimeException;
 
@@ -22,8 +23,8 @@ class HashingObserverTest extends Unit
         $hash = $hasher->hash('the quick brown fox', 'sha256');
 
         self::assertCount(2, $spy->observations);
-        self::assertSame(HashObservation::STARTED, $spy->observations[0]->kind);
-        self::assertSame(HashObservation::COMPLETED, $spy->observations[1]->kind);
+        self::assertSame(HashObservationKind::STARTED, $spy->observations[0]->kind);
+        self::assertSame(HashObservationKind::COMPLETED, $spy->observations[1]->kind);
 
         $started = $spy->observations[0];
         $completed = $spy->observations[1];
@@ -48,12 +49,12 @@ class HashingObserverTest extends Unit
         fclose($stream);
 
         $kinds = array_map(static fn (HashObservation $o) => $o->kind, $spy->observations);
-        self::assertSame(HashObservation::STARTED, $kinds[0]);
-        self::assertSame(HashObservation::COMPLETED, end($kinds));
+        self::assertSame(HashObservationKind::STARTED, $kinds[0]);
+        self::assertSame(HashObservationKind::COMPLETED, end($kinds));
 
         $progress = array_filter(
             $spy->observations,
-            static fn (HashObservation $o) => $o->kind === HashObservation::PROGRESS,
+            static fn (HashObservation $o) => $o->kind === HashObservationKind::PROGRESS,
         );
         self::assertNotEmpty($progress);
         self::assertGreaterThan(1, count($progress));
@@ -77,8 +78,8 @@ class HashingObserverTest extends Unit
 
         self::assertInstanceOf(RuntimeException::class, $thrown);
         self::assertCount(2, $spy->observations);
-        self::assertSame(HashObservation::STARTED, $spy->observations[0]->kind);
-        self::assertSame(HashObservation::FAILED, $spy->observations[1]->kind);
+        self::assertSame(HashObservationKind::STARTED, $spy->observations[0]->kind);
+        self::assertSame(HashObservationKind::FAILED, $spy->observations[1]->kind);
 
         $started = $spy->observations[0];
         $failed = $spy->observations[1];

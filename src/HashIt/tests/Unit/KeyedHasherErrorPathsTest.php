@@ -11,6 +11,7 @@ use ItPack\HashIt\Adapter\NativeKeyedContextFactory;
 use ItPack\HashIt\Contract\HashProgressInterface;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashObservation;
+use ItPack\HashIt\HashObservationKind;
 
 /**
  * Covers the failure / edge branches of {@see KeyedHasher} that the happy-path
@@ -36,7 +37,7 @@ final class KeyedHasherErrorPathsTest extends Unit
         return NativeHashIt::keyedHasher($spy);
     }
 
-    private function lastKind(KeyedSpy $spy): string
+    private function lastKind(KeyedSpy $spy): HashObservationKind
     {
         return $spy->observed[count($spy->observed) - 1]->kind;
     }
@@ -54,7 +55,7 @@ final class KeyedHasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testVerifyBinaryFailsOnUnknownAlgorithmEmitsFailedObservation(): void
@@ -75,7 +76,7 @@ final class KeyedHasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testHmacFilesWithArrayReportsProgressAndTotals(): void
@@ -151,7 +152,7 @@ final class KeyedHasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testKeyedContextFactoryRejectsUnknownAlgorithm(): void

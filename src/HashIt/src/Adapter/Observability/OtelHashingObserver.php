@@ -6,6 +6,7 @@ namespace ItPack\HashIt\Adapter\Observability;
 
 use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\HashObservation;
+use ItPack\HashIt\HashObservationKind;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\SpanKind;
@@ -40,7 +41,7 @@ final class OtelHashingObserver implements HashingObserverInterface
     public function observe(HashObservation $observation): void
     {
         switch ($observation->kind) {
-            case HashObservation::STARTED:
+            case HashObservationKind::STARTED:
                 $operationName = $observation->operation === null ? 'HASH' : $observation->operation->name;
                 $span = $this->tracer
                     ->spanBuilder($operationName)
@@ -52,12 +53,12 @@ final class OtelHashingObserver implements HashingObserverInterface
                 $this->spans[$observation->id] = $span;
                 break;
 
-            case HashObservation::PROGRESS:
+            case HashObservationKind::PROGRESS:
                 $span = $this->spans[$observation->id] ?? null;
                 $span?->setAttribute('hashit.bytes_processed', $observation->bytesProcessed);
                 break;
 
-            case HashObservation::COMPLETED:
+            case HashObservationKind::COMPLETED:
                 $span = $this->spans[$observation->id] ?? null;
                 unset($this->spans[$observation->id]);
                 if ($span === null) {
@@ -71,7 +72,7 @@ final class OtelHashingObserver implements HashingObserverInterface
                 $span->end();
                 break;
 
-            case HashObservation::FAILED:
+            case HashObservationKind::FAILED:
                 $span = $this->spans[$observation->id] ?? null;
                 unset($this->spans[$observation->id]);
                 if ($span === null) {

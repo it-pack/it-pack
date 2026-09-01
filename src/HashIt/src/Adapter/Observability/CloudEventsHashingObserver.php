@@ -10,6 +10,7 @@ use CloudEvents\V1\CloudEventImmutable;
 use CloudEvents\V1\CloudEventInterface;
 use ItPack\HashIt\Contract\HashingObserverInterface;
 use ItPack\HashIt\HashObservation;
+use ItPack\HashIt\HashObservationKind;
 use LogicException;
 use Nyholm\Psr7\Request;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -72,7 +73,7 @@ final class CloudEventsHashingObserver implements HashingObserverInterface
     public function observe(HashObservation $observation): void
     {
         switch ($observation->kind) {
-            case HashObservation::COMPLETED:
+            case HashObservationKind::COMPLETED:
                 $this->emit(self::TYPE_COMPLETED, [
                     'algorithm' => $observation->algorithm,
                     'bytes' => $observation->bytes,
@@ -81,7 +82,7 @@ final class CloudEventsHashingObserver implements HashingObserverInterface
                 ]);
                 break;
 
-            case HashObservation::FAILED:
+            case HashObservationKind::FAILED:
                 $error = $observation->error;
                 $this->emit(self::TYPE_FAILED, [
                     'operation' => $observation->operation?->name,

@@ -14,6 +14,7 @@ use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashInput\StringInput;
 use ItPack\HashIt\HashInput\TempSink;
 use ItPack\HashIt\HashObservation;
+use ItPack\HashIt\HashObservationKind;
 
 /**
  * Covers the failure / edge branches of {@see Hasher} that the happy-path suite
@@ -38,7 +39,7 @@ final class HasherErrorPathsTest extends Unit
         return NativeHashIt::create($spy);
     }
 
-    private function lastKind(HasherSpy $spy): string
+    private function lastKind(HasherSpy $spy): HashObservationKind
     {
         return $spy->observed[count($spy->observed) - 1]->kind;
     }
@@ -56,7 +57,7 @@ final class HasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testHashBinaryFailsOnUnknownAlgorithmEmitsFailedObservation(): void
@@ -72,7 +73,7 @@ final class HasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testVerifyFailsOnUnknownAlgorithmEmitsFailedObservation(): void
@@ -88,7 +89,7 @@ final class HasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testHashFilesWithArrayReportsProgressAndTotals(): void
@@ -163,7 +164,7 @@ final class HasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testHashDirectoryFailsOnUnknownAlgorithmEmitsFailedObservation(): void
@@ -185,7 +186,7 @@ final class HasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testHashInputFailsOnUnknownAlgorithmEmitsFailedObservation(): void
@@ -201,7 +202,7 @@ final class HasherErrorPathsTest extends Unit
         }
 
         self::assertNotNull($thrown);
-        self::assertSame(HashObservation::FAILED, $this->lastKind($spy));
+        self::assertSame(HashObservationKind::FAILED, $this->lastKind($spy));
     }
 
     public function testHashInputRejectsSinkThatIsNotHashBuilder(): void

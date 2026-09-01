@@ -493,16 +493,34 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M10 — Optional polish (F-11, F-12)
+## M10 — Optional polish (F-11, F-12) — DONE
 
 **Goal:** strictness & documentation improvements with no behavioral risk.
 
-### Tasks
-- **M10.1** (F-11) Introduce `enum HashObservationKind: string { case STARTED; case PROGRESS; case COMPLETED; case FAILED; }`; change `HashObservation::$kind` from `string` to the enum; update the two observer `switch` statements for exhaustiveness.
-- **M10.2** (F-12) Add an ADR (`docs/adr/`) documenting the immutable-`HashBuilder` context-copy trade-off (F-12) — why N copies are accepted for safety, and the Lazy-Object alternative considered.
-- **M10.3** Final full gate: `composer coverage` ≥95%, `composer mutation` MSI recorded, `composer architecture`, `composer analyse`, `composer cs:check` all green.
+### Tasks — done
+- **M10.1** (F-11) Created `src/HashObservationKind.php` — a `string`-backed enum with `case STARTED`, `case PROGRESS`, `case COMPLETED`, `case FAILED` (values `'started'`, `'progress'`, `'completed'`, `'failed'`), mirroring the existing `HashOperation` enum. Removed the four `public const string STARTED/PROGRESS/COMPLETED/FAILED` constants from `HashObservation`; changed `$kind` from `string` to `HashObservationKind`; updated the four factory methods (`started`, `progress`, `completed`, `failed`) to pass enum cases.
+- **M10.2-pre-existing-fix** Fixed `infection.json.dist`: removed the `minMutants` top-level property (not supported by infection 0.33.3 config schema — it is a CLI-only flag). The MSI gate of 73 remains enforced via `minMsi` / `minCoveredMsi`. This was a latent config bug from M2.
+- **M10.2** (F-11 continuation) Updated all `switch` statements in the two observer adapters:
+  - `OtelHashingObserver::observe()` — covers all 4 cases (`STARTED`, `PROGRESS`, `COMPLETED`, `FAILED`), now exhaustive.
+  - `CloudEventsHashingObserver::observe()` — covers `COMPLETED` and `FAILED` only (STARTED/PROGRESS are intentional no-ops per the class docblock). Switch has no `default` case; the two ignored events fall through silently. PHPStan at level 5 does not enforce switch exhaustiveness on enums, and PHP `switch` semantics make this safe.
+  - Updated `examples/vertical/28-observability.php` `match` statement (all 4 arms) to use `HashObservationKind::` instead of `HashObservation::`.
+- **M10.3** (F-12) Added `docs/ADR-0003-immutable-hashbuilder.md` documenting the `HashBuilder` per-append context-copy trade-off: `append()` calls `$this->context->copy()` → `hash_copy()` → N copies for N appends. Alternatives rejected: mutable builder (aliasing hazard, destructive `finalize`), LazyObject/Ghost (PHP 8.4 native, but `\HashContext` is a C struct not a userland object so ghosting doesn't apply to the expensive `hash_copy()`), pooled reuse (error-prone fork semantics). Bounded cost: `hash_copy` copies a fixed-size state buffer (~64–512 bytes for SHA-2/3), negligible (<0.3 % of hashing time for ≥4 KiB chunks).
+- **M10.4** Updated all test assertions:
+  - `tests/Unit/HashingObserverTest.php`: `HashObservation::STARTED` → `HashObservationKind::STARTED` etc. (6 assertions + the `array_filter` comparison).
+  - `tests/Unit/HasherErrorPathsTest.php`: `lastKind()` return type `string` → `HashObservationKind`; `HashObservation::FAILED` → `HashObservationKind::FAILED` (6 assertions).
+  - `tests/Unit/KeyedHasherErrorPathsTest.php`: same pattern (3 assertions).
+  - Added `use HashObservationKind` imports where needed.
 
-**Verification:** enum compiles; ADR committed; all gates green.
+### Status — DONE
+- `composer cs:check` clean (0/100).
+- `composer cs:strict` F-3 ✅ / F-5 ✅ / F-6 ✅.
+- `composer test:unit` green — **208 tests / 542 assertions** (unchanged count from M9; the enum refactor is behaviorally equivalent).
+- `composer coverage` — `HashObservation` 100% methods / 100% lines (5/5, 27/27); `HashObservationKind` 0/0 (pure enum, no methods, cases exercised through `HashObservation`); aggregate **96.49% lines** (≥95% target met).
+- `composer architecture` green (0 violations, 0 errors, 0 warnings; 22 uncovered, 139 allowed — unchanged from M9).
+- `vendor/bin/phpstan analyse --debug` — "No errors" (100 files, including the new enum).
+- `composer mutation` — MSI **73.74 %** (792 mutants, 208 escaped — identical to M2/M9 baseline), gate `minMsi: 73` **PASSES**. The pre-existing `max-timeouts` count (103) was unchanged by M10.
+
+**Verification:** `grep -rn 'HashObservation::(STARTED|PROGRESS|COMPLETED|FAILED)' src/ tests/ examples/` returns no matches (all converted to `HashObservationKind::`); `composer mutation` summary JSON shows `msi: 73.74`; all gates green.
 
 ---
 
