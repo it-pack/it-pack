@@ -7,7 +7,7 @@ namespace Tests\Unit;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Filepath;
-use ItPack\HashIt\HasherInterface;
+use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\HashProgress;
 use ItPack\HashItAsync\ConcurrentFileHasher;
 use PHPUnit\Framework\TestCase;

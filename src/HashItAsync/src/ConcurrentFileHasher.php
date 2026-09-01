@@ -6,22 +6,22 @@ namespace ItPack\HashItAsync;
 
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
-use ItPack\HashIt\FilepathInterface;
-use ItPack\HashIt\HasherInterface;
-use ItPack\HashIt\HashInterface;
-use ItPack\HashIt\HashProgressInterface;
+use ItPack\HashIt\Contract\FilepathInterface;
+use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Contract\HashInterface;
+use ItPack\HashIt\Contract\HashProgressInterface;
 
 /**
- * Hashes many files concurrently by fanning each {@see HasherInterface::hashFile}
+ * Hashes many files concurrently by fanning each {@see \ItPack\HashIt\Contract\HasherInterface::hashFile}
  * call out across an {@see AsyncRuntime}.
  *
  * This bridge is intentionally tiny: it owns **no** hashing logic of its own and
- * reuses HashIt's {@see HasherInterface::hashFile} verbatim (guardrail #8 — the
+ * reuses HashIt's {@see \ItPack\HashIt\Contract\HasherInterface::hashFile} verbatim (guardrail #8 — the
  * bridge never alters HashIt's core). Each file becomes one AsyncIt execution
  * (its own {@see ReferenceExecutionScope}, keyed by the path string), so the work
  * inherits AsyncIt's execution context, telemetry and cooperative-cancellation
  * model. The result map is keyed by the path string and preserves the input
- * iteration order, matching a sequential {@see HasherInterface::hashFiles}.
+ * iteration order, matching a sequential {@see \ItPack\HashIt\Contract\HasherInterface::hashFiles}.
  *
  * @api
  */
@@ -29,7 +29,7 @@ final class ConcurrentFileHasher
 {
     /**
      * Hashes every path through the supplied runtime, returning a map of
-     * `path-string => HashInterface`.
+     * `path-string => \ItPack\HashIt\Contract\HashInterface`.
      *
      * @param iterable<FilepathInterface>                      $paths
      * @return array<string, HashInterface>
@@ -57,7 +57,7 @@ final class ConcurrentFileHasher
 
     /**
      * Runs a single file hash inside the AsyncIt runtime, returning exactly what
-     * {@see HasherInterface::hashFile} produces (same digest, same exception).
+     * {@see \ItPack\HashIt\Contract\HasherInterface::hashFile} produces (same digest, same exception).
      */
     private function hashOne(
         FilepathInterface $path,
