@@ -14,6 +14,7 @@ use ItPack\HashIt\Contract\KeyDerivationInterface;
 use ItPack\HashIt\Contract\KeyedHasherInterface;
 use ItPack\HashIt\Contract\Pbkdf2Interface;
 use ItPack\HashIt\Contract\ResumableHashingInterface;
+use ItPack\HashIt\Contract\StreamHasherInterface;
 use ItPack\HashIt\Contract\TreeHashingInterface;
 use ItPack\HashIt\Factory\FilepathFactory;
 use ItPack\HashIt\Factory\HashFactory;
@@ -111,6 +112,16 @@ final readonly class NativeHashIt
     public static function manifestVerifier(): ManifestVerifier
     {
         return new ManifestVerifier(new FilepathFactory(), new ManifestFactory());
+    }
+
+    /**
+     * PSR-7 stream hasher — hashes a StreamInterface body in chunks without
+     * loading it all into memory. Built on the same native hashing context as
+     * {@see self::create()}, so digests are byte-identical to Hasher::hash().
+     */
+    public static function streamHasher(): StreamHasherInterface
+    {
+        return new PsrStreamHasher(new NativeContextFactory(), new HashFactory());
     }
 
     /**

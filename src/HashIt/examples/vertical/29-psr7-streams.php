@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../_support.php';
 
-use ItPack\HashIt\Adapter\NativeContextFactory;
-use ItPack\HashIt\Adapter\PsrStreamHasher;
+use ItPack\HashIt\Adapter\NativeHashIt;
+use ItPack\HashIt\Contract\StreamHasherInterface;
 use ItPack\HashIt\HashAlgorithm;
 use Nyholm\Psr7\Stream;
 
@@ -19,7 +19,7 @@ if (!interface_exists(\Psr\Http\Message\StreamInterface::class)) {
 // A PSR-7 body stream stands in for an HTTP request/response body.
 $body = Stream::create(str_repeat('request body chunk', 1000));
 
-$hasher = new PsrStreamHasher(new NativeContextFactory());
+$hasher = NativeHashIt::streamHasher();
 $hash = $hasher->hash($body, HashAlgorithm::SHA256);
 
 echo 'PSR-7 stream sha256: ' . $hash->value() . "\n";

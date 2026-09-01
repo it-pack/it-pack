@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeContextFactory;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\PsrStreamHasher;
+use ItPack\HashIt\Contract\StreamHasherInterface;
 use ItPack\HashIt\Factory\HashFactory;
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\StreamInterface;
@@ -74,6 +75,59 @@ class PsrStreamHasherTest extends Unit
         $hash = $this->hasher()->hash(Stream::create(''), 'sha256');
 
         verify($hash->value())->equals(hash('sha256', ''));
+    }
+
+    public function testImplementsStreamHasherInterface(): void
+    {
+        self::assertInstanceOf(StreamHasherInterface::class, NativeHashIt::streamHasher());
+    }
+
+    /**
+     * Contract test: PsrStreamHasher (via StreamHasherInterface) must produce
+     * byte-identical digests to Hasher::hashStream() for the same stream content.
+     * Uses chunked content to exercise the incremental-reading path.
+     */
+    public function testContractProducesIdenticalDigestToHasherStream(): void
+    {
+        $content = str_repeat('contract-test-data', 800);
+
+        $viaPsr = NativeHashIt::streamHasher()->hash(Stream::create($content), 'sha256');
+
+        $resource = fopen('php://memory', 'r+b');
+        fwrite($resource, $content);
+        rewind($resource);
+        $viaHasher = NativeHashIt::create()->hashStream($resource, 'sha256');
+        fclose($resource);
+
+        verify($viaPsr->value())->equals($viaHasher->value());
+        verify($viaPsr->value())->equals(hash('sha256', $content));
+    }
+
+    public function testContractProducesIdenticalDigestAcrossChunkSizes(): void
+    {
+        $content = str_repeat('multi-chunk-content', 200);
+
+        $reference = hash('sha256', $content);
+
+        foreach ([1, 17, 64, 1024, 65536] as $chunkSize) {
+            $stream = Stream::create($content);
+            $hash = NativeHashIt::streamHasher()->hash($stream, 'sha256', $chunkSize);
+
+            verify($hash->value())->equals($reference);
+        }
+    }
+
+    public function testContractSupportsMultipleAlgorithms(): void
+    {
+        $content = 'algorithm-variants';
+
+        foreach (['sha256', 'sha384', 'sha512'] as $algo) {
+            $stream = Stream::create($content);
+            $hash = NativeHashIt::streamHasher()->hash($stream, $algo);
+
+            verify($hash->value())->equals(hash($algo, $content));
+            verify($hash->algorithm())->equals($algo);
+        }
     }
 }
 

@@ -412,18 +412,30 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M7 — Give `PsrStreamHasher` a port (F-8)
+## M7 — Give `PsrStreamHasher` a port (F-8) — DONE
 
 **Goal:** hexagonal symmetry — every adapter implements a `Contract` port.
 
-### Tasks
-- **M7.1** Add `src/Contract/StreamHasherInterface.php` with `hash(StreamInterface $stream, HashAlgorithm $algo, int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES): HashInterface`.
-- **M7.2** `final class PsrStreamHasher implements StreamHasherInterface` (`src/Adapter/PsrStreamHasher.php:24`).
-- **M7.3** Expose it from the composition root: add `NativeHashIt::streamHasher(): StreamHasherInterface` (mirrors the existing `hmacHasher()`/`keyedHasher()` pattern).
-- **M7.4** Update consumer examples (`examples/vertical/29-psr7-streams.php`) to depend on the interface.
-- **M7.5** Add a contract test asserting `PsrStreamHasher` produces identical digests to `Hasher` for the same input stream.
+### Tasks — done
+- **M7.1** Added `src/Contract/StreamHasherInterface.php` with a single `hash()` method mirroring `PsrStreamHasher`'s existing signature (parameter types widened to `string|HashAlgorithm` for codebase consistency with `HasherInterface`/`HmacHasherInterface`/`KeyedHasherInterface`, default `$chunkSize` from `HasherInterface::DEFAULT_CHUNK_SIZE_BYTES`).
+- **M7.2** `final class PsrStreamHasher implements StreamHasherInterface` at `src/Adapter/PsrStreamHasher.php:26`. Added `use ItPack\HashIt\Contract\StreamHasherInterface;` import; no method signatures changed.
+- **M7.3** Added `NativeHashIt::streamHasher(): StreamHasherInterface` (composition root) — returns `new PsrStreamHasher(new NativeContextFactory(), new HashFactory())`. Added `use ItPack\HashIt\Contract\StreamHasherInterface;` import to `NativeHashIt`.
+- **M7.4** Updated `examples/vertical/29-psr7-streams.php` to use `NativeHashIt::streamHasher()` instead of `new PsrStreamHasher(new NativeContextFactory())` (which was passing only 1 of 2 required args — a latent bug now fixed via the composition root). Imports updated to `NativeHashIt` + `StreamHasherInterface`.
+- **M7.5** Added 4 contract tests to `tests/Unit/Adapter/PsrStreamHasherTest.php`:
+  - `testImplementsStreamHasherInterface` — asserts `NativeHashIt::streamHasher()` returns a `StreamHasherInterface`.
+  - `testContractProducesIdenticalDigestToHasherStream` — hashes multi-chunk content via both `StreamHasherInterface` (PSR-7 stream) and `Hasher::hashStream()` (PHP resource) and asserts byte-identical digests.
+  - `testContractProducesIdenticalDigestAcrossChunkSizes` — verifies chunked and non-chunked reads (chunk sizes 1, 17, 64, 1024, 65536) all yield the correct digest.
+  - `testContractSupportsMultipleAlgorithms` — cross-checks `sha256`/`sha384`/`sha512`.
 
-**Verification:** deptrac shows `PsrStreamHasher` behind a port; `rg 'PsrStreamHasher' src` references the interface; new contract test passes; coverage ≥95%.
+### Status — DONE
+- **M7 verification:** deptrac shows `PsrStreamHasher` behind the `StreamHasherInterface` port (0 violations, 0 errors, 0 warnings, 22 uncovered, 139 allowed — the 2 new uncovered lines are deptrac's pre-existing `Adapter → Adapter` count, unaffected by this change).
+- `composer cs:check` clean (0/99).
+- `composer cs:strict` F-3 ✅ / F-5 ✅ / F-6 ✅.
+- `composer test:unit` green (207 tests / 541 assertions — +4 tests, +14 assertions from the new contract tests).
+- `composer coverage` lines **96.37%** / methods **92.97%** / classes **80.43%** — statements ≥95% target held; method/class coverage identical to M6 baseline. `PsrStreamHasher` coverage rose from 87.5% (methods) / 94.12% (lines) pre-M7 to **100% methods / 100% lines**.
+- `vendor/bin/phpstan analyse --debug` exit 0 / "No errors" (99 files, including the new interface). Note: `composer analyse` (non-debug) still hits the pre-existing 300s Composer process-wrapper timeout documented in M4; running `vendor/bin/phpstan analyse --debug` is the reliable invocation on this machine.
+
+**Verification:** `rg 'PsrStreamHasher' src/` shows `final class PsrStreamHasher implements StreamHasherInterface`; deptrac clean; new contract tests pass; coverage ≥95% lines.
 
 ---
 

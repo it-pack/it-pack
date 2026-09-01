@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use ItPack\HashIt\Contract\ContextFactoryInterface;
 use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\Contract\HashInterface;
+use ItPack\HashIt\Contract\StreamHasherInterface;
 use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashBuilder;
@@ -22,7 +23,7 @@ use Psr\Http\Message\StreamInterface;
  * SRI / base64 formatting of the resulting digest is OUT OF SCOPE here and lives
  * with the NF-C1 formatters — this adapter only produces a plain {@see HashInterface}.
  */
-final class PsrStreamHasher
+final class PsrStreamHasher implements StreamHasherInterface
 {
     public function __construct(
         private readonly ContextFactoryInterface $factory,
