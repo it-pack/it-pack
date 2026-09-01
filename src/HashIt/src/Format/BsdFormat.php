@@ -6,7 +6,8 @@ namespace ItPack\HashIt\Format;
 
 use InvalidArgumentException;
 use ItPack\HashIt\Contract\ManifestFormatInterface;
-use ItPack\HashIt\Hash;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;
 
@@ -17,6 +18,12 @@ use ItPack\HashIt\HashManifest;
  */
 final class BsdFormat implements ManifestFormatInterface
 {
+    public function __construct(
+        private HashFactory $hashFactory,
+        private ManifestFactory $manifestFactory,
+    ) {
+    }
+
     public function serialize(HashManifest $manifest): string
     {
         $lines = [];
@@ -46,9 +53,9 @@ final class BsdFormat implements ManifestFormatInterface
             }
 
             if ($manifest === null) {
-                $manifest = new HashManifest($algorithm);
+                $manifest = $this->manifestFactory->createManifest($algorithm);
             }
-            $manifest = $manifest->with($m[2], Hash::create(strtolower($m[3]), $algorithm->value));
+            $manifest = $manifest->with($m[2], $this->hashFactory->create(strtolower($m[3]), $algorithm->value));
         }
 
         if ($manifest === null) {

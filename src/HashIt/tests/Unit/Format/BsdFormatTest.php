@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Test\Unit\Format;
 
 use ItPack\HashIt\Contract\ManifestFormatInterface;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\Format\BsdFormat;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
@@ -17,7 +19,7 @@ final class BsdFormatTest extends TestCase
 {
     private function format(): ManifestFormatInterface
     {
-        return new BsdFormat();
+        return new BsdFormat(new HashFactory(), new ManifestFactory());
     }
     public function testRoundTripSha256(): void
     {

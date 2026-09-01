@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Factory\ResumableHashFactory;
 
 /**
  * Reference implementation of {@see Contract\ResumableHashingInterface}, built only on the
@@ -18,8 +19,10 @@ use InvalidArgumentException;
  */
 final readonly class ResumableHasher implements Contract\ResumableHashingInterface
 {
-    public function __construct(private Contract\ContextFactoryInterface $factory)
-    {
+    public function __construct(
+        private Contract\ContextFactoryInterface $factory,
+        private ResumableHashFactory $resumableFactory,
+    ) {
     }
 
     public function start(
@@ -28,14 +31,18 @@ final readonly class ResumableHasher implements Contract\ResumableHashingInterfa
     ): Contract\ResumableHashInterface {
         $name = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
 
-        return new ResumableHash($this->factory->build($name), $name, $binary);
+        return $this->resumableFactory->create($this->factory->build($name), $name, $binary);
     }
 
     public function resume(string $checkpoint): Contract\ResumableHashInterface
     {
         $decoded = $this->decode($checkpoint);
 
-        return new ResumableHash($this->factory->restore($decoded['state']), $decoded['algorithm'], $decoded['binary']);
+        return $this->resumableFactory->create(
+            $this->factory->restore($decoded['state']),
+            $decoded['algorithm'],
+            $decoded['binary'],
+        );
     }
 
     /**

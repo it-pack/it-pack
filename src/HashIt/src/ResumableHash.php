@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
+use ItPack\HashIt\Factory\HashFactory;
+
 /**
  * Mutable, in-progress hash handle returned by
  * {@see Contract\ResumableHashingInterface::start()} and rebuilt by
@@ -14,6 +16,7 @@ final readonly class ResumableHash implements Contract\ResumableHashInterface
 {
     public function __construct(
         private Contract\HashContextInterface $context,
+        private HashFactory $hashFactory,
         private string               $algorithm,
         private bool                 $binary,
     ) {
@@ -33,6 +36,6 @@ final readonly class ResumableHash implements Contract\ResumableHashInterface
 
     public function finalize(): Contract\HashInterface
     {
-        return new Hash($this->context->finalize($this->binary), $this->algorithm, $this->binary);
+        return $this->hashFactory->create($this->context->finalize($this->binary), $this->algorithm, $this->binary);
     }
 }

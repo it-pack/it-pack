@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Test\Unit\Format;
 
 use ItPack\HashIt\Contract\ManifestFormatInterface;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\Format\GnuSha256Format;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
@@ -17,7 +19,7 @@ final class GnuSha256FormatTest extends TestCase
 {
     private function format(): ManifestFormatInterface
     {
-        return new GnuSha256Format();
+        return new GnuSha256Format(new HashFactory(), new ManifestFactory());
     }
     public function testRoundTrip(): void
     {

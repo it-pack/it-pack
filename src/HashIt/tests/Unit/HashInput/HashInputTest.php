@@ -8,6 +8,7 @@ use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\Contract\HashInputInterface;
+use ItPack\HashIt\Factory\TempSinkFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashInput\CompositeInput;
 use ItPack\HashIt\HashInput\FileInput;
@@ -20,9 +21,24 @@ use function verify;
 
 final class HashInputTest extends TestCase
 {
+    private TempSinkFactory $sinks;
+
+    protected function setUp(): void
+    {
+        $this->sinks = new TempSinkFactory();
+    }
+
     private function hasher(): HasherInterface
     {
         return NativeHashIt::create();
+    }
+
+    /**
+     * @param list<HashInputInterface> $children
+     */
+    private function composite(array $children): CompositeInput
+    {
+        return new CompositeInput($children, $this->sinks);
     }
 
     public function testSingleStringInputEqualsPlainHash(): void
@@ -76,11 +92,11 @@ final class HashInputTest extends TestCase
         ];
 
         // built directly from the ordered list
-        $built = new CompositeInput($sequence);
+        $built = $this->composite($sequence);
 
         // assembled in a different code path (map + concatenate) but identical order
         $mapped = array_map(static fn (HashInputInterface $i): HashInputInterface => $i, $sequence);
-        $assembled = new CompositeInput([
+        $assembled = $this->composite([
             ...array_slice($mapped, 0, 1),
             ...array_slice($mapped, 1),
         ]);
@@ -93,12 +109,12 @@ final class HashInputTest extends TestCase
 
     public function testDifferentOrderDigestsDifferently(): void
     {
-        $forward = new CompositeInput([
+        $forward = $this->composite([
             new StringInput('a'),
             new StringInput('b'),
         ]);
 
-        $reverse = new CompositeInput([
+        $reverse = $this->composite([
             new StringInput('b'),
             new StringInput('a'),
         ]);
@@ -113,7 +129,7 @@ final class HashInputTest extends TestCase
     {
         // A composite frames each child with an 8-byte length prefix, so it must
         // NOT equal hashing the bare concatenation of the bytes.
-        $composite = new CompositeInput([
+        $composite = $this->composite([
             new StringInput('ab'),
             new StringInput('cd'),
         ]);
@@ -126,17 +142,17 @@ final class HashInputTest extends TestCase
 
     public function testNestedCompositeIsCanonical(): void
     {
-        $nested = new CompositeInput([
+        $nested = $this->composite([
             new StringInput('x'),
-            new CompositeInput([
+            $this->composite([
                 new StringInput('y'),
                 new StringInput('z'),
             ]),
         ]);
 
-        $again = new CompositeInput([
+        $again = $this->composite([
             new StringInput('x'),
-            new CompositeInput([
+            $this->composite([
                 new StringInput('y'),
                 new StringInput('z'),
             ]),

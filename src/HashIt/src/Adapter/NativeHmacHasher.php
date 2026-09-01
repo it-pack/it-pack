@@ -9,12 +9,13 @@ use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
 use ItPack\HashIt\Contract\AlgorithmSourceInterface;
 use ItPack\HashIt\Contract\HashInterface;
 use ItPack\HashIt\Contract\HmacHasherInterface;
-use ItPack\HashIt\Hash;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 
 final readonly class NativeHmacHasher implements HmacHasherInterface
 {
     public function __construct(
+        private HashFactory $hashFactory,
         private ?AlgorithmSourceInterface $source = null,
     ) {
     }
@@ -32,7 +33,11 @@ final readonly class NativeHmacHasher implements HmacHasherInterface
             throw new InvalidArgumentException('Algorithm is not HMAC-safe: ' . $algorithm->value);
         }
 
-        return new Hash(hash_hmac($algorithm->value, $data, $key, false), $algorithm->value, false);
+        return $this->hashFactory->create(
+            hash_hmac($algorithm->value, $data, $key, false),
+            $algorithm->value,
+            false,
+        );
     }
 
     public function algorithms(): array

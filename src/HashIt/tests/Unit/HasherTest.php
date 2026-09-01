@@ -13,6 +13,7 @@ use ItPack\HashIt\Contract\FilepathInterface;
 use ItPack\HashIt\Contract\HashContextInterface;
 use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\Contract\HmacHasherInterface;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\Hasher;
 
@@ -251,7 +252,7 @@ class HasherTest extends Unit
         $hasher = new Hasher(self::fakeFactory(), self::fakeListing([
             self::fakePath($a),
             self::fakePath($b),
-        ]));
+        ]), new HashFactory());
         self::assertInstanceOf(HasherInterface::class, $hasher);
 
         $map = $hasher->hashDirectory($dir);

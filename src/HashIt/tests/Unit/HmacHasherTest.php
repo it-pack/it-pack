@@ -7,13 +7,19 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\NativeHmacHasher;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 
 class HmacHasherTest extends Unit
 {
+    private function hasher(): NativeHmacHasher
+    {
+        return new NativeHmacHasher(new HashFactory());
+    }
+
     public function testHmacMatchesNativeHashHmac(): void
     {
-        $hash = new NativeHmacHasher()->hmac('message', 'secret', 'sha256');
+        $hash = $this->hasher()->hmac('message', 'secret', 'sha256');
 
         verify($hash->value())->equals(hash_hmac('sha256', 'message', 'secret'));
         verify($hash->algorithm())->equals('sha256');
@@ -22,7 +28,7 @@ class HmacHasherTest extends Unit
 
     public function testHmacAcceptsEnumAlgorithm(): void
     {
-        $hash = new NativeHmacHasher()->hmac('message', 'secret', HashAlgorithm::SHA512);
+        $hash = $this->hasher()->hmac('message', 'secret', HashAlgorithm::SHA512);
 
         verify($hash->value())->equals(hash_hmac('sha512', 'message', 'secret'));
     }
@@ -31,14 +37,14 @@ class HmacHasherTest extends Unit
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NativeHmacHasher()->hmac('message', 'secret', HashAlgorithm::CRC32);
+        $this->hasher()->hmac('message', 'secret', HashAlgorithm::CRC32);
     }
 
     public function testHmacRejectsUnknownAlgorithmString(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new NativeHmacHasher()->hmac('message', 'secret', 'bogus');
+        $this->hasher()->hmac('message', 'secret', 'bogus');
     }
 
     public function testCompositionRootExposesHmacHasher(): void

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt;
 
+use ItPack\HashIt\Factory\FilepathFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use RuntimeException;
 
 /**
@@ -15,6 +17,12 @@ use RuntimeException;
  */
 final class ManifestVerifier
 {
+    public function __construct(
+        private FilepathFactory $filepathFactory,
+        private ManifestFactory $manifestFactory,
+    ) {
+    }
+
     public function verify(HashManifest $expected, Contract\HasherInterface $hasher): VerificationReport
     {
         $matched = [];
@@ -23,7 +31,7 @@ final class ManifestVerifier
 
         foreach ($expected->entries() as $path => $expectedHash) {
             try {
-                $actual = $hasher->hashFile(new Filepath($path));
+                $actual = $hasher->hashFile($this->filepathFactory->create($path));
             } catch (RuntimeException $e) {
                 $missing[] = $path;
                 continue;
@@ -33,9 +41,9 @@ final class ManifestVerifier
                 $matched[$path] = $actual;
                 continue;
             }
-            $mismatched[] = new HashMismatch($path, $expectedHash, $actual);
+            $mismatched[] = $this->manifestFactory->createMismatch($path, $expectedHash, $actual);
         }
 
-        return new VerificationReport($matched, $mismatched, $missing);
+        return $this->manifestFactory->createReport($matched, $mismatched, $missing);
     }
 }

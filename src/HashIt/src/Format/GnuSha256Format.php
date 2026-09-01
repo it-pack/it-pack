@@ -6,7 +6,8 @@ namespace ItPack\HashIt\Format;
 
 use InvalidArgumentException;
 use ItPack\HashIt\Contract\ManifestFormatInterface;
-use ItPack\HashIt\Hash;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;
 
@@ -18,6 +19,12 @@ use ItPack\HashIt\HashManifest;
  */
 final class GnuSha256Format implements ManifestFormatInterface
 {
+    public function __construct(
+        private HashFactory $hashFactory,
+        private ManifestFactory $manifestFactory,
+    ) {
+    }
+
     public function serialize(HashManifest $manifest): string
     {
         if ($manifest->algorithm() !== HashAlgorithm::SHA256) {
@@ -34,7 +41,7 @@ final class GnuSha256Format implements ManifestFormatInterface
 
     public function parse(string $text): HashManifest
     {
-        $manifest = new HashManifest(HashAlgorithm::SHA256);
+        $manifest = $this->manifestFactory->createManifest(HashAlgorithm::SHA256);
 
         foreach ($this->lines($text) as $line) {
             if (!preg_match('/^([0-9a-f]+) \*(.+)$/', $line, $m)
@@ -42,7 +49,10 @@ final class GnuSha256Format implements ManifestFormatInterface
                 throw new InvalidArgumentException('Malformed GNU sha256sum line: ' . $line);
             }
 
-            $manifest = $manifest->with($m[2], $this->hash(strtolower($m[1])));
+            $manifest = $manifest->with(
+                $m[2],
+                $this->hashFactory->create(strtolower($m[1]), HashAlgorithm::SHA256->value),
+            );
         }
 
         return $manifest;
@@ -59,10 +69,5 @@ final class GnuSha256Format implements ManifestFormatInterface
             }
             yield $line;
         }
-    }
-
-    private function hash(string $hex): Hash
-    {
-        return Hash::create($hex, HashAlgorithm::SHA256->value);
     }
 }

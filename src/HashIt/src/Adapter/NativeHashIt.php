@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\HashIt\Adapter;
 
+use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
 use ItPack\HashIt\Contract\AlgorithmSourceInterface;
 use ItPack\HashIt\Contract\Argon2Interface;
 use ItPack\HashIt\Contract\HasherInterface;
@@ -14,6 +15,9 @@ use ItPack\HashIt\Contract\KeyedHasherInterface;
 use ItPack\HashIt\Contract\Pbkdf2Interface;
 use ItPack\HashIt\Contract\ResumableHashingInterface;
 use ItPack\HashIt\Contract\TreeHashingInterface;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ResumableHashFactory;
+use ItPack\HashIt\Factory\TempSinkFactory;
 use ItPack\HashIt\Hasher;
 use ItPack\HashIt\KeyDerivation\Hkdf;
 use ItPack\HashIt\KeyedHasher;
@@ -31,19 +35,30 @@ final readonly class NativeHashIt
         ?HashingObserverInterface $observer = null,
         ?AlgorithmSourceInterface $source = null,
     ): HasherInterface {
-        return new Hasher(new NativeContextFactory(), new NativeDirectoryListing(), $observer, $source);
+        return new Hasher(
+            new NativeContextFactory(),
+            new NativeDirectoryListing(),
+            new HashFactory(),
+            $observer,
+            $source ?? new NativeAlgorithmSource(),
+        );
     }
 
     public static function hmacHasher(?AlgorithmSourceInterface $source = null): HmacHasherInterface
     {
-        return new NativeHmacHasher($source);
+        return new NativeHmacHasher(new HashFactory(), $source);
     }
 
     public static function keyedHasher(
         ?HashingObserverInterface $observer = null,
         ?AlgorithmSourceInterface $source = null,
     ): KeyedHasherInterface {
-        return new KeyedHasher(new NativeKeyedContextFactory(), $observer, $source);
+        return new KeyedHasher(
+            new NativeKeyedContextFactory(),
+            new HashFactory(),
+            $observer,
+            $source ?? new NativeAlgorithmSource(),
+        );
     }
 
     /**
@@ -78,7 +93,11 @@ final readonly class NativeHashIt
      */
     public static function treeHasher(): TreeHashingInterface
     {
-        return new TreeHasher(new NativeContextFactory());
+        return new TreeHasher(
+            new NativeContextFactory(),
+            new HashFactory(),
+            new TempSinkFactory(),
+        );
     }
 
     /**
@@ -88,6 +107,7 @@ final readonly class NativeHashIt
      */
     public static function resumable(): ResumableHashingInterface
     {
-        return new ResumableHasher(new NativeContextFactory());
+        return new ResumableHasher(new NativeContextFactory(), new ResumableHashFactory(new HashFactory()));
     }
+
 }

@@ -11,11 +11,8 @@ use ItPack\HashIt\Contract\HashSinkInterface;
 
 final class StreamInput implements HashInputInterface
 {
-    /**
-     * @param resource $stream
-     */
     public function __construct(
-        private $stream,
+        private mixed $stream,
         private int $chunkSize = HasherInterface::DEFAULT_CHUNK_SIZE_BYTES,
     ) {
     }

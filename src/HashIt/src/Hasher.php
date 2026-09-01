@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\HashIt;
 
 use InvalidArgumentException;
-use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\Observability\HashingInstrumentation;
 use RuntimeException;
 use Throwable;
@@ -22,6 +22,7 @@ final readonly class Hasher implements Contract\HasherInterface
     public function __construct(
         private Contract\ContextFactoryInterface $factory,
         private Contract\DirectoryListingInterface $listing,
+        private HashFactory $hashFactory,
         private ?Contract\HashingObserverInterface $observer = null,
         private ?Contract\AlgorithmSourceInterface $source = null,
     ) {
@@ -167,7 +168,7 @@ final readonly class Hasher implements Contract\HasherInterface
         $total = $this->streamTotalBytes($stream);
         $this->observe(HashObservation::started(HashOperation::HASH_STREAM, $id, $algorithmName, $total));
 
-        $builder = HashBuilder::start($this->factory, $algorithm);
+        $builder = HashBuilder::start($this->factory, $this->hashFactory, $algorithm);
         $position = ftell($stream);
         if ($position === false) {
             $position = 0;
@@ -286,7 +287,7 @@ final readonly class Hasher implements Contract\HasherInterface
         $begin = hrtime(true);
 
         try {
-            $sink = $input->writeTo(HashBuilder::start($this->factory, $algorithm));
+            $sink = $input->writeTo(HashBuilder::start($this->factory, $this->hashFactory, $algorithm));
             if (!$sink instanceof HashBuilder) {
                 throw new RuntimeException('HashInput did not return the expected hashing builder');
             }
@@ -303,7 +304,8 @@ final readonly class Hasher implements Contract\HasherInterface
 
     private function source(): Contract\AlgorithmSourceInterface
     {
-        return $this->source ?? new NativeAlgorithmSource();
+        return $this->source
+            ?? throw new RuntimeException('Hasher needs an AlgorithmSourceInterface; wire it in the composition root');
     }
 
     private function hashString(
@@ -315,6 +317,6 @@ final readonly class Hasher implements Contract\HasherInterface
         $context = $this->factory->build($algorithm);
         $context->update($data);
 
-        return new Hash($context->finalize($binary), $algorithm, $binary);
+        return $this->hashFactory->create($context->finalize($binary), $algorithm, $binary);
     }
 }

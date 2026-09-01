@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Test\Unit\Format;
 
 use ItPack\HashIt\Contract\ManifestFormatInterface;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\Format\SfvFormat;
 use ItPack\HashIt\Hash;
 use ItPack\HashIt\HashAlgorithm;
@@ -17,7 +19,7 @@ final class SfvFormatTest extends TestCase
 {
     private function format(): ManifestFormatInterface
     {
-        return new SfvFormat();
+        return new SfvFormat(new HashFactory(), new ManifestFactory());
     }
     public function testRoundTripSha256(): void
     {
@@ -26,8 +28,8 @@ final class SfvFormatTest extends TestCase
             ->with('b.txt', Hash::create(hash('sha256', 'beta'), 'sha256'))
         ;
 
-        $text = new SfvFormat()->serialize($manifest);
-        $parsed = new SfvFormat()->parse($text);
+        $text = $this->format()->serialize($manifest);
+        $parsed = $this->format()->parse($text);
 
         verify($parsed->algorithm())->equals($manifest->algorithm());
         verify($parsed->entries())->equals($manifest->entries());
@@ -39,11 +41,11 @@ final class SfvFormatTest extends TestCase
             ->with('a.txt', Hash::create(hash('sha512/256', 'alpha'), 'sha512/256'))
         ;
 
-        $text = new SfvFormat()->serialize($manifest);
+        $text = $this->format()->serialize($manifest);
 
         self::assertStringContainsString('# algorithm sha512/256', $text);
 
-        $parsed = new SfvFormat()->parse($text);
+        $parsed = $this->format()->parse($text);
         verify($parsed->algorithm())->equals(HashAlgorithm::SHA512_256);
         verify($parsed->entries())->equals($manifest->entries());
     }

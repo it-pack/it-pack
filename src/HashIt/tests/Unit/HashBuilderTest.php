@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeContextFactory;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashBuilder;
 
@@ -16,9 +17,14 @@ class HashBuilderTest extends Unit
         return new NativeContextFactory();
     }
 
+    private function hashFactory(): HashFactory
+    {
+        return new HashFactory();
+    }
+
     public function testDigestMatchesSingleHash(): void
     {
-        $hash = HashBuilder::start($this->factory(), 'sha256')
+        $hash = HashBuilder::start($this->factory(), $this->hashFactory(), 'sha256')
             ->append('hello ')
             ->append('world')
             ->digest()
@@ -31,7 +37,7 @@ class HashBuilderTest extends Unit
 
     public function testBuilderIsImmutable(): void
     {
-        $base = HashBuilder::start($this->factory(), 'sha256');
+        $base = HashBuilder::start($this->factory(), $this->hashFactory(), 'sha256');
         $extended = $base->append('data');
 
         verify($base->digest()->value())->equals(hash('sha256', ''));
@@ -40,7 +46,7 @@ class HashBuilderTest extends Unit
 
     public function testCopySharesStateAcrossBranches(): void
     {
-        $base = HashBuilder::start($this->factory(), 'sha256')->append('abc');
+        $base = HashBuilder::start($this->factory(), $this->hashFactory(), 'sha256')->append('abc');
         $branchA = $base->append('1');
         $branchB = $base->append('2');
 
@@ -50,7 +56,7 @@ class HashBuilderTest extends Unit
 
     public function testBinaryDigest(): void
     {
-        $hash = HashBuilder::start($this->factory(), 'sha256', true)
+        $hash = HashBuilder::start($this->factory(), $this->hashFactory(), 'sha256', true)
             ->append('abc')
             ->digest()
         ;
@@ -61,7 +67,7 @@ class HashBuilderTest extends Unit
 
     public function testAcceptsEnumAlgorithm(): void
     {
-        $hash = HashBuilder::start($this->factory(), HashAlgorithm::SHA512)
+        $hash = HashBuilder::start($this->factory(), $this->hashFactory(), HashAlgorithm::SHA512)
             ->append('abc')
             ->digest()
         ;

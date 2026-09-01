@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ItPack\HashIt;
 
 use InvalidArgumentException;
-use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\Observability\HashingInstrumentation;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -20,6 +21,7 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
 
     public function __construct(
         private Contract\KeyedContextFactoryInterface $factory,
+        private HashFactory $hashFactory,
         private ?Contract\HashingObserverInterface $observer = null,
         private ?Contract\AlgorithmSourceInterface $source = null,
     ) {
@@ -173,7 +175,7 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         $total = $this->streamTotalBytes($stream);
         $this->observe(HashObservation::started(HashOperation::HMAC_STREAM, $id, $algorithmName, $total));
 
-        $builder = HashBuilder::fromContext($this->factory->build($algorithm, $key), $algorithm);
+        $builder = HashBuilder::fromContext($this->factory->build($algorithm, $key), $this->hashFactory, $algorithm);
         $position = ftell($stream);
         if ($position === false) {
             $position = 0;
@@ -258,7 +260,8 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
 
     private function source(): Contract\AlgorithmSourceInterface
     {
-        return $this->source ?? new NativeAlgorithmSource();
+        return $this->source
+            ?? throw new RuntimeException('KeyedHasher needs an AlgorithmSourceInterface (composition root)');
     }
 
     private function hashString(
@@ -271,6 +274,6 @@ final readonly class KeyedHasher implements Contract\KeyedHasherInterface
         $context = $this->factory->build($algorithm, $key);
         $context->update($data);
 
-        return new Hash($context->finalize($binary), $algorithm, $binary);
+        return $this->hashFactory->create($context->finalize($binary), $algorithm, $binary);
     }
 }

@@ -8,17 +8,23 @@ use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeContextFactory;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\PsrStreamHasher;
+use ItPack\HashIt\Factory\HashFactory;
 use Nyholm\Psr7\Stream;
 use Psr\Http\Message\StreamInterface;
 
 class PsrStreamHasherTest extends Unit
 {
+    private function hasher(): PsrStreamHasher
+    {
+        return new PsrStreamHasher(new NativeContextFactory(), new HashFactory());
+    }
+
     public function testHashesPsrStreamEqualToPlainStringHash(): void
     {
         $content = 'the quick brown fox jumps over the lazy dog';
         $stream = Stream::create($content);
 
-        $hash = new PsrStreamHasher(new NativeContextFactory())->hash($stream, 'sha256');
+        $hash = $this->hasher()->hash($stream, 'sha256');
 
         verify($hash->value())->equals(NativeHashIt::create()->hash($content)->value());
         verify($hash->algorithm())->equals('sha256');
@@ -29,7 +35,7 @@ class PsrStreamHasherTest extends Unit
         $content = str_repeat('abcdefgh', 64); // 512 bytes
         $spy = new SpyStream(Stream::create($content));
 
-        new PsrStreamHasher(new NativeContextFactory())->hash($spy, 'sha256', 17);
+        $this->hasher()->hash($spy, 'sha256', 17);
 
         // 512 / 17 -> ceil -> several reads, proving chunked (not single) reading
         verify($spy->reads)->greaterThan(1);
@@ -40,7 +46,7 @@ class PsrStreamHasherTest extends Unit
         $content = 'keep the stream intact after reading';
         $spy = new SpyStream(Stream::create($content));
 
-        new PsrStreamHasher(new NativeContextFactory())->hash($spy, 'sha256');
+        $this->hasher()->hash($spy, 'sha256');
 
         // never detached: rewind + re-read yields the original content
         $spy->rewind();
@@ -53,19 +59,19 @@ class PsrStreamHasherTest extends Unit
 
         $this->expectException(\InvalidArgumentException::class);
 
-        new PsrStreamHasher(new NativeContextFactory())->hash($stream, 'sha256');
+        $this->hasher()->hash($stream, 'sha256');
     }
 
     public function testRejectsNonPositiveChunkSize(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new PsrStreamHasher(new NativeContextFactory())->hash(Stream::create('x'), 'sha256', 0);
+        $this->hasher()->hash(Stream::create('x'), 'sha256', 0);
     }
 
     public function testHashesEmptyStreamToDigestOfEmptyString(): void
     {
-        $hash = new PsrStreamHasher(new NativeContextFactory())->hash(Stream::create(''), 'sha256');
+        $hash = $this->hasher()->hash(Stream::create(''), 'sha256');
 
         verify($hash->value())->equals(hash('sha256', ''));
     }
@@ -91,7 +97,7 @@ final class NonReadableStream implements StreamInterface
         return null;
     }
 
-    public function getSize(): ?int
+    public function getSize(): int
     {
         return 0;
     }

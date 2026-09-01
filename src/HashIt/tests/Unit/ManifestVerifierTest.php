@@ -7,6 +7,8 @@ namespace ItPack\HashIt\Test\Unit;
 use ItPack\HashIt\Adapter\NativeFilepathFileinfo;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Contract\HasherInterface;
+use ItPack\HashIt\Factory\FilepathFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;
 use ItPack\HashIt\ManifestVerifier;
@@ -21,7 +23,7 @@ final class ManifestVerifierTest extends TestCase
 
     private function verifier(): ManifestVerifier
     {
-        return new ManifestVerifier();
+        return new ManifestVerifier(new FilepathFactory(), new ManifestFactory());
     }
 
     public function testMatched(): void

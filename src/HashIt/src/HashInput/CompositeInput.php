@@ -7,6 +7,7 @@ namespace ItPack\HashIt\HashInput;
 use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\Contract\HashInputInterface;
 use ItPack\HashIt\Contract\HashSinkInterface;
+use ItPack\HashIt\Factory\TempSinkFactory;
 
 /**
  * An ordered collection of {@see HashInputInterface} children, framed so that the
@@ -22,8 +23,10 @@ final readonly class CompositeInput implements HashInputInterface
     /**
      * @param list<HashInputInterface> $children
      */
-    public function __construct(private array $children)
-    {
+    public function __construct(
+        private array $children,
+        private TempSinkFactory $tempSinkFactory,
+    ) {
     }
 
     public function writeTo(HashSinkInterface $sink): HashSinkInterface
@@ -31,7 +34,7 @@ final readonly class CompositeInput implements HashInputInterface
         $current = $sink;
 
         foreach ($this->children as $child) {
-            $frame = new TempSink();
+            $frame = $this->tempSinkFactory->create();
             $child->writeTo($frame);
             $length = $frame->length();
 

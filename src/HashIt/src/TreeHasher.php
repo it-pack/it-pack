@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\HashIt;
 
 use InvalidArgumentException;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\TempSinkFactory;
 use ItPack\HashIt\HashInput\TempSink;
 
 /**
@@ -26,8 +28,11 @@ use ItPack\HashIt\HashInput\TempSink;
  */
 final readonly class TreeHasher implements Contract\TreeHashingInterface
 {
-    public function __construct(private Contract\ContextFactoryInterface $factory)
-    {
+    public function __construct(
+        private Contract\ContextFactoryInterface $factory,
+        private HashFactory $hashFactory,
+        private TempSinkFactory $tempSinkFactory,
+    ) {
     }
 
     public function treeHash(
@@ -41,7 +46,7 @@ final readonly class TreeHasher implements Contract\TreeHashingInterface
 
         $algorithmName = $algorithm instanceof HashAlgorithm ? $algorithm->value : $algorithm;
 
-        $sink = new TempSink();
+        $sink = $this->tempSinkFactory->create();
         $input->writeTo($sink);
 
         $leaves = [];
@@ -55,7 +60,7 @@ final readonly class TreeHasher implements Contract\TreeHashingInterface
 
         $root = $this->combine($leaves, $algorithmName);
 
-        return Hash::create(bin2hex($root), $algorithmName, false);
+        return $this->hashFactory->create(bin2hex($root), $algorithmName, false);
     }
 
     /**
@@ -112,7 +117,7 @@ final readonly class TreeHasher implements Contract\TreeHashingInterface
      */
     private function rawHash(string $data, string $algorithm): string
     {
-        return HashBuilder::start($this->factory, $algorithm, true)
+        return HashBuilder::start($this->factory, $this->hashFactory, $algorithm, true)
             ->append($data)
             ->digest()
             ->value()

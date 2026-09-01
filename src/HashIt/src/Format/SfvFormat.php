@@ -6,7 +6,8 @@ namespace ItPack\HashIt\Format;
 
 use InvalidArgumentException;
 use ItPack\HashIt\Contract\ManifestFormatInterface;
-use ItPack\HashIt\Hash;
+use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashManifest;
 
@@ -18,6 +19,12 @@ use ItPack\HashIt\HashManifest;
  */
 final class SfvFormat implements ManifestFormatInterface
 {
+    public function __construct(
+        private HashFactory $hashFactory,
+        private ManifestFactory $manifestFactory,
+    ) {
+    }
+
     public function serialize(HashManifest $manifest): string
     {
         $lines = ['# algorithm ' . $manifest->algorithm()->value];
@@ -47,11 +54,11 @@ final class SfvFormat implements ManifestFormatInterface
                 throw new InvalidArgumentException('Malformed SFV line: ' . $line);
             }
 
-            $manifest ??= new HashManifest($algorithm);
-            $manifest = $manifest->with($m[1], Hash::create(strtolower($m[2]), $algorithm->value));
+            $manifest ??= $this->manifestFactory->createManifest($algorithm);
+            $manifest = $manifest->with($m[1], $this->hashFactory->create(strtolower($m[2]), $algorithm->value));
         }
 
-        return $manifest ?? new HashManifest($algorithm);
+        return $manifest ?? $this->manifestFactory->createManifest($algorithm);
     }
 
     /**

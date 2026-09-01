@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use ItPack\HashIt\Contract\ContextFactoryInterface;
 use ItPack\HashIt\Contract\HasherInterface;
 use ItPack\HashIt\Contract\HashInterface;
+use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 use ItPack\HashIt\HashBuilder;
 use Psr\Http\Message\StreamInterface;
@@ -25,6 +26,7 @@ final class PsrStreamHasher
 {
     public function __construct(
         private readonly ContextFactoryInterface $factory,
+        private readonly HashFactory $hashFactory,
     ) {
     }
 
@@ -41,7 +43,7 @@ final class PsrStreamHasher
             throw new InvalidArgumentException('Chunk size must be at least 1 byte');
         }
 
-        $builder = HashBuilder::start($this->factory, $algorithm);
+        $builder = HashBuilder::start($this->factory, $this->hashFactory, $algorithm);
 
         if ($body->isSeekable()) {
             $body->rewind();
