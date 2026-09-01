@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace ItPack\HashIt\Adapter;
 
 use InvalidArgumentException;
-use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
 use ItPack\HashIt\Contract\AlgorithmSourceInterface;
 use ItPack\HashIt\Contract\HashInterface;
 use ItPack\HashIt\Contract\HmacHasherInterface;
 use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
+use RuntimeException;
 
 final readonly class NativeHmacHasher implements HmacHasherInterface
 {
@@ -57,7 +57,10 @@ final readonly class NativeHmacHasher implements HmacHasherInterface
 
     private function source(): AlgorithmSourceInterface
     {
-        return $this->source ?? new NativeAlgorithmSource();
+        return $this->source
+            ?? throw new RuntimeException(
+                'NativeHmacHasher needs an AlgorithmSourceInterface; wire it in the composition root'
+            );
     }
 
     private function normalize(string $algorithm): HashAlgorithm

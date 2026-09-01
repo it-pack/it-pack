@@ -7,6 +7,7 @@ namespace Tests\Unit;
 use Codeception\Test\Unit;
 use ItPack\HashIt\Adapter\NativeHashIt;
 use ItPack\HashIt\Adapter\NativeHmacHasher;
+use ItPack\HashIt\AlgorithmSource\NativeAlgorithmSource;
 use ItPack\HashIt\Factory\HashFactory;
 use ItPack\HashIt\HashAlgorithm;
 
@@ -14,7 +15,7 @@ class HmacHasherTest extends Unit
 {
     private function hasher(): NativeHmacHasher
     {
-        return new NativeHmacHasher(new HashFactory());
+        return new NativeHmacHasher(new HashFactory(), new NativeAlgorithmSource());
     }
 
     public function testHmacMatchesNativeHashHmac(): void

@@ -375,23 +375,40 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M6 — Factory-only instantiation (F-7)
+## M6 — Factory-only instantiation (F-7) — DONE
 
 **Goal:** value-object/`new` sites inside non-factory classes are replaced by injected factories, keeping `NativeHashIt` the sole composition root.
 
-### Tasks
-- **M6.1** Create small factories: `HashFactory`, `ManifestFactory` (`VerificationReport`/`HashMismatch`/`Filepath`), `ResumableHashFactory`. Each is a `final` class with a single creation method (one-type-per-file).
-- **M6.2** Refactor call sites:
-  - `Hasher.php:286` (`new Hash`), `:277` (`new NativeAlgorithmSource`) → inject `HashFactory` + `AlgorithmSourceInterface` (the latter is already a port — `NativeAlgorithmSource` lives in Core, so this is deptrac-clean).
-  - `KeyedHasher.php:237` (`new Hash`), `:228` (`new NativeAlgorithmSource`) → same.
-  - `TreeHasher.php:44` (`new TempSink`), `:58` (`Hash::create`) → inject `TempSinkFactory` / `HashFactory`.
-  - `ManifestVerifier.php:26/35/39` → inject `FilepathFactory`/`ManifestFactory`.
-  - `Format/BsdFormat.php`, `Format/SfvFormat.php`, `Format/GnuSha256Format.php` → inject `ManifestFactory`/`FilepathFactory`.
-  - `ResumableHasher.php:29/36` (`new ResumableHash`) → inject `ResumableHashFactory`.
-- **M6.3** Wire the new factories in `NativeHashIt` (the only place that may `new` concretes).
-- **M6.4** Run `composer architecture` (deptrac) — confirm Core still only depends on `Contract` (+ Core's own `NativeAlgorithmSource`); `composer coverage` ≥95%.
+### Tasks — done
+- **M6.1** Created 5 factory classes in `src/Factory/` (already present at M6 start, wired incrementally):
+  - `HashFactory` — sole place `new Hash()` is allowed
+  - `ManifestFactory` — sole place `new HashManifest()`, `new HashMismatch()`, `new VerificationReport()` are allowed
+  - `ResumableHashFactory` — sole place `new ResumableHash()` is allowed
+  - `TempSinkFactory` — sole place `new TempSink()` is allowed
+  - `FilepathFactory` — sole place `new Filepath()` is allowed
+- **M6.2** Refactored all call sites to use factories:
+  - `Hasher.php` — `new Hash` replaced by `$this->hashFactory->create()`; `new NativeAlgorithmSource` replaced by constructor injection (`?Contract\AlgorithmSourceInterface $source`) with a `throw` fallback in `source()`.
+  - `KeyedHasher.php` — same pattern as `Hasher`.
+  - `TreeHasher.php` — `new TempSink` replaced by `$this->tempSinkFactory->create()`; `Hash::create()` replaced by `$this->hashFactory->create()`.
+  - `ManifestVerifier.php` — `new Filepath`/`new HashMismatch`/`new VerificationReport` replaced by injected `FilepathFactory`/`ManifestFactory`.
+  - `Format/BsdFormat.php`, `Format/SfvFormat.php`, `Format/GnuSha256Format.php` — `new Hash`/`new HashManifest` replaced by injected `HashFactory`/`ManifestFactory`.
+  - `ResumableHasher.php` — `new ResumableHash` replaced by `$this->resumableFactory->create()`.
+  - `NativeHmacHasher.php` — `new NativeAlgorithmSource()` in `source()` replaced by `throw new RuntimeException(...)` (matching the `Hasher`/`KeyedHasher` pattern); moved to `NativeHashIt::hmacHasher()` as `$source ?? new NativeAlgorithmSource()`.
+- **M6.3** Wired new factories in `NativeHashIt` (the only place that may `new` concretes):
+  - Added `NativeHashIt::manifestVerifier(): ManifestVerifier` — creates `ManifestVerifier` with `FilepathFactory` + `ManifestFactory`.
+  - `FilepathFactory` and `ManifestFactory` are now instantiated only in `NativeHashIt` (composition root) and in tests.
 
-**Verification:** `rg 'new (Hash|HashMismatch|Filepath|VerificationReport|ResumableHash|TempSink)\b' src` only matches inside the respective factories and `NativeHashIt`.
+### Status — DONE
+- **M6 verification:** `rg 'new (Hash|HashMismatch|Filepath|VerificationReport|ResumableHash|TempSink)\b' src/` matches **only** inside `src/Factory/*` (the respective factories).
+- `new NativeAlgorithmSource` matches **only** in `NativeHashIt` (composition root).
+- `composer cs:check` clean (0/98).
+- `composer cs:strict` F-3 ✅ / F-5 ✅ / F-6 ✅.
+- `composer test:unit` green (203 tests / 527 assertions).
+- `composer coverage` lines **96.37%** / methods **92.97%** — statements ≥95% met; methods below 95% are the same pre-existing defensive-branch gaps from M5 (delegating `throw` fallbacks, `fopen`-false branches in Core that Codeception's warning handler intercepts); no new uncovered methods introduced by M6.
+- `composer architecture` green (0 violations, 0 errors, 0 warnings, 20 uncovered, 130 allowed).
+- `vendor/bin/phpstan analyse` exit 0.
+
+**Verification:** `rg 'new (Hash|HashMismatch|Filepath|VerificationReport|ResumableHash|TempSink)\b' src/` only matches inside the respective factories; `rg 'new NativeAlgorithmSource' src/` only matches inside `NativeHashIt`.
 
 ---
 

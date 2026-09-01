@@ -15,12 +15,15 @@ use ItPack\HashIt\Contract\KeyedHasherInterface;
 use ItPack\HashIt\Contract\Pbkdf2Interface;
 use ItPack\HashIt\Contract\ResumableHashingInterface;
 use ItPack\HashIt\Contract\TreeHashingInterface;
+use ItPack\HashIt\Factory\FilepathFactory;
 use ItPack\HashIt\Factory\HashFactory;
+use ItPack\HashIt\Factory\ManifestFactory;
 use ItPack\HashIt\Factory\ResumableHashFactory;
 use ItPack\HashIt\Factory\TempSinkFactory;
 use ItPack\HashIt\Hasher;
 use ItPack\HashIt\KeyDerivation\Hkdf;
 use ItPack\HashIt\KeyedHasher;
+use ItPack\HashIt\ManifestVerifier;
 use ItPack\HashIt\ResumableHasher;
 use ItPack\HashIt\TreeHasher;
 
@@ -46,7 +49,7 @@ final readonly class NativeHashIt
 
     public static function hmacHasher(?AlgorithmSourceInterface $source = null): HmacHasherInterface
     {
-        return new NativeHmacHasher(new HashFactory(), $source);
+        return new NativeHmacHasher(new HashFactory(), $source ?? new NativeAlgorithmSource());
     }
 
     public static function keyedHasher(
@@ -98,6 +101,16 @@ final readonly class NativeHashIt
             new HashFactory(),
             new TempSinkFactory(),
         );
+    }
+
+    /**
+     * Manifest verifier — re-hashes each path in a {@see HashManifest} and
+     * compares against the expected digest via {@see FilepathFactory} and
+     * {@see ManifestFactory} ports.
+     */
+    public static function manifestVerifier(): ManifestVerifier
+    {
+        return new ManifestVerifier(new FilepathFactory(), new ManifestFactory());
     }
 
     /**
