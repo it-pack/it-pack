@@ -23,6 +23,18 @@ use ItPack\HashIt\HashAlgorithm;
  */
 final readonly class Hkdf implements KeyDerivationInterface
 {
+    /**
+     * RFC 5869 hard limit on the HKDF expansion block counter (single octet),
+     * which in turn caps the output at `RFC5869_MAX_BLOCKS * HashLen` octets.
+     */
+    private const int RFC5869_MAX_BLOCKS = 255;
+
+    /** @var positive-int Default derived-key length, matching SHA-256 HashLen. */
+    private const int DEFAULT_DERIVED_KEY_LENGTH = 32;
+
+    /** Single zero octet per RFC 5869 §2.1 (the `i` counter byte is 0x01). */
+    private const string BLOCK_COUNTER_PREFIX = "\0";
+
     public function __construct(
         private KeyedHasherInterface $hasher,
     ) {
@@ -31,7 +43,7 @@ final readonly class Hkdf implements KeyDerivationInterface
     public function derive(
         string $ikm,
         ?string $salt = null,
-        int $length = 32,
+        int $length = self::DEFAULT_DERIVED_KEY_LENGTH,
         string $info = '',
         string|HashAlgorithm $algorithm = HashAlgorithm::SHA256,
     ): string {
@@ -41,12 +53,13 @@ final readonly class Hkdf implements KeyDerivationInterface
 
         $algorithm = $algorithm instanceof HashAlgorithm ? $algorithm : HashAlgorithm::from($algorithm);
         $hashLen = $this->hashLen($algorithm);
+        $maxOutput = self::RFC5869_MAX_BLOCKS * $hashLen;
 
-        if ($length > 255 * $hashLen) {
+        if ($length > $maxOutput) {
             throw new InvalidArgumentException(sprintf(
                 'Derived key length %d exceeds the RFC 5869 maximum of %d octets for %s',
                 $length,
-                255 * $hashLen,
+                $maxOutput,
                 $algorithm->value,
             ));
         }
@@ -54,7 +67,7 @@ final readonly class Hkdf implements KeyDerivationInterface
         // PHP's hash_hmac rejects an empty HMAC key, and RFC 5869 treats a
         // missing salt as HashLen zero octets — so both an omitted and an
         // explicitly empty salt collapse to the RFC default rather than crash.
-        $saltKey = ($salt === null || $salt === '') ? str_repeat("\0", $hashLen) : $salt;
+        $saltKey = ($salt === null || $salt === '') ? str_repeat(self::BLOCK_COUNTER_PREFIX, $hashLen) : $salt;
         $prk = $this->hasher->hmacBinary($ikm, $saltKey, $algorithm)->value();
 
         $output = '';

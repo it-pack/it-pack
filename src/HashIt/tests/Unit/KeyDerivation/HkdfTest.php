@@ -99,4 +99,15 @@ class HkdfTest extends Unit
 
         $this->kdf()->derive('ikm', 'salt', 0, '', HashAlgorithm::SHA256);
     }
+
+    /**
+     * RFC 5869 caps output at 255 * HashLen octets. For SHA-256 (HashLen = 32)
+     * that is 8 160 bytes — the exact boundary must succeed.
+     */
+    public function testRfc5869MaxOutputLengthSucceeds(): void
+    {
+        $okm = $this->kdf()->derive('ikm', 'salt', 255 * 32, '', HashAlgorithm::SHA256);
+
+        self::assertSame(255 * 32, strlen($okm));
+    }
 }

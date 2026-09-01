@@ -464,19 +464,32 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M9 — `Hkdf` magic-number constants (F-10)
+## M9 — `Hkdf` magic-number constants (F-10) — DONE
 
 **Goal:** hoist bare literals into named constants, consistent with `DEFAULT_CHUNK_SIZE_BYTES` / `FRAME_LENGTH_BYTES`.
 
-### Tasks
-- **M9.1** In `src/KeyDerivation/Hkdf.php`:
-  - `private const int RFC5869_MAX_BLOCKS = 255;` (`:45`)
-  - `private const int DEFAULT_DERIVED_KEY_LENGTH = 32;` (`:34` default)
-  - `private const string BLOCK_COUNTER_PREFIX = "\0";` (`:57`)
-- **M9.2** Replace usages; add a tiny doc note citing RFC 5869.
-- **M9.3** Keep the existing `Hkdf` tests green; add a boundary test at `length = 255 * hashLen` (the max block count) if not already present.
+### Tasks — done
+- **M9.1** Added three `private const` declarations to `src/KeyDerivation/Hkdf.php`, following the project declaration order "const → props → ctor" (placed before the constructor):
+  - `private const int RFC5869_MAX_BLOCKS = 255;` (replaces `255` on lines 45 & 49)
+  - `private const int DEFAULT_DERIVED_KEY_LENGTH = 32;` (replaces the `= 32` default on line 34)
+  - `private const string BLOCK_COUNTER_PREFIX = "\0";` (replaces `str_repeat("\0", ...)` on line 57)
+- **M9.2** Replaced all three magic-number usages with the named constants:
+  - `derive()` signature: `int $length = self::DEFAULT_DERIVED_KEY_LENGTH`
+  - Max-output guard: introduced `$maxOutput = self::RFC5869_MAX_BLOCKS * $hashLen;` used in both the comparison and the `sprintf` error message (eliminates the duplicated `255 * $hashLen` expression)
+  - Salt default: `str_repeat(self::BLOCK_COUNTER_PREFIX, $hashLen)`
+  - Added docblock notes on each constant citing RFC 5869 (§2.1 for the counter byte; the `255` octet limit for `RFC5869_MAX_BLOCKS`).
+- **M9.3** Added `testRfc5869MaxOutputLengthSucceeds()` to `tests/Unit/KeyDerivation/HkdfTest.php` — requests exactly `255 * 32 = 8160` bytes (the SHA-256 block-count ceiling) and asserts the digest is that exact length, covering the boundary that was previously only exercised by the *over*-the-limit exception path.
 
-**Verification:** `rg '255|"\0"' src/KeyDerivation/Hkdf.php` only matches the constant definitions; coverage held.
+### Status — DONE
+- `rg '255|"\0"' src/KeyDerivation/Hkdf.php` matches only the doc-comment ("255 * HashLen octets") and the constant definitions — no code-level magic numbers remain.
+- `composer test:unit` green — **208 tests / 542 assertions** (up from 207/541; +1 test, +1 assertion from the new boundary test).
+- `composer coverage` — `Hkdf` now **100% methods / 100% lines (3/3, 25/25)** (was 93.9% methods / 100% lines on M1-M8). Aggregate suite lines at 96.37% (≥95% target met).
+- `composer cs:check` clean (0/99).
+- `composer cs:strict` F-3 ✅ / F-5 ✅ / F-6 ✅.
+- `composer architecture` green (0 violations, 0 errors, 0 warnings).
+- `vendor/bin/phpstan analyse --debug` "No errors" (100 files).
+
+**Verification:** `rg '255' src/KeyDerivation/Hkdf.php` returns only the pre-existing class docblock ("255 * HashLen octets") and `private const int RFC5869_MAX_BLOCKS = 255;`; `rg '"\\0"' src/KeyDerivation/Hkdf.php` returns only `private const string BLOCK_COUNTER_PREFIX = "\0";`; all other `255` and `"\0"` references have been replaced by constant references.
 
 ---
 
