@@ -18,9 +18,7 @@
         }
     },
     "suggest": {
-        "psr/http-message": "Install to hash PSR-7 streams via ItPack\\HashIt\\Adapter\\PsrStreamHasher",
-        "open-telemetry/api": "Install to emit OpenTelemetry tracing spans via ItPack\\HashIt\\Adapter\\Observability\\OtelHashingObserver",
-        "cloudevents/sdk-php": "Install to emit CNCF CloudEvents via ItPack\\HashIt\\Adapter\\Observability\\CloudEventsHashingObserver"
+        "psr/http-message": "Install to hash PSR-7 streams via ItPack\\HashIt\\Adapter\\PsrStreamHasher"
     },
     "authors": [
         {
@@ -35,6 +33,8 @@
         "symfony/http-client": "^8.1",
         "nyholm/psr7": "^1.8",
         "psr/http-message": "^2.0",
+        "cloudevents/sdk-php": "^1.2",
+        "open-telemetry/api": "^1.10",
         "infection/infection": "^0.33"
     },
     "config": {

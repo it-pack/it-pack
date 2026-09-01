@@ -439,16 +439,28 @@ no matches; `composer cs:check` green; `composer cs:strict` F-3 green.
 
 ---
 
-## M8 — Optional SDKs in `require-dev` (F-9)
+## M8 — Optional SDKs in `require-dev` (F-9) — DONE
 
 **Goal:** clean `composer install` reproduces the green observer-test suite.
 
-### Tasks
-- **M8.1** Move `open-telemetry/api` and `cloudevents/sdk-php` from `suggest` → `require-dev` in `composer.json`; run `composer update --dev`.
-- **M8.2** (Fallback if SDKs must stay optional) instead guard `OtelHashingObserverTest` / `CloudEventsHashingObserverTest` with `@requires` / a `class_exists` skip so they self-skip on a clean install rather than fatal.
-- **M8.3** Verify on a fresh checkout: `rm -rf vendor && composer install --no-dev` then `composer install` then `composer coverage` is green end-to-end.
+### Tasks — done
+- **M8.1** Moved `open-telemetry/api` and `cloudevents/sdk-php` from `suggest` → `require-dev` in `composer.json` (versions `^1.10` and `^1.2` respectively, matching installed 1.10.0 / 1.2.0). Removed the two SDK entries from the `suggest` block (kept the `psr/http-message` suggest entry — it remains optional for consumers who want PSR-7 stream hashing without the full dev dependency set). Ran `composer update --dev`.
+- **M8.2** *(n/a — not needed)* The fallback path (guarding tests with `@requires` / `class_exists` skips) was not required because both SDKs are now explicitly pinned as `require-dev`, guaranteeing they are always present during `composer install` (with dev). The existing `class_exists(CloudEventImmutable::class)` guard in `CloudEventsHashingObserver` and the `Globals::tracerProvider()` fallback in `OtelHashingObserver` remain as production-time optional-dependency safety nets for consumers who only install the library itself.
+- **M8.3** Verified on a fresh checkout: `rm -rf vendor && composer install --no-dev` succeeds (package itself does not require the SDKs at runtime), and `composer install` (default, with dev) pulls both SDKs automatically. `composer coverage` is green end-to-end (207 tests / 541 assertions / 96.37% lines).
 
-**Verification:** observer tests pass on a clean install; CI uses the same `require-dev` set.
+### Status — DONE
+- `composer.json` `require-dev` now explicitly lists `cloudevents/sdk-php: ^1.2` and `open-telemetry/api: ^1.10`.
+- `composer.json` `suggest` retains only `psr/http-message`.
+- `composer.lock` re-resolved; `composer show --direct` confirms both SDKs are now direct dev dependencies (no longer transitive-only via `just-bases/php-obs-dev-base`).
+- `rm -rf vendor && composer install --no-dev` → exit 0 (clean runtime install without SDKs).
+- `composer install` → exit 0 (full install including SDKs as explicit dev deps).
+- `composer coverage` → 207 tests / 541 assertions, all green, lines 96.37% (≥95% target met).
+- `composer cs:check` clean (0/99).
+- `composer cs:strict` F-3 ✅ / F-5 ✅ / F-6 ✅.
+- `composer architecture` 0 violations, 0 errors, 0 warnings (22 uncovered, 139 allowed).
+- `vendor/bin/phpstan analyse --debug` "No errors" (100 files).
+
+**Verification:** `composer show --direct | grep -E 'cloudevents|open-telemetry'` lists both SDKs as direct dev dependencies; `composer install --no-dev` succeeds without the SDK classes (the library's runtime `require` block is unchanged); observer tests pass on a full install.
 
 ---
 
