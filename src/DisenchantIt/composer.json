@@ -20,16 +20,15 @@
         "codeception/module-phpbrowser": "^3.0",
         "consolidation/robo": "^3.0",
         "fivefilters/readability.php": "^3.3",
-        "friendsofphp/php-cs-fixer": "^3.64",
         "infection/codeception-adapter": "^0.4.7",
-        "infection/infection": "^0.35.2",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
         "open-telemetry/api": "^1.0",
         "open-telemetry/exporter-otlp": "^1.0",
         "open-telemetry/sdk": "^1.0",
         "open-telemetry/sem-conv": "^1.0",
-        "phparkitect/phparkitect": "^1.2",
-        "phpstan/phpstan": "^2.2",
-        "phpstan/phpstan-strict-rules": "^2.0"
+        "phparkitect/phparkitect": "^1.2"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
@@ -51,30 +50,34 @@
         "allow-plugins": {
             "php-http/discovery": true,
             "tbachert/spi": false,
-            "infection/extension-installer": true
+            "infection/extension-installer": true,
+            "dantleech/what-changed": true,
+            "phpstan/extension-installer": true
         }
     },
     "scripts": {
         "test": "vendor/bin/codecept run",
-        "test:unit": "@test unit",
-        "test:integration": "@test run integration",
-        "test:acceptance": "@test run acceptance",
-        "test:coverage": "@test run --coverage --coverage-html",
-        "phpstan": "vendor/bin/phpstan",
-        "analyze": "@phpstan analyse src tests --level=9",
-        "fix": "vendor/bin/php-cs-fixer fix",
-        "format": "@fix --diff",
-        "format:check": "@fix --dry-run --diff",
+        "test:unit": "vendor/bin/codecept run Unit",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:acceptance": "vendor/bin/codecept run Acceptance",
+        "test:coverage": "vendor/bin/codecept run --coverage --coverage-html",
+        "analyse": "vendor/bin/phpstan analyse",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
         "architecture": "vendor/bin/phparkitect check",
-        "mutation": "@php vendor/bin/infection",
-        "mutation:ci": "@php vendor/bin/infection --min-msi=0 --no-interaction",
+        "mutation": "vendor/bin/infection --min-msi=80",
+        "mutation:ci": "vendor/bin/infection --min-msi=0 --no-interaction",
         "rector": "vendor/bin/rector",
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
+        "security:audit": "@composer audit",
         "quality": [
-            "@format:check",
-            "@analyze",
-            "@test"
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test",
+            "@mutation",
+            "@security:audit"
         ]
     }
 }

@@ -16,6 +16,8 @@
         "codeception/module-phpbrowser": "^4.1",
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "infection/codeception-adapter": "^0.4",
         "symfony/yaml": "^7.0"
     },
     "autoload": {
@@ -42,7 +44,16 @@
         "test:unit": "vendor/bin/codecept run Unit",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse"
+        "analyse": "vendor/bin/phpstan analyse",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=80 --no-interaction",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@test",
+            "@mutation",
+            "@security:audit"
+        ]
     },
     "repositories": [
         {

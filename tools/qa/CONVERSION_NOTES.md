@@ -72,3 +72,41 @@ All reusable config lives in `tools/qa/`:
 | DeriveIt | 2.4 | deptrac→phparkitect. Architecture DSL. Root-level Entry classes enforced via `ResideInOneOfTheseNamespacesExactly`. Dual-run: 0 violations both tools. |
 | AsyncIt | 2.4 | deptrac→phparkitect. Contract/Port namespace overlap: Port is its own component; Contract (excl Port) enforced via `ResideInOneOfTheseNamespacesExactly` + `NotDependsOnTheseNamespaces`. Dual-run: 21 violations both tools (pre-existing architectural issues, not migration artifacts). |
 | RunIt | 2.5 | deptrac→phparkitect. `layeredArchitecture()` with 10 components (Common, Contract, Domain, BehaviorDomain, Application, BehaviorApplication, SDK, Adapter, Conformance). Contract selector `Contract\*` intentionally subsumes Port (safe because deptrac is green — no Contract→Port deps exist). Dual-run: 0 violations both tools. |
+
+## Phase 3 — Dev-dependency baseline unification
+
+### 3.1 Remove ad-hoc tool pins, adopt just-bases
+
+| Package | Ad-hoc pins removed | just-bases added | Notes |
+|---|---|---|---|
+| DisenchantIt | `phpstan/phpstan`, `phpstan/phpstan-strict-rules`, `friendsofphp/php-cs-fixer`, `infection/infection` | `php-unit-test-base`, `php-qa-base`, `php-obs-dev-base` | Retained `infection/codeception-adapter` + `phparkitect/phparkitect`. phpstan.neon `level: 9` → `level: max`. Normalized all scripts to QA lane contract. |
+| HashIt | `infection/infection: ^0.33` | (already had just-bases) | Added `infection/codeception-adapter: ^0.4`. Renamed `infection.json.dist` → `infection.json5` (standard naming). Normalized scripts. |
+| ConfigureItExplorer | — | `php-obs-dev-base`, `infection/codeception-adapter` | Created `infection.json5`. Constraint `*` → `*@dev` for `it-pack/configure-it`. `minimum_stability: dev` → `stable`. |
+| ConfigureItPsr11 | — | `php-obs-dev-base`, `infection/codeception-adapter` | Already `*@dev`. Created `infection.json5`. |
+| ConfigureItSchemaDocs | — | `php-obs-dev-base`, `infection/codeception-adapter` | Created `infection.json5`. Constraint `*` → `*@dev`. `minimum_stability: dev` → `stable`. |
+| ConfigureItSymfony | — | `php-obs-dev-base`, `infection/codeception-adapter` | Already `*@dev`. Created `infection.json5`. |
+| ConfigureItTesting | — | `php-obs-dev-base`, `infection/codeception-adapter` | Created `infection.json5`. Constraint `*` → `*@dev`. `minimum_stability: dev` → `stable`. |
+| ConfigureItRunit | — | `php-obs-dev-base`, `infection/codeception-adapter` | Already `*@dev`. Removed `coverage`/`infection` scripts referencing `vendor/bin/phpunit`. Created `infection.json5`. |
+| DeriveIt | — | — | Constraint `codeception/module-asserts: "*"` → `^3.3` (consistency with lead packages). |
+| DeriveItRunit | — | `php-obs-dev-base`, `infection/codeception-adapter` | Already `*@dev`. Removed phpunit refs. Updated `infection.json5`: `testFramework: "phpunit"` → `"codeception"`. |
+| RunItThirdPartySample | — | `php-obs-dev-base`, `infection/codeception-adapter` | Already `*@dev`. Removed phpunit refs. Created `infection.json5`. |
+
+### 3.2 Script normalization
+
+All Phase 3 target packages now expose the canonical QA lane contract:
+`test` / `test:unit` / `cs:check` / `cs:fix` / `analyse` / `architecture` /
+`mutation` / `quality` / `security:audit`. Removed all remaining `vendor/bin/phpunit`
+references and ad-hoc `phpstan`/`fix`/`format`/`analyze` script names.
+
+### 3.3 Constraint drift normalization
+
+Sibling dependency constraints normalized to `*@dev` (explicit dev stability
+channel). `minimum_stability` normalized to `stable` + `prefer-stable: true`
+across all packages. Remaining `*` constraints are limited to PHP extension
+requirements (`ext-*` — standard PHP convention with no version semantics).
+
+### Remaining risks
+
+- Phase 2.4 (adding phparkitect to the 8 Phase 1 packages) was NOT completed as
+  part of Phase 3. The `architecture` script is not yet present in those packages.
+  This should be addressed before Phase 4 root orchestration.

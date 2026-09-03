@@ -21,7 +21,9 @@
         "codeception/codeception": "^5.0",
         "codeception/module-asserts": "^3.3",
         "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0"
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "infection/codeception-adapter": "^0.4"
     },
     "autoload": {
         "psr-4": {
@@ -55,8 +57,15 @@
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "analyse": "vendor/bin/phpstan analyse",
-        "coverage": "vendor/bin/phpunit --coverage-text",
-        "infection": "vendor/bin/infection --min-msi=80"
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=80 --no-interaction",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@test",
+            "@mutation",
+            "@security:audit"
+        ]
     },
     "repositories": [
         {
