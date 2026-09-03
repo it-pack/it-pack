@@ -40,8 +40,9 @@ it-pack/
 ```
 
 Each `src/<Pkg>/` is an independent package with its own `composer.json`,
-`tests/`, and QA config. There is **no** monorepo root `composer.json` yet
-(Phase 4 of `docs/CONSOLIDATION_PLAN.md` adds the orchestrator).
+`tests/`, and QA config. The **root** `composer.json` is scripts-only and
+delegates QA to per-package scripts via the `Makefile` (`make quality`). See
+`docs/CONSOLIDATION_PLAN.md` Phase 4 for details.
 
 ---
 
