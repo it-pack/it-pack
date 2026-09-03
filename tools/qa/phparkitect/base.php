@@ -43,7 +43,7 @@ function layeredArchitecture(string $root, array $components, array $dependencie
         $arch = $arch->where($from)->mayDependOnComponents(...$mayDependOn);
     }
 
-    return $arch->rules();
+    return iterator_to_array($arch->rules());
 }
 
 /**

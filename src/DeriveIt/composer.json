@@ -31,6 +31,7 @@
     "require-dev": {
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
+        "phparkitect/phparkitect": "^1.2",
         "codeception/module-asserts": "*",
         "infection/codeception-adapter": "^0.4.7"
     },
@@ -50,7 +51,7 @@
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "cs:lines": "vendor/bin/phpcs --standard=phpcs.xml.dist src tests",
         "analyse": "vendor/bin/phpstan analyse",
-        "architecture": "vendor/bin/deptrac",
+        "architecture": "vendor/bin/phparkitect check",
         "infection": "vendor/bin/infection --min-msi=80"
     },
     "extra": {

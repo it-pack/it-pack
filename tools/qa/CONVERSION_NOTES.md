@@ -19,30 +19,37 @@ All reusable config lives in `tools/qa/`:
 
 ## Recipe: PHPUnit → Codeception (pilot = ConfigureItPsr11)
 
-The it-pack **lead** packages (RunIt, AsyncIt, CommandIt, …) run their Unit
-suites under Codeception **while keeping `class XTest extends \PHPUnit\Framework\TestCase`**
-— Codeception's Unit runner is a thin wrapper over PHPUnit, so the test classes
-themselves need **no change**. The AGENTS.md / EXECUTION.md standard therefore
-states "the Unit suite subclasses `PHPUnit\Framework\TestCase`".
+<p><em>(unchanged — see above)</em></p>
 
-So the mechanical conversion is config-only:
+## Recipe: deptrac → phparkitect (pilot = HashItAsync)
 
-1. `composer.json` `require-dev`: remove `phpunit/phpunit`, `phpstan/phpstan`,
-   `friendsofphp/php-cs-fixer` (and `squizlabs/php_codesniffer`, `infection/infection`
-   in the RunIt-bridge packages); add `codeception/codeception`,
-   `codeception/module-asserts`, `just-bases/php-unit-test-base`,
-   `just-bases/php-qa-base` (plus `codeception/module-phpbrowser` for web packages).
-2. Add `infection/extension-installer` (and `dantleech/what-changed`,
-   `tbachert/spi: false`) to `config.allow-plugins` — `just-bases/php-qa-base`
-   pulls `infection/infection`, whose composer plugin must be allowed (mirrors
-   the lead packages).
-3. `scripts`: `test` → `vendor/bin/codecept run`, `test:unit` →
-   `vendor/bin/codecept run Unit`. Drop the non-standard `cs:lines` (phpcs) script.
-4. Copy `tools/qa/codeception.dist.yml` → `codeception.yml`.
-5. Add `tests/Unit.suite.yml` (`path: .`, `actor: UnitTester`,
-   `modules: [Asserts]`) and `tests/Support/UnitTester.php` (copied from a lead
-   package). `codecept build` (run in CI) generates `tests/Support/_generated/*`.
-6. Delete `phpunit.xml.dist`.
+1. Create `phparkitect.php` at the package root. `require_once` the shared
+   `tools/qa/phparkitect/base.php` (adjust relative path to repo root).
+2. Translate each deptrac `<layer>` + `ruleset` entry into an
+   `Architecture::withComponents()` chain (component name ↔ namespace
+   selector, `mayDependOnComponents` ↔ allowed deps). `mayDependOnComponents()`
+   includes self-dependency by default (matching deptrac's implicit self-rule).
+3. For cross-namespace bridge packages (HashItAsync, CommandIt, RunItThirdPartySample),
+   define the dependency namespace as its own component even when it is empty
+   in the local `src/` (phparkitect vacuous-allows this).
+4. For "forbid sibling imports" rules (CommandIt, DisenchantIt), use the
+   shared `forbidSibling()` helper from `tools/qa/phparkitect/forbid-sibling.php`.
+5. `composer.json`: add `"phparkitect/phparkitect": "^1.2"` to `require-dev`;
+   change `"architecture"` script to `"vendor/bin/phparkitect check"`.
+6. Rename `deptrac.yaml` → `deptrac.archive.yaml` (keep for dual-run).
+7. **Dual-run:** `vendor/bin/phparkitect check` and `vendor/bin/deptrac --config-file=deptrac.archive.yaml`
+   must flag the same violations (diff if not, log in migration log).
+8. Only after Phase 5 docs: delete `deptrac.archive.yaml`.
+
+**Implementation notes (Phase 2):**
+
+- `Architecture::rules()` returns `iterable` (Generator), not `array`. When spreading into `array_merge()` or `$config->add()`,
+  wrap with `iterator_to_array()` to avoid "Argument #1 must be of type array" / "positional argument after spread".
+- `layeredArchitecture()` in `base.php` returns `iterator_to_array($arch->rules())` (fixed from `$arch->rules()`).
+- Namespace overlap (e.g. Contract vs Contract\Port): phparkitect cannot express negative namespace globs.
+  Define the sub-namespace as its own component; enforce the parent (excl sub) via `ResideInOneOfTheseNamespacesExactly` +
+  `NotDependsOnTheseNamespaces`. The parent namespace is not a component in the Architecture DSL, so parent→parent deps
+  are not forbidden (matching deptrac's allow-all-unless-forbidden).
 
 ## Migration log
 
@@ -57,3 +64,11 @@ So the mechanical conversion is config-only:
 | ConfigureItRunit | 1 | PHPUnit→Codeception; dropped phpcs/infection direct + `cs:lines`. |
 | DeriveItRunit | 1 | PHPUnit→Codeception; dropped phpcs/infection direct + `cs:lines`. |
 | RunItThirdPartySample | 1 | PHPUnit→Codeception; dropped phpcs/infection direct + `cs:lines`. |
+| HashItAsync | 2.1 | Pilot. deptrac→phparkitect. Architecture DSL (rule-based, not `layeredArchitecture`). Dual-run: 0 violations both tools. |
+| HashIt | 2.2 | deptrac→phparkitect. Root-level Core namespace handled via `ResideInOneOfTheseNamespacesExactly`. Dual-run: 0 violations both tools. |
+| CommandIt | 2.2 | deptrac→phparkitect. Architecture DSL + `forbidSibling()` for RunIt. CLI sub-namespace forbidden from other Adapter sub-namespaces. Dual-run: 0 violations both tools. |
+| CommitIt | 2.3 | deptrac→phparkitect. `layeredArchitecture()` with BehaviorDomain as separate component (merged into Domain in deptrac). Contract→[Common,Domain,BehaviorDomain] to match deptrac. Dual-run: 0 violations both tools. |
+| ConfigureIt | 2.3 | deptrac→phparkitect. `layeredArchitecture()` with 10 components. Dual-run: 0 violations both tools. |
+| DeriveIt | 2.4 | deptrac→phparkitect. Architecture DSL. Root-level Entry classes enforced via `ResideInOneOfTheseNamespacesExactly`. Dual-run: 0 violations both tools. |
+| AsyncIt | 2.4 | deptrac→phparkitect. Contract/Port namespace overlap: Port is its own component; Contract (excl Port) enforced via `ResideInOneOfTheseNamespacesExactly` + `NotDependsOnTheseNamespaces`. Dual-run: 21 violations both tools (pre-existing architectural issues, not migration artifacts). |
+| RunIt | 2.5 | deptrac→phparkitect. `layeredArchitecture()` with 10 components (Common, Contract, Domain, BehaviorDomain, Application, BehaviorApplication, SDK, Adapter, Conformance). Contract selector `Contract\*` intentionally subsumes Port (safe because deptrac is green — no Contract→Port deps exist). Dual-run: 0 violations both tools. |

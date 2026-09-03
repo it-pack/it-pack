@@ -40,6 +40,7 @@
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
+        "phparkitect/phparkitect": "^1.2",
         "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3",
         "infection/codeception-adapter": "^0.4.7"
@@ -57,7 +58,7 @@
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "analyse": "vendor/bin/phpstan analyse",
-        "architecture": "vendor/bin/deptrac --config-file=deptrac.yaml",
+        "architecture": "vendor/bin/phparkitect check",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --test-framework=codeception --test-framework-extra-args=Unit --threads=2",
         "security:audit": "@composer audit",
         "quality": [
