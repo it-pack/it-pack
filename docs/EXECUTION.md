@@ -508,6 +508,20 @@ packages already do; migrants align to them):
 Optional but encouraged: `security:audit` (`composer audit --abandoned=report`),
 `lint:length`, `lint:types`.
 
+## Root orchestration
+
+The monorepo root provides unified entry points:
+
+- **`composer.json`** (root, scripts-only): `composer quality`, `composer test`,
+  `composer cs:check`, `composer analyse`, `composer architecture`, `composer
+  mutation` — all delegate to the Makefile.
+- **`Makefile`**: `make quality` runs `composer quality` in every package that
+  defines it (currently 14 packages) plus lane aliases (`make test`, `make
+  cs-check`, `make analyse`, etc.). Packages without the lane are silently
+  skipped.
+- **`.github/workflows/quality.yml`**: 14×2 matrix (14 packages × PHP 8.4/8.5)
+  running `composer quality` per package. Fails the build on any lane error.
+
 ## Architecture rules
 
 The hexagonal layer contract and the "ports-not-imports" doctrine are encoded
