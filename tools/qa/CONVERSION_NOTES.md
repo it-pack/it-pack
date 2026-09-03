@@ -110,3 +110,21 @@ requirements (`ext-*` — standard PHP convention with no version semantics).
 - Phase 2.4 (adding phparkitect to the 8 Phase 1 packages) was NOT completed as
   part of Phase 3. The `architecture` script is not yet present in those packages.
   This should be addressed before Phase 4 root orchestration.
+
+## Phase 4 — Root orchestration & CI
+
+### 4.1 Root composer.json (scripts-only)
+
+Added root `composer.json` with no dependencies — only scripts that delegate to
+`make`: `quality`, `test`, `cs:check`, `analyse`, `architecture`, `mutation`.
+
+### 4.2 Makefile
+
+Added root `Makefile` with `quality` target (runs `composer quality` in every
+package that defines it) plus lane aliases (`test`, `cs-check`, `cs-fix`, `analyse`,
+`architecture`, `mutation`). Packages without the lane are silently skipped.
+
+**14 packages** participate (all with `quality` script): AsyncIt, CommandIt,
+CommitIt, ConfigureItExplorer, ConfigureItPsr11, ConfigureItRunit,
+ConfigureItSchemaDocs, ConfigureItSymfony, ConfigureItTesting, DeriveItRunit,
+DisenchantIt, HashIt, RunIt, RunItThirdPartySample.

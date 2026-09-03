@@ -1,0 +1,14 @@
+{
+    "name": "it-pack/it-pack",
+    "description": "it-pack monorepo root — scripts-only. Delegates QA to per-package composer scripts via `make quality`.",
+    "type": "project",
+    "license": "MIT",
+    "scripts": {
+        "quality": "@composer exec -- make quality",
+        "test": "@composer exec -- make test",
+        "cs:check": "@composer exec -- make cs:check",
+        "analyse": "@composer exec -- make analyse",
+        "architecture": "@composer exec -- make architecture",
+        "mutation": "@composer exec -- make mutation"
+    }
+}
