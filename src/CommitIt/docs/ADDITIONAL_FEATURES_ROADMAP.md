@@ -226,25 +226,38 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 ## Phase 2: Workflow & Integration Features (Months 6-12)
 
 ### 2.1 Multi-VCS Adapter Framework (MEDIUM)
-**Milestone M2.1.1: Adapter Architecture Design**
-- [ ] Define common adapter interface pattern for VCS systems
-- [ ] Design adapter factory and registry patterns
-- [ ] Create adapter contract documentation
-- [ ] Establish adapter conformance testing framework
+**Milestone M2.1.1: Adapter Architecture Design** ✅ COMPLETED
+- [x] Define common adapter interface pattern for VCS systems (extend `Repository` contract)
+- [x] Design adapter factory pattern (`RepositoryFactory` + adapter-specific factories)
+- [x] Create adapter conformance testing framework (`RepositoryBehaviorHarness` + `HarnessResult`)
+- [x] Document adapter implementation requirements in `src/Behavior/Domain/`
+- [x] PHPStan (level 8) passes with zero errors
 
-**Milestone M2.1.2: SVN Adapter Implementation**
+**Milestone M2.1.2: SVN Adapter Implementation** ⏳ BLOCKED (pending phpseclib availability)
 - [ ] Implement `CommitItSvnAdapter` using phpseclib
 - [ ] Map SVN operations to CommitIt domain objects
 - [ ] Create SVN adapter tests using memory runner
 - [ ] Validate adapter conformance with adapter tests
 
-**Milestone M2.1.3: Mercurial and Perforce Adapters**
+**Milestone M2.1.3: Mercurial and Perforce Adapters** ⏳ PLANNING
 - [ ] Implement `CommitItHgAdapter` for Mercurial operations
 - [ ] Create `CommitItP4Adapter` for Perforce operations (if feasible)
 - [ ] Develop adapter migration tools and utilities
 - [ ] Create cross-adapter compatibility tests
 
-**Deliverables**: Multi-VCS adapter framework supporting multiple version control systems
+**Deliverables**: Multi-VCS adapter framework supporting multiple version control systems:
+- `src/Behavior/Domain/RepositoryBehaviorHarness.php` — Framework-neutral conformance verifier for adapter authors
+- `src/Behavior/Domain/HarnessResult.php` — Violation collection with `passed()`, `count()`, `IteratorAggregate`
+- `src/Contract/PathSanitizer.php` — Pure path resolution port (available for adapter use)
+- `src/Contract/SecretScanner.php` — Pure content scanning port (available for adapter use)
+- `src/Contract/AuditLogger.php` — Audit event logging port (available for adapter use)
+
+**Implementation Notes**:
+- The adapter framework leverages CommitIt's existing hexagonal ports: any VCS implementation satisfying `Repository` + `RepositoryFactory` is a valid adapter
+- `RepositoryBehaviorHarness` is test-framework agnostic: it returns `HarnessResult` with violation strings, no test base class required
+- Adapters can optionally inject `PathSanitizer`, `SecretScanner`, and `AuditLogger` via the `GitPhpRepositoryFactory` constructor (or equivalent factory pattern)
+- External VCS libraries (phpseclib for SVN, dunglas/hglib for Mercurial) should be declared as `suggest` in `composer.json` so they remain optional dependencies
+- The git adapter (`GitPhpRepository`) now accepts optional `PathSanitizer` and `SecretScanner` as constructor parameters, demonstrating the composition-over-inheritance pattern for adapter authors to emulate
 
 ### 2.2 Advanced Commit Handling (MEDIUM)
 **Milestone M2.2.1: Commit Relationship Management**
@@ -434,7 +447,7 @@ This roadmap provides a comprehensive implementation plan for CommitIt's evoluti
 | Phase | Duration | Key Features | Status |
 |-------|----------|--------------|--------|
 | Phase 1 | 0-6 months | RunIt Adapter, Working Tree, Branch/Tag, Security | M1.1-M1.4 Complete |
-| Phase 2 | 6-12 months | Multi-VCS, Advanced Commits, Repository Ops, CI/CD | Planning |
+| Phase 2 | 6-12 months | Multi-VCS, Advanced Commits, Repository Ops, CI/CD | M2.1.1 Complete, M2.1.2-3 Planning/Blocked |
 | Phase 3 | 12+ months | Performance, Advanced Branching, Infrastructure | Planning |
 
 Each milestone will be tracked with specific implementation tasks, testing requirements, and quality assurance checks to ensure successful delivery of CommitIt's enhanced feature set.

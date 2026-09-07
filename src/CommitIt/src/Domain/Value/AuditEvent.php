@@ -25,7 +25,7 @@ final readonly class AuditEvent
         public ?BranchName $branch = null,
         public ?TagName $tag = null,
         public array $context = [],
-        public  ?DateTimeImmutable $timestamp = null,
+        public ?DateTimeImmutable $timestamp = null,
     ) {
     }
 
