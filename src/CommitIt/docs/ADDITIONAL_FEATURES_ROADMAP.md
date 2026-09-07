@@ -20,26 +20,28 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 
 ## Phase 1: Foundation & Core Enhancements (Months 0-6)
 
-### 1.1 RunIt Observer Adapter Integration (HIGH)
-**Milestone M1.1.1: Adapter Architecture Design**
-- [ ] Define RunIt adapter interface extending `RepositoryObserver`
-- [ ] Design mapping from VCS operations to RunIt's Activity/Measurement/Observation triad
-- [ ] Establish adapter lifecycle and error handling patterns
-- [ ] Create adapter contract documentation
+### 1.1 RunIt Observer Adapter Integration (HIGH) ✅ COMPLETED
+**Milestone M1.1.1: Adapter Architecture Design** ✅ COMPLETED
+- [x] Define RunIt adapter interface extending `RepositoryObserver`
+- [x] Design mapping from VCS operations to RunIt's Activity/Measurement/Observation/Occurrence/Snapshot triad
+- [x] Establish adapter lifecycle and error handling patterns
+- [x] Create adapter contract documentation
 
-**Milestone M1.1.2: Core Adapter Implementation**
-- [ ] Implement `CommitItRunitAdapter` class
-- [ ] Map all VCS operations to standardized occurrence names
-- [ ] Implement observer failure isolation and non-recursive behavior
-- [ ] Add integration tests with mock RunIt engine
+**Milestone M1.1.2: Core Adapter Implementation** ✅ COMPLETED
+- [x] Implement `CommitItRunitAdapter` class in `src/CommitIt/src/Adapter/RunIt/CommitItRunitAdapter.php`
+- [x] Map all VCS operations to standardized occurrence names
+- [x] Implement observer failure isolation and non-recursive behavior
+- [x] Add integration tests with mock RunIt engine
 
-**Milestone M1.1.3: RunIt Integration Testing**
+**Milestone M1.1.3: RunIt Integration Testing** ✅ IN PROGRESS
 - [ ] Create integration test suite with real execution engine
 - [ ] Test observer lifecycle events across all operations
 - [ ] Validate error propagation and handling
 - [ ] Benchmark observer overhead impact
 
 **Deliverables**: `src/CommitIt/Adapter/RunIt/` package with `CommitItRunitAdapter.php`
+
+**Status Update**: The core RunIt adapter has been created as `CommitItRunitAdapter`, providing the initial implementation of the observer mapping to RunIt's execution model. The adapter follows the hexagonal architecture principles and maintains the ports-not-imports pattern by implementing the existing `RepositoryObserver` interface.
 
 ### 1.2 Advanced Working Tree Operations (HIGH)
 **Milestone M1.2.1: Sparse Working Tree Support**

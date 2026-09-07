@@ -1,0 +1,93 @@
+{
+    "name": "it-pack/commit-it-runit",
+    "description": "RunIt adapter for CommitIt - maps VCS operations to RunIt execution model with full integration",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "vcs",
+        "runit",
+        "execution",
+        "observer",
+        "it-pack",
+        "run-it"
+    ],
+    "autoload": {
+        "psr-4": {
+            "ItPack\\CommitIt\\Adapter\\RunIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/it-pack/it-pack/issues",
+        "source": "https://github.com/it-pack/it-pack/tree/main/src/CommitIt/src/Adapter/RunIt"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^8.4",
+        "it-pack/commit-it": "^1.0",
+        "run-it/run-it": "^0.1"
+    },
+    "require-dev": {
+        "just-bases/php-unit-test-base": "^1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "phparkitect/phparkitect": "^1.2",
+        "codeception/module-asserts": "^3.3",
+        "infection/codeception-adapter": "^0.4.7",
+        "phpstan/extension-installer": "^1.0",
+        "php-http/discovery": "^1.0"
+    },
+    "scripts": {
+        "validate": "@composer validate --strict",
+        "test": [
+            "@test:unit",
+            "@test:integration",
+            "@test:functional"
+        ],
+        "test:unit": "vendor/bin/codecept run Unit",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:functional": "vendor/bin/codecept run Functional",
+        "coverage": "vendor/bin/codecept run Unit,Integration,Functional --coverage --coverage-xml --coverage-html",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --test-framework=codeception --test-framework-extra-args=Integration,Functional --threads=2",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@validate",
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test",
+            "@security:audit"
+        ],
+        "quality:full": [
+            "@validate",
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@coverage:all",
+            "@mutation"
+        ]
+    },
+    "config": {
+        "process-timeout": 1800,
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "dantleech/what-changed": true,
+            "phpstan/extension-installer": true
+        }
+    }
+}
