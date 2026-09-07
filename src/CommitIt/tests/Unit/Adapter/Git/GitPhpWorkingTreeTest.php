@@ -7,9 +7,9 @@ namespace Tests\Unit\Adapter\Git;
 use Codeception\Test\Unit;
 use CzProject\GitPhp\GitRepository;
 use CzProject\GitPhp\Runners\MemoryRunner;
-use InvalidArgumentException;
 use ItPack\CommitIt\Adapter\Git\GitPhpWorkingTree;
 use ItPack\CommitIt\Domain\Exception\VcsOperationException;
+use ItPack\CommitIt\Domain\Exception\WorktreeAccessDeniedException;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\SparsePattern;
@@ -19,6 +19,7 @@ use Tests\Support\Helper\GitRepoFactory;
 /**
  * @covers \ItPack\CommitIt\Adapter\Git\GitPhpWorkingTree
  * @covers \ItPack\CommitIt\Adapter\Git\GitExceptionMap
+ * @covers \ItPack\CommitIt\Domain\Service\DefaultWorktreeAccessPolicy
  */
 final class GitPhpWorkingTreeTest extends Unit
 {
@@ -62,6 +63,7 @@ final class GitPhpWorkingTreeTest extends Unit
         self::assertSame('/repo', $trees[0]->path);
         self::assertSame('main', $trees[0]->branch);
         self::assertTrue($trees[0]->isMain);
+        self::assertFalse($trees[0]->orphaned);
 
         self::assertSame('/repo/feature', $trees[1]->path);
         self::assertSame('feature', $trees[1]->branch);
@@ -88,12 +90,12 @@ final class GitPhpWorkingTreeTest extends Unit
     {
         $target = $this->repoDir . DIRECTORY_SEPARATOR . 'wt';
         $workingTree = $this->buildWorkingTree(
-            static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'remove', $target], [], ''),
+            static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'remove', '--force', $target], [], ''),
         );
 
         $workingTree->remove(RepositoryPath::from($target));
 
-        $this->assertCommandRan(['worktree', 'remove', $target]);
+        $this->assertCommandRan(['worktree', 'remove', '--force', $target]);
     }
 
     public function testAddWithoutBranchFormulatesCommand(): void
@@ -114,7 +116,7 @@ final class GitPhpWorkingTreeTest extends Unit
 
         $outside = DIRECTORY_SEPARATOR . 'commitit_wt_escape_' . bin2hex(random_bytes(4));
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(WorktreeAccessDeniedException::class);
         $workingTree->add(RepositoryPath::from($outside), BranchName::from('feature'));
     }
 
@@ -138,7 +140,7 @@ final class GitPhpWorkingTreeTest extends Unit
             $gitRepository = new GitRepository($repoDir, $runner);
             $workingTree = new GitPhpWorkingTree($gitRepository);
 
-            $this->expectException(InvalidArgumentException::class);
+            $this->expectException(WorktreeAccessDeniedException::class);
             $workingTree->add(
                 RepositoryPath::from($sibling . DIRECTORY_SEPARATOR . 'wt'),
                 BranchName::from('feature'),
@@ -186,7 +188,7 @@ final class GitPhpWorkingTreeTest extends Unit
             static fn (MemoryRunner $runner) => $runner->setResult(['worktree', 'list'], [], ''),
         );
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(WorktreeAccessDeniedException::class);
         $workingTree->add(
             RepositoryPath::from($outside . DIRECTORY_SEPARATOR . 'wt'),
             BranchName::from('feature'),
@@ -275,5 +277,135 @@ final class GitPhpWorkingTreeTest extends Unit
 
         $this->expectException(VcsOperationException::class);
         $workingTree->disableSparseCheckout();
+    }
+
+    public function testListWorktreesParsesGitdirAndDetectsOrphaned(): void
+    {
+        $repoDir = $this->repoDir;
+        $realGitdir = $repoDir . '/.git/worktrees/main';
+        mkdir(dirname($realGitdir), 0o755, true);
+        touch($realGitdir);
+
+        $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(
+            ['worktree', 'list', '--porcelain'],
+            [],
+            implode("\n", [
+                'worktree ' . $repoDir,
+                'HEAD abc123',
+                'branch refs/heads/main',
+                'gitdir ' . $realGitdir,
+                '',
+                'worktree ' . $repoDir . '/orphan',
+                'branch refs/heads/orphan',
+                'gitdir ' . $repoDir . '/.git/worktrees/nonexistent',
+            ]),
+        ));
+
+        $trees = $workingTree->listWorktrees();
+
+        self::assertCount(2, $trees);
+        self::assertFalse($trees[0]->orphaned);
+        self::assertTrue($trees[1]->orphaned);
+    }
+
+    public function testFindOrphanedWorktreesReturnsEmptyWhenNoneOrphaned(): void
+    {
+        $repoDir = $this->repoDir;
+        $realGitdir = $repoDir . '/.git/worktrees/main';
+        mkdir(dirname($realGitdir), 0o755, true);
+        touch($realGitdir);
+
+        $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(
+            ['worktree', 'list', '--porcelain'],
+            [],
+            implode("\n", [
+                'worktree ' . $repoDir,
+                'branch refs/heads/main',
+                'gitdir ' . $realGitdir,
+            ]),
+        ));
+
+        $orphaned = $workingTree->findOrphanedWorktrees();
+
+        self::assertSame([], $orphaned);
+    }
+
+    public function testFindOrphanedWorktreesReturnsOrphanedWorktrees(): void
+    {
+        $repoDir = $this->repoDir;
+        $realGitdir = $repoDir . '/.git/worktrees/main';
+        mkdir(dirname($realGitdir), 0o755, true);
+        touch($realGitdir);
+
+        $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(
+            ['worktree', 'list', '--porcelain'],
+            [],
+            implode("\n", [
+                'worktree ' . $repoDir,
+                'branch refs/heads/main',
+                'gitdir ' . $realGitdir,
+                '',
+                'worktree ' . $repoDir . '/orphan',
+                'branch refs/heads/orphan',
+                'gitdir /nonexistent/path/worktrees/orphan',
+            ]),
+        ));
+
+        $orphaned = $workingTree->findOrphanedWorktrees();
+
+        self::assertCount(1, $orphaned);
+        self::assertSame($repoDir . '/orphan', $orphaned[0]->path);
+    }
+
+    public function testCleanupOrphanedWorktreesReturnsZeroWhenNoOrphans(): void
+    {
+        $repoDir = $this->repoDir;
+        $realGitdir = $repoDir . '/.git/worktrees/main';
+        mkdir(dirname($realGitdir), 0o755, true);
+        touch($realGitdir);
+
+        $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(
+            ['worktree', 'list', '--porcelain'],
+            [],
+            implode("\n", [
+                'worktree ' . $repoDir,
+                'branch refs/heads/main',
+                'gitdir ' . $realGitdir,
+            ]),
+        ));
+
+        $count = $workingTree->cleanupOrphanedWorktrees();
+
+        self::assertSame(0, $count);
+    }
+
+    public function testCleanupOrphanedWorktreesPrunesAndReturnsCount(): void
+    {
+        $repoDir = $this->repoDir;
+        $realGitdir = $repoDir . '/.git/worktrees/main';
+        mkdir(dirname($realGitdir), 0o755, true);
+        touch($realGitdir);
+
+        $workingTree = $this->buildWorkingTree(static function (MemoryRunner $runner) use ($repoDir, $realGitdir): void {
+            $runner->setResult(
+                ['worktree', 'list', '--porcelain'],
+                [],
+                implode("\n", [
+                    'worktree ' . $repoDir,
+                    'branch refs/heads/main',
+                    'gitdir ' . $realGitdir,
+                    '',
+                    'worktree ' . $repoDir . '/orphan',
+                    'branch refs/heads/orphan',
+                    'gitdir /nonexistent/path/worktrees/orphan',
+                ]),
+            );
+            $runner->setResult(['worktree', 'prune'], [], '');
+        });
+
+        $count = $workingTree->cleanupOrphanedWorktrees();
+
+        self::assertSame(1, $count);
+        $this->assertCommandRan(['worktree', 'prune']);
     }
 }

@@ -41,9 +41,15 @@ trait GitAdapterMemoryTrait
             return;
         }
 
-        $items = scandir($this->repoDir);
+        self::removeDirectory($this->repoDir);
+    }
+
+    private static function removeDirectory(string $path): void
+    {
+        $items = scandir($path);
 
         if ($items === false) {
+            rmdir($path);
             return;
         }
 
@@ -52,16 +58,16 @@ trait GitAdapterMemoryTrait
                 continue;
             }
 
-            $full = $this->repoDir . DIRECTORY_SEPARATOR . $item;
+            $full = $path . DIRECTORY_SEPARATOR . $item;
 
             if (is_dir($full)) {
-                rmdir($full);
+                self::removeDirectory($full);
             } else {
                 unlink($full);
             }
         }
 
-        rmdir($this->repoDir);
+        rmdir($path);
     }
 
     protected function buildRepository(callable $seed): GitPhpRepository

@@ -41,4 +41,6 @@ enum RepositoryOperation: string
     case SetSparsePatterns = 'setSparsePatterns';
     case GetSparsePatterns = 'getSparsePatterns';
     case DisableSparseCheckout = 'disableSparseCheckout';
+    case FindOrphanedWorktrees = 'findOrphanedWorktrees';
+    case CleanupOrphanedWorktrees = 'cleanupOrphanedWorktrees';
 }

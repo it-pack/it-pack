@@ -10,6 +10,7 @@ use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Domain\Exception\InvalidCommitMessageException;
 use ItPack\CommitIt\Domain\Exception\InvalidReferenceNameException;
 use ItPack\CommitIt\Domain\Exception\VcsOperationException;
+use ItPack\CommitIt\Domain\Exception\WorktreeAccessDeniedException;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
 use ItPack\CommitIt\Domain\Value\RemoteName;
@@ -27,6 +28,7 @@ use Tests\Support\Helper\GitRepoFactory;
  * @covers \ItPack\CommitIt\Adapter\Git\GitPhpRepository
  * @covers \ItPack\CommitIt\Adapter\Git\GitPhpWorkingTree
  * @covers \ItPack\CommitIt\Adapter\Git\GitPhpRepositoryFactory
+ * @covers \ItPack\CommitIt\Domain\Service\DefaultWorktreeAccessPolicy
  */
 final class GitPhpSecurityTest extends Unit
 {
@@ -100,7 +102,7 @@ final class GitPhpSecurityTest extends Unit
             GitRepoFactory::initWorkingRepo($repo, 'main');
             $repository = $this->open($repo);
 
-            $this->expectException(\InvalidArgumentException::class);
+            $this->expectException(WorktreeAccessDeniedException::class);
             $repository->getWorkingTree()->add(RepositoryPath::from('/etc'), BranchName::from('escape'));
         } finally {
             GitRepoFactory::tearDown($repo);
@@ -115,7 +117,7 @@ final class GitPhpSecurityTest extends Unit
             GitRepoFactory::initWorkingRepo($repo, 'main');
             $repository = $this->open($repo);
 
-            $this->expectException(\InvalidArgumentException::class);
+            $this->expectException(WorktreeAccessDeniedException::class);
             $repository->getWorkingTree()->remove(RepositoryPath::from('/etc'));
         } finally {
             GitRepoFactory::tearDown($repo);
@@ -133,7 +135,7 @@ final class GitPhpSecurityTest extends Unit
             mkdir($sibling, 0o755, true);
             $repository = $this->open($repo);
 
-            $this->expectException(\InvalidArgumentException::class);
+            $this->expectException(WorktreeAccessDeniedException::class);
             $repository->getWorkingTree()->add(
                 RepositoryPath::from($sibling . DIRECTORY_SEPARATOR . 'wt'),
                 BranchName::from('escape'),
@@ -154,7 +156,7 @@ final class GitPhpSecurityTest extends Unit
             mkdir($sibling, 0o755, true);
             $repository = $this->open($repo);
 
-            $this->expectException(\InvalidArgumentException::class);
+            $this->expectException(WorktreeAccessDeniedException::class);
             $repository->getWorkingTree()->remove(RepositoryPath::from($sibling . DIRECTORY_SEPARATOR . 'wt'));
         } finally {
             GitRepoFactory::tearDown($repo, $sibling);

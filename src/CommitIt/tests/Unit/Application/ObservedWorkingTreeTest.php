@@ -234,4 +234,26 @@ final class RecordingWorkingTree implements WorkingTree
             throw new RuntimeException('boom on disableSparseCheckout');
         }
     }
+
+    public function findOrphanedWorktrees(): array
+    {
+        $this->calls[] = 'findOrphanedWorktrees';
+
+        if ($this->throwOn === 'findOrphanedWorktrees') {
+            throw new RuntimeException('boom on findOrphanedWorktrees');
+        }
+
+        return [];
+    }
+
+    public function cleanupOrphanedWorktrees(): int
+    {
+        $this->calls[] = 'cleanupOrphanedWorktrees';
+
+        if ($this->throwOn === 'cleanupOrphanedWorktrees') {
+            throw new RuntimeException('boom on cleanupOrphanedWorktrees');
+        }
+
+        return 0;
+    }
 }

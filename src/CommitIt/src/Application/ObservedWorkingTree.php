@@ -119,4 +119,29 @@ final readonly class ObservedWorkingTree implements WorkingTree
             fn () => $this->inner->disableSparseCheckout(),
         );
     }
+
+    /**
+     * @return list<WorktreeInfo>
+     * @throws Throwable
+     */
+    public function findOrphanedWorktrees(): array
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::FindOrphanedWorktrees->value,
+            fn (): array => $this->inner->findOrphanedWorktrees(),
+        );
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function cleanupOrphanedWorktrees(): int
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::CleanupOrphanedWorktrees->value,
+            fn (): int => $this->inner->cleanupOrphanedWorktrees(),
+        );
+    }
 }

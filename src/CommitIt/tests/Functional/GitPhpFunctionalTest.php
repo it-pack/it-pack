@@ -252,4 +252,46 @@ final class GitPhpFunctionalTest extends Unit
             GitRepoFactory::tearDown($repo);
         }
     }
+
+    public function testWorktreeSecurityPolicyBlocksEscapePath(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-sec-func');
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            $repository = $this->open($repo);
+
+            $this->expectException(\ItPack\CommitIt\Domain\Exception\WorktreeAccessDeniedException::class);
+            $repository->getWorkingTree()->add(
+                RepositoryPath::from('/etc'),
+                BranchName::from('escape'),
+            );
+        } finally {
+            GitRepoFactory::tearDown($repo);
+        }
+    }
+
+    public function testWorktreeSecurityPolicyAllowsValidPath(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-sec-ok');
+        $worktree = $repo . '-wt';
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            GitRepoFactory::seedFile($repo, 'a.txt', 'hello');
+            $repository = $this->open($repo);
+
+            $repository->getWorkingTree()->add(RepositoryPath::from($worktree), BranchName::from('wt-branch'));
+
+            $infos = $repository->getWorkingTree()->listWorktrees();
+            self::assertCount(2, $infos);
+
+            $repository->getWorkingTree()->remove(RepositoryPath::from($worktree));
+
+            $after = $repository->getWorkingTree()->listWorktrees();
+            self::assertCount(1, $after);
+        } finally {
+            GitRepoFactory::tearDown($repo, $worktree);
+        }
+    }
 }

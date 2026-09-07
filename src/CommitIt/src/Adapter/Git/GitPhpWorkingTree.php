@@ -6,9 +6,10 @@ namespace ItPack\CommitIt\Adapter\Git;
 
 use CzProject\GitPhp\GitException;
 use CzProject\GitPhp\GitRepository;
-use InvalidArgumentException;
-use ItPack\CommitIt\Contract\Exception\VcsOperationException;
 use ItPack\CommitIt\Contract\WorkingTree;
+use ItPack\CommitIt\Contract\WorktreeAccessPolicy;
+use ItPack\CommitIt\Domain\Exception\VcsOperationException;
+use ItPack\CommitIt\Domain\Service\DefaultWorktreeAccessPolicy;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\SparsePattern;
@@ -19,18 +20,28 @@ use ItPack\CommitIt\Domain\Value\WorktreeInfo;
  * passthrough. Composition, not subclassing: we never extend `GitRepository`,
  * only call `git worktree ...` through it.
  *
- * Worktree paths are guarded so they can never escape the repository parent
- * directory (a security requirement from AGENTS.md).
+ * Worktree paths are guarded by {@see WorktreeAccessPolicy} so they can never
+ * escape the repository parent directory (a security requirement from AGENTS.md).
  *
  * @api
  */
-final readonly class GitPhpWorkingTree implements WorkingTree
+final class GitPhpWorkingTree implements WorkingTree
 {
     private const string WORKTREE_PREFIX = 'worktree ';
     private const string BRANCH_PREFIX = 'branch ';
+    private const string GITDIR_PREFIX = 'gitdir ';
 
-    public function __construct(private GitRepository $repository)
-    {
+    private readonly WorktreeAccessPolicy $policy;
+
+    /**
+     * @param WorktreeAccessPolicy|null $policy When null, a {@see DefaultWorktreeAccessPolicy}
+     *   is created from the repository path.
+     */
+    public function __construct(
+        private readonly GitRepository $repository,
+        ?WorktreeAccessPolicy $policy = null,
+    ) {
+        $this->policy = $policy ?? new DefaultWorktreeAccessPolicy($repository->getRepositoryPath());
     }
 
     /**
@@ -38,18 +49,16 @@ final readonly class GitPhpWorkingTree implements WorkingTree
      */
     public function listWorktrees(): array
     {
-        try {
+        return $this->run(function (): array {
             $output = $this->repository->execute('worktree', 'list', '--porcelain');
-        } catch (GitException $e) {
-            throw GitExceptionMap::map($e, 'Failed to list worktrees');
-        }
 
-        return self::parseWorktreeList($output);
+            return self::parseWorktreeList($output);
+        }, 'Failed to list worktrees');
     }
 
     public function add(RepositoryPath $path, ?BranchName $name = null): void
     {
-        $this->assertWithinRepositoryScope($path);
+        $this->policy->validateAdd($path);
 
         $args = ['worktree', 'add'];
 
@@ -62,16 +71,16 @@ final readonly class GitPhpWorkingTree implements WorkingTree
 
         $this->run(function () use ($args): void {
             $this->repository->execute(...$args);
-        });
+        }, 'Failed to add worktree');
     }
 
     public function remove(RepositoryPath $path): void
     {
-        $this->assertWithinRepositoryScope($path);
+        $this->policy->validateRemove($path);
 
         $this->run(function () use ($path): void {
-            $this->repository->execute('worktree', 'remove', $path->toString());
-        });
+            $this->repository->execute('worktree', 'remove', '--force', $path->toString());
+        }, 'Failed to remove worktree');
     }
 
     /**
@@ -123,30 +132,39 @@ final readonly class GitPhpWorkingTree implements WorkingTree
         }, 'Failed to disable sparse checkout');
     }
 
-    private function assertWithinRepositoryScope(RepositoryPath $path): void
+    /**
+     * Returns worktrees whose `gitdir` metadata path does not exist on disk.
+     *
+     * @return list<WorktreeInfo>
+     * @throws \ItPack\CommitIt\Contract\Exception\VcsOperationException
+     */
+    public function findOrphanedWorktrees(): array
     {
-        $repoParent = dirname($this->repository->getRepositoryPath());
-        $targetParent = dirname($path->toString());
+        $worktrees = $this->listWorktrees();
 
-        $realTargetParent = realpath($targetParent);
+        return array_values(array_filter(
+            $worktrees,
+            static fn (WorktreeInfo $wt): bool => $wt->orphaned,
+        ));
+    }
 
-        if ($realTargetParent === false) {
-            throw new InvalidArgumentException(
-                'Worktree parent directory does not exist: ' . $targetParent,
-            );
+    /**
+     * Prunes stale worktree metadata. Returns the count of orphaned worktrees
+     * found before pruning.
+     */
+    public function cleanupOrphanedWorktrees(): int
+    {
+        $orphaned = $this->findOrphanedWorktrees();
+
+        if ($orphaned === []) {
+            return 0;
         }
 
-        $realRepoParent = realpath($repoParent);
+        $this->run(function (): void {
+            $this->repository->execute('worktree', 'prune');
+        }, 'Failed to prune orphaned worktrees');
 
-        $separator = DIRECTORY_SEPARATOR;
-        $inside = $realTargetParent === $realRepoParent
-            || str_starts_with($realTargetParent . $separator, $realRepoParent . $separator);
-
-        if (!$inside) {
-            throw new InvalidArgumentException(
-                'Worktree path must be located inside the repository parent directory.',
-            );
-        }
+        return count($orphaned);
     }
 
     /**
@@ -155,9 +173,9 @@ final readonly class GitPhpWorkingTree implements WorkingTree
      */
     private static function parseWorktreeList(array $lines): array
     {
-        /** @var list<array{path: string, branch: ?string}> $blocks */
+        /** @var list<array{path: string, branch: ?string, gitdir: ?string}> $blocks */
         $blocks = [];
-        /** @var array{path: string, branch: ?string}|null $current */
+        /** @var array{path: string, branch: ?string, gitdir: ?string}|null $current */
         $current = null;
 
         foreach ($lines as $line) {
@@ -178,14 +196,21 @@ final readonly class GitPhpWorkingTree implements WorkingTree
                 $current = [
                     'path' => substr($line, strlen(self::WORKTREE_PREFIX)),
                     'branch' => null,
+                    'gitdir' => null,
                 ];
 
                 continue;
             }
 
-            if ($current !== null && str_starts_with($line, self::BRANCH_PREFIX)) {
+            if (str_starts_with($line, self::BRANCH_PREFIX) && $current !== null) {
                 $branch = (string) preg_replace('/^refs\/heads\//', '', substr($line, strlen(self::BRANCH_PREFIX)));
                 $current['branch'] = $branch === '' ? null : $branch;
+
+                continue;
+            }
+
+            if (str_starts_with($line, self::GITDIR_PREFIX) && $current !== null) {
+                $current['gitdir'] = substr($line, strlen(self::GITDIR_PREFIX));
             }
         }
 
@@ -197,7 +222,10 @@ final readonly class GitPhpWorkingTree implements WorkingTree
         $result = [];
 
         foreach ($blocks as $block) {
-            $result[] = new WorktreeInfo($block['path'], $block['branch'], $isMain);
+            $orphaned = $block['gitdir'] !== null
+                && !file_exists($block['gitdir']);
+
+            $result[] = new WorktreeInfo($block['path'], $block['branch'], $isMain, $orphaned);
             $isMain = false;
         }
 

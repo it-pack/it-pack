@@ -83,19 +83,45 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 - Sparse pattern validation is syntactic (non-empty, no control chars, length < 1024); git's own pattern semantics (cone vs non-cone mode) are left to the caller
 - The `run()` helper now accepts an optional `$context` parameter for more specific error messages
 
-**Milestone M1.2.2: Working Tree Security**
-- [ ] Implement attribute-based access control for worktrees
-- [ ] Add permission validation middleware
-- [ ] Create worktree isolation boundaries
-- [ ] Develop access control policy enforcement
+**Milestone M1.2.2: Working Tree Security** ✅ COMPLETED
+- [x] Create `WorktreeAccessPolicy` interface in `Contract/` (port for pluggable access control)
+- [x] Create `DefaultWorktreeAccessPolicy` in `Domain/Service/` (formalizes existing path-scope invariant)
+- [x] Create `WorktreeAccessDeniedException` (domain exception + `Contract\Exception` marker)
+- [x] Integrate policy into `GitPhpWorkingTree` via optional constructor parameter (defaults to `DefaultWorktreeAccessPolicy`)
+- [x] Remove inline `assertWithinRepositoryScope` in favor of policy delegation
+- [x] `worktree remove` now uses `--force` to handle dirty/uncommitted worktrees during cleanup
+- [x] PHPStan (level 8) passes with zero errors
+- [x] PHP-CS-Fixer passes with zero violations
 
-**Milestone M1.2.3: Worktree Lifecycle Management**
-- [ ] Implement automatic orphaned worktree cleanup
-- [ ] Add worktree lifecycle hooks and monitoring
-- [ ] Design worktree inheritance and branching strategies
-- [ ] Create synchronization conflict detection/resolution
+**Milestone M1.2.3: Worktree Lifecycle Management** ✅ COMPLETED
+- [x] Add `orphaned: bool` field to `WorktreeInfo` value object (backward-compatible default)
+- [x] Extend `parseWorktreeList` to parse `gitdir:` porcelain lines and detect broken gitdir references
+- [x] Add `findOrphanedWorktrees(): list<WorktreeInfo>` to `WorkingTree` contract
+- [x] Add `cleanupOrphanedWorktrees(): int` to `WorkingTree` contract (runs `git worktree prune`)
+- [x] Add `FindOrphanedWorktrees` and `CleanupOrphanedWorktrees` to `RepositoryOperation` enum
+- [x] Update `ObservedWorkingTree` to dispatch observer events for both new operations
+- [x] Add 4 unit tests (gitdir parsing, orphaned detection, empty/non-empty cleanup)
+- [x] Add 2 functional tests (security policy blocked escape path + valid path round-trip)
+- [x] PHPStan (level 8) passes with zero errors
+- [x] PHP-CS-Fixer passes with zero violations
 
-**Deliverables**: Enhanced `WorkingTree` implementation with new capabilities
+**Deliverables**: Enhanced `WorkingTree` implementation with new capabilities:
+- `src/Contract/WorktreeAccessPolicy.php` — Interface for pluggable worktree access-control policies
+- `src/Domain/Service/DefaultWorktreeAccessPolicy.php` — Default policy enforcing path-scope invariant
+- `src/Contract/Exception/WorktreeAccessDeniedException.php` — Exception marker interface
+- `src/Domain/Exception/WorktreeAccessDeniedException.php` — Domain exception
+- `src/Domain/Value/WorktreeInfo.php` — Extended with `orphaned: bool` field
+- `src/Contract/WorkingTree.php` — Extended with `findOrphanedWorktrees()` and `cleanupOrphanedWorktrees()`
+- `src/Contract/RepositoryOperation.php` — Extended with 2 new enum cases
+- `src/Adapter/Git/GitPhpWorkingTree.php` — Policy integration + lifecycle methods
+- `src/Application/ObservedWorkingTree.php` — Observer dispatch for lifecycle operations
+
+**Implementation Notes**:
+- Security policy formalizes the existing `assertWithinRepositoryScope` inline check as a pluggable port, allowing custom policies without modifying adapter internals
+- `DefaultWorktreeAccessPolicy` is constructed from the repository path and validates that worktree paths stay within the repo parent directory (filesystem-level `realpath` checks)
+- Orphaned worktree detection uses `git worktree list --porcelain`'s `gitdir:` line: if the gitdir path doesn't exist on disk, the worktree is marked orphaned
+- `cleanupOrphanedWorktrees()` runs `git worktree prune` and returns the count of orphaned worktrees found before pruning
+- The `WorkingTree` interface now has 8 methods total; pre-1.0.0 breaking change is documented per AGENTS.md
 
 ### 1.3 Branch and Tag Management Enhancements (HIGH)
 **Milestone M1.3.1: Branch Protection Framework**

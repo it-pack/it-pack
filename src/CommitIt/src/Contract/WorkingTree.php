@@ -51,4 +51,19 @@ interface WorkingTree
      * Disable sparse-checkout mode and restore a full checkout.
      */
     public function disableSparseCheckout(): void;
+
+    /**
+     * Returns worktrees that git knows about but whose metadata is stale or broken
+     * (e.g. the `.git/worktrees/<name>` gitdir reference no longer exists).
+     *
+     * @return list<WorktreeInfo>
+     */
+    public function findOrphanedWorktrees(): array;
+
+    /**
+     * Prunes stale worktree metadata from the repository.
+     *
+     * Returns the number of orphaned worktrees that were cleaned up.
+     */
+    public function cleanupOrphanedWorktrees(): int;
 }

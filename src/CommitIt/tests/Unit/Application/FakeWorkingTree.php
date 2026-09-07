@@ -47,4 +47,14 @@ final class FakeWorkingTree implements WorkingTree
     public function disableSparseCheckout(): void
     {
     }
+
+    public function findOrphanedWorktrees(): array
+    {
+        return [];
+    }
+
+    public function cleanupOrphanedWorktrees(): int
+    {
+        return 0;
+    }
 }
