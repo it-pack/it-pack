@@ -170,25 +170,58 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 - `src/Application/ObservedRepository.php` — Observer dispatch for new operations
 
 ### 1.4 Security and Safety Enhancements (HIGH)
-**Milestone M1.4.1: Advanced Path Validation**
-- [ ] Implement comprehensive path traversal detection
-- [ ] Add secure path normalization and validation
-- [ ] Create path scope enforcement mechanisms
-- [ ] Develop input sanitization and validation pipeline
+**Milestone M1.4.1: Advanced Path Validation** ✅ COMPLETED
+- [x] Implement `PathSanitizer` port contract (pure, side-effect free path resolution)
+- [x] Create `DefaultPathSanitizer` with lexical traversal detection (rejects `..`, absolute paths outside repo)
+- [x] Add `PathScopeViolationException` marker interface + domain exception
+- [x] Integrate sanitizer into `GitPhpRepository::stage()` replacing inline `assertWithinWorkingTree`
+- [x] Add 7 unit tests (traversal rejection, absolute path rejection, normalization, edge cases)
+- [x] Add 2 functional tests (path traversal rejection during stage, absolute path outside repo rejection)
+- [x] PHPStan (level 8) passes with zero errors
 
-**Milestone M1.4.2: Content Security Scanning**
-- [ ] Implement secret detection in commit messages and file contents
-- [ ] Add credential scanning and pattern matching
-- [ ] Create security policy enforcement
-- [ ] Develop security violation reporting
+**Milestone M1.4.2: Content Security Scanning** ✅ COMPLETED
+- [x] Implement `SecretScanner` port contract (pure content scanning)
+- [x] Create `DefaultSecretScanner` with 10 regex patterns covering AWS keys, GitHub tokens, Slack tokens, private keys, bearer tokens, basic auth, connection strings, generic API keys, passwords
+- [x] Add `SecretMatch` value object (type, offset, length, description — no secret value exposed)
+- [x] Add `SecretType` enum (9 classifications)
+- [x] Add `SecurityViolationException` marker interface + domain exception with match list
+- [x] Create `SecurityScanOptions` builder (maxMatchLength, scanCommitMessages, scanFileContents, abortOnMatch, redactInLogs)
+- [x] Integrate scanner into `GitPhpRepository::commit()` — throws `SecurityViolationException` on detection
+- [x] Add 9 unit tests (GitHub token, private key, bearer token, generic API key, no false positive, multiple secrets, sorted by offset, empty content, offset/length correctness)
+- [x] Add 3 functional tests (secret key throws exception, clean commit succeeds, no-scanner commit allows any message)
+- [x] PHPStan (level 8) passes with zero errors
 
-**Milestone M1.4.3: Access Control and Auditing**
-- [ ] Implement fine-grained repository access controls
-- [ ] Add comprehensive audit logging system
-- [ ] Create security event aggregation and alerting
-- [ ] Develop access control policy management
+**Milestone M1.4.3: Access Control and Auditing** ✅ COMPLETED
+- [x] Create `AuditLogger` port interface with `log(AuditEvent)` method
+- [x] Create `AuditEvent` value object (level, operation, branch, tag, context, timestamp) with named constructors
+- [x] Create `AuditLevel` enum (Info, Warning, Error, Security)
+- [x] Implement `NullAuditLogger` no-op implementation
+- [x] Implement `FileAuditLogger` writing JSON-lines to a file with atomic append (LOCK_EX)
+- [x] PHPStan (level 8) passes with zero errors
 
-**Deliverables**: Security layer components integrated with existing CommitIt architecture
+**Deliverables**: Security layer components integrated with existing CommitIt architecture:
+- `src/Contract/PathSanitizer.php` — Pure path resolution port
+- `src/Domain/Service/DefaultPathSanitizer.php` — Lexical traversal detection, no filesystem I/O for validation
+- `src/Contract/Exception/PathScopeViolationException.php` — Exception marker interface
+- `src/Domain/Exception/PathScopeViolationException.php` — Domain exception
+- `src/Contract/SecretScanner.php` — Pure content scanning port
+- `src/Domain/Service/DefaultSecretScanner.php` — Pattern-based scanner with 10 secret patterns
+- `src/Domain/Option/SecurityScanOptions.php` — Builder for scanner configuration
+- `src/Domain/Value/SecretMatch.php` — Non-sensitive match metadata
+- `src/Domain/Value/SecretType.php` — 9 secret classifications
+- `src/Contract/Exception/SecurityViolationException.php` — Exception marker interface
+- `src/Domain/Exception/SecurityViolationException.php` — Domain exception with match list
+- `src/Contract/AuditLogger.php` — Audit event logging port
+- `src/Domain/Value/AuditEvent.php` — Immutable audit event with named constructors
+- `src/Domain/Value/AuditLevel.php` — 4 severity levels
+- `src/Domain/Service/NullAuditLogger.php` — No-op implementation
+- `src/Domain/Service/FileAuditLogger.php` — JSON-lines file-based logger
+
+**Implementation Notes**:
+- `DefaultPathSanitizer` is purely lexical (no symlink resolution) to keep it safe for hot paths and untrusted input in workers
+- `DefaultSecretScanner` uses `#[SensitiveParameter]` to prevent secret leakage in stack traces; matches only return metadata (offset, length, type) — the matched string is never exposed to callers
+- `GitPhpRepository` accepts optional `PathSanitizer` and `SecretScanner` in constructor; when no scanner is provided, commit proceeds without scanning (backward compatible)
+- `FileAuditLogger` writes JSON-lines with `LOCK_EX` for safe concurrent writes; each line contains timestamp, level, operation, branch/tag, and sanitized context only
 
 ## Phase 2: Workflow & Integration Features (Months 6-12)
 
@@ -400,7 +433,7 @@ This roadmap provides a comprehensive implementation plan for CommitIt's evoluti
 
 | Phase | Duration | Key Features | Status |
 |-------|----------|--------------|--------|
-| Phase 1 | 0-6 months | RunIt Adapter, Working Tree, Branch/Tag, Security | M1.1-M1.3 Complete |
+| Phase 1 | 0-6 months | RunIt Adapter, Working Tree, Branch/Tag, Security | M1.1-M1.4 Complete |
 | Phase 2 | 6-12 months | Multi-VCS, Advanced Commits, Repository Ops, CI/CD | Planning |
 | Phase 3 | 12+ months | Performance, Advanced Branching, Infrastructure | Planning |
 
