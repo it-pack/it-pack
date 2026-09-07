@@ -7,9 +7,11 @@ namespace ItPack\CommitIt\Adapter\Git;
 use CzProject\GitPhp\GitException;
 use CzProject\GitPhp\GitRepository;
 use InvalidArgumentException;
+use ItPack\CommitIt\Contract\Exception\VcsOperationException;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 use ItPack\CommitIt\Domain\Value\WorktreeInfo;
 
 /**
@@ -27,10 +29,13 @@ final readonly class GitPhpWorkingTree implements WorkingTree
     private const string WORKTREE_PREFIX = 'worktree ';
     private const string BRANCH_PREFIX = 'branch ';
 
-    public function __construct(private readonly GitRepository $repository)
+    public function __construct(private GitRepository $repository)
     {
     }
 
+    /**
+     * @throws VcsOperationException
+     */
     public function listWorktrees(): array
     {
         try {
@@ -69,6 +74,55 @@ final readonly class GitPhpWorkingTree implements WorkingTree
         });
     }
 
+    /**
+     * @param list<SparsePattern> $patterns
+     */
+    public function setSparsePatterns(array $patterns): void
+    {
+        $patternArgs = array_map(static fn (SparsePattern $p): string => (string) $p, $patterns);
+
+        $this->run(function () use ($patternArgs): void {
+            $this->repository->execute('sparse-checkout', 'init');
+
+            if ($patternArgs !== []) {
+                $this->repository->execute('sparse-checkout', 'set', ...$patternArgs);
+            }
+        }, 'Failed to set sparse checkout patterns');
+    }
+
+    /**
+     * @return list<SparsePattern>
+     */
+    public function getSparsePatterns(): array
+    {
+        return $this->run(function (): array {
+            try {
+                $output = $this->repository->execute('sparse-checkout', 'list');
+            } catch (GitException) {
+                return [];
+            }
+
+            $patterns = [];
+
+            foreach ($output as $line) {
+                if ($line === '') {
+                    continue;
+                }
+
+                $patterns[] = SparsePattern::from($line);
+            }
+
+            return $patterns;
+        }, 'Failed to get sparse checkout patterns');
+    }
+
+    public function disableSparseCheckout(): void
+    {
+        $this->run(function (): void {
+            $this->repository->execute('sparse-checkout', 'disable');
+        }, 'Failed to disable sparse checkout');
+    }
+
     private function assertWithinRepositoryScope(RepositoryPath $path): void
     {
         $repoParent = dirname($this->repository->getRepositoryPath());
@@ -88,7 +142,7 @@ final readonly class GitPhpWorkingTree implements WorkingTree
         $inside = $realTargetParent === $realRepoParent
             || str_starts_with($realTargetParent . $separator, $realRepoParent . $separator);
 
-        if ($realRepoParent === false || !$inside) {
+        if (!$inside) {
             throw new InvalidArgumentException(
                 'Worktree path must be located inside the repository parent directory.',
             );
@@ -129,8 +183,7 @@ final readonly class GitPhpWorkingTree implements WorkingTree
                 continue;
             }
 
-            if (str_starts_with($line, self::BRANCH_PREFIX) && $current !== null) {
-                /** @var string $branch */
+            if ($current !== null && str_starts_with($line, self::BRANCH_PREFIX)) {
                 $branch = (string) preg_replace('/^refs\/heads\//', '', substr($line, strlen(self::BRANCH_PREFIX)));
                 $current['branch'] = $branch === '' ? null : $branch;
             }
@@ -150,13 +203,15 @@ final readonly class GitPhpWorkingTree implements WorkingTree
 
         return $result;
     }
+
     /**
      * @template T
      * @param callable(): T $operation
      * @return T
+     * @throws VcsOperationException
      */
-    private function run(callable $operation)
+    private function run(callable $operation, ?string $context = null)
     {
-        return GitExceptionRunner::run($operation, 'Worktree operation failed');
+        return GitExceptionRunner::run($operation, $context ?? 'Worktree operation failed');
     }
 }

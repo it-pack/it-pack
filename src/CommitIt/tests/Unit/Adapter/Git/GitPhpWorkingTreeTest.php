@@ -12,6 +12,7 @@ use ItPack\CommitIt\Adapter\Git\GitPhpWorkingTree;
 use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 use ItPack\CommitIt\Domain\Value\WorktreeInfo;
 use Tests\Support\Helper\GitRepoFactory;
 
@@ -190,5 +191,89 @@ final class GitPhpWorkingTreeTest extends Unit
             RepositoryPath::from($outside . DIRECTORY_SEPARATOR . 'wt'),
             BranchName::from('feature'),
         );
+    }
+
+    public function testSetSparsePatternsInitializesAndSets(): void
+    {
+        $workingTree = $this->buildWorkingTree(static function (MemoryRunner $runner): void {
+            $runner->setResult(['sparse-checkout', 'init'], [], '');
+            $runner->setResult(['sparse-checkout', 'set', 'src/*', '!src/vendor/*'], [], '');
+        });
+
+        $workingTree->setSparsePatterns([
+            SparsePattern::from('src/*'),
+            SparsePattern::from('!src/vendor/*'),
+        ]);
+
+        $this->assertCommandRan(['sparse-checkout', 'init']);
+        $this->assertCommandRan(['sparse-checkout', 'set', 'src/*', '!src/vendor/*']);
+    }
+
+    public function testSetSparsePatternsWithEmptyListOnlyInits(): void
+    {
+        $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(['sparse-checkout', 'init'], [], ''));
+
+        $workingTree->setSparsePatterns([]);
+
+        $this->assertCommandRan(['sparse-checkout', 'init']);
+    }
+
+    public function testSetSparsePatternsFailureIsMapped(): void
+    {
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(['sparse-checkout', 'init'], [], '', 'fatal: not a git repository', 1),
+        );
+
+        $this->expectException(VcsOperationException::class);
+        $workingTree->setSparsePatterns([SparsePattern::from('src/*')]);
+    }
+
+    public function testGetSparsePatternsReturnsParsedPatterns(): void
+    {
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(
+                ['sparse-checkout', 'list'],
+                [],
+                implode("\n", ['src/*', '!src/vendor/*', '']),
+            ),
+        );
+
+        $patterns = $workingTree->getSparsePatterns();
+
+        self::assertCount(2, $patterns);
+        self::assertInstanceOf(SparsePattern::class, $patterns[0]);
+        self::assertSame('src/*', (string) $patterns[0]);
+        self::assertSame('!src/vendor/*', (string) $patterns[1]);
+        $this->assertCommandRan(['sparse-checkout', 'list']);
+    }
+
+    public function testGetSparsePatternsReturnsEmptyWhenNotConfigured(): void
+    {
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(['sparse-checkout', 'list'], [], '', 'fatal: not a sparse checkout', 1),
+        );
+
+        $patterns = $workingTree->getSparsePatterns();
+
+        self::assertSame([], $patterns);
+    }
+
+    public function testDisableSparseCheckoutFormulatesCommand(): void
+    {
+        $workingTree = $this->buildWorkingTree(static fn (MemoryRunner $runner) => $runner->setResult(['sparse-checkout', 'disable'], [], ''));
+
+        $workingTree->disableSparseCheckout();
+
+        $this->assertCommandRan(['sparse-checkout', 'disable']);
+    }
+
+    public function testDisableSparseCheckoutFailureIsMapped(): void
+    {
+        $workingTree = $this->buildWorkingTree(
+            static fn (MemoryRunner $runner) => $runner->setResult(['sparse-checkout', 'disable'], [], '', 'fatal: not a worktree', 1),
+        );
+
+        $this->expectException(VcsOperationException::class);
+        $workingTree->disableSparseCheckout();
     }
 }

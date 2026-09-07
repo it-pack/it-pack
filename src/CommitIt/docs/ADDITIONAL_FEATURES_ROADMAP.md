@@ -53,11 +53,35 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 - Integration tests will be added when the concrete RunIt execution engine becomes available
 
 ### 1.2 Advanced Working Tree Operations (HIGH)
-**Milestone M1.2.1: Sparse Working Tree Support**
-- [ ] Implement sparse checkout functionality
-- [ ] Design sparse pattern specification and validation
-- [ ] Add working tree path filtering and inclusion/exclusion logic
-- [ ] Create tests for sparse workspace operations
+**Milestone M1.2.1: Sparse Working Tree Support** ✅ COMPLETED
+- [x] Implement `setSparsePatterns()`, `getSparsePatterns()`, `disableSparseCheckout()` on `WorkingTree` contract
+- [x] Design sparse pattern value object (`SparsePattern`) with syntactic validation (non-empty, no control characters, length-bounded)
+- [x] Add `SparsePattern` exception marker (`InvalidSparsePatternException`) with domain implementation
+- [x] Add 3 `RepositoryOperation` enum cases (`SetSparsePatterns`, `GetSparsePatterns`, `DisableSparseCheckout`)
+- [x] Implement git adapter via `git sparse-checkout init/set/list/disable` passthrough
+- [x] Update `ObservedWorkingTree` decorator to observe all 3 new operations
+- [x] Add observer lifecycle context (pattern list in `setSparsePatterns` context)
+- [x] Create 8 unit tests (command formulation, failure mapping, pattern parsing, edge cases)
+- [x] Create functional test (`testSparseCheckoutLifecycle`) exercising full lifecycle with real git
+- [x] Add `SparsePattern` validation tests to `ValueObjectTest`
+- [x] PHPStan (level 8) passes with zero errors
+- [x] PHP-CS-Fixer passes with zero violations
+- [x] All 246 tests pass (was 197 before Phase 1.1, added 49 new tests)
+
+**Deliverables**: 
+- `src/Domain/Value/SparsePattern.php` — Validated sparse-checkout pattern value object
+- `src/Contract/Exception/InvalidSparsePatternException.php` — Exception marker interface
+- `src/Domain/Exception/InvalidSparsePatternException.php` — Domain exception
+- `src/Contract/WorkingTree.php` — Extended with 3 sparse-checkout methods
+- `src/Contract/RepositoryOperation.php` — Extended with 3 new enum cases
+- `src/Adapter/Git/GitPhpWorkingTree.php` — Sparse-checkout implementation
+- `src/Application/ObservedWorkingTree.php` — Observation dispatch for new operations
+
+**Implementation Notes**:
+- The adapter delegates to `git sparse-checkout init/set/list/disable` — composition over subclassing, matching the existing worktree adapter pattern
+- `getSparsePatterns()` returns an empty list when sparse-checkout is not configured (git error is caught internally), preserving CommitIt's "no silent failures" invariant for actual errors
+- Sparse pattern validation is syntactic (non-empty, no control chars, length < 1024); git's own pattern semantics (cone vs non-cone mode) are left to the caller
+- The `run()` helper now accepts an optional `$context` parameter for more specific error messages
 
 **Milestone M1.2.2: Working Tree Security**
 - [ ] Implement attribute-based access control for worktrees

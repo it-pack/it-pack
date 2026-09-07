@@ -6,12 +6,14 @@ namespace Tests\Unit\Domain\Value;
 
 use Codeception\Test\Unit;
 use ItPack\CommitIt\Domain\Exception\InvalidReferenceNameException;
+use ItPack\CommitIt\Domain\Exception\InvalidSparsePatternException;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 use ItPack\CommitIt\Domain\Value\TagName;
 use ItPack\CommitIt\Domain\Value\WorktreeInfo;
 
@@ -24,6 +26,7 @@ use ItPack\CommitIt\Domain\Value\WorktreeInfo;
  * @covers \ItPack\CommitIt\Domain\Value\CommitMessage
  * @covers \ItPack\CommitIt\Domain\Value\Commit
  * @covers \ItPack\CommitIt\Domain\Value\WorktreeInfo
+ * @covers \ItPack\CommitIt\Domain\Value\SparsePattern
  */
 final class ValueObjectTest extends Unit
 {
@@ -231,5 +234,47 @@ final class ValueObjectTest extends Unit
         $message = CommitMessage::fromParts('Subject', 'Body text');
 
         self::assertSame("Subject\n\nBody text", (string) $message);
+    }
+
+    public function testSparsePatternStoresTrimmedValue(): void
+    {
+        self::assertSame('src/*', SparsePattern::from('  src/*  ')->__toString());
+    }
+
+    public function testSparsePatternRejectsEmpty(): void
+    {
+        $this->expectException(InvalidSparsePatternException::class);
+
+        SparsePattern::from('   ');
+    }
+
+    public function testSparsePatternRejectsControlCharacters(): void
+    {
+        $this->expectException(InvalidSparsePatternException::class);
+
+        SparsePattern::from("src/\x00*");
+    }
+
+    public function testSparsePatternRejectsOverlongInput(): void
+    {
+        $this->expectException(InvalidSparsePatternException::class);
+
+        SparsePattern::from(str_repeat('a', SparsePattern::MAX_LENGTH + 1));
+    }
+
+    public function testSparsePatternAcceptsValidPatterns(): void
+    {
+        $patterns = ['src/', '!src/vendor/*', '*.txt', '/docs/**', 'src/*/public'];
+
+        foreach ($patterns as $pattern) {
+            $sparse = SparsePattern::from($pattern);
+            self::assertSame($pattern, (string) $sparse);
+        }
+    }
+
+    public function testSparsePatternEqualsSameValueAndDifferOtherwise(): void
+    {
+        self::assertTrue(SparsePattern::from('src/*')->equals(SparsePattern::from('src/*')));
+        self::assertFalse(SparsePattern::from('src/*')->equals(SparsePattern::from('lib/*')));
     }
 }

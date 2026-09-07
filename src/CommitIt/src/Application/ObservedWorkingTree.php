@@ -9,7 +9,9 @@ use ItPack\CommitIt\Contract\RepositoryOperation;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 use ItPack\CommitIt\Domain\Value\WorktreeInfo;
+use Throwable;
 
 /**
  * Non-intrusive decorator that dispatches {@see RepositoryObserver} lifecycle
@@ -36,7 +38,7 @@ final readonly class ObservedWorkingTree implements WorkingTree
 
     /**
      * @return list<WorktreeInfo>
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function listWorktrees(): array
     {
@@ -48,7 +50,7 @@ final readonly class ObservedWorkingTree implements WorkingTree
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function add(RepositoryPath $path, ?BranchName $name = null): void
     {
@@ -76,6 +78,45 @@ final readonly class ObservedWorkingTree implements WorkingTree
             RepositoryOperation::RemoveWorktree->value,
             fn () => $this->inner->remove($path),
             ['path' => $path->toString()],
+        );
+    }
+
+    /**
+     * @param list<SparsePattern> $patterns
+     * @throws Throwable
+     */
+    public function setSparsePatterns(array $patterns): void
+    {
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::SetSparsePatterns->value,
+            fn () => $this->inner->setSparsePatterns($patterns),
+            ['patterns' => array_map(static fn (SparsePattern $p): string => (string) $p, $patterns)],
+        );
+    }
+
+    /**
+     * @return list<SparsePattern>
+     * @throws Throwable
+     */
+    public function getSparsePatterns(): array
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::GetSparsePatterns->value,
+            fn (): array => $this->inner->getSparsePatterns(),
+        );
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function disableSparseCheckout(): void
+    {
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::DisableSparseCheckout->value,
+            fn () => $this->inner->disableSparseCheckout(),
         );
     }
 }

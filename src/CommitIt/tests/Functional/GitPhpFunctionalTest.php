@@ -11,6 +11,7 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 use ItPack\CommitIt\Domain\Value\TagName;
 use Tests\Support\Helper\GitRepoFactory;
 
@@ -210,6 +211,45 @@ final class GitPhpFunctionalTest extends Unit
             $repo2->fetch(RemoteName::from('origin'));
         } finally {
             GitRepoFactory::tearDown($bare, $clone1, $clone2);
+        }
+    }
+
+    public function testSparseCheckoutLifecycle(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-sp');
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            $repository = $this->open($repo);
+
+            mkdir($repo . DIRECTORY_SEPARATOR . 'src', 0o755, true);
+            mkdir($repo . DIRECTORY_SEPARATOR . 'docs', 0o755, true);
+            file_put_contents($repo . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'app.php', '<?php');
+            file_put_contents($repo . DIRECTORY_SEPARATOR . 'docs' . DIRECTORY_SEPARATOR . 'readme.md', 'docs');
+
+            $repository->stage('src/app.php');
+            $repository->stage('docs/readme.md');
+            $repository->commit(CommitMessage::fromParts('Add files'));
+
+            $workingTree = $repository->getWorkingTree();
+            $workingTree->setSparsePatterns([
+                SparsePattern::from('src/'),
+                SparsePattern::from('docs/'),
+            ]);
+
+            $patterns = $workingTree->getSparsePatterns();
+            self::assertCount(2, $patterns);
+
+            $patternStrings = array_map(static fn (SparsePattern $p): string => (string) $p, $patterns);
+            self::assertContains('src', $patternStrings);
+            self::assertContains('docs', $patternStrings);
+
+            $workingTree->disableSparseCheckout();
+
+            $after = $workingTree->getSparsePatterns();
+            self::assertSame([], $after);
+        } finally {
+            GitRepoFactory::tearDown($repo);
         }
     }
 }

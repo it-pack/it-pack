@@ -10,6 +10,7 @@ use ItPack\CommitIt\Contract\NullRepositoryObserver;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 use RuntimeException;
 
 /**
@@ -103,6 +104,68 @@ final class ObservedWorkingTreeTest extends Unit
 
         self::assertSame(['add'], $inner->calls);
     }
+
+    public function testSetSparsePatternsIsObserved(): void
+    {
+        $inner = $this->fakeTree();
+        $observer = new RecordingObserver();
+        $tree = new ObservedWorkingTree($inner, $observer);
+
+        $patterns = [SparsePattern::from('src/*'), SparsePattern::from('!src/vendor/*')];
+
+        $tree->setSparsePatterns($patterns);
+
+        self::assertSame(['start:setSparsePatterns', 'success:setSparsePatterns'], $observer->sequence());
+        self::assertContains('setSparsePatterns', $inner->calls);
+        self::assertSame(
+            ['patterns' => ['src/*', '!src/vendor/*']],
+            $observer->events[0]['context'],
+        );
+    }
+
+    public function testGetSparsePatternsIsObserved(): void
+    {
+        $inner = $this->fakeTree();
+        $observer = new RecordingObserver();
+        $tree = new ObservedWorkingTree($inner, $observer);
+
+        $tree->getSparsePatterns();
+
+        self::assertSame(['start:getSparsePatterns', 'success:getSparsePatterns'], $observer->sequence());
+        self::assertContains('getSparsePatterns', $inner->calls);
+    }
+
+    public function testDisableSparseCheckoutIsObserved(): void
+    {
+        $inner = $this->fakeTree();
+        $observer = new RecordingObserver();
+        $tree = new ObservedWorkingTree($inner, $observer);
+
+        $tree->disableSparseCheckout();
+
+        self::assertSame(['start:disableSparseCheckout', 'success:disableSparseCheckout'], $observer->sequence());
+        self::assertContains('disableSparseCheckout', $inner->calls);
+    }
+
+    public function testSetSparsePatternsFailureDispatchesFailureAndRethrowsOriginal(): void
+    {
+        $inner = $this->fakeTree('setSparsePatterns');
+        $observer = new RecordingObserver();
+        $tree = new ObservedWorkingTree($inner, $observer);
+
+        $thrown = null;
+
+        try {
+            $tree->setSparsePatterns([SparsePattern::from('src/*')]);
+        } catch (RuntimeException $error) {
+            $thrown = $error;
+        }
+
+        self::assertNotNull($thrown);
+        self::assertSame('boom on setSparsePatterns', $thrown->getMessage());
+        self::assertSame(['start:setSparsePatterns', 'failure:setSparsePatterns'], $observer->sequence());
+        self::assertSame($thrown, $observer->events[1]['error']);
+    }
 }
 
 final class RecordingWorkingTree implements WorkingTree
@@ -140,6 +203,35 @@ final class RecordingWorkingTree implements WorkingTree
 
         if ($this->throwOn === 'remove') {
             throw new RuntimeException('boom on remove');
+        }
+    }
+
+    public function setSparsePatterns(array $patterns): void
+    {
+        $this->calls[] = 'setSparsePatterns';
+
+        if ($this->throwOn === 'setSparsePatterns') {
+            throw new RuntimeException('boom on setSparsePatterns');
+        }
+    }
+
+    public function getSparsePatterns(): array
+    {
+        $this->calls[] = 'getSparsePatterns';
+
+        if ($this->throwOn === 'getSparsePatterns') {
+            throw new RuntimeException('boom on getSparsePatterns');
+        }
+
+        return [];
+    }
+
+    public function disableSparseCheckout(): void
+    {
+        $this->calls[] = 'disableSparseCheckout';
+
+        if ($this->throwOn === 'disableSparseCheckout') {
+            throw new RuntimeException('boom on disableSparseCheckout');
         }
     }
 }

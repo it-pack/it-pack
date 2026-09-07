@@ -6,6 +6,7 @@ namespace Tests\Unit\Application;
 
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\SparsePattern;
 
 /**
  * Minimal {@see WorkingTree} test double.
@@ -25,6 +26,25 @@ final class FakeWorkingTree implements WorkingTree
     }
 
     public function remove(RepositoryPath $path): void
+    {
+    }
+
+    /**
+     * @param list<SparsePattern> $patterns
+     */
+    public function setSparsePatterns(array $patterns): void
+    {
+    }
+
+    /**
+     * @return list<SparsePattern>
+     */
+    public function getSparsePatterns(): array
+    {
+        return [];
+    }
+
+    public function disableSparseCheckout(): void
     {
     }
 }

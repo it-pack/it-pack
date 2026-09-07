@@ -38,4 +38,7 @@ enum RepositoryOperation: string
     case ListWorktrees = 'listWorktrees';
     case AddWorktree = 'add';
     case RemoveWorktree = 'remove';
+    case SetSparsePatterns = 'setSparsePatterns';
+    case GetSparsePatterns = 'getSparsePatterns';
+    case DisableSparseCheckout = 'disableSparseCheckout';
 }
