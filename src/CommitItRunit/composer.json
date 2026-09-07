@@ -1,0 +1,80 @@
+{
+    "name": "it-pack/commit-it-runit",
+    "description": "RunIt execution-model observer adapter for CommitIt — bridges VCS operations onto a RunIt execution with activities, measurements, observations, occurrences, and terminal snapshot.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "vcs",
+        "runit",
+        "execution",
+        "observer",
+        "commit-it",
+        "it-pack",
+        "run-it"
+    ],
+    "require": {
+        "php": "^8.5",
+        "it-pack/commit-it": "*@dev",
+        "it-pack/run-it": "*@dev"
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.0",
+        "codeception/module-asserts": "^3.3",
+        "just-bases/php-unit-test-base": "^1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "infection/codeception-adapter": "^0.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "ItPack\\CommitItRunit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ItPack\\CommitItRunit\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "phpstan/extension-installer": true,
+            "dantleech/what-changed": true,
+            "tbachert/spi": false
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/codecept run",
+        "test:unit": "vendor/bin/codecept run Unit",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=80 --no-interaction",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@test",
+            "@mutation",
+            "@security:audit"
+        ]
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../CommitIt"
+        },
+        {
+            "type": "path",
+            "url": "../RunIt"
+        }
+    ]
+}

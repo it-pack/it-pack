@@ -1,0 +1,23 @@
+{
+    "source": "src",
+    "logs": [
+        {
+            "type": "coverage-xml",
+            "path": "coverage-xml"
+        },
+        {
+            "type": "html",
+            "path": "coverage-html"
+        }
+    ],
+    "minMsi": 80,
+    "minMsiWithCoverage": 80,
+    "mutators": {
+        "@default": true
+    },
+    "phpunit": {
+        "configFile": "codeception.yml",
+        "testFramework": "codeception",
+        "testFrameworkExtraArgs": ["Unit"]
+    }
+}
