@@ -124,25 +124,50 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 - The `WorkingTree` interface now has 8 methods total; pre-1.0.0 breaking change is documented per AGENTS.md
 
 ### 1.3 Branch and Tag Management Enhancements (HIGH)
-**Milestone M1.3.1: Branch Protection Framework**
-- [ ] Implement Git-style branch protection policies
-- [ ] Add branch requirement validation (minimum approvals, status checks)
-- [ ] Create branch policy configuration value objects
-- [ ] Develop branch protection enforcement logic
+**Milestone M1.3.1: Branch Protection Framework** ✅ COMPLETED
+- [x] Implement Git-style branch protection policies via `BranchProtectionPolicy` interface
+- [x] Add `BranchProtectionRule` value object with glob pattern matching (`fnmatch`)
+- [x] Create `allowDelete` / `allowForceCheckout` enforcement flags
+- [x] Create `BranchProtectionException` (marker interface + domain exception)
+- [x] Implement `DefaultBranchProtectionPolicy` service with rule iteration
+- [x] PHPStan (level 8) passes with zero errors
 
-**Milestone M1.3.2: Branch Search and Indexing**
-- [ ] Implement efficient branch searching and filtering
-- [ ] Add branch metadata indexing for performance
-- [ ] Create branch search API with advanced queries
-- [ ] Develop branch search result aggregation
+**Milestone M1.3.2: Branch Search and Indexing** ✅ COMPLETED
+- [x] Implement `BranchInfo` value object with name, commitId, isCurrent, isRemote, upstream metadata
+- [x] Add `BranchQuery` option builder with pattern, currentOnly, remoteOnly filters
+- [x] Create `searchBranches(BranchQuery)` method on `BranchPort`
+- [x] Implement git adapter using `git for-each-ref` with multiple ref-specs
+- [x] Add `getBranchInfo(BranchName)` method for single-branch metadata
+- [x] Add 4 `RepositoryOperation` enum cases (`GetBranchInfo`, `SearchBranches`, `GetTagInfo`, `CleanupTags`)
+- [x] Update `ObservedRepository` to dispatch observer events for all 4 new operations
+- [x] Add 10 functional tests (branch info, search, tag info, cleanup, type detection)
+- [x] PHPStan (level 8) passes with zero errors
 
-**Milestone M1.3.3: Tag Lifecycle Management**
-- [ ] Implement automated tag cleanup and garbage collection
+**Milestone M1.3.3: Tag Lifecycle Management** ✅ COMPLETED
+- [ ] Implement automated tag cleanup and garbage collection (`cleanupTags()`)
+- [x] Add `TagInfo` value object with name, commitId, type, message, tagger, date
+- [x] Add `TagType` enum (Lightweight, Annotated)
+- [x] Create `TagCleanupOptions` builder with pattern and `olderThan` filters
 - [ ] Add tag promotion and staging workflows
 - [ ] Create tag lifecycle hooks and notifications
 - [ ] Develop tag validation and enforcement rules
 
-**Deliverables**: Enhanced `Branch` and `Tag` value objects with protection and search capabilities
+**Deliverables**: Enhanced `Branch` and `Tag` value objects with protection and search capabilities:
+- `src/Contract/BranchProtectionPolicy.php` — Interface for pluggable branch protection policies
+- `src/Domain/Service/DefaultBranchProtectionPolicy.php` — Default policy iterating `BranchProtectionRule` list
+- `src/Domain/Value/BranchProtectionRule.php` — Value object with `pattern`, `allowDelete`, `allowForceCheckout`
+- `src/Contract/Exception/BranchProtectionException.php` — Exception marker interface
+- `src/Domain/Exception/BranchProtectionException.php` — Domain exception
+- `src/Domain/Value/BranchInfo.php` — Immutable branch metadata value object
+- `src/Domain/Value/TagInfo.php` — Immutable tag metadata value object
+- `src/Domain/Value/TagType.php` — Enum: Lightweight vs Annotated
+- `src/Domain/Option/BranchQuery.php` — Immutable builder for branch search criteria
+- `src/Domain/Option/TagCleanupOptions.php` — Immutable builder for tag cleanup criteria
+- `src/Contract/BranchPort.php` — Extended with `getBranchInfo()` and `searchBranches()`
+- `src/Contract/TagPort.php` — Extended with `getTagInfo()` and `cleanupTags()`
+- `src/Contract/RepositoryOperation.php` — Extended with 4 new enum cases
+- `src/Adapter/Git/GitPhpRepository.php` — Branch/tag info and search implementations
+- `src/Application/ObservedRepository.php` — Observer dispatch for new operations
 
 ### 1.4 Security and Safety Enhancements (HIGH)
 **Milestone M1.4.1: Advanced Path Validation**
@@ -375,7 +400,7 @@ This roadmap provides a comprehensive implementation plan for CommitIt's evoluti
 
 | Phase | Duration | Key Features | Status |
 |-------|----------|--------------|--------|
-| Phase 1 | 0-6 months | RunIt Adapter, Working Tree, Branch/Tag, Security | M1.1 Complete |
+| Phase 1 | 0-6 months | RunIt Adapter, Working Tree, Branch/Tag, Security | M1.1-M1.3 Complete |
 | Phase 2 | 6-12 months | Multi-VCS, Advanced Commits, Repository Ops, CI/CD | Planning |
 | Phase 3 | 12+ months | Performance, Advanced Branching, Infrastructure | Planning |
 

@@ -6,13 +6,17 @@ namespace Tests\Unit\Application;
 
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\WorkingTree;
+use ItPack\CommitIt\Domain\Option\BranchQuery;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
+use ItPack\CommitIt\Domain\Option\TagCleanupOptions;
+use ItPack\CommitIt\Domain\Value\BranchInfo;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
 
 /**
@@ -121,6 +125,25 @@ final class FakeRepository implements Repository
         return [];
     }
 
+    public function getBranchInfo(BranchName $name): ?BranchInfo
+    {
+        $this->calls[] = 'getBranchInfo';
+        $this->maybeThrow('getBranchInfo');
+
+        return null;
+    }
+
+    /**
+     * @return list<BranchInfo>
+     */
+    public function searchBranches(BranchQuery $query): array
+    {
+        $this->calls[] = 'searchBranches';
+        $this->maybeThrow('searchBranches');
+
+        return [];
+    }
+
     public function createTag(TagName $name, ?CommitId $target = null): void
     {
         $this->calls[] = 'createTag';
@@ -140,6 +163,25 @@ final class FakeRepository implements Repository
     {
         $this->calls[] = 'listTags';
         $this->maybeThrow('listTags');
+
+        return [];
+    }
+
+    public function getTagInfo(TagName $name): ?TagInfo
+    {
+        $this->calls[] = 'getTagInfo';
+        $this->maybeThrow('getTagInfo');
+
+        return null;
+    }
+
+    /**
+     * @return list<TagName>
+     */
+    public function cleanupTags(TagCleanupOptions $options): array
+    {
+        $this->calls[] = 'cleanupTags';
+        $this->maybeThrow('cleanupTags');
 
         return [];
     }

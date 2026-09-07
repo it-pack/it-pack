@@ -8,14 +8,19 @@ use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\RepositoryObserver;
 use ItPack\CommitIt\Contract\RepositoryOperation;
 use ItPack\CommitIt\Contract\WorkingTree;
+use ItPack\CommitIt\Domain\Option\BranchQuery;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
+use ItPack\CommitIt\Domain\Option\TagCleanupOptions;
+use ItPack\CommitIt\Domain\Value\BranchInfo;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
+use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
+use Throwable;
 
 /**
  * Non-intrusive decorator that dispatches {@see RepositoryObserver} lifecycle
@@ -42,7 +47,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function getPath(): RepositoryPath
     {
@@ -54,7 +59,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function hasChanges(): bool
     {
@@ -66,7 +71,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function stage(string $file): void
     {
@@ -79,7 +84,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function stageAll(): void
     {
@@ -91,7 +96,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function commit(CommitMessage $message, ?CommitOptions $options = null): CommitId
     {
@@ -108,7 +113,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function getLastCommit(): ?Commit
     {
@@ -120,7 +125,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function getCommit(CommitId $id): Commit
     {
@@ -133,7 +138,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function createBranch(BranchName $name): void
     {
@@ -146,7 +151,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function checkoutBranch(BranchName $name): void
     {
@@ -159,7 +164,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function deleteBranch(BranchName $name): void
     {
@@ -173,7 +178,7 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @return list<BranchName>
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function listBranches(): array
     {
@@ -185,7 +190,34 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
+     */
+    public function getBranchInfo(BranchName $name): ?BranchInfo
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::GetBranchInfo->value,
+            fn (): ?BranchInfo => $this->inner->getBranchInfo($name),
+            ['branch' => $name->__toString()],
+        );
+    }
+
+    /**
+     * @return list<BranchInfo>
+     * @throws Throwable
+     */
+    public function searchBranches(BranchQuery $query): array
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::SearchBranches->value,
+            fn (): array => $this->inner->searchBranches($query),
+            ['pattern' => $query->pattern, 'currentOnly' => $query->currentOnly, 'remoteOnly' => $query->remoteOnly],
+        );
+    }
+
+    /**
+     * @throws Throwable
      */
     public function createTag(TagName $name, ?CommitId $target = null): void
     {
@@ -204,7 +236,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function deleteTag(TagName $name): void
     {
@@ -218,7 +250,7 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @return list<TagName>
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function listTags(): array
     {
@@ -230,7 +262,34 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
+     */
+    public function getTagInfo(TagName $name): ?TagInfo
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::GetTagInfo->value,
+            fn (): ?TagInfo => $this->inner->getTagInfo($name),
+            ['tag' => $name->__toString()],
+        );
+    }
+
+    /**
+     * @return list<TagName>
+     * @throws Throwable
+     */
+    public function cleanupTags(TagCleanupOptions $options): array
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::CleanupTags->value,
+            fn (): array => $this->inner->cleanupTags($options),
+            ['pattern' => $options->pattern, 'force' => $options->force],
+        );
+    }
+
+    /**
+     * @throws Throwable
      */
     public function addRemote(RemoteName $name, string $url): void
     {
@@ -243,7 +302,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function removeRemote(RemoteName $name): void
     {
@@ -257,7 +316,7 @@ final readonly class ObservedRepository implements Repository
 
     /**
      * @return array<string, string>
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function listRemotes(): array
     {
@@ -269,7 +328,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function fetch(?RemoteName $remote = null): void
     {
@@ -281,7 +340,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function pull(?RemoteName $remote = null, ?BranchName $branch = null): void
     {
@@ -293,7 +352,7 @@ final readonly class ObservedRepository implements Repository
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function push(?RemoteName $remote = null, ?BranchName $branch = null): void
     {

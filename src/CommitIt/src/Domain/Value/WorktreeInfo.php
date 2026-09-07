@@ -12,10 +12,10 @@ namespace ItPack\CommitIt\Domain\Value;
 final readonly class WorktreeInfo
 {
     public function __construct(
-        public  string $path,
-        public  ?string $branch,
-        public  bool $isMain,
-        public  bool $orphaned = false,
+        public string $path,
+        public ?string $branch,
+        public bool $isMain,
+        public bool $orphaned = false,
     ) {
     }
 }

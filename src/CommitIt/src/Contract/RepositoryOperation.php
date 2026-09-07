@@ -43,4 +43,8 @@ enum RepositoryOperation: string
     case DisableSparseCheckout = 'disableSparseCheckout';
     case FindOrphanedWorktrees = 'findOrphanedWorktrees';
     case CleanupOrphanedWorktrees = 'cleanupOrphanedWorktrees';
+    case GetBranchInfo = 'getBranchInfo';
+    case SearchBranches = 'searchBranches';
+    case GetTagInfo = 'getTagInfo';
+    case CleanupTags = 'cleanupTags';
 }
