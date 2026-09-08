@@ -233,11 +233,18 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 - [x] Document adapter implementation requirements in `src/Behavior/Domain/`
 - [x] PHPStan (level 8) passes with zero errors
 
-**Milestone M2.1.2: SVN Adapter Implementation** ⏳ BLOCKED (pending phpseclib availability)
-- [ ] Implement `CommitItSvnAdapter` using phpseclib
-- [ ] Map SVN operations to CommitIt domain objects
-- [ ] Create SVN adapter tests using memory runner
-- [ ] Validate adapter conformance with adapter tests
+**Milestone M2.1.2: SVN Adapter Implementation** ✅ COMPLETED
+- [x] Create generic `ProcessRunner` port (`Contract/ProcessRunner`) for non-git VCS adapters
+- [x] Create `ProcessResult` value object (`Domain/Value/ProcessResult`) with `stdoutLines()` helper
+- [x] Create `MemoryProcessRunner` test helper (`tests/Support/`) for unit testing without `svn` binary
+- [x] Implement `SvnPhpRepository` implementing `Repository` using `svn` CLI commands via `ProcessRunner`
+- [x] Implement `SvnPhpWorkingTree` implementing `WorkingTree` (sparse-checkout via `--depth`, worktree ops throw)
+- [x] Implement `SvnPhpRepositoryFactory` implementing `RepositoryFactory` (open, init, cloneRepository)
+- [x] Map SVN concepts: working copies to working trees, `svn copy` to branch/tag creation, URL-based remotes
+- [x] Create 36 unit tests (repository, working tree, factory) with 46+ assertions — all passing
+- [x] PHPStan (level max) passes with zero errors
+- [x] PHP-CS-Fixer passes with zero violations
+- [x] phparckitect passes with zero violations
 
 **Milestone M2.1.3: Mercurial and Perforce Adapters** ⏳ PLANNING
 - [ ] Implement `CommitItHgAdapter` for Mercurial operations
@@ -246,18 +253,26 @@ This roadmap outlines the implementation of additional features for CommitIt (ve
 - [ ] Create cross-adapter compatibility tests
 
 **Deliverables**: Multi-VCS adapter framework supporting multiple version control systems:
+- `src/Contract/ProcessRunner.php` — Generic process execution port for non-git VCS adapters
+- `src/Domain/Value/ProcessResult.php` — Process result value object (stdout, stderr, exitCode, isSuccess, stdoutLines)
+- `src/Adapter/Svn/SvnPhpRepository.php` — SVN implementation of `Repository` using `svn` CLI via `ProcessRunner`
+- `src/Adapter/Svn/SvnPhpWorkingTree.php` — SVN working copy support (sparse-checkout via `--depth`; worktree ops throw as SVN has no worktree concept)
+- `src/Adapter/Svn/SvnPhpRepositoryFactory.php` — SVN factory implementing `RepositoryFactory` (open, init, cloneRepository)
+- `src/Adapter/Svn/Exception/SvnAdapterException.php` — SVN adapter-specific exception implementing `VcsOperationException`
+- `tests/Support/MemoryProcessRunner.php` — Memory-based `ProcessRunner` for unit testing without VCS binaries
+- `tests/Unit/Adapter/Svn/` — 36 unit tests covering repository operations, working tree, and factory behaviors
 - `src/Behavior/Domain/RepositoryBehaviorHarness.php` — Framework-neutral conformance verifier for adapter authors
 - `src/Behavior/Domain/HarnessResult.php` — Violation collection with `passed()`, `count()`, `IteratorAggregate`
-- `src/Contract/PathSanitizer.php` — Pure path resolution port (available for adapter use)
-- `src/Contract/SecretScanner.php` — Pure content scanning port (available for adapter use)
-- `src/Contract/AuditLogger.php` — Audit event logging port (available for adapter use)
 
 **Implementation Notes**:
 - The adapter framework leverages CommitIt's existing hexagonal ports: any VCS implementation satisfying `Repository` + `RepositoryFactory` is a valid adapter
 - `RepositoryBehaviorHarness` is test-framework agnostic: it returns `HarnessResult` with violation strings, no test base class required
-- Adapters can optionally inject `PathSanitizer`, `SecretScanner`, and `AuditLogger` via the `GitPhpRepositoryFactory` constructor (or equivalent factory pattern)
-- External VCS libraries (phpseclib for SVN, dunglas/hglib for Mercurial) should be declared as `suggest` in `composer.json` so they remain optional dependencies
-- The git adapter (`GitPhpRepository`) now accepts optional `PathSanitizer` and `SecretScanner` as constructor parameters, demonstrating the composition-over-inheritance pattern for adapter authors to emulate
+- The new generic `ProcessRunner` port (`Contract/ProcessRunner`) decouples VCS adapters from specific process-execution libraries — git uses `czproject/git-php`'s `IRunner` internally, but SVN and future adapters use the generic port
+- `MemoryProcessRunner` test helper enables full unit testing of the SVN adapter without the `svn` binary being installed
+- SVN concept mapping: SVN branches/tags are directories (created via `svn copy`), SVN has no staging area (stage is a no-op, commit commits directly), SVN uses URL-based remotes (single implicit remote), SVN has no worktree concept (worktree operations throw `SvnAdapterException`, sparse-checkout supported via `--depth` flags)
+- `SvnPhpRepositoryFactory` implements `RepositoryFactory`: `open()` validates via `svn info`, `init()` throws (SVN has no local init), `cloneRepository()` uses `svn checkout`
+- External VCS libraries are NOT required — the SVN adapter uses generic `svn` CLI commands via the `ProcessRunner` port
+- The git adapter (`GitPhpRepository`) accepts optional `PathSanitizer` and `SecretScanner` as constructor parameters, demonstrating the composition-over-inheritance pattern for adapter authors to emulate
 
 ### 2.2 Advanced Commit Handling (MEDIUM)
 **Milestone M2.2.1: Commit Relationship Management**
@@ -447,7 +462,7 @@ This roadmap provides a comprehensive implementation plan for CommitIt's evoluti
 | Phase | Duration | Key Features | Status |
 |-------|----------|--------------|--------|
 | Phase 1 | 0-6 months | RunIt Adapter, Working Tree, Branch/Tag, Security | M1.1-M1.4 Complete |
-| Phase 2 | 6-12 months | Multi-VCS, Advanced Commits, Repository Ops, CI/CD | M2.1.1 Complete, M2.1.2-3 Planning/Blocked |
+| Phase 2 | 6-12 months | Multi-VCS, Advanced Commits, Repository Ops, CI/CD | M2.1.1-M2.1.2 Complete, M2.1.3 Planning |
 | Phase 3 | 12+ months | Performance, Advanced Branching, Infrastructure | Planning |
 
 Each milestone will be tracked with specific implementation tasks, testing requirements, and quality assurance checks to ensure successful delivery of CommitIt's enhanced feature set.
