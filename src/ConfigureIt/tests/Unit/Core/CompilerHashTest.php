@@ -19,6 +19,7 @@ use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\ValidationResult;
 use RuntimeException;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * F16 — {@see ConfigurationCompiler::hash()} must treat non-file resources
@@ -30,6 +31,8 @@ use RuntimeException;
  */
 final class CompilerHashTest extends Unit
 {
+    use VirtualFileSystem;
+
     private ConfigurationCompiler $compiler;
 
     /**
@@ -75,7 +78,7 @@ final class CompilerHashTest extends Unit
      */
     public function testFileHashIsContentSensitiveAndStable(): void
     {
-        $dir = sys_get_temp_dir() . '/cfg-hash-' . uniqid();
+        $dir = $this->vfsPath('/cfg-hash-' . uniqid());
         mkdir($dir);
         $file = $dir . '/config.php';
 

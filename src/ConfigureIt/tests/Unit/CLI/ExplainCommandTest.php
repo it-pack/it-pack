@@ -16,7 +16,9 @@ use function json_encode;
 use function rewind;
 use function str_contains;
 use function stream_get_contents;
-use function sys_get_temp_dir;
+
+use Tests\Support\Extension\VirtualFileSystem;
+
 use function uniqid;
 use function unlink;
 
@@ -25,6 +27,8 @@ use function unlink;
  */
 final class ExplainCommandTest extends Unit
 {
+    use VirtualFileSystem;
+
     public function testUsageWhenNoArguments(): void
     {
         $output = new Output(fopen('php://memory', 'w'));
@@ -77,7 +81,7 @@ final class ExplainCommandTest extends Unit
 
     private function file(): string
     {
-        $path = sys_get_temp_dir() . '/cfg-explain-' . uniqid() . '.json';
+        $path = $this->vfsPath('/cfg-explain-' . uniqid() . '.json');
         file_put_contents($path, (string) json_encode(['name' => 'x', 'nested' => ['y' => 1]]));
 
         return $path;

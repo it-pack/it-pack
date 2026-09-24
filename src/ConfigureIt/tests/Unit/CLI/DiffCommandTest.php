@@ -16,7 +16,9 @@ use function json_encode;
 use function rewind;
 use function str_contains;
 use function stream_get_contents;
-use function sys_get_temp_dir;
+
+use Tests\Support\Extension\VirtualFileSystem;
+
 use function uniqid;
 use function unlink;
 
@@ -25,6 +27,8 @@ use function unlink;
  */
 final class DiffCommandTest extends Unit
 {
+    use VirtualFileSystem;
+
     public function testUsageWhenTooFewArguments(): void
     {
         $output = new Output(fopen('php://memory', 'w'));
@@ -71,7 +75,7 @@ final class DiffCommandTest extends Unit
      */
     private function file(array $data): string
     {
-        $path = sys_get_temp_dir() . '/cfg-diff-' . uniqid() . '.json';
+        $path = $this->vfsPath('/cfg-diff-' . uniqid() . '.json');
         file_put_contents($path, (string) json_encode($data));
 
         return $path;

@@ -13,10 +13,13 @@ use ItPack\ConfigureIt\Adapter\PollingWatcher;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureIt\Core\ReloadableConfiguration;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use Tests\Support\Extension\VirtualFileSystem;
 use Throwable;
 
 class ReloadableConfigurationTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     private string $file;
@@ -268,7 +271,7 @@ class ReloadableConfigurationTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/reload-' . uniqid();
+        $this->dir = $this->vfsPath('/reload-' . uniqid());
         mkdir($this->dir, 0o700, true);
         $this->file = $this->dir . '/config.json';
         file_put_contents($this->file, '{"feature":{"enabled":false}}');

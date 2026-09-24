@@ -57,8 +57,10 @@ locally before pushing.
 Testing & suites
 
 - **Unit** (`composer test:unit`) — one SUT per test file, collaborators replaced by fakes
-  or in-memory doubles. No concrete adapter wiring, no network, no real filesystem beyond
-  `vfsStream`/temp dirs.
+  or in-memory doubles. No concrete adapter wiring, no network, and no real filesystem
+  unless the behavior under test requires it. Use `goaop/virtual-file-system` (`vfs://`)
+  for eligible file tests; retain real temporary directories for child processes,
+  `realpath()`, `tempnam()`, kernel filesystem notifications, and protocol-specific I/O.
 - **Integration** (`composer test:integration`) — real collaborators (the builder stack,
   concrete readers/loaders, a real OpenTelemetry sink) and the RunIt-style
   **conformance verifiers** (`tests/Integration/Conformance/*VerifierTest`), which are
@@ -71,8 +73,8 @@ Mutation testing
 
 `composer mutation` runs Infection through `infection/codeception-adapter`, which drives
 `codecept run Unit` (Codeception stays the only framework). `composer mutation:changed`
-limits the run to git-diff lines for cheap per-PR feedback. MSI floors are provisional at 0
-until a CI baseline exists; under the local pcov setup the adapter executes the full Unit
+limits the run to git-diff lines against `origin/main` for cheap per-PR feedback. MSI floors are
+provisional at 0 until a CI baseline exists; under the local pcov setup the adapter executes the full Unit
 suite per mutant, so a clean full-profile MSI is not measurable locally — read
 `var/infection.log` / `var/infection.summary.json` (both gitignored) for the report.
 

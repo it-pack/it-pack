@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
-
-use function is_array;
-
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Adapter\JsonLoader;
@@ -16,9 +13,12 @@ use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Adapter\Processor;
 use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class NativeConfigurationSchemaTypedTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testEnumeratesScalarTypesFromNetteStructure(): void
@@ -75,7 +75,7 @@ class NativeConfigurationSchemaTypedTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/configure-it-typed-' . uniqid();
+        $this->dir = $this->vfsPath('/configure-it-typed-' . uniqid());
         mkdir($this->dir, 0o700, true);
 
         file_put_contents($this->dir . '/config.php', "<?php return ['app' => ['name' => 'svc', 'port' => 8080, 'debug' => true]];");
@@ -84,10 +84,13 @@ class NativeConfigurationSchemaTypedTest extends Unit
 
     protected function _after(): void
     {
-        $files = glob($this->dir . '/*');
+        $files = array_values(array_filter(
+            scandir($this->dir),
+            static fn (string $file): bool => !in_array($file, ['.', '..'], true),
+        ));
 
-        if (is_array($files)) {
-            array_map('unlink', $files);
+        foreach ($files as $file) {
+            unlink($this->dir . '/' . $file);
         }
 
         rmdir($this->dir);

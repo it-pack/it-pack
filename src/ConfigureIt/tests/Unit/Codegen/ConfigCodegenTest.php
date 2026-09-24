@@ -12,9 +12,11 @@ use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshot;
 use Nette\Schema\Expect;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class ConfigCodegenTest extends Unit
 {
+    use VirtualFileSystem;
     public function testGeneratesRootAndNestedDtoClasses(): void
     {
         $code = new ConfigCodegen()->generate($this->schema(), 'AppConfig', 'ItPack\\ConfigureIt\\Generated\\Inspect');
@@ -103,7 +105,7 @@ class ConfigCodegenTest extends Unit
     {
         $namespace = 'ItPack\\ConfigureIt\\Generated\\H' . uniqid();
         $code = new ConfigCodegen()->generate($schema, $class, $namespace);
-        $file = sys_get_temp_dir() . '/cfg-dto-' . uniqid() . '.php';
+        $file = $this->vfsPath('/cfg-dto-' . uniqid() . '.php');
         file_put_contents($file, $code);
         require $file;
 

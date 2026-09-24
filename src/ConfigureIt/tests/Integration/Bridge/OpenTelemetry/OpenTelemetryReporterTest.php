@@ -21,9 +21,12 @@ use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\OccurrenceType;
 use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class OpenTelemetryReporterTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     private InMemoryTelemetrySink $sink;
@@ -135,7 +138,7 @@ class OpenTelemetryReporterTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-otel-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-otel-' . uniqid());
         mkdir($this->dir, 0o700, true);
         file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "base-host"], "app" => ["name" => "base"]];');
         file_put_contents($this->dir . '/local.json', '{"db":{"host":"local-host"},"app":{"debug":true}}');

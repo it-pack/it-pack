@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FrontMatterLoader;
 use ItPack\ConfigureIt\Exception\ParseException;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Webuni\FrontMatter\FrontMatter;
 
 class FrontMatterLoaderTest extends Unit
 {
@@ -16,6 +17,10 @@ class FrontMatterLoaderTest extends Unit
         // Simulate the optional `webuni/front-matter` engine being unavailable.
         // If the engine is already loaded by the wider suite we simply skip the
         // assertion (the guard is unreachable in that case).
+        if (class_exists(FrontMatter::class)) {
+            self::markTestSkipped('webuni/front-matter is already loaded.');
+        }
+
         $loader = new FrontMatterLoader();
         class_exists(ParseException::class);
 

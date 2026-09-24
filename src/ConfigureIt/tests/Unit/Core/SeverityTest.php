@@ -16,6 +16,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
 use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * M7 / E8.1 — validation severity.
@@ -25,6 +26,8 @@ use Nette\Schema\Expect;
  */
 class SeverityTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testWarningOnlyIsReportedWithWarningSeverity(): void
@@ -120,7 +123,7 @@ class SeverityTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-sev-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-sev-' . uniqid());
         mkdir($this->dir, 0o700, true);
         file_put_contents($this->dir . '/base.php', '<?php return ["db" => ["host" => "local-host"]];');
     }

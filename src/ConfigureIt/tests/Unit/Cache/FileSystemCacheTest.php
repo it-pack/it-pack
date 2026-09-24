@@ -9,6 +9,7 @@ use InvalidArgumentException;
 use ItPack\ConfigureIt\Cache\FileSystemCache;
 use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Core\TypedSnapshot;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * Security-focused coverage for the compiled-artifact cache: directory
@@ -18,6 +19,8 @@ use ItPack\ConfigureIt\Core\TypedSnapshot;
  */
 final class FileSystemCacheTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testCreatedDirectoryIsNeverWorldAccessible(): void
@@ -90,7 +93,7 @@ final class FileSystemCacheTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-cache-sec-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-cache-sec-' . uniqid());
     }
 
     protected function _after(): void
@@ -111,8 +114,15 @@ final class FileSystemCacheTest extends Unit
      */
     private function files(string $pattern): array
     {
-        $matched = glob($this->dir . '/' . $pattern);
+        $entries = scandir($this->dir);
+        $matched = [];
 
-        return false === $matched ? [] : $matched;
+        foreach (false === $entries ? [] : array_diff($entries, ['.', '..']) as $item) {
+            if (fnmatch($pattern, $item)) {
+                $matched[] = $this->dir . '/' . $item;
+            }
+        }
+
+        return $matched;
     }
 }

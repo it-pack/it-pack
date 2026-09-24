@@ -18,9 +18,12 @@ use ItPack\ConfigureIt\Exception\ReadException;
 use ItPack\ConfigureIt\ValueObject\Format;
 use LogicException;
 use RuntimeException;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class DecryptionTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testDecryptingReaderDecryptsEncAnnotatedResource(): void
@@ -97,7 +100,7 @@ class DecryptionTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-dec-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-dec-' . uniqid());
         mkdir($this->dir);
     }
 

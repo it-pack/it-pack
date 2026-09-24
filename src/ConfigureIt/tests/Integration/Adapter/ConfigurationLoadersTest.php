@@ -9,9 +9,11 @@ use ItPack\ConfigureIt\Adapter\ConfigurationLoaders;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class ConfigurationLoadersTest extends Unit
 {
+    use VirtualFileSystem;
     public function testDefaultSetCoversEveryBundledFormat(): void
     {
         $loaders = ConfigurationLoaders::default();
@@ -32,7 +34,7 @@ class ConfigurationLoadersTest extends Unit
 
     public function testResolvesMultipleFormatsEndToEnd(): void
     {
-        $dir = sys_get_temp_dir() . '/cfg-loaders-' . uniqid();
+        $dir = $this->vfsPath('/cfg-loaders-' . uniqid());
         mkdir($dir, 0o700, true);
 
         try {

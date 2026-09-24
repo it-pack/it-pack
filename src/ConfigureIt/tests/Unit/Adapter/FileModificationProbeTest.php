@@ -6,12 +6,15 @@ namespace Tests\Unit\Adapter;
 
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileModificationProbe;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * @covers \ItPack\ConfigureIt\Adapter\FileModificationProbe
  */
 class FileModificationProbeTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $file;
 
     public function testSignatureChangesWhenContentChanges(): void
@@ -36,7 +39,7 @@ class FileModificationProbeTest extends Unit
 
     protected function _before(): void
     {
-        $this->file = sys_get_temp_dir() . '/cfg-probe-' . uniqid();
+        $this->file = $this->vfsPath('/cfg-probe-' . uniqid());
         file_put_contents($this->file, 'data');
     }
 

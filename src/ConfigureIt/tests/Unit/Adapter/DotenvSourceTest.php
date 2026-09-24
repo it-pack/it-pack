@@ -8,12 +8,14 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\DotenvSource;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class DotenvSourceTest extends Unit
 {
+    use VirtualFileSystem;
     public function testDiscoversResourceForExistingFile(): void
     {
-        $path = sys_get_temp_dir() . '/cfg-dotenv-' . uniqid() . '.env';
+        $path = $this->vfsPath('/cfg-dotenv-' . uniqid() . '.env');
         file_put_contents($path, "APP_NAME=test\n");
 
         try {

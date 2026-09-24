@@ -8,9 +8,12 @@ use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Adapter\FileModificationProbe;
 use ItPack\ConfigureIt\Adapter\PollingWatcher;
 use ItPack\ConfigureIt\Execution\ResolutionReporter;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class PollingWatcherTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $file;
 
     public function testDoesNotDispatchOnBaselineTick(): void
@@ -203,7 +206,7 @@ class PollingWatcherTest extends Unit
 
     protected function _before(): void
     {
-        $this->file = sys_get_temp_dir() . '/poll-watch-' . uniqid() . '.json';
+        $this->file = $this->vfsPath('/poll-watch-' . uniqid() . '.json');
         file_put_contents($this->file, '{"v":1}');
     }
 

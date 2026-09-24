@@ -7,6 +7,7 @@ namespace Tests\Unit\Cache;
 use Codeception\Test\Unit;
 use ItPack\ConfigureIt\Cache\FileSystemDocumentCache;
 use ItPack\ConfigureIt\Contract\RemoteDocumentCacheInterface;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * Coverage for the raw remote-document cache: TTL honouring, the stale
@@ -17,6 +18,8 @@ use ItPack\ConfigureIt\Contract\RemoteDocumentCacheInterface;
  */
 final class FileSystemDocumentCacheTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     // ---------------------------------------------------------------- wiring
@@ -217,7 +220,7 @@ final class FileSystemDocumentCacheTest extends Unit
         verify(count($written))->equals(1);
 
         // The artifact never escapes the cache directory, whatever the key holds.
-        verify(realpath(dirname($written[0])))->equals(realpath($this->dir));
+        verify(dirname($written[0]))->equals($this->dir);
         verify(basename($written[0]))->equals(
             preg_replace('/[^A-Za-z0-9_.-]/', '_', $key) . '.php',
         );
@@ -280,7 +283,7 @@ final class FileSystemDocumentCacheTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-doc-cache-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-doc-cache-' . uniqid());
     }
 
     protected function _after(): void

@@ -11,9 +11,12 @@ use ItPack\ConfigureIt\Adapter\Enterprise\KubernetesSecretSource;
 use ItPack\ConfigureIt\Adapter\Enterprise\VolumeReader;
 use ItPack\ConfigureIt\Adapter\EnvLoader;
 use ItPack\ConfigureIt\Exception\ReadException;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class VolumeSourceTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testConfigMapResolvesWithProvenance(): void
@@ -88,7 +91,7 @@ class VolumeSourceTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-vol-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-vol-' . uniqid());
         mkdir($this->dir);
         file_put_contents($this->dir . '/app_name', 'demo');
         file_put_contents($this->dir . '/app_debug', 'true');

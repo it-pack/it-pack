@@ -19,6 +19,7 @@
     ],
     "minimum-stability": "stable",
     "require-dev": {
+        "goaop/virtual-file-system": "^1.1",
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "phparkitect/phparkitect": "^1.2",
@@ -28,6 +29,11 @@
         "webuni/front-matter": "^2.1",
         "aura/di": "^5.0",
         "infection/codeception-adapter": "^0.4"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
     },
     "config": {
         "allow-plugins": {
@@ -48,7 +54,7 @@
         "architecture": "vendor/bin/phparkitect check",
         "analyse": "vendor/bin/phpstan analyse",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
-        "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction"
+        "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --git-diff-base=origin/main --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction"
     },
     "extra": {
         "phpstan": {

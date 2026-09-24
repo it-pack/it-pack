@@ -8,6 +8,12 @@ and `ROADMAP.md`).
 
 ### Added
 
+- **Test filesystem isolation** — eligible file-based Unit and Integration tests now use
+  `goaop/virtual-file-system` (`vfs://`) through a shared Codeception extension. Real
+  temporary directories remain for child processes, `realpath()`, `tempnam()`, kernel
+  filesystem notifications, and protocol-specific I/O. The package now declares the VFS
+  dependency directly and autoloads test support classes.
+
 - **Milestone 2 — Mutation testing wired onto Codeception (REVIEW NV19)**
   - `infection/codeception-adapter` (dev, v0.4.7) — Infection now drives
     `codecept run Unit` through the published adapter, mirroring the sibling `RunIt`
@@ -19,7 +25,8 @@ and `ROADMAP.md`).
     constraint as on RunIt).
   - Composer scripts `mutation` and `mutation:changed`
     (`--only-covering-test-cases --no-interaction`; the latter adds
-     `--git-diff-lines --ignore-msi-with-no-mutations` for cheap per-PR feedback).
+     `--git-diff-lines --git-diff-base=origin/main --ignore-msi-with-no-mutations`
+     for cheap per-PR feedback).
 
 - **Milestone 3 — Coverage ≥ 95 % + suite split + conformance seeds (REVIEW NV1, NV11)**
   - Coverage is now an enforced gate. `scripts/coverage_check.php` parses

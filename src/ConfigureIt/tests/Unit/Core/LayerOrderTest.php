@@ -11,6 +11,7 @@ use ItPack\ConfigureIt\Adapter\PhpLoader;
 use ItPack\ConfigureIt\Contract\Execution\ExecutionContextInterface;
 use ItPack\ConfigureIt\Core\ConfigurationLayer;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * @covers \ItPack\ConfigureIt\Core\ConfigurationLayer
@@ -19,6 +20,8 @@ use ItPack\ConfigureIt\Execution\ExecutionContext;
  */
 class LayerOrderTest extends Unit
 {
+    use VirtualFileSystem;
+
     /**
      * @var list<string>
      */
@@ -149,7 +152,7 @@ class LayerOrderTest extends Unit
      */
     private function dirWith(array $files): string
     {
-        $dir = sys_get_temp_dir() . '/cfg-layer-' . uniqid();
+        $dir = $this->vfsPath('/cfg-layer-' . uniqid());
         mkdir($dir, 0o700, true);
 
         foreach ($files as $name => $content) {

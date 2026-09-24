@@ -15,6 +15,7 @@ use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
 use ItPack\ConfigureIt\ValueObject\SourceKind;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * @covers \ItPack\ConfigureIt\Core\ConfigurationLayer::id
@@ -24,6 +25,8 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
  */
 class LayerProvenanceTest extends Unit
 {
+    use VirtualFileSystem;
+
     /**
      * @var list<string>
      */
@@ -117,7 +120,7 @@ class LayerProvenanceTest extends Unit
      */
     private function dirWith(array $files): string
     {
-        $dir = sys_get_temp_dir() . '/cfg-layer-prov-' . uniqid();
+        $dir = $this->vfsPath('/cfg-layer-prov-' . uniqid());
         mkdir($dir, 0o700, true);
 
         foreach ($files as $name => $content) {

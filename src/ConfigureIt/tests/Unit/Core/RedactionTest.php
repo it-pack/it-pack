@@ -23,8 +23,12 @@ use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 use function str_contains;
 
+use Tests\Support\Extension\VirtualFileSystem;
+
 class RedactionTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     private string $configDir;
@@ -126,11 +130,11 @@ class RedactionTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-red-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-red-' . uniqid());
         mkdir($this->dir);
         file_put_contents($this->dir . '/db_password', 's3cr3t-value');
 
-        $this->configDir = sys_get_temp_dir() . '/cfg-red-cfg-' . uniqid();
+        $this->configDir = $this->vfsPath('/cfg-red-cfg-' . uniqid());
         mkdir($this->configDir);
         file_put_contents($this->configDir . '/config.json', '{"app_name":"demo"}');
     }

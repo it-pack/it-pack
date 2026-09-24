@@ -9,12 +9,15 @@ use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Exception\ReadException;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * @covers \ItPack\ConfigureIt\Adapter\FileReader
  */
 class FileReaderCoverageTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $file;
 
     public function testReadsExistingFile(): void
@@ -59,7 +62,7 @@ class FileReaderCoverageTest extends Unit
 
     protected function _before(): void
     {
-        $this->file = sys_get_temp_dir() . '/cfg-fr-' . uniqid() . '.json';
+        $this->file = $this->vfsPath('/cfg-fr-' . uniqid() . '.json');
     }
 
     protected function _after(): void

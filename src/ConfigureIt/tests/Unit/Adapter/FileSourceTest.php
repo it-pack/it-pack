@@ -10,9 +10,12 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Contract\ValueObject\ConfigurationResourceInterface;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
+use Tests\Support\Extension\VirtualFileSystem;
 
 class FileSourceTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testDiscoversOnlyConfiguredExtensionsRecursively(): void
@@ -44,7 +47,7 @@ class FileSourceTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-src-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-src-' . uniqid());
         mkdir($this->dir . '/nested', 0o700, true);
         file_put_contents($this->dir . '/a.php', '<?php return [];');
         file_put_contents($this->dir . '/b.json', '{}');
@@ -74,9 +77,11 @@ class FileSourceTest extends Unit
 
 class FileReaderTest extends Unit
 {
+    use VirtualFileSystem;
+
     public function testReadsFileContent(): void
     {
-        $file = sys_get_temp_dir() . '/cfg-read-' . uniqid() . '.php';
+        $file = $this->vfsPath('/cfg-read-' . uniqid() . '.php');
         file_put_contents($file, 'hello');
         $reader = new FileReader();
 

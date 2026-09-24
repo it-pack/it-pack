@@ -10,12 +10,15 @@ use ItPack\ConfigureIt\Exception\ReadException;
 use ItPack\ConfigureIt\ValueObject\ConfigurationResource;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ReflectionMethod;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * @covers \ItPack\ConfigureIt\Adapter\Enterprise\VolumeReader
  */
 final class VolumeReaderTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     public function testSupportsEnvVolumeSchemesOnly(): void
@@ -77,7 +80,7 @@ final class VolumeReaderTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-vol-u-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-vol-u-' . uniqid());
         mkdir($this->dir);
         file_put_contents($this->dir . '/app_name', "demo\n");
         file_put_contents($this->dir . '/db_host', "db.internal\r\n");

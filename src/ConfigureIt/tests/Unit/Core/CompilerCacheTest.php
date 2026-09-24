@@ -19,6 +19,7 @@ use ItPack\ConfigureIt\Exception\TypeException;
 use ItPack\ConfigureIt\ValueObject\ValidationResultFactory;
 use Nette\Schema\Expect;
 use RuntimeException;
+use Tests\Support\Extension\VirtualFileSystem;
 
 /**
  * M3 — Epic E7.1 (Compiler + cache) exit verification.
@@ -30,6 +31,8 @@ use RuntimeException;
  */
 class CompilerCacheTest extends Unit
 {
+    use VirtualFileSystem;
+
     private string $dir;
 
     private string $cacheDir;
@@ -116,7 +119,7 @@ class CompilerCacheTest extends Unit
 
         // Corrupt the cached artifact's port (string instead of int) and confirm
         // the next resolve — a hit — reconstructs + re-validates the typed snapshot.
-        $artifact = glob($this->cacheDir . '/*.php')[0] ?? null;
+        $artifact = $this->files('*.php')[0] ?? null;
         verify($artifact)->notNull();
 
         /** @var string $artifact */
@@ -130,8 +133,8 @@ class CompilerCacheTest extends Unit
 
     protected function _before(): void
     {
-        $this->dir = sys_get_temp_dir() . '/cfg-m3-' . uniqid();
-        $this->cacheDir = sys_get_temp_dir() . '/cfg-m3-cache-' . uniqid();
+        $this->dir = $this->vfsPath('/cfg-m3-' . uniqid());
+        $this->cacheDir = $this->vfsPath('/cfg-m3-cache-' . uniqid());
         mkdir($this->dir, 0o700, true);
 
         $this->writeConfig(['name' => 'acme', 'port' => 8080]);
@@ -162,6 +165,23 @@ class CompilerCacheTest extends Unit
     private function writeConfig(array $data): void
     {
         file_put_contents($this->dir . '/config.php', '<?php return ' . var_export($data, true) . ';');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function files(string $pattern): array
+    {
+        $entries = scandir($this->cacheDir);
+        $matched = [];
+
+        foreach (false === $entries ? [] : array_diff($entries, ['.', '..']) as $item) {
+            if (fnmatch($pattern, $item)) {
+                $matched[] = $this->cacheDir . '/' . $item;
+            }
+        }
+
+        return $matched;
     }
 
     private function builder(?ConfigurationCacheInterface $cache = null): ConfigurationBuilder
