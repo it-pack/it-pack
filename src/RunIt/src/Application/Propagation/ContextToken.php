@@ -23,4 +23,9 @@ final readonly class ContextToken implements ContextTokenInterface
         public ExecutionScopeInterface $scope,
     ) {
     }
+
+    public function id(): int
+    {
+        return $this->id;
+    }
 }
