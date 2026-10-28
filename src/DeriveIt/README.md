@@ -54,6 +54,12 @@ and emits no `use`/FQCN leaking the adaptee hierarchy.
 composer require it-pack/derive-it
 ```
 
+## Dependencies & PSR posture
+
+`psr/cache` (^1.0||^2.0||^3.0) is a **hard runtime dependency** — caching of
+reflection results is core to DeriveIt's performance. All other PSR packages
+are absent from the runtime `require`.
+
 ## Usage
 
 ### Flat interface derivation

@@ -9,10 +9,9 @@
         }
     ],
     "require": {
-        "php": "^8.4",
+        "php": "^8.5",
         "nette/php-generator": "^4.2",
-        "nikic/php-parser": "^5.8",
-        "rector/rector": "^2.0"
+        "nikic/php-parser": "^5.8"
     },
     "require-dev": {
         "codeception/codeception": "^5.1",
@@ -28,7 +27,8 @@
         "open-telemetry/exporter-otlp": "^1.0",
         "open-telemetry/sdk": "^1.0",
         "open-telemetry/sem-conv": "^1.0",
-        "phparkitect/phparkitect": "^1.2"
+        "phparkitect/phparkitect": "^1.2",
+        "rector/rector": "^2.0"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,

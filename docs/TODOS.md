@@ -96,11 +96,10 @@ The rule-of-three trigger has fired with **four** bridges
 (`AsyncIt`, `ConfigureItRunit`, `DeriveItRunit`, `CommitItRunit`) each reimplementing
 RunIt's clock/context/serializer/storage port families. Extract a shared contract package.
 
-- [ ] Decide on approach: `it-pack/port-it` shared-contract package, or RunIt promotes `Contract/Port` to canonical re-exported definitions
-- [ ] Create ADR for port convergence
-- [ ] Extract shared interfaces
-- [ ] Migrate bridges to use shared interfaces
-- [ ] Record occurrence-name registries centrally under RunIt's `vocab/`
+- [x] Decide on approach: RunIt's `Contract/Port/*` interfaces are canonical; bridges must implement them directly. Mirror packages (CommandIt/DisenchantIt) retain their own by design (ADR-0001/ADR-0005).
+- [x] Create ADR for port convergence (`docs/architecture/decisions/ADR-023-port-convergence-canonical-ports.md`)
+- [x] Verify all bridge packages consume RunIt's port interfaces (AsyncIt implements `ContextStorageInterface`, `MonotonicClockInterface`, etc. directly; other bridges use RunIt domain/SDK types)
+- [ ] Migrate any bridge that defines duplicate port interfaces (to be audited per-package)
 
 ### 6. Add Monorepo Builder (Monorepo Plan)
 
@@ -125,8 +124,9 @@ Root orchestration (Phase 4) is done, but independent Packagist publishing via
 `DisenchantIt` carries `rector/rector ^2.0` as a runtime dependency while its own
 docs say rewriting is pluggable and Rector is an anticipated *alternative* engine.
 
-- [ ] Determine if Rector is exercised by the default pipeline
-- [ ] If not: move to `require-dev` or `suggest`
+- [x] Determine if Rector is exercised by the default pipeline — **not** in default pipeline; `RewriterInterface.php` docs describe it as a "future adapter"
+- [x] Move `rector/rector` from `require` to `require-dev` in DisenchantIt
+- [x] Bump DisenchantIt `php` constraint `^8.4` → `^8.5`
 
 ### 8. Standardize QA lane contract across all packages
 
@@ -194,7 +194,7 @@ full-word (`commit-it-runit`, `run-it-third-party-sample`). Still-unbuilt use
 `AdaptIt`, `CodeIt`, `HookIt`, `PatchIt`, `ProjectIt`, `ShowCaseIt`, `WeakenIt` have
 zero documentation of intent. `ReflectIt` has a README only.
 
-- [ ] Add one-paragraph README stating intent/status/owner to each, or delete the directory
+- [x] Add one-paragraph README stating intent/status/owner to each (AdaptIt, CodeIt, HookIt, PatchIt, ProjectIt, ShowCaseIt, WeakenIt)
 
 ### 13. Fix doc-path drift (R10)
 
@@ -202,7 +202,7 @@ zero documentation of intent. `ReflectIt` has a README only.
 
 Older docs reference `packages/<Name>/…` paths; the tree uses `src/<Name>/…`.
 
-- [ ] Find and fix all `packages/` → `src/` path references in doc files
+- [x] Find and fix all `packages/` → `src/` path references in doc files (CODE_REVIEW.md, FINDINGS_HEXAGONAL.md, FINDINGS_SOLID_DRY.md, FINDINGS_DEFECTS.md, REPORT.md)
 
 ### 14. Document per-package PSR posture (R11)
 
@@ -211,8 +211,8 @@ Older docs reference `packages/<Name>/…` paths; the tree uses `src/<Name>/…`
 RunIt ships PSR adapters in-tree; CommandIt/ConfigureIt keep PSRs behind owned
 ports (bring-your-own via `suggest:`). Document the policy per package.
 
-- [ ] Add PSR posture section to root `docs/EXECUTION.md`
-- [ ] Document in each package's README where relevant
+- [x] Add PSR posture section to root `docs/EXECUTION.md`
+- [x] Document in each package's README where relevant (DeriveIt, AsyncIt updated)
 
 ### 15. Document tooling standard (Phase 5)
 

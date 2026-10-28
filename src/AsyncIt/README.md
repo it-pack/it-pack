@@ -132,6 +132,16 @@ AsyncIt does not own an execution model—it consumes RunIt's. RunIt owns identi
 
 ---
 
+## 7. PSR posture
+
+PSR packages (psr/clock, psr/log, psr/event-dispatcher, psr/http-*) are **not**
+runtime dependencies of AsyncIt. They appear only in `require-dev` for adapter
+test suites and in `suggest` where PSR-compatible bridges are optional. The core
+scheduling and runtime-discovery contracts depend solely on RunIt's own port
+interfaces.
+
+---
+
 ## License
 
 AsyncIt is distributed under the **MIT License**.

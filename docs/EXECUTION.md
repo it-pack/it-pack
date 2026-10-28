@@ -537,9 +537,27 @@ RunIt is the base execution layer. Consumers must not import `ItPack\RunIt\*`
 directly; they depend on it through a bridge package (`it-pack/run-it-<consumer>`
 or `<consumer>-run-it`).
 
----
+## PSR posture
 
-# Vision
+The ItPack ecosystem adopts a **tiered PSR policy**: core packages define their
+own ports and may reference PSR interfaces only behind an adapter; integration
+packages that *exist to provide* a PSR bridge carry the PSR as a hard dependency.
+
+| Posture | Packages | Example |
+|---|---|---|
+| **Core — PSR-free runtime** | RunIt, CommandIt, DisenchantIt, ConfigureIt, CommitIt, HashIt, DeriveIt | No PSR in `require`. PSR interfaces appear only behind adapters or in `suggest`. |
+| **PSR-as-suggest (bring-your-own)** | CommandIt, HashIt, RunIt | PSR package listed in `suggest` with a description of the adapter it enables. |
+| **PSR-for-adapter-dev** | RunIt, AsyncIt, HashIt | PSR packages in `require-dev` for adapter test suites; not a runtime dependency. |
+| **PSR-adapter package** | ConfigureItPsr11 | The package's sole purpose is to satisfy a PSR (`psr/container`); PSR is a hard `require`. |
+| **PSR-as-core-feature** | DeriveIt | `psr/cache` is a hard `require` because caching is core to the package's operation. |
+
+**Policy:** A core package must never take a PSR as a hard `require` unless the PSR
+*is* the package's reason for existing (e.g. ConfigureItPsr11). All other PSR
+dependencies are either `suggest` (optional integration surface) or `require-dev`
+(adapter test suites). Bridge packages may import PSR packages that their target
+adapter requires, but must not re-export them as part of their own public API.
+
+---
 
 Execution becomes the semantic backbone of the It_Pack ecosystem.
 
