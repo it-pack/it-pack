@@ -1,10 +1,7 @@
 # Monorepo Consolidation Plan — Monorepo Builder Integration
 
-> **Status:** Planning
-> **Context:** `docs/CONSOLIDATION_PLAN.md` Phase 4 added root orchestration
-> (`composer.json` + `Makefile` + CI matrix). This document details the next
-> step: integrating `symplify/monorepo-builder` to enable independent
-> Packagist packages from the monorepo.
+> **Status:** Phase 4 (root orchestration) complete; Monorepo Builder not yet implemented — this document details the remaining work: integrating `symplify/monorepo-builder` to enable independent Packagist packages from the monorepo.
+> **Context:** `docs/CONSOLIDATION_PLAN.md` Phase 4 added root orchestration (`composer.json` + `Makefile` + CI matrix). This document details the next step: integrating `monorepo-builder` to enable independent Packagist packages from the monorepo.
 
 ---
 
@@ -17,7 +14,7 @@ repositories** (`../ConfigureIt`, `../RunIt`, etc.). This works for local
 development but:
 
 - Prevents independent Packagist tags
-- Multiplies `vendor/` trees (17×)
+- Multiplies `vendor/` trees (18×)
 - Has no release/split automation
 
 `monorepo-builder` solves this by:
@@ -37,7 +34,7 @@ PHPStan, PHP-CS-Fixer, and Infection continue to run per-package as-is.
 
 ### 2.1 Wiring model
 
-All 17 code-bearing packages use **path repositories** in their `composer.json`:
+All 18 code-bearing packages use **path repositories** in their `composer.json`:
 
 ```json
 "repositories": [
@@ -48,20 +45,21 @@ All 17 code-bearing packages use **path repositories** in their `composer.json`:
 This symlink-based approach means each `vendor/` tree contains a symlink to
 the sibling package, not a copy. It works locally but is not Packagist-ready.
 
+**Note:** Root orchestration (Phase 4 of `CONSOLIDATION_PLAN.md`) is already in place — `composer.json` (scripts-only), `Makefile` (`make quality`), and `.github/workflows/quality.yml` (14×2 matrix). This enables monorepo-wide QA but does **not** provide independent Packagist publishing; Monorepo Builder is still needed for that.
+
 ### 2.2 Package inventory
 
 | Category | Count | Packages |
 |---|---|---|
-| Code-bearing (has `composer.json` + `src/`) | 17 | RunIt, ConfigureIt + 5 satellites, CommandIt, CommitIt, DisenchantIt, DeriveIt, HashIt, AsyncIt, HashItAsync, DeriveItRunit, ConfigureItRunit, RunItThirdPartySample |
-| Test-bearing (has `tests/`) | 14 | All above except: LazeIt, FileIt, ExtendIt |
+| Code-bearing (has `composer.json` + `src/`) | 18 | RunIt, ConfigureIt + 5 satellites, CommandIt, CommitIt, DisenchantIt, DeriveIt, HashIt, AsyncIt, HashItAsync, DeriveItRunit, ConfigureItRunit, RunItThirdPartySample, **CommitItRunit** |
+| Test-bearing (has `tests/`) | 15 | All above except: LazeIt, FileIt, ExtendIt |
 | Micro-libs (minimal config) | 3 | LazeIt (1 class, no tests), FileIt (1 class), ExtendIt (stub) |
 | Placeholders (no `composer.json`) | 8 | AdaptIt, CodeIt, HookIt, PatchIt, ProjectIt, ReflectIt, ShowCaseIt, WeakenIt |
 
 ### 2.3 QA state
 
-- All 17 code-bearing packages have normalized QA scripts (Phase 3)
-- 14 packages have `quality` scripts; 3 (ConfigureIt, DeriveIt, HashItAsync) have individual lanes but no unified `quality`
-- All use `just-bases/*` for dev baselines
+- **Phase 0–4 of `CONSOLIDATION_PLAN.md` largely complete.** All 18 code-bearing packages use Codeception (via `just-bases` or direct require); 9 have phparkitect (Phase 2 incomplete — 9 packages still lack it); deptrac fully archived; 15 packages have `quality` scripts (ConfigureIt, DeriveIt, HashItAsync lack it; 3 micro-libs have none).
+- **CI matrix coverage:** `.github/workflows/quality.yml` runs 14 packages × PHP 8.4/8.5. Missing from CI: ConfigureIt (no `quality` script), DeriveIt (uses `infection` not `mutation`), HashItAsync (no `quality` script), CommitItRunit (has `quality` but not yet added to matrix).
 
 ### 2.4 Metadata gaps (R9)
 
@@ -89,7 +87,7 @@ it-pack/
 │   ├── run-it/
 │   ├── configure-it/
 │   ├── command-it/
-│   ├── ... (all 17 packages)
+│   ├── ... (all 18 packages)
 │   ├── laze-it/
 │   ├── file-it/
 │   └── extend-it/
@@ -309,10 +307,12 @@ the `src/` → `packages/` move.
 
 ### 5.6 CI matrix impact
 
-The current 14×2 matrix CI runs in each package's directory. After migration:
-- **Development CI** (push/PR): Keep running `make quality` per-package (in `packages/`)
+The current CI matrix runs 14 packages × PHP 8.4/8.5 on push/PR (see `.github/workflows/quality.yml`). After migration:
+- **Development CI** (push/PR): Currently runs `make quality` for 14 packages. Should be expanded to 15 once ConfigureIt/DeriveIt/HashItAsync/CommitItRunit standardize their scripts.
 - **Merge CI** (pre-release): Run tests in the merged tree to verify cross-package edges
 - **Release CI** (tag): Run `monorepo-builder release`
+
+Before adding Monorepo Builder, standardize the 4 outlier packages' QA scripts so the CI matrix can cover all 15+ packages uniformly.
 
 ### 5.7 Not affected by this change
 
@@ -347,11 +347,20 @@ split/release capabilities. More limited than Monorepo Builder.
 
 ## 7. Next steps
 
-1. **Complete R9 metadata sweep** (add `php` floors, `license` fields)
-2. **Standardize PHP floors** (align on `^8.4` or `^8.5`)
-3. **Rename `src/` → `packages/`** with full reference update
-4. **Add `monorepo-builder.json`** + require-dev
-5. **Verify merge** works with path repos still in place
-6. **Create release CI** workflow
-7. **Update AGENTS.md** with split/release workflow
-8. **Document on docs/REPORT.md** §7-R2 (monorepo tooling) and §8-R2 (recommendation 2)
+**Prerequisite (consolidation):**
+1. **Standardize QA scripts** in ConfigureIt, DeriveIt, HashItAsync (add `quality`; DeriveIt uses `infection` not `mutation`).
+2. **Complete Phase 2.4** (add phparkitect to 9 remaining packages) — see `CONSOLIDATION_PLAN.md` §5 Phase 2.4.
+3. **Add CommitItRunit** to the CI matrix.
+
+**Monorepo Builder work (this document):**
+1. ✅ **Completed: root `composer.json` (scripts-only)** — Phase 4 of CONSOLIDATION_PLAN.
+2. ✅ **Completed: `Makefile`** at repo root with `make quality`.
+3. ✅ **Completed: `.github/workflows/quality.yml`** — 14×2 matrix CI.
+4. Complete metadata sweep (R9) — add `php` floors to HashIt, LazeIt, FileIt, ExtendIt; add `license` to DeriveIt.
+5. **Standardize PHP floors** (align on `^8.4` or `^8.5`) — see REPORT.md §7-R1.
+6. **Rename `src/` → `packages/`** with full reference update (or keep `src/` and use `monorepo-builder.json` merge paths pointing at `src/*`).
+7. **Add `monorepo-builder.json`** + require-dev `symplify/monorepo-builder:^12.0`.
+8. **Verify merge** works with path repos still in place.
+9. **Create release CI** workflow (`release.yml`).
+10. **Update AGENTS.md** with split/release workflow.
+11. **Document in `docs/REPORT.md`** §7-R2 (monorepo tooling) and §8-R2 (recommendation 2).

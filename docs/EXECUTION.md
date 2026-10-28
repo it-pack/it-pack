@@ -516,7 +516,7 @@ The monorepo root provides unified entry points:
   `composer cs:check`, `composer analyse`, `composer architecture`, `composer
   mutation` — all delegate to the Makefile.
 - **`Makefile`**: `make quality` runs `composer quality` in every package that
-  defines it (currently 14 packages) plus lane aliases (`make test`, `make
+  defines it (currently 15 packages) plus lane aliases (`make test`, `make
   cs-check`, `make analyse`, etc.). Packages without the lane are silently
   skipped.
 - **`.github/workflows/quality.yml`**: 14×2 matrix (14 packages × PHP 8.4/8.5)

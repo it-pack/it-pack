@@ -26,7 +26,7 @@ other packages build on that model:
 - **CommitIt** — vendor-neutral VCS API (git first).
 
 Plus bridge packages that wire a consumer package onto the RunIt execution
-model: `ConfigureItRunit`, `DeriveItRunit`, `HashItAsync`, `RunItThirdPartySample`.
+model: `ConfigureItRunit`, `DeriveItRunit`, `HashItAsync`, `CommitItRunit`, `RunItThirdPartySample`.
 
 Full details: see [docs/REPORT.md](./docs/REPORT.md) for the architecture
 review and [docs/EXECUTION.md](./docs/EXECUTION.md) for the execution-model
@@ -57,8 +57,7 @@ it-pack/
 ├── AGENTS.md              # Repo-wide instructions for AI agents
 ├── docs/                  # REPORT.md, EXECUTION.md, CONSOLIDATION_PLAN.md, ADRs
 ├── tools/qa/              # Shared QA templates (phparkitect, phpstan, cs-fixer, infection, codeception)
-├── .github/workflows/     # CI: quality.yml matrix (14 packages × PHP 8.4/8.5)
-├── src/
+├── .github/workflows/     # CI: quality.yml matrix (14 packages × PHP 8.4/8.5)├── src/
 │   ├── RunIt/             # Execution model & runtime backbone (vocabulary donor)
 │   ├── ConfigureIt/       # Configuration SDK + resolution engine (hub)
 │   ├   ├── ConfigureItPsr11/   # PSR-11 container integration
@@ -70,13 +69,13 @@ it-pack/
 │   ├── DeriveIt/          # Interface/adapter derivation from class hierarchies
 │   ├   ├── ConfigureItRunit/     # Bridge: ConfigureIt → RunIt
 │   ├   ├── DeriveItRunit/        # Bridge: DeriveIt → RunIt
+│   ├   ├── CommitItRunit/        # Bridge: CommitIt → RunIt (observer adapter)
 │   ├   ├── HashItAsync/          # Bridge: HashIt → AsyncIt
 │   ├   └── RunItThirdPartySample/ # Third-party conformance reference
 │   ├── HashIt/            # Hexagonal hashing utility
 │   ├── CommandIt/         # CQRS command dispatch
 │   ├── DisenchantIt/      # Magic scalar → constant/enum promotion
 │   ├── CommitIt/          # Vendor-neutral VCS API
-│   ├── HashItAsync/       # Bridge: HashIt → AsyncIt
 │   ├── LazeIt/            # PHP native lazy objects SDK
 │   ├── FileIt/            # File metadata value objects
 │   └── ExtendIt/          # Experimental class inspection toolkit
