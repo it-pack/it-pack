@@ -24,7 +24,8 @@
         "just-bases/php-obs-dev-base": "^0.1.0",
         "infection/codeception-adapter": "^0.4",
         "symfony/http-client": "^8.1",
-        "nyholm/psr7": "^1.8"
+        "nyholm/psr7": "^1.8",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -47,10 +48,12 @@
         "quality": [
             "@cs:check",
             "@analyse",
+            "@architecture",
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "architecture": "vendor/bin/phparkitect check"
     },
     "minimum-stability": "stable",
     "prefer-stable": true,

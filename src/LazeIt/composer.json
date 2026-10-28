@@ -1,0 +1,19 @@
+{
+    "name": "it-pack/laze-it",
+    "description": "A utility and convenience API and SDK for lazy objects in PHP",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "ItPack\\LazeIt\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}

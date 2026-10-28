@@ -1,6 +1,6 @@
 {
     "name": "it-pack/run-it-third-party-sample",
-    "description": "Third-party reference adapter for RunIt — proves a consumer that depends on it-pack/run-it purely as a vendor can implement the ArtifactPublisherInterface and ContextStorageInterface ports and pass the shipped conformance suites.",
+    "description": "Third-party reference adapter for RunIt \u2014 proves a consumer that depends on it-pack/run-it purely as a vendor can implement the ArtifactPublisherInterface and ContextStorageInterface ports and pass the shipped conformance suites.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -22,7 +22,8 @@
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
-        "infection/codeception-adapter": "^0.4"
+        "infection/codeception-adapter": "^0.4",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -61,10 +62,12 @@
         "quality": [
             "@cs:check",
             "@analyse",
+            "@architecture",
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "architecture": "vendor/bin/phparkitect check"
     },
     "repositories": [
         {

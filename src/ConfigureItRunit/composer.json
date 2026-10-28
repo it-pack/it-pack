@@ -1,6 +1,6 @@
 {
     "name": "it-pack/configure-it-runit",
-    "description": "RunIt execution-model integration for ConfigureIt — bridges configuration resolution onto a RunIt execution so resolution appears as a first-class execution with activities, measurements, observations, occurrences, and a terminal snapshot.",
+    "description": "RunIt execution-model integration for ConfigureIt \u2014 bridges configuration resolution onto a RunIt execution so resolution appears as a first-class execution with activities, measurements, observations, occurrences, and a terminal snapshot.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -23,7 +23,8 @@
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
-        "infection/codeception-adapter": "^0.4"
+        "infection/codeception-adapter": "^0.4",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -62,10 +63,12 @@
         "quality": [
             "@cs:check",
             "@analyse",
+            "@architecture",
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "architecture": "vendor/bin/phparkitect check"
     },
     "repositories": [
         {

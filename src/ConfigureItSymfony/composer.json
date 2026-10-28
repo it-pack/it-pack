@@ -1,6 +1,6 @@
 {
     "name": "it-pack/configure-it-symfony",
-    "description": "Symfony integration for ConfigureIt — a bundle + DI extension that wires the ConfigurationBuilder and exposes the resolved snapshot as a service.",
+    "description": "Symfony integration for ConfigureIt \u2014 a bundle + DI extension that wires the ConfigurationBuilder and exposes the resolved snapshot as a service.",
     "type": "library",
     "license": "MIT",
     "require": {
@@ -18,7 +18,8 @@
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "infection/codeception-adapter": "^0.4",
-        "symfony/yaml": "^7.0"
+        "symfony/yaml": "^7.0",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -50,10 +51,12 @@
         "quality": [
             "@cs:check",
             "@analyse",
+            "@architecture",
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "architecture": "vendor/bin/phparkitect check"
     },
     "repositories": [
         {

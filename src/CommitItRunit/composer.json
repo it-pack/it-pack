@@ -1,6 +1,6 @@
 {
     "name": "it-pack/commit-it-runit",
-    "description": "RunIt execution-model observer adapter for CommitIt — bridges VCS operations onto a RunIt execution with activities, measurements, observations, occurrences, and terminal snapshot.",
+    "description": "RunIt execution-model observer adapter for CommitIt \u2014 bridges VCS operations onto a RunIt execution with activities, measurements, observations, occurrences, and terminal snapshot.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -23,7 +23,8 @@
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
-        "infection/codeception-adapter": "^0.4"
+        "infection/codeception-adapter": "^0.4",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -62,10 +63,12 @@
         "quality": [
             "@cs:check",
             "@analyse",
+            "@architecture",
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "architecture": "vendor/bin/phparkitect check"
     },
     "repositories": [
         {

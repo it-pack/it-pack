@@ -1,6 +1,6 @@
 {
     "name": "it-pack/derive-it-runit",
-    "description": "RunIt execution-model integration for DeriveIt — bridges derivation telemetry onto a RunIt execution so derivations appear as first-class executions.",
+    "description": "RunIt execution-model integration for DeriveIt \u2014 bridges derivation telemetry onto a RunIt execution so derivations appear as first-class executions.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -23,7 +23,8 @@
         "just-bases/php-unit-test-base": "^1.0",
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
-        "infection/codeception-adapter": "^0.4"
+        "infection/codeception-adapter": "^0.4",
+        "phparkitect/phparkitect": "^1.2"
     },
     "autoload": {
         "psr-4": {
@@ -62,10 +63,12 @@
         "quality": [
             "@cs:check",
             "@analyse",
+            "@architecture",
             "@test",
             "@mutation",
             "@security:audit"
-        ]
+        ],
+        "architecture": "vendor/bin/phparkitect check"
     },
     "repositories": [
         {

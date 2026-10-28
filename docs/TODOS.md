@@ -32,15 +32,15 @@ still lack architecture verification:
 calling `layeredArchitecture()` + appropriate `forbidSibling()` rules, add
 `architecture` composer script, dual-run against any archived deptrac config.
 
-- [ ] `ConfigureItExplorer`
-- [ ] `ConfigureItPsr11`
-- [ ] `ConfigureItRunit`
-- [ ] `ConfigureItSchemaDocs`
-- [ ] `ConfigureItSymfony`
-- [ ] `ConfigureItTesting`
-- [ ] `DeriveItRunit`
-- [ ] `RunItThirdPartySample`
-- [ ] `CommitItRunit`
+- [x] `ConfigureItExplorer` — single-component (Adapter → ConfigureIt)
+- [x] `ConfigureItPsr11` — single-component (Adapter → ConfigureIt)
+- [x] `ConfigureItRunit` — bridge (Bridge → ConfigureIt + RunIt)
+- [x] `ConfigureItSchemaDocs` — single-component (Adapter → ConfigureIt)
+- [x] `ConfigureItSymfony` — single-component (Adapter → ConfigureIt)
+- [x] `ConfigureItTesting` — single-component (TestDoubles → ConfigureIt)
+- [x] `DeriveItRunit` — bridge (Bridge → DeriveIt + RunIt)
+- [x] `RunItThirdPartySample` — single-component (Adapter → RunIt)
+- [x] `CommitItRunit` — bridge (Bridge → CommitIt + RunIt)
 
 ### 2. Fix impossible PHP constraints (R1)
 
