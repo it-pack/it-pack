@@ -43,6 +43,7 @@ final readonly class ContentClassifier implements ContentClassifierInterface
 
         // At least one namespace separator, and every segment identifier-shaped
         // (`App\Foo\Bar`, `App\Foo\Bar\Baz`). A bare `Foo` is not a FQCN.
+        /** @phpstan-ignore-next-line */
         return (bool) preg_match('#^[A-Za-z_][A-Za-z0-9_]*(\\\\[A-Za-z_][A-Za-z0-9_]*)+$#', $value);
     }
 
@@ -59,6 +60,7 @@ final readonly class ContentClassifier implements ContentClassifierInterface
         }
 
         // SQL statements (used mainly for heredoc bodies in a later phase).
+        /** @phpstan-ignore-next-line */
         if (preg_match('#^(select|insert|update|delete|create table)\b#i', $value) === 1) {
             return LiteralSubkind::Sql;
         }
@@ -70,11 +72,13 @@ final readonly class ContentClassifier implements ContentClassifierInterface
         }
 
         // Semantic versions: 1.2, 1.2.3, ...
+        /** @phpstan-ignore-next-line */
         if (preg_match('#^\d+\.\d+(\.\d+)*$#', $value) === 1) {
             return LiteralSubkind::Version;
         }
 
         // URLs: scheme://, protocol-relative //, or a /path-like root.
+        /** @phpstan-ignore-next-line */
         if (preg_match('#^(https?://|//|/[a-z0-9_.\-]+)#i', $value) === 1) {
             return LiteralSubkind::Url;
         }

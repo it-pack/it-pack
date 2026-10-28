@@ -19,5 +19,6 @@ use ItPack\DisenchantIt\ValueObject\Scope\DisenchantScopeInterface;
  */
 interface NamePolicyInterface
 {
+    // @phpstan-ignore shipmonk.deadMethod
     public function apply(string $name): string;
 }

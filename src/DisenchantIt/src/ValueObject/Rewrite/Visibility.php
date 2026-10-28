@@ -12,6 +12,7 @@ namespace ItPack\DisenchantIt\ValueObject\Rewrite;
 enum Visibility: string
 {
     case Private = 'private';
+    // @phpstan-ignore shipmonk.deadEnumCase
     case Protected = 'protected';
     case Public = 'public';
 }

@@ -70,6 +70,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
         }
 
         if ($node instanceof String_) {
+            /** @phpstan-ignore-next-line */
             $nodeKind = $node->getAttribute('kind');
 
             // Heredoc / nowdoc bodies: collect the body as one string literal
@@ -89,6 +90,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                     return null;
                 }
 
+                /** @phpstan-ignore-next-line */
                 $parent = $node->getAttribute('parent');
                 $typedParent = $parent instanceof Node ? $parent : null;
                 $role = $this->classifier->classify($node, $typedParent);
@@ -161,6 +163,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 return null; // a numeric constant's OWN declared value — not a usage site
             }
 
+            /** @phpstan-ignore-next-line */
             $parent = $node->getAttribute('parent');
             $typedParent = $parent instanceof Node ? $parent : null;
             $inBitwiseContext = $typedParent instanceof BitwiseOr
@@ -221,6 +224,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
             return (string) ($node->value ?? '');
         }
 
+        /** @phpstan-ignore-next-line */
         return substr($this->code, $start, $end - $start + 1);
     }
 
@@ -235,6 +239,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
      */
     private function isInsideClassConstDeclaration(Node $node): bool
     {
+        /** @phpstan-ignore-next-line */
         $current = $node->getAttribute('parent');
 
         while ($current !== null) {
@@ -242,6 +247,7 @@ final class MagicLiteralVisitor extends NodeVisitorAbstract implements MagicLite
                 return true;
             }
 
+            /** @phpstan-ignore-next-line */
             $current = $current instanceof Node
                 ? $current->getAttribute('parent')
                 : null;

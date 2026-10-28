@@ -14,10 +14,12 @@ final readonly class ConstantPlacement implements ConstantPlacementInterface
      *        placement's constant should replace.
      */
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $className,
         public string $constantName,
         public string $value,
         public string $type,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public array $occurrences,
     ) {
     }
@@ -27,6 +29,7 @@ final readonly class ConstantPlacement implements ConstantPlacementInterface
      * `float`, `string`. Centralized through LiteralKind so the emitted keyword
      * can never drift from the detected kind.
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public function typeKeyword(): string
     {
         return LiteralKind::from($this->type)->toPhpKeyword();

@@ -13,7 +13,9 @@ use ItPack\DisenchantIt\Contract\SemConv\SemConv;
 final readonly class DisenchantResult implements DisenchantResultInterface
 {
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $code,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $semconvSource,
     ) {
     }

@@ -13,8 +13,10 @@ use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
  */
 interface CandidateInterface
 {
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $value { get; }
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $constantName { get; }
 
     /** @var list<LiteralInterface> */

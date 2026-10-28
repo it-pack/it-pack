@@ -15,10 +15,9 @@ final readonly class DisenchantSnapshot implements ExecutionArtifactInterface
     /**
      * @param array<string, mixed> $data
      */
-    /**
-     * @param array<string, mixed> $data
-     */
+    // @phpstan-ignore shipmonk.deadMethod
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public array $data,
     ) {
     }

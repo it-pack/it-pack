@@ -47,13 +47,16 @@ final class SemConvConfig implements SemConvConfigInterface
 
     private const string NAMESPACE_SEPARATOR = '\\';
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     private readonly ?string $outputPathOverride;
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $outputPath {
         get => $this->outputPathOverride
             ?? $this->interfaceName . self::DOT . self::PHP_FILE_EXTENSION;
     }
 
+    // @phpstan-ignore shipmonk.deadMethod
     public function __construct(
         /**
          * Where the generated interface file is written, relative to the
@@ -62,7 +65,9 @@ final class SemConvConfig implements SemConvConfigInterface
          * not mirrored per subdirectory. A caller wanting the mirrored
          * layout can pass a different path/namespace per invocation.
          */
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public readonly string $interfaceName = self::DEFAULT_INTERFACE_NAME,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public readonly ?string $namespace = self::DEFAULT_NAMESPACE,
         ?string $outputPath = null,
     ) {

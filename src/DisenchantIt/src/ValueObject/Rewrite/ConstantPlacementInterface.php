@@ -13,6 +13,7 @@ use ItPack\DisenchantIt\ValueObject\Literal\LiteralKind;
  */
 interface ConstantPlacementInterface
 {
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $className { get; }
 
     public string $constantName { get; }
@@ -33,7 +34,9 @@ interface ConstantPlacementInterface
      * compare the raw `type` string against keywords directly.
      */
     /** @var list<LiteralInterface> */
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public array $occurrences { get; }
 
+    // @phpstan-ignore shipmonk.deadMethod
     public function typeKeyword(): string;
 }

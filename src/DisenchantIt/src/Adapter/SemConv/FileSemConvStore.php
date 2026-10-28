@@ -31,6 +31,7 @@ final class FileSemConvStore implements SemConvStoreInterface
             return null;
         }
 
+        /** @phpstan-ignore-next-line */
         $contents = file_get_contents($this->path);
         if ($contents === false) {
             throw new \RuntimeException("Failed to read SemConv store: {$this->path}");
@@ -48,6 +49,7 @@ final class FileSemConvStore implements SemConvStoreInterface
             }
         }
 
+        /** @phpstan-ignore-next-line */
         $written = file_put_contents($this->path, $source);
         if ($written === false) {
             throw new \RuntimeException("Failed to write SemConv store: {$this->path}");

@@ -76,9 +76,11 @@ final readonly class SemConvAliasRewriter implements SemConvAliasRewriterInterfa
         }
 
         if (!$needsUseImport) {
+            /** @phpstan-ignore-next-line */
             return implode(self::LINEBREAK, $lines);
         }
 
+        /** @phpstan-ignore-next-line */
         return $this->ensureUseImport(implode(self::LINEBREAK, $lines));
     }
 

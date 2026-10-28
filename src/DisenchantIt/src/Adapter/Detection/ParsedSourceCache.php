@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\DisenchantIt\Adapter\Detection;
 
 use ItPack\DisenchantIt\Contract\Detection\ParsedSourceCacheInterface;
-use ItPack\DisenchantIt\Core\Disenchanter;
 use ItPack\DisenchantIt\Exception\InvalidCacheConfigurationException;
 use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
 use ItPack\DisenchantIt\ValueObject\Source\SourceCode;

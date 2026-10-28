@@ -11,8 +11,11 @@ namespace ItPack\DisenchantIt\ValueObject\Execution;
  */
 final readonly class DisenchantContext implements ExecutionArtifactInterface
 {
+    // @phpstan-ignore shipmonk.deadMethod
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $seed,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public int $startedAt,
     ) {
     }

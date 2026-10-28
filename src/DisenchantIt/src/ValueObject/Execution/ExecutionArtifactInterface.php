@@ -22,13 +22,9 @@ interface ExecutionArtifactInterface
      * "disenchant.it.occurrence.v1". Independent of the PHP class name so the
      * artifact stays addressable across refactors (ADR-0011).
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public function kind(): string;
 
-    /** Deterministic serialization for snapshots and external adapters. */
-    /**
-     * Deterministic serialization for snapshots and external adapters.
-     *
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     public function normalize(): array;
 }

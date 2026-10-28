@@ -37,13 +37,21 @@ use ItPack\DisenchantIt\ValueObject\SemConv\SemConvConfig;
 final readonly class DisenchanterFactory implements DisenchanterFactoryInterface
 {
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private DetectorFactory $detectors,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private PromotionTargetFactory $promotion,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private RewriterInterface $rewriter,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private SemConvCollectorInterface $semconvCollector,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private SemConvAliasRewriterInterface $semconvAliasRewriter,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ClosedSetDetectorInterface $closedSetDetector,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ?ExecutionRecorderInterface $recorder = null,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ?VerificationObserverInterface $observer = null,
     ) {
     }

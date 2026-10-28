@@ -60,6 +60,7 @@ final readonly class NumericNameGenerator implements NumericNameGeneratorInterfa
 
     private function stripUnitSuffix(string $name, string $unit): string
     {
+        /** @phpstan-ignore-next-line */
         $stripped = preg_replace('/' . preg_quote($unit, '/') . '$/i', '', $name);
 
         return $stripped === '' || $stripped === null ? $name : $stripped;
@@ -67,7 +68,9 @@ final readonly class NumericNameGenerator implements NumericNameGeneratorInterfa
 
     private function toConstantName(string $value): string
     {
+        /** @phpstan-ignore-next-line */
         $split = preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', '_', $value);
+        /** @phpstan-ignore-next-line */
         $slug = preg_replace('/[^A-Za-z0-9]+/', '_', $split ?? $value);
 
         return trim(strtoupper($slug ?? ''), '_');

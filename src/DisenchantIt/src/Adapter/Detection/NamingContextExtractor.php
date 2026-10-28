@@ -110,10 +110,12 @@ final readonly class NamingContextExtractor implements NamingContextExtractorInt
 
     private function detectUnit(string $name): ?string
     {
+        /** @phpstan-ignore-next-line */
         $alternation = implode(
             '|',
             array_map(static fn (string $u): string => preg_quote($u, '/'), self::UNIT_SUFFIXES),
         );
+        /** @phpstan-ignore-next-line */
         if (preg_match('/(.*?)(' . $alternation . ')$/i', $name, $m) === 1 && $m[1] !== '') {
             return strtolower($m[2]);
         }

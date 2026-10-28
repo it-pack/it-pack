@@ -31,6 +31,7 @@ final class PhpLintObserver implements VerificationObserverInterface
         }
 
         try {
+            /** @phpstan-ignore-next-line */
             if (file_put_contents($tmp, $rewrittenSource) === false) {
                 throw new VerificationException('Could not write rewritten source for php -l verification.');
             }
@@ -43,6 +44,7 @@ final class PhpLintObserver implements VerificationObserverInterface
 
             if ($exitCode !== 0) {
                 throw new VerificationException(
+                    /** @phpstan-ignore-next-line */
                     'Rewritten source failed `php -l`: ' . implode("\n", $output),
                 );
             }
@@ -51,6 +53,7 @@ final class PhpLintObserver implements VerificationObserverInterface
             unset($result);
         } finally {
             if (is_file($tmp)) {
+                /** @phpstan-ignore-next-line */
                 unlink($tmp);
             }
         }

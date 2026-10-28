@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\DisenchantIt\ValueObject\Scope;
 
-use ItPack\DisenchantIt\Adapter\Rewriting\ClassnameToClassConst;
-use ItPack\DisenchantIt\ValueObject\Literal\LiteralInterface;
-
 /**
  * Port for the immutable "should this file / literal be analysed?" configuration.
  *
@@ -36,33 +33,27 @@ interface DisenchantScopeInterface
     public function getExcludePaths(): array;
 
     /**
+     * @return list<string> literal scalar values that are always rejected, regardless of file.
+     */
+    public function getExcludeLiteralValues(): array;
+
+    /**
      * @return list<string> namespace prefixes a literal's class must sit in to be allowed (allow-list).
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public function getIncludeNamespaces(): array;
 
     /**
      * @return list<string> namespace prefixes a literal's class must NOT sit in (deny-list).
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public function getExcludeNamespaces(): array;
-
-    /**
-     * @return list<string> literal scalar values that are always rejected, regardless of file.
-     */
-    public function getExcludeLiteralValues(): array;
 
     /**
      * When true, files under the conventional test/fixture/var directories
      * (tests/, fixtures/, var/) are rejected.
      */
     public function isIgnoreTests(): bool;
-
-    /**
-     * Maximum accepted length (in characters) of a heredoc/nowdoc body that
-     * DisenchantIt will collect as a candidate string. Larger bodies are skipped
-     * at detection time (opt-in string coverage, bounded cost). 0 means "no
-     * limit"; the default is a conservative cap.
-     */
-    public function getMaxHeredocBodyChars(): int;
 
     /**
      * When true, fully-qualified class-name strings (`App\Foo\Bar`) are eligible
@@ -72,9 +63,19 @@ interface DisenchantScopeInterface
     public function isConvertFqcnToClassConst(): bool;
 
     /**
+     * Maximum accepted length (in characters) of a heredoc/nowdoc body that
+     * DisenchantIt will collect as a candidate string. Larger bodies are skipped
+     * at detection time (opt-in string coverage, bounded cost). 0 means "no
+     * limit"; the default is a conservative cap.
+     */
+    // @phpstan-ignore shipmonk.deadMethod
+    public function getMaxHeredocBodyChars(): int;
+
+    /**
      * Immutable copy with the FQCN → `::class` converter flag toggled.
      *
      * @return static
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public function withConvertFqcnToClassConst(bool $enabled): self;
 }

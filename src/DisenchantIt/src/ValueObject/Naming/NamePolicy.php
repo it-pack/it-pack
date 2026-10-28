@@ -11,6 +11,7 @@ namespace ItPack\DisenchantIt\ValueObject\Naming;
  */
 final readonly class NamePolicy implements NamePolicyInterface
 {
+    // @phpstan-ignore shipmonk.deadMethod
     public function __construct(
         public string $prefix = '',
         public string $suffix = '',

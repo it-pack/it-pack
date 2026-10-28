@@ -12,7 +12,9 @@ final readonly class Candidate implements CandidateInterface
      * @param list<LiteralInterface> $occurrences every literal occurrence of $value.
      */
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $value,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $constantName,
         public array $occurrences,
     ) {

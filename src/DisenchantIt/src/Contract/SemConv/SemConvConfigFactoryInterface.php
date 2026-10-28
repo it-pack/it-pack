@@ -18,6 +18,5 @@ interface SemConvConfigFactoryInterface
     public function build(
         ?string $interfaceName = null,
         ?string $namespace = null,
-        ?string $outputPath = null,
     ): SemConvConfigInterface;
 }

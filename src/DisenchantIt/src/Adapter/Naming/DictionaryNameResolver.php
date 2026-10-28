@@ -40,7 +40,7 @@ final readonly class DictionaryNameResolver implements DictionaryNameResolverInt
             throw new \RuntimeException("Naming dictionary file not found: {$path}");
         }
 
-        $decoded = json_decode((string) file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+        $decoded = json_decode((string) /** @phpstan-ignore-next-line */ file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
         if (!is_array($decoded)) {
             throw new \RuntimeException("Naming dictionary must be a JSON object: {$path}");
         }

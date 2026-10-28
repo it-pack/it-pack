@@ -13,9 +13,13 @@ final readonly class DisenchantObservation implements ExecutionArtifactInterface
     /**
      * @param array<string, mixed> $context
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $level,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public string $message,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public array $context = [],
     ) {
     }

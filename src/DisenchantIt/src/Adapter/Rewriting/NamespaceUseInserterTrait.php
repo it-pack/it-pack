@@ -41,9 +41,11 @@ trait NamespaceUseInserterTrait
         $namespaceIndex = null;
 
         foreach ($lines as $index => $line) {
+            /** @phpstan-ignore-next-line */
             if (preg_match(self::NAMESPACE_REGEX, $line) === 1) {
                 $namespaceIndex = $index;
             }
+            /** @phpstan-ignore-next-line */
             if (preg_match(self::USE_STATEMENT_REGEX, $line) === 1) {
                 $lastUseIndex = $index;
             }

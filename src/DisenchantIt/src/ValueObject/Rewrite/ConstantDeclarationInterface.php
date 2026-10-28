@@ -11,13 +11,18 @@ namespace ItPack\DisenchantIt\ValueObject\Rewrite;
  */
 interface ConstantDeclarationInterface
 {
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $name { get; }
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $valueExpression { get; }
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $typeKeyword { get; }
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public Visibility $visibility { get; }
 
+    // @phpstan-ignore shipmonk.deadMethod
     public function toCodeLine(int $indent = 4): string;
 }

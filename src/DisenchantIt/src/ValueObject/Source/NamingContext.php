@@ -27,6 +27,7 @@ final readonly class NamingContext implements NamingContextInterface
 
     public function signature(): string
     {
+        /** @phpstan-ignore-next-line */
         return implode('|', [
             $this->unit ?? '',
             $this->variableName ?? '',

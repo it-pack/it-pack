@@ -44,16 +44,27 @@ use ItPack\DisenchantIt\ValueObject\Source\SourceCode;
 final readonly class Disenchanter implements DisenchanterInterface
 {
     public function __construct(
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private StringLiteralDetectorInterface $detector,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private CandidateFilterInterface $filter,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private CandidateGrouperInterface $grouper,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ConstantNameResolverInterface $resolver,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private PromotionTargetInterface $promotion,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private RewriterInterface $rewriter,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private SemConvCollectorInterface $collector,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private SemConvAliasRewriterInterface $aliasRewriter,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ExecutionRecorderInterface $recorder,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ClosedSetDetectorInterface $closedSetDetector,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         private ?VerificationObserverInterface $observer = null,
     ) {
     }

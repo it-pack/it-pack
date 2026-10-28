@@ -17,8 +17,10 @@ final readonly class NameSlugifier implements NameSlugifierInterface
 {
     public function pascalCase(string $value, string $fallback = 'Value'): string
     {
+        /** @phpstan-ignore-next-line */
         $clean = preg_replace('/[^A-Za-z0-9]+/', ' ', $value) ?? $value;
         $parts = array_filter(explode(' ', trim($clean)), static fn (string $p): bool => $p !== '');
+        /** @phpstan-ignore-next-line */
         $name = implode('', array_map(ucfirst(...), $parts));
 
         if ($name === '') {

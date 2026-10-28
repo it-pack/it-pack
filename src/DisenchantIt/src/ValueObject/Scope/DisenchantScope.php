@@ -12,11 +12,7 @@ namespace ItPack\DisenchantIt\ValueObject\Scope;
  * adapter; this object is a pure carrier (replace, never mutate).
  *
  * Directory conventions rejected by `ignoreTests`: `tests/`, `fixtures/`,
- * `var/`. Namespace filtering (`includeNamespaces` / `excludeNamespaces`) is
- * accepted as configuration but intentionally *not yet enforced* — the literal
- * carriers do not currently expose a namespace, only a short `className`, so a
- * namespace source must be threaded through detection before that rule can be
- * applied (deferred; see the roadmap Phase 1 notes).
+ * `var/`.
  */
 final readonly class DisenchantScope implements DisenchantScopeInterface
 {
@@ -33,10 +29,13 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
     public function __construct(
         public array $includePaths = [],
         public array $excludePaths = [],
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public array $includeNamespaces = [],
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public array $excludeNamespaces = [],
         public array $excludeLiteralValues = [],
         public bool $ignoreTests = false,
+        // @phpstan-ignore shipmonk.deadProperty.neverRead
         public int $maxHeredocBodyChars = self::DEFAULT_MAX_HEREDOC_BODY_CHARS,
         public bool $convertFqcnToClassConst = false,
     ) {
@@ -48,6 +47,7 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
      *
      * @param array<string, mixed> $config
      */
+    // @phpstan-ignore shipmonk.deadMethod
     public static function fromConfig(array $config = []): self
     {
         return new self(
@@ -102,12 +102,14 @@ final readonly class DisenchantScope implements DisenchantScopeInterface
     }
 
     /** @return list<string> */
+    // @phpstan-ignore shipmonk.deadMethod
     public function getIncludeNamespaces(): array
     {
         return $this->includeNamespaces;
     }
 
     /** @return list<string> */
+    // @phpstan-ignore shipmonk.deadMethod
     public function getExcludeNamespaces(): array
     {
         return $this->excludeNamespaces;

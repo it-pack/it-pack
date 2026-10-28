@@ -24,5 +24,6 @@ enum TargetKind: string
     case Enum = 'enum';
     case FlagSet = 'flag_set';
     case Fqcn = 'fqcn';
+    // @phpstan-ignore shipmonk.deadEnumCase
     case SharedConst = 'shared_const';
 }

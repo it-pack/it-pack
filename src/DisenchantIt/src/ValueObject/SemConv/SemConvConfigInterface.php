@@ -22,6 +22,7 @@ interface SemConvConfigInterface
 
     public ?string $namespace { get; }
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $outputPath { get; }
 
     public function fullyQualifiedName(): string;

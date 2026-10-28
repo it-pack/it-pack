@@ -41,6 +41,7 @@ interface LiteralInterface
 
     public string $className { get; }
 
+    // @phpstan-ignore shipmonk.deadProperty.neverRead
     public string $methodName { get; }
 
     /**

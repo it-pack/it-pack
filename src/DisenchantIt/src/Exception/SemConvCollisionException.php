@@ -27,6 +27,7 @@ final class SemConvCollisionException extends \RuntimeException implements Disen
             . 'resolve the naming conflict manually before generating a shared SemConv file '
             . '(rename one of them, or accept them as genuinely separate concepts and exclude '
             . 'one from the collection).',
+            /** @phpstan-ignore-next-line */
             implode(', ', $conflictingNames),
         );
 

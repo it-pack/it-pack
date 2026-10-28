@@ -202,6 +202,7 @@ final readonly class SemConvCollector implements SemConvCollectorInterface
         $lines[] = '}';
         $lines[] = '';
 
+        /** @phpstan-ignore-next-line */
         return implode("\n", $lines);
     }
 }

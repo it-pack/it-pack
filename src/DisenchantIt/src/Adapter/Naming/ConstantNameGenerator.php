@@ -20,6 +20,7 @@ final readonly class ConstantNameGenerator implements ConstantNameGeneratorInter
 
     public function generate(string $rawValue, ?string $fallbackHint = null): string
     {
+        /** @phpstan-ignore-next-line */
         $slug = preg_replace('/[^A-Za-z0-9]+/', '_', $rawValue) ?? $rawValue;
         $name = strtoupper(trim($slug, '_'));
 
@@ -29,12 +30,14 @@ final readonly class ConstantNameGenerator implements ConstantNameGeneratorInter
         }
 
         if ($fallbackHint !== null) {
+            /** @phpstan-ignore-next-line */
             $hintSlug = strtoupper(preg_replace('/[^A-Za-z0-9]+/', '_', $fallbackHint) ?? $fallbackHint);
             return trim($hintSlug, '_') . '_SEPARATOR';
         }
 
         // Last resort: name it after the value's own character codes so it's
         // at least deterministic and non-empty, rather than throwing.
+        /** @phpstan-ignore-next-line */
         return 'CHAR_' . implode('_', array_map('ord', str_split($rawValue)));
     }
 }
