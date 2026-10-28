@@ -36,6 +36,7 @@ jobs:
           - AsyncIt
           - CommandIt
           - CommitIt
+          - CommitItRunit
           - ConfigureItExplorer
           - ConfigureItPsr11
           - ConfigureItRunit

@@ -4,7 +4,7 @@
     "type": "library",
     "license": "MIT",
     "require": {
-        "php": "^8.4",
+        "php": "^8.5",
         "it-pack/hash-it": "*@dev",
         "it-pack/async-it": "*@dev"
     },
@@ -33,6 +33,7 @@
         "just-bases/php-qa-base": "^1.0",
         "just-bases/php-obs-dev-base": "^0.1.0",
         "phparkitect/phparkitect": "^1.2",
+        "infection/codeception-adapter": "^0.4",
         "symfony/http-client": "^8.1",
         "nyholm/psr7": "^1.8",
         "psr/http-message": "^2.0"
@@ -61,12 +62,23 @@
         }
     ],
     "scripts": {
+        "test": "vendor/bin/codecept run",
         "test:unit": "vendor/bin/codecept run Unit",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "analyse": "vendor/bin/phpstan analyse",
-        "architecture": "vendor/bin/phparkitect check"
+        "architecture": "vendor/bin/phparkitect check",
+        "mutation": "vendor/bin/infection --min-msi=70 --no-interaction",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test:unit",
+            "@mutation",
+            "@security:audit"
+        ]
     },
     "extra": {
         "phpstan": {

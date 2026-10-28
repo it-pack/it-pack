@@ -132,12 +132,14 @@ docs say rewriting is pluggable and Rector is an anticipated *alternative* engin
 
 **Source:** `docs/CONSOLIDATION_PLAN.md` §9 verification checklist, `docs/REPORT.md` §6
 
-6 packages lack `quality` (ConfigureIt, DeriveIt, HashItAsync, LazeIt, FileIt, ExtendIt).
-2 use `infection` instead of `mutation` (DeriveIt, HashIt). 9 lack `architecture`.
+6 packages lack `quality` (LazeIt, FileIt, ExtendIt remain micro-libs → Phase 2.5).
+2 use `infection` instead of `mutation` — RESOLVED (DeriveIt renamed). 9 lack `architecture` — RESOLVED (Phase 2.4).
+HashIt missing `security:audit` script — RESOLVED.
 
-- [ ] Add `quality` + `architecture` + standardized scripts to ConfigureIt
-- [ ] Add `quality` + `architecture` + rename `infection`→`mutation` in DeriveIt
-- [ ] Add `quality` + `mutation` + `security:audit` to HashItAsync
+- [x] Add `quality` + `architecture` + standardized scripts to ConfigureIt
+- [x] Add `quality` + `architecture` + rename `infection`→`mutation` in DeriveIt
+- [x] Add `quality` + `mutation` + `security:audit` to HashItAsync (incl. php `^8.4`→`^8.5`)
+- [x] Fix HashIt: php `^8.4`→`^8.5`, add missing `security:audit` script
 - [ ] Consider adding minimal QA to LazeIt/FileIt/ExtendIt (Phase 2.5)
 
 ### 9. Standardize bridge-package naming (R3)
@@ -160,21 +162,21 @@ full-word (`commit-it-runit`, `run-it-third-party-sample`). Still-unbuilt use
 
 **Source:** `docs/REPORT.md` §7-R9, §8-R9, `docs/MONOREPO_PLAN.md` §2.4
 
-| Package | Missing |
-|---|---|
-| HashIt | `php` floor |
-| LazeIt | `php` floor, `license`, `description` |
-| FileIt | `php` floor, `license`, `description` |
-| ExtendIt | `php` floor, `license`, `description` |
-| DeriveIt | `license` |
+| Package | Missing | Status |
+|---|---|---|
+| HashIt | `php` floor | ✅ Resolved (`^8.5`) |
+| LazeIt | `php` floor, `license`, `description` | ✅ Already present |
+| FileIt | `php` floor, `license`, `description` | ✅ `php` added; description improved |
+| ExtendIt | `php` floor, `license`, `description` | ✅ `php` added; `license` + `description` added |
+| DeriveIt | `description` | ✅ Added |
 
-- [ ] Add `php` floor to HashIt
-- [ ] Add `php` floor + `license` + `description` to LazeIt
-- [ ] Add `php` floor + `license` + `description` to FileIt
-- [ ] Add `php` floor + `license` + `description` to ExtendIt
-- [ ] Add `license` to DeriveIt
-- [ ] Improve FileIt description ("ItPack File Package" → meaningful text)
-- [ ] Align `ConfigureItPsr11` naming (`-psr11` vs `-psr-11`)
+- [x] Add `php` floor to HashIt (→ `^8.5`)
+- [x] Add `php` floor + `license` + `description` to LazeIt (already present)
+- [x] Add `php` floor + `license` + `description` to FileIt (`php` added, description improved)
+- [x] Add `php` floor + `license` + `description` to ExtendIt (all added)
+- [x] Add `license` to DeriveIt (already present)
+- [x] Improve FileIt description ("ItPack File Package" → meaningful text)
+- [ ] Align `ConfigureItPsr11` naming (`-psr11` vs `-psr-11`) — needs naming decision
 
 ### 11. Close out legacy findings (R7)
 

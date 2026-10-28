@@ -1,8 +1,9 @@
 {
     "name": "it-pack/derive-it",
+    "description": "Derives clean, self-contained interfaces from third-party PHP classes via class graph flattening (ports & adapters).",
     "license": "MIT",
     "require": {
-        "php": ">=8.4",
+        "php": "^8.5",
         "nette/php-generator": "^4.2",
         "psr/cache": "^1.0 || ^2.0 || ^3.0"
     },
@@ -44,6 +45,7 @@
         }
     },
     "scripts": {
+        "test": "vendor/bin/codecept run Unit",
         "test:unit": "vendor/bin/codecept run Unit",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "coverage:check": "vendor/bin/codecept run Unit --coverage-xml --coverage-html && php scripts/coverage_report.php --min=96",
@@ -52,7 +54,16 @@
         "cs:lines": "vendor/bin/phpcs --standard=phpcs.xml.dist src tests",
         "analyse": "vendor/bin/phpstan analyse",
         "architecture": "vendor/bin/phparkitect check",
-        "infection": "vendor/bin/infection --min-msi=80"
+        "mutation": "vendor/bin/infection --min-msi=80",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test:unit",
+            "@mutation",
+            "@security:audit"
+        ]
     },
     "extra": {
         "phpstan": {

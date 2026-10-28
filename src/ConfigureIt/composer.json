@@ -43,6 +43,7 @@
         }
     },
     "scripts": {
+        "test": "vendor/bin/codecept run Unit",
         "test:unit": "vendor/bin/codecept run Unit",
         "test:integration": "vendor/bin/codecept run Integration",
         "coverage": "vendor/bin/codecept run Unit,Integration --coverage --coverage-xml --coverage-html",
@@ -54,7 +55,16 @@
         "architecture": "vendor/bin/phparkitect check",
         "analyse": "vendor/bin/phpstan analyse",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
-        "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --git-diff-base=origin/main --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction"
+        "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --git-diff-base=origin/main --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test",
+            "@mutation",
+            "@security:audit"
+        ]
     },
     "extra": {
         "phpstan": {

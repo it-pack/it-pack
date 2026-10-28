@@ -4,7 +4,7 @@
     "type": "library",
     "license": "MIT",
     "require": {
-        "php": "^8.4",
+        "php": "^8.5",
         "ext-hash": "*"
     },
     "autoload": {
@@ -56,6 +56,7 @@
         "analyse": "vendor/bin/phpstan analyse",
         "architecture": "vendor/bin/phparkitect check",
         "mutation": "vendor/bin/infection --min-msi=73 --no-interaction",
+        "security:audit": "@composer audit",
         "quality": [
             "@cs:check",
             "@analyse",

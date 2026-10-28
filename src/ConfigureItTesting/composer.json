@@ -12,7 +12,7 @@
         "phpunit"
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.5",
         "it-pack/configure-it": "*@dev",
         "nette/schema": "^1.3"
     },

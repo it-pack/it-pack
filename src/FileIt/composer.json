@@ -1,6 +1,6 @@
 {
     "name": "it-pack/file-it",
-    "description": "ItPack File Package",
+    "description": "Filesystem path resolution and file introspection utilities for ItPack packages.",
     "type": "library",
     "license": "MIT",
     "autoload": {
@@ -15,5 +15,7 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {}
+    "require": {
+        "php": "^8.5"
+    }
 }
