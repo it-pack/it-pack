@@ -1,0 +1,8 @@
+version: "0.5"
+
+processes:
+  php-fpm:
+    command: "php-fpm -y /home/quill/tinker/php/project/it-pack/devbox.d/php/php-fpm.conf --nodaemonize"
+    availability:
+      restart: "always"
+  
