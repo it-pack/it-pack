@@ -364,7 +364,7 @@ Rows reference columns; ● hard dep · ○ planned/soft · ⊘ forbidden · bla
 | **ConfigureItSchemaDocs** | | | ● | | | | | |
 | **ConfigureItTesting** | | | ● | | | | | |
 | **ConfigureItExplorer** | | | ● | | | | | |
-| **CommitIt** | ○ (observer adapter, now built as CommitItRunit) | | | — | | | | |
+| **CommitIt** | ○ (bridge realized via CommitItRunit) | | | — | | | | |
 | **DisenchantIt** | ○ (bridge planned) ⊘ imports | | ○ (fixtures mirror API) | | — | | | |
 | **DeriveIt** | | | | | | — | | |
 | **HashIt** | | | | | | | — | |
@@ -376,7 +376,7 @@ Rows reference columns; ● hard dep · ○ planned/soft · ⊘ forbidden · bla
 | **CommitItRunit** | ● (observer adapter bridge) | | | ● | | | | |
 | **LazeIt / FileIt / ExtendIt** | | | | | | | | |
 
-Reading: there are now **two** ● columns — `ConfigureIt` (its satellite ring) and `RunIt` (its consumer/bridge cluster: `AsyncIt`, `ConfigureItRunit`, `DeriveItRunit`, `RunItThirdPartySample`, plus `HashItAsync` transitively via `AsyncIt`). The ecosystem's designed end-state — a star topology around RunIt (bridges) with ConfigureIt's satellite ring as the second, independent star — is now **partially realized**, not merely planned: ConfigureItRunit/DeriveItRunit/AsyncIt/RunItThirdPartySample are live edges, while CommandIt/DisenchantIt/CommitIt bridges remain ○ (planned, not yet built).
+Reading: there are now **two** ● columns — `ConfigureIt` (its satellite ring) and `RunIt` (its consumer/bridge cluster: `AsyncIt`, `ConfigureItRunit`, `DeriveItRunit`, `CommitItRunit`, `RunItThirdPartySample`, plus `HashItAsync` transitively via `AsyncIt`). The ecosystem's designed end-state — a star topology around RunIt (bridges) with ConfigureIt's satellite ring as the second, independent star — is now **partially realized**: `ConfigureItRunit`/`DeriveItRunit`/`CommitItRunit` are live edges (bridges touching consumer cores), `AsyncIt`/`RunItThirdPartySample` are live edges (RunIt consumers), while CommandIt/DisenchantIt bridges remain ○ (planned, not yet built).
 
 ## Appendix B — Evidence index
 
