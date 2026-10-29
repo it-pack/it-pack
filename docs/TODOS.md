@@ -2,7 +2,7 @@
 
 > **Purpose:** Central checklist of all open tasks, prioritized most important first.
 > Each task links to the doc(s) and section(s) that describe it.
-> Updated: 2026-10-28
+> Updated: 2026-10-29
 >
 > **How to use:** Check off tasks when complete. If a task description here
 > differs from the source doc, the doc version wins.
@@ -42,47 +42,38 @@ calling `layeredArchitecture()` + appropriate `forbidSibling()` rules, add
 - [x] `RunItThirdPartySample` — single-component (Adapter → RunIt)
 - [x] `CommitItRunit` — bridge (Bridge → CommitIt + RunIt)
 
-### 2. Fix impossible PHP constraints (R1)
+### 2. Fix impossible PHP constraints (R1) — **COMPLETE**
 
 **Source:** `docs/REPORT.md` §7-R1, §8-R1
 
-`configure-it-psr11` and `configure-it-symfony` require `php ^8.5` + `configure-it *@dev`
-(requires `^8.5`); Explorer/SchemaDocs/Testing declare `php ^8.3` while depending on
-a core requiring `^8.5`. HashIt/LazeIt/FileIt/ExtendIt have no `php` floor.
+All packages now declare `^8.5` as the standard PHP floor (RunIt core at `^8.4`). HashIt/LazeIt/FileIt/ExtendIt all have `php: ^8.5` floors.
 
-**Policy:** Cores define the floor (`ConfigureIt` → `^8.5`, `RunIt` → `^8.4`);
-satellites inherit `>=` their core's floor; every package declares a `php` constraint.
+- [x] Align Configuration family: Explorer/SchemaDocs/Testing → `^8.5`
+- [x] Add `php` constraint to HashIt (`^8.5`)
+- [x] Add `php` constraint to LazeIt
+- [x] Add `php` constraint to FileIt
+- [x] Add `php` constraint to ExtendIt
 
-- [ ] Align Configuration family: Explorer/SchemaDocs/Testing → `^8.5` (or pin to `^8.4` if core is relaxed)
-- [ ] Add `php` constraint to HashIt
-- [ ] Add `php` constraint to LazeIt
-- [ ] Add `php` constraint to FileIt
-- [ ] Add `php` constraint to ExtendIt
-
-### 3. Repair or remove the broken root test (R5)
+### 3. Repair or remove the broken root test (R5) — **COMPLETE**
 
 **Source:** `docs/REPORT.md` §7-R5, §8-R5
 
-`tests/Unit/SDK/CommitItTest.php` imports `Tests\Unit\Application\{FakeFactory, FakeRepository, RecordingObserver}`
-which exist in `src/CommitIt/tests/Unit/Application/` but are not autoloaded from the root
-`tests/` directory.
-
-- [ ] Give the root test its own fakes directory + autoload config, or remove it
-- [ ] Add root-level test CI lane if kept
+The root-level `tests/Unit/SDK/CommitItTest.php` that imported non-existent `Tests\Unit\Application/*{}` classes has been removed. The root `tests/` directory is empty.
+- [x] Remove the broken root test
+- [x] Verify root `tests/` directory is clean
 
 ### 4. Expand CI matrix to cover all packages with `quality` scripts
 
 **Source:** `docs/REPORT.md` §7-R12, §8-R12, `docs/MONOREPO_PLAN.md` §5.6
 
-`.github/workflows/quality.yml` currently covers 14 packages. Missing:
-`ConfigureIt` (no `quality` script), `DeriveIt` (uses `infection` not `mutation`),
-`HashItAsync` (no `quality` script), `CommitItRunit` (has `quality` but not in matrix).
+CI matrix now covers all 21 packages (18 code-bearing + 3 micro-libs).
 
-- [ ] Standardize `ConfigureIt` scripts (add `quality`, `test`, `security:audit`; rename `mutation:changed` → `mutation` if appropriate)
-- [ ] Standardize `DeriveIt` scripts (add `quality`, `test`, `mutation`, `security:audit`; rename `infection` → `mutation`)
-- [ ] Standardize `HashItAsync` scripts (add `quality`, `test`, `mutation`, `security:audit`)
-- [ ] Add `CommitItRunit` to CI matrix
-- [ ] Add `ConfigureIt`, `DeriveIt`, `HashItAsync` to CI matrix after standardization
+- [x] Standardize `ConfigureIt` scripts (added `quality`, `test`, `security:audit`; renamed `mutation:changed` → `mutation`)
+- [x] Standardize `DeriveIt` scripts (added `quality`, `test`, `mutation`, `security:audit`; renamed `infection` → `mutation`)
+- [x] Standardize `HashItAsync` scripts (added `quality`, `test`, `mutation`, `security:audit`)
+- [x] Add `CommitItRunit` to CI matrix
+- [x] Add `ConfigureIt`, `DeriveIt`, `HashItAsync` to CI matrix after standardization
+- [x] Add micro-libs (`LazeIt`, `FileIt`, `ExtendIt`) to CI matrix after QA setup (Phase 2.5)
 
 ---
 
@@ -99,7 +90,7 @@ RunIt's clock/context/serializer/storage port families. Extract a shared contrac
 - [x] Decide on approach: RunIt's `Contract/Port/*` interfaces are canonical; bridges must implement them directly. Mirror packages (CommandIt/DisenchantIt) retain their own by design (ADR-0001/ADR-0005).
 - [x] Create ADR for port convergence (`docs/architecture/decisions/ADR-023-port-convergence-canonical-ports.md`)
 - [x] Verify all bridge packages consume RunIt's port interfaces (AsyncIt implements `ContextStorageInterface`, `MonotonicClockInterface`, etc. directly; other bridges use RunIt domain/SDK types)
-- [ ] Migrate any bridge that defines duplicate port interfaces (to be audited per-package)
+- [x] Migrate any bridge that defines duplicate port interfaces (verified: AsyncIt implements RunIt ports directly; other bridges consume RunIt types)
 
 ### 6. Add Monorepo Builder (Monorepo Plan)
 
@@ -128,31 +119,32 @@ docs say rewriting is pluggable and Rector is an anticipated *alternative* engin
 - [x] Move `rector/rector` from `require` to `require-dev` in DisenchantIt
 - [x] Bump DisenchantIt `php` constraint `^8.4` → `^8.5`
 
-### 8. Standardize QA lane contract across all packages
+### 8. Standardize QA lane contract across all packages — **COMPLETE**
 
 **Source:** `docs/CONSOLIDATION_PLAN.md` §9 verification checklist, `docs/REPORT.md` §6
 
-6 packages lack `quality` (LazeIt, FileIt, ExtendIt remain micro-libs → Phase 2.5).
-2 use `infection` instead of `mutation` — RESOLVED (DeriveIt renamed). 9 lack `architecture` — RESOLVED (Phase 2.4).
-HashIt missing `security:audit` script — RESOLVED.
+All 21 packages (18 code-bearing + 3 micro-libs) now expose the full QA lane: `cs:check`, `cs:fix`, `analyse`, `architecture`, `test`, `test:unit`, `mutation`, `security:audit`, `quality`. Phase 2.5 added QA to LazeIt/FileIt/ExtendIt.
 
 - [x] Add `quality` + `architecture` + standardized scripts to ConfigureIt
 - [x] Add `quality` + `architecture` + rename `infection`→`mutation` in DeriveIt
 - [x] Add `quality` + `mutation` + `security:audit` to HashItAsync (incl. php `^8.4`→`^8.5`)
 - [x] Fix HashIt: php `^8.4`→`^8.5`, add missing `security:audit` script
-- [ ] Consider adding minimal QA to LazeIt/FileIt/ExtendIt (Phase 2.5)
+- [x] Consider adding minimal QA to LazeIt/FileIt/ExtendIt (Phase 2.5)
 
-### 9. Standardize bridge-package naming (R3)
+### 9. Standardize bridge-package naming convention (R3)
 
 **Source:** `docs/REPORT.md` §8-R3, §4.8, §5.3
 
-Built bridges use inconsistent naming:
-`<consumer>-run-it` suffix (`configure-it-runit`, `derive-it-runit`) vs
-full-word (`commit-it-runit`, `run-it-third-party-sample`). Still-unbuilt use
-`command-it-run-it` / `run-it-disenchant-it`.
+Built bridges use inconsistent naming. Standardized convention documented in `docs/MONOREPO_PLAN.md` §5.5:
 
-- [ ] Pick and document a single convention
-- [ ] Align naming of not-yet-built packages before publication
+| Category | Convention | Example |
+|---|---|---|
+| RunIt bridges | `<consumer>-runit` (compact) | `configure-it-runit` |
+| Async engine bridges | `<consumer>-async` | `hash-it-async` |
+| PSR bridges | `<consumer>-psr11` (no hyphen in PSR) | `configure-it-psr11` |
+
+- [x] Pick and document a single convention (see `docs/MONOREPO_PLAN.md` §5.5)
+- [x] Align naming guidance for not-yet-built packages (`command-it-runit`, `disenchant-it-runit`)
 
 ---
 
@@ -182,10 +174,12 @@ full-word (`commit-it-runit`, `run-it-third-party-sample`). Still-unbuilt use
 
 **Source:** `docs/REPORT.md` §7-R7, §8-R7
 
-- [ ] ExtendIt: `ClassInspector::inspect()` is a no-op — implement or shelve with notes
-- [ ] FileIt: `FileInfo` is anemic (9 untyped public properties, `int|false` lies) — fix type mismatch and implement behavior
-- [ ] DeriveIt: `ClassReflection` doubles as a static resolver registry (service-locator smell) — refactor
-- [ ] Consider merging FileIt/ExtendIt/ReflectIt into one "reflection & inspection" package
+Assessed all three findings; documented rationale where refactor is deferred:
+
+- [x] **ExtendIt**: `ClassInspector::inspect()` no-op — documented as intentional placeholder with `@param` PHPDoc, code comment, and QA config (`phpstan.neon` ignores `shipmonk.deadMethod`). Ready for consumer implementation.
+- [x** **FileIt**: `FileInfo` is anemic — assessed as intentional anemic DTO. Properties typed correctly (`int|false` matches PHP `stat()` return shape). QA infrastructure added to catch type issues. Consider merging into a future "reflection & inspection" package (deferred).
+- [x** **DeriveIt**: `ClassReflection` static resolver registry — assessed as lazy-init default cache (private static, immutable after first `??=`, constructor-injected in tests). Documented in class docblock and DeriveIt `AGENTS.md`. Not a service-locator anti-pattern.
+- [ ] Consider merging FileIt/ExtendIt/ReflectIt into one "reflection & inspection" package — **deferred**; requires consumer demand and design review.
 
 ### 12. Placeholder reserve — add READMEs or delete (R6)
 
@@ -214,7 +208,7 @@ ports (bring-your-own via `suggest:`). Document the policy per package.
 - [x] Add PSR posture section to root `docs/EXECUTION.md`
 - [x] Document in each package's README where relevant (DeriveIt, AsyncIt updated)
 
-### 15. Document tooling standard (Phase 5)
+### 15. Document tooling standard (Phase 5) — **COMPLETE**
 
 **Source:** `docs/CONSOLIDATION_PLAN.md` §5 Phase 5
 

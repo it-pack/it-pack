@@ -297,9 +297,26 @@ fields, etc. will fail merge. Complete the §2.4 metadata sweep first.
 
 ### 5.5 Package naming
 
-Current package names use various conventions:
-- `it-pack/configure-it-psr11` (hyphenated PSR-11)
-- `it-pack/run-it-third-party-sample`
+**Standardized convention (documented in this section):**
+
+| Category | Composer name pattern | Dir name pattern | Example |
+|---|---|---|---|
+| Core packages | `<pkg>` | `<Pkg>` | `it-pack/run-it` → `RunIt` |
+| RunIt bridges | `<consumer>-runit` | `<Consumer>Runit` | `it-pack/configure-it-runit` → `ConfigureItRunit` |
+| Async engine bridges | `<consumer>-async` | `<Consumer>Async` | `it-pack/hash-it-async` → `HashItAsync` |
+| PSR bridges | `<consumer>-psr11` (no hyphen) | `<Consumer>Psr11` | `it-pack/configure-it-psr11` → `ConfigureItPsr11` |
+| Utility adapters | `<pkg>-<feature>` | `<Pkg><Feature>` | `it-pack/configure-it-explorer` → `ConfigureItExplorer` |
+| Standalone engines | `<pkg>` (full word) | `<Pkg>` | `it-pack/async-it` → `AsyncIt` |
+| Sample packages | `<pkg>-<description>` | `<Pkg><Description>` | `it-pack/run-it-third-party-sample` → `RunItThirdPartySample` |
+
+**Rule:** RunIt bridge packages use the compact `-runit` suffix (not `run-it`) to keep
+package names concise while reading naturally as "X's RunIt bridge". Async engine
+bridges use `-async`. PSR adapters use the PSR standard name without additional
+hyphens (e.g., `psr11`, not `psr-11`).
+
+**Not-yet-built packages should follow these conventions:**
+- `command-it-runit` (not `command-it-run-it`)
+- `disenchant-it-runit` (not `run-it-disenchant-it`)
 
 Monorepo Builder's split uses the package `name` from each `composer.json`,
 so split directory names will match Packagist. No renaming needed beyond
@@ -307,12 +324,12 @@ the `src/` → `packages/` move.
 
 ### 5.6 CI matrix impact
 
-The current CI matrix runs 14 packages × PHP 8.4/8.5 on push/PR (see `.github/workflows/quality.yml`). After migration:
-- **Development CI** (push/PR): Currently runs `make quality` for 14 packages. Should be expanded to 15 once ConfigureIt/DeriveIt/HashItAsync/CommitItRunit standardize their scripts.
+The current CI matrix runs 21 packages × PHP 8.4/8.5 on push/PR (see `.github/workflows/quality.yml`).
+- **Development CI** (push/PR): Runs `make quality` for all 21 packages (18 code-bearing + 3 micro-libs).
 - **Merge CI** (pre-release): Run tests in the merged tree to verify cross-package edges
 - **Release CI** (tag): Run `monorepo-builder release`
 
-Before adding Monorepo Builder, standardize the 4 outlier packages' QA scripts so the CI matrix can cover all 15+ packages uniformly.
+All packages now have standardized QA scripts (`quality` + `architecture`).
 
 ### 5.7 Not affected by this change
 

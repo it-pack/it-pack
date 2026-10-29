@@ -4,39 +4,35 @@ declare(strict_types=1);
 
 namespace ItPack\LazeIt\SDK;
 
+use Closure;
 use ReflectionFunction;
+use ReflectionNamedType;
 
 class InitializerValidator
 {
-    public function validate(callable $initializer)
+    public function validate(Closure $initializer): bool
     {
         $reflection = new ReflectionFunction($initializer);
 
-        if($reflection->getNumberOfRequiredParameters() === 0) {
+        if ($reflection->getNumberOfRequiredParameters() === 0) {
             return false;
         }
 
         $parameter = $reflection->getParameters()[0];
+        $type = $parameter->getType();
 
-        if($parameter->getType() !== null && $parameter->getType()->isBuiltin()) {}
-    }
-
-    private function validateParamter(ReflectionFunction $reflection)
-    {
-        if($reflection->getNumberOfRequiredParameters() === 0) {
+        if ($type === null) {
             return true;
         }
 
-        $parameter = $reflection->getParameters()[0];
-
-        if($parameter->getType() === null || !$parameter->getType()->isBuiltin()) {
+        if (! $type instanceof ReflectionNamedType) {
             return true;
         }
 
-        if($parameter->getType()->getName() === 'object') {
+        if (! $type->isBuiltin()) {
             return true;
         }
 
-        return false;
+        return $type->getName() === 'object';
     }
 }

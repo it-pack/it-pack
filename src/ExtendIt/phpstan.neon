@@ -1,0 +1,19 @@
+parameters:
+    tmpDir: var/cache/phpstan
+    level: 9
+    paths:
+        - ./src
+    excludePaths:
+        - tests/Support/_generated/*
+        - tests/Support/UnitTester.php
+    scanFiles:
+        - tests/Unit/ClassInspectorTest.php
+
+    shipmonkDeadCode:
+        usageExcluders:
+            usageOverMixed:
+                enabled: true
+
+    ignoreErrors:
+        - identifier: shipmonk.deadMethod
+          message: '#Unused ItPack\\ExtendIt\\#'

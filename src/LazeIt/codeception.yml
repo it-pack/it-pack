@@ -1,0 +1,24 @@
+# Base Codeception configuration for it-pack packages.
+#
+# Shared across the monorepo by docs/CONSOLIDATION_PLAN.md (Phase 0).
+namespace: Tests
+support_namespace: Support
+paths:
+    tests: tests
+    output: tests/_output
+    data: tests/Support/Data
+    support: tests/Support
+    envs: tests/_envs
+actor_suffix: Tester
+extensions:
+    enabled:
+        - Codeception\Extension\RunFailed
+
+coverage:
+    enabled: true
+    show_uncovered: true
+    include:
+        - src/*
+    exclude:
+        - tests/*
+        - vendor/*

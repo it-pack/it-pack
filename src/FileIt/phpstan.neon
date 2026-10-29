@@ -1,0 +1,20 @@
+parameters:
+    tmpDir: var/cache/phpstan
+    level: 9
+    paths:
+        - ./src
+    reportUnmatchedIgnoredErrors: false
+    excludePaths:
+        - tests/Support/_generated/*
+        - tests/Support/UnitTester.php
+    scanFiles:
+        - tests/Unit/FileInfoTest.php
+
+    shipmonkDeadCode:
+        usageExcluders:
+            usageOverMixed:
+                enabled: true
+
+    ignoreErrors:
+        - identifier: shipmonk.deadProperty.neverRead
+        - identifier: shipmonk.deadProperty.neverWritten

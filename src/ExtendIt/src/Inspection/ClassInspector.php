@@ -10,12 +10,14 @@ class ClassInspector
 {
     public function __construct()
     {
-
     }
 
+    /**
+     * @param ReflectionClass<object> $class
+     */
     public function inspect(ReflectionClass $class): void
     {
-        $methods = $class->getMethods();
+        // Intentionally a no-op placeholder — to be implemented by the
+        // reflection pipeline consumer. See R7 in docs/REPORT.md.
     }
-
 }

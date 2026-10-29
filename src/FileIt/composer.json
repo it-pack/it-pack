@@ -3,19 +3,66 @@
     "description": "Filesystem path resolution and file introspection utilities for ItPack packages.",
     "type": "library",
     "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "ItPack\\FileIt\\": ""
-        }
-    },
+    "keywords": [
+        "filesystem",
+        "fileinfo",
+        "introspection",
+        "it-pack"
+    ],
     "authors": [
         {
             "name": "tidal",
             "email": "timomichna@yahoo.de"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "require": {
         "php": "^8.5"
+    },
+    "require-dev": {
+        "just-bases/php-unit-test-base": "^1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "infection/codeception-adapter": "^0.4",
+        "phparkitect/phparkitect": "^1.2",
+        "codeception/codeception": "^5.0",
+        "codeception/module-asserts": "^3.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "ItPack\\FileIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "infection/extension-installer": true,
+            "phpstan/extension-installer": true,
+            "dantleech/what-changed": true,
+            "tbachert/spi": false
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/codecept run",
+        "test:unit": "vendor/bin/codecept run Unit",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
+        "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=0 --no-interaction",
+        "security:audit": "@composer audit",
+        "quality": [
+            "@cs:check",
+            "@analyse",
+            "@architecture",
+            "@test:unit",
+            "@mutation",
+            "@security:audit"
+        ]
     }
 }

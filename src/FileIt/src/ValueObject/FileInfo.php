@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\FileIt;
+namespace ItPack\FileIt\ValueObject;
 
 class FileInfo
 {

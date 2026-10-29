@@ -37,15 +37,21 @@ jobs:
           - CommandIt
           - CommitIt
           - CommitItRunit
+          - ConfigureIt
           - ConfigureItExplorer
           - ConfigureItPsr11
           - ConfigureItRunit
           - ConfigureItSchemaDocs
           - ConfigureItSymfony
           - ConfigureItTesting
+          - DeriveIt
           - DeriveItRunit
           - DisenchantIt
+          - FileIt
+          - ExtendIt
           - HashIt
+          - HashItAsync
+          - LazeIt
           - RunIt
           - RunItThirdPartySample
     steps:

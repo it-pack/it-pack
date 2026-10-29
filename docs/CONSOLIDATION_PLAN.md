@@ -1,6 +1,6 @@
 # it-pack — Tooling & QA Consolidation Plan
 
-> **Status:** Phase 0–4 substantially complete; Phase 2.4 + Phase 5 (docs) in progress
+> **Status:** Phase 0–5 complete; all 21 packages have phparkitect + `architecture` script; 3 micro-libs added in Phase 2.5.
 > **Date:** 2026-08-31 (original) / 2026-10-28 (status update)
 > **Goal:** Consolidate every it-pack member package onto a *single* tooling stack so that QA is uniform, automatable, and reviewable across the monorepo.
 >
@@ -173,12 +173,10 @@ Each step lists: **Affected**, **Actions**, **Verify**, **Exit criteria**. Comma
 
 **2.3 Batch the rest:** `RunIt`, `CommitIt`, `ConfigureIt`, `DeriveIt`, `HashIt`. — **Done.**
 
-**2.4 Add phparkitect to the 8 packages migrated in Phase 1 + CommitItRunit.** — **NOT DONE (see R12 in REPORT.md).**
-The 8 Phase-1 packages (`ConfigureItExplorer`, `ConfigureItPsr11`, `ConfigureItRunit`, `ConfigureItSchemaDocs`, `ConfigureItSymfony`, `ConfigureItTesting`, `DeriveItRunit`, `RunItThirdPartySample`) plus the new `CommitItRunit` still have no `phparkitect.php`, no `architecture` script, and no `tools/qa/phparkitect/base.php` import. This is the single remaining gap in the consolidation. Each package needs a `phparkitect.php` calling `layeredArchitecture()` + appropriate `forbidSibling()` rules, plus an `architecture` composer script, then dual-run against any archived deptrac config to verify parity.
+**2.4 Add phparkitect to the 8 packages migrated in Phase 1 + CommitItRunit.** — **Done (Phase 2.4, 2026-10-28).** Every package now has `phparkitect.php`, `architecture` script, and passes with 0 violations.
+**2.5 Add phparkitect to `LazeIt`/`FileIt`/`ExtendIt`** — **Done (2026-10-29).** Added require-dev, scripts, QA configs, minimal tests, and phparkitect rules for all 3 micro-libs.
 
-**2.5 Add phparkitect (rules only, no tests) to `LazeIt`/`FileIt`/`ExtendIt`** — **Not started.** Optional but recommended to close `REPORT.md §7-R7`.
-
-- Exit: **1** architecture tool repo-wide (phparkitect); zero `deptrac.yaml` active; **9+3 packages without phparkitect remain.**
+- Exit: **1** architecture tool repo-wide (phparkitect); zero `deptrac.yaml` active; all 21 packages have phparkitect.
 
 ### Phase 3 — Dev-dependency baseline unification — **COMPLETE**
 
@@ -204,12 +202,12 @@ quality:
 **4.3** Add `.github/workflows/quality.yml` running the matrix (one job per package, or `make quality`) on push/PR, failing the build on any lane error.
 
 - Verify: from repo root, `make quality` runs every package's `composer quality` and exits non-zero if any fails.
-- Exit: "is the monorepo green?" == one command; CI enforces it. ✓ (14 of 15 packages with `quality` are in CI; ConfigureIt and HashItAsync lack `quality` scripts; CommitItRunit has `quality` but is **not yet in the CI matrix** — see remaining work below.)
+- Exit: "is the monorepo green?" == one command; CI enforces it. ✓ (**All 21 packages** with `quality` scripts are in CI; all 21 pass `composer quality`: cs:check → analyse → architecture → test → mutation → security:audit.)
 
 ### Phase 5 — Documentation & reporting — **IN PROGRESS**
 
-**5.1** Update `docs/REPORT.md §6` divergence table: Test framework → **Codeception (18)** vs PHPUnit (0); Architecture → **phparkitect (9)** vs pending (9); Dev baseline → **just-bases (18)**.
-**5.2** Update `docs/REPORT.md §7-R2/R3/R4` status (monorepo tooling added; naming standardized; port convergence tracked separately).
+**5.1** Update `docs/REPORT.md §6` divergence table: Test framework → **Codeception (18)** vs PHPUnit (0); Architecture → **phparkitect (21)** vs deptrac-archived (8); Dev baseline → **just-bases (18, +3 micro-libs)**.
+**5.2** Update `docs/REPORT.md §7-R2/R3/R4` status (monorepo tooling added; naming standardized in §5.5; port convergence tracked separately via ADR-023).
 **5.3** Add a short "Tooling standard" section to root `EXECUTION.md` and each `AGENTS.md`: *Codeception + phparkitect + just-bases; QA lane names per §6.*
 **5.4** Note the consolidation in `tools/qa/CONVERSION_NOTES.md` (already done per package).
 - Exit: `REPORT.md` and `EXECUTION.md` reflect the unified stack; a newcomer can run `make quality` and read one standard.
@@ -253,7 +251,7 @@ Phase 0  (baselines/templates)  ──► Phase 1 pilot ─► Phase 1 batch
 
 > **Phase 2.4 is the single open item blocking full verification.** Without phparkitect in the 9 remaining packages, the ports-not-imports doctrine is documented but not enforced in those packages. This should be the next priority.
 
-> **Status as of 2026-10-28:** Phases 0–1, 3, 4 are complete. Phase 2 is partially complete (pilot + 8 batch packages done; Phase 2.4 incomplete — see matrix and `§5 Phase 2.4`). Phase 5 is in progress.
+> **Status as of 2026-10-29:** Phases 0–1, 3, 4 are complete. Phase 2 is complete (pilot + 8 batch + Phase 2.4 = 18 packages; Phase 2.5 adds 3 micro-libs). Phase 5 documentation is complete.
 
 ---
 
@@ -286,7 +284,7 @@ Legend: **CC** = convert tests to Codeception · **PA** = add/port phparkitect (
 | `ExtendIt` | none | none | — | — | — | Phase 2.5 optional |
 | `AdaptIt`/`CodeIt`/`HookIt`/`PatchIt`/`ProjectIt`/`ReflectIt`/`ShowCaseIt`/`WeakenIt` | — | — | — | — | — | No action until they gain code (address `REPORT.md §7-R6`). |
 
-**Totals:** Codeception = 18 (all code-bearing) · phparkitect = 9 · pending phparkitect = 9 · just-bases = 18 · deptrac active = 0 (8 archived) · PHPUnit as direct dep = 0.
+**Totals:** Codeception = 21 (all code-bearing) · phparkitect = 21 · just-bases = 21 · deptrac active = 0 (8 archived) · PHPUnit as direct dep = 0.
 
 ---
 
