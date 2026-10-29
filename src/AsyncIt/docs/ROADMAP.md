@@ -21,7 +21,7 @@ Before and during implementation, the following dimensions are reviewed at every
 ## 1. Assumptions & scope
 
 - **No source code exists yet** (`src/` contains no PHP files). This document reviews the *plans* and converts them into a constraint-bearing roadmap; the constraints become acceptance gates rather than a post-hoc audit.
-- All code-level rules below are enforced through `php-cs-fixer` rules, `phpstan` (incl. custom rules), `deptrac`, and CI coverage/mutation gates — not by manual inspection alone.
+- All code-level rules below are enforced through `php-cs-fixer` rules, `phpstan` (incl. custom rules), `phparkitect`, and CI coverage/mutation gates — not by manual inspection alone.
 - Where RunIt already defines a port, contract, verifier, or ADR, AsyncIt **reuses** it rather than forking (see §2).
 
 ---
@@ -49,8 +49,8 @@ Before and during implementation, the following dimensions are reviewed at every
 
 Each rule lists its enforcement mechanism and the first milestone it is required.
 
-### Architecture & hexagonal (DepTrac)
-- Domain → `{Contract, Port}` only; Application → `+ Domain`; Adapters → `+ Domain, Port`; Conformance → everything. **(M0, Deptrac)**
+### Architecture & hexagonal (phparkitect)
+- Domain → `{Contract, Port}` only; Application → `+ Domain`; Adapters → `+ Domain, Port`; Conformance → everything. **(M0, phparkitect)**
 - No `new` of adapter/concrete types outside `Factory`/`Builder` namespaces; classes receive factories via DI. **(M1, custom PHPStan rule + review)**
 - Vocabulary constants/enums live in interfaces; consumer code references the interface constant, never a literal. **(M1, PHPStan + CS)**
 
@@ -68,7 +68,7 @@ Each rule lists its enforcement mechanism and the first milestone it is required
 - Lazy objects for expensive optional adapters (native poller, bridges) instantiated only when the capability descriptor selects them. **(M4)**
 - Property hooks for validated value objects (e.g., `ContextToken`, `TaskId`); virtual properties for intentional projections (e.g., elapsed time). **(M1)**
 - Traits harmonize with interfaces for cross-cutting behavior (lifecycle-matrix guard, throwable normalization); no stateful traits, no hidden deps. **(M1)**
-- **No abstract classes.** Replace any "base" with a trait + composition; interfaces define the contract. **(M1, Deptrac/PHPStan + review)**
+- **No abstract classes.** Replace any "base" with a trait + composition; interfaces define the contract. **(M1, phparkitect/PHPStan + review)**
 
 ### Coding style (PHP-CS-Fixer + PHPStan)
 - One type (class/interface/trait/enum) per file — PSR-4. **(M0)**
@@ -116,7 +116,12 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 **Tasks**
 - [x] `composer.json` scripts added: `analyse`, `analyse:bleeding-edge`, `architecture`, `test` (+ `test:unit`/`integration`/`conformance`/`concurrency`), `cs:check`/`cs:fix`, `lint:length`, `lint:types`, `mutation`, `security:audit`, and a composite `quality`. Also added `"php": "^8.4"` and an `autoload-dev` mapping for `Tests\` and `Tools\PhpStan\AsyncItRules\`.
-- [x] `deptrac.yaml` adapter layers rewritten to AsyncIt's runtimes — a single `Adapter` layer matching `src/Adapter/(Revolt|Swoole|Swow|Native|Select)/.*`; the copied RunIt adapter names (`Null|Memory|Fiber|Common`, `OpenTelemetry|CloudEvents|Psr|Swoole`) are gone. `Test Support` now maps to `src/Conformance/.*`.
+- [x] **Architecture enforcement** replaced `phparkitect.yaml` with `phparkitect.php`
+  (`Arkitect\ClassSet` from `src/`). The adapter layer now matches AsyncIt's
+  runtimes (`Adapter/(Revolt|Swoole|Swow|Interop)`); `Adapter` depends only on
+  `Common|Domain|Port|Contract`. **`composer architecture` is NOT yet clean** —
+  21 violations remain (`AsyncRuntimeFactory → Adapter\*`), tracked as REVIEW
+  finding F11 / REFACTORING_PLAN R2.
 - [x] `.php-cs-fixer.php` extended with `yoda_style` (forbidden) and `ordered_class_elements`. The 120-char limit and one-type-per-file are enforced by `tools/lint/line-length.php` and `tools/lint/single-type-per-file.php` (composer `lint:length` / `lint:types`); `final` and no-`else` are enforced by the custom PHPStan rules below. (The invalid `no_superfluous_else` fixer was dropped — `else` removal is the `ForbidElseRule` concern.)
 - [x] Custom PHPStan rules added under `tools/phpstan/asyncit-rules/` and registered in `tools/phpstan/asyncit-rules/extension.neon`: `RequireFinalRule`, `ForbidElseRule`, and `ForbidNewOutsideFactoryBuilderRule` (forbids `new` of named types outside `*\Factory\*` / `*\Builder\*` namespaces; `self`/`static` construction and the `ItPack\AsyncIt\Conformance` namespace are exempt).
 - [x] `src/Conformance/` skeleton created mirroring RunIt: `Contract/VerifierInterface`, `Contract/PortFixtureInterface`, `Result/ViolationSeverity`, `Result/ConformanceViolation`, `Result/ConformanceResult`.
@@ -128,7 +133,12 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - Conformance / Integration / Concurrency Codeception suites were created (`.suite.yml` + `*Tester` actors + `codecept build`) so `composer test` runs all four suites; the three new suites currently contain 0 tests.
 - `security:audit` uses `composer audit --abandoned=report`: it fails only on real vulnerability advisories, not on abandoned transitive dev packages (e.g. `doctrine/annotations`). This keeps the gate meaningful without blocking on upstream abandonments.
 
-**Gates:** `composer architecture` clean (0 violations); `cs:check` + `analyse` green; `src/Conformance/` compiles and is unit-tested; no domain code yet. Verified via `composer quality` → exit 0.
+**Gates:** `composer analyse` green (0 errors, verified 2026-10-29 on PHP 8.5.12);
+`src/Conformance/` compiles and is unit-tested; no domain code yet. **`composer
+quality` is NOT exit 0** — see Phase 0 note above and `docs/TODOS.md` for the
+21 outstanding architecture violations, 6 line-length violations, and 2 unused
+imports that remain. Verified `composer analyse`/`architecture`/`lint:length`
+execute end-to-end.
 
 ---
 
@@ -140,7 +150,11 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - [x] Define vocabulary interfaces (constants/enums live here), e.g. `CapabilityVocabulary`, `TaskStatusVocabulary`, `ViolationVocabulary`. Each closed-set enum/interface carries a PHPDoc `@see` to its `async-it.ttl` individual; each extensible kind/key/occurrence type carries `@see` to its `async-it-taxonomy.ttl` concept.
 - [x] `TaskStatus` enum (closed matrix) with `canTransitionTo()`; `TaskStatusInterface` exposes it.
 - [x] `Task` domain entity (`final`, `readonly` where possible): `TaskId`, owning execution id, `CancellationScope` ref; `complete()` enforces the matrix (illegal → `InvalidLifecycleTransitionException`; conflicting terminal → `ConflictingCompletionException`). Idempotent same-status repeat handled by the coordinator.
-- [x] `Scheduler` interface; `PollerPort` interface + `StreamPollHandle` value object; `CancellationScopeInterface`; `CapabilityDescriptor` (`readonly`); `RuntimeDiscovery` interface.
+- [x] `SchedulerInterface` + `EngineSchedulerInterface` (the latter extends the former with `submit()`/`dispatch()`/`result()` as the RunIt adapter seam); `PollerPortInterface` + `StreamPollHandle` value object; `CancellationScopeInterface`; `CapabilityDescriptor` (`readonly`); `RuntimeDiscoveryInterface`.
+
+> **Note:** The plan originally said "Scheduler interface" (singular). The build
+> split it into `SchedulerInterface` + `EngineSchedulerInterface` to provide a
+> focused dispatch seam for RunIt integration.
 - [x] Reuse RunIt port *interfaces*: `MonotonicClockInterface`, `ContextStorageInterface`, `ArtifactPublisherInterface`, `SequenceAllocatorInterface`, `IdentifierGeneratorInterface`, `ExecutionEngineInterface`. Realised through `Conformance/Fixture/AsyncRuntimeFixtureInterface`, which consumes the six RunIt port interfaces directly rather than forking them; the concrete runtime supplies one fixture, AsyncIt's reference runtime supplies the other.
 - [x] Marker exception interface + `ConflictingCompletionException`, `InvalidLifecycleTransitionException`, `StreamPollHandleLeakException`.
 - [x] Factory interfaces: `TaskFactoryInterface`, `PollerFactoryInterface`, `CancellationScopeFactoryInterface`, `RuntimeDiscoveryFactoryInterface` — all in `Application\Factory\*`, injected via DI.
@@ -155,9 +169,9 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 **Gates:** all contracts compile (`php -l` clean); verifier suite wired and its detection logic proven by negative + positive unit tests; the authoritative green run against the reference runtime is deferred to Phase 2 (no impl yet → suite is *red* for the runtime, complete for the verifier logic). No `else`/Yoda/magic literals; every concrete type `final` + interface-backed; one type per file.
 
-**Modern PHP notes:** `readonly` value objects; enums for state; property hooks on `ContextToken`/`TaskId`; traits for the lifecycle-matrix guard (`LifecycleMatrixTrait`) and throwable normalization (`ThrowableNormalizationTrait`) — no abstract classes.
+**Modern PHP notes:** `readonly` value objects (where controlled mutation is unnecessary); enums for closed state sets (`TaskStatus`, `CapabilityStatus`, `ViolationSeverity`, etc.); property hooks on `TaskId`/`ContextToken` for validated projection; **no abstract classes**. Lifecycle-matrix logic is inline in `Domain/Task.php` via `TaskStatus::canTransitionTo()` — it was **not** extracted into a `LifecycleMatrixTrait` (no traits were factored out of the build, contrary to the original Phase 1 plan notes).
 
-**Gates:** all contracts compile; Deptrac clean; verifier suite runs and is **red** (no impls); no `else`/Yoda/magic literals in any file; every concrete type `final` + interface-backed; one type per file.
+**Gates:** all contracts compile; phparkitect clean; verifier suite runs and is **red** (no impls); no `else`/Yoda/magic literals in any file; every concrete type `final` + interface-backed; one type per file.
 
 ---
 
@@ -166,19 +180,19 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 **Goal:** make the verifier suite **green** on a deterministic, `SelectPoller`-backed runtime — the semantic contract frozen in code.
 
 **Tasks**
-- [x] `FiberTaskScheduler` (`final`, implements `SchedulerInterface`): receives `TaskFactory`, `FiberFactory`, `PollerPort`, `MonotonicClockInterface`, `ContextStorageInterface`, `CancellationScopeFactory`, `ExecutionScopeFactory`, `ArtifactPublisherInterface` via DI — no `new` inside (Fibers and scopes arrive through factories).
-- [x] Reactor loop: drain ready tasks → resume → `poller->await(0)` → repeat until idle. (`SelectPoller` has no real timers yet; timer firing is deferred to native adapters — the loop is correct for run-to-completion and cooperative suspend/resume.)
+- [x] `FiberTaskScheduler` (`final`, implements `EngineSchedulerInterface`): receives `TaskFactory`, `FiberFactory`, `PollerPortInterface`, `MonotonicClockInterface`, `ContextStorageInterface`, `CancellationScopeFactory`, `ExecutionScopeFactory`, `ArtifactPublisherInterface` via DI — no `new` inside.
+- [x] Reactor loop: drain ready tasks → resume → `poller->await(0)` → repeat until idle. (`SelectPoller` has no real timers; timer firing is deferred to native adapters — the loop is correct for run-to-completion and cooperative suspend/resume.)
 - [x] Around `Fiber::suspend()`: `ContextStorageInterface::attach()` before each resume; `detach(token)` under `finally` after resume (Assertion A — an interleaved/suspended task holds no ambient context).
 - [x] On terminal transition: drain the task's `StreamPollHandle`s (Assertion C); the reference scheduler tracks handles per `TaskRecord`.
 - [x] On throw: publish a `SchedulerFailureArtifact` via `ArtifactPublisherInterface`, release handles, rethrow the **exact** original `Throwable`.
 - [x] `SelectPoller` (reference) implements `PollerPortInterface` via `stream_select()`; documented weaker traits; never pretends to be `Io\Poll`. `await()` tolerates non-selectable test streams so handle accounting is independent of real I/O.
-- [x] `MemoryContextStorage` implements RunIt `ContextStorageInterface` (LIFO `ContextToken`, token-keyed scope stack). A `WeakMap<Fiber,Context>` slot is a later optimization behind the same contract.
+- [x] `MemoryContextStorage` implements RunIt `ContextStorageInterface` (LIFO `ContextToken`, token-keyed scope stack). A `WeakMap<Fiber,Context>` per-fiber slot is **not yet implemented** — the docblock notes it as a later optimization; tracked as REVIEW finding F8 / REFACTORING_PLAN R5.1.
 - [x] `NullArtifactPublisher` implements RunIt `ArtifactPublisherInterface` (fail-open no-op).
 - [x] `DeterministicMonotonicClock` for duration assertions without sleeping (`advance()` drives time).
 - [x] `RuntimeDiscoveryFactory` selects the reference assembly (`ReferenceRuntimeDiscovery`) from a `CapabilityDescriptor`.
 
 **Implementation notes (Phase 2)**
-- Reference-runtime pieces live under `src/Application/` (Poller/Context/Publisher/Scope/Clock/Artifact/Scheduler/Discovery/Factory) rather than `src/Adapter/Select/`. Deptrac's `Adapter` layer may not depend on `Application`, and `Application\Factory` may not depend on `Adapter`, so the reference assembly is kept inside `Application` (the composition root). The external-runtime adapters (Revolt/Swoole/Swow/Native/Select) remain Phase 4+.
+- Reference-runtime pieces live under `src/Application/` (Poller/Context/Publisher/Scope/Clock/Artifact/Scheduler/Discovery/Factory) rather than `src/Adapter/Select/`. phparkitect's `Adapter` layer may not depend on `Application`, and `Application\Factory` may not depend on `Adapter`, so the reference assembly is kept inside `Application` (the composition root). The external-runtime adapters (Revolt/Swoole/Swow/Native/Select) remain Phase 4+.
 - Two extra factory contracts were required by the `ForbidNewOutsideFactoryBuilderRule`: `FiberFactoryInterface` (builds the `Fiber`) and `ExecutionScopeFactoryInterface` (builds the per-resume RunIt scope), both with concrete implementations in `Application\Factory`.
 - `CancellationScope` (`Domain`) implements `CancellationScopeInterface` with an observed `cancel()`; `ReferenceExecutionScope` is a lightweight `ExecutionScopeInterface` stand-in (identity only) used by the reference runtime until Phase 3 supplies real per-fiber RunIt scopes.
 - Defects fixed along the way: `RuntimeDiscoveryInterface` imported a non-existent `Contract\Port\CapabilityDescriptor` (corrected to `Contract\CapabilityDescriptor`); `TaskId` was a `readonly` class with a virtual property hook (PHP-forbidden) — `readonly` removed, the hook preserves immutability.
@@ -186,7 +200,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 **Performance/DX:** monotonic only on hot path; bounded pending-await registry; capability-driven discovery so consumers never name a runtime.
 
-**Gates:** all reference-runtime sources `php -l` clean; `AsyncRuntimeVerifier` against `ReferenceRuntimeFixture` is **green** (A + C); `FiberTaskScheduler` runs a suspend/resume task to `Succeeded` and a throwing task to `Failed` while rethrowing the original — validated via standalone execution (the project's `composer test`/`analyse` could not be run in this environment due to a pre-existing vendor conflict: `rector`'s bundled `nikic/php-parser` redeclares `PhpParser\NodeVisitor` during autoload). Coverage/mutation/Deptrac are therefore unverified here and must be run in a clean environment.
+**Gates:** all reference-runtime sources `php -l` clean; `AsyncRuntimeVerifier` against `ReferenceRuntimeFixture` is **green** (A + C); `FiberTaskScheduler` runs a suspend/resume task to `Succeeded` and a throwing task to `Failed` while rethrowing the original — validated via standalone execution. **Note:** the original R0 status note claimed `composer test`/`analyse`/`architecture` could not run due to a `rector`/`php-parser` conflict; this is **no longer reproducible** — all three tools execute cleanly on PHP 8.5.12. `composer analyse` reports 0 errors; `composer architecture` (phparkitect) reports 21 violations (`AsyncRuntimeFactory → Adapter\*`); coverage/mutation must be run in a clean checkout.
 
 ---
 
@@ -209,7 +223,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - `SDK\Factory\AsyncRuntimeFactory` assembles the runtime from RunIt first-party adapters: `SystemMonotonicClock`, `FailSafeArtifactPublisher` (wrapping `InMemoryArtifactPublisher` with `FailOpenPolicy` and a `CallbackHealthReporter` recursion/health sink — ADR-014), `MemoryContextStorage`, and `SelectPoller`. The `CapabilityDescriptor` (keyed by `CapabilityKind` value, since backed enums cannot be PHP array keys) drives an `EngineCapability` (`supportsFibers = true`).
 - Defects fixed along the way: `CapabilityDescriptor` could not key its map by enum case (PHP 8.5 forbids enum array keys at read/write) — it now normalises to scalar-value keys while keeping the typed `CapabilityKind` surface; `AsyncRuntime` imported `AsyncRuntimeFactory` and `ExecutionId` from the wrong namespaces (corrected to `SDK\Factory` and `RunIt\Domain\Execution\ExecutionId`).
 
-**Gates:** `ExecutionEngineVerifier` green against `AsyncRuntime::discover()`; `MonotonicClockVerifier`/`ContextStorageVerifier`/`ArtifactPublisherVerifier` green against the real RunIt adapters; `AsyncRuntimeVerifier` (A+C) still green via `ReferenceRuntimeFixture`. Validated via standalone execution (the project `composer test`/`analyse`/`architecture` could not run here — the pre-existing `rector`/`php-parser` autoload conflict — so Deptrac/PHPStan/coverage must be confirmed in a clean checkout).
+**Gates:** `ExecutionEngineVerifier` green against `AsyncRuntime::discover()`; `MonotonicClockVerifier`/`ContextStorageVerifier`/`ArtifactPublisherVerifier` green against the real RunIt adapters; `AsyncRuntimeVerifier` (A+C) still green via `ReferenceRuntimeFixture`. Validated via standalone execution. (`composer analyse` reports 0 errors; `composer architecture` reports 21 violations — `AsyncRuntimeFactory → Adapter\*` — tracked as REFACTORING_PLAN R2; coverage must be run in a clean checkout.)
 
 ---
 
@@ -227,12 +241,12 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 - [x] Lazy-loaded optional bridges via a lazy proxy: `LazyTelemetryBridge` materialises its `ArrayTelemetryRecorder` only on first `record()`.
 
 **Implementation notes (Phase 4)**
-- Adapters live in `src/Adapter/{Swoole,Revolt,Swow}` (the Deptrac `Adapter` layer, which may depend only on `Contract`/`Port`/`Domain`). All construction of collaborator/runtime objects happens in `SDK\Factory\AsyncRuntimeFactory` (a `Factory` namespace, per `ForbidNewOutsideFactoryBuilderRule`), which news the selected `PollerPortInterface`, `ContextStorageInterface`, `TaskChannelInterface`, and `TelemetryBridgeInterface` and injects them into `SchedulerFactory` and `AsyncRuntime`.
+- Adapters live in `src/Adapter/{Swoole,Revolt,Swow}` plus `src/Adapter/Interop/{ReactPhp,Amp}` for the userland-loop bridges (the phparkitect `Adapter` layer, which may depend only on `Contract`/`Port`/`Domain`). All construction of collaborator/runtime objects happens in `SDK\Factory\AsyncRuntimeFactory` (a `Factory` namespace, per `ForbidNewOutsideFactoryBuilderRule`), which news the selected `PollerPortInterface`, `ContextStorageInterface`, `TaskChannelInterface`, and `TelemetryBridgeInterface` and injects them into `SchedulerFactory` and `AsyncRuntime`. **This is the F11 architectural debt** — see REFACTORING_PLAN R2.
 - `RuntimeAdapterKind` (closed enum) and `CapabilityDescriptor` drive selection; `AsyncRuntime::discover()` now returns the negotiated runtime. `AsyncRuntime` additionally exposes `channel(): TaskChannelInterface` and `telemetry(): TelemetryBridgeInterface` (same surface regardless of backend).
 - `SwoolePoller`/`SwowPoller` guard reactor registration behind `class_exists` and only mark a handle registered when the runtime's `Event::add` actually succeeds (non-selectable resources such as `php://memory` are skipped, completeness still verified via `stream_select`); every handle is tracked so Assertion C observes deterministic cleanup.
 - Fixed during this phase: `Swoole\Coroutine\Channel` has no `isClosed()` method, so `SwooleChannel`/`SwowChannel` track closed state internally; reactor registration failures are warnings (not exceptions), so they are detected via the boolean return and suppressed.
 
-**Gates (per adapter):** full `AsyncRuntimeVerifier` green (Swoole verified here; Revolt/Swow gated by runtime presence); Assertion A (isolation) and C (no leaked watchers) green; Deptrac confirms `Adapter → Domain/Port/Contract` only. Validated via standalone execution (the project `composer test`/`analyse`/`architecture` could not run here — the pre-existing `rector`/`php-parser` autoload conflict — so Deptrac/PHPStan/coverage must be confirmed in a clean checkout).
+**Gates (per adapter):** full `AsyncRuntimeVerifier` green (Swoole verified here; Revolt/Swow gated by runtime presence); Assertion A (isolation) and C (no leaked watchers) green; phparkitect confirms `Adapter → Domain/Port/Contract` only. Validated via standalone execution. (`composer analyse` reports 0 errors; 21 architecture violations are R2 scope; coverage must be run in a clean checkout.)
 
 ---
 
@@ -243,18 +257,18 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 **Goal:** `Io\Poll` slides into the same `PollerPort` slot; userland loops can host tasks.
 
 **Tasks**
-- [x] `NativePoller` over PHP 8.6 `Io\Poll`; edge-triggered; same `PollerPort` contract (handle tracking + deterministic cleanup for Assertion C).
-- [x] ReactPHP/Amp interop `PollerPort` bridge; documented as interop, not unification.
+- [x] `NativePoller` over PHP 8.6 `Io\Poll` (via `symfony/polyfill-io-poll` shim); edge-triggered; same `PollerPortInterface` contract (handle tracking + deterministic cleanup for Assertion C).
+- [x] ReactPHP/Amp interop bridges implement `PollerPortInterface`; documented as interop, not unification. Both live in `src/Adapter/Interop/`.
 - [x] `PollerFactory` selects `NativePoller` vs `SelectPoller` from capability/PHP version.
 
 **Implementation notes (Phase 5)**
-- `NativePoller` lives in `src/Application/Poller/` (next to `SelectPoller`) rather than `Adapter/External`; the Deptrac `Adapter` layer may not be depended on by `Application`, and `PollerFactory` (an `Application\Factory`) must build it. It receives the `Io\Poll` instance via injection (built in the Factory) so it performs no direct construction of runtime types, and references `Io\Poll` only through guarded, reflection-free dispatch so the package stays analysable where `Io\Poll` is absent. On PHP < 8.6 or without the extension `PollerFactory` transparently selects `SelectPoller`.
+- `NativePoller` lives in `src/Application/Poller/` (next to `SelectPoller`) rather than `Adapter/External`; the phparkitect `Adapter` component may not be depended on by `Application`, and `PollerFactory` (an `Application\Factory`) must build it. The `symfony/polyfill-io-poll` package was added to facilitate development against the PHP 8.6 `Io\Poll` API (shipped ~2 months from 2026-08); it is a dependency for forward compatibility, not a polyfill that provides `Io\Poll` on PHP < 8.6. It receives the `Io\Poll` instance via injection (built in the Factory) so it performs no direct construction of runtime types, and references `Io\Poll` only through guarded, reflection-free dispatch so the package stays analysable where `Io\Poll` is absent. On PHP < 8.6 or without the extension `PollerFactory` transparently selects `SelectPoller`.
 - The ReactPHP (`Adapter/Interop/ReactPhp/ReactPhpPollerBridge`) and Amp (`Adapter/Interop/Amp/AmpPollerBridge`) bridges implement `PollerPortInterface`. Each registers readiness on the host loop when the descriptor is watchable and also performs the portable `stream_select()` readiness probe inside `await()` — the same model as the Swoole/Revolt pollers — so AsyncIt joins the host loop without changing scheduling semantics. Host libraries are referenced through guarded, dynamic dispatch (no hard dependency), keeping the package analysable where ReactPHP/Amp are absent. The bridges are interop, not unification: no host type appears in the production port surface.
 - `PollerFactory::create(CapabilityDescriptor)` returns `NativePoller` when `PollerFactory::nativePollAvailable()` (PHP ≥ 8.6 **and** `class_exists('Io\Poll')`) **and** the descriptor reports `EdgeTriggeredPolling` as `Supported`; otherwise `SelectPoller`. `AsyncRuntimeFactory::negotiate()` now marks `EdgeTriggeredPolling` `Supported` for the reference runtime precisely when native poll is available, so the capability descriptor drives the selection rather than runtime probing.
 - Conformance fixtures `NativeRuntimeFixture`, `ReactPhpRuntimeFixture`, and `AmpRuntimeFixture` extend `AbstractRuntimeFixture` and are exercised by `RuntimeAdapterConformanceTest`; each is skipped where its host runtime (`Io\Poll`, `React\EventLoop\LoopInterface`, `Amp\Loop`) is absent, mirroring the Swoole/Revolt/Swow gating.
 - `FiberTaskScheduler::step()` no longer swallows the task `Throwable`: it detaches the context in `finally` and lets the original exception propagate, so the reference reactor honours the "rethrow the exact original Throwable" contract (a latent defect exposed when the scheduler test became executable again after the `PollerFactory` signature change).
 
-**Gates:** `NativePoller` passes the poller contract + Assertion C (verified on a PHP 8.6 `Io\Poll` host); interop passes A/C under a ReactPHP/Amp loop (gated where the host is present); `PollerFactory` selection and `AsyncRuntimeFactory` capability advertisement covered by unit tests; all prior gates remain green. Validated via standalone execution (the project `composer test`/`analyse`/`architecture` could not run here — the pre-existing `rector`/`php-parser` autoload conflict — so Deptrac/PHPStan/coverage must be confirmed in a clean checkout).
+**Gates:** `NativePoller` passes the poller contract + Assertion C (verified on a PHP 8.6 `Io\Poll` host); interop passes A/C under a ReactPHP/Amp loop (gated where the host is present); `PollerFactory` selection and `AsyncRuntimeFactory` capability advertisement covered by unit tests; all prior gates remain green. Validated via standalone execution of the new unit tests, the ReactPHP/Amp bridges against fakes, and the gated conformance suite. (`composer analyse` reports 0 errors; the native `Io\Poll` path is exercised only on a PHP 8.6 host.)
 
 ---
 
@@ -262,7 +276,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
 
 - **After Phase 0:** Tooling and architecture guards are in place; the package is buildable and enforceable, but no behavior exists yet. Next: contract freeze (M3). Blocker: none.
 - **After Phase 1:** The contract surface is frozen and the verifier scaffold is wired. `AsyncRuntimeVerifier` composes Assertion A (context isolation) and Assertion C (deterministic cleanup); both are validated by negative + positive unit tests, and the RunIt port interfaces are reused verbatim through `AsyncRuntimeFixtureInterface`. The authoritative green run against a real runtime is deferred to Phase 2 (no impl yet). Next: reference runtime (M4). Blocker: none.
-- **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green (Assertion A + C). `FiberTaskScheduler` runs tasks to completion and handles observed failures; `SelectPoller`/`MemoryContextStorage`/`NullArtifactPublisher`/`DeterministicMonotonicClock` back it. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable. (Note: `composer test`/`analyse`/`architecture` could not be executed in the build environment used — a pre-existing `rector`/`php-parser` autoload conflict — so coverage/Deptrac/PHPStan gating must be confirmed in a clean checkout.)
+- **After Phase 2:** The reference runtime proves AsyncIt's semantics and turns the verifier suite green (Assertion A + C). `FiberTaskScheduler` runs tasks to completion and handles observed failures; `SelectPoller`/`MemoryContextStorage`/`NullArtifactPublisher`/`DeterministicMonotonicClock` back it. Next: RunIt integration (M5). Blocker: none; RunIt port *interfaces* are consumable. (`composer analyse` reports 0 errors; 21 architecture violations are R2 scope; coverage must be run in a clean checkout.)
 - **After Phase 3:** `AsyncRuntime` is a first-party RunIt execution engine (`implements ExecutionEngineInterface`) and passes RunIt's `ExecutionEngineVerifier`. It is assembled by `AsyncRuntimeFactory` from RunIt first-party adapters — `SystemMonotonicClock`, a recursion-guarded `FailSafeArtifactPublisher` (with `CallbackHealthReporter` health sink) over `InMemoryArtifactPublisher`, and `MemoryContextStorage` (validated by `ContextStorageVerifier`) — and returns the negotiated `EngineCapability` via `discover()`. Assertion A/C stay green through `ReferenceRuntimeFixture`. Next: core runtime adapters (M6–M8). Blocker: none. (Same `composer test`/`analyse`/`architecture` caveat as Phase 2 — validated via standalone execution of the verifiers and engine behavior.)
 - **After Phase 4:** Swoole passes the full `AsyncRuntimeVerifier` (A+C) and RunIt's `ExecutionEngineVerifier` through the capability-negotiated runtime; Revolt/Swow are implemented to the same contract and gated (skipped) where their runtimes are absent. `TaskChannel` is native (Swoole/Swow) or emulated (Revolt/reference) under one interface, and optional telemetry is a lazy bridge. Scheduling semantics are unchanged — only the poller, context-storage, and channel backends differ. Next: native `Io\Poll` and interop (M9–M10). Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm). (Same `composer test`/`analyse`/`architecture` caveat as Phase 2/3 — validated via standalone execution, including a real Swoole `Coroutine\Channel` round-trip.)
 
@@ -396,4 +410,4 @@ Note the absence of `else`, the early-return guard, `final` + interface, injecte
 
 ## 8. Final status
 
-The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-only, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, Deptrac, and mutation testing. Next step is Phase 0 (tooling + Deptrac fix + conformance skeleton), which has no blockers.
+The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-only, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, phparkitect, and mutation testing. All five implementation phases (M0–M10) are complete; follow-on quality-gate work (R1–R6) is tracked in `docs/REFACTORING_PLAN.md` and `docs/TODOS.md`. `composer quality` is NOT yet fully green — see the §5 status updates and the open task list.

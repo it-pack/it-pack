@@ -225,3 +225,16 @@ ports (bring-your-own via `suggest:`). Document the policy per package.
 - [x] `AGENTS.md` — already documents the standard
 - [x] `tools/qa/CONVERSION_NOTES.md` — per-package migration log maintained
 - [x] Delete `deptrac.archive.yaml` files after Phase 5 doc sign-off (per CONSOLIDATION_PLAN §5 dual-run rule) — deleted all 8 archived files; updated AGENTS.md, CONSOLIDATION_PLAN.md, CONVERSION_NOTES.md, REPORT.md
+
+---
+
+## 🟣 AsyncIt refactoring — post-implementation quality gates (R1–R6)
+
+> **Status snapshot (2026-10-29):** All implementation phases M0–M10 are complete.
+> PHPStan (`composer analyse`) reports 0 errors. phparkitect reports **21 violations**
+> (12 Contract-internal `Contract → Port`/`Domain` + 9 `AsyncRuntimeFactory → Adapter\*`).
+> `composer test` has 1 failure (`ChannelTest::testSwooleChannelRoundTrip`) + 1 skip
+> (`PollerFactoryTest` — PHP 8.6 `Io\Poll` absent). `composer quality` is **not** green.
+> R0 and R1 are complete; R2–R6 are open.
+>
+> **Full task list:** see `src/AsyncIt/docs/TODOS.md`
