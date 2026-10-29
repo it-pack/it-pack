@@ -74,6 +74,7 @@ CI matrix now covers all 21 packages (18 code-bearing + 3 micro-libs).
 - [x] Add `CommitItRunit` to CI matrix
 - [x] Add `ConfigureIt`, `DeriveIt`, `HashItAsync` to CI matrix after standardization
 - [x] Add micro-libs (`LazeIt`, `FileIt`, `ExtendIt`) to CI matrix after QA setup (Phase 2.5)
+- [x] CI matrix expanded to all 21 packages × PHP 8.4/8.5
 
 ---
 
@@ -99,11 +100,11 @@ RunIt's clock/context/serializer/storage port families. Extract a shared contrac
 Root orchestration (Phase 4) is done, but independent Packagist publishing via
 `symplify/monorepo-builder` is not yet implemented.
 
-- [ ] Decide: rename `src/` → `packages/`, or use `monorepo-builder.json` merge paths pointing at `src/*`
-- [ ] Rename `src/` → `packages/` with full reference update (if chosen)
-- [ ] Add `monorepo-builder.json` configuration
-- [ ] Add `symplify/monorepo-builder:^12.0` to root `require-dev`
-- [ ] Verify `monorepo-builder merge` works with path repos still in place
+- [x] Decide: rename `src/` → `packages/`, or use `monorepo-builder.json` merge paths pointing at `src/*` — chose `src/` layout with `monorepo-builder.php` config
+- [ ] Rename `src/` → `packages/` with full reference update (if chosen) — not adopted; kept `src/` layout
+- [x] Add `monorepo-builder.php` configuration — `packageDirectories`, `dataToAppend` (replace entries), `dataToRemove` (path repos), version-conflict exclusions
+- [x] Add `symplify/monorepo-builder:^12.0` to root `require-dev`
+- [x] Verify `monorepo-builder merge` works with path repos still in place — confirmed merge succeeds (version conflict exclusions applied)
 - [ ] Create `.github/workflows/release.yml`
 - [ ] Update `AGENTS.md` with split/release workflow
 - [ ] Evaluate `monorepo-builder` vs `monorepo-tool`/subtree-split before first Packagist tag
@@ -142,6 +143,14 @@ Built bridges use inconsistent naming. Standardized convention documented in `do
 | RunIt bridges | `<consumer>-runit` (compact) | `configure-it-runit` |
 | Async engine bridges | `<consumer>-async` | `hash-it-async` |
 | PSR bridges | `<consumer>-psr11` (no hyphen in PSR) | `configure-it-psr11` |
+| Utility adapters | `<pkg>-<feature>` | `configure-it-explorer` |
+| Standalone engines | `<pkg>` (full word) | `run-it` |
+| Sample packages | `<pkg>-<description>` | `run-it-third-party-sample` |
+
+**Rule:** RunIt bridge packages use the compact `-runit` suffix (not `run-it`) to keep
+package names concise while reading naturally as "X's RunIt bridge". Async engine
+bridges use `-async`. PSR adapters use the PSR standard name without additional
+hyphens (e.g., `psr11`, not `psr-11`).
 
 - [x] Pick and document a single convention (see `docs/MONOREPO_PLAN.md` §5.5)
 - [x] Align naming guidance for not-yet-built packages (`command-it-runit`, `disenchant-it-runit`)
@@ -168,7 +177,7 @@ Built bridges use inconsistent naming. Standardized convention documented in `do
 - [x] Add `php` floor + `license` + `description` to ExtendIt (all added)
 - [x] Add `license` to DeriveIt (already present)
 - [x] Improve FileIt description ("ItPack File Package" → meaningful text)
-- [ ] Align `ConfigureItPsr11` naming (`-psr11` vs `-psr-11`) — needs naming decision
+- [x] Align `ConfigureItPsr11` naming (`-psr11`, not `-psr-11`) — standardized per Task #9
 
 ### 11. Close out legacy findings (R7)
 
@@ -177,8 +186,8 @@ Built bridges use inconsistent naming. Standardized convention documented in `do
 Assessed all three findings; documented rationale where refactor is deferred:
 
 - [x] **ExtendIt**: `ClassInspector::inspect()` no-op — documented as intentional placeholder with `@param` PHPDoc, code comment, and QA config (`phpstan.neon` ignores `shipmonk.deadMethod`). Ready for consumer implementation.
-- [x** **FileIt**: `FileInfo` is anemic — assessed as intentional anemic DTO. Properties typed correctly (`int|false` matches PHP `stat()` return shape). QA infrastructure added to catch type issues. Consider merging into a future "reflection & inspection" package (deferred).
-- [x** **DeriveIt**: `ClassReflection` static resolver registry — assessed as lazy-init default cache (private static, immutable after first `??=`, constructor-injected in tests). Documented in class docblock and DeriveIt `AGENTS.md`. Not a service-locator anti-pattern.
+- [x] **FileIt**: `FileInfo` is anemic — assessed as intentional anemic DTO. Properties typed correctly (`int|false` matches PHP `stat()` return shape). QA infrastructure added to catch type issues. Consider merging into a future "reflection & inspection" package (deferred).
+- [x] **DeriveIt**: `ClassReflection` static resolver registry — assessed as lazy-init default cache (private static, immutable after first `??=`, constructor-injected in tests). Documented in class docblock and DeriveIt `AGENTS.md`. Not a service-locator anti-pattern.
 - [ ] Consider merging FileIt/ExtendIt/ReflectIt into one "reflection & inspection" package — **deferred**; requires consumer demand and design review.
 
 ### 12. Placeholder reserve — add READMEs or delete (R6)
