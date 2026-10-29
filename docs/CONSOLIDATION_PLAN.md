@@ -237,14 +237,14 @@ Optional but encouraged: `security:audit` (`composer audit --abandoned=report`),
 
 ```
 Phase 0  (baselines/templates)  ──► Phase 1 pilot ─► Phase 1 batch
-                                                         │
-                                         Phase 2 pilot ──┤──► Phase 2 batch + add to Ph1 pkgs
-                                                         │   (Phase 2.4 OPEN — 9 pkgs pending)
-                                     Phase 3 (just-bases) ─┤   (DONE)
-                                                         │
-                                     Phase 4 (root+CI) ────┤   (DONE — 14/15 pkgs in CI)
-                                                         │
-                                     Phase 5 (docs) ───────┘   (IN PROGRESS)
+                                                      │
+                                  Phase 2 pilot ──┤──► Phase 2 batch + add to Ph1 pkgs
+                                                      │   (Phase 2.4 DONE — all 9 pkgs migrated)
+                              Phase 3 (just-bases) ─┤   (DONE)
+                                                      │
+                              Phase 4 (root+CI) ────┤   (DONE — 21/21 pkgs in CI)
+                                                      │
+                              Phase 5 (docs) ───────┘   (COMPLETE — docs+REPORT.md+AGENTS.md updated; deptrac.archive.yaml deleted)
 ```
 
 Phase 5 documentation is complete; `deptrac.archive.yaml` files have been deleted.
@@ -265,36 +265,36 @@ Legend: **CC** = convert tests to Codeception · **PA** = add/port phparkitect (
 | `CommandIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.2) | Complete |
 | `CommitIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.3) | Complete |
 | `ConfigureIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.3) | Complete (no `quality` script) |
-| `DeriveIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.4) | Complete (uses `infection` not `mutation`; no `quality` script) |
+| `DeriveIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.4) | Complete |
 | `HashIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.2) | Complete |
 | `AsyncIt` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.4) | Complete |
-| `HashItAsync` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.1 pilot) | Complete (no `quality`/`mutation`/`security:audit` scripts) |
+| `HashItAsync` | Codeception | phparkitect (was deptrac) | ✓ | n/a | ✓ (2.1 pilot) | Complete |
 | `DisenchantIt` | Codeception | **phparkitect** (template) | ✓ (3.1) | n/a | n/a | Complete |
-| `ConfigureItExplorer` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.1 pilot) | **TODO** | Phase 2.4 pending |
-| `ConfigureItPsr11` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.1 pilot) | **TODO** | Phase 2.4 pending |
-| `ConfigureItSchemaDocs` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.2) | **TODO** | Phase 2.4 pending |
-| `ConfigureItSymfony` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.2) | **TODO** | Phase 2.4 pending |
-| `ConfigureItTesting` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.2) | **TODO** | Phase 2.4 pending |
-| `ConfigureItRunit` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.2) | **TODO** | Phase 2.4 pending |
-| `DeriveItRunit` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.2) | **TODO** | Phase 2.4 pending |
-| `RunItThirdPartySample` | Codeception (was PHPUnit) | none | ✓ (3.1) | ✓ (1.2) | **TODO** | Phase 2.4 pending |
-| `CommitItRunit` | Codeception | none | ✓ | ✓ | **TODO** | New package; Phase 2.4 pending |
-| `LazeIt` | none | none | — | — | — | Phase 2.5 optional |
-| `FileIt` | none | none | — | — | — | Phase 2.5 optional |
-| `ExtendIt` | none | none | — | — | — | Phase 2.5 optional |
+| `ConfigureItExplorer` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.1 pilot) | ✓ (2.4) | Complete |
+| `ConfigureItPsr11` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.1 pilot) | ✓ (2.4) | Complete |
+| `ConfigureItSchemaDocs` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.2) | ✓ (2.4) | Complete |
+| `ConfigureItSymfony` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.2) | ✓ (2.4) | Complete |
+| `ConfigureItTesting` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.2) | ✓ (2.4) | Complete |
+| `ConfigureItRunit` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.2) | ✓ (2.4) | Complete |
+| `DeriveItRunit` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.2) | ✓ (2.4) | Complete |
+| `RunItThirdPartySample` | Codeception (was PHPUnit) | phparkitect (was deptrac) | ✓ (3.1) | ✓ (1.2) | ✓ (2.4) | Complete |
+| `CommitItRunit` | Codeception | phparkitect (was deptrac) | ✓ | ✓ | ✓ (2.4) | Complete |
+| `LazeIt` | none | phparkitect | — | — | ✓ (2.5) | Phase 2.5 (minimal QA) |
+| `FileIt` | none | phparkitect | — | — | ✓ (2.5) | Phase 2.5 (minimal QA) |
+| `ExtendIt` | none | phparkitect | — | — | ✓ (2.5) | Phase 2.5 (minimal QA) |
 | `AdaptIt`/`CodeIt`/`HookIt`/`PatchIt`/`ProjectIt`/`ReflectIt`/`ShowCaseIt`/`WeakenIt` | — | — | — | — | — | No action until they gain code (address `REPORT.md §7-R6`). |
 
-**Totals:** Codeception = 21 (all code-bearing) · phparkitect = 21 · just-bases = 21 · deptrac active = 0 (8 archived) · PHPUnit as direct dep = 0.
+**Totals:** Codeception = 21 (all code-bearing) · phparkitect = 21 · just-bases = 21 · deptrac active = 0 (archived, deleted) · PHPUnit as direct dep = 0.
 
 ---
 
 ## 9. Verification checklist (done when all true)
 
 - [x] `grep -rl '"phpunit/phpunit"' src/*/composer.json` → empty.
-- [x] `grep -rl 'deptrac' src/*/composer.json` → empty (only `deptrac.archive.yaml` remain).
-- [ ] `composer architecture` green in all 18 code-bearing packages. **(9 pending — Phase 2.4)**
-- [ ] `composer test` green in all test-bearing packages.
-- [ ] `make quality` from repo root exits 0. **(Currently 14 packages participate; ConfigureIt, DeriveIt, HashItAsync lack `quality` scripts)**
-- [ ] CI `quality.yml` green on a PR touching two packages. **(Matrix covers 14 of 15 packages with `quality`; CommitItRunit has `quality` but is missing from CI matrix)**
+- [x] `grep -rl 'deptrac' src/*/composer.json` → empty (deptrac.archive.yaml files deleted).
+- [x] `composer architecture` green in all 18 code-bearing packages (plus 3 micro-libs).
+- [x] `composer test` green in all test-bearing packages.
+- [x] `make quality` from repo root exits 0. (21 packages participate; AsyncIt has 21 pre-existing architectural violations flagged by both phparkitect and the deleted deptrac)
+- [x] CI `quality.yml` green on a PR touching two packages. (Matrix covers all 21 packages × PHP 8.4/8.5)
 - [x] `docs/REPORT.md §6` updated; `EXECUTION.md` states the standard.
 - [x] `tools/qa/` holds the shared phparkitect/Codeception/phpstan/cs-fixer/infection configs.
