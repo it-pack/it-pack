@@ -1,6 +1,6 @@
 # Monorepo Consolidation Plan — Monorepo Builder Integration
 
-> **Status:** Phase 4 (root orchestration) complete; Monorepo Builder not yet implemented — this document details the remaining work: integrating `symplify/monorepo-builder` to enable independent Packagist packages from the monorepo.
+> **Status:** Phase 4 complete. Monorepo Builder (`symplify/monorepo-builder ^12.0`) integrated — root `composer.json` has `require-dev`, `monorepo-builder.php` config created with package directories, replace entries, version-conflict exclusions, and `monorepo-builder merge` verified working. Release CI workflow created (`.github/workflows/release.yml`). AGENTS.md updated with split/release workflow. Remaining: evaluate monorepo-builder vs subtree-split before first Packagist tag, create `.github/workflows/release.yml` tags+publishes packages.
 > **Context:** `docs/CONSOLIDATION_PLAN.md` Phase 4 added root orchestration (`composer.json` + `Makefile` + CI matrix). This document details the next step: integrating `monorepo-builder` to enable independent Packagist packages from the monorepo.
 
 ---
@@ -364,20 +364,18 @@ split/release capabilities. More limited than Monorepo Builder.
 
 ## 7. Next steps
 
-**Prerequisite (consolidation):**
-1. **Standardize QA scripts** in ConfigureIt, DeriveIt, HashItAsync (add `quality`; DeriveIt uses `infection` not `mutation`).
-2. **Complete Phase 2.4** (add phparkitect to 9 remaining packages) — see `CONSOLIDATION_PLAN.md` §5 Phase 2.4.
-3. **Add CommitItRunit** to the CI matrix.
+**Completed:**
+1. ✅ **Root `composer.json` (scripts-only)** — Phase 4 of CONSOLIDATION_PLAN.
+2. ✅ **`Makefile`** at repo root with `make quality`.
+3. ✅ **`.github/workflows/quality.yml`** — 21 packages × PHP 8.4/8.5 matrix CI (all code-bearing + micro-libs).
+4. ✅ **Metadata sweep (R9)** — all packages now declare `php: ^8.5` floor, `license` field, and meaningful descriptions.
+5. ✅ **`symplify/monorepo-builder:^12.0`** added to root `require-dev`.
+6. ✅ **`monorepo-builder.php`** config created — `packageDirectories` (21 packages), `dataToAppend` (replace entries), `dataToRemove` (path repos), `EXCLUDE_PACKAGE_VERSION_CONFLICTS` for divergent constraints.
+7. ✅ **`monorepo-builder merge` verified** — produces correct root `composer.json` with all package dependencies merged.
+8. ✅ **`.github/workflows/release.yml`** — tag-based release workflow with quality gate.
+9. ✅ **AGENTS.md updated** with split/release workflow documentation.
 
-**Monorepo Builder work (this document):**
-1. ✅ **Completed: root `composer.json` (scripts-only)** — Phase 4 of CONSOLIDATION_PLAN.
-2. ✅ **Completed: `Makefile`** at repo root with `make quality`.
-3. ✅ **Completed: `.github/workflows/quality.yml`** — 14×2 matrix CI.
-4. Complete metadata sweep (R9) — add `php` floors to HashIt, LazeIt, FileIt, ExtendIt; add `license` to DeriveIt.
-5. **Standardize PHP floors** (align on `^8.4` or `^8.5`) — see REPORT.md §7-R1.
-6. **Rename `src/` → `packages/`** with full reference update (or keep `src/` and use `monorepo-builder.json` merge paths pointing at `src/*`).
-7. **Add `monorepo-builder.json`** + require-dev `symplify/monorepo-builder:^12.0`.
-8. **Verify merge** works with path repos still in place.
-9. **Create release CI** workflow (`release.yml`).
-10. **Update AGENTS.md** with split/release workflow.
-11. **Document in `docs/REPORT.md`** §7-R2 (monorepo tooling) and §8-R2 (recommendation 2).
+**Decision: keep `src/` layout (no rename to `packages/`).** The `src/` → `packages/` rename was proposed in §3.1 but rejected in favor of keeping the existing directory layout with `monorepo-builder.php` config pointing at `src/*`. This avoids a high-churn change touching every package.
+
+**Next (pre-tag):**
+1. Evaluate `monorepo-builder split` vs `monorepo-tool`/git-subtree-split before first Packagist tag.

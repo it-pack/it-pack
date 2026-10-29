@@ -100,13 +100,13 @@ RunIt's clock/context/serializer/storage port families. Extract a shared contrac
 Root orchestration (Phase 4) is done, but independent Packagist publishing via
 `symplify/monorepo-builder` is not yet implemented.
 
-- [x] Decide: rename `src/` → `packages/`, or use `monorepo-builder.json` merge paths pointing at `src/*` — chose `src/` layout with `monorepo-builder.php` config
-- [ ] Rename `src/` → `packages/` with full reference update (if chosen) — not adopted; kept `src/` layout
+- [x] Decide: rename `src/` → `packages/`, or use `monorepo-builder.json` merge paths pointing at `src/*` — Decision: keep `src/` layout; use `monorepo-builder.php` config
+- [ ] Rename `src/` → `packages/` with full reference update (if chosen) — not adopted; keeping `src/` layout
 - [x] Add `monorepo-builder.php` configuration — `packageDirectories`, `dataToAppend` (replace entries), `dataToRemove` (path repos), version-conflict exclusions
 - [x] Add `symplify/monorepo-builder:^12.0` to root `require-dev`
 - [x] Verify `monorepo-builder merge` works with path repos still in place — confirmed merge succeeds (version conflict exclusions applied)
-- [ ] Create `.github/workflows/release.yml`
-- [ ] Update `AGENTS.md` with split/release workflow
+- [x] Create `.github/workflows/release.yml` — tag-based release workflow with quality gate
+- [x] Update `AGENTS.md` with split/release workflow — added "Monorepo Tooling & Release Workflow" section
 - [ ] Evaluate `monorepo-builder` vs `monorepo-tool`/subtree-split before first Packagist tag
 
 ### 7. Move `rector/rector` out of DisenchantIt's runtime requires (R8)

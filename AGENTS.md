@@ -120,6 +120,47 @@ relative path to the repo root) and calling `layeredArchitecture()` /
 
 ---
 
+## Monorepo Tooling & Release Workflow
+
+The repo uses **`symplify/monorepo-builder`** for release/split automation.
+Configuration lives in the root `monorepo-builder.php` (PHP format, consumed
+by the Merge/Split commands). The root `composer.json` is scripts-only and
+includes `symplix/monorepo-builder:^12.0` in `require-dev`.
+
+### Development workflow (path repos)
+
+During development, packages reference each other via **symlinked path
+repositories** (`"type": "path"`, `"options": { "symlink": true }` in
+`src/<Pkg>/composer.json`). This gives live cross-package editing. CI runs
+`composer quality` per package in `src/<Pkg>/`.
+
+### Release workflow (monorepo-builder)
+
+1. **Tag-based trigger**: push a tag matching `v*` to trigger
+   `.github/workflows/release.yml`.
+2. **Quality gate**: the release workflow runs `composer quality` across all
+   21 packages before attempting a release.
+3. **Merge**: `monorepo-builder merge --config=monorepo-builder.php` compiles
+   all `src/<Pkg>/composer.json` files into a single root `composer.json`,
+   injecting `replace` entries for every sibling package so the merged tree
+   resolves all internal deps from one manifest.
+4. **Version conflicts**: packages may declare different version constraints
+   for the same transitive dependency (e.g., `codeception/codeception` `^3.0`
+   vs `^4.1`). These are listed in `EXCLUDE_PACKAGE_VERSION_CONFLICTS` in
+   `monorepo-builder.php` to allow the merge to proceed; the merged root
+   uses the highest compatible constraint.
+5. **Release**: `monorepo-builder release <version> --config=monorepo-builder.php`
+   tags and publishes all packages at the given version.
+6. **Post-split**: after release, each package can be independently published
+   to Packagist via git subtree splits.
+
+### Directory layout
+
+Packages live in `src/<Pkg>/` (kept as-is; no `src/` → `packages/` rename).
+The `monorepo-builder.php` config uses relative paths from the repo root.
+
+---
+
 ## Completion Report
 
 When returning a completed task, report concisely:
