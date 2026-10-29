@@ -39,7 +39,7 @@ All reusable config lives in `tools/qa/`:
 6. Rename `deptrac.yaml` → `deptrac.archive.yaml` (keep for dual-run).
 7. **Dual-run:** `vendor/bin/phparkitect check` and `vendor/bin/deptrac --config-file=deptrac.archive.yaml`
    must flag the same violations (diff if not, log in migration log).
-8. Only after Phase 5 docs: delete `deptrac.archive.yaml`.
+8. After Phase 5 docs: delete `deptrac.archive.yaml`.
 
 **Implementation notes (Phase 2):**
 

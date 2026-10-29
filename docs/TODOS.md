@@ -224,4 +224,4 @@ ports (bring-your-own via `suggest:`). Document the policy per package.
 - [x] `docs/EXECUTION.md` — Tooling Standard section updated
 - [x] `AGENTS.md` — already documents the standard
 - [x] `tools/qa/CONVERSION_NOTES.md` — per-package migration log maintained
-- [ ] Delete `deptrac.archive.yaml` files after Phase 5 doc sign-off (per CONSOLIDATION_PLAN §5 dual-run rule)
+- [x] Delete `deptrac.archive.yaml` files after Phase 5 doc sign-off (per CONSOLIDATION_PLAN §5 dual-run rule) — deleted all 8 archived files; updated AGENTS.md, CONSOLIDATION_PLAN.md, CONVERSION_NOTES.md, REPORT.md

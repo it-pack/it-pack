@@ -13,7 +13,7 @@ use Arkitect\Rules\Rule;
 /**
  * phparkitect rules for it-pack/hash-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/HashIt/deptrac.archive.yaml) use classNameRegex:
+ * Deptrac layers (src/HashIt/deptrac (archived, deleted)) use classNameRegex:
  *   Core   → ~  (depends on nothing but itself)
  *   Format → [Core]
  *   Adapter (excl NativeHashIt) → [Core]

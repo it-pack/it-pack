@@ -14,7 +14,7 @@ use Arkitect\Rules\Rule;
 /**
  * phparkitect rules for it-pack/derive-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/DeriveIt/deptrac.archive.yaml):
+ * Deptrac layers (src/DeriveIt/deptrac (archived, deleted)):
  *   Contract   → ~  (self only)
  *   Behavior   → ~  (self only)
  *   Resolver   → Contract, Behavior

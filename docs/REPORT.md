@@ -396,5 +396,5 @@ Key files backing each major claim:
 - CommitItRunit bridge: `src/CommitItRunit/src/CommitItRunitAdapter.php` + `src/CommitItRunit/src/Model/{Activity,Occurrence,Snapshot}.php`; requires `it-pack/commit-it` + `it-pack/run-it`; test `src/CommitItRunit/tests/Unit/CommitItRunitAdapterTest.php`.
 - HashIt rebuild evidence: `src/HashIt/src/HashAlgorithm.php` (`#[HmacSafe]` catalogue), `src/HashIt/docs/ROADMAP.md` (all phases ✅).
 - Broken root test: `tests/Unit/SDK/CommitItTest.php` (imports `Tests\Unit\Application\*` which live in `src/CommitIt/tests/Unit/Application/` but are not autoloaded from root).
-- Architecture-tool migration status: `tools/qa/CONVERSION_NOTES.md` (Phase 2.4 complete; all 21 packages have phparkitect or are placeholders; 8 deptrac configs archived).
+- **Architecture-tool migration status:** `tools/qa/CONVERSION_NOTES.md` (Phase 2.4 complete; all 21 packages have phparkitect or are placeholders; deptrac.archive.yaml files deleted after Phase 5 documentation sign-off).
 - Legacy findings status: root `docs/FINDINGS_{DEFECTS,SOLID_DRY,HEXAGONAL}.md` vs current tree (HashIt fixed; ExtendIt/FileIt/DeriveIt items open).

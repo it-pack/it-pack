@@ -11,7 +11,7 @@ use function ItPack\Qa\PhpArkitect\layeredArchitecture;
 /**
  * phparkitect rules for it-pack/configure-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/ConfigureIt/deptrac.archive.yaml) — all directory-based:
+ * Deptrac layers (src/ConfigureIt/deptrac (archived, deleted)) — all directory-based:
  *   Contract     → Contract, ValueObject
  *   ValueObject  → ValueObject, Contract
  *   Core         → Core, Contract, ValueObject, Cache, Execution

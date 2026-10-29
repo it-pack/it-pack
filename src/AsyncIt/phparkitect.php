@@ -14,7 +14,7 @@ use Arkitect\Rules\Rule;
 /**
  * phparkitect rules for it-pack/async-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/AsyncIt/deptrac.archive.yaml):
+ * Deptrac layers (src/AsyncIt/deptrac (archived, deleted)):
  *   Common       → ~
  *   Contract     → [Common]  (excludes Contract\Port\*)
  *   Port          → [Common, Contract, Domain]

@@ -11,7 +11,7 @@ use Arkitect\RuleBuilders\Architecture\Architecture;
 /**
  * phparkitect rules for it-pack/hash-it-async (pilot migration from deptrac).
  *
- * Deptrac layers (src/HashItAsync/deptrac.archive.yaml):
+ * Deptrac layers (src/HashItAsync/deptrac (archived, deleted)):
  *   Bridge   → HashIt, AsyncIt
  *   HashIt   → ~  (depends on nothing — empty in local src/)
  *   AsyncIt  → ~  (depends on nothing — empty in local src/)

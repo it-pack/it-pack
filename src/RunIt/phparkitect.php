@@ -11,7 +11,7 @@ use function ItPack\Qa\PhpArkitect\layeredArchitecture;
 /**
  * phparkitect rules for it-pack/run-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/RunIt/deptrac.archive.yaml):
+ * Deptrac layers (src/RunIt/deptrac (archived, deleted)):
  *   Common           → ~
  *   Contract         → Common  (uses src/Contract/(?!Port/).* — Port is a
  *                       separate layer in deptrac; here Contract's selector

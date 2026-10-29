@@ -53,7 +53,7 @@ The maintainer mandated a single stack. New code and migrations follow it:
 | Concern | Tool | Notes |
 |---|---|---|
 | Tests | **Codeception** | `Unit` suite subclasses `PHPUnit\Framework\TestCase`; PHPUnit is not a first-class direct dependency. |
-| Architecture | **phparkitect** | Replaces deptrac. deptrac configs are archived as `deptrac.archive.yaml`, not deleted. |
+| Architecture | **phparkitect** | Replaces deptrac. deptrac configs were archived as `deptrac.archive.yaml` during Phase 2.4, then deleted after Phase 5 documentation was complete. |
 | Dev baseline | **just-bases/\*** | `php-unit-test-base`, `php-qa-base`, `php-obs-dev-base` for phpstan / cs-fixer / infection pins. |
 | Shared config | `tools/qa/` | Copy or include the canonical templates; do not re-pin versions ad-hoc. |
 

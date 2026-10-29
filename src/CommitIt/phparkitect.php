@@ -11,7 +11,7 @@ use function ItPack\Qa\PhpArkitect\layeredArchitecture;
 /**
  * phparkitect rules for it-pack/commit-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/CommitIt/deptrac.archive.yaml):
+ * Deptrac layers (src/CommitIt/deptrac (archived, deleted)):
  *   Common      → ~  (self only)
  *   Contract    → Common, Contract
  *   Domain      → Common, Contract  (includes src/Behavior/Domain/)

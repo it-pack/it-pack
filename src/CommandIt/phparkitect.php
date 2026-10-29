@@ -14,7 +14,7 @@ use function ItPack\Qa\PhpArkitect\forbidSibling;
 /**
  * phparkitect rules for it-pack/command-it (deptrac → phparkitect migration).
  *
- * Deptrac layers (src/CommandIt/deptrac.archive.yaml):
+ * Deptrac layers (src/CommandIt/deptrac (archived, deleted)):
  *   Contract      → Domain (hexagonal inward)
  *   Domain        → Contract
  *   Port           → Contract  (subsumed by Contract in deptrac: Contract collector

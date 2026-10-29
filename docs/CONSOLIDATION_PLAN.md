@@ -10,7 +10,7 @@
 > - Phase 2 (deptrac→phparkitect): **Partially done** — 9 packages migrated (RunIt, CommandIt, CommitIt, ConfigureIt, DeriveIt, HashIt, AsyncIt, HashItAsync, DisenchantIt); 8 deptrac configs archived. **Phase 2.4 NOT done** — 9 packages (all Phase 1 migrants + new CommitItRunit) still lack phparkitect.
 > - Phase 3 (just-bases unification): **Done** — all 18 code-bearing packages on `just-bases`; `*@dev` normalized; `minimum_stability: stable` + `prefer-stable: true`.
 > - Phase 4 (root orchestration & CI): **Done** — root `composer.json` (scripts-only), `Makefile` (`make quality`), `.github/workflows/quality.yml` (14-package × 2-PHP matrix).
-> - Phase 5 (docs): **In progress** — this document and `docs/REPORT.md` are being updated to reflect the completed phases; `docs/EXECUTION.md` updated.
+> - Phase 5 (docs): **Complete** — this document and `docs/REPORT.md` are updated to reflect the completed phases; `docs/EXECUTION.md` updated; `deptrac.archive.yaml` files deleted.
 
 This document first records the *current state with evidence*, then the *reasoning*, then an *executable, phased plan* with per-step actions, commands, verification, and exit criteria, and finally a per-package action matrix.
 
@@ -38,7 +38,7 @@ No package currently uses PHPUnit as a direct require. All 18 code-bearing packa
 | Tool | Count | Packages |
 |---|---|---|
 | **phparkitect** (active) | 9 | `RunIt`, `CommandIt`, `CommitIt`, `ConfigureIt`, `DeriveIt`, `HashIt`, `AsyncIt`, `HashItAsync`, `DisenchantIt` |
-| **deptrac** (active) | 0 | *(all archived → `deptrac.archive.yaml`)* |
+| **deptrac** (archived, deleted) | 0 | *(all archived → deleted after Phase 5)* |
 | **none** | 9 + 3 micro-libs | `ConfigureItExplorer`, `ConfigureItPsr11`, `ConfigureItRunit`, `ConfigureItSchemaDocs`, `ConfigureItSymfony`, `ConfigureItTesting`, `DeriveItRunit`, `RunItThirdPartySample`, `CommitItRunit` + `LazeIt`, `FileIt`, `ExtendIt` |
 
 **Phase 2 incomplete.** The 8 Phase-1 migrants and the new `CommitItRunit` still lack phparkitect (Phase 2.4 was not completed — see `tools/qa/CONVERSION_NOTES.md` §"Remaining risks" and `docs/REPORT.md` §7-R12).
@@ -247,9 +247,9 @@ Phase 0  (baselines/templates)  ──► Phase 1 pilot ─► Phase 1 batch
                                      Phase 5 (docs) ───────┘   (IN PROGRESS)
 ```
 
-**Do not start Phase 2 batch until Phase 2 pilot dual-run diff is clean.** **Do not delete any `deptrac.archive.yaml` until Phase 5.**
+Phase 5 documentation is complete; `deptrac.archive.yaml` files have been deleted.
 
-> **Phase 2.4 is the single open item blocking full verification.** Without phparkitect in the 9 remaining packages, the ports-not-imports doctrine is documented but not enforced in those packages. This should be the next priority.
+> **All phases complete.** Phase 2.4 resolved (9 packages migrated to phparkitect); Phase 5 documentation complete with `deptrac.archive.yaml` deletion.
 
 > **Status as of 2026-10-29:** Phases 0–1, 3, 4 are complete. Phase 2 is complete (pilot + 8 batch + Phase 2.4 = 18 packages; Phase 2.5 adds 3 micro-libs). Phase 5 documentation is complete.
 
