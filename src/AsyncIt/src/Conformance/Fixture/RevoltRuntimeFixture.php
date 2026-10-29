@@ -13,14 +13,20 @@ use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
  *
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-revolt
  */
-final class RevoltRuntimeFixture extends AbstractRuntimeFixture
+final class RevoltRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    use RuntimeFixtureTrait;
+
     public function __construct()
     {
         /** @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot> $perFiber */
         $perFiber = new \WeakMap();
 
-        parent::__construct(new RevoltPoller(), new RevoltFiberContextStorage($perFiber, new FiberScopeSlotFactory()), new RevoltPoller());
+        $this->initRuntimeFixture(
+            new RevoltPoller(),
+            new RevoltFiberContextStorage($perFiber, new FiberScopeSlotFactory()),
+            new RevoltPoller(),
+        );
     }
 
     public function portName(): string

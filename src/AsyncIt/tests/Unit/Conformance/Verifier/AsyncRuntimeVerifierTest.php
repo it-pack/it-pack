@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
+use ItPack\AsyncIt\Conformance\Fixture\ReferenceRuntimeFixture;
 use ItPack\AsyncIt\Conformance\Verifier\AsyncRuntimeVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\ContextIsolationVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
-use ItPack\AsyncIt\Conformance\Fixture\ReferenceRuntimeFixture;
+use PHPUnit\Framework\TestCase;
 use Tests\Unit\Conformance\Fixture\FakeExecutionScope;
 use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
-use PHPUnit\Framework\TestCase;
 
 /**
  * Wires the AsyncIt conformance suite (Assertion A + C) and proves the
@@ -64,7 +64,7 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
     private function doublyBrokenFixture(): AsyncRuntimeFixtureInterface
     {
-        $storage = new class implements ContextStorageInterface {
+        $storage = new class () implements ContextStorageInterface {
             private ?ExecutionScopeInterface $sentinel = null;
 
             public function current(): ExecutionScopeInterface
@@ -78,7 +78,7 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
             public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
-                return new class implements ContextTokenInterface {
+                return new class () implements ContextTokenInterface {
                     public function id(): int
                     {
                         return 0;
@@ -91,7 +91,7 @@ final class AsyncRuntimeVerifierTest extends TestCase
             }
         };
 
-        $poller = new class implements PollerPortInterface {
+        $poller = new class () implements PollerPortInterface {
             public function register(mixed $stream): StreamPollHandle
             {
                 return new StreamPollHandle('stub');

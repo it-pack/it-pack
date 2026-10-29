@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\AsyncIt\Domain\Exception;
+namespace ItPack\AsyncIt\Contract\Exception;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use RuntimeException;

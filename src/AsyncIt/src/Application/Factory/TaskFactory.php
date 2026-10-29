@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\TaskId;
-use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\Task;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
@@ -23,8 +23,10 @@ final class TaskFactory implements TaskFactoryInterface
     {
     }
 
-    public function create(ExecutionIdInterface $executionId, \ItPack\AsyncIt\Contract\CancellationScopeInterface $scope): Task
-    {
+    public function create(
+        ExecutionIdInterface $executionId,
+        CancellationScopeInterface $scope
+    ): Task {
         return new Task(new TaskId($this->idGenerator->generate()), $executionId, $scope);
     }
 }

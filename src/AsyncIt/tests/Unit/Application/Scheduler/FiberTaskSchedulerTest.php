@@ -12,11 +12,11 @@ use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
+use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
+use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
-use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
-use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -30,26 +30,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class FiberTaskSchedulerTest extends TestCase
 {
-    private function scheduler(): FiberTaskScheduler
-    {
-        return new FiberTaskScheduler(
-            new FiberFactory(),
-            new TaskRecordFactory(),
-            (new PollerFactory())->create(new CapabilityDescriptor([
-                CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
-            ])),
-            new MemoryContextStorage(),
-            new ReferenceExecutionScopeFactory(),
-            new NullArtifactPublisher(),
-        );
-    }
-
-    private function task(): \ItPack\AsyncIt\Contract\TaskInterface
-    {
-        return (new TaskFactory(new RandomIdentifierGenerator()))
-            ->create(ExecutionId::fromString('exec-1'), (new CancellationScopeFactory())->create());
-    }
-
     public function testRunsTaskToCompletionWithSuspendResume(): void
     {
         $scheduler = $this->scheduler();
@@ -87,5 +67,25 @@ final class FiberTaskSchedulerTest extends TestCase
         self::assertNotNull($thrown, 'The original exception must be rethrown.');
         self::assertSame('boom', $thrown->getMessage());
         self::assertSame(TaskStatus::Failed, $task->status());
+    }
+    private function scheduler(): FiberTaskScheduler
+    {
+        return new FiberTaskScheduler(
+            new FiberFactory(),
+            new TaskRecordFactory(),
+            new PollerFactory()->create(new CapabilityDescriptor([
+                CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
+            ])),
+            new MemoryContextStorage(),
+            new ReferenceExecutionScopeFactory(),
+            new NullArtifactPublisher(),
+        );
+    }
+
+    private function task(): \ItPack\AsyncIt\Contract\TaskInterface
+    {
+        return new TaskFactory(new RandomIdentifierGenerator())
+            ->create(ExecutionId::fromString('exec-1'), new CancellationScopeFactory()->create())
+        ;
     }
 }

@@ -7,14 +7,13 @@ namespace Tests\Unit\Conformance\Verifier;
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Result\ViolationSeverity;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
-use Tests\Unit\Conformance\Fixture\FakeExecutionScope;
-use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
 use PHPUnit\Framework\TestCase;
+use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
 
 /**
  * Negative (and logic) siblings for conformance Assertion C — Deterministic
@@ -59,7 +58,7 @@ final class DeterministicCleanupVerifierTest extends TestCase
 
     private function idleStorage(): ContextStorageInterface
     {
-        return new class implements ContextStorageInterface {
+        return new class () implements ContextStorageInterface {
             public function current(): ?ExecutionScopeInterface
             {
                 return null;
@@ -67,7 +66,7 @@ final class DeterministicCleanupVerifierTest extends TestCase
 
             public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
-                return new class implements ContextTokenInterface {
+                return new class () implements ContextTokenInterface {
                     public function id(): int
                     {
                         return 0;
@@ -83,7 +82,7 @@ final class DeterministicCleanupVerifierTest extends TestCase
 
     private function stubPoller(): PollerPortInterface
     {
-        return new class implements PollerPortInterface {
+        return new class () implements PollerPortInterface {
             public function register(mixed $stream): StreamPollHandle
             {
                 return new StreamPollHandle('stub');

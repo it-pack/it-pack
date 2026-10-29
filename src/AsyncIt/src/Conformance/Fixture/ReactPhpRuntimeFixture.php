@@ -12,11 +12,13 @@ use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
  *
  * @see https://w3id.org/itpack/asyncit/taxonomy#poller-interop-reactphp
  */
-final class ReactPhpRuntimeFixture extends AbstractRuntimeFixture
+final class ReactPhpRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    use RuntimeFixtureTrait;
+
     public function __construct(object $loop)
     {
-        parent::__construct(
+        $this->initRuntimeFixture(
             new ReactPhpPollerBridge($loop),
             new MemoryContextStorage(),
             new ReactPhpPollerBridge($loop),

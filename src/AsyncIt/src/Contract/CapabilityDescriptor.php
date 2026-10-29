@@ -6,7 +6,6 @@ namespace ItPack\AsyncIt\Contract;
 
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
-use ItPack\AsyncIt\Contract\ValueObjectInterface;
 
 /**
  * The negotiated capability descriptor — the single source of truth for the

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
-use InvalidArgumentException;
 use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;

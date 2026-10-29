@@ -7,13 +7,12 @@ namespace Tests\Unit\Conformance\Verifier;
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Result\ViolationSeverity;
 use ItPack\AsyncIt\Conformance\Verifier\ContextIsolationVerifier;
-use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
+use PHPUnit\Framework\TestCase;
 use Tests\Unit\Conformance\Fixture\FakeExecutionScope;
 use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
-use PHPUnit\Framework\TestCase;
 
 /**
  * Negative (and logic) siblings for conformance Assertion A — Context Isolation.
@@ -47,7 +46,7 @@ final class ContextIsolationVerifierTest extends TestCase
 
     private function bleedingFixture(): AsyncRuntimeFixtureInterface
     {
-        $storage = new class implements ContextStorageInterface {
+        $storage = new class () implements ContextStorageInterface {
             private ?ExecutionScopeInterface $sentinel = null;
 
             public function current(): ExecutionScopeInterface
@@ -61,7 +60,7 @@ final class ContextIsolationVerifierTest extends TestCase
 
             public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
-                return new class implements ContextTokenInterface {
+                return new class () implements ContextTokenInterface {
                     public function id(): int
                     {
                         return 0;
@@ -79,7 +78,7 @@ final class ContextIsolationVerifierTest extends TestCase
 
     private function lifoFixture(): AsyncRuntimeFixtureInterface
     {
-        $storage = new class implements ContextStorageInterface {
+        $storage = new class () implements ContextStorageInterface {
             /** @var ExecutionScopeInterface[] */
             private array $stack = [];
 
@@ -92,7 +91,7 @@ final class ContextIsolationVerifierTest extends TestCase
             {
                 $this->stack[] = $scope;
 
-                return new class implements ContextTokenInterface {
+                return new class () implements ContextTokenInterface {
                     public function id(): int
                     {
                         return 0;

@@ -23,14 +23,11 @@ use PHPUnit\Framework\TestCase;
  *
  * Revolt/Swow are negotiated-only; their fixtures are exercised when the
  * runtime is present and skipped otherwise.
+ *
+ * @covers \ItPack\AsyncIt\Conformance\Verifier\AsyncRuntimeVerifier
  */
 final class RuntimeAdapterConformanceTest extends TestCase
 {
-    private function verifier(): AsyncRuntimeVerifier
-    {
-        return new AsyncRuntimeVerifier(new ContextIsolationVerifier(), new DeterministicCleanupVerifier());
-    }
-
     public function testSwooleAdapterConforms(): void
     {
         if (!class_exists('Swoole\\Coroutine')) {
@@ -106,11 +103,15 @@ final class RuntimeAdapterConformanceTest extends TestCase
 
     public function testNegotiatedEngineConformsToRunIt(): void
     {
-        $result = (new ExecutionEngineVerifier())->verify(
+        $result = new ExecutionEngineVerifier()->verify(
             AsyncRuntime::discover(),
             new \ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope('engine'),
         );
 
         self::assertTrue($result->isConformant(), $result->summary());
+    }
+    private function verifier(): AsyncRuntimeVerifier
+    {
+        return new AsyncRuntimeVerifier(new ContextIsolationVerifier(), new DeterministicCleanupVerifier());
     }
 }

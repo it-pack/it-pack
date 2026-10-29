@@ -16,20 +16,16 @@ use PHPUnit\Framework\TestCase;
  *
  * @covers \ItPack\AsyncIt\SDK\AsyncRuntime
  * @covers \ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory
+ * @covers \ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler
  * @covers \ItPack\AsyncIt\Application\Factory\SchedulerFactory
  * @covers \ItPack\AsyncIt\Application\Factory\PerRunExecutionScopeFactory
  * @covers \ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler
  */
 final class AsyncRuntimeTest extends TestCase
 {
-    private function runtime(): AsyncRuntime
-    {
-        return AsyncRuntime::discover();
-    }
-
     public function testPassesRunItExecutionEngineVerifier(): void
     {
-        $result = (new ExecutionEngineVerifier())->verify($this->runtime(), new ReferenceExecutionScope('engine'));
+        $result = new ExecutionEngineVerifier()->verify($this->runtime(), new ReferenceExecutionScope('engine'));
 
         self::assertTrue(
             $result->isConformant(),
@@ -72,5 +68,9 @@ final class AsyncRuntimeTest extends TestCase
         self::assertTrue($capability->supportsFibers);
         self::assertFalse($capability->supportsCoroutines);
         self::assertFalse($capability->concurrent);
+    }
+    private function runtime(): AsyncRuntime
+    {
+        return AsyncRuntime::discover();
     }
 }

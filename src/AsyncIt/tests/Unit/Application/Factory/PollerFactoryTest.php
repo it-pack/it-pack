@@ -17,20 +17,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class PollerFactoryTest extends TestCase
 {
-    private function descriptor(bool $nativeEdge): CapabilityDescriptor
-    {
-        return new CapabilityDescriptor([
-            CapabilityKind::EdgeTriggeredPolling->value => $nativeEdge
-                ? CapabilityStatus::Supported
-                : CapabilityStatus::Emulated,
-        ]);
-    }
-
     public function testFallsBackToSelectPollerWhenNativeUnavailable(): void
     {
         self::assertFalse(PollerFactory::nativePollAvailable());
 
-        $poller = (new PollerFactory())->create($this->descriptor(true));
+        $poller = new PollerFactory()->create($this->descriptor(true));
 
         self::assertInstanceOf(SelectPoller::class, $poller);
     }
@@ -41,8 +32,16 @@ final class PollerFactoryTest extends TestCase
             self::markTestSkipped('PHP 8.6 Io\\Poll not available.');
         }
 
-        $poller = (new PollerFactory())->create($this->descriptor(true));
+        $poller = new PollerFactory()->create($this->descriptor(true));
 
         self::assertInstanceOf(NativePoller::class, $poller);
+    }
+    private function descriptor(bool $nativeEdge): CapabilityDescriptor
+    {
+        return new CapabilityDescriptor([
+            CapabilityKind::EdgeTriggeredPolling->value => $nativeEdge
+                ? CapabilityStatus::Supported
+                : CapabilityStatus::Emulated,
+        ]);
     }
 }

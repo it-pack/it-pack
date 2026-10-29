@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
-use ItPack\AsyncIt\Domain\Exception\ChannelClosedException;
 
 /**
  * Native {@see TaskChannelInterface} over `Swoole\Coroutine\Channel`.

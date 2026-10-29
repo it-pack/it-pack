@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Domain\Channel;
 
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
+use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
+use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
-use ItPack\AsyncIt\Domain\Exception\ChannelClosedException;
-use ItPack\AsyncIt\Domain\Exception\ChannelEmptyException;
-use ItPack\AsyncIt\Domain\Exception\ChannelFullException;
 
 /**
  * Userspace {@see TaskChannelInterface} used when the negotiated runtime has no

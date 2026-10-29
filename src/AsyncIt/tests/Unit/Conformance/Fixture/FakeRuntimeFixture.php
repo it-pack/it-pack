@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Conformance\Fixture;
 
-use ItPack\AsyncIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;

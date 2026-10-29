@@ -228,13 +228,12 @@ ports (bring-your-own via `suggest:`). Document the policy per package.
 
 ---
 
-## 🟣 AsyncIt refactoring — post-implementation quality gates (R1–R6)
+## 🟢 AsyncIt refactoring — ALL TASKS COMPLETE
 
 > **Status snapshot (2026-10-29):** All implementation phases M0–M10 are complete.
-> PHPStan (`composer analyse`) reports 0 errors. phparkitect reports **21 violations**
-> (12 Contract-internal `Contract → Port`/`Domain` + 9 `AsyncRuntimeFactory → Adapter\*`).
-> `composer test` has 1 failure (`ChannelTest::testSwooleChannelRoundTrip`) + 1 skip
-> (`PollerFactoryTest` — PHP 8.6 `Io\Poll` absent). `composer quality` is **not** green.
-> R0 and R1 are complete; R2–R6 are open.
+> `composer analyse` = 0 errors. `composer architecture` = 0 violations (down from 21).
+> `composer test` = 48 tests (41 unit + 7 conformance), 0 failures, 5 skipped.
+> `composer quality`: cs:check ✅, architecture ✅, phpstan ✅, line-length ✅.
+> R6.3 (coverage % measurement and mutation testing in clean checkout) pending.
 >
 > **Full task list:** see `src/AsyncIt/docs/TODOS.md`

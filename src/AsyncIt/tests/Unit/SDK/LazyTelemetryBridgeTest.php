@@ -8,6 +8,9 @@ use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @covers \ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge
+ */
 final class LazyTelemetryBridgeTest extends TestCase
 {
     public function testRecorderIsDeferredUntilFirstRecord(): void

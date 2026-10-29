@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use Fiber;
-use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
+use ItPack\AsyncIt\Contract\TaskInterface;
 
 /**
  * Concrete {@see TaskRecordFactoryInterface} building a {@see TaskRecord}.

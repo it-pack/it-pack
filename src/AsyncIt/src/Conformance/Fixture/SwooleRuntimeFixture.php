@@ -5,19 +5,25 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
-use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
+use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 
 /**
  * Conformance fixture exercising the Swoole runtime adapter.
  *
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
  */
-final class SwooleRuntimeFixture extends AbstractRuntimeFixture
+final class SwooleRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    use RuntimeFixtureTrait;
+
     public function __construct()
     {
-        parent::__construct(new SwoolePoller(), new SwooleCoroutineContextStorage(new FiberScopeSlotFactory()), new SwoolePoller());
+        $this->initRuntimeFixture(
+            new SwoolePoller(),
+            new SwooleCoroutineContextStorage(new FiberScopeSlotFactory()),
+            new SwoolePoller(),
+        );
     }
 
     public function portName(): string

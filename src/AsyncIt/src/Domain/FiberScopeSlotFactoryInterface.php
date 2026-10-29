@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Domain;
 
-use ItPack\AsyncIt\Domain\FiberScopeSlot;
-
 /**
  * Creates the mutable per-Fiber scope slot used by the runtime context storages.
  *

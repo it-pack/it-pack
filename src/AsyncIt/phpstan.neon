@@ -16,4 +16,8 @@ parameters:
     scanFiles:
         - tools/phpstan/extensions.stub.php
 
-    ignoreErrors: []
+    ignoreErrors:
+        # RuntimeAssemblerInterface::create() is a static factory called via
+        # the concrete AsyncRuntimeFactory::create() — shipmonk.deadMethod
+        # cannot track static calls through interface contracts.
+        - { message: '#^Unused .+RuntimeAssemblerInterface::create$#', path: src/SDK/Factory/RuntimeAssemblerInterface.php }

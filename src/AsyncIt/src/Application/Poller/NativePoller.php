@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Poller;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\AsyncIt\Contract\Port\PollerVocabulary;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 
 /**
@@ -91,10 +92,10 @@ final class NativePoller implements PollerPortInterface
             return;
         }
 
-        // 1 == Io\Poll::READABLE. Watch the stream for read readiness.
+        // Register for READABLE readiness using the vocabulary constant.
         /** @var callable $register */
         $register = [$this->poll, 'register'];
-        $registered = ($register)($stream, 1);
+        $registered = ($register)($stream, PollerVocabulary::READABLE);
 
         if ($registered === true) {
             $this->nativeRegistered[$id] = true;

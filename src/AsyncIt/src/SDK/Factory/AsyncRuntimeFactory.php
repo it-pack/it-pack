@@ -4,30 +4,19 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\SDK\Factory;
 
-use ItPack\AsyncIt\Adapter\Revolt\RevoltChannel;
-use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
-use ItPack\AsyncIt\Adapter\Revolt\RevoltPoller;
-use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
-use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
-use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
-use ItPack\AsyncIt\Adapter\Swow\SwowChannel;
-use ItPack\AsyncIt\Adapter\Swow\SwowCoroutineContextStorage;
-use ItPack\AsyncIt\Adapter\Swow\SwowPoller;
-use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
+use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
+use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssemblerInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
-use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
-use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
-use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
@@ -54,19 +43,25 @@ use Throwable;
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class AsyncRuntimeFactory
+final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
 {
     /**
      * Assembles the runtime with the negotiated adapter (Swoole/Swow/Revolt/Reference).
+     *
+     * @param ?RuntimeAdapterAssemblerInterface $assembler injected assembler,
+     *        defaults to {@see RuntimeAdapterAssembler} when null
      */
-    public static function create(): AsyncRuntime
-    {
-        [$kind, $descriptor] = (new self())->negotiate();
+    public static function create(
+        ?RuntimeAdapterAssemblerInterface $assembler = null,
+    ): AsyncRuntime {
+        [$kind, $descriptor] = new self()->negotiate();
 
-        $poller = (new self())->buildPoller($kind, $descriptor);
-        $storage = (new self())->buildStorage($kind);
-        $channel = (new self())->buildChannel($kind);
-        $telemetry = (new self())->buildTelemetry();
+        $assembler ??= new RuntimeAdapterAssembler();
+        $assembly = $assembler->assemble($kind, $descriptor);
+        $poller = $assembly->poller;
+        $storage = $assembly->storage;
+        $channel = $assembly->channel;
+        $telemetry = new self()->buildTelemetry();
         $idGenerator = new RandomIdentifierGenerator();
         $taskFactory = new TaskFactory($idGenerator);
         $fiberFactory = new FiberFactory();
@@ -161,49 +156,6 @@ final class AsyncRuntimeFactory
                 CapabilityKind::BlockingHook->value => CapabilityStatus::Unavailable,
             ]),
         ];
-    }
-
-    private function buildPoller(RuntimeAdapterKind $kind, CapabilityDescriptor $descriptor): \ItPack\AsyncIt\Contract\PollerPortInterface
-    {
-        return match ($kind) {
-            RuntimeAdapterKind::Swoole => new SwoolePoller(),
-            RuntimeAdapterKind::Swow => new SwowPoller(),
-            RuntimeAdapterKind::Revolt => new RevoltPoller(),
-            RuntimeAdapterKind::Reference => (new PollerFactory())->create($descriptor),
-        };
-    }
-
-    private function buildStorage(RuntimeAdapterKind $kind): \ItPack\RunIt\Contract\Port\ContextStorageInterface
-    {
-        return match ($kind) {
-            RuntimeAdapterKind::Swoole => new SwooleCoroutineContextStorage(new FiberScopeSlotFactory()),
-            RuntimeAdapterKind::Swow => new SwowCoroutineContextStorage(new FiberScopeSlotFactory()),
-            RuntimeAdapterKind::Revolt => new RevoltFiberContextStorage($this->revoltPerFiberMap(), new FiberScopeSlotFactory()),
-            RuntimeAdapterKind::Reference => new MemoryContextStorage(),
-        };
-    }
-
-    /**
-     * Per-Fiber WeakMap backing {@see RevoltFiberContextStorage}.
-     *
-     * @return \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot>
-     */
-    private function revoltPerFiberMap(): \WeakMap
-    {
-        /** @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot> $map */
-        $map = new \WeakMap();
-
-        return $map;
-    }
-
-    private function buildChannel(RuntimeAdapterKind $kind): TaskChannelInterface
-    {
-        return match ($kind) {
-            RuntimeAdapterKind::Swoole => new SwooleChannel(new \Swoole\Coroutine\Channel()),
-            RuntimeAdapterKind::Swow => new SwowChannel(new \Swow\Coroutine\Channel()),
-            RuntimeAdapterKind::Revolt => new RevoltChannel(new EmulatedChannel()),
-            RuntimeAdapterKind::Reference => new EmulatedChannel(),
-        };
     }
 
     private function buildTelemetry(): TelemetryBridgeInterface

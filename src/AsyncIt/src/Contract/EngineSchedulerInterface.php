@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-
 /**
  * Scheduler contract used by the RunIt execution engine.
  *

@@ -12,15 +12,17 @@ use ItPack\AsyncIt\Application\Poller\NativePoller;
  *
  * @see https://w3id.org/itpack/asyncit/taxonomy#poller-native
  */
-final class NativeRuntimeFixture extends AbstractRuntimeFixture
+final class NativeRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    use RuntimeFixtureTrait;
+
     public function __construct()
     {
         $nativeClass = 'Io\\Poll';
         /** @var \Io\Poll $native */
         $native = new $nativeClass();
 
-        parent::__construct(new NativePoller($native), new MemoryContextStorage(), new NativePoller($native));
+        $this->initRuntimeFixture(new NativePoller($native), new MemoryContextStorage(), new NativePoller($native));
     }
 
     public function portName(): string

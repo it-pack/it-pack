@@ -13,11 +13,17 @@ use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
  *
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swow
  */
-final class SwowRuntimeFixture extends AbstractRuntimeFixture
+final class SwowRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    use RuntimeFixtureTrait;
+
     public function __construct()
     {
-        parent::__construct(new SwowPoller(), new SwowCoroutineContextStorage(new FiberScopeSlotFactory()), new SwowPoller());
+        $this->initRuntimeFixture(
+            new SwowPoller(),
+            new SwowCoroutineContextStorage(new FiberScopeSlotFactory()),
+            new SwowPoller(),
+        );
     }
 
     public function portName(): string

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Contract;
 
 use InvalidArgumentException;
-use ItPack\AsyncIt\Contract\ValueObjectInterface;
 
 /**
  * Opaque identifier of a single scheduled task within an execution.

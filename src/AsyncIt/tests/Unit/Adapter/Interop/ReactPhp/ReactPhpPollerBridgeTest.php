@@ -13,11 +13,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class ReactPhpPollerBridgeTest extends TestCase
 {
-    private function fakeLoop(): FakeReactLoop
-    {
-        return new FakeReactLoop();
-    }
-
     public function testRegisterTracksHandleAndAddsToLoop(): void
     {
         $loop = $this->fakeLoop();
@@ -53,6 +48,10 @@ final class ReactPhpPollerBridgeTest extends TestCase
         $bridge->await(0);
 
         self::assertSame(1, $bridge->activeHandleCount());
+    }
+    private function fakeLoop(): FakeReactLoop
+    {
+        return new FakeReactLoop();
     }
 }
 

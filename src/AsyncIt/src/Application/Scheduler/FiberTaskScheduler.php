@@ -11,7 +11,6 @@ use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
@@ -83,6 +82,19 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
     }
 
+    public function dispatch(TaskInterface $task, callable $operation): mixed
+    {
+        $this->submit($task, $operation);
+        $this->run();
+
+        return $this->result($task);
+    }
+
+    public function result(TaskInterface $task): mixed
+    {
+        return $this->results[$task->id()->value] ?? null;
+    }
+
     private function step(TaskRecord $record): void
     {
         $scope = $this->scopeFactory->create($record->task()->id()->value);
@@ -136,18 +148,5 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         $record->clearHandles();
-    }
-
-    public function dispatch(TaskInterface $task, callable $operation): mixed
-    {
-        $this->submit($task, $operation);
-        $this->run();
-
-        return $this->result($task);
-    }
-
-    public function result(TaskInterface $task): mixed
-    {
-        return $this->results[$task->id()->value] ?? null;
     }
 }

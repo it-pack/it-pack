@@ -5,16 +5,14 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
-use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
-use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
-use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -28,40 +26,25 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * instance is exposed for the verifiers so their handle accounting is independent
  * of scheduler activity (Assertion C).
  *
+ * This trait replaces the former `AbstractRuntimeFixture` abstract class so that
+ * every concrete fixture remains a `final class` with no inheritance, satisfying
+ * the "no abstract class" rule. Each fixture calls {@see initRuntimeFixture()}
+ * from its own constructor.
+ *
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
  */
-abstract class AbstractRuntimeFixture implements AsyncRuntimeFixtureInterface
+trait RuntimeFixtureTrait
 {
-    private readonly FiberTaskScheduler $scheduler;
+    private FiberTaskScheduler $scheduler;
 
-    private readonly PollerPortInterface $verifierPoller;
+    private PollerPortInterface $verifierPoller;
 
-    private readonly ContextStorageInterface $storage;
+    private ContextStorageInterface $storage;
 
-    private readonly DeterministicMonotonicClock $clock;
+    private DeterministicMonotonicClock $clock;
 
-    private readonly NullArtifactPublisher $publisher;
-
-    public function __construct(
-        PollerPortInterface $verifierPoller,
-        ContextStorageInterface $storage,
-        PollerPortInterface $schedulerPoller,
-    ) {
-        $this->verifierPoller = $verifierPoller;
-        $this->storage = $storage;
-        $this->clock = new DeterministicMonotonicClock();
-        $this->publisher = new NullArtifactPublisher();
-
-        $this->scheduler = new FiberTaskScheduler(
-            new FiberFactory(),
-            new TaskRecordFactory(),
-            $schedulerPoller,
-            $storage,
-            new ReferenceExecutionScopeFactory(),
-            $this->publisher,
-        );
-    }
+    private NullArtifactPublisher $publisher;
 
     public function scheduler(): SchedulerInterface
     {
@@ -95,6 +78,33 @@ abstract class AbstractRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function makeExecutionScope(string $discriminant): ExecutionScopeInterface
     {
-        return new \ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope($discriminant);
+        return new ReferenceExecutionScope($discriminant);
+    }
+
+    /**
+     * Initialises the scheduler, clock, publisher, and poller/storage handles
+     * from the supplied runtime primitives.
+     *
+     * Called by each concrete fixture's constructor after constructing the
+     * runtime-specific poller and context storage.
+     */
+    private function initRuntimeFixture(
+        PollerPortInterface $verifierPoller,
+        ContextStorageInterface $storage,
+        PollerPortInterface $schedulerPoller,
+    ): void {
+        $this->verifierPoller = $verifierPoller;
+        $this->storage = $storage;
+        $this->clock = new DeterministicMonotonicClock();
+        $this->publisher = new NullArtifactPublisher();
+
+        $this->scheduler = new FiberTaskScheduler(
+            new FiberFactory(),
+            new TaskRecordFactory(),
+            $schedulerPoller,
+            $storage,
+            new ReferenceExecutionScopeFactory(),
+            $this->publisher,
+        );
     }
 }

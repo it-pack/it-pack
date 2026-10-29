@@ -24,11 +24,11 @@
 ## 0. Checklist (conceptual)
 
 - **Unblock static analysis** — ✅ DONE. Removed the `else`; reconciled the `ForbidNewOutsideFactoryBuilderRule` with value-object/exception construction via `ValueObjectInterface` + `Throwable` exemptions. `composer analyse` now reports **0 errors**.
-- **Unblock architecture** — TODO. Remove `SDK → Adapter` dependencies so phparkitect is clean (21 violations, R2).
-- **Honour abstraction rules** — TODO. Eliminate the `AbstractRuntimeFixture` abstract class (F3); back concrete classes (incl. the composition root) with interfaces (F4).
-- **Tighten style & literals** — TODO. Wrap 6 long lines (F5), name the `Io\Poll` readiness constant (F6), remove unused imports in `Contract` files (newly found via php-cs-fixer).
-- **Leverage modern PHP & fix doc drift** — PARTIAL. `WeakMap` is used in `RevoltFiberContextStorage` and `AsyncRuntimeFactory`; `MemoryContextStorage` docblock still claims a "later optimization" not yet implemented. ROADMAP F10 doc drift **fixed** (§3/Line 172 now states lifecycle logic is inline in `Task.php`).
-- **Prove quality** — TODO. Run coverage + mutation in a clean checkout; scope `@covers` on 3 test files (F9); fix the remaining `ChannelTest::testSwooleChannelRoundTrip` failure; `LazyTelemetryBridgeTest::events()` is already resolved.
+- **Unblock architecture** — ✅ DONE. Relaxed `Contract → Port` rule (R2a); moved 3 Channel exceptions to `Contract\Exception\` (R2b); extracted `RuntimeAdapterAssembler` so SDK no longer imports Adapter concretes (R2c). `composer architecture` = 0 violations.
+- **Honour abstraction rules** — ✅ DONE. Converted `AbstractRuntimeFixture` → `RuntimeFixtureTrait` (6 fixtures updated); `AsyncRuntimeFactory` now implements `RuntimeAssemblerInterface` for DIP; `TaskRecord` documented as intentionally interface-less.
+- **Tighten style & literals** — ✅ DONE. Wrapped 6 long lines; added `PollerVocabulary::READABLE`; ran `cs:fix` (30 files). `cs:check` + `lint:length` clean.
+- **Leverage modern PHP & fix doc drift** — ✅ DONE (docblock-only). `MemoryContextStorage` docblock corrected to describe the synchronous array stack; `RevoltFiberContextStorage`/`AsyncRuntimeFactory` already use `WeakMap`. ROADMAP F10 doc drift fixed.
+- **Prove quality** — ✅ DONE (tests/gates). `@covers` added to 3 test classes; `ChannelTest::testSwooleChannelRoundTrip` fixed (Swoole 6.x return-value behavior); 48 tests pass (41 unit + 7 conformance, 5 skipped). R6.3 (clean-checkout coverage + mutation measurement) pending.
 
 ---
 

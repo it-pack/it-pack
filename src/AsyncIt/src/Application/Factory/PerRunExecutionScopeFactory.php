@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
-use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 
 /**

@@ -12,11 +12,13 @@ use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
  *
  * @see https://w3id.org/itpack/asyncit/taxonomy#poller-interop-amp
  */
-final class AmpRuntimeFixture extends AbstractRuntimeFixture
+final class AmpRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    use RuntimeFixtureTrait;
+
     public function __construct()
     {
-        parent::__construct(new AmpPollerBridge(), new MemoryContextStorage(), new AmpPollerBridge());
+        $this->initRuntimeFixture(new AmpPollerBridge(), new MemoryContextStorage(), new AmpPollerBridge());
     }
 
     public function portName(): string

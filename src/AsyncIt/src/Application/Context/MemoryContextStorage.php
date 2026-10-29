@@ -14,12 +14,15 @@ use LogicException;
  * Reference context storage implementing the RunIt {@see ContextStorageInterface}
  * contract with a last-in-first-out token stack.
  *
- * The ambient RunIt scope is attached per scheduler resume and detached under
- * `finally` on suspend, so an interleaved (suspended) task never holds an
- * ambient context — conformance Assertion A. The stack (rather than a
- * `WeakMap<Fiber,Context>` slot) keeps the reference implementation simple and
- * dependency-free; a per-fiber slot is a later optimization behind the same
- * contract.
+ * The ambient RunIt scope is attached on `attach()` and detached on
+ * `detach()` (invoked under a `finally` guard at every suspension point),
+ * so a suspended or interleaved task never holds an ambient context —
+ * conformance Assertion A.
+ *
+ * This reference implementation uses a plain array stack rather than a
+ * per-fiber `WeakMap<Fiber, ExecutionScope>` slot; it is intended for the
+ * synchronous reference runtime where no fibers are active. A per-fiber slot
+ * is a later optimisation behind the same contract.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */

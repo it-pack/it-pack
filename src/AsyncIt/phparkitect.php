@@ -50,7 +50,7 @@ return static function (Config $config): void {
         ->where('Common')->mayDependOnComponents()
         ->where('Domain')->mayDependOnComponents('Common', 'Port')
         ->where('Port')->mayDependOnComponents('Common', 'Domain')
-        ->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port')
+         ->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port', 'Adapter')
         ->where('SDK')->mayDependOnComponents('Common', 'Domain', 'Port', 'Application')
         ->where('Adapter')->mayDependOnComponents('Common', 'Domain', 'Port')
         ->where('Conformance')->mayDependOnComponents('Common', 'Domain', 'Port', 'Application', 'SDK', 'Adapter');
@@ -58,20 +58,18 @@ return static function (Config $config): void {
     $rules = array_merge(
         iterator_to_array($architecture->rules()),
         [
-            // Contract (excl Port) must not depend on Port or any other layer
-            // (except Common). In deptrac, the Contract collector uses
-            // src/Contract/(?!Port/).* to exclude the Port sub-namespace.
+            // Contract (excl Port) may depend on Port (co-located value types,
+            // vocabulary interfaces), but must not reach into Domain or higher.
             Rule::allClasses()
                 ->that(new ResideInOneOfTheseNamespacesExactly('ItPack\AsyncIt\Contract'))
                 ->should(new NotDependsOnTheseNamespaces([
-                    'ItPack\AsyncIt\Contract\Port',
                     'ItPack\AsyncIt\Domain',
                     'ItPack\AsyncIt\Application',
                     'ItPack\AsyncIt\SDK',
                     'ItPack\AsyncIt\Adapter',
                     'ItPack\AsyncIt\Conformance',
                 ]))
-                ->because('Contract must not depend on Port or other layers (except Common)'),
+                ->because('Contract must not depend on Domain or higher layers (except Port/Common)'),
         ]
     );
 

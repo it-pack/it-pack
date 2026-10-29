@@ -22,15 +22,15 @@ interface TaskChannelInterface
     /**
      * Sends a value into the channel.
      *
-     * @throws \ItPack\AsyncIt\Domain\Exception\ChannelClosedException when closed
-     * @throws \ItPack\AsyncIt\Domain\Exception\ChannelFullException when bounded and full
+     * @throws \ItPack\AsyncIt\Contract\Exception\ChannelClosedException when closed
+     * @throws \ItPack\AsyncIt\Contract\Exception\ChannelFullException when bounded and full
      */
     public function send(mixed $value): void;
 
     /**
      * Receives the next value, or signals emptiness for the emulated backend.
      *
-     * @throws \ItPack\AsyncIt\Domain\Exception\ChannelEmptyException when no value is available
+     * @throws \ItPack\AsyncIt\Contract\Exception\ChannelEmptyException when no value is available
      */
     public function receive(): mixed;
 

@@ -13,11 +13,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class NativePollerTest extends TestCase
 {
-    private function fakePoll(): FakeNativePoll
-    {
-        return new FakeNativePoll();
-    }
-
     public function testRegisterTracksHandleAndRegistersWithPoll(): void
     {
         $poll = $this->fakePoll();
@@ -54,6 +49,10 @@ final class NativePollerTest extends TestCase
         $poller->await(1_500_000);
 
         self::assertSame(1, $poll->pollCalls);
+    }
+    private function fakePoll(): FakeNativePoll
+    {
+        return new FakeNativePoll();
     }
 }
 

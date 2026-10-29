@@ -31,14 +31,14 @@ final class RunItAdapterConformanceTest extends TestCase
 {
     public function testSystemMonotonicClockConforms(): void
     {
-        $result = (new MonotonicClockVerifier())->verify(new SystemMonotonicClock());
+        $result = new MonotonicClockVerifier()->verify(new SystemMonotonicClock());
 
         self::assertTrue($result->isConformant(), $result->summary());
     }
 
     public function testMemoryContextStorageConforms(): void
     {
-        $result = (new ContextStorageVerifier())->verify(
+        $result = new ContextStorageVerifier()->verify(
             new MemoryContextStorage(),
             new ReferenceExecutionScope('ctx'),
         );
@@ -56,7 +56,7 @@ final class RunItAdapterConformanceTest extends TestCase
             $health,
         );
 
-        $result = (new ArtifactPublisherVerifier())->verify($publisher, new RunItPortFixture());
+        $result = new ArtifactPublisherVerifier()->verify($publisher, new RunItPortFixture());
 
         self::assertTrue($result->isConformant(), $result->summary());
     }

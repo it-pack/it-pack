@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Tests\Unit\Channel;
 
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
+use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
+use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
-use ItPack\AsyncIt\Domain\Exception\ChannelEmptyException;
-use ItPack\AsyncIt\Domain\Exception\ChannelFullException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @covers \ItPack\AsyncIt\Domain\Channel\EmulatedChannel
+ * @covers \ItPack\AsyncIt\Adapter\Swoole\SwooleChannel
+ */
 final class ChannelTest extends TestCase
 {
     public function testEmulatedChannelSendReceive(): void
@@ -46,11 +50,13 @@ final class ChannelTest extends TestCase
             self::markTestSkipped('Swoole runtime not available.');
         }
 
-        $value = \Swoole\Coroutine\run(static function () {
+        $value = null;
+
+        \Swoole\Coroutine\run(static function () use (&$value): void {
             $channel = new SwooleChannel(new \Swoole\Coroutine\Channel());
             $channel->send('hello');
 
-            return $channel->receive();
+            $value = $channel->receive();
         });
 
         self::assertSame('hello', $value);

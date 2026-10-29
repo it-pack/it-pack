@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Conformance\Fixture;
 
-use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface;
