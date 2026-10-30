@@ -56,6 +56,8 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
 
     private FiberTaskScheduler $scheduler;
 
+    private CancellationScopeInterface $rootScope;
+
     private CancellationScopeFactory $cancellationScopeFactory;
 
     public function __construct()
@@ -68,6 +70,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
             static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
         );
         $this->cancellationScopeFactory = new CancellationScopeFactory();
+        $this->rootScope = $this->cancellationScopeFactory->create();
 
         $executionId = ExecutionId::fromString('ref-exec');
         $sequenceAllocator = new InMemorySequenceAllocator();
@@ -76,7 +79,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
-            new CancellationScopeFactory(),
+            $this->cancellationScopeFactory,
             $this->clock,
             $executionId,
             $this->verifierPoller,
@@ -100,7 +103,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
 
     public function cancellationScope(): CancellationScopeInterface
     {
-        return $this->cancellationScopeFactory->create();
+        return $this->rootScope;
     }
 
     public function poller(): PollerPortInterface

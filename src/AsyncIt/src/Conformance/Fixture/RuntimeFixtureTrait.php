@@ -59,6 +59,8 @@ trait RuntimeFixtureTrait
 
     private LazyTelemetryBridge $telemetry;
 
+    private CancellationScopeInterface $rootScope;
+
     private CancellationScopeFactory $cancellationScopeFactory;
 
     public function scheduler(): SchedulerInterface
@@ -68,7 +70,7 @@ trait RuntimeFixtureTrait
 
     public function cancellationScope(): CancellationScopeInterface
     {
-        return $this->cancellationScopeFactory->create();
+        return $this->rootScope;
     }
 
     public function poller(): PollerPortInterface
@@ -126,6 +128,7 @@ trait RuntimeFixtureTrait
             static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
         );
         $this->cancellationScopeFactory = new CancellationScopeFactory();
+        $this->rootScope = $this->cancellationScopeFactory->create();
 
         $sequenceAllocator = new InMemorySequenceAllocator();
         $executionId = ExecutionId::fromString('ref-exec');
@@ -134,7 +137,7 @@ trait RuntimeFixtureTrait
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
-            new CancellationScopeFactory(),
+            $this->cancellationScopeFactory,
             $this->clock,
             $executionId,
             $schedulerPoller,
