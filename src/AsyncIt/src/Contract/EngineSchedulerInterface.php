@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\AsyncIt\Contract\Port\CancellationReason;
-use ItPack\AsyncIt\Domain\TaskId;
+// Remove this import; keep the fully-qualified class name in the @see docblock.
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use Throwable;
 
@@ -20,9 +19,9 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
- *   @api
- *
- */
+  * @api
+
+  */
 interface EngineSchedulerInterface extends SchedulerInterface
 {
     /**
@@ -94,30 +93,12 @@ interface EngineSchedulerInterface extends SchedulerInterface
     public function health(): SchedulerHealthInterface;
 
     /**
-     * Drains the reactor until idle (no records remain) or the monotonic
-     * deadline elapses, whichever comes first.
-     *
-     * Used by {@see \ItPack\AsyncIt\Application\GracefulShutdown} to bound the
-     * drain so a stuck cooperative task cannot block indefinitely. On deadline
-     * expiry, remaining tasks are force-cancelled with
-     * {@see CancellationReason::DeadlineExceeded} and their poll handles are
-     * released (conformance Assertion C).
-     *
-     * @param int $deadlineNanos absolute monotonic deadline (hrtime nanos);
-     *   pass PHP_INT_MAX for an unbounded drain (semantically equivalent to
-     *   {@see self::run()}, which also delegates to this method).
-     */
-    public function runUntil(int $deadlineNanos): void;
-
-    /**
      * Atomically swaps the negotiated capability descriptor.
      *
-     * Called by the {@see \ItPack\AsyncIt\Contract\CapabilityObserverInterface}
+     * Called by the {@see CapabilityObserverInterface}
      * when the runtime adapter signals a capability change (e.g., native channels
      * became unavailable). The scheduler increments the descriptor version and
      * re-selects backends on the next reactor tick.
-     *
-     * @see https://w3id.org/itpack/asyncit#CapabilityDescriptor
      */
     public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void;
 }
