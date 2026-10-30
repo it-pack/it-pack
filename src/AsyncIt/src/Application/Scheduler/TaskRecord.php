@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Scheduler;
 
 use Fiber;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * Per-task bookkeeping for the reactor: the task, its Fiber, any poll handles
@@ -19,7 +19,7 @@ use ItPack\AsyncIt\Domain\StreamPollHandle;
 final class TaskRecord
 {
     /**
-     * @param list<StreamPollHandle> $handles
+     * @param list<StreamPollHandleInterface> $handles
      * @param Fiber<mixed, mixed, mixed, mixed> $fiber
      */
     public function __construct(
@@ -44,14 +44,14 @@ final class TaskRecord
     }
 
     /**
-     * @return list<StreamPollHandle>
+     * @return list<StreamPollHandleInterface>
      */
     public function handles(): array
     {
         return $this->handles;
     }
 
-    public function addHandle(StreamPollHandle $handle): void
+    public function addHandle(StreamPollHandleInterface $handle): void
     {
         $this->handles[] = $handle;
     }

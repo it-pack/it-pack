@@ -14,7 +14,7 @@ use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
 /**
  * Conformance Assertion C — Deterministic Cleanup.
  *
- * Proves the runtime releases every {@see \ItPack\AsyncIt\Domain\StreamPollHandle}
+ * Proves the runtime releases every {@see \ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface}
  * it registered: after a register/await/release cycle the runtime must hold zero
  * unreleased handles. A single leaked descriptor is a conformance failure.
  *
