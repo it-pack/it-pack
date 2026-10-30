@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace ItPack\AsyncIt\Domain\Exception;
+namespace ItPack\AsyncIt\Contract\Exception;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use RuntimeException;
 
 /**
- * Thrown when {@see \ItPack\AsyncIt\Domain\Bulkhead} is at capacity in
- * non-blocking mode.
+ * Thrown when {@see \ItPack\AsyncIt\Contract\BulkheadInterface} is at capacity
+ * in non-blocking mode.
  *
  * @see https://w3id.org/itpack/asyncit#Bulkhead
  */

@@ -199,6 +199,22 @@ asyncit:RateLimiter
     vs:term_status      "stable" ;
 .
 
+asyncit:OpenTelemetryTelemetryBridge
+    a                   owl:Class ;
+    rdfs:label          "OpenTelemetry Telemetry Bridge"@en ;
+    rdfs:comment        "Maps AsyncIt scheduler lifecycle events into OpenTelemetry spans, ending spans on terminal task transitions with proper error status."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:PrometheusTelemetryBridge
+    a                   owl:Class ;
+    rdfs:label          "Prometheus Telemetry Bridge"@en ;
+    rdfs:comment        "Exposes gauges (runnable tasks, active handles, timers), counters (task completions by status), and histograms (task duration, poll wait, dispatch latency) as Prometheus metrics."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
 # --- Capability negotiation --------------------------------------------------
 
 asyncit:CapabilityDescriptor

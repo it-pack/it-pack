@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
+use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
@@ -19,6 +20,7 @@ use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -138,19 +140,23 @@ final class FiberTaskSchedulerTest extends TestCase
 
     private function scheduler(): FiberTaskScheduler
     {
+        $executionId = ExecutionId::fromString('exec-1');
+        $sequenceAllocator = new InMemorySequenceAllocator();
+
         return new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
             new CancellationScopeFactory(),
             new SystemMonotonicClock(),
-            ExecutionId::fromString('exec-1'),
+            $executionId,
             new PollerFactory()->create(new CapabilityDescriptor([
                 CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
             ])),
             new MemoryContextStorage(),
             new ReferenceExecutionScopeFactory(),
             new NullArtifactPublisher(),
+            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
         );
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\AsyncIt\Domain\Exception\BulkheadFullException;
+use ItPack\AsyncIt\Contract\Exception\BulkheadFullException;
 
 interface BulkheadInterface
 {

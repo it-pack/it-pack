@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use Stringable;
 
 /**
  * Scope factory that yields exactly one caller-supplied RunIt scope.
@@ -21,7 +22,7 @@ final readonly class PerRunExecutionScopeFactory implements ExecutionScopeFactor
     {
     }
 
-    public function create(string $discriminant): ExecutionScopeInterface
+    public function create(string|Stringable $discriminant): ExecutionScopeInterface
     {
         return $this->scope;
     }

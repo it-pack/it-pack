@@ -7,6 +7,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -20,6 +21,10 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * the RunIt {@see ExecutionScopeInterface} and {@see ExecutionIdInterface} the
  * engine wants attached around each resume (real per-fiber/per-coroutine context
  * storage, Assertion A).
+ *
+ * The {@see InMemorySequenceAllocator} is provided so the scheduler can stamp
+ * every published artifact with a monotonic sequence number within the execution
+ * (H.2.1 — structured occurrence publication).
  *
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
@@ -40,6 +45,8 @@ final readonly class SchedulerFactory implements SchedulerFactoryInterface
 
     public function create(ExecutionScopeInterface $scope, ExecutionIdInterface $executionId): EngineSchedulerInterface
     {
+        $sequenceAllocator = new InMemorySequenceAllocator();
+
         return new FiberTaskScheduler(
             $this->fiberFactory,
             $this->taskRecordFactory,
@@ -51,6 +58,7 @@ final readonly class SchedulerFactory implements SchedulerFactoryInterface
             $this->contextStorage,
             $this->createExecutionScopeFactory($scope),
             $this->publisher,
+            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
         );
     }
 

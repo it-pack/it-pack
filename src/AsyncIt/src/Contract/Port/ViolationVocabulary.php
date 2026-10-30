@@ -20,9 +20,11 @@ namespace ItPack\AsyncIt\Contract\Port;
   */
 interface ViolationVocabulary
 {
-    public const CONTEXT_BLEED = 'ctx-bleed';
+    public const string CONTEXT_BLEED = 'ctx-bleed';
 
-    public const HANDLE_LEAK = 'handle-leak';
+    public const string HANDLE_LEAK = 'handle-leak';
 
-    public const FIXTURE_UNSUPPORTED = 'fixture-unsupported';
+    public const string FIXTURE_UNSUPPORTED = 'fixture-unsupported';
+
+    public const string TELEMETRY_SPAN_BROKEN_PARENTAGE = 'telemetry-span-broken-parentage';
 }

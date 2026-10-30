@@ -27,6 +27,8 @@ parameters:
         - { message: '#^Unused .+TaskGroup::(failure|fail|await|backpressurePolicy|close|go)$#', path: src/Domain/TaskGroup.php }
         # SchedulerEventListenerInterface consumed by adapter conformance only.
         - { message: '#^Unused .+SchedulerEventListenerInterface::onEvent$#', path: src/Contract/SchedulerEventListenerInterface.php }
+        # SchedulerEventInterface properties are exposed via the interface contract.
+        - { message: '#^Property .+SchedulerEventInterface::(\$task|\$status|\$awaitPoint) is never read$#', path: src/Contract/SchedulerEventInterface.php }
         # SchedulerEvent value-object constructors consumed by factory methods.
         - { message: '#^Unused .+SchedulerEvent::__construct$#', path: src/Domain/SchedulerEvent.php }
         # SchedulerEvent value-object constructors consumed by factory methods.
@@ -45,4 +47,24 @@ parameters:
         # Resilience: circuit breaker failureTimeout and rate limiter methods are for future adapter wiring.
         - { message: '#^Property .+CircuitBreaker::\$failureTimeout is never read$#', path: src/Domain/CircuitBreaker.php }
         - { message: '#^Unused .+RateLimiter::(waitForPermit|consume)$#', path: src/Domain/RateLimiter.php }
-        - { message: '#^Unused .+BulkheadFullException::capacity$#', path: src/Domain/Exception/BulkheadFullException.php }
+        - { message: '#^Unused .+BulkheadInterface::(tryAcquire|waitForCapacity|release|available)$#', path: src/Contract/BulkheadInterface.php }
+        - { message: '#^Unused .+BulkheadFullException::capacity$#', path: src/Contract/Exception/BulkheadFullException.php }
+        # Phase 9: ArtifactVocabulary constants consumed by future publication paths.
+        - { message: '#^Unused .+ArtifactVocabulary::(KIND_TASK_SPAWNED|KIND_TASK_RESUMED|KIND_TASK_COMPLETED|KIND_SCHEDULER_STARVATION|KIND_QUEUE_PRESSURE|KIND_HANDLE_LEAK)$#', path: src/Application/Artifact/ArtifactVocabulary.php }
+        - { message: '#^Unused .+CapabilityDescriptorInterface::statusFor$#', path: src/Contract/CapabilityDescriptorInterface.php }
+        # Phase 9: TraceParentageVerifier::ASSERTION is a reference marker for the conformance suite.
+        - { message: '#^Unused .+TraceParentageVerifier::ASSERTION$#', path: src/Conformance/Verifier/TraceParentageVerifier.php }
+        - { message: '#^Unused .+ViolationVocabulary::TELEMETRY_SPAN_BROKEN_PARENTAGE$#', path: src/Contract/Port/ViolationVocabulary.php }
+        # Phase 9: OpenTelemetry/Prometheus bridges have events() for TelemetryRecorderInterface consumers.
+        - { message: '#^Unused .+OpenTelemetryTelemetryBridge::events$#', path: src/Adapter/OpenTelemetry/OpenTelemetryTelemetryBridge.php }
+        - { message: '#^Unused .+PrometheusTelemetryBridge::events$#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        # Phase 9: AsyncRuntimeFactory uses dynamic class resolution for optional OTel bridge.
+        - { message: '#^PHPDoc tag @var with type .*TelemetryBridgeInterface.* is not subtype of native type.*#', path: src/SDK/Factory/AsyncRuntimeFactory.php }
+        # Phase 9: Prometheus bridge uses dynamic dispatch for the optional prom/phprometheus package.
+        - { message: '#^Instantiated class Promphp\\\\Prometheus.*not found.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        - { message: '#^Direct construction of anonymous outside a Factory/Builder namespace.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        - { message: '#^Parameter .* of method .*PrometheusTelemetryBridge.*has parameter.*no value type.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        - { message: '#^Instantiated class Promphp.*not found.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        - { message: '#^Property .*\$instruments .*does not accept array.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        - { message: '#^Method .*PrometheusTelemetryBridge::buildInstruments\(\) return type.*no value type.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        - { message: '#^Call to an undefined method object::(registerGauge|registerCounter|registerHistogram|incBy|observe)\(\).*$#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }

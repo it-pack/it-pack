@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\SDK\Factory;
 
+use ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
@@ -170,6 +171,17 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
 
     private function buildTelemetry(): TelemetryBridgeInterface
     {
+        if (\getenv('OTEL_EXPORTER_OTLP_ENDPOINT') !== false) {
+            $bridgeClass = OpenTelemetryTelemetryBridge::class;
+
+            if (class_exists($bridgeClass)) {
+                /** @var TelemetryBridgeInterface $bridge */
+                $bridge = new $bridgeClass();
+
+                return $bridge;
+            }
+        }
+
         return new LazyTelemetryBridge(
             static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
         );
