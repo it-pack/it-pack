@@ -11,6 +11,7 @@ use ItPack\AsyncIt\Conformance\Verifier\ContextIsolationVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -109,6 +110,11 @@ final class AsyncRuntimeVerifierTest extends TestCase
             }
         };
 
-        return new FakeRuntimeFixture($storage, 1, poller: $poller);
+        return new FakeRuntimeFixture(
+            $storage,
+            1,
+            scheduler: $this->createMock(SchedulerInterface::class),
+            poller: $poller,
+        );
     }
 }

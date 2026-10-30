@@ -21,3 +21,7 @@ parameters:
         # the concrete AsyncRuntimeFactory::create() — shipmonk.deadMethod
         # cannot track static calls through interface contracts.
         - { message: '#^Unused .+RuntimeAssemblerInterface::create$#', path: src/SDK/Factory/RuntimeAssemblerInterface.php }
+        # TaskGroupInterface public API methods consumed through the contract —
+        # shipmonk.deadMethod cannot track usage across interface boundaries.
+        - { message: '#^Unused .+TaskGroupInterface::(await|failure)$#', path: src/Contract/TaskGroupInterface.php }
+        - { message: '#^Unused .+TaskGroup::(failure|fail|await)$#', path: src/Domain/TaskGroup.php }

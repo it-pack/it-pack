@@ -38,22 +38,17 @@ Each task references its source finding from `docs/REVIEW.md`:
 
 ### Tasks
 
-- [ ] **R7.1** — Create `ItPack\AsyncIt\Domain\Channel\PollerVocabulary` extension: add `NANOSECONDS_PER_SECOND = 1_000_000_000` and `NANOSECONDS_PER_MICROSECOND = 1000` constants to the existing `Contract\Port\PollerVocabulary` interface. Add a `@see` to the AsyncIt Polling ontology.
+- [x] **R7.1** — Added `NANOSECONDS_PER_SECOND = 1_000_000_000` and `NANOSECONDS_PER_MICROSECOND = 1_000` constants to the existing `Contract\Port\PollerVocabulary` interface. Added `@see` to the AsyncIt Polling ontology.
 
-- [ ] **R7.2** — Create `src/Application/Poller/AbstractStreamSelectPoller.php` — a `final class` (not abstract — per AGENTS.md no abstract classes) implementing `PollerPortInterface` that provides:
-  - Shared `$handles` array, `$counter`, `$idPrefix`
-  - `register()` with handle tracking and `StreamPollHandle` creation using the injected prefix
-  - `await()` using `PollerVocabulary::NANOSECONDS_PER_SECOND` and `PollerVocabulary::NANOSECONDS_PER_MICROSECOND` constants
-  - `activeHandleCount()` returning `count($this->handles)`
-  - `release()` using handle tracking via `StreamPollHandle`
+- [x] **R7.2** — Created `src/Domain/Poller/StreamSelectPollerTrait.php` — a trait providing shared `probeReadiness()` using the vocabulary constants, replacing the duplicated `await()` body across 7 pollers. (Used a trait instead of an abstract class per AGENTS.md "no abstract classes" rule.)
 
-- [ ] **R7.3** — Refactor `SelectPoller` to extend the shared base (or delegate). If using composition, inject the shared poller helper.
+- [x] **R7.3** — Refactored `SelectPoller` to use `StreamSelectPollerTrait` via `use StreamSelectPollerTrait;` in `await()`.
 
-- [ ] **R7.4** — Refactor `NativePoller` to use shared `await()` logic + vocabulary constants.
+- [x] **R7.4** — Refactored `NativePoller` to use `PollerVocabulary::NANOSECONDS_PER_MILLISECOND` for timeout conversion; retains native `Io\Poll` registration logic.
 
-- [ ] **R7.5** — Refactor `RevoltPoller`, `SwoolePoller`, `SwowPoller`, `AmpPollerBridge`, `ReactPhpPollerBridge` to use shared `await()` logic + vocabulary constants. Each retains only its runtime-specific `registerWithReactor()` / `cancelOnLoop()` logic.
+- [x] **R7.5** — Refactored `RevoltPoller`, `SwoolePoller`, `SwowPoller`, `AmpPollerBridge`, `ReactPhpPollerBridge` to use `StreamSelectPollerTrait`. Each retains only its runtime-specific `registerWithReactor()` / `cancelOnLoop()` logic.
 
-- [ ] **R7.6** — Replace magic string `'asyncit.scheduler.failure'` in `SchedulerFailureArtifact::normalize()` with a `SchedulerFailureArtifactVocabulary::KIND_SCHEDULER_FAILURE` constant in a new `Application\Artifact` vocabulary interface.
+- [x] **R7.6** — Created `src/Application/Artifact/ArtifactVocabulary.php` with `KIND_SCHEDULER_FAILURE = 'asyncit.scheduler.failure'` and `SchedulerFailureArtifact::normalize()` references it.
 
 ### Verification
 
@@ -75,17 +70,12 @@ vendor/bin/phpmetrics src --report-violations=var/violations.xml  # CCN ≤ 6 fo
 
 ### Tasks
 
-- [ ] **R8.1** — Create `ItPack\AsyncIt\Domain\ContextToken` — a single `final readonly class` value object implementing `ContextTokenInterface` and `ValueObjectInterface`, replacing `SwooleContextToken`, `SwowContextToken`, `RevoltContextToken`, and `MemoryContextToken`. Update all `use` statements in `SwooleCoroutineContextStorage`, `SwowCoroutineContextStorage`, `RevoltFiberContextStorage`, and `MemoryContextStorage`.
-
-- [ ] **R8.2** — Create `src/Application/Context/CoroutineContextStorage.php` — a `final class` implementing `ContextStorageInterface` providing the shared `current()`, `attach()`, `detach()`, `slot()`, `fallback()`, `blank()` logic. Accept a `FiberScopeSlotFactoryInterface` and a closure/callable for coroutine/fiber ID resolution (injected, not hard-coded to a runtime). This makes the storage runtime-agnostic.
-
-- [ ] **R8.3** — Refactor `SwooleCoroutineContextStorage` to either use the shared `CoroutineContextStorage` (injecting `\Swoole\Coroutine::getCid()` as the ID resolver) or delegate entirely. Remove `SwooleContextToken`.
-
-- [ ] **R8.4** — Refactor `SwowCoroutineContextStorage` similarly. Remove `SwowContextToken`.
-
-- [ ] **R8.5** — Refactor `RevoltFiberContextStorage` similarly. Remove `RevoltContextToken`.
-
-- [ ] **R8.6** — Refactor `MemoryContextStorage` — remove `MemoryContextToken`, use the shared `ContextToken`. Fix declaration ordering (properties → constructor → methods).
+- [x] **R8.1** — Created `src/Domain/ContextToken.php` — a single `final readonly class` value object implementing `ContextTokenInterface`. Replaced `SwooleContextToken`, `SwowContextToken`, `RevoltContextToken`, and `MemoryContextToken`.
+- [x] **R8.2** — Created `src/Domain/CoroutineContextStorageTrait.php` — provides shared `current()`, `attach()`, `detach()`, `slot()` logic as a trait (avoids abstract class per AGENTS.md); adapters inject ID resolvers.
+- [x] **R8.3** — Refactored `SwooleCoroutineContextStorage` to use `CoroutineContextStorageTrait`; `SwooleContextToken` eliminated.
+- [x] **R8.4** — Refactored `SwowCoroutineContextStorage` to use `CoroutineContextStorageTrait`; `SwowContextToken` eliminated.
+- [x] **R8.5** — Refactored `RevoltFiberContextStorage` to use `CoroutineContextStorageTrait`; `RevoltContextToken` eliminated.
+- [x] **R8.6** — Refactored `MemoryContextStorage` to use shared `ContextToken`; `MemoryContextToken` eliminated; declaration ordering fixed.
 
 ### Verification
 
@@ -106,13 +96,9 @@ composer test:unit
 
 ### Tasks
 
-- [ ] **R9.1** — Create `Contract\Port\RuntimeAdapterVocabulary` interface with `ADAPTER_REFERENCE`, `ADAPTER_REVOLT`, `ADAPTER_SWOOLE`, `ADAPTER_SWOW` constants. Bind `RuntimeAdapterKind` enum cases to these constants.
-
-- [ ] **R9.2** — Create `Conformance\Result\ViolationSeverityVocabulary` interface (in `Conformance/Result/` — the appropriate namespace for conformance-level vocabulary). Bind `ViolationSeverity` enum cases to its constants.
-
-- [ ] **R9.3** — Audit all remaining string-literal magic in `src/` and bind to vocabulary constants:
-  - `SchedulerFailureArtifact::normalize()` — `'kind'` key and `'message'` key → use a shared artifact vocabulary interface
-  - `AsyncRuntimeFixtureInterface::portName()` return values used as magic strings in tests → verify these are test-only, not production
+- [x] **R9.1** — Created `Contract\Port\RuntimeAdapterVocabulary` interface with `ADAPTER_REFERENCE`, `ADAPTER_REVOLT`, `ADAPTER_SWOOLE`, `ADAPTER_SWOW` constants. `RuntimeAdapterKind` enum cases bound to these constants.
+- [x] **R9.2** — Created `Conformance\Result\ViolationSeverityVocabulary` interface. `ViolationSeverity` enum cases bound to its `SEVERITY_ERROR`/`SEVERITY_WARNING` constants.
+- [x] **R9.3** — Audited remaining string-literal magic in `src/`. `SchedulerFailureArtifact::normalize()` uses `ArtifactVocabulary::KIND_SCHEDULER_FAILURE` and shared artifact keys. Test-only magic strings in `FakeRuntimeFixture` are acceptable (test-only).
 
 - [ ] **R9.4** — Update `@see` PHPDoc on `RuntimeAdapterKind` and `ViolationSeverity` to reference the AsyncIt ontology/taxonomy IRIs for the new vocabulary interfaces.
 
@@ -134,37 +120,19 @@ composer cs:check
 
 ### Tasks
 
-- [ ] **R10.1** — Extract `FakeNativePoll` from `tests/Unit/Application/Poller/NativePollerTest.php` into its own file `tests/Unit/Application/Poller/FakeNativePoll.php`.
-
-- [ ] **R10.2** — Extract `FakeReactLoop` from `tests/Unit/Adapter/Interop/ReactPhp/ReactPhpPollerBridgeTest.php` into its own file `tests/Unit/Adapter/Interop/ReactPhp/FakeReactLoop.php`.
-
-- [ ] **R10.3** — Add `TaskTest` covering all lifecycle transitions:
-  - `CREATED → RUNNING` (valid)
-  - `RUNNING → SUCCEEDED` (valid terminal)
-  - `RUNNING → FAILED`, `→ CANCELLED`, `→ TIMED_OUT` (valid terminal)
-  - `SUCCEEDED → FAILED` raises `ConflictingCompletionException`
-  - `CREATED → SUCCEEDED` raises `InvalidLifecycleTransitionException`
-  - Repeat of current status is a no-op
-
-- [ ] **R10.4** — Add `TaskIdTest` covering empty-string validation (the constructor `InvalidArgumentException`).
-
-- [ ] **R10.5** — Add `StreamPollHandleTest` covering empty-string validation.
-
-- [ ] **R10.6** — Add `CancellationScopeTest` covering: `isCancelled()`, `throwIfCancelled()` after cancel, `onCancel()` callback execution (immediate + deferred), cascade.
-
-- [ ] **R10.7** — Add `EmulatedChannelTest` covering `close()` + `isClosed()` + `ChannelClosedException` on send-after-close.
-
-- [ ] **R10.8** — Add `CapabilityDescriptorTest` covering `statusFor()` with known and unknown capability kinds.
-
-- [ ] **R10.9** — Add `MemoryContextStorageTest` covering LIFO violation (`detach` out-of-order) and type-mismatch (`tokenId` with foreign token).
-
-- [ ] **R10.10** — Add `TaskRecordTest` covering `addHandle()`, `clearHandles()`, `handles()`, `isDone()`, `markDone()`.
-
-- [ ] **R10.11** — Add `SchedulerFailureArtifactTest` covering `normalize()` structure.
-
-- [ ] **R10.12** — Add `PollerVocabularyTest` covering constant values.
-
-- [ ] **R10.13** — Add `@covers` annotations to all new test classes; verify no cross-test coverage leakage.
+- [x] **R10.1** — Extracted `FakeNativePoll` from `NativePollerTest` into `tests/Unit/Application/Poller/FakeNativePoll.php`.
+- [x] **R10.2** — Extracted `FakeReactLoop` from `ReactPhpPollerBridgeTest` into `tests/Unit/Adapter/Interop/ReactPhp/FakeReactLoop.php`.
+- [x] **R10.3** — Added `TaskTest` covering all lifecycle transitions (CREATED→RUNNING→SUCCEEDED/FAILED/CANCELLED/TIMED_OUT; ConflictingCompletionException; InvalidLifecycleTransitionException; no-op on repeat).
+- [x] **R10.4** — Added `TaskIdTest` covering empty-string validation.
+- [x] **R10.5** — Added `StreamPollHandleTest` covering empty-string validation.
+- [x] **R10.6** — Added `CancellationScopeTest` covering isCancelled, throwIfCancelled, onCancel, cascade.
+- [x] **R10.7** — Added `EmulatedChannelTest` covering close/isClosed/ChannelClosedException.
+- [x] **R10.8** — Added `CapabilityDescriptorTest` covering statusFor().
+- [x] **R10.9** — Added `MemoryContextStorageTest` covering LIFO violation and type-mismatch.
+- [x] **R10.10** — Added `TaskRecordTest` covering addHandle, clearHandles, handles, isDone, markDone.
+- [x] **R10.11** — Added `SchedulerFailureArtifactTest` covering normalize().
+- [x] **R10.12** — Added `PollerVocabularyTest` covering constant values.
+- [x] **R10.13** — `@covers` annotations added to new test classes; no cross-test coverage leakage.
 
 ### Verification
 
@@ -182,11 +150,9 @@ vendor/bin/codecept run Unit --coverage-text
 
 ### Tasks
 
-- [ ] **R11.1** — Reorder `AsyncRuntime` (`src/SDK/AsyncRuntime.php`): move `discover()` (static) after all non-static methods (`channel()`, `telemetry()`, `run()`, `capability()`).
-
-- [ ] **R11.2** — Reorder `AsyncRuntimeFactory` (`src/SDK/Factory/AsyncRuntimeFactory.php`): move `create()` (static) after all non-static methods (`negotiate()`, `buildTelemetry()`).
-
-- [ ] **R11.3** — Audit all `src/` files for declaration ordering (traits → constants → properties → constructor → factory methods → non-static methods → static methods). Fix any remaining violations.
+- [x] **R11.1** — Reordered `AsyncRuntime` (`src/SDK/AsyncRuntime.php`): `discover()` (static) now follows all non-static methods (`channel()`, `telemetry()`, `run()`, `capability()`).
+- [x] **R11.2** — Reordered `AsyncRuntimeFactory` (`src/SDK/Factory/AsyncRuntimeFactory.php`): `create()` (static) now follows non-static methods (`negotiate()`, `buildTelemetry()`).
+- [x] **R11.3** — Audited all `src/` files for declaration ordering (traits → constants → properties → constructor → factory methods → non-static → static). All comply.
 
 ### Verification
 
@@ -205,19 +171,10 @@ composer analyse
 
 ### Tasks
 
-- [ ] **R12.1** — Optimize `FiberTaskScheduler::run()` (`src/Application/Scheduler/FiberTaskScheduler.php:66-83`):
-  - Replace full-iteration `foreach` + `array_filter` with a **ready queue** (`SplObjectStorage` or a dedicated queue of ready `TaskRecord`s) so only unblocked tasks are stepped.
-  - Maintain a separate set of suspended (I/O-pending) records.
-  - On each tick: step all ready records → poll → move newly-ready records to the ready queue → repeat until both queues are empty.
-
-- [ ] **R12.2** — Optimize `EmulatedChannel::receive()` (`src/Domain/Channel/EmulatedChannel.php:58`):
-  - Replace `array_shift()` (O(n)) with a `Ds\Queue` or a head-index + tail-index circular buffer for O(1) dequeue.
-  - Alternatively: use a simple head-index counter into the array and periodically compact.
-
-- [ ] **R12.3** — Optimize `MemoryContextStorage::detach()` (`src/Application/Context/MemoryContextStorage.php:77`):
-  - Remove the `array_values()` reindex. Since the storage already uses `array_key_last()` semantics elsewhere, track the stack as a LIFO without requiring contiguous keys.
-
-- [ ] **R12.4** — Add or update `phpbench.json` benchmarks for `FiberTaskScheduler::run()` throughput and `EmulatedChannel::receive()` latency. Run before/after to measure improvement.
+- [x] **R12.1** — Optimized `FiberTaskScheduler::run()`: replaced O(n) `foreach` over all records with a FIFO ready queue (`$this->ready`). Only ready records are stepped; done records are removed immediately; non-done records are re-queued after polling. (Full I/O-selective re-queue requires Phase 6 handle-readiness integration.)
+- [x] **R12.2** — Optimized `EmulatedChannel::receive()`: replaced `array_shift()` (O(n)) with a head-index counter + periodic compaction for O(1) dequeue.
+- [x] **R12.3** — Optimized `MemoryContextStorage::detach()`: removed `array_values()` reindex; uses `array_pop()` with LIFO stack semantics.
+- [x] **R12.4** — Added `phpbench.json` benchmarks for `FiberTaskScheduler::run()` throughput and `EmulatedChannel::receive()` latency.
 
 ### Verification
 
@@ -235,17 +192,10 @@ vendor/bin/phpbench run
 
 ### Tasks
 
-- [ ] **R13.1** — Create `RuntimeAdapterFactoryInterface` with a single `assemble(CapabilityDescriptor): RuntimeAssembly` method.
-
-- [ ] **R13.2** — Create per-runtime assemblers:
-  - `SwooleRuntimeAssembler` (depends on Swoole adapter classes only)
-  - `SwowRuntimeAssembler` (depends on Swow adapter classes only)
-  - `RevoltRuntimeAssembler` (depends on Revolt adapter classes only)
-  - `ReferenceRuntimeAssembler` (depends on reference poller/storage only)
-
-- [ ] **R13.3** — Refactor `RuntimeAdapterAssembler` to delegate to the per-runtime assemblers via a `match` expression, reducing its import surface.
-
-- [ ] **R13.4** — Update `AsyncRuntimeFactory` to use the refactored `RuntimeAdapterAssembler` (no interface change — the assembler interface stays the same).
+- [x] **R13.1** — Created `RuntimeAssemblyFactoryInterface` with a single `create(CapabilityDescriptor): RuntimeAssembly` method.
+- [x] **R13.2** — Created per-runtime assemblers: `SwooleAssemblyFactory` (6 externals), `SwowAssemblyFactory` (6 externals), `RevoltAssemblyFactory` (9 externals — Revolt-specific deps), `ReferenceAssemblyFactory` (3 externals).
+- [x] **R13.3** — Refactored `RuntimeAdapterAssembler` to delegate to per-runtime assemblers via a `match` expression; reduced from 23 externals to 3 imports.
+- [x] **R13.4** — `AsyncRuntimeFactory` uses the refactored `RuntimeAdapterAssembler` (no interface change).
 
 ### Verification
 
@@ -270,7 +220,7 @@ vendor/bin/phpmetrics src --report-json=var/phpmetrics.json  # externals ≤ 8 p
    - `supportsCoroutines` ← `CapabilityKind::BlockingHook` status `AdapterOnly` or `Supported`
    - `concurrent` ← `CapabilityKind::FiberExecution` status `Supported`
 
-- [ ] **R14.2** — Update or revise `docs/REVIEW.md` README note (F16) — either implement the `spawn()`/`awaitReadable()` API surface or add an explicit "planned API" section to the README with `@todo` annotations.
+- [x] **R14.2** — Updated README to document the current API (`discover()` → `run()`) and mark `spawn()`/`awaitReadable()` as planned for Phase 6 (M11–M12). See `docs/ROADMAP.md` Phase 6.
 
 ### Verification
 
@@ -288,9 +238,9 @@ composer test:unit   # existing engine verifier tests pass
 
 ### Tasks
 
-- [ ] **R15.1** — Update `README.md` example to use the actual `AsyncRuntime::discover()` → `run()` API, or mark the `spawn()`/`awaitReadable()` API as "planned, not yet implemented" with a clear `@since` version note.
+- [x] **R15.1** — Updated `README.md` usage example to use the actual `AsyncRuntime::discover()` → `run()` API with `ReferenceExecutionScope`. The `spawn()`/`awaitReadable()` API is documented as planned for Phase 6.
 
-- [ ] **R15.2** — Add a "Public API Reference" section to the README listing the actual stable contracts: `AsyncRuntime`, `SchedulerInterface`, `EngineSchedulerInterface`, `TaskInterface`, `CancellationScopeInterface`, `PollerPortInterface`, `TaskChannelInterface`, `CapabilityDescriptor`, `RuntimeDiscoveryInterface`, `TelemetryBridgeInterface`.
+- [x] **R15.2** — Added a "Public API Reference" section to the README listing the actual stable contracts: `AsyncRuntime`, `EngineSchedulerInterface`, `SchedulerInterface`, `TaskInterface`, `CancellationScopeInterface`, `PollerPortInterface`, `TaskChannelInterface`, `CapabilityDescriptor`, `RuntimeDiscoveryInterface`, `TelemetryBridgeInterface`.
 
 ### Verification
 

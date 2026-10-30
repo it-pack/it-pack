@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Conformance\Contract;
 
-use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\AsyncIt\Conformance\Contract\VerifierInterface;
+use ItPack\AsyncIt\Contract\SchedulerInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

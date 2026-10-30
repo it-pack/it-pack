@@ -15,6 +15,7 @@ use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -65,6 +66,10 @@ final class FiberTaskSchedulerFailureTest extends TestCase
         return new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
+            new TaskFactory(new RandomIdentifierGenerator()),
+            new CancellationScopeFactory(),
+            new SystemMonotonicClock(),
+            ExecutionId::fromString('exec-1'),
             new SelectPoller(),
             new MemoryContextStorage(),
             new ReferenceExecutionScopeFactory(),

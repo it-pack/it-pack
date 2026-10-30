@@ -51,7 +51,7 @@ enum TaskStatus: string implements TaskStatusInterface
     private function allowedNext(): array
     {
         return match ($this) {
-            self::Created => [self::Running],
+            self::Created => [self::Running, self::Cancelled],
             self::Running => [self::Succeeded, self::Failed, self::Cancelled, self::TimedOut],
             self::Succeeded, self::Failed, self::Cancelled, self::TimedOut => [],
         };

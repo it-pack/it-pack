@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 /**
  * Builds an {@see EngineSchedulerInterface} bound to one execution scope.
@@ -19,5 +20,5 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  */
 interface SchedulerFactoryInterface
 {
-    public function create(ExecutionScopeInterface $scope): EngineSchedulerInterface;
+    public function create(ExecutionScopeInterface $scope, ExecutionIdInterface $executionId): EngineSchedulerInterface;
 }

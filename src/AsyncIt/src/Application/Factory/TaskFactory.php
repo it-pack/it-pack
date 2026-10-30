@@ -27,6 +27,20 @@ final readonly class TaskFactory implements TaskFactoryInterface
         ExecutionIdInterface $executionId,
         CancellationScopeInterface $scope
     ): Task {
-        return new Task(new TaskId($this->idGenerator->generate()), $executionId, $scope);
+        return $this->createWithId(
+            new TaskId(
+                $this->idGenerator->generate()
+            ),
+            $executionId,
+            $scope
+        );
+    }
+
+    public function createWithId(
+        TaskId $id,
+        ExecutionIdInterface $executionId,
+        CancellationScopeInterface $scope
+    ): Task {
+        return new Task($id, $executionId, $scope);
     }
 }

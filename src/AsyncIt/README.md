@@ -70,34 +70,49 @@ $$\text{Polling (I/O Multiplexing)} \ \neq \ \text{Scheduling (Task Control)} \ 
 declare(strict_types=1);
 
 use ItPack\AsyncIt\AsyncRuntime;
+use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 
 // Initialize the portable AsyncIt runtime; capabilities are negotiated automatically.
 $runtime = AsyncRuntime::discover();
 
-$runtime->spawn(static function () use ($runtime) {
-    // Spawns a fiber, attaching RunIt's ExecutionContext to the scope.
-    $stream = stream_socket_client('tcp://127.0.0.1:8080');
-    stream_set_blocking($stream, false);
+// Build an immutable execution scope from RunIt.
+$scope = new ReferenceExecutionScope('example');
 
-    try {
-        // Fiber suspends, detaching context, and sleeps in the OS poller (Io\Poll).
-        $data = $runtime->awaitReadable($stream);
-
-        echo "Received: " . $data;
-    } finally {
-        fclose($stream); // Clean up resource handles on unwind.
-    }
+// Run a single operation inside the reference reactor.
+$result = $runtime->run($scope, static function (): string {
+    // The operation runs in a Fiber. Context is attached on resume
+    // and detached under finally (conformance Assertion A).
+    return 'Hello from AsyncIt';
 });
 
-// Drive the scheduler until all tasks complete.
-$runtime->run();
+echo $result; // Hello from AsyncIt
 ```
 
-> This example is illustrative of the intended public surface. Concrete APIs are finalized through the conformance-led roadmap below.
+> The `spawn()` and `awaitReadable()` primitives shown in earlier drafts are part of the **next-generation roadmap** (Phase 6+ in `docs/ROADMAP.md`) and are not yet implemented. They will be added with conformance-gated semantics once the multi-task model lands. See `docs/FEATURE_BACKLOG.md` for details.
 
 ---
 
-## 5. Development and Conformance Roadmap
+## 5. Public API Reference
+
+### SDK Entry Point
+- **`ItPack\AsyncIt\SDK\AsyncRuntime`** — The reference RunIt execution engine; discovered via `AsyncRuntime::discover()`, then `run(ExecutionScopeInterface, callable): mixed`. Also exposes `channel()`, `telemetry()`, `capability()`.
+
+### Core Contracts
+- **`ItPack\AsyncIt\Contract\EngineSchedulerInterface`** — Scheduling port used by the RunIt `ExecutionEngineInterface`; extends `SchedulerInterface` with `dispatch()`.
+- **`ItPack\AsyncIt\Contract\SchedulerInterface`** — Core scheduling contract.
+- **`ItPack\AsyncIt\Contract\TaskInterface`** / **`TaskId`** — Task identity within an execution.
+- **`ItPack\AsyncIt\Contract\PollerPortInterface`** — Port for readiness probing (`register()`, `release()`, `await()`, `activeHandleCount()`).
+- **`ItPack\AsyncIt\Contract\TaskChannelInterface`** — Channel abstraction (native or emulated) for task coordination.
+- **`ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface`** — Runtime adapter discovery and capability negotiation.
+- **`ItPack\AsyncIt\Contract\CapabilityDescriptor`** / **`CapabilityStatus`** / **`CapabilityKind`** — Negotiated capability model.
+- **`ItPack\AsyncIt\Contract\CancellationScopeInterface`** — Observed cooperative cancellation boundary.
+- **`ItPack\AsyncIt\Contract\TelemetryBridgeInterface`** — Telemetry integration port.
+
+> The `spawn()` and `awaitReadable()` primitives are planned for Phase 6 (M11–M12). See `docs/ROADMAP.md` for sequencing.
+
+---
+
+## 6. Development and Conformance Roadmap
 
 To ensure total behavioral compliance across vastly different runtime adapters, AsyncIt relies on a **conformance-led QA pipeline**. Adapters are continuously verified against the **`AsyncRuntimeVerifier`** test harness:
 

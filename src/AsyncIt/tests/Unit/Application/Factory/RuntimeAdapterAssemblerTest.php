@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Factory;
 
-use Swoole\Coroutine;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
@@ -15,6 +14,7 @@ use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
 
 /**
  * @covers \ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler

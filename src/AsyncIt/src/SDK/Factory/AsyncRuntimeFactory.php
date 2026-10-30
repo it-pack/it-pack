@@ -11,6 +11,7 @@ use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssemblerInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Application\Factory\TaskGroupFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
@@ -21,6 +22,7 @@ use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
@@ -69,6 +71,7 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
         $taskFactory = new TaskFactory($idGenerator);
         $fiberFactory = new FiberFactory();
         $cancellationScopeFactory = new CancellationScopeFactory();
+        $taskGroupFactory = new TaskGroupFactory($cancellationScopeFactory);
 
         $failures = [];
         $health = new CallbackHealthReporter(
@@ -85,6 +88,9 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
         $schedulerFactory = new SchedulerFactory(
             $fiberFactory,
             new TaskRecordFactory(),
+            $taskFactory,
+            $cancellationScopeFactory,
+            new SystemMonotonicClock(),
             $poller,
             $storage,
             $publisher,
@@ -98,8 +104,7 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
 
         return new AsyncRuntime(
             $schedulerFactory,
-            $taskFactory,
-            $cancellationScopeFactory,
+            $taskGroupFactory,
             $idGenerator,
             $capability,
             $channel,

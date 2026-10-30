@@ -12,11 +12,14 @@ use ItPack\AsyncIt\Contract\SchedulerInterface;
 /**
  * The AsyncIt conformance suite.
  *
- * Composes every port verifier into a single runnable check. Phase 1 wires the
- * two AsyncIt-owned assertions — A (context isolation) and C (deterministic
- * cleanup). Reused RunIt verifiers (monotonic clock, context storage,
- * artifact publisher, execution engine) are added in later phases behind the
- * same {@see VerifierInterface} surface, so a single result reports the whole
+ * Composes port verifiers into a single runnable check. Phase 1 wires the
+ * three AsyncIt-owned assertions — A (context isolation), C (deterministic
+ * cleanup), and the scaffolds A.2 (group cancellation isolation) and C.2
+ * (timer handle cleanup) — both currently reporting a fixture-unsupported
+ * finding until TaskGroup (M12) and timer-handle tracking (M14) land. Reused
+ * RunIt verifiers (monotonic clock, context storage, artifact publisher,
+ * execution engine) are added in later phases behind the same
+ * {@see VerifierInterface} surface, so a single result reports the whole
  * runtime.
  *
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
@@ -27,6 +30,8 @@ final readonly class AsyncRuntimeVerifier implements VerifierInterface
     public function __construct(
         private ContextIsolationVerifier $contextIsolation,
         private DeterministicCleanupVerifier $cleanup,
+        private GroupCancellationIsolationVerifier $groupCancellation = new GroupCancellationIsolationVerifier(),
+        private TimerCleanupVerifier $timerCleanup = new TimerCleanupVerifier(),
     ) {
     }
 
@@ -39,7 +44,7 @@ final readonly class AsyncRuntimeVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        foreach ([$this->contextIsolation, $this->cleanup] as $verifier) {
+        foreach ([$this->contextIsolation, $this->cleanup, $this->groupCancellation, $this->timerCleanup] as $verifier) {
             foreach ($verifier->verify($fixture) as $violation) {
                 $result = $result->add($violation);
             }

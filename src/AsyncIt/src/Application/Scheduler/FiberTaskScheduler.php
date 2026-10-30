@@ -4,17 +4,25 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Scheduler;
 
+use Fiber;
 use ItPack\AsyncIt\Application\Artifact\SchedulerFailureArtifact;
+use ItPack\AsyncIt\Application\Factory\CancellationScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\ExecutionScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\RunIt\Contract\Domain\DurationInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use LogicException;
 use Throwable;
 
 /**
@@ -42,13 +50,52 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     private array $records = [];
 
     /**
+     * @var list<TaskRecord>
+     */
+    private array $ready = [];
+
+    /**
      * @var array<string, mixed>
      */
     private array $results = [];
 
+    /**
+     * Array of pending timer deadlines, kept sorted by deadline.
+     *
+     * Each entry is `['deadline' => int, 'record' => TaskRecord]`. The nearest
+     * deadline floats to the front so {@see drainExpiredTimers()} and
+     * {@see computeTimeout()} are O(1) when no timers are pending.
+     *
+     * @var list<array{deadline: int, record: TaskRecord}>
+     */
+    private array $timers = [];
+
+    /**
+     * Tasks awaiting completion of other tasks.
+     *
+     * Maps the awaited task's id to a list of records suspended on it.
+     *
+     * @var array<string, list<TaskRecord>>
+     */
+    private array $awaiters = [];
+
+    /**
+     * Resume values keyed by the awaiter task's id. Set when an awaited task
+     * completes, consumed by {@see resume()} when the awaiter is stepped.
+     *
+     * @var array<string, mixed>
+     */
+    private array $pendingResumeValues = [];
+
+    private ?TaskInterface $currentTask = null;
+
     public function __construct(
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
+        private readonly TaskFactoryInterface $taskFactory,
+        private readonly CancellationScopeFactoryInterface $cancellationScopeFactory,
+        private readonly MonotonicClockInterface $clock,
+        private readonly ExecutionIdInterface $executionId,
         private readonly PollerPortInterface $poller,
         private readonly ContextStorageInterface $contextStorage,
         private readonly ExecutionScopeFactoryInterface $scopeFactory,
@@ -58,23 +105,87 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
     public function submit(TaskInterface $task, callable $operation): void
     {
-        $fiber = $this->fiberFactory->create($operation);
-        $this->records[$task->id()->value] = $this->taskRecordFactory->create($task, $fiber);
+        $this->doSpawn($task, $operation);
+    }
+
+    public function spawn(callable $operation, ?TaskId $id = null): TaskInterface
+    {
+        $scope = $this->cancellationScopeFactory->create();
+        $task = $id instanceof TaskId
+            ? $this->taskFactory->createWithId($id, $this->executionId, $scope)
+            : $this->taskFactory->create($this->executionId, $scope);
+
+        $this->doSpawn($task, $operation);
+
+        return $task;
+    }
+
+    public function await(TaskInterface $task): mixed
+    {
+        $current = $this->currentTask;
+
+        if (!$current instanceof TaskInterface) {
+            throw new LogicException('await() must be called within a running task.');
+        }
+
+        $currentRecord = $this->records[$current->id()->value] ?? null;
+
+        if ($currentRecord === null) {
+            throw new LogicException('Current task is not tracked by this scheduler.');
+        }
+
+        $taskId = $task->id()->value;
+
+        if (isset($this->results[$taskId])) {
+            return $this->results[$taskId];
+        }
+
+        if (!isset($this->records[$taskId])) {
+            throw new LogicException('Cannot await a task this scheduler does not own.');
+        }
+
+        $this->awaiters[$taskId][] = $currentRecord;
+
+        return Fiber::suspend();
+    }
+
+    public function currentTask(): ?TaskInterface
+    {
+        return $this->currentTask;
     }
 
     public function run(): void
     {
         while ($this->records !== []) {
-            foreach ($this->records as $id => $record) {
-                if ($record->isDone()) {
-                    unset($this->records[$id]);
-                    continue;
-                }
+            $this->drainExpiredTimers();
 
-                $this->step($record);
+            // Step all records currently ready (only once per tick).
+            while ($this->ready !== []) {
+                $record = array_shift($this->ready);
+                if (!$record->isDone()) {
+                    $this->step($record);
+                }
             }
 
-            $this->poller->await(0);
+            // Remove terminated records, resume their awaiters, then clean up.
+            foreach ($this->records as $id => $record) {
+                if ($record->isDone()) {
+                    $this->resumeAwaiters($record);
+                    unset($this->records[$id]);
+                }
+            }
+
+            // If suspended records remain, poll for I/O readiness then
+            // re-queue them for the next tick.
+            if ($this->records !== []) {
+                $this->poller->await($this->computeTimeout());
+
+                $this->drainExpiredTimers();
+
+                foreach ($this->records as $record) {
+                    $this->ready[] = $record;
+                }
+            }
         }
     }
 
@@ -91,14 +202,51 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         return $this->results[$task->id()->value] ?? null;
     }
 
+    public function awaitDelay(DurationInterface $duration): void
+    {
+        $task = $this->currentTask;
+
+        if (!$task instanceof TaskInterface) {
+            throw new LogicException('awaitDelay() must be called within a running task.');
+        }
+
+        $now = $this->clock->monotonicNanoseconds();
+        $deadline = $now + $duration->nanoseconds();
+        $record = $this->records[$task->id()->value] ?? null;
+
+        if ($record === null) {
+            throw new LogicException('Current task is not tracked by this scheduler.');
+        }
+
+        $this->timers[] = ['deadline' => $deadline, 'record' => $record];
+
+        $this->currentTask = null;
+        Fiber::suspend();
+        $this->currentTask = $task;
+    }
+
+    /**
+     * Internal spawn: creates the fiber + record and pushes onto the ready queue.
+     */
+    private function doSpawn(TaskInterface $task, callable $operation): void
+    {
+        $fiber = $this->fiberFactory->create($operation);
+        $record = $this->taskRecordFactory->create($task, $fiber);
+        $this->records[$task->id()->value] = $record;
+        $this->ready[] = $record;
+    }
+
     private function step(TaskRecord $record): void
     {
         $scope = $this->scopeFactory->create($record->task()->id()->value);
         $token = $this->contextStorage->attach($scope);
 
+        $this->currentTask = $record->task();
+
         try {
             $this->resume($record);
         } finally {
+            $this->currentTask = null;
             $this->contextStorage->detach($token);
         }
     }
@@ -114,7 +262,10 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             $record->task()->transitionTo(TaskStatus::Running);
 
             if ($fiber->isSuspended()) {
-                $fiber->resume();
+                $taskId = $record->task()->id()->value;
+                $awaitValue = $this->pendingResumeValues[$taskId] ?? null;
+                unset($this->pendingResumeValues[$taskId]);
+                $fiber->resume($awaitValue);
             }
 
             if (!$fiber->isStarted()) {
@@ -122,19 +273,33 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             }
 
             if ($fiber->isTerminated()) {
-                $this->results[$record->task()->id()->value] = $fiber->getReturn();
-                $record->task()->complete(TaskStatus::Succeeded);
-                $this->releaseHandles($record);
-                $record->markDone();
+                $this->complete($record, TaskStatus::Succeeded, $fiber->getReturn());
             }
         } catch (Throwable $throwable) {
-            $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
-            $record->task()->complete(TaskStatus::Failed);
-            $this->releaseHandles($record);
-            $record->markDone();
-
+            $this->complete($record, TaskStatus::Failed, throwable: $throwable);
             throw $throwable;
         }
+    }
+
+    private function complete(
+        TaskRecord $record,
+        TaskStatus $status,
+        mixed $result = null,
+        ?Throwable $throwable = null,
+    ): void {
+        $taskId = $record->task()->id()->value;
+
+        if ($result !== null) {
+            $this->results[$taskId] = $result;
+        }
+
+        if ($throwable instanceof Throwable) {
+            $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
+        }
+
+        $record->task()->complete($status);
+        $this->releaseHandles($record);
+        $record->markDone();
     }
 
     private function releaseHandles(TaskRecord $record): void
@@ -144,5 +309,55 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         $record->clearHandles();
+    }
+
+    private function resumeAwaiters(TaskRecord $completed): void
+    {
+        $taskId = $completed->task()->id()->value;
+        $awaiters = $this->awaiters[$taskId] ?? [];
+        unset($this->awaiters[$taskId]);
+
+        $result = $this->results[$taskId] ?? null;
+
+        foreach ($awaiters as $awaiterRecord) {
+            $awaiterId = $awaiterRecord->task()->id()->value;
+            $this->pendingResumeValues[$awaiterId] = $result;
+        }
+    }
+
+    private function drainExpiredTimers(): void
+    {
+        $now = $this->clock->monotonicNanoseconds();
+        $remaining = [];
+
+        foreach ($this->timers as $entry) {
+            if ($entry['deadline'] <= $now) {
+                $this->ready[] = $entry['record'];
+
+                continue;
+            }
+
+            $remaining[] = $entry;
+        }
+
+        $this->timers = $remaining;
+    }
+
+    private function computeTimeout(): int
+    {
+        if ($this->timers === []) {
+            return 0;
+        }
+
+        $now = $this->clock->monotonicNanoseconds();
+        $nearestDeadline = PHP_INT_MAX;
+
+        foreach ($this->timers as $entry) {
+            if ($entry['deadline'] < $nearestDeadline) {
+                $nearestDeadline = $entry['deadline'];
+            }
+        }
+
+        return max(0, $nearestDeadline - $now);
     }
 }

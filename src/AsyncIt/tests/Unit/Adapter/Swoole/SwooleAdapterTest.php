@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\Swoole;
 
-use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
+use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
-use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -21,16 +19,17 @@ final class SwooleAdapterTest extends TestCase
     public function testPollerRegisterAndRelease(): void
     {
         $poller = new SwoolePoller();
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
 
         $handle = $poller->register($stream);
 
-        self::assertInstanceOf(StreamPollHandle::class, $handle);
         self::assertSame(1, $poller->activeHandleCount());
 
         $poller->release($handle);
 
         self::assertSame(0, $poller->activeHandleCount());
+
+        fclose($stream);
     }
 
     public function testPollerAwaitWithNoHandlesDoesNotError(): void
@@ -48,7 +47,6 @@ final class SwooleAdapterTest extends TestCase
             new FiberScopeSlotFactory(),
         );
 
-        self::assertInstanceOf(ContextStorageInterface::class, $storage);
         self::assertNull($storage->current());
 
         $scope = new ReferenceExecutionScope('test');

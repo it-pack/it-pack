@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\SDK;
 
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
-use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use PHPUnit\Framework\TestCase;
 
 /**

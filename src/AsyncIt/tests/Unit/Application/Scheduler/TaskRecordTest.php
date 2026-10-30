@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Scheduler;
 
-use ItPack\AsyncIt\Contract\TaskInterface;
 use Fiber;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\TaskInterface;
 use PHPUnit\Framework\TestCase;
 
 /**

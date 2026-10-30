@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Channel;
 
-use Swoole\Coroutine\Channel;
-use function Swoole\Coroutine\run;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
 use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
 use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine\Channel;
+
+use function Swoole\Coroutine\run;
 
 /**
  * @covers \ItPack\AsyncIt\Domain\Channel\EmulatedChannel

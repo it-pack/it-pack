@@ -6,8 +6,10 @@ namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
+use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
+use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
@@ -15,10 +17,12 @@ use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
 
 /**
  * The reference AsyncIt runtime assembled for conformance.
@@ -53,7 +57,11 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
         $this->scheduler = new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
-            new SelectPoller(),
+            new TaskFactory(new RandomIdentifierGenerator()),
+            new CancellationScopeFactory(),
+            $this->clock,
+            ExecutionId::fromString('ref-exec'),
+            $this->verifierPoller,
             $this->storage,
             new ReferenceExecutionScopeFactory(),
             $this->publisher,

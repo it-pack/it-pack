@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\Swoole;
 
-use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use PHPUnit\Framework\TestCase;

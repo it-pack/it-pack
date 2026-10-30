@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Context;
 
-use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Domain\ContextToken;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use LogicException;
 use PHPUnit\Framework\TestCase;
 

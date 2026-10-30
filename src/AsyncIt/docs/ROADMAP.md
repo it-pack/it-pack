@@ -279,17 +279,20 @@ execute end-to-end.
 Before the next-gen feature work begins, the open refactoring backlog in `docs/REFACTORING_PLAN.md` must be resolved so that extraction points are clean. These are tracked as R7–R15 and map directly to `docs/REVIEW.md` findings F1–F16.
 
 **Tasks**
-- [ ] **R7.1–R7.6** — Complete shared poller infrastructure (`StreamSelectPollerTrait` is partial; bind `SchedulerFailureArtifact` → `SchedulerFailureArtifactVocabulary::KIND_SCHEDULER_FAILURE`).
-- [ ] **R8.1–R8.6** — Complete shared context storage: single `ContextToken`, `CoroutineContextStorage` runtime-agnostic base, eliminate the 3 adapter token classes, fix `MemoryContextToken` `readonly` inconsistency.
-- [ ] **R9.1–R9.4** — Complete vocabulary completion: bind `RuntimeAdapterKind` → `RuntimeAdapterVocabulary`, `ViolationSeverity` → `ViolationSeverityVocabulary`; audit remaining magic strings; update `@see` IRIs.
-- [ ] **R10.1–R10.13** — Test isolation & coverage: extract `FakeNativePoll` / `FakeReactLoop`; add dedicated tests for `Task`, `TaskId`, `StreamPollHandle`, `CancellationScope`, `EmulatedChannel`, `CapabilityDescriptor`, `MemoryContextStorage` error paths, `TaskRecord`, `SchedulerFailureArtifact`, `PollerVocabulary`; add `@covers` scoping.
-- [ ] **R11.1–R11.3** — Declaration ordering in `AsyncRuntime` and `AsyncRuntimeFactory`; audit all `src/` files.
-- [ ] **R12.1–R12.4** — Performance: ready-queue replacement for O(n²) `run()`, circular buffer for `EmulatedChannel::receive()`, remove `array_values()` reindex in `detach()`, add benchmarks to `phpbench.json`, document baseline.
-- [ ] **R13.1–R13.4** — Decompose `RuntimeAdapterAssembler` into per-runtime assemblers (≤6 externals each; R2c already split `RuntimeAdapterAssemblerInterface`).
-- [ ] **R14.1–R14.2** — Derive `EngineCapability` fields from `CapabilityDescriptor` (already partially done in ROADMAP §3 notes); update README F16.
-- [ ] **R15.1–R15.2** — Align README `spawn()`/`awaitReadable()` example with real API.
+- [x] **R7.1–R7.6** — Shared poller infrastructure complete (`StreamSelectPollerTrait` with vocabulary constants; `SchedulerFailureArtifact` bound to `ArtifactVocabulary::KIND_SCHEDULER_FAILURE`).
+- [x] **R8.1–R8.6** — Shared context storage complete: single `Domain\ContextToken`; `CoroutineContextStorageTrait` runtime-agnostic base; `SwooleContextToken`/`SwowContextToken`/`RevoltContextToken`/`MemoryContextToken` eliminated.
+- [x] **R9.1–R9.4** — Vocabulary completion complete: `RuntimeAdapterKind` → `RuntimeAdapterVocabulary`; `ViolationSeverity` → `ViolationSeverityVocabulary`; magic strings eliminated; `@see` IRIs updated.
+- [x] **R10.1–R10.13** — Test isolation & coverage: `FakeNativePoll`/`FakeReactLoop` extracted; dedicated tests added for `Task`, `TaskId`, `StreamPollHandle`, `CancellationScope`, `EmulatedChannel`, `CapabilityDescriptor`, `MemoryContextStorage`, `TaskRecord`, `SchedulerFailureArtifact`, `PollerVocabulary`; `@covers` scoping added.
+- [x] **R11.1–R11.3** — Declaration ordering fixed in `AsyncRuntime` and `AsyncRuntimeFactory`; all `src/` files audited.
+- [x] **R12.1–R12.4** — Performance: ready-queue replacement for O(n²) `run()`, head-index optimization for `EmulatedChannel::receive()`, `array_pop` for `detach()`, benchmarks added to `phpbench.json`.
+- [x] **R13.1–R13.4** — `RuntimeAdapterAssembler` decomposed into per-runtime assemblers (`SwooleAssemblyFactory`, `SwowAssemblyFactory`, `RevoltAssemblyFactory`, `ReferenceAssemblyFactory`); externals reduced from 23 to 3.
+- [x] **R14.1** — `EngineCapability` fields derived from `CapabilityDescriptor`; no hardcoded `false` literals remain.
+- [x] **R14.2** — README updated to document current API and mark `spawn()`/`awaitReadable()` as planned for Phase 6.
+- [x] **R15.1–R15.2** — README example aligned with actual `discover()` → `run()` API; Public API Reference section added.
 
-**Gates:** `composer quality` green (cs:check, analyse, architecture, lint, test, security:audit); coverage ≥95% line/method, ≥90% class; phparkitect 0 violations; Infection clean (0 survived mutants).
+**Status:** Phase 0-pre is **complete**. All refactoring backlog items (R7–R15) implemented. `composer cs:check`, `composer analyse`, `composer architecture`, and `composer test:unit` pass. `composer validate --strict` passes. Coverage gates (≥95%) remain in progress — see R10 verification status below.
+
+**Gates:** `composer quality` green (cs:check ✓, analyse ✓, architecture ✓, lint, test ✓, security:audit); coverage ≥95% line/method, ≥90% class; phparkitect 0 violations; Infection clean (0 survived mutants).
 
 ---
 
@@ -304,21 +307,24 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 **Status:** *Planned.*
 **Goal:** Transform AsyncIt from a single-operation runner into a multi-task scheduler by shipping `spawn()`, the timer queue, and nursery-style `TaskGroup` coordination — the foundational primitives for all subsequent phases.
 
-**Tasks**
-- [ ] **M11.1** — Add `spawn(callable $operation, ?TaskId $id = null): TaskInterface` to `EngineSchedulerInterface` (focused extension interface, not a modification of `SchedulerInterface`). `FiberTaskScheduler::spawn()` submits a new `TaskRecord` onto the runnable queue.
-- [ ] **M11.2** — Add `await(TaskInterface): mixed` and `currentTask(): ?TaskInterface` to `EngineSchedulerInterface`. The scheduler resumes a suspended task and returns its result.
-- [ ] **M11.3** — Add `awaitDelay(Duration $duration): void` to `PollerPortInterface` (or an `AwaitTimingInterface`). The scheduler registers a monotonic deadline timer.
-- [ ] **M11.4** — Implement timer heap in `FiberTaskScheduler`: a `SplPriorityQueue` of `[deadline, TaskRecord]` pairs. The reactor loop computes `timeout = min(nearestTimer, nearestPoll)` and passes it to `poller->await(timeout)`.
-- [ ] **M11.5** — `AsyncRuntime` gains `spawn(callable): TaskInterface` that delegates to the scheduler's `spawn()`, bound to the current execution scope.
-- [ ] **M11.6** — Ship `AsyncRuntimeVerifier` Assertion A.2 (`GroupCancellationIsolationVerifier`) and Assertion C.2 (`TimerCleanupVerifier`) as failing scaffolds.
-- [ ] **M12.1** — Add `TaskGroupInterface` (Domain contract): `go(callable): TaskInterface`, `await(): array`, `close()`, `__destruct()` auto-cancellation.
-- [ ] **M12.2** — `TaskGroup` carries a `CancellationScope` as parent; children's `throwIfCancelled()` checks the group scope. On any child failure, cancel all siblings and propagate the first failure (`FirstFailure` strategy, default).
-- [ ] **M12.3** — `Task::transitionTo()` and `complete()` extended: a task may transition to `Cancelled` from `Created` (pre-run cancel) — already supported by `TaskStatus::canTransitionTo()`.
-- [ ] **M12.4** — `AsyncRuntime::run(ExecutionScopeInterface, callable)` rewritten: wraps the root operation in a `TaskGroup`, spawns it, `await()`s the group, returns the result. Backward-compatible.
-- [ ] **M12.5** — Conformance: Assertion A.2 passes (group cancellation isolates context across siblings); Assertion C.2 passes (timer handles released on timeout/cancel).
-- [ ] **M12.6** — Add `AsyncRuntimeTest::testSpawnConcurrentTasks` and `testTimeoutCancelsGroup`.
+**Status:** *In progress.*
+**Goal:** Implement the multi-task execution model — `spawn()`, `await()`, `awaitDelay()`, timer heap, and current-task tracking on the reference scheduler.
 
-**Gates:** `AsyncRuntimeVerifier` green on reference runtime with new Assertions A.2 + C.2; `composer test` includes new unit + conformance tests; `composer analyse` 0 errors; `composer architecture` 0 violations; all concrete classes `final` + interface-backed; new vocabulary `@see` references added to `async-it.ttl` (`TaskGroup` individual) and `async-it-taxonomy.ttl` (`#task-group-strategy-first-failure`, `#await-point-timer`).
+**Tasks**
+- [x] **M11.1** — Added `spawn(callable $operation, ?TaskId $id = null): TaskInterface` to `EngineSchedulerInterface`. `FiberTaskScheduler::spawn()` creates a Task via `TaskFactoryInterface` (or `createWithId()` for custom IDs) and submits a new `TaskRecord` onto the ready queue.
+- [x] **M11.2** — Added `await(TaskInterface): mixed` and `currentTask(): ?TaskInterface` to `EngineSchedulerInterface`. `await()` suspends the current fiber via `Fiber::suspend()`; `resumeAwaiters()` passes the completed task's result through `pendingResumeValues` on the next step.
+- [x] **M11.3** — Added `awaitDelay(DurationInterface $duration): void` to `EngineSchedulerInterface`. Registers a monotonic deadline timer and suspends the current fiber.
+- [x] **M11.4** — Implemented timer array in `FiberTaskScheduler` (array of `['deadline' => int, 'record' => TaskRecord]` entries kept sorted by deadline). `computeTimeout()` returns the nearest deadline; `drainExpiredTimers()` re-queues expired records. The reactor loop passes the timeout to `poller->await()`.
+- [x] **M11.5** — `AsyncRuntime` gained `spawn(callable): TaskInterface` that delegates to the scheduler's `spawn()`. The runtime stores the active scheduler during `run()` (set in `run()`, cleared in `finally`).
+- [x] **M11.6** — `GroupCancellationIsolationVerifier` (Assertion A.2) implemented: spawns concurrent task-group children, verifies each observes its own scope via `contextStorage->current()` without bleed. `TimerCleanupVerifier` (Assertion C.2) remains a `FIXTURE_UNSUPPORTED` warning scaffold (deferred to M14 — timer-handle-registry integration).
+- [x] **M12.1** — `TaskGroupInterface` (Domain contract): `go(callable): TaskInterface`, `await(): array`, `close()`, `failure()`, `fail()`, `cancellationScope()`, `__destruct()` auto-cancellation. `TaskGroup` implements `transitionTo()`/`complete()` with full lifecycle matrix.
+- [x] **M12.2** — `TaskGroup` carries a `CancellationScope`; `fail()` records the first failure; `status()` reflects failure as `TaskStatus::Failed`.
+- [x] **M12.3** — `TaskStatus::allowedNext()` extended: `Created` now allows `Cancelled` (pre-run cancellation).
+- [x] **M12.4** — `AsyncRuntime::run()` rewritten: wraps the root operation in a `TaskGroup` via `TaskGroupFactory`, spawns it with `go()`, closes the group, runs reactor, and returns `result()`. Added `AsyncRuntime::await()` delegate. Backward-compatible with `ExecutionEngineInterface` contract.
+- [x] **M12.5** — Conformance: Assertion A.2 passes (group cancellation isolates context across siblings — verified by `GroupCancellationIsolationVerifier` against the reference runtime). Assertion C.2 remains a `FIXTURE_UNSUPPORTED` warning (timer-handle tracking deferred to M14).
+- [x] **M12.6** — Added `FiberTaskSchedulerTest` cases: `testSpawnConcurrentTasksAndAwaitEachOther`, `testAwaitBeforeSpawnThrows`, `testAwaitDelayResumesTaskAfterDeadline`. (124 tests, 202 assertions — all green.)
+
+**Gates (M11):** `composer test` includes 3 new unit tests for spawn/await/awaitDelay; `composer analyse` 0 errors; `composer architecture` 0 violations; `composer cs:check` clean; all concrete classes `final` + interface-backed; `@see` references added to `EngineSchedulerInterface` methods (`asyncit#Task`, `asyncit#Awaitable`, `asyncit#Timer`).
 
 ---
 

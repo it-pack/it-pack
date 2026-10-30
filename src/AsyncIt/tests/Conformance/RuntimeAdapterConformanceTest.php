@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Conformance;
 
-use Swoole\Coroutine;
-use Revolt\EventLoop;
-use React\EventLoop\LoopInterface;
-use React\EventLoop\Loop;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Conformance\Fixture\AmpRuntimeFixture;
 use ItPack\AsyncIt\Conformance\Fixture\NativeRuntimeFixture;
@@ -21,6 +17,10 @@ use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\RunIt\Conformance\Verifier\ExecutionEngineVerifier;
 use PHPUnit\Framework\TestCase;
+use React\EventLoop\Loop;
+use React\EventLoop\LoopInterface;
+use Revolt\EventLoop;
+use Swoole\Coroutine;
 
 /**
  * Phase 4 gate: every available native runtime adapter must pass the same
