@@ -14,6 +14,7 @@ use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
@@ -52,9 +53,16 @@ trait RuntimeFixtureTrait
 
     private NullArtifactPublisher $publisher;
 
+    private CancellationScopeFactory $cancellationScopeFactory;
+
     public function scheduler(): SchedulerInterface
     {
         return $this->scheduler;
+    }
+
+    public function cancellationScope(): CancellationScopeInterface
+    {
+        return $this->cancellationScopeFactory->create();
     }
 
     public function poller(): PollerPortInterface
@@ -103,6 +111,7 @@ trait RuntimeFixtureTrait
         $this->storage = $storage;
         $this->clock = new DeterministicMonotonicClock();
         $this->publisher = new NullArtifactPublisher();
+        $this->cancellationScopeFactory = new CancellationScopeFactory();
 
         $sequenceAllocator = new InMemorySequenceAllocator();
         $executionId = ExecutionId::fromString('ref-exec');

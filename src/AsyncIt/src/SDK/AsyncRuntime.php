@@ -7,6 +7,7 @@ namespace ItPack\AsyncIt\SDK;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
@@ -120,6 +121,11 @@ final class AsyncRuntime implements ExecutionEngineInterface
     public function capability(): EngineCapability
     {
         return $this->capability;
+    }
+
+    public function health(): ?SchedulerHealthInterface
+    {
+        return $this->scheduler?->health();
     }
 
     /**

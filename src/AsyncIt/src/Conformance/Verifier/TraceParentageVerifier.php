@@ -95,6 +95,7 @@ final class TraceParentageVerifier implements VerifierInterface
                 'Expected at least 1 resumption event for the parent task.',
             ));
         }
+
         $childSpawn = array_find($spawnEvents, fn ($event): bool => ($event['context']['taskId'] ?? '') === 'child');
 
         if ($childSpawn === null) {

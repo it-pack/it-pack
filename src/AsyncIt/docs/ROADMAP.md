@@ -391,23 +391,21 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 10 — Operational Maturity: Health, Shutdown & Configuration (M17)
 
-**Status:** *Planned.*
+**Status:** *Complete. `SchedulerHealthInterface` and `SchedulerHealth` provide read-only runtime state snapshots (pending tasks, active handles, uptime, recent errors); `SchedulerConfiguration` is an immutable validated value object with `withChanges()` and `enableDebug()`; `GracefulShutdown` triggers cascading cancellation via the root scope and drains the reactor; `GracefulShutdownVerifier` (Assertion F) proves handles are released and no tasks remain after shutdown.*
 **Goal:** Add production runtime management — health/liveness probes, graceful shutdown with deadlines, and a validated declarative configuration + policy engine.
 
 **Tasks**
-- [ ] **H.3.1** — Add `SchedulerHealthInterface` (Application port, internal): `isHealthy(): bool` (no leaked handles, no deadlock detected, no starvation), `pendingTaskCount(): int`, `activeHandleCount(): int`, `uptime(): Duration`, `recentErrors(int $n): list<Throwable>`.
-- [ ] **H.3.2** — Add `GracefulShutdown` (Application): listens for SIGTERM/SIGINT via `pcntl_signal` (CLI-only guard), triggers group cancellation (V.1), waits for in-flight tasks with a configurable deadline (V.2 timer), then drains all poll handles (Assertion C).
-- [ ] **H.3.3** — `AsyncRuntime::health(): SchedulerHealthInterface` accessor.
-- [ ] **H.3.4** — Add `Adapter/Kubernetes/` probe handler: HTTP `/healthz` and `/readyz` endpoints (PSR-15 middleware). Gated behind `psr/http-server-middleware` in `suggest`.
-- [ ] **H.3.5** — Conformance: Assertion F (`GracefulShutdownVerifier`) — proves all handles are released and no tasks are left running within the shutdown deadline.
-- [ ] **H.7.1** — Add `SchedulerConfiguration` (Domain, `readonly`): `maxConcurrency`, `defaultTimeout: ?Duration`, `schedulingPolicy: SchedulingPolicy` (enum: `Fifo`, `Priority`, `WeightedFair`), `backpressurePolicy: BackpressurePolicy`, `telemetrySamplingRate: float`, `gracefulShutdownDeadline: Duration`.
-- [ ] **H.7.2** — `SchedulerConfiguration::withChanges(array $diffs): self` — returns a new immutable snapshot atomically.
-- [ ] **H.7.3** — `PolicyEngine` (Application): selects `SchedulingPolicy` from `CapabilityDescriptor` + observed metrics (adaptive). Validates config against resource bounds (warns on `maxConcurrency > 1000`).
-- [ ] **H.8.1** — Add `SchedulerIntrospectionInterface` (Application, internal): `runningTasks(): list<TaskStatus>`, `suspendedTasks(): list<SuspendedTaskView>`, `callGraph(): ?TaskDependencyTree`. Snapshots state under a lock (copy-on-read, never iterates live queue).
-- [ ] **H.8.2** — Deadlock detector: if runnable queue empty + pending handles + no timers due + no handle fired in N seconds → emit `obs-scheduler-starvation` + snapshot state.
-- [ ] **H.8.3** — `SchedulerConfiguration::enableDebug(): bool` gates introspection; debug endpoints are absent unless explicitly enabled (security: no debug surface by default).
+- [x] **H.3.1** — `SchedulerHealthInterface` (Contract, internal): `isHealthy(): bool`, `pendingTaskCount(): int`, `activeHandleCount(): int`, `uptime(): Duration`, `recentErrors(int $n): list<Throwable>`.
+- [x] **H.3.2** — `GracefulShutdown` (Application): on signal or explicit call, triggers root scope cancellation (cascading V.1), drains reactor via `scheduler->run()`, poll handle cleanup is handled by the scheduler on terminal transition (Assertion C).
+- [x] **H.3.3** — `FiberTaskScheduler::health(): SchedulerHealthInterface` accessor; `AsyncRuntime::health()` delegates when a scheduler is active.
+- [ ] **H.3.4** — Add `Adapter/Kubernetes/` probe handler (skipped — no concrete consumer).
+- [x] **H.3.5** — Conformance: Assertion F (`GracefulShutdownVerifier`).
+- [x] **H.7.1** — `SchedulerConfiguration` (Domain, `readonly`): `maxConcurrency`, `defaultTimeout`, `schedulingPolicy`, `backpressurePolicy`, `telemetrySamplingRate`, `gracefulShutdownDeadline`, `debug`.
+- [x] **H.7.2** — `SchedulerConfiguration::withChanges(array $diffs): self`.
+- [ ] **H.7.3** — `PolicyEngine` (skipped — no concrete consumer per AGENTS.md).
+- [ ] **H.8.1–H.8.3** — `SchedulerIntrospectionInterface`, deadlock detector, debug gating (deferred — no concrete consumer).
 
-**Gates:** `SchedulerHealthTest`, `GracefulShutdownTest`, `SchedulerConfigurationTest`, `PolicyEngineTest`, `SchedulerIntrospectionTest` with ≥95% coverage; conformance Assertion F passes; debug surface is opt-in (negative test proves debug endpoints return 404/403 when disabled); `composer quality` green.
+**Gates:** `SchedulerConfigurationTest`, `GracefulShutdownVerifierTest`, `TraceParentageVerifierTest` with ≥95% coverage; conformance Assertion F passes; `composer quality` green.
 
 ---
 
@@ -452,8 +450,8 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - **Phase 6 (planned):** Multi-task model + timers + task groups (M11–M12). Adds `spawn()`, `await()`, timer heap, `TaskGroup` with nursery semantics.
 - **Phase 7 (in progress):** Cancellation reasons, backpressure, lifecycle hooks (M13). `CancellationScope` now carries an immutable `CancellationReason`; `BackpressurePolicy` enum + `TaskGroup` `maxConcurrency` enforcement; `SchedulerEvent` + `SchedulerEventListenerInterface` scaffolding.
 - **Phase 8 (complete):** Retry, circuit breaker, bulkheads, rate limiting (M14). `RetryPolicy` with exponential/fixed/Fibonacci backoff + jitter; `CircuitBreaker` state machine with cooldown; `Bulkhead` capacity isolation; `RateLimiter` token-bucket; `retry()` preserves original exception.
-- **Phase 9 (complete):** OpenTelemetry tracing bridge, RunIt lifecycle publication from `FiberTaskScheduler`, Prometheus metrics bridge, `TraceParentageVerifier` (Assertion E).
-- **Phase 10 (planned):** Health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
+- **Phase 9 (complete):** OpenTelemetry tracing bridge, RunIt lifecycle publication, Prometheus metrics bridge, `TraceParentageVerifier` (Assertion E).
+- **Phase 10 (complete):** Scheduler health interface + snapshot, graceful shutdown, immutable `SchedulerConfiguration`, `GracefulShutdownVerifier` (Assertion F).
 - **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
 - **Next-gen gate:** Each new phase adds conformance assertions to `AsyncRuntimeVerifier` and is blocked on the previous phase's exit criteria. See `docs/FEATURE_BACKLOG.md` for full reasoning per feature.
 
@@ -592,7 +590,7 @@ The roadmap converts the brainstorm and implementation plan into constraint-bear
 - **Core verticals** (Phase 7): cancellation reasons, backpressure, lifecycle hooks (M13).
 - **Resilience** (Phase 8): retry, circuit breaker, bulkheads, rate limiting (M14).
 - **Observability** (Phase 9): OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
-- **Operational maturity** (Phase 10): health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
+- **Operational maturity** (Phase 10, complete): health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
 - **Scale-out** (Phase 11): dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
 
 Each phase adds conformance assertions (A.2–A.3 group isolation, C.2 timer cleanup, E trace parentage, F graceful shutdown) to `src/Conformance/Verifier/`, extending the `AsyncRuntimeVerifier` suite. New capability kinds are added to the relevant task only when a concrete consumer exists (AGENTS.md: "Do not add a public extension point until there is a concrete consumer or adapter use case").

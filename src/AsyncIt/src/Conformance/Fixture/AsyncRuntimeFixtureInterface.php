@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Conformance\Contract\PortFixtureInterface;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -34,6 +35,14 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 interface AsyncRuntimeFixtureInterface extends PortFixtureInterface
 {
     public function scheduler(): SchedulerInterface;
+
+    /**
+     * The root cancellation scope controlling the runtime under test.
+     *
+     * Used by GracefulShutdownVerifier (Assertion F) to trigger cascading
+     * cancellation.
+     */
+    public function cancellationScope(): CancellationScopeInterface;
 
     public function poller(): PollerPortInterface;
 

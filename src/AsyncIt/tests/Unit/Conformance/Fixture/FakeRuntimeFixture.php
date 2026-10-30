@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Conformance\Fixture;
 
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -30,6 +31,7 @@ final readonly class FakeRuntimeFixture implements AsyncRuntimeFixtureInterface
         private ?PollerPortInterface $poller = null,
         private ?MonotonicClockInterface $clock = null,
         private ?ArtifactPublisherInterface $publisher = null,
+        private ?CancellationScopeInterface $cancellationScope = null,
     ) {
     }
 
@@ -41,6 +43,11 @@ final readonly class FakeRuntimeFixture implements AsyncRuntimeFixtureInterface
     public function scheduler(): SchedulerInterface
     {
         return $this->scheduler ?? throw new LogicException('scheduler not configured for this verifier');
+    }
+
+    public function cancellationScope(): CancellationScopeInterface
+    {
+        return $this->cancellationScope ?? throw new LogicException('cancellationScope not configured for this verifier');
     }
 
     public function poller(): PollerPortInterface

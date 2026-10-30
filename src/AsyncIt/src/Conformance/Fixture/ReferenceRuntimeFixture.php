@@ -16,6 +16,7 @@ use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
@@ -49,12 +50,15 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
 
     private FiberTaskScheduler $scheduler;
 
+    private CancellationScopeFactory $cancellationScopeFactory;
+
     public function __construct()
     {
         $this->verifierPoller = new SelectPoller();
         $this->storage = new MemoryContextStorage();
         $this->clock = new DeterministicMonotonicClock();
         $this->publisher = new NullArtifactPublisher();
+        $this->cancellationScopeFactory = new CancellationScopeFactory();
 
         $executionId = ExecutionId::fromString('ref-exec');
         $sequenceAllocator = new InMemorySequenceAllocator();
@@ -82,6 +86,11 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
     public function scheduler(): SchedulerInterface
     {
         return $this->scheduler;
+    }
+
+    public function cancellationScope(): CancellationScopeInterface
+    {
+        return $this->cancellationScopeFactory->create();
     }
 
     public function poller(): PollerPortInterface

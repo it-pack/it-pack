@@ -13,10 +13,12 @@ use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
+use ItPack\AsyncIt\Application\SchedulerHealth;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
+use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
@@ -101,6 +103,13 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
      */
     private array $taskStartTimes = [];
 
+    private readonly int $startTimeNanos;
+
+    /**
+     * @var list<Throwable>
+     */
+    private array $errors = [];
+
     public function __construct(
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
@@ -114,6 +123,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         private readonly ArtifactPublisherInterface $publisher,
         private readonly SchedulerLifecycleArtifactFactory $lifecycleFactory,
     ) {
+        $this->startTimeNanos = $this->clock->monotonicNanoseconds();
     }
 
     public function submit(TaskInterface $task, callable $operation): void
@@ -216,6 +226,28 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     public function result(TaskInterface $task): mixed
     {
         return $this->results[$task->id()->value] ?? null;
+    }
+
+    /**
+     * @return list<TaskRecord>
+     */
+    public function taskRecords(): array
+    {
+        return array_values($this->records);
+    }
+
+    /**
+     * Returns a health snapshot of the scheduler's current runtime state.
+     */
+    public function health(): SchedulerHealthInterface
+    {
+        return SchedulerHealth::capture(
+            $this->taskRecords(),
+            $this->poller->activeHandleCount(),
+            $this->clock,
+            $this->startTimeNanos,
+            $this->errors,
+        );
     }
 
     /**
@@ -397,6 +429,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
         if ($throwable instanceof Throwable) {
             $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
+            $this->errors[] = $throwable;
         }
 
         $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_COMPLETED, $status, $startTime);
