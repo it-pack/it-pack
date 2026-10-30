@@ -411,13 +411,13 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 11 — Scale-Out: Dynamic Capabilities, Persistence, Federation & Middleware (M18–M20)
 
-**Status:** *Planned.*
+**Status:** *Phase 11A (Dynamic Capabilities) complete. A.3–A.7 remain planned.*
 **Goal:** Enable AsyncIt for distributed, large-scale deployments: dynamically-evolving capability descriptors, persistent task queues with crash recovery, federated scheduling across processes/machines, a scheduler middleware pipeline, a telemetry schema registry, and canary deployment support.
 
 **Tasks**
-- [ ] **A.2.1** — `CapabilityDescriptor` gains `version: int` (monotonic schema version, starts at 1).
-- [ ] **A.2.2** — Add `CapabilityObserverInterface` (Domain contract): adapters push capability changes (e.g., "native channels became unavailable"). Scheduler reacts by atomically swapping the `TaskChannel` backend from native to emulated.
-- [ ] **A.2.3** — Capability deprecation policy: old kinds remain `Unavailable` (not removed); consumers distinguish "never supported" from "supported but disabled."
+- [x] **A.2.1** — `CapabilityDescriptor` gains `version: int` (monotonic schema version, starts at 1).
+- [x] **A.2.2** — Add `CapabilityObserverInterface` (Contract): adapters push capability changes (e.g., "native channels became unavailable"). Scheduler reacts by atomically swapping the `TaskChannel` backend from native to emulated via `swapCapabilities()`.
+- [x] **A.2.3** — Capability deprecation policy: old kinds remain `Unavailable` (not removed); consumers distinguish "never supported" from "supported but disabled." Documented in `CapabilityKind` docblock + `FEATURE_BACKLOG.md`.
 - [ ] **A.3.1** — Separate **scheduling state** (ephemeral, in-memory) from **task definitions** (serializable, durable). Add `PersistentTask` (Domain, `readonly`): `TaskId`, `operation: SerializableClosure` (via `opis/closure` in `suggest`), `deadline: ?Duration`, `payload: array`.
 - [ ] **A.3.2** — Add `Adapter/Redis/` package: `RedisTaskQueue` implementing `PersistentTaskQueueInterface` (Application port). Stores pending task definitions in Redis; rehydrates into `FiberTaskScheduler` on restart.
 - [ ] **A.3.3** — Delivery semantics: at-least-once by default; exactly-once via idempotent payloads + `DeduplicationRecord` keyed by `IdentifierGeneratorInterface`.

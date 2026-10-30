@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssemblerInterface;
+use ItPack\AsyncIt\Application\Factory\RuntimeDiscoveryFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactory;
@@ -60,24 +61,24 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
     public static function create(
         ?RuntimeAdapterAssemblerInterface $assembler = null,
     ): AsyncRuntime {
-        [$kind, $descriptor] = new self()->negotiate();
+        $factory = new self();
+
+        [$kind, $descriptor] = $factory->negotiate();
 
         $assembler ??= new RuntimeAdapterAssembler();
         $assembly = $assembler->assemble($kind, $descriptor);
         $poller = $assembly->poller;
         $storage = $assembly->storage;
         $channel = $assembly->channel;
-        $telemetry = new self()->buildTelemetry();
+        $telemetry = $factory->buildTelemetry();
         $idGenerator = new RandomIdentifierGenerator();
         $taskFactory = new TaskFactory($idGenerator);
         $fiberFactory = new FiberFactory();
         $cancellationScopeFactory = new CancellationScopeFactory();
         $taskGroupFactory = new TaskGroupFactory($cancellationScopeFactory);
 
-        $failures = [];
         $health = new CallbackHealthReporter(
-            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$failures): void {
-                $failures[] = $error;
+            static function (Throwable $error, ExecutionArtifactInterface $artifact): void {
             },
         );
         $publisher = new FailSafeArtifactPublisher(
@@ -103,7 +104,9 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
             $descriptor->statusFor(CapabilityKind::FiberExecution) === CapabilityStatus::Supported,
         );
 
-        return new AsyncRuntime(
+        $discovery = new RuntimeDiscoveryFactory()->create($descriptor);
+
+        $runtime = new AsyncRuntime(
             $schedulerFactory,
             $taskGroupFactory,
             $idGenerator,
@@ -111,6 +114,10 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
             $channel,
             $telemetry,
         );
+
+        $discovery->observe($runtime);
+
+        return $runtime;
     }
 
     /**
@@ -169,6 +176,12 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
         ];
     }
 
+    /**
+     * Builds a telemetry bridge, preferring OpenTelemetry when available.
+     *
+     * Uses a string class name with class_exists to avoid a hard dependency on
+     * the Adapter layer — respecting the architectural boundary.
+     */
     private function buildTelemetry(): TelemetryBridgeInterface
     {
         if (\getenv('OTEL_EXPORTER_OTLP_ENDPOINT') !== false) {

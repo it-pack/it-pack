@@ -27,12 +27,19 @@ final readonly class CapabilityDescriptor implements CapabilityDescriptorInterfa
     /**
      * @param array<string, CapabilityStatus> $capabilities keyed by CapabilityKind value
      */
-    public function __construct(public array $capabilities)
-    {
+    public function __construct(
+        public array $capabilities,
+        public int $version = 1,
+    ) {
     }
 
     public function statusFor(CapabilityKind $kind): CapabilityStatus
     {
         return $this->capabilities[$kind->value] ?? CapabilityStatus::Unavailable;
+    }
+
+    public function version(): int
+    {
+        return $this->version;
     }
 }

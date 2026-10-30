@@ -29,4 +29,18 @@ final class CapabilityDescriptorTest extends TestCase
 
         self::assertSame(CapabilityStatus::Unavailable, $descriptor->statusFor(CapabilityKind::NativeChannels));
     }
+
+    public function testVersionDefaultsToOne(): void
+    {
+        $descriptor = new CapabilityDescriptor([]);
+
+        self::assertSame(1, $descriptor->version());
+    }
+
+    public function testVersionIsMutableViaConstructor(): void
+    {
+        $descriptor = new CapabilityDescriptor([], 3);
+
+        self::assertSame(3, $descriptor->version());
+    }
 }
