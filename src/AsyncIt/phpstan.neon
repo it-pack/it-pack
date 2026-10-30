@@ -68,3 +68,19 @@ parameters:
         - { message: '#^Property .*\$instruments .*does not accept array.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
         - { message: '#^Method .*PrometheusTelemetryBridge::buildInstruments\(\) return type.*no value type.*#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
         - { message: '#^Call to an undefined method object::(registerGauge|registerCounter|registerHistogram|incBy|observe)\(\).*$#', path: src/Adapter/Prometheus/PrometheusTelemetryBridge.php }
+        # Phase 10: GracefulShutdown::$configuration is stored for future deadline enforcement.
+        - { message: '#Property .+GracefulShutdown::\$configuration is never read.*#', path: src/Application/GracefulShutdown.php }
+        # Phase 10: GracefulShutdown::registerSignals is CLI-only signal registration.
+        - { message: '#^Unused .+GracefulShutdown::registerSignals$#', path: src/Application/GracefulShutdown.php }
+        # Phase 10: SchedulerHealth methods consumed via SchedulerHealthInterface contract.
+        - { message: '#^Unused .+SchedulerHealth::(isHealthy|pendingTaskCount|activeHandleCount|uptime|recentErrors)$#', path: src/Application/SchedulerHealth.php }
+        # Phase 10: SchedulerHealthInterface methods are public API consumed by AsyncRuntime.
+        - { message: '#^Unused .+SchedulerHealthInterface::(isHealthy|pendingTaskCount|activeHandleCount|uptime|recentErrors)$#', path: src/Contract/SchedulerHealthInterface.php }
+        # Phase 10: SchedulerConfiguration methods consumed via AsyncRuntimeFactory + future policy engine.
+        - { message: '#^Unused .+SchedulerConfiguration::(withChanges|enableDebug|defaults)$#', path: src/Domain/SchedulerConfiguration.php }
+        # Phase 10: SchedulingPolicy enum cases are consumed by future policy engine.
+        - { message: '#^Unused .+SchedulingPolicy::(Priority|WeightedFair)$#', path: src/Contract/Port/SchedulingPolicy.php }
+        # Phase 10: GracefulShutdownVerifier::ASSERTION is a reference marker for conformance.
+        - { message: '#^Unused .+GracefulShutdownVerifier::ASSERTION$#', path: src/Conformance/Verifier/GracefulShutdownVerifier.php }
+        # Phase 10: EngineSchedulerInterface::health is consumed via AsyncRuntime.
+        - { message: '#^Unused .+EngineSchedulerInterface::health$#', path: src/Contract/EngineSchedulerInterface.php }

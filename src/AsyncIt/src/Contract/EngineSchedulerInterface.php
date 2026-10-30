@@ -83,4 +83,12 @@ interface EngineSchedulerInterface extends SchedulerInterface
      * @see https://w3id.org/itpack/asyncit#CircuitBreaker
      */
     public function retry(callable $operation, RetryPolicyInterface $policy): mixed;
+
+    /**
+     * Returns a health snapshot of the scheduler's runtime state.
+     *
+     * Implementations should capture the state at call time; the returned object
+     * is an immutable snapshot.
+     */
+    public function health(): SchedulerHealthInterface;
 }
