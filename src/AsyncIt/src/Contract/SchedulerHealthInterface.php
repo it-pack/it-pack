@@ -41,7 +41,7 @@ interface SchedulerHealthInterface
      *
      * @return DurationInterface
      */
-    public function uptime();
+    public function uptime(): DurationInterface;
 
     /**
      * Returns the most recent N errors encountered by the scheduler.
