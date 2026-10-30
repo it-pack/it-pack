@@ -274,6 +274,164 @@ execute end-to-end.
 
 ---
 
+### Phase 0-pre — Refactoring cleanup (R7–R15) *(prerequisite)*
+
+Before the next-gen feature work begins, the open refactoring backlog in `docs/REFACTORING_PLAN.md` must be resolved so that extraction points are clean. These are tracked as R7–R15 and map directly to `docs/REVIEW.md` findings F1–F16.
+
+**Tasks**
+- [ ] **R7.1–R7.6** — Complete shared poller infrastructure (`StreamSelectPollerTrait` is partial; bind `SchedulerFailureArtifact` → `SchedulerFailureArtifactVocabulary::KIND_SCHEDULER_FAILURE`).
+- [ ] **R8.1–R8.6** — Complete shared context storage: single `ContextToken`, `CoroutineContextStorage` runtime-agnostic base, eliminate the 3 adapter token classes, fix `MemoryContextToken` `readonly` inconsistency.
+- [ ] **R9.1–R9.4** — Complete vocabulary completion: bind `RuntimeAdapterKind` → `RuntimeAdapterVocabulary`, `ViolationSeverity` → `ViolationSeverityVocabulary`; audit remaining magic strings; update `@see` IRIs.
+- [ ] **R10.1–R10.13** — Test isolation & coverage: extract `FakeNativePoll` / `FakeReactLoop`; add dedicated tests for `Task`, `TaskId`, `StreamPollHandle`, `CancellationScope`, `EmulatedChannel`, `CapabilityDescriptor`, `MemoryContextStorage` error paths, `TaskRecord`, `SchedulerFailureArtifact`, `PollerVocabulary`; add `@covers` scoping.
+- [ ] **R11.1–R11.3** — Declaration ordering in `AsyncRuntime` and `AsyncRuntimeFactory`; audit all `src/` files.
+- [ ] **R12.1–R12.4** — Performance: ready-queue replacement for O(n²) `run()`, circular buffer for `EmulatedChannel::receive()`, remove `array_values()` reindex in `detach()`, add benchmarks to `phpbench.json`, document baseline.
+- [ ] **R13.1–R13.4** — Decompose `RuntimeAdapterAssembler` into per-runtime assemblers (≤6 externals each; R2c already split `RuntimeAdapterAssemblerInterface`).
+- [ ] **R14.1–R14.2** — Derive `EngineCapability` fields from `CapabilityDescriptor` (already partially done in ROADMAP §3 notes); update README F16.
+- [ ] **R15.1–R15.2** — Align README `spawn()`/`awaitReadable()` example with real API.
+
+**Gates:** `composer quality` green (cs:check, analyse, architecture, lint, test, security:audit); coverage ≥95% line/method, ≥90% class; phparkitect 0 violations; Infection clean (0 survived mutants).
+
+---
+
+> The phases below (Phase 6–Phase 11) implement the features catalogued in
+> `docs/FEATURE_BACKLOG.md`. Each phase depends on the previous one; no phase
+> may start before its parent's exit gate is green. New conformance assertions
+> are added to `src/Conformance/Verifier/` in the phase that introduces the
+> behavior they verify.
+
+### Phase 6 — Multi-Task Model & Task Groups (M11–M12)
+
+**Status:** *Planned.*
+**Goal:** Transform AsyncIt from a single-operation runner into a multi-task scheduler by shipping `spawn()`, the timer queue, and nursery-style `TaskGroup` coordination — the foundational primitives for all subsequent phases.
+
+**Tasks**
+- [ ] **M11.1** — Add `spawn(callable $operation, ?TaskId $id = null): TaskInterface` to `EngineSchedulerInterface` (focused extension interface, not a modification of `SchedulerInterface`). `FiberTaskScheduler::spawn()` submits a new `TaskRecord` onto the runnable queue.
+- [ ] **M11.2** — Add `await(TaskInterface): mixed` and `currentTask(): ?TaskInterface` to `EngineSchedulerInterface`. The scheduler resumes a suspended task and returns its result.
+- [ ] **M11.3** — Add `awaitDelay(Duration $duration): void` to `PollerPortInterface` (or an `AwaitTimingInterface`). The scheduler registers a monotonic deadline timer.
+- [ ] **M11.4** — Implement timer heap in `FiberTaskScheduler`: a `SplPriorityQueue` of `[deadline, TaskRecord]` pairs. The reactor loop computes `timeout = min(nearestTimer, nearestPoll)` and passes it to `poller->await(timeout)`.
+- [ ] **M11.5** — `AsyncRuntime` gains `spawn(callable): TaskInterface` that delegates to the scheduler's `spawn()`, bound to the current execution scope.
+- [ ] **M11.6** — Ship `AsyncRuntimeVerifier` Assertion A.2 (`GroupCancellationIsolationVerifier`) and Assertion C.2 (`TimerCleanupVerifier`) as failing scaffolds.
+- [ ] **M12.1** — Add `TaskGroupInterface` (Domain contract): `go(callable): TaskInterface`, `await(): array`, `close()`, `__destruct()` auto-cancellation.
+- [ ] **M12.2** — `TaskGroup` carries a `CancellationScope` as parent; children's `throwIfCancelled()` checks the group scope. On any child failure, cancel all siblings and propagate the first failure (`FirstFailure` strategy, default).
+- [ ] **M12.3** — `Task::transitionTo()` and `complete()` extended: a task may transition to `Cancelled` from `Created` (pre-run cancel) — already supported by `TaskStatus::canTransitionTo()`.
+- [ ] **M12.4** — `AsyncRuntime::run(ExecutionScopeInterface, callable)` rewritten: wraps the root operation in a `TaskGroup`, spawns it, `await()`s the group, returns the result. Backward-compatible.
+- [ ] **M12.5** — Conformance: Assertion A.2 passes (group cancellation isolates context across siblings); Assertion C.2 passes (timer handles released on timeout/cancel).
+- [ ] **M12.6** — Add `AsyncRuntimeTest::testSpawnConcurrentTasks` and `testTimeoutCancelsGroup`.
+
+**Gates:** `AsyncRuntimeVerifier` green on reference runtime with new Assertions A.2 + C.2; `composer test` includes new unit + conformance tests; `composer analyse` 0 errors; `composer architecture` 0 violations; all concrete classes `final` + interface-backed; new vocabulary `@see` references added to `async-it.ttl` (`TaskGroup` individual) and `async-it-taxonomy.ttl` (`#task-group-strategy-first-failure`, `#await-point-timer`).
+
+---
+
+### Phase 7 — Cancellation Reasons, Backpressure & Lifecycle Hooks (M13)
+
+**Status:** *Planned.*
+**Goal:** Enhance the scheduling domain with structured cancellation reasons, backpressure enforcement, and lifecycle observability hooks — enabling resilient, observable multi-task workflows.
+
+**Tasks**
+- [ ] **V.5.1** — Add `CancellationReason` enum (Domain): `UserInitiated`, `DeadlineExceeded`, `ParentCancelled`, `ResourceQuotaExceeded`, `SystemShutdown`. Bind to `CapabilityVocabulary`-style interface constants. Add `@see async-it#CancellationReason`.
+- [ ] **V.5.2** — `CancellationScopeInterface::cancel(?CancellationReason $reason = null)` — reason is immutable once set; `reason(): ?CancellationReason` accessor. `CancellationScope` updated; deprecation path documented for backward compat.
+- [ ] **V.5.3** — `CancellationException` carries the reason; `throwIfCancelled()` throws with the scope's reason.
+- [ ] **V.6.1** — Add `BackpressurePolicy` enum (Domain): `Block`, `Drop`, `Error`. Bind to `async-it-taxonomy.ttl` (`#backpressure-policy-*`).
+- [ ] **V.6.2** — `TaskGroup` constructor accepts `maxConcurrency: int` and `backpressure: BackpressurePolicy`. When the runnable queue depth exceeds `maxConcurrency`, `go()` suspends the caller under the `Block` policy (uses V.6.2).
+- [ ] **V.6.3** — `TaskChannelInterface::trySend(mixed): bool` (non-blocking) and `waitForCapacity(Duration): void` (blocking). `EmulatedChannel` and all native channel adapters implement both.
+- [ ] **V.6.4** — Scheduler publishes `SchedulerEvent\QueuePressure` when runnable depth exceeds a configurable threshold (reuses `TelemetryBridgeInterface`; fail-open).
+- [ ] **V.4.1** — Add `SchedulerEventInterface` (Domain) with value-object events: `TaskSpawned`, `TaskResumed`, `TaskSuspended` (with `AwaitPoint`), `TaskCompleted`, `SchedulerStarved`.
+- [ ] **V.4.2** — `FiberTaskScheduler` accepts an optional `SchedulerEventListenerInterface` (Application port). When attached, it emits events at batch/flush boundaries (spawn batch, completion batch) — **not** per-tick, per AGENTS.md.
+- [ ] **V.4.3** — Add `AwaitPoint` discriminated union (Domain): `AwaitPointReadable`, `AwaitPointWritable`, `AwaitPointDelay`, `AwaitPointChannel`, `AwaitPointJoin`. Bind to `async-it-taxonomy.ttl` (`#await-point-readable`, `#await-point-delay`, etc.).
+- [ ] **V.4.4** — Conformance: Assertion A.3 (`LifecycleEventIsolationVerifier`) — proves lifecycle events carry no cross-task context bleed.
+
+**Gates:** New `CancellationScopeTest`, `BackpressurePolicyTest`, `TaskGroupBackpressureTest`, `SchedulerEventTest` with ≥95% coverage; `AsyncRuntimeVerifier` green with A.3; all new enums bind to vocabulary constants; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; `composer quality` green.
+
+---
+
+### Phase 8 — Resilience: Retry, Circuit Breaker & Bulkheads (M14)
+
+**Status:** *Planned.*
+**Goal:** Add structured retry with exponential backoff, circuit breaking, and resource-isolation bulkheads so AsyncIt can manage transient failures and protect downstream services.
+
+**Tasks**
+- [ ] **V.7.1** — Add `RetryPolicy` (Domain, `readonly`): `maxAttempts`, `baseDelay: Duration`, `maxDelay: Duration`, `jitter: JitterStrategy` (enum: `None`, `Full`, `Equal`), `retryable: list<class-string>`. Bind to `async-it-taxonomy.ttl` (`#retry-strategy-exponential`, `#jitter-full`).
+- [ ] **V.7.2** — Add `CircuitBreaker` (Domain): states `Closed → Open → HalfOpen → Closed/Fail` (`CircuitState` enum). Tracks consecutive failures, opens on `failureThreshold`, retries probe after `cooldown`. Uses `MonotonicClockInterface` for time-based state.
+- [ ] **V.7.3** — `AsyncRuntime::retry(callable, RetryPolicy, ?CircuitBreaker = null): mixed` — wraps the task; on throwable, checks `retryable`, backs off (V.2 `awaitDelay`), retries up to `maxAttempts`; rethrows original after exhaustion. Circuit breaker gates retries.
+- [ ] **V.7.4** — `retry()` rethrows the **exact** original `Throwable` after exhaustion (AGENTS.md: preserve original business exception).
+- [ ] **H.6.1** — Add `Bulkhead` (Domain): semaphore-style `acquire()` / `release()` using `Fiber::suspend()` for cooperative yielding. Configurable `capacity`. `BulkheadFullException` when at capacity (non-blocking mode) or suspends (blocking mode).
+- [ ] **H.6.2** — Add `RateLimiter` (Domain): token-bucket algorithm. `awaitPermit(): void` suspends until a token is available. Refill rate via `MonotonicClockInterface`.
+- [ ] **H.6.3** — `Bulkhead` and `RateLimiter` are usable as `SchedulerMiddleware` (see A.5, Phase 11) or standalone within a task.
+
+**Gates:** `RetryPolicyTest`, `CircuitBreakerTest`, `BulkheadTest`, `RateLimiterTest` with ≥95% coverage and mutation testing on state-transition logic; conformance proves retry preserves the original exception; `composer quality` green; new vocabulary IRIs added.
+
+---
+
+### Phase 9 — Observability: OTel, RunIt Publication & Prometheus (M15–M16)
+
+**Status:** *Planned.*
+**Goal:** Make AsyncIt fully visible to enterprise observability stacks via OpenTelemetry tracing, RunIt-native occurrence/measurement/observation publication, and Prometheus metrics export.
+
+**Tasks**
+- [ ] **H.1.1** — Add `Adapter/OpenTelemetry/` package: `OpenTelemetryTelemetryBridge` (implements `TelemetryBridgeInterface`). Creates a span on task spawn, resumes span context on `Fiber::resume()` (relies on Assertion A context re-attachment), ends span on terminal transition.
+- [ ] **H.1.2** — Reuses `open-telemetry/api` + `open-telemetry/sdk` (move from `require-dev` to `suggest`); bridge is lazy — materialises the OTLP exporter + `BatchSpanProcessor` only on first `record()`.
+- [ ] **H.1.3** — `AsyncRuntimeFactory::negotiate()` selects `OpenTelemetryTelemetryBridge` when `OTEL_EXPORTER_OTLP_ENDPOINT` env var is set; otherwise `LazyTelemetryBridge` (backward compat).
+- [ ] **H.1.4** — Conformance: Assertion E (`TraceParentageVerifier`) — prove parent-child span linkage through a suspend/resume cycle; child span carries parent context.
+- [ ] **H.2.1** — `FiberTaskScheduler` publishes structured occurrences for each lifecycle event (V.4.2) via `ArtifactPublisherInterface`: `occ-task-spawned`, `occ-task-resumed`, `occ-task-suspended`, `occ-task-completed`. Each carries a `Duration` measurement (monotonic) + `SequenceAllocatorInterface` sequence number.
+- [ ] **H.2.2** — Observations for anomalies: `obs-scheduler-starvation`, `obs-queue-pressure`, `obs-handle-leak` (Assertion C violation reported as observation, not just test failure).
+- [ ] **H.2.3** — Publication is batch/flush-gated (not per-tick); recursion-guarded (ADR-014); fail-open default.
+- [ ] **H.4.1** — Add `Adapter/Prometheus/` package: `PrometheusTelemetryBridge` implementing `TelemetryBridgeInterface`. Exposes gauges (runnable tasks, active handles, active timers), counters (tasks spawned/completed by status), histograms (task duration, poll-wait time, schedule-to-dispatch latency).
+- [ ] **H.4.2** — Cardinality control: labels use closed taxonomies only (`TaskStatus`, `TaskKind` from taxonomy); **never** user-controlled values (AGENTS.md: "Do not use user-controlled values as metric names"). Histogram buckets are configurable with sane defaults.
+- [ ] **H.4.3** — `prom/phprometheus` in `suggest`; bridge is lazy (only materialises collector on first `record()`).
+
+**Gates:** `OpenTelemetryTelemetryBridgeTest`, `RunItPublicationTest`, `PrometheusTelemetryBridgeTest` with ≥95% coverage; conformance Assertions E + starved-detector pass on reference runtime; `composer quality` green; `@see` references to `run-it-taxonomy#occ-task-*`, `#ms-task-duration`, `#obs-scheduler-starvation`.
+
+---
+
+### Phase 10 — Operational Maturity: Health, Shutdown & Configuration (M17)
+
+**Status:** *Planned.*
+**Goal:** Add production runtime management — health/liveness probes, graceful shutdown with deadlines, and a validated declarative configuration + policy engine.
+
+**Tasks**
+- [ ] **H.3.1** — Add `SchedulerHealthInterface` (Application port, internal): `isHealthy(): bool` (no leaked handles, no deadlock detected, no starvation), `pendingTaskCount(): int`, `activeHandleCount(): int`, `uptime(): Duration`, `recentErrors(int $n): list<Throwable>`.
+- [ ] **H.3.2** — Add `GracefulShutdown` (Application): listens for SIGTERM/SIGINT via `pcntl_signal` (CLI-only guard), triggers group cancellation (V.1), waits for in-flight tasks with a configurable deadline (V.2 timer), then drains all poll handles (Assertion C).
+- [ ] **H.3.3** — `AsyncRuntime::health(): SchedulerHealthInterface` accessor.
+- [ ] **H.3.4** — Add `Adapter/Kubernetes/` probe handler: HTTP `/healthz` and `/readyz` endpoints (PSR-15 middleware). Gated behind `psr/http-server-middleware` in `suggest`.
+- [ ] **H.3.5** — Conformance: Assertion F (`GracefulShutdownVerifier`) — proves all handles are released and no tasks are left running within the shutdown deadline.
+- [ ] **H.7.1** — Add `SchedulerConfiguration` (Domain, `readonly`): `maxConcurrency`, `defaultTimeout: ?Duration`, `schedulingPolicy: SchedulingPolicy` (enum: `Fifo`, `Priority`, `WeightedFair`), `backpressurePolicy: BackpressurePolicy`, `telemetrySamplingRate: float`, `gracefulShutdownDeadline: Duration`.
+- [ ] **H.7.2** — `SchedulerConfiguration::withChanges(array $diffs): self` — returns a new immutable snapshot atomically.
+- [ ] **H.7.3** — `PolicyEngine` (Application): selects `SchedulingPolicy` from `CapabilityDescriptor` + observed metrics (adaptive). Validates config against resource bounds (warns on `maxConcurrency > 1000`).
+- [ ] **H.8.1** — Add `SchedulerIntrospectionInterface` (Application, internal): `runningTasks(): list<TaskStatus>`, `suspendedTasks(): list<SuspendedTaskView>`, `callGraph(): ?TaskDependencyTree`. Snapshots state under a lock (copy-on-read, never iterates live queue).
+- [ ] **H.8.2** — Deadlock detector: if runnable queue empty + pending handles + no timers due + no handle fired in N seconds → emit `obs-scheduler-starvation` + snapshot state.
+- [ ] **H.8.3** — `SchedulerConfiguration::enableDebug(): bool` gates introspection; debug endpoints are absent unless explicitly enabled (security: no debug surface by default).
+
+**Gates:** `SchedulerHealthTest`, `GracefulShutdownTest`, `SchedulerConfigurationTest`, `PolicyEngineTest`, `SchedulerIntrospectionTest` with ≥95% coverage; conformance Assertion F passes; debug surface is opt-in (negative test proves debug endpoints return 404/403 when disabled); `composer quality` green.
+
+---
+
+### Phase 11 — Scale-Out: Dynamic Capabilities, Persistence, Federation & Middleware (M18–M20)
+
+**Status:** *Planned.*
+**Goal:** Enable AsyncIt for distributed, large-scale deployments: dynamically-evolving capability descriptors, persistent task queues with crash recovery, federated scheduling across processes/machines, a scheduler middleware pipeline, a telemetry schema registry, and canary deployment support.
+
+**Tasks**
+- [ ] **A.2.1** — `CapabilityDescriptor` gains `version: int` (monotonic schema version, starts at 1).
+- [ ] **A.2.2** — Add `CapabilityObserverInterface` (Domain contract): adapters push capability changes (e.g., "native channels became unavailable"). Scheduler reacts by atomically swapping the `TaskChannel` backend from native to emulated.
+- [ ] **A.2.3** — Capability deprecation policy: old kinds remain `Unavailable` (not removed); consumers distinguish "never supported" from "supported but disabled."
+- [ ] **A.3.1** — Separate **scheduling state** (ephemeral, in-memory) from **task definitions** (serializable, durable). Add `PersistentTask` (Domain, `readonly`): `TaskId`, `operation: SerializableClosure` (via `opis/closure` in `suggest`), `deadline: ?Duration`, `payload: array`.
+- [ ] **A.3.2** — Add `Adapter/Redis/` package: `RedisTaskQueue` implementing `PersistentTaskQueueInterface` (Application port). Stores pending task definitions in Redis; rehydrates into `FiberTaskScheduler` on restart.
+- [ ] **A.3.3** — Delivery semantics: at-least-once by default; exactly-once via idempotent payloads + `DeduplicationRecord` keyed by `IdentifierGeneratorInterface`.
+- [ ] **A.3.4** — AGENTS.md compliance: "Do not serialize arbitrary objects as scheduling state" — only task *definitions* are serialized; suspended Fibers are never persisted.
+- [ ] **A.4.1** — Add `RemoteSchedulerPortInterface` (Contract): `execute(RemoteTask): PromiseInterface`. Implementations: gRPC bridge, AMQP bridge.
+- [ ] **A.4.2** — Add `FederatedScheduler` (Application): accepts `RemoteTask` submissions; routes to remote schedulers via the port; propagates `CancellationScope` across the federation boundary via serializable token.
+- [ ] **A.4.3** — AGENTS.md compliance: distributed cancellation degrades gracefully (local timeout + dead-letter). Correlation IDs (RunIt `IdentifierGeneratorInterface`) propagate across federation.
+- [ ] **A.5.1** — Add `SchedulerMiddlewareInterface` (Contract): `process(TaskInterface, callable $next): mixed`.
+- [ ] **A.5.2** — Add `MiddlewareScheduler` (Application): decorator wrapping `FiberTaskScheduler` with an ordered pipeline.
+- [ ] **A.5.3** — Reference middleware: `TraceContextInjector`, `ResourceQuotaChecker`, `BackpressureGate`, `ContextAttacher`.
+- [ ] **A.6.1** — Add `TelemetrySchemaRegistry` (Domain): versioned JSON-Schema descriptors for each occurrence/measurement/observation type. Each schema has `@see` to its ontology IRI.
+- [ ] **A.6.2** — `ArtifactNormalizer` (Application): produces version-tagged, schema-conformant arrays. Consumers validate against the registry.
+- [ ] **A.7.1** — `SchedulerConfiguration::forCanary(float $weight): self` — routes `weight` fraction of tasks to the canary config.
+- [ ] **A.7.2** — `CanaryScheduler` (Application): wraps a base scheduler; compares latency/error metrics between canary and baseline; auto-rolls-back on threshold breach.
+- [ ] **A.7.3** — Hot config swap: `SchedulerConfiguration::withChanges()` produces a new snapshot atomically; the scheduler swaps it at a safe point (between reactor ticks).
+
+**Gates:** Each sub-feature has dedicated unit tests (≥90% coverage for new code; 100% for critical branching in V.7/A.4/A.7); `composer quality` green; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; no speculative abstraction without a concrete consumer (AGENTS.md); new adapters placed in `Adapter/` and do not leak runtime types into `Contract/`/`Domain/`.
+
 ## 5. Status updates (major milestones)
 
 - **After Phase 0:** Tooling and architecture guards are in place; the package is buildable and enforceable, but no behavior exists yet. Next: contract freeze (M3). Blocker: none.
@@ -283,6 +441,15 @@ execute end-to-end.
 - **After Phase 4:** Swoole passes the full `AsyncRuntimeVerifier` (A+C) and RunIt's `ExecutionEngineVerifier` through the capability-negotiated runtime; Revolt/Swow are implemented to the same contract and gated (skipped) where their runtimes are absent. `TaskChannel` is native (Swoole/Swow) or emulated (Revolt/reference) under one interface, and optional telemetry is a lazy bridge. Scheduling semantics are unchanged — only the poller, context-storage, and channel backends differ. Next: native `Io\Poll` and interop (M9–M10). Blocker: PHP 8.6 `Io\Poll` availability for `NativePoller` (use the OCI dev lab per the poll-api brainstorm). (Same `composer test`/`analyse`/`architecture` caveat as Phase 2/3 — validated via standalone execution, including a real Swoole `Coroutine\Channel` round-trip.)
 
 - **After Phase 5:** `NativePoller` slots PHP 8.6 `Io\Poll` into the same `PollerPort` contract (edge-triggered, handle-tracked, Assertion C clean) and `PollerFactory` selects it over `SelectPoller` from capability/PHP version; `AsyncRuntimeFactory` advertises `EdgeTriggeredPolling` as `Supported` exactly when `Io\Poll` is present. ReactPHP and Amp interop bridges (`Adapter/Interop`) let userland loops host AsyncIt tasks without changing scheduling semantics, and are gated in the conformance suite where their host is absent. Scheduling semantics are unchanged — only the readiness backend differs. Next: broader ecosystem wiring and publication/telemetry hardening (Phase 6+). Blocker cleared for `NativePoller` once a PHP 8.6 `Io\Poll` host (OCI dev lab per the poll-api brainstorm) is available to exercise Assertion C natively. (Same `composer test`/`analyse`/`architecture` caveat as earlier phases — validated via standalone execution of the new unit tests, the ReactPHP/Amp bridges against fakes, and the gated conformance suite; the native `Io\Poll` path is exercised only on a PHP 8.6 host.)
+
+- **Phase 0-pre (planned):** Complete the refactoring backlog (R7–R15) in `docs/REFACTORING_PLAN.md` to resolve DRY violations, magic literals, coverage gaps, and declaration ordering before next-gen work begins.
+- **Phase 6 (planned):** Multi-task model + timers + task groups (M11–M12). Adds `spawn()`, `await()`, timer heap, `TaskGroup` with nursery semantics.
+- **Phase 7 (planned):** Cancellation reasons, backpressure, lifecycle hooks (M13).
+- **Phase 8 (planned):** Retry, circuit breaker, bulkheads, rate limiting (M14).
+- **Phase 9 (planned):** OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
+- **Phase 10 (planned):** Health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
+- **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
+- **Next-gen gate:** Each new phase adds conformance assertions to `AsyncRuntimeVerifier` and is blocked on the previous phase's exit criteria. See `docs/FEATURE_BACKLOG.md` for full reasoning per feature.
 
 ---
 
@@ -412,4 +579,14 @@ Note the absence of `else`, the early-return guard, `final` + interface, injecte
 
 ## 8. Final status
 
-The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-only, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, phparkitect, and mutation testing. All five implementation phases (M0–M10) are complete; follow-on quality-gate work (R1–R6) is tracked in `docs/REFACTORING_PLAN.md` and `docs/TODOS.md`. `composer quality` is NOT yet fully green — see the §5 status updates and the open task list.
+The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-only, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, phparkitect, and mutation testing. All five implementation phases (M0–M10) are complete; follow-on quality-gate work (R7–R15) is tracked in `docs/REFACTORING_PLAN.md` and `docs/TODOS.md`, and must be green before Phase 6 begins. `composer quality` is NOT yet fully green — see the §5 status updates and the open task list.
+
+**Next-gen phases (Phase 6–Phase 11)** are documented in this roadmap as the strategic continuation. They implement the features catalogued in `docs/FEATURE_BACKLOG.md`, organised into three waves:
+- **Foundational** (Phase 6): multi-task model + timers + task groups (M11–M12).
+- **Core verticals** (Phase 7): cancellation reasons, backpressure, lifecycle hooks (M13).
+- **Resilience** (Phase 8): retry, circuit breaker, bulkheads, rate limiting (M14).
+- **Observability** (Phase 9): OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
+- **Operational maturity** (Phase 10): health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
+- **Scale-out** (Phase 11): dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
+
+Each phase adds conformance assertions (A.2–A.3 group isolation, C.2 timer cleanup, E trace parentage, F graceful shutdown) to `src/Conformance/Verifier/`, extending the `AsyncRuntimeVerifier` suite. New capability kinds are added to the relevant task only when a concrete consumer exists (AGENTS.md: "Do not add a public extension point until there is a concrete consumer or adapter use case").
