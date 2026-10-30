@@ -10,8 +10,9 @@ use ItPack\AsyncIt\Conformance\Verifier\AsyncRuntimeVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\ContextIsolationVerifier;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -91,12 +92,12 @@ final class AsyncRuntimeVerifierTest extends TestCase
         };
 
         $poller = new class () implements PollerPortInterface {
-            public function register(mixed $stream): StreamPollHandle
+            public function register(mixed $stream): StreamPollHandleInterface
             {
                 return new StreamPollHandle('stub');
             }
 
-            public function release(StreamPollHandle $handle): void
+            public function release(StreamPollHandleInterface $handle): void
             {
             }
 

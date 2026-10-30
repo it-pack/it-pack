@@ -104,7 +104,7 @@ echo $result; // Hello from AsyncIt
 - **`ItPack\AsyncIt\Contract\PollerPortInterface`** — Port for readiness probing (`register()`, `release()`, `await()`, `activeHandleCount()`).
 - **`ItPack\AsyncIt\Contract\TaskChannelInterface`** — Channel abstraction (native or emulated) for task coordination.
 - **`ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface`** — Runtime adapter discovery and capability negotiation.
-- **`ItPack\AsyncIt\Contract\CapabilityDescriptor`** / **`CapabilityStatus`** / **`CapabilityKind`** — Negotiated capability model.
+- **`ItPack\AsyncIt\Domain\CapabilityDescriptor`** / **`CapabilityStatus`** / **`CapabilityKind`** — Negotiated capability model.
 - **`ItPack\AsyncIt\Contract\CancellationScopeInterface`** — Observed cooperative cancellation boundary.
 - **`ItPack\AsyncIt\Contract\TelemetryBridgeInterface`** — Telemetry integration port.
 

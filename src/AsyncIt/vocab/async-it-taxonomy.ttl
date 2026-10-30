@@ -484,3 +484,83 @@ asyncit-tax:poller-interop-amp
     skos:definition     "Interop bridge letting an Amp event loop host AsyncIt tasks; scheduling semantics unchanged."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
 .
+
+# Concept scheme for retry strategies
+asyncit-tax:RetryStrategies
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Retry Strategy Vocabulary"@en ;
+    rdfs:comment        "Taxonomy of backoff strategies for retry semantics."@en ;
+    skos:hasTopConcept  asyncit-tax:retry-exponential ,
+                        asyncit-tax:retry-fixed ,
+                        asyncit-tax:retry-fibonacci ;
+.
+
+asyncit-tax:retry-exponential
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RetryStrategies ;
+    skos:topConceptOf   asyncit-tax:RetryStrategies ;
+    skos:prefLabel      "Exponential backoff"@en ;
+    skos:notation       "retry.exponential" ;
+    skos:definition     "Delay doubles with each attempt."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:retry-fixed
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RetryStrategies ;
+    skos:topConceptOf   asyncit-tax:RetryStrategies ;
+    skos:prefLabel      "Fixed backoff"@en ;
+    skos:notation       "retry.fixed" ;
+    skos:definition     "Constant delay between attempts."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:retry-fibonacci
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RetryStrategies ;
+    skos:topConceptOf   asyncit-tax:RetryStrategies ;
+    skos:prefLabel      "Fibonacci backoff"@en ;
+    skos:notation       "retry.fibonacci" ;
+    skos:definition     "Delay follows the Fibonacci sequence."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# Concept scheme for jitter strategies
+asyncit-tax:JitterStrategies
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Jitter Strategy Vocabulary"@en ;
+    rdfs:comment        "Taxonomy of jitter strategies applied to retry backoff delays."@en ;
+    skos:hasTopConcept  asyncit-tax:jitter-none ,
+                        asyncit-tax:jitter-full ,
+                        asyncit-tax:jitter-equal ;
+.
+
+asyncit-tax:jitter-none
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:JitterStrategies ;
+    skos:topConceptOf   asyncit-tax:JitterStrategies ;
+    skos:prefLabel      "No jitter"@en ;
+    skos:notation       "jitter.none" ;
+    skos:definition     "Delay is deterministic (no randomization)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:jitter-full
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:JitterStrategies ;
+    skos:topConceptOf   asyncit-tax:JitterStrategies ;
+    skos:prefLabel      "Full jitter"@en ;
+    skos:notation       "jitter.full" ;
+    skos:definition     "Delay is randomized uniformly in [0, base delay)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:jitter-equal
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:JitterStrategies ;
+    skos:topConceptOf   asyncit-tax:JitterStrategies ;
+    skos:prefLabel      "Equal jitter"@en ;
+    skos:notation       "jitter.equal" ;
+    skos:definition     "Delay is base/2 + random(0, base/2) (decorrelated)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.

@@ -7,7 +7,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use Swoole\Coroutine\Channel;
 

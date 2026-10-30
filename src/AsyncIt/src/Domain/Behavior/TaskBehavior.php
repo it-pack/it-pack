@@ -6,14 +6,14 @@ namespace ItPack\AsyncIt\Domain\Behavior;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Domain\Exception\ConflictingCompletionException;
 use ItPack\AsyncIt\Domain\Exception\InvalidLifecycleTransitionException;
-use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 trait TaskBehavior
 {
-    public readonly TaskId $id;
+    public readonly TaskIdInterface $id;
 
     public readonly ExecutionIdInterface $executionId;
 
@@ -30,7 +30,7 @@ trait TaskBehavior
 
     private TaskStatus $_status = TaskStatus::Created;
 
-    public function id(): TaskId
+    public function id(): TaskIdInterface
     {
         return $this->id;
     }

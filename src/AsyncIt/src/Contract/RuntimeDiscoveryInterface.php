@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-/**
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;/**
  * Discovers the active runtime and exposes its negotiated capability profile.
  *
  * Implementations are selected by {@see RuntimeDiscoveryFactoryInterface} from
@@ -12,9 +12,9 @@ namespace ItPack\AsyncIt\Contract;
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
   * @api
+ */
 
-  */
 interface RuntimeDiscoveryInterface
 {
-    public function discover(): CapabilityDescriptor;
+    public function discover(): CapabilityDescriptorInterface;
 }

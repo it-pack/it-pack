@@ -6,8 +6,8 @@ namespace Tests\Unit\Application\Scheduler;
 
 use Fiber;
 use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
 
 /**

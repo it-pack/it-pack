@@ -6,9 +6,9 @@ namespace Tests\Unit\Application\Factory;
 
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use PHPUnit\Framework\TestCase;
 
 /**

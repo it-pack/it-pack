@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Interop\Amp;
 
 use ItPack\AsyncIt\Adapter\Interop\Amp\AmpPollerBridge;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
 
 /**

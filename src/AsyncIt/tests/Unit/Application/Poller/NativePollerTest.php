@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Poller;
 
 use ItPack\AsyncIt\Application\Poller\NativePoller;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
 
 /**

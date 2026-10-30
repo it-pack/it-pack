@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Contract;
 
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
+use Throwable;
 
 /**
  * Scheduler contract used by the RunIt execution engine.
@@ -39,7 +40,7 @@ interface EngineSchedulerInterface extends SchedulerInterface
      * @see https://w3id.org/itpack/asyncit#Task
      * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy
      */
-    public function spawn(callable $operation, ?TaskId $id = null): TaskInterface;
+    public function spawn(callable $operation, ?TaskIdInterface $id = null): TaskInterface;
 
     /**
      * Suspends the current task until another task completes, returning its result.
@@ -66,4 +67,20 @@ interface EngineSchedulerInterface extends SchedulerInterface
      * @see https://w3id.org/itpack/asyncit-taxonomy#await-point-timer
      */
     public function awaitDelay(DurationInterface $duration): void;
+
+    /**
+     * Runs the operation with retry semantics governed by the policy.
+     *
+     * On each failed attempt, checks whether the exception is retryable
+     * (per {@see RetryPolicy::$retryable}). If retryable and the circuit
+     * breaker (if supplied) allows execution, suspends for the computed
+     * backoff delay and retries. After exhausting {@see RetryPolicy::$maxAttempts},
+     * the **exact** original {@see Throwable} is rethrown — no wrapping.
+     *
+     * @throws Throwable The original exception after max attempts exhaustion.
+     *
+     * @see https://w3id.org/itpack/asyncit#RetryPolicy
+     * @see https://w3id.org/itpack/asyncit#CircuitBreaker
+     */
+    public function retry(callable $operation, RetryPolicyInterface $policy): mixed;
 }

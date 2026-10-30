@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 
 /**

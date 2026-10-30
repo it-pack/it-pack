@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use Swoole\Event;
 
 /**
@@ -41,7 +42,7 @@ final class SwoolePoller implements PollerPortInterface
 
     private int $counter = 0;
 
-    public function register(mixed $stream): StreamPollHandle
+    public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'swoole-' . ++$this->counter;
         $this->handles[$id] = $stream;
@@ -51,7 +52,7 @@ final class SwoolePoller implements PollerPortInterface
         return new StreamPollHandle($id);
     }
 
-    public function release(StreamPollHandle $handle): void
+    public function release(StreamPollHandleInterface $handle): void
     {
         $id = $handle->id;
 

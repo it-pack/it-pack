@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain\Exception;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use RuntimeException;
 
 /**

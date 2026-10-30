@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Contract\Port;
+namespace Tests\Unit\Domain;
 
 use InvalidArgumentException;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ItPack\AsyncIt\Contract\Port\StreamPollHandle
+ * @covers \ItPack\AsyncIt\Domain\StreamPollHandle
  */
 final class StreamPollHandleTest extends TestCase
 {

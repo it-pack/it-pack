@@ -12,6 +12,10 @@
 #   Task            - the micro-unit of scheduled work (wraps a Fiber);
 #                     belongs to exactly one RunIt execution.
 #   Scheduler       - coordinates task queues, Fiber suspend/resume, timers.
+#   RetryPolicy     - immutable retry configuration with backoff and jitter.
+#   CircuitBreaker  - Closed/Open/HalfOpen state machine for transient failures.
+#   Bulkhead        - semaphore-style capacity isolation for downstream services.
+#   RateLimiter     - token-bucket rate limiting using a monotonic clock.
 #   Awaitable       - a cooperation point where a task yields without blocking.
 #   CancellationScope - an observed cancellation state (never preemptive).
 #   Timer           - a monotonic, scheduled delay.
@@ -157,6 +161,40 @@ asyncit:RuntimeAdapter
     a                   owl:Class ;
     rdfs:label          "Runtime Adapter"@en ;
     rdfs:comment        "A backend that translates suspension/resumption and polling into a concrete runtime model (Revolt, Swoole, Swow, Native 8.6 Poller, Select fallback). Adapters never change scheduling semantics."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Resilience --------------------------------------------------------------
+
+asyncit:RetryPolicy
+    a                   owl:Class ;
+    rdfs:label          "Retry Policy"@en ;
+    rdfs:comment        "Immutable retry configuration: max attempts, backoff strategy, jitter, and retryable exception classes."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CircuitBreaker
+    a                   owl:Class ;
+    rdfs:label          "Circuit Breaker"@en ;
+    rdfs:comment        "State machine protecting downstream services from cascading failures: Closed, Open, HalfOpen."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:Bulkhead
+    a                   owl:Class ;
+    rdfs:label          "Bulkhead"@en ;
+    rdfs:comment        "Semaphore-style resource isolation limiting concurrent access to a downstream service."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:RateLimiter
+    a                   owl:Class ;
+    rdfs:label          "Rate Limiter"@en ;
+    rdfs:comment        "Token-bucket rate limiter using a monotonic clock for refill scheduling."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
     vs:term_status      "stable" ;
 .
@@ -690,4 +728,37 @@ asyncit:unitNanoSecond
     rdfs:comment        "Nanosecond time unit. Aligned with QUDT unit:NanoSecond."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
     vs:term_status      "stable" ;
+.
+
+# =============================================================================
+# Controlled individuals — CircuitState
+# =============================================================================
+
+asyncit:CircuitState
+    a                   owl:Class ;
+    rdfs:label          "Circuit State"@en ;
+    rdfs:comment        "The state of a circuit breaker. Instances are controlled individuals."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CircuitClosed
+    a                   asyncit:CircuitState ;
+    rdfs:label          "closed"@en ;
+    rdfs:comment        "Normal operation; requests are allowed."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CircuitOpen
+    a                   asyncit:CircuitState ;
+    rdfs:label          "open"@en ;
+    rdfs:comment        "Requests are rejected; the circuit is tripped after failure threshold."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+.
+
+asyncit:CircuitHalfOpen
+    a                   asyncit:CircuitState ;
+    rdfs:label          "half open"@en ;
+    rdfs:comment        "Test mode; a limited number of probe requests are allowed."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
 .
