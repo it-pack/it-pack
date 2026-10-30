@@ -19,6 +19,9 @@ use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
+use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -48,6 +51,8 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
 
     private NullArtifactPublisher $publisher;
 
+    private LazyTelemetryBridge $telemetry;
+
     private FiberTaskScheduler $scheduler;
 
     private CancellationScopeFactory $cancellationScopeFactory;
@@ -58,6 +63,9 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
         $this->storage = new MemoryContextStorage();
         $this->clock = new DeterministicMonotonicClock();
         $this->publisher = new NullArtifactPublisher();
+        $this->telemetry = new LazyTelemetryBridge(
+            static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
+        );
         $this->cancellationScopeFactory = new CancellationScopeFactory();
 
         $executionId = ExecutionId::fromString('ref-exec');
@@ -111,6 +119,11 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
     public function publisher(): ArtifactPublisherInterface
     {
         return $this->publisher;
+    }
+
+    public function telemetry(): TelemetryBridgeInterface
+    {
+        return $this->telemetry;
     }
 
     public function activePollHandleCount(): int

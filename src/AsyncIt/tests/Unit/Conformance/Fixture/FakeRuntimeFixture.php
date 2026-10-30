@@ -8,6 +8,7 @@ use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -32,6 +33,7 @@ final readonly class FakeRuntimeFixture implements AsyncRuntimeFixtureInterface
         private ?MonotonicClockInterface $clock = null,
         private ?ArtifactPublisherInterface $publisher = null,
         private ?CancellationScopeInterface $cancellationScope = null,
+        private ?TelemetryBridgeInterface $telemetry = null,
     ) {
     }
 
@@ -68,6 +70,11 @@ final readonly class FakeRuntimeFixture implements AsyncRuntimeFixtureInterface
     public function publisher(): ArtifactPublisherInterface
     {
         return $this->publisher ?? throw new LogicException('publisher not configured for this verifier');
+    }
+
+    public function telemetry(): ?TelemetryBridgeInterface
+    {
+        return $this->telemetry;
     }
 
     public function activePollHandleCount(): int

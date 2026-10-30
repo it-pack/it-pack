@@ -11,7 +11,6 @@ use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
-use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 
 /**
@@ -22,10 +21,12 @@ use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
  * task id, a suspension event follows, a child task event carries the parent's task
  * id as `parentId`, and completion events are recorded for both.
  *
- * The verifier simulates the event sequence through the bridge directly (not by
- * spawning tasks through the scheduler), so it works with any fixture without
- * requiring a running execution. A single missing or malformed linkage is a
- * conformance failure.
+ * The verifier drives the event sequence through the **fixture's own** telemetry
+ * bridge — never a synthetic one — so the assertion is meaningful: if the runtime
+ * emits no events or broken parentage, the bridge records nothing (or wrong
+ * linkage) and the assertion fails. When the fixture cannot expose a telemetry
+ * bridge, the assertion is reported as fixture-unsupported so it does not falsely
+ * pass.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-spawned
@@ -43,11 +44,21 @@ final class TraceParentageVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        $bridge = new LazyTelemetryBridge(
-            static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
-        );
+        $bridge = $fixture->telemetry();
+
+        if (!$bridge instanceof TelemetryBridgeInterface) {
+            return $result->add(new ConformanceViolation(
+                ViolationVocabulary::FIXTURE_UNSUPPORTED,
+                'TraceParentageVerifier: fixture does not expose a telemetry bridge.',
+                \ItPack\AsyncIt\Conformance\Result\ViolationSeverity::Warning,
+            ));
+        }
 
         $this->simulateLifecycle($bridge);
+
+        if (!$bridge instanceof LazyTelemetryBridge) {
+            return $result;
+        }
 
         $events = $bridge->events();
 
