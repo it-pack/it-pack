@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain;
 
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
+use ItPack\AsyncIt\Contract\Port\SchedulerEventType;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\SchedulerEvent;
+use ItPack\AsyncIt\Domain\TaskId;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,15 +17,27 @@ use PHPUnit\Framework\TestCase;
  */
 final class SchedulerEventTest extends TestCase
 {
-    public function testSpawnedEventCarriesTaskAndCreatedStatus(): void
+    public function testSpawnedEventCarriesTaskCreatedStatusAndParentId(): void
+    {
+        $task = $this->createMock(TaskInterface::class);
+        $parentId = new TaskId('parent');
+
+        $event = SchedulerEvent::spawned($task, $parentId);
+
+        self::assertSame($task, $event->task);
+        self::assertSame(SchedulerEventType::Spawned, $event->type);
+        self::assertSame(TaskStatus::Created, $event->status);
+        self::assertSame($parentId, $event->parentId);
+        self::assertNull($event->awaitPoint);
+    }
+
+    public function testSpawnedEventWithoutParentIdHasNullParent(): void
     {
         $task = $this->createMock(TaskInterface::class);
 
         $event = SchedulerEvent::spawned($task);
 
-        self::assertSame($task, $event->task);
-        self::assertSame(TaskStatus::Created, $event->status);
-        self::assertNull($event->awaitPoint);
+        self::assertNull($event->parentId);
     }
 
     public function testResumedEventCarriesOptionalAwaitPoint(): void
@@ -33,6 +47,7 @@ final class SchedulerEventTest extends TestCase
         $event = SchedulerEvent::resumed($task, AwaitPoint::Delay);
 
         self::assertSame($task, $event->task);
+        self::assertSame(SchedulerEventType::Resumed, $event->type);
         self::assertSame(TaskStatus::Running, $event->status);
         self::assertSame(AwaitPoint::Delay, $event->awaitPoint);
     }
@@ -43,6 +58,7 @@ final class SchedulerEventTest extends TestCase
 
         $event = SchedulerEvent::suspended($task, AwaitPoint::Channel);
 
+        self::assertSame(SchedulerEventType::Suspended, $event->type);
         self::assertSame(AwaitPoint::Channel, $event->awaitPoint);
         self::assertSame(TaskStatus::Running, $event->status);
     }
@@ -53,6 +69,7 @@ final class SchedulerEventTest extends TestCase
 
         $event = SchedulerEvent::completed($task, TaskStatus::Succeeded);
 
+        self::assertSame(SchedulerEventType::Completed, $event->type);
         self::assertSame(TaskStatus::Succeeded, $event->status);
     }
 
@@ -62,6 +79,7 @@ final class SchedulerEventTest extends TestCase
 
         $event = SchedulerEvent::cancellationObserved($task);
 
+        self::assertSame(SchedulerEventType::Completed, $event->type);
         self::assertSame(TaskStatus::Cancelled, $event->status);
     }
 }

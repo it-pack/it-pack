@@ -22,6 +22,7 @@ use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
+use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -83,6 +84,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
             new ReferenceExecutionScopeFactory(),
             $this->publisher,
             new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            new TelemetryBridgeEventListener($this->telemetry),
         );
     }
 
