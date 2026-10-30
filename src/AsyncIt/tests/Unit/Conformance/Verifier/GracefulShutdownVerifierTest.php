@@ -52,7 +52,7 @@ final class GracefulShutdownVerifierTest extends TestCase
         $verifier = new GracefulShutdownVerifier();
 
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
-        $scheduler->expects(self::once())->method('runUntil');
+        $scheduler->expects($this->once())->method('runUntil');
 
         $fixture = new FakeRuntimeFixture(
             $this->idleStorage(),
@@ -74,7 +74,7 @@ final class GracefulShutdownVerifierTest extends TestCase
         $verifier = new GracefulShutdownVerifier();
 
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
-        $scheduler->expects(self::once())->method('runUntil');
+        $scheduler->expects($this->once())->method('runUntil');
 
         $fixture = new FakeRuntimeFixture(
             $this->idleStorage(),
