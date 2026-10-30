@@ -63,7 +63,10 @@ final class GracefulShutdownVerifier implements VerifierInterface
         $scope = $fixture->cancellationScope();
         $scope->cancel();
 
-        $scheduler->run();
+        $deadlineNanos = $fixture->clock()->monotonicNanoseconds()
+            + 5_000_000_000;
+
+        $scheduler->runUntil($deadlineNanos);
 
         if ($fixture->activePollHandleCount() !== 0) {
             $result = $result->add(new ConformanceViolation(
