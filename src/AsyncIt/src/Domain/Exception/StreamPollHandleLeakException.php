@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain\Exception;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use RuntimeException;
 
 /**
@@ -21,7 +21,7 @@ use RuntimeException;
   */
 final class StreamPollHandleLeakException extends RuntimeException implements AsyncItExceptionInterface
 {
-    public function __construct(public readonly StreamPollHandle $handle)
+    public function __construct(public readonly StreamPollHandleInterface $handle)
     {
         parent::__construct(sprintf('StreamPollHandle "%s" was not released before terminal transition.', $handle->id));
     }

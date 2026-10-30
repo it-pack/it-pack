@@ -6,6 +6,7 @@ namespace Tests\Unit\Application\Scheduler;
 
 use Fiber;
 use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
@@ -71,7 +72,7 @@ final class TaskRecordTest extends TestCase
         );
     }
 
-    private function createHandle(string $id): StreamPollHandle
+    private function createHandle(string $id): StreamPollHandleInterface
     {
         return new StreamPollHandle($id);
     }
