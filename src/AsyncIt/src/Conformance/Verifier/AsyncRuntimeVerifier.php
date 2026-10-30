@@ -46,7 +46,16 @@ final readonly class AsyncRuntimeVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        foreach ([$this->contextIsolation, $this->cleanup, $this->groupCancellation, $this->timerCleanup, $this->traceParentage, $this->gracefulShutdown] as $verifier) {
+        $verifiers = [
+            $this->contextIsolation,
+            $this->cleanup,
+            $this->groupCancellation,
+            $this->timerCleanup,
+            $this->traceParentage,
+            $this->gracefulShutdown,
+        ];
+
+        foreach ($verifiers as $verifier) {
             foreach ($verifier->verify($fixture) as $violation) {
                 $result = $result->add($violation);
             }

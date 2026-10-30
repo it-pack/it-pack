@@ -6,6 +6,8 @@ namespace ItPack\AsyncIt\SDK;
 
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
+use ItPack\AsyncIt\Contract\CapabilityObserverInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
@@ -38,9 +40,8 @@ use LogicException;
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
  *   @api
-
  */
-final class AsyncRuntime implements ExecutionEngineInterface
+final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserverInterface
 {
     private ?EngineSchedulerInterface $scheduler = null;
 
@@ -126,6 +127,18 @@ final class AsyncRuntime implements ExecutionEngineInterface
     public function health(): ?SchedulerHealthInterface
     {
         return $this->scheduler?->health();
+    }
+
+    /**
+     * Reacts to observed capability changes from the runtime adapter.
+     *
+     * When the scheduler is active, it swaps the capability descriptor atomically,
+     * incrementing the version. The next reactor tick picks up the new backend
+     * (e.g., switches from native to emulated channels).
+     */
+    public function onCapabilitiesChanged(CapabilityDescriptorInterface $descriptor): void
+    {
+        $this->scheduler?->swapCapabilities($descriptor);
     }
 
     /**

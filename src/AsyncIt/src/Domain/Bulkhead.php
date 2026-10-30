@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Domain;
 
+use DomainException;
 use ItPack\AsyncIt\Contract\BulkheadInterface;
 use ItPack\AsyncIt\Contract\Exception\BulkheadFullException;
 
@@ -29,9 +30,8 @@ final class Bulkhead implements BulkheadInterface
         public readonly int $capacity,
     ) {
         if ($capacity < self::MIN_CAPACITY) {
-            throw new BulkheadFullException(
-                $capacity,
-                self::NON_POSITIVE_CAPACITY_MESSAGE
+            throw new DomainException(
+                self::NON_POSITIVE_CAPACITY_MESSAGE,
             );
         }
 

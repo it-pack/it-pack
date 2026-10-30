@@ -91,4 +91,14 @@ interface EngineSchedulerInterface extends SchedulerInterface
      * is an immutable snapshot.
      */
     public function health(): SchedulerHealthInterface;
+
+    /**
+     * Atomically swaps the negotiated capability descriptor.
+     *
+     * Called by the {@see CapabilityObserverInterface}
+     * when the runtime adapter signals a capability change (e.g., native channels
+     * became unavailable). The scheduler increments the descriptor version and
+     * re-selects backends on the next reactor tick.
+     */
+    public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void;
 }

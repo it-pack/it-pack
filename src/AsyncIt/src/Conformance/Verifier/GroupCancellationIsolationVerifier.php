@@ -47,7 +47,8 @@ final class GroupCancellationIsolationVerifier implements VerifierInterface
         if (!$scheduler instanceof EngineSchedulerInterface) {
             return $result->add(new ConformanceViolation(
                 ViolationVocabulary::FIXTURE_UNSUPPORTED,
-                'GroupCancellationIsolationVerifier: scheduler does not implement EngineSchedulerInterface (no spawn/await).',
+                'GroupCancellationIsolationVerifier: scheduler does not implement'
+                . ' EngineSchedulerInterface (no spawn/await).',
                 ViolationSeverity::Warning,
             ));
         }

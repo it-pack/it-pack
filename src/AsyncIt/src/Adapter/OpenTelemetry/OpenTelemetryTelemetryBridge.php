@@ -109,7 +109,9 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
             ->startSpan()
         ;
 
-        Context::storage()->attach(Context::getRoot()->withContextValue($span));
+        Context::storage()->attach(
+            Context::getCurrent()->withContextValue($span),
+        );
 
         $this->spans[$taskId] = $span;
     }

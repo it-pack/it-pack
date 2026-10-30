@@ -7,6 +7,7 @@ namespace ItPack\AsyncIt\Domain;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\Port\BackpressurePolicy;
+use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskGroupInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
@@ -62,7 +63,7 @@ final class TaskGroup implements TaskGroupInterface
      */
     public function __destruct()
     {
-        if ($this->children === [] || $this->status->isTerminal()) {
+        if ($this->children === [] || $this->status()->isTerminal()) {
             return;
         }
 
@@ -111,6 +112,10 @@ final class TaskGroup implements TaskGroupInterface
         $child = $this->scheduler->spawn($operation);
         $this->children[] = $child;
         $this->runningCount++;
+
+        $this->cancellationScope->onCancel(static function () use ($child): void {
+            $child->cancellationScope()->cancel(CancellationReason::ParentCancelled);
+        });
 
         return $child;
     }

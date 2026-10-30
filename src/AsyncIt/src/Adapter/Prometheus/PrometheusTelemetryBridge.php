@@ -63,8 +63,14 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
         match ($event) {
             'task.spawned' => $this->recordGauge('asyncit_tasks_runnable', 1),
             'task.completed' => $this->onTaskCompleted($context),
-            'poll.wait' => $this->recordHistogram('asyncit_poll_wait_seconds', is_numeric($context['duration'] ?? 0) ? (float) ($context['duration'] ?? 0) : 0.0),
-            'schedule.dispatch' => $this->recordHistogram('asyncit_schedule_to_dispatch_seconds', is_numeric($context['duration'] ?? 0) ? (float) ($context['duration'] ?? 0) : 0.0),
+            'poll.wait' => $this->recordHistogram(
+                'asyncit_poll_wait_seconds',
+                is_numeric($context['duration'] ?? 0) ? (float) ($context['duration'] ?? 0) : 0.0,
+            ),
+            'schedule.dispatch' => $this->recordHistogram(
+                'asyncit_schedule_to_dispatch_seconds',
+                is_numeric($context['duration'] ?? 0) ? (float) ($context['duration'] ?? 0) : 0.0,
+            ),
             default => null,
         };
     }
@@ -125,13 +131,45 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
     private function buildInstruments(object $adapter): array
     {
         return [
-            'asyncit_tasks_runnable' => $adapter->registerGauge('', 'asyncit_tasks_runnable', 'Currently runnable tasks'),
-            'asyncit_handles_active' => $adapter->registerGauge('', 'asyncit_handles_active', 'Currently registered poll handles'),
-            'asyncit_timers_active' => $adapter->registerGauge('', 'asyncit_timers_active', 'Currently active timers'),
-            'asyncit_tasks_completed_total' => $adapter->registerCounter('', 'asyncit_tasks_completed_total', 'Tasks completed by status', ['status']),
-            'asyncit_task_duration_seconds' => $adapter->registerHistogram('', 'asyncit_task_duration_seconds', 'Task duration in seconds', [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10]),
-            'asyncit_poll_wait_seconds' => $adapter->registerHistogram('', 'asyncit_poll_wait_seconds', 'Reactor poll wait time in seconds', [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1]),
-            'asyncit_schedule_to_dispatch_seconds' => $adapter->registerHistogram('', 'asyncit_schedule_to_dispatch_seconds', 'Time from task spawn to first dispatch in seconds', [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5]),
+            'asyncit_tasks_runnable' => $adapter->registerGauge(
+                '',
+                'asyncit_tasks_runnable',
+                'Currently runnable tasks',
+            ),
+            'asyncit_handles_active' => $adapter->registerGauge(
+                '',
+                'asyncit_handles_active',
+                'Currently registered poll handles',
+            ),
+            'asyncit_timers_active' => $adapter->registerGauge(
+                '',
+                'asyncit_timers_active',
+                'Currently active timers',
+            ),
+            'asyncit_tasks_completed_total' => $adapter->registerCounter(
+                '',
+                'asyncit_tasks_completed_total',
+                'Tasks completed by status',
+                ['status'],
+            ),
+            'asyncit_task_duration_seconds' => $adapter->registerHistogram(
+                '',
+                'asyncit_task_duration_seconds',
+                'Task duration in seconds',
+                [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
+            ),
+            'asyncit_poll_wait_seconds' => $adapter->registerHistogram(
+                '',
+                'asyncit_poll_wait_seconds',
+                'Reactor poll wait time in seconds',
+                [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
+            ),
+            'asyncit_schedule_to_dispatch_seconds' => $adapter->registerHistogram(
+                '',
+                'asyncit_schedule_to_dispatch_seconds',
+                'Time from task spawn to first dispatch in seconds',
+                [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
+            ),
         ];
     }
 

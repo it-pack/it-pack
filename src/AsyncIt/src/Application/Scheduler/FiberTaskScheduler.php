@@ -14,6 +14,7 @@ use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Application\SchedulerHealth;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
@@ -22,7 +23,6 @@ use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
-use ItPack\AsyncIt\Domain\RetryPolicy;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -110,6 +110,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
      */
     private array $errors = [];
 
+    private CapabilityDescriptorInterface|null $capabilities = null;
+
     public function __construct(
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
@@ -162,7 +164,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
         $taskId = $task->id()->value;
 
-        if (isset($this->results[$taskId])) {
+        if (array_key_exists($taskId, $this->results)) {
             return $this->results[$taskId];
         }
 
@@ -248,6 +250,25 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             $this->startTimeNanos,
             $this->errors,
         );
+    }
+
+    /**
+     * Atomically swaps the negotiated capability descriptor.
+     *
+     * The new descriptor replaces the active one immediately. Backend selection
+     * (e.g., channel strategy) re-evaluates on the next reactor tick.
+     */
+    public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
+    {
+        $this->capabilities = $descriptor;
+    }
+
+    /**
+     * Returns the current capability descriptor, or null if none has been set.
+     */
+    public function capabilities(): ?CapabilityDescriptorInterface
+    {
+        return $this->capabilities;
     }
 
     /**
@@ -423,9 +444,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         $startTime = $this->taskStartTimes[$taskId] ?? null;
         unset($this->taskStartTimes[$taskId]);
 
-        if ($result !== null) {
-            $this->results[$taskId] = $result;
-        }
+        $this->results[$taskId] = $result;
 
         if ($throwable instanceof Throwable) {
             $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
