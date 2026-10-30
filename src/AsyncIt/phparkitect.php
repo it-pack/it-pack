@@ -50,8 +50,8 @@ return static function (Config $config): void {
         ->where('Common')->mayDependOnComponents()
         ->where('Domain')->mayDependOnComponents('Common', 'Port')
         ->where('Port')->mayDependOnComponents('Common', 'Domain')
-        ->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port', 'Adapter')
-        ->where('SDK')->mayDependOnComponents('Common', 'Domain', 'Port', 'Application')
+        ->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port')
+        ->where('SDK')->mayDependOnComponents('Common', 'Domain', 'Port', 'Adapter', 'Application')
         ->where('Adapter')->mayDependOnComponents('Common', 'Domain', 'Port')
         ->where('Conformance')->mayDependOnComponents('Common', 'Domain', 'Port', 'Application', 'SDK', 'Adapter');
 
