@@ -21,14 +21,14 @@ namespace ItPack\AsyncIt\Contract\Port;
 enum RuntimeAdapterKind: string
 {
     /** @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-reference */
-    case Reference = 'reference';
+    case Reference = RuntimeAdapterVocabulary::ADAPTER_REFERENCE;
 
     /** @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-revolt */
-    case Revolt = 'revolt';
+    case Revolt = RuntimeAdapterVocabulary::ADAPTER_REVOLT;
 
     /** @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole */
-    case Swoole = 'swoole';
+    case Swoole = RuntimeAdapterVocabulary::ADAPTER_SWOOLE;
 
     /** @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swow */
-    case Swow = 'swow';
+    case Swow = RuntimeAdapterVocabulary::ADAPTER_SWOW;
 }

@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Application\Poller;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
 
 /**
  * Reference poller backed by `stream_select()`.
@@ -21,6 +22,8 @@ use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
  */
 final class SelectPoller implements PollerPortInterface
 {
+    use StreamSelectPollerTrait;
+
     /**
      * @var array<string, mixed> id => stream
      */
@@ -43,29 +46,7 @@ final class SelectPoller implements PollerPortInterface
 
     public function await(int $timeoutNanoseconds): void
     {
-        $read = [];
-        foreach ($this->handles as $stream) {
-            if (is_resource($stream)) {
-                $read[] = $stream;
-            }
-        }
-
-        if ($read === []) {
-            return;
-        }
-
-        $seconds = intdiv($timeoutNanoseconds, 1_000_000_000);
-        $microseconds = intdiv($timeoutNanoseconds % 1_000_000_000, 1000);
-        $write = [];
-        $except = [];
-
-        try {
-            @stream_select($read, $write, $except, $seconds, $microseconds);
-        } catch (\ValueError $e) {
-            // No selectable descriptors (e.g. in-memory test streams); there is
-            // nothing to wait on, so the poll is a no-op. The leak check does
-            // not depend on real I/O.
-        }
+        $this->probeReadiness($this->handles, $timeoutNanoseconds);
     }
 
     public function activeHandleCount(): int

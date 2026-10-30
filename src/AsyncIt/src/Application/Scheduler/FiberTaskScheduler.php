@@ -66,8 +66,9 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     public function run(): void
     {
         while ($this->records !== []) {
-            foreach ($this->records as $record) {
+            foreach ($this->records as $id => $record) {
                 if ($record->isDone()) {
+                    unset($this->records[$id]);
                     continue;
                 }
 
@@ -75,10 +76,6 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             }
 
             $this->poller->await(0);
-            $this->records = array_filter(
-                $this->records,
-                static fn (TaskRecord $record): bool => !$record->isDone(),
-            );
         }
     }
 

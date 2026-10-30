@@ -50,16 +50,6 @@ final readonly class AsyncRuntime implements ExecutionEngineInterface
     }
 
     /**
-     * Discovers and assembles the runtime (negotiated adapter) from RunIt
-     * first-party adapters and the selected native runtime adapter, returning a
-     * ready-to-run {@see ExecutionEngineInterface}.
-     */
-    public static function discover(): self
-    {
-        return AsyncRuntimeFactory::create();
-    }
-
-    /**
      * The negotiated {@see TaskChannelInterface} (native where supported,
      * emulated otherwise).
      */
@@ -89,5 +79,15 @@ final readonly class AsyncRuntime implements ExecutionEngineInterface
     public function capability(): EngineCapability
     {
         return $this->capability;
+    }
+
+    /**
+     * Discovers and assembles the runtime (negotiated adapter) from RunIt
+     * first-party adapters and the selected native runtime adapter, returning a
+     * ready-to-run {@see ExecutionEngineInterface}.
+     */
+    public static function discover(): self
+    {
+        return AsyncRuntimeFactory::create();
     }
 }

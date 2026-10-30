@@ -266,9 +266,9 @@ vendor/bin/phpmetrics src --report-json=var/phpmetrics.json  # externals ≤ 8 p
 
 ### Tasks
 
-- [ ] **R14.1** — In `AsyncRuntimeFactory::create()` (`src/SDK/Factory/AsyncRuntimeFactory.php:90-94`), replace hardcoded `false` values for `supportsCoroutines` and `concurrent` with derivations from the `CapabilityDescriptor`:
-  - `supportsCoroutines` ← `CapabilityKind::BlockingHook` status `AdapterOnly` or `Supported`
-  - `concurrent` ← `CapabilityKind::FiberExecution` status `Supported` (already set)
+- [x] **R14.1** — In `AsyncRuntimeFactory::create()`, replaced hardcoded `false` values for `supportsCoroutines` and `concurrent` with derivations from the `CapabilityDescriptor`:
+   - `supportsCoroutines` ← `CapabilityKind::BlockingHook` status `AdapterOnly` or `Supported`
+   - `concurrent` ← `CapabilityKind::FiberExecution` status `Supported`
 
 - [ ] **R14.2** — Update or revise `docs/REVIEW.md` README note (F16) — either implement the `spawn()`/`awaitReadable()` API surface or add an explicit "planned API" section to the README with `@todo` annotations.
 

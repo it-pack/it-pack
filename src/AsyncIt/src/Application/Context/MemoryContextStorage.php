@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Context;
 
-use InvalidArgumentException;
+use ItPack\AsyncIt\Domain\ContextToken;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -20,7 +20,7 @@ use LogicException;
  * conformance Assertion A.
  *
  * This reference implementation uses a plain array stack rather than a
- * per-fiber `WeakMap<Fiber, ExecutionScope>` slot; it is intended for the
+ * per-fiber {@see \WeakMap<Fiber, ExecutionScope>} slot; it is intended for the
  * synchronous reference runtime where no fibers are active. A per-fiber slot
  * is a later optimisation behind the same contract.
  *
@@ -48,13 +48,13 @@ final class MemoryContextStorage implements ContextStorageInterface
 
         $top = $this->stack[array_key_last($this->stack)];
 
-        return $this->scopes[$this->tokenId($top)];
+        return $this->scopes[$top->id()] ?? null;
     }
 
     public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
     {
         $id = ++$this->counter;
-        $token = new MemoryContextToken($id);
+        $token = new ContextToken($id);
         $this->stack[] = $token;
         $this->scopes[$id] = $scope;
 
@@ -72,17 +72,8 @@ final class MemoryContextStorage implements ContextStorageInterface
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }
 
-        $id = $this->tokenId($token);
-        unset($this->stack[array_key_last($this->stack)], $this->scopes[$id]);
-        $this->stack = array_values($this->stack);
-    }
-
-    private function tokenId(ContextTokenInterface $token): int
-    {
-        if (!$token instanceof MemoryContextToken) {
-            throw new InvalidArgumentException('Context token was not issued by this storage.');
-        }
-
-        return $token->id;
+        $id = $token->id();
+        array_pop($this->stack);
+        unset($this->scopes[$id]);
     }
 }

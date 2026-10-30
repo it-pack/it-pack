@@ -70,7 +70,7 @@ final class NativePoller implements PollerPortInterface
 
     public function await(int $timeoutNanoseconds): void
     {
-        $milliseconds = (int) ceil($timeoutNanoseconds / 1_000_000);
+        $milliseconds = (int) ceil($timeoutNanoseconds / PollerVocabulary::NANOSECONDS_PER_MILLISECOND);
 
         if (!method_exists($this->poll, 'poll')) {
             return;

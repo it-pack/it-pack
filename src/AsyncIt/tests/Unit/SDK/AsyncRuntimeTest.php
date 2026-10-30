@@ -66,8 +66,10 @@ final class AsyncRuntimeTest extends TestCase
         $capability = $this->runtime()->capability();
 
         self::assertTrue($capability->supportsFibers);
-        self::assertFalse($capability->supportsCoroutines);
-        self::assertFalse($capability->concurrent);
+        // Swoole is available: BlockingHook = AdapterOnly → supportsCoroutines = true
+        self::assertTrue($capability->supportsCoroutines);
+        // FiberExecution = Supported → concurrent = true
+        self::assertTrue($capability->concurrent);
     }
     private function runtime(): AsyncRuntime
     {

@@ -23,9 +23,11 @@ use ItPack\AsyncIt\Contract\TaskChannelInterface;
 final class EmulatedChannel implements TaskChannelInterface
 {
     /**
-     * @var list<mixed>
+     * @var array<int, mixed|null>
      */
     private array $queue = [];
+
+    private int $head = 0;
 
     private bool $closed = false;
 
@@ -42,7 +44,8 @@ final class EmulatedChannel implements TaskChannelInterface
             throw new ChannelClosedException();
         }
 
-        if ($this->capacity !== null && count($this->queue) >= $this->capacity) {
+        $size = count($this->queue);
+        if ($this->capacity !== null && $size >= $this->capacity) {
             throw new ChannelFullException();
         }
 
@@ -51,11 +54,22 @@ final class EmulatedChannel implements TaskChannelInterface
 
     public function receive(): mixed
     {
-        if ($this->queue === []) {
+        if ($this->head >= count($this->queue)) {
             throw new ChannelEmptyException();
         }
 
-        return array_shift($this->queue);
+        $value = $this->queue[$this->head];
+        $this->queue[$this->head] = null;
+        $this->head++;
+
+        // Periodic compaction to bound memory: reindex when the head has
+        // advanced past half the allocated slots.
+        if ($this->head > 0 && ($this->head << 1) >= count($this->queue)) {
+            $this->queue = array_slice($this->queue, $this->head);
+            $this->head = 0;
+        }
+
+        return $value;
     }
 
     public function isClosed(): bool

@@ -54,22 +54,3 @@ final class ReactPhpPollerBridgeTest extends TestCase
         return new FakeReactLoop();
     }
 }
-
-final class FakeReactLoop
-{
-    /** @var list<mixed> */
-    public array $added = [];
-
-    /** @var list<mixed> */
-    public array $removed = [];
-
-    public function addReadStream(mixed $stream, callable $callback): void
-    {
-        $this->added[] = $stream;
-    }
-
-    public function removeReadStream(mixed $stream): void
-    {
-        $this->removed[] = $stream;
-    }
-}

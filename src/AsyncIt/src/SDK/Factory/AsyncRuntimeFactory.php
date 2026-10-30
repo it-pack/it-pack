@@ -89,8 +89,8 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
 
         $capability = new EngineCapability(
             $descriptor->statusFor(CapabilityKind::FiberExecution) === CapabilityStatus::Supported,
-            false,
-            false,
+            $descriptor->statusFor(CapabilityKind::BlockingHook) !== CapabilityStatus::Unavailable,
+            $descriptor->statusFor(CapabilityKind::FiberExecution) === CapabilityStatus::Supported,
         );
 
         return new AsyncRuntime(
@@ -103,8 +103,9 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
             $telemetry,
         );
     }
-
     /**
+     * Negotiates and returns the active runtime adapter and its capability descriptor.
+     *
      * @return array{0: RuntimeAdapterKind, 1: CapabilityDescriptor}
      */
     private function negotiate(): array

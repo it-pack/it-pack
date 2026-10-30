@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Factory;
 
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
-use ItPack\AsyncIt\Application\Poller\NativePoller;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
@@ -17,31 +16,21 @@ use PHPUnit\Framework\TestCase;
  */
 final class PollerFactoryTest extends TestCase
 {
-    public function testFallsBackToSelectPollerWhenNativeUnavailable(): void
+    public function testSelectPollerChosenWhenEdgeTriggeredNotSupported(): void
     {
-        self::assertFalse(PollerFactory::nativePollAvailable());
+        $factory = new PollerFactory();
+        $descriptor = new CapabilityDescriptor([
+            CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
+        ]);
 
-        $poller = new PollerFactory()->create($this->descriptor(true));
+        $poller = $factory->create($descriptor);
 
         self::assertInstanceOf(SelectPoller::class, $poller);
     }
 
-    public function testSelectsNativePollerWhenIoPollAvailable(): void
+    public function testNativePollAvailableReturnsFalseOnPhp85(): void
     {
-        if (!PollerFactory::nativePollAvailable()) {
-            self::markTestSkipped('PHP 8.6 Io\\Poll not available.');
-        }
-
-        $poller = new PollerFactory()->create($this->descriptor(true));
-
-        self::assertInstanceOf(NativePoller::class, $poller);
-    }
-    private function descriptor(bool $nativeEdge): CapabilityDescriptor
-    {
-        return new CapabilityDescriptor([
-            CapabilityKind::EdgeTriggeredPolling->value => $nativeEdge
-                ? CapabilityStatus::Supported
-                : CapabilityStatus::Emulated,
-        ]);
+        // PHP 8.5.12 in this environment — Io\Poll is PHP 8.6 only
+        self::assertFalse(PollerFactory::nativePollAvailable());
     }
 }

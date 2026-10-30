@@ -25,7 +25,7 @@ final class SchedulerFailureArtifact implements ExecutionArtifactInterface, Valu
     public function normalize(): array
     {
         return [
-            'kind' => 'asyncit.scheduler.failure',
+            'kind' => ArtifactVocabulary::KIND_SCHEDULER_FAILURE,
             'message' => $this->message,
         ];
     }

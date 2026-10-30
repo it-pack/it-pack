@@ -17,6 +17,6 @@ namespace ItPack\AsyncIt\Conformance\Result;
  */
 enum ViolationSeverity: string
 {
-    case Error = 'error';
-    case Warning = 'warning';
+    case Error = ViolationSeverityVocabulary::SEVERITY_ERROR;
+    case Warning = ViolationSeverityVocabulary::SEVERITY_WARNING;
 }
