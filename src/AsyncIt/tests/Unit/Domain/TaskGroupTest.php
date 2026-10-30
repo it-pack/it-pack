@@ -129,6 +129,27 @@ final class TaskGroupTest extends TestCase
         self::assertSame(BackpressurePolicy::Block, $group->backpressurePolicy());
     }
 
+    public function testDestructorCancelsChildScopesInsteadOfCompleting(): void
+    {
+        $childScope = $this->createMock(CancellationScopeInterface::class);
+        $childScope->expects($this->once())->method('cancel');
+
+        $child = new TaskStub(
+            new TaskId('child-1'),
+            ExecutionId::fromString('exec-1'),
+            TaskStatus::Created,
+            $childScope,
+        );
+
+        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler->method('spawn')->willReturn($child);
+
+        $group = $this->buildGroup($scheduler);
+        $group->go(static fn (): string => 'result');
+
+        unset($group);
+    }
+
     private function makeTask(TaskStatus $status): TaskStub
     {
         return new TaskStub(

@@ -16,6 +16,7 @@ use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
@@ -164,6 +165,38 @@ final class FiberTaskSchedulerTest extends TestCase
         $scheduler->runUntil(PHP_INT_MAX);
 
         self::assertSame(0, $clock->monotonicNanoseconds());
+    }
+
+    public function testExternallyCancelledTaskBeforeRunningIsCompletedAsCancelled(): void
+    {
+        $scheduler = $this->scheduler();
+
+        $task = $scheduler->spawn(static function (): void {
+            Fiber::suspend();
+        });
+
+        $task->cancellationScope()->cancel(CancellationReason::ParentCancelled);
+
+        $scheduler->run();
+
+        self::assertSame(TaskStatus::Cancelled, $task->status());
+    }
+
+    public function testExternallyCancelledTaskWhileSuspendedIsCompletedAsCancelled(): void
+    {
+        $scheduler = $this->scheduler();
+        $sibling = $scheduler->spawn(static fn (): string => 'sibling');
+        $task = $scheduler->spawn(static function () use ($scheduler, $sibling): void {
+            $scheduler->await($sibling);
+            Fiber::suspend();
+        });
+
+        $task->cancellationScope()->cancel(CancellationReason::ParentCancelled);
+
+        $scheduler->run();
+
+        self::assertSame(TaskStatus::Cancelled, $task->status());
+        self::assertSame(TaskStatus::Succeeded, $sibling->status());
     }
 
     private function scheduler(): FiberTaskScheduler

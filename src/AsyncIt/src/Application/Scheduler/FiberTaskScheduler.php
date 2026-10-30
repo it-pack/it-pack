@@ -101,6 +101,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
      */
     private array $pendingResumeValues = [];
 
+    private bool $cancelledRecordPending = false;
+
     private ?TaskInterface $currentTask = null;
 
     /**
@@ -225,6 +227,10 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             while ($this->ready !== []) {
                 $record = array_shift($this->ready);
                 if (!$record->isDone()) {
+                    if ($record->task()->cancellationScope()->isCancelled()) {
+                        $this->complete($record, TaskStatus::Cancelled);
+                        continue;
+                    }
                     $this->step($record);
                 }
             }
@@ -234,6 +240,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                     $this->resumeAwaiters($record);
                     unset($this->records[$id]);
                 }
+            }
+
+            if ($this->cancelledRecordPending) {
+                $this->cancelledRecordPending = false;
+                $this->drainCancelledRecords();
             }
 
             if ($this->records !== []) {
@@ -416,6 +427,10 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                 $this->fiberFactory->create($operation)
             );
 
+        $task->cancellationScope()->onCancel(function (): void {
+            $this->cancelledRecordPending = true;
+        });
+
         $this->taskStartTimes[$task->id()->value] = $this->clock->monotonicNanoseconds();
 
         $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_SPAWNED, TaskStatus::Created);
@@ -572,6 +587,24 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         return $nearest;
+    }
+
+    /**
+     * Completes tasks whose cancellation scope was cancelled externally
+     * (e.g., by TaskGroup destructor) but whose records haven't been
+     * drained yet. This ensures cancelled tasks are cleaned up, their
+     * awaiters are resumed, and poll handles are released even when
+     * the task is suspended (not in the ready queue).
+     */
+    private function drainCancelledRecords(): void
+    {
+        foreach ($this->records as $id => $record) {
+            if (!$record->isDone() && $record->task()->cancellationScope()->isCancelled()) {
+                $this->complete($record, TaskStatus::Cancelled);
+                $this->resumeAwaiters($record);
+                unset($this->records[$id]);
+            }
+        }
     }
 
     /**
