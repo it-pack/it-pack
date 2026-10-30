@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace ItPack\AsyncIt\Contract;
+namespace ItPack\AsyncIt\Domain;
 
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 
@@ -21,7 +22,7 @@ use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
  *
  * @see https://w3id.org/itpack/asyncit#CapabilityDescriptor
  */
-final readonly class CapabilityDescriptor implements ValueObjectInterface
+final readonly class CapabilityDescriptor implements CapabilityDescriptorInterface
 {
     /**
      * @param array<string, CapabilityStatus> $capabilities keyed by CapabilityKind value

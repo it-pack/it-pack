@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Scheduler;
 
 use Fiber;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * Per-task bookkeeping for the reactor: the task, its Fiber, any poll handles

@@ -42,3 +42,7 @@ parameters:
         - { message: '#^Unused .+CancellationException::reason$#', path: src/Domain/Exception/CancellationException.php }
         # TaskBehavior::$status write is performed via the property hook in TaskBehavior.php.
         - { message: '#^Property .+TaskBehavior::\$status is never written$#', path: src/Domain/Behavior/TaskBehavior.php }
+        # Resilience: circuit breaker failureTimeout and rate limiter methods are for future adapter wiring.
+        - { message: '#^Property .+CircuitBreaker::\$failureTimeout is never read$#', path: src/Domain/CircuitBreaker.php }
+        - { message: '#^Unused .+RateLimiter::(waitForPermit|consume)$#', path: src/Domain/RateLimiter.php }
+        - { message: '#^Unused .+BulkheadFullException::capacity$#', path: src/Domain/Exception/BulkheadFullException.php }

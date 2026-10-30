@@ -6,7 +6,7 @@ namespace ItPack\AsyncIt\Domain\Exception;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Domain\TaskId;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use RuntimeException;
 
 /**
@@ -21,7 +21,7 @@ use RuntimeException;
 final class InvalidLifecycleTransitionException extends RuntimeException implements AsyncItExceptionInterface
 {
     public function __construct(
-        public readonly TaskId $taskId,
+        public readonly TaskIdInterface $taskId,
         public readonly TaskStatus $from,
         public readonly TaskStatus $to,
     ) {

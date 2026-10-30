@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * The polling contract — an OS-readiness notifier, not a scheduler.
@@ -24,12 +25,12 @@ interface PollerPortInterface
      *
      * @param mixed $stream a stream resource or socket accepted by the backend
      */
-    public function register(mixed $stream): StreamPollHandle;
+    public function register(mixed $stream): StreamPollHandleInterface;
 
     /**
      * Releases a previously registered handle, detaching any OS-level watcher.
      */
-    public function release(StreamPollHandle $handle): void;
+    public function release(StreamPollHandleInterface $handle): void;
 
     /**
      * Blocks until at least one registered stream is ready or the monotonic

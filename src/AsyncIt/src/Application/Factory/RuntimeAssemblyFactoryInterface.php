@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Per-runtime factory contract: each adapter package supplies an implementation

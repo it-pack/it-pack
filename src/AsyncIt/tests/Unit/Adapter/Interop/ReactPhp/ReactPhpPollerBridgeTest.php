@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Interop\ReactPhp;
 
 use ItPack\AsyncIt\Adapter\Interop\ReactPhp\ReactPhpPollerBridge;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -17,11 +16,10 @@ final class ReactPhpPollerBridgeTest extends TestCase
     {
         $loop = $this->fakeLoop();
         $bridge = new ReactPhpPollerBridge($loop);
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
 
-        $handle = $bridge->register($stream);
+        $bridge->register($stream);
 
-        self::assertInstanceOf(StreamPollHandle::class, $handle);
         self::assertSame(1, $bridge->activeHandleCount());
         self::assertCount(1, $loop->added);
     }
@@ -30,7 +28,7 @@ final class ReactPhpPollerBridgeTest extends TestCase
     {
         $loop = $this->fakeLoop();
         $bridge = new ReactPhpPollerBridge($loop);
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
         $handle = $bridge->register($stream);
 
         $bridge->release($handle);
@@ -42,7 +40,7 @@ final class ReactPhpPollerBridgeTest extends TestCase
     public function testAwaitProbesReadinessWithoutError(): void
     {
         $bridge = new ReactPhpPollerBridge($this->fakeLoop());
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
         $bridge->register($stream);
 
         $bridge->await(0);

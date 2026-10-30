@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Discovery;
 
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Reference runtime discovery: returns the negotiated {@see CapabilityDescriptor}
@@ -21,11 +22,11 @@ use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
   */
 final readonly class ReferenceRuntimeDiscovery implements RuntimeDiscoveryInterface
 {
-    public function __construct(private CapabilityDescriptor $descriptor)
+    public function __construct(private CapabilityDescriptorInterface $descriptor)
     {
     }
 
-    public function discover(): CapabilityDescriptor
+    public function discover(): CapabilityDescriptorInterface
     {
         return $this->descriptor;
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 
 /**

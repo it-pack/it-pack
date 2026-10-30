@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain;
 
 use InvalidArgumentException;
-use ItPack\AsyncIt\Contract\ValueObjectInterface;
-use Stringable;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 
 /**
  * Opaque identifier of a single scheduled task within an execution.
@@ -18,7 +17,7 @@ use Stringable;
  * @see https://w3id.org/itpack/asyncit#Task
  * @see https://w3id.org/itpack/runit#executionId
  */
-final class TaskId implements ValueObjectInterface, Stringable
+final class TaskId implements TaskIdInterface
 {
     public string $value {
         get => $this->id;

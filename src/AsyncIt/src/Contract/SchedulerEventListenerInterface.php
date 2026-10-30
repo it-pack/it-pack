@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\AsyncIt\Domain\SchedulerEvent;
-
 /**
  * Receives lifecycle events from the scheduler.
  *
@@ -20,5 +18,5 @@ use ItPack\AsyncIt\Domain\SchedulerEvent;
  */
 interface SchedulerEventListenerInterface
 {
-    public function onEvent(SchedulerEvent $event): void;
+    public function onEvent(SchedulerEventInterface $event): void;
 }

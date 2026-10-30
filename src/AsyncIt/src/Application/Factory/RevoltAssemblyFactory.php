@@ -8,7 +8,7 @@ use Fiber;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltChannel;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltPoller;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;

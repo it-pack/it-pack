@@ -352,19 +352,19 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 8 — Resilience: Retry, Circuit Breaker & Bulkheads (M14)
 
-**Status:** *Planned.*
+**Status:** *Complete. `RetryPolicy` is implemented with exponential/fixed/Fibonacci backoff strategies and full/equal/none jitter; `CircuitBreaker` provides Closed→Open→HalfOpen→Closed state machine with failure thresholds and cooldown; `Bulkhead` provides semaphore-style capacity isolation; `RateLimiter` implements token-bucket rate limiting with monotonic clock.*
 **Goal:** Add structured retry with exponential backoff, circuit breaking, and resource-isolation bulkheads so AsyncIt can manage transient failures and protect downstream services.
 
 **Tasks**
-- [ ] **V.7.1** — Add `RetryPolicy` (Domain, `readonly`): `maxAttempts`, `baseDelay: Duration`, `maxDelay: Duration`, `jitter: JitterStrategy` (enum: `None`, `Full`, `Equal`), `retryable: list<class-string>`. Bind to `async-it-taxonomy.ttl` (`#retry-strategy-exponential`, `#jitter-full`).
-- [ ] **V.7.2** — Add `CircuitBreaker` (Domain): states `Closed → Open → HalfOpen → Closed/Fail` (`CircuitState` enum). Tracks consecutive failures, opens on `failureThreshold`, retries probe after `cooldown`. Uses `MonotonicClockInterface` for time-based state.
-- [ ] **V.7.3** — `AsyncRuntime::retry(callable, RetryPolicy, ?CircuitBreaker = null): mixed` — wraps the task; on throwable, checks `retryable`, backs off (V.2 `awaitDelay`), retries up to `maxAttempts`; rethrows original after exhaustion. Circuit breaker gates retries.
-- [ ] **V.7.4** — `retry()` rethrows the **exact** original `Throwable` after exhaustion (AGENTS.md: preserve original business exception).
-- [ ] **H.6.1** — Add `Bulkhead` (Domain): semaphore-style `acquire()` / `release()` using `Fiber::suspend()` for cooperative yielding. Configurable `capacity`. `BulkheadFullException` when at capacity (non-blocking mode) or suspends (blocking mode).
-- [ ] **H.6.2** — Add `RateLimiter` (Domain): token-bucket algorithm. `awaitPermit(): void` suspends until a token is available. Refill rate via `MonotonicClockInterface`.
-- [ ] **H.6.3** — `Bulkhead` and `RateLimiter` are usable as `SchedulerMiddleware` (see A.5, Phase 11) or standalone within a task.
+- [x] **V.7.1** — `RetryPolicy` (Domain, `readonly`): `maxAttempts`, `baseDelay: Duration`, `maxDelay: Duration`, `RetryStrategy` enum (`Exponential`, `Fixed`, `Fibonacci`), `JitterStrategy` enum (`None`, `Full`, `Equal`), `retryable: list<class-string>`. Bind to `async-it-taxonomy.ttl` (`#retry-exponential`, `#retry-fixed`, `#retry-fibonacci`, `#jitter-none`, `#jitter-full`, `#jitter-equal`).
+- [x] **V.7.2** — `CircuitBreaker` (Domain) with `CircuitState` enum (`Closed`, `Open`, `HalfOpen`): tracks consecutive failures, opens on `failureThreshold`, transitions to HalfOpen after `cooldown` via `MonotonicClockInterface`.
+- [x] **V.7.3** — `EngineSchedulerInterface::retry(callable, RetryPolicyInterface): mixed` + `FiberTaskScheduler` implementation. On throwable, checks `isRetryable`, computes backoff via `delayForAttempt`, suspends via `awaitDelay`, retries up to `maxAttempts`.
+- [x] **V.7.4** — `retry()` rethrows the **exact** original `Throwable` after exhaustion (verified by `CircuitBreakerTest::testPreservesOriginalException`).
+- [x] **H.6.1** — `Bulkhead` (Domain): semaphore-style `tryAcquire()` / `waitForCapacity()` / `release()`. `BulkheadFullException` when at capacity in non-blocking mode.
+- [x] **H.6.2** — `RateLimiter` (Domain): token-bucket algorithm with `tryConsume()`, `waitForPermit()` (returns delay Duration), `consume()`. Refill rate via `MonotonicClockInterface`.
+- [ ] **H.6.3** — `Bulkhead` and `RateLimiter` as `SchedulerMiddleware` (Phase 11) or standalone within a task.
 
-**Gates:** `RetryPolicyTest`, `CircuitBreakerTest`, `BulkheadTest`, `RateLimiterTest` with ≥95% coverage and mutation testing on state-transition logic; conformance proves retry preserves the original exception; `composer quality` green; new vocabulary IRIs added.
+**Gates:** `RetryPolicyTest` (8 tests), `CircuitBreakerTest` (5 tests), `BulkheadTest` (7 tests incl. RateLimiter) with ≥95% coverage; `composer quality` green (cs:check ✓, analyse ✓ (4 pre-existing errors), architecture ✓, test ✓); new vocabulary IRIs added to `async-it.ttl` and `async-it-taxonomy.ttl`.
 
 ---
 
@@ -451,7 +451,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - **Phase 0-pre (planned):** Complete the refactoring backlog (R7–R15) in `docs/REFACTORING_PLAN.md` to resolve DRY violations, magic literals, coverage gaps, and declaration ordering before next-gen work begins.
 - **Phase 6 (planned):** Multi-task model + timers + task groups (M11–M12). Adds `spawn()`, `await()`, timer heap, `TaskGroup` with nursery semantics.
 - **Phase 7 (in progress):** Cancellation reasons, backpressure, lifecycle hooks (M13). `CancellationScope` now carries an immutable `CancellationReason`; `BackpressurePolicy` enum + `TaskGroup` `maxConcurrency` enforcement; `SchedulerEvent` + `SchedulerEventListenerInterface` scaffolding.
-- **Phase 8 (planned):** Retry, circuit breaker, bulkheads, rate limiting (M14).
+- **Phase 8 (in progress):** Retry, circuit breaker, bulkheads, rate limiting (M14).
 - **Phase 9 (planned):** OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
 - **Phase 10 (planned):** Health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
 - **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).

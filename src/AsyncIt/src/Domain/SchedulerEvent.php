@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\SchedulerEventInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 
 /**
@@ -17,7 +18,7 @@ use ItPack\AsyncIt\Contract\TaskInterface;
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-completed
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-cancellation-observed
  */
-final readonly class SchedulerEvent
+final readonly class SchedulerEvent implements SchedulerEventInterface
 {
     private function __construct(
         public TaskInterface $task,

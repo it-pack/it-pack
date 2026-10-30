@@ -14,8 +14,11 @@ use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Domain\RetryPolicy;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -108,7 +111,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         $this->doSpawn($task, $operation);
     }
 
-    public function spawn(callable $operation, ?TaskId $id = null): TaskInterface
+    public function spawn(callable $operation, TaskIdInterface|null $id = null): TaskInterface
     {
         $scope = $this->cancellationScopeFactory->create();
         $task = $id instanceof TaskId
@@ -223,6 +226,45 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         $this->currentTask = null;
         Fiber::suspend();
         $this->currentTask = $task;
+    }
+
+    /**
+     * Runs the operation with retry semantics governed by the policy.
+     *
+     * On each failed attempt, checks whether the exception is retryable
+     * (per {@see RetryPolicy::$retryable}). If retryable, suspends for the
+     * computed backoff delay (V.2 {@see awaitDelay()}) and retries.
+     * After exhausting {@see RetryPolicy::$maxAttempts}, the **exact**
+     * original {@see Throwable} is rethrown — no wrapping.
+     *
+     * @throws Throwable The original exception after max attempts exhaustion.
+     *
+     * @see https://w3id.org/itpack/asyncit#RetryPolicy
+     */
+    public function retry(callable $operation, RetryPolicyInterface $policy): mixed
+    {
+        $attempt = 1;
+        $original = null;
+
+        while (true) {
+            try {
+                return $operation();
+            } catch (Throwable $e) {
+                $original = $e;
+                $attempt++;
+
+                if ($attempt > $policy->maxAttempts) {
+                    throw $original;
+                }
+
+                if (!$policy->isRetryable($e::class)) {
+                    throw $e;
+                }
+
+                $delay = $policy->delayForAttempt($attempt - 1);
+                $this->awaitDelay($delay);
+            }
+        }
     }
 
     /**

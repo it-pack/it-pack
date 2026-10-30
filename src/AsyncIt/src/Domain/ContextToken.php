@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Domain;
 
-use ItPack\AsyncIt\Contract\ValueObjectInterface;
+use ItPack\AsyncIt\Contract\StringableValueObjectInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 
 /**
@@ -17,10 +17,15 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class ContextToken implements ContextTokenInterface, ValueObjectInterface
+final readonly class ContextToken implements ContextTokenInterface, StringableValueObjectInterface
 {
     public function __construct(public int $id)
     {
+    }
+
+    public function __toString(): string
+    {
+        return (string) $this->id;
     }
 
     public function id(): int

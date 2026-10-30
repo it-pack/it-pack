@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Contract;
+namespace Tests\Unit\Domain;
 
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ItPack\AsyncIt\Contract\CapabilityDescriptor
+ * @covers \ItPack\AsyncIt\Domain\CapabilityDescriptor
  */
 final class CapabilityDescriptorTest extends TestCase
 {

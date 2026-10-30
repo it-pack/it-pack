@@ -14,15 +14,14 @@ use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
 /**
  * Conformance Assertion C — Deterministic Cleanup.
  *
- * Proves the runtime releases every {@see \ItPack\AsyncIt\Contract\Port\StreamPollHandle}
+ * Proves the runtime releases every {@see \ItPack\AsyncIt\Domain\StreamPollHandle}
  * it registered: after a register/await/release cycle the runtime must hold zero
  * unreleased handles. A single leaked descriptor is a conformance failure.
  *
  * @see https://w3id.org/itpack/asyncit#StreamPollHandle
  * @see https://w3id.org/itpack/asyncit#Poller
   * @api
-
-  */
+ */
 final class DeterministicCleanupVerifier implements VerifierInterface
 {
     public const string ASSERTION = 'C';
@@ -37,7 +36,7 @@ final class DeterministicCleanupVerifier implements VerifierInterface
         $result = new ConformanceResult($this->port());
 
         $poller = $fixture->poller();
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
 
         $handle = $poller->register($stream);
         $poller->await(0);

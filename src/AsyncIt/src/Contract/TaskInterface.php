@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Contract;
 
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 /**
@@ -23,7 +22,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
   */
 interface TaskInterface
 {
-    public function id(): TaskId;
+    public function id(): TaskIdInterface;
 
     public function executionId(): ExecutionIdInterface;
 
