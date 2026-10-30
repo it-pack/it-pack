@@ -45,7 +45,7 @@ final class AsyncRuntimeVerifierTest extends TestCase
         $result = $verifier->verify($this->doublyBrokenFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertGreaterThanOrEqual(2, $result->errors());
+        self::assertGreaterThanOrEqual(2, count($result->errors()));
         self::assertSame('ctx-bleed', $result->errors()[0]->id);
     }
 
