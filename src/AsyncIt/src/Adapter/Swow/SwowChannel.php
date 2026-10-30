@@ -53,6 +53,23 @@ final class SwowChannel implements TaskChannelInterface
         if ($this->closed) {
             throw new ChannelClosedException();
         }
+
+        // Unbounded channels are never full — return immediately.
+        if (!$this->channel->isFull()) {
+            return;
+        }
+
+        // For bounded channels at capacity, suspend the coroutine until a
+        // consumer frees a slot. Swow\Coroutine\Channel::push() blocks
+        // natively at the coroutine level when the channel is full. We push
+        // a sentinel and immediately pop it. In Swow's cooperative scheduling
+        // model there is no yield point between push() returning and pop()
+        // executing, so no other coroutine can observe the sentinel. This
+        // atomicity assumption holds as long as the Swow extension preserves
+        // cooperative scheduling guarantees between consecutive non-blocking
+        // Channel operations.
+        $this->channel->push(null);
+        $this->channel->pop();
     }
 
     public function isClosed(): bool

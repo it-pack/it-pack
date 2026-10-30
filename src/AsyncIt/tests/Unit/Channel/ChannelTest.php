@@ -12,6 +12,7 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use PHPUnit\Framework\TestCase;
 use Swoole\Coroutine\Channel;
 
+use function Swoole\Coroutine\go;
 use function Swoole\Coroutine\run;
 
 /**
@@ -63,5 +64,35 @@ final class ChannelTest extends TestCase
         });
 
         self::assertSame('hello', $value);
+    }
+
+    public function testSwooleChannelWaitForCapacityBlocksOnFull(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $received = null;
+
+        run(static function () use (&$received): void {
+            $channel = new SwooleChannel(new Channel(1));
+            $channel->send('initial');
+
+            // Producer coroutine: waitForCapacity blocks until consumer frees space
+            go(static function () use ($channel): void {
+                $channel->waitForCapacity();
+                $channel->send('after-wait');
+            });
+
+            // Consumer coroutine: yields, then pops, freeing a slot
+            go(static function () use ($channel, &$received): void {
+                \Swoole\Coroutine::sleep(0.01);
+                $channel->receive(); // pop 'initial'
+                \Swoole\Coroutine::sleep(0.01);
+                $received = $channel->receive(); // should get 'after-wait'
+            });
+        });
+
+        self::assertSame('after-wait', $received);
     }
 }
