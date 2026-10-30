@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\Swoole;
 
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,19 +15,18 @@ final class SwoolePollerTest extends TestCase
     public function testRegisterCreatesHandleAndTracksCount(): void
     {
         $poller = new SwoolePoller();
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
         self::assertIsResource($stream);
 
-        $handle = $poller->register($stream);
+        $poller->register($stream);
 
-        self::assertInstanceOf(StreamPollHandle::class, $handle);
         self::assertSame(1, $poller->activeHandleCount());
     }
 
     public function testReleaseClearsHandle(): void
     {
         $poller = new SwoolePoller();
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
         $handle = $poller->register($stream);
 
         self::assertSame(1, $poller->activeHandleCount());

@@ -17,7 +17,7 @@ final class NativePollerTest extends TestCase
     {
         $poll = $this->fakePoll();
         $poller = new NativePoller($poll);
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
 
         $handle = $poller->register($stream);
 
@@ -31,7 +31,7 @@ final class NativePollerTest extends TestCase
     {
         $poll = $this->fakePoll();
         $poller = new NativePoller($poll);
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
         $handle = $poller->register($stream);
 
         $poller->release($handle);

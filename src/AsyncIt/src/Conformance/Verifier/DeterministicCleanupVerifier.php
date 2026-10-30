@@ -36,7 +36,7 @@ final class DeterministicCleanupVerifier implements VerifierInterface
         $result = new ConformanceResult($this->port());
 
         $poller = $fixture->poller();
-        $stream = fopen('php://memory', 'r+');
+        $stream = fopen('php://memory', 'rb+');
 
         $handle = $poller->register($stream);
         $poller->await(0);
