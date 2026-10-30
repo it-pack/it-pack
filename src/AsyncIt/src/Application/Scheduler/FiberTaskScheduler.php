@@ -17,13 +17,17 @@ use ItPack\AsyncIt\Application\SchedulerHealth;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
+use ItPack\AsyncIt\Contract\SchedulerEventInterface;
+use ItPack\AsyncIt\Contract\SchedulerEventListenerInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Domain\SchedulerEvent;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -113,6 +117,9 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
     private CapabilityDescriptorInterface|null $capabilities = null;
 
+    /** @var list<SchedulerEventListenerInterface> */
+    private array $listeners;
+
     public function __construct(
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
@@ -125,8 +132,10 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         private readonly ExecutionScopeFactoryInterface $scopeFactory,
         private readonly ArtifactPublisherInterface $publisher,
         private readonly SchedulerLifecycleArtifactFactory $lifecycleFactory,
+        SchedulerEventListenerInterface ...$listeners,
     ) {
         $this->startTimeNanos = $this->clock->monotonicNanoseconds();
+        $this->listeners = array_values($listeners);
     }
 
     public function submit(TaskInterface $task, callable $operation): void
@@ -174,6 +183,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         $this->awaiters[$taskId][] = $currentRecord;
+
+        $this->notifyListeners(SchedulerEvent::suspended(
+            $currentRecord->task(),
+            AwaitPoint::Join,
+        ));
 
         return Fiber::suspend();
     }
@@ -309,11 +323,14 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
         $this->timers[] = ['deadline' => $deadline, 'record' => $record];
 
+        $this->notifyListeners(SchedulerEvent::suspended($task, AwaitPoint::Delay));
+
         $this->currentTask = null;
         Fiber::suspend();
         $this->currentTask = $task;
 
         $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_RESUMED, TaskStatus::Running);
+        $this->notifyListeners(SchedulerEvent::resumed($task, AwaitPoint::Delay));
     }
 
     /**
@@ -379,6 +396,13 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         );
     }
 
+    private function notifyListeners(SchedulerEventInterface $event): void
+    {
+        foreach ($this->listeners as $listener) {
+            $listener->onEvent($event);
+        }
+    }
+
     /**
      * Internal spawn: creates the fiber + record and pushes onto the ready queue.
      * @throws Throwable
@@ -395,6 +419,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         $this->taskStartTimes[$task->id()->value] = $this->clock->monotonicNanoseconds();
 
         $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_SPAWNED, TaskStatus::Created);
+        $this->notifyListeners(SchedulerEvent::spawned($task, $this->currentTask?->id()));
     }
 
     /**
@@ -409,6 +434,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         );
 
         $this->currentTask = $record->task();
+
+        $this->notifyListeners(SchedulerEvent::resumed($record->task()));
 
         try {
             $this->resume($record);
@@ -469,6 +496,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_COMPLETED, $status, $startTime);
+
+        $this->notifyListeners(SchedulerEvent::completed($task, $status));
 
         $task->complete($status);
         $this->releaseHandles($record);

@@ -8,28 +8,29 @@ use ItPack\AsyncIt\Conformance\Contract\VerifierInterface;
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Result\ConformanceResult;
 use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
+use ItPack\AsyncIt\Conformance\Result\ViolationSeverity;
+use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
-use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 
 /**
  * Conformance Assertion E — Trace Parentage.
  *
  * Proves the runtime's telemetry bridge records lifecycle events with parent-child
- * linkage through a suspend/resume cycle: a parent task event is recorded with a
- * task id, a suspension event follows, a child task event carries the parent's task
- * id as `parentId`, and completion events are recorded for both.
+ * linkage through a real suspend/resume cycle: a parent task spawns a child task
+ * and awaits it. The runtime emits `task.spawned`, `task.suspended`,
+ * `task.resumed`, and `task.completed` events through its listener pipeline into
+ * the telemetry bridge. The verifier reads the bridge's recorded events and
+ * asserts that the child's spawn event carries the parent's task id as `parentId`.
  *
- * The verifier drives the event sequence through the **fixture's own** telemetry
- * bridge — never a synthetic one — so the assertion is meaningful: if the runtime
- * emits no events or broken parentage, the bridge records nothing (or wrong
- * linkage) and the assertion fails. When the fixture cannot expose a telemetry
- * bridge, the assertion is reported as fixture-unsupported so it does not falsely
- * pass.
+ * When the fixture cannot expose a {@see LazyTelemetryBridge} (which provides
+ * `events()` for introspection), the assertion is reported as fixture-unsupported
+ * so it does not falsely pass.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-spawned
+ * @api
  */
 final class TraceParentageVerifier implements VerifierInterface
 {
@@ -46,19 +47,35 @@ final class TraceParentageVerifier implements VerifierInterface
 
         $bridge = $fixture->telemetry();
 
-        if (!$bridge instanceof TelemetryBridgeInterface) {
+        if (!$bridge instanceof LazyTelemetryBridge) {
             return $result->add(new ConformanceViolation(
                 ViolationVocabulary::FIXTURE_UNSUPPORTED,
-                'TraceParentageVerifier: fixture does not expose a telemetry bridge.',
-                \ItPack\AsyncIt\Conformance\Result\ViolationSeverity::Warning,
+                'TraceParentageVerifier: fixture does not expose a LazyTelemetryBridge '
+                . 'with events() for introspection.',
+                ViolationSeverity::Warning,
             ));
         }
 
-        $this->simulateLifecycle($bridge);
+        $scheduler = $fixture->scheduler();
 
-        if (!$bridge instanceof LazyTelemetryBridge) {
-            return $result;
+        if (!$scheduler instanceof EngineSchedulerInterface) {
+            return $result->add(new ConformanceViolation(
+                ViolationVocabulary::FIXTURE_UNSUPPORTED,
+                'TraceParentageVerifier: fixture scheduler does not implement EngineSchedulerInterface.',
+                ViolationSeverity::Warning,
+            ));
         }
+
+        $parentTask = $scheduler->spawn(function () use ($scheduler): string {
+            $childTask = $scheduler->spawn(static fn (): string => 'child-result');
+
+            $result = $scheduler->await($childTask);
+            assert(is_string($result));
+
+            return $result;
+        });
+
+        $scheduler->run();
 
         $events = $bridge->events();
 
@@ -107,67 +124,20 @@ final class TraceParentageVerifier implements VerifierInterface
             ));
         }
 
-        $childSpawn = array_find($spawnEvents, fn ($event): bool => ($event['context']['taskId'] ?? '') === 'child');
+        $parentId = $parentTask->id()->value;
+
+        $childSpawn = array_find(
+            $spawnEvents,
+            static fn (array $e): bool => ($e['context']['parentId'] ?? null) === $parentId,
+        );
 
         if ($childSpawn === null) {
             $result = $result->add(new ConformanceViolation(
                 ViolationVocabulary::TELEMETRY_SPAN_BROKEN_PARENTAGE,
-                'No spawn event for child task was recorded.',
-            ));
-
-            return $result;
-        }
-
-        $hasParentRef = isset($childSpawn['context']['parentId'])
-            && $childSpawn['context']['parentId'] === 'parent';
-
-        if (!$hasParentRef) {
-            $result = $result->add(new ConformanceViolation(
-                ViolationVocabulary::TELEMETRY_SPAN_BROKEN_PARENTAGE,
-                'Child task spawn event does not carry parentId = parent.',
+                'No spawn event for child task carrying parentId = parent was recorded.',
             ));
         }
 
         return $result;
-    }
-
-    private function simulateLifecycle(TelemetryBridgeInterface $bridge): void
-    {
-        $bridge->record('task.spawned', [
-            'taskId' => 'parent',
-            'taskKind' => 'root',
-            'executionId' => 'trace-exec',
-            'status' => 'running',
-        ]);
-
-        $bridge->record('task.suspended', [
-            'taskId' => 'parent',
-            'awaitPoint' => 'await',
-        ]);
-
-        $bridge->record('task.spawned', [
-            'taskId' => 'child',
-            'taskKind' => 'child',
-            'executionId' => 'trace-exec',
-            'parentId' => 'parent',
-            'status' => 'running',
-        ]);
-
-        $bridge->record('task.completed', [
-            'taskId' => 'child',
-            'status' => 'succeeded',
-            'duration' => 1_000_000,
-        ]);
-
-        $bridge->record('task.resumed', [
-            'taskId' => 'parent',
-            'awaitPoint' => 'await',
-        ]);
-
-        $bridge->record('task.completed', [
-            'taskId' => 'parent',
-            'status' => 'succeeded',
-            'duration' => 2_000_000,
-        ]);
     }
 }

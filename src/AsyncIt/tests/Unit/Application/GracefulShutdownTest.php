@@ -24,12 +24,12 @@ final class GracefulShutdownTest extends TestCase
         $clock->method('monotonicNanoseconds')->willReturn($clockNanos);
 
         $scope = $this->createMock(CancellationScopeInterface::class);
-        $scope->expects(self::once())->method('cancel');
+        $scope->expects($this->once())->method('cancel');
 
         $receivedDeadline = null;
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
         $scheduler
-            ->expects(self::once())
+            ->expects($this->once())
             ->method('runUntil')
             ->willReturnCallback(static function (int $deadline) use (&$receivedDeadline): void {
                 $receivedDeadline = $deadline;
@@ -59,10 +59,10 @@ final class GracefulShutdownTest extends TestCase
         $clock->method('monotonicNanoseconds')->willReturn(1);
 
         $scope = $this->createMock(CancellationScopeInterface::class);
-        $scope->expects(self::once())->method('cancel');
+        $scope->expects($this->once())->method('cancel');
 
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
-        $scheduler->expects(self::once())->method('runUntil');
+        $scheduler->expects($this->once())->method('runUntil');
 
         $shutdown = new GracefulShutdown(
             $scheduler,
