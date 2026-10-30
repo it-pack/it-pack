@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Contract\Port;
 
 use InvalidArgumentException;
 use ItPack\AsyncIt\Contract\ValueObjectInterface;
+use Stringable;
 
 /**
  * Opaque handle for one registered poller watcher.
@@ -17,7 +18,7 @@ use ItPack\AsyncIt\Contract\ValueObjectInterface;
  *
  * @see https://w3id.org/itpack/asyncit#StreamPollHandle
  */
-final readonly class StreamPollHandle implements ValueObjectInterface
+final readonly class StreamPollHandle implements ValueObjectInterface, Stringable
 {
     public function __construct(public string $id)
     {

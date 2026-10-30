@@ -71,6 +71,7 @@ final class AsyncRuntimeTest extends TestCase
         // FiberExecution = Supported → concurrent = true
         self::assertTrue($capability->concurrent);
     }
+
     private function runtime(): AsyncRuntime
     {
         return AsyncRuntime::discover();

@@ -15,7 +15,7 @@ final class FakeReactLoop
     /** @var list<mixed> */
     public array $removed = [];
 
-    public function addReadStream(mixed $stream, callable $callback): void
+    public function addReadStream(mixed $stream): void
     {
         $this->added[] = $stream;
     }

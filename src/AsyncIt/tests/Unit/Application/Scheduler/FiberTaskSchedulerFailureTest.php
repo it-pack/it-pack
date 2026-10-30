@@ -29,7 +29,7 @@ final class FiberTaskSchedulerFailureTest extends TestCase
         $scheduler = $this->createScheduler();
         $scheduler->submit(
             $this->createTask(),
-            static function (): void {
+            static function (): never {
                 throw new RuntimeException('boom');
             },
         );

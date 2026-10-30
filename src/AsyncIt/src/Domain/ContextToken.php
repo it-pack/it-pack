@@ -19,7 +19,7 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  */
 final readonly class ContextToken implements ContextTokenInterface, ValueObjectInterface
 {
-    public function __construct(public readonly int $id)
+    public function __construct(public int $id)
     {
     }
 

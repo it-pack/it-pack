@@ -16,7 +16,7 @@ use ItPack\AsyncIt\Contract\TaskInterface;
 final class TaskRecordFactory implements TaskRecordFactoryInterface
 {
     /**
-     * @param \Fiber<mixed, mixed, mixed, mixed> $fiber
+     * @param Fiber<mixed, mixed, mixed, mixed> $fiber
      */
     public function create(TaskInterface $task, Fiber $fiber): TaskRecord
     {

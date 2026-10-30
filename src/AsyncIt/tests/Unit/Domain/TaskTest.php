@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain;
 
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Domain\CancellationScope;
@@ -92,7 +93,7 @@ final class TaskTest extends TestCase
     {
         return new Task(
             new TaskId('task-1'),
-            $this->createMock(\ItPack\RunIt\Contract\Domain\ExecutionIdInterface::class),
+            $this->createMock(ExecutionIdInterface::class),
             new CancellationScope(),
         );
     }

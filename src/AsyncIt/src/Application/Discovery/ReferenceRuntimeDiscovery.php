@@ -19,9 +19,9 @@ use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
   * @api
 
   */
-final class ReferenceRuntimeDiscovery implements RuntimeDiscoveryInterface
+final readonly class ReferenceRuntimeDiscovery implements RuntimeDiscoveryInterface
 {
-    public function __construct(private readonly CapabilityDescriptor $descriptor)
+    public function __construct(private CapabilityDescriptor $descriptor)
     {
     }
 

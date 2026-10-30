@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\Swoole;
 
+use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
@@ -44,7 +45,7 @@ final class SwooleAdapterTest extends TestCase
     public function testStorageAttachAndCurrentFallback(): void
     {
         $storage = new SwooleCoroutineContextStorage(
-            new \ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory(),
+            new FiberScopeSlotFactory(),
         );
 
         self::assertInstanceOf(ContextStorageInterface::class, $storage);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Context;
 
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Domain\ContextToken;
 use LogicException;
@@ -24,8 +25,8 @@ final class MemoryContextStorageTest extends TestCase
     public function testCurrentReturnsMostRecentlyAttachedScope(): void
     {
         $storage = new MemoryContextStorage();
-        $scope1 = $this->createScope('scope-1');
-        $scope2 = $this->createScope('scope-2');
+        $scope1 = $this->createScope();
+        $scope2 = $this->createScope();
 
         $storage->attach($scope1);
         $storage->attach($scope2);
@@ -36,10 +37,10 @@ final class MemoryContextStorageTest extends TestCase
     public function testDetachRestoresPreviousScope(): void
     {
         $storage = new MemoryContextStorage();
-        $scope1 = $this->createScope('scope-1');
-        $scope2 = $this->createScope('scope-2');
+        $scope1 = $this->createScope();
+        $scope2 = $this->createScope();
 
-        $token1 = $storage->attach($scope1);
+        $storage->attach($scope1);
         $token2 = $storage->attach($scope2);
         self::assertSame($scope2, $storage->current());
 
@@ -51,9 +52,9 @@ final class MemoryContextStorageTest extends TestCase
     public function testDetachOutOfOrderThrowsLogicException(): void
     {
         $storage = new MemoryContextStorage();
-        $scope = $this->createScope('scope-1');
+        $scope = $this->createScope();
         $token = $storage->attach($scope);
-        $storage->attach($this->createScope('scope-2'));
+        $storage->attach($this->createScope());
 
         $this->expectException(LogicException::class);
         $storage->detach($token);
@@ -67,8 +68,8 @@ final class MemoryContextStorageTest extends TestCase
         $storage->detach(new ContextToken(1));
     }
 
-    private function createScope(string $id): \ItPack\RunIt\Contract\Application\ExecutionScopeInterface
+    private function createScope(): ExecutionScopeInterface
     {
-        return $this->createMock(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface::class);
+        return $this->createMock(ExecutionScopeInterface::class);
     }
 }

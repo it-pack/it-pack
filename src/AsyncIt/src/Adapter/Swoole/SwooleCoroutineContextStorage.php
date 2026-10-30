@@ -8,6 +8,8 @@ use ItPack\AsyncIt\Domain\CoroutineContextStorageTrait;
 use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use Swoole\Coroutine;
+use Throwable;
 
 /**
  * Swoole coroutine-aware {@see ContextStorageInterface}.
@@ -34,11 +36,8 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
      */
     private array $perCoroutine = [];
 
-    private readonly FiberScopeSlotFactoryInterface $slotFactory;
-
-    public function __construct(FiberScopeSlotFactoryInterface $slotFactory)
+    public function __construct(private readonly FiberScopeSlotFactoryInterface $slotFactory)
     {
-        $this->slotFactory = $slotFactory;
     }
 
     protected function slotFactory(): FiberScopeSlotFactoryInterface
@@ -54,22 +53,20 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
             return $this->fallback();
         }
 
-        if (!isset($this->perCoroutine[$cid])) {
-            $this->perCoroutine[$cid] = $this->slotFactory->create();
-        }
+        $this->perCoroutine[$cid] ??= $this->slotFactory->create();
 
         return $this->perCoroutine[$cid];
     }
 
     private function coroutineId(): int
     {
-        if (!class_exists('Swoole\\Coroutine')) {
+        if (!class_exists(Coroutine::class)) {
             return -1;
         }
 
         try {
-            $id = \Swoole\Coroutine::getCid();
-        } catch (\Throwable) {
+            $id = Coroutine::getCid();
+        } catch (Throwable) {
             return -1;
         }
 

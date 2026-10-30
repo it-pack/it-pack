@@ -18,10 +18,10 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  */
-final class ReferenceAssemblyFactory implements RuntimeAssemblyFactoryInterface
+final readonly class ReferenceAssemblyFactory implements RuntimeAssemblyFactoryInterface
 {
     public function __construct(
-        private readonly PollerFactoryInterface $pollerFactory = new PollerFactory(),
+        private PollerFactoryInterface $pollerFactory = new PollerFactory(),
     ) {
     }
 

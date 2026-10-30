@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
+use Swoole\Coroutine\Channel;
 
 /**
  * Native {@see TaskChannelInterface} over `Swoole\Coroutine\Channel`.
@@ -23,7 +24,7 @@ final class SwooleChannel implements TaskChannelInterface
 {
     private bool $closed = false;
 
-    public function __construct(private readonly \Swoole\Coroutine\Channel $channel)
+    public function __construct(private readonly Channel $channel)
     {
     }
 

@@ -21,6 +21,8 @@ namespace ItPack\AsyncIt\Contract\Port;
 interface ViolationVocabulary
 {
     public const CONTEXT_BLEED = 'ctx-bleed';
+
     public const HANDLE_LEAK = 'handle-leak';
+
     public const FIXTURE_UNSUPPORTED = 'fixture-unsupported';
 }

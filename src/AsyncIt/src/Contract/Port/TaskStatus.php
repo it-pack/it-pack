@@ -37,7 +37,7 @@ enum TaskStatus: string implements TaskStatusInterface
 
     public function canTransitionTo(TaskStatus $next): bool
     {
-        return in_array($next, $this->allowedNext(), true);
+        return in_array($next, $this->allowedNext(), strict: true);
     }
 
     public function isTerminal(): bool

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Scheduler;
 
-use Fiber;
 use ItPack\AsyncIt\Application\Artifact\SchedulerFailureArtifact;
 use ItPack\AsyncIt\Application\Factory\ExecutionScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
@@ -128,13 +127,13 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                 $this->releaseHandles($record);
                 $record->markDone();
             }
-        } catch (Throwable $error) {
-            $this->publisher->publish(new SchedulerFailureArtifact($error->getMessage()));
+        } catch (Throwable $throwable) {
+            $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
             $record->task()->complete(TaskStatus::Failed);
             $this->releaseHandles($record);
             $record->markDone();
 
-            throw $error;
+            throw $throwable;
         }
     }
 

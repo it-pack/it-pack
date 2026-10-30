@@ -49,6 +49,7 @@ final class ReactPhpPollerBridgeTest extends TestCase
 
         self::assertSame(1, $bridge->activeHandleCount());
     }
+
     private function fakeLoop(): FakeReactLoop
     {
         return new FakeReactLoop();

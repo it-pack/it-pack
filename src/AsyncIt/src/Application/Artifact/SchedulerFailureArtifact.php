@@ -16,9 +16,9 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class SchedulerFailureArtifact implements ExecutionArtifactInterface, ValueObjectInterface
+final readonly class SchedulerFailureArtifact implements ExecutionArtifactInterface, ValueObjectInterface
 {
-    public function __construct(public readonly string $message)
+    public function __construct(public string $message)
     {
     }
 

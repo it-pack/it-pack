@@ -69,9 +69,7 @@ final class AsyncRuntimeVerifierTest extends TestCase
 
             public function current(): ExecutionScopeInterface
             {
-                if ($this->sentinel === null) {
-                    $this->sentinel = new FakeExecutionScope();
-                }
+                $this->sentinel ??= new FakeExecutionScope();
 
                 return $this->sentinel;
             }

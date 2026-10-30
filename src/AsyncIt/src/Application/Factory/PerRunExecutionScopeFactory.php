@@ -15,9 +15,9 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class PerRunExecutionScopeFactory implements ExecutionScopeFactoryInterface
+final readonly class PerRunExecutionScopeFactory implements ExecutionScopeFactoryInterface
 {
-    public function __construct(private readonly ExecutionScopeInterface $scope)
+    public function __construct(private ExecutionScopeInterface $scope)
     {
     }
 

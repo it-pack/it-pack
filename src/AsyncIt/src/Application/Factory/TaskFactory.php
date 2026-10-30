@@ -17,9 +17,9 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
  * @see https://w3id.org/itpack/asyncit#Task
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class TaskFactory implements TaskFactoryInterface
+final readonly class TaskFactory implements TaskFactoryInterface
 {
-    public function __construct(private readonly IdentifierGeneratorInterface $idGenerator)
+    public function __construct(private IdentifierGeneratorInterface $idGenerator)
     {
     }
 

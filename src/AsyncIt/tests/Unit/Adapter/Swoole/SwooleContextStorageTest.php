@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\Swoole;
 
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -32,7 +33,7 @@ final class SwooleContextStorageTest extends TestCase
     public function testAttachReturnsTokenAndCurrentReturnsScope(): void
     {
         $storage = new SwooleCoroutineContextStorage(new FiberScopeSlotFactory());
-        $scope = $this->createMock(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface::class);
+        $scope = $this->createMock(ExecutionScopeInterface::class);
 
         $token = $storage->attach($scope);
 
@@ -43,7 +44,7 @@ final class SwooleContextStorageTest extends TestCase
     public function testDetachClearsCurrentScope(): void
     {
         $storage = new SwooleCoroutineContextStorage(new FiberScopeSlotFactory());
-        $scope = $this->createMock(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface::class);
+        $scope = $this->createMock(ExecutionScopeInterface::class);
 
         $token = $storage->attach($scope);
         $storage->detach($token);

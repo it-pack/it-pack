@@ -19,9 +19,9 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
   * @api
 
   */
-final class RevoltChannel implements TaskChannelInterface
+final readonly class RevoltChannel implements TaskChannelInterface
 {
-    public function __construct(private readonly EmulatedChannel $channel)
+    public function __construct(private EmulatedChannel $channel)
     {
     }
 

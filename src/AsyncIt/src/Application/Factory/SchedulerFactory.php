@@ -21,14 +21,14 @@ use ItPack\RunIt\Contract\Port\ContextStorageInterface;
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class SchedulerFactory implements SchedulerFactoryInterface
+final readonly class SchedulerFactory implements SchedulerFactoryInterface
 {
     public function __construct(
-        private readonly FiberFactoryInterface $fiberFactory,
-        private readonly TaskRecordFactoryInterface $taskRecordFactory,
-        private readonly PollerPortInterface $poller,
-        private readonly ContextStorageInterface $contextStorage,
-        private readonly ArtifactPublisherInterface $publisher,
+        private FiberFactoryInterface $fiberFactory,
+        private TaskRecordFactoryInterface $taskRecordFactory,
+        private PollerPortInterface $poller,
+        private ContextStorageInterface $contextStorage,
+        private ArtifactPublisherInterface $publisher,
     ) {
     }
 

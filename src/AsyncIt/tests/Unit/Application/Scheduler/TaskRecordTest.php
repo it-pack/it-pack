@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Scheduler;
 
+use ItPack\AsyncIt\Contract\TaskInterface;
+use Fiber;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
 use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
 use PHPUnit\Framework\TestCase;
 
@@ -62,14 +65,14 @@ final class TaskRecordTest extends TestCase
     private function createRecord(): TaskRecord
     {
         return new TaskRecord(
-            $this->createMock(\ItPack\AsyncIt\Contract\TaskInterface::class),
-            new \Fiber(static function (): void {
+            $this->createMock(TaskInterface::class),
+            new Fiber(static function (): void {
             }),
         );
     }
 
-    private function createHandle(string $id): \ItPack\AsyncIt\Contract\Port\StreamPollHandle
+    private function createHandle(string $id): StreamPollHandle
     {
-        return new \ItPack\AsyncIt\Contract\Port\StreamPollHandle($id);
+        return new StreamPollHandle($id);
     }
 }

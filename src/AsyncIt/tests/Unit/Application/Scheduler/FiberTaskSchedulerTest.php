@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Scheduler;
 
+use RuntimeException;
+use ItPack\AsyncIt\Contract\TaskInterface;
 use Fiber;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
@@ -53,21 +55,22 @@ final class FiberTaskSchedulerTest extends TestCase
         $scheduler = $this->scheduler();
         $task = $this->task();
 
-        $scheduler->submit($task, static function (): void {
-            throw new \RuntimeException('boom');
+        $scheduler->submit($task, static function (): never {
+            throw new RuntimeException('boom');
         });
 
         $thrown = null;
         try {
             $scheduler->run();
-        } catch (\RuntimeException $error) {
-            $thrown = $error;
+        } catch (RuntimeException $runtimeException) {
+            $thrown = $runtimeException;
         }
 
         self::assertNotNull($thrown, 'The original exception must be rethrown.');
         self::assertSame('boom', $thrown->getMessage());
         self::assertSame(TaskStatus::Failed, $task->status());
     }
+
     private function scheduler(): FiberTaskScheduler
     {
         return new FiberTaskScheduler(
@@ -82,7 +85,7 @@ final class FiberTaskSchedulerTest extends TestCase
         );
     }
 
-    private function task(): \ItPack\AsyncIt\Contract\TaskInterface
+    private function task(): TaskInterface
     {
         return new TaskFactory(new RandomIdentifierGenerator())
             ->create(ExecutionId::fromString('exec-1'), new CancellationScopeFactory()->create())

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
+use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
+use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
+
 /**
  * A coordination primitive for handing values between tasks.
  *
@@ -14,23 +18,22 @@ namespace ItPack\AsyncIt\Contract;
  * learn which backend is active.
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
-  * @api
-
-  */
+ * @api
+ */
 interface TaskChannelInterface
 {
     /**
      * Sends a value into the channel.
      *
-     * @throws \ItPack\AsyncIt\Contract\Exception\ChannelClosedException when closed
-     * @throws \ItPack\AsyncIt\Contract\Exception\ChannelFullException when bounded and full
+     * @throws ChannelClosedException when closed
+     * @throws ChannelFullException when bounded and full
      */
     public function send(mixed $value): void;
 
     /**
      * Receives the next value, or signals emptiness for the emulated backend.
      *
-     * @throws \ItPack\AsyncIt\Contract\Exception\ChannelEmptyException when no value is available
+     * @throws ChannelEmptyException when no value is available
      */
     public function receive(): mixed;
 

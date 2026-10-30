@@ -19,7 +19,7 @@ use ItPack\AsyncIt\Contract\TaskInterface;
 interface TaskRecordFactoryInterface
 {
     /**
-     * @param \Fiber<mixed, mixed, mixed, mixed> $fiber
+     * @param Fiber<mixed, mixed, mixed, mixed> $fiber
      */
     public function create(TaskInterface $task, Fiber $fiber): TaskRecord;
 }

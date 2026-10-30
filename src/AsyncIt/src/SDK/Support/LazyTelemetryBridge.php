@@ -37,7 +37,7 @@ final class LazyTelemetryBridge implements TelemetryBridgeInterface
 
     public function isInitialized(): bool
     {
-        return $this->recorder !== null;
+        return $this->recorder instanceof TelemetryRecorderInterface;
     }
 
     /**

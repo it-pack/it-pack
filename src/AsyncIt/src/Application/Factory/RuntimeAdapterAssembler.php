@@ -18,15 +18,15 @@ use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  */
-final class RuntimeAdapterAssembler implements RuntimeAdapterAssemblerInterface
+final readonly class RuntimeAdapterAssembler implements RuntimeAdapterAssemblerInterface
 {
-    private readonly FiberScopeSlotFactoryInterface $slotFactory;
+    private FiberScopeSlotFactoryInterface $slotFactory;
 
     /**
      * @param array<RuntimeAdapterKind, RuntimeAssemblyFactoryInterface> $factories
      */
     public function __construct(
-        private readonly array $factories = [],
+        private array $factories = [],
         ?FiberScopeSlotFactoryInterface $slotFactory = null,
     ) {
         $this->slotFactory = $slotFactory ?? new FiberScopeSlotFactory();

@@ -33,12 +33,18 @@ namespace ItPack\AsyncIt\Contract\Port;
 interface CapabilityVocabulary
 {
     public const STATUS_SUPPORTED = 'supported';
+
     public const STATUS_EMULATED = 'emulated';
+
     public const STATUS_ADAPTER_ONLY = 'adapter_only';
+
     public const STATUS_UNAVAILABLE = 'unavailable';
 
     public const KIND_FIBER_EXECUTION = 'fiber_execution';
+
     public const KIND_EDGE_TRIGGERED_POLLING = 'edge_triggered_polling';
+
     public const KIND_NATIVE_CHANNELS = 'native_channels';
+
     public const KIND_BLOCKING_HOOK_MODEL = 'blocking_hook_model';
 }

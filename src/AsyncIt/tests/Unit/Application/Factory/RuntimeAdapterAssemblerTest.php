@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Factory;
 
+use Swoole\Coroutine;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
@@ -36,7 +37,7 @@ final class RuntimeAdapterAssemblerTest extends TestCase
 
     public function testAssembleSwooleReturnsSwoolePrimitives(): void
     {
-        if (!class_exists('Swoole\\Coroutine')) {
+        if (!class_exists(Coroutine::class)) {
             self::markTestSkipped('Swoole extension not available.');
         }
 

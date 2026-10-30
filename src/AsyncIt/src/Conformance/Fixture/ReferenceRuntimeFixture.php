@@ -31,17 +31,17 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
+final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
-    private readonly SelectPoller $verifierPoller;
+    private SelectPoller $verifierPoller;
 
-    private readonly MemoryContextStorage $storage;
+    private MemoryContextStorage $storage;
 
-    private readonly DeterministicMonotonicClock $clock;
+    private DeterministicMonotonicClock $clock;
 
-    private readonly NullArtifactPublisher $publisher;
+    private NullArtifactPublisher $publisher;
 
-    private readonly FiberTaskScheduler $scheduler;
+    private FiberTaskScheduler $scheduler;
 
     public function __construct()
     {

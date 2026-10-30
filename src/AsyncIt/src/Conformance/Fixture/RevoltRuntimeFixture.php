@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
+use Fiber;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltPoller;
 use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
+use ItPack\AsyncIt\Domain\FiberScopeSlot;
+use WeakMap;
 
 /**
  * Conformance fixture exercising the Revolt runtime adapter.
@@ -19,8 +22,8 @@ final class RevoltRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function __construct()
     {
-        /** @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, \ItPack\AsyncIt\Domain\FiberScopeSlot> $perFiber */
-        $perFiber = new \WeakMap();
+        /** @var WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber */
+        $perFiber = new WeakMap();
 
         $this->initRuntimeFixture(
             new RevoltPoller(),

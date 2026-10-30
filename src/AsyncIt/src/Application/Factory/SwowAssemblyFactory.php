@@ -9,16 +9,17 @@ use ItPack\AsyncIt\Adapter\Swow\SwowCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swow\SwowPoller;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
+use Swow\Coroutine\Channel;
 
 /**
  * Assembles the Swow runtime's poller, context storage, and channel.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  */
-final class SwowAssemblyFactory implements RuntimeAssemblyFactoryInterface
+final readonly class SwowAssemblyFactory implements RuntimeAssemblyFactoryInterface
 {
     public function __construct(
-        private readonly FiberScopeSlotFactoryInterface $slotFactory,
+        private FiberScopeSlotFactoryInterface $slotFactory,
     ) {
     }
 
@@ -27,7 +28,7 @@ final class SwowAssemblyFactory implements RuntimeAssemblyFactoryInterface
         return new RuntimeAssembly(
             new SwowPoller(),
             new SwowCoroutineContextStorage($this->slotFactory),
-            new SwowChannel(new \Swow\Coroutine\Channel()),
+            new SwowChannel(new Channel()),
         );
     }
 }

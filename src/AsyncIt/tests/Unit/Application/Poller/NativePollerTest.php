@@ -50,6 +50,7 @@ final class NativePollerTest extends TestCase
 
         self::assertSame(1, $poll->pollCalls);
     }
+
     private function fakePoll(): FakeNativePoll
     {
         return new FakeNativePoll();

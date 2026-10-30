@@ -76,8 +76,13 @@
         "lint:types": "php tools/lint/single-type-per-file.php",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "security:audit": "composer audit --abandoned=report",
+        "rector": "vendor/bin/rector",
+        "refactor": "@rector process",
+        "refactor:dry": "@rector process --dry-run",
+        "refactor:check": "@rector:dry",
         "quality": [
             "@composer validate --strict",
+            "@refactor:check",
             "@cs:check",
             "@analyse",
             "@architecture",

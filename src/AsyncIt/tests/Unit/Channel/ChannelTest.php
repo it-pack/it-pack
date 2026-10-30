@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Channel;
 
+use Swoole\Coroutine\Channel;
+use function Swoole\Coroutine\run;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
 use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
 use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
@@ -46,14 +48,14 @@ final class ChannelTest extends TestCase
 
     public function testSwooleChannelRoundTrip(): void
     {
-        if (!class_exists('Swoole\\Coroutine\\Channel')) {
+        if (!class_exists(Channel::class)) {
             self::markTestSkipped('Swoole runtime not available.');
         }
 
         $value = null;
 
-        \Swoole\Coroutine\run(static function () use (&$value): void {
-            $channel = new SwooleChannel(new \Swoole\Coroutine\Channel());
+        run(static function () use (&$value): void {
+            $channel = new SwooleChannel(new Channel());
             $channel->send('hello');
 
             $value = $channel->receive();

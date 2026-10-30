@@ -25,7 +25,7 @@ use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
   */
 final class DeterministicCleanupVerifier implements VerifierInterface
 {
-    public const ASSERTION = 'C';
+    public const string ASSERTION = 'C';
 
     public function port(): string
     {

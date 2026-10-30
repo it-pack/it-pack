@@ -9,6 +9,7 @@ use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
 use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
+use Swoole\Coroutine\Channel;
 
 /**
  * Assembles the Swoole runtime's poller, context storage, and channel.
@@ -18,10 +19,10 @@ use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  */
-final class SwooleAssemblyFactory implements RuntimeAssemblyFactoryInterface
+final readonly class SwooleAssemblyFactory implements RuntimeAssemblyFactoryInterface
 {
     public function __construct(
-        private readonly FiberScopeSlotFactoryInterface $slotFactory,
+        private FiberScopeSlotFactoryInterface $slotFactory,
     ) {
     }
 
@@ -30,7 +31,7 @@ final class SwooleAssemblyFactory implements RuntimeAssemblyFactoryInterface
         return new RuntimeAssembly(
             new SwoolePoller(),
             new SwooleCoroutineContextStorage($this->slotFactory),
-            new SwooleChannel(new \Swoole\Coroutine\Channel()),
+            new SwooleChannel(new Channel()),
         );
     }
 }

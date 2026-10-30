@@ -82,9 +82,7 @@ trait CoroutineContextStorageTrait
 
     protected function fallback(): FiberScopeSlot
     {
-        if ($this->fallback === null) {
-            $this->fallback = $this->slotFactory()->create();
-        }
+        $this->fallback ??= $this->slotFactory()->create();
 
         return $this->fallback;
     }

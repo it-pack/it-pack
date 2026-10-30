@@ -64,6 +64,7 @@ final class CancellationScopeTest extends TestCase
     {
         $scope = new CancellationScope();
         $scope->cancel();
+
         $called = false;
         $scope->onCancel(static function () use (&$called): void {
             $called = true;

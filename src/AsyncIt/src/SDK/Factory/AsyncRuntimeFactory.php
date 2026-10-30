@@ -27,6 +27,9 @@ use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Revolt\EventLoop;
+use Swoole\Coroutine;
+use Swoole\Coroutine\Channel;
 use Throwable;
 
 /**
@@ -103,6 +106,7 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
             $telemetry,
         );
     }
+
     /**
      * Negotiates and returns the active runtime adapter and its capability descriptor.
      *
@@ -110,7 +114,7 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
      */
     private function negotiate(): array
     {
-        if (class_exists('Swoole\\Coroutine') && class_exists('Swoole\\Coroutine\\Channel')) {
+        if (class_exists(Coroutine::class) && class_exists(Channel::class)) {
             return [
                 RuntimeAdapterKind::Swoole,
                 new CapabilityDescriptor([
@@ -134,7 +138,7 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
             ];
         }
 
-        if (class_exists('Revolt\\EventLoop')) {
+        if (class_exists(EventLoop::class)) {
             return [
                 RuntimeAdapterKind::Revolt,
                 new CapabilityDescriptor([
