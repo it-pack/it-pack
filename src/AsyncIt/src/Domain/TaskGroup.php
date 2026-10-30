@@ -10,7 +10,7 @@ use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskGroupInterface;
 use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Contract\TaskInterface;
-use ItPack\AsyncIt\Domain\Exception\ConflictingCompletionException;
+use ItPack\AsyncIt\Domain\Behavior\TaskBehavior;
 use ItPack\AsyncIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use Throwable;
@@ -28,6 +28,8 @@ use Throwable;
  */
 final class TaskGroup implements TaskGroupInterface
 {
+    use TaskBehavior;
+
     private bool $closed = false;
 
     /**
@@ -37,14 +39,15 @@ final class TaskGroup implements TaskGroupInterface
 
     private ?Throwable $failure = null;
 
-    private TaskStatus $status = TaskStatus::Created;
-
     public function __construct(
-        private readonly TaskId $id,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly CancellationScopeInterface $cancellationScope,
+        TaskId $id,
+        ExecutionIdInterface $executionId,
+        CancellationScopeInterface $cancellationScope,
         private readonly EngineSchedulerInterface $scheduler,
     ) {
+        $this->id = $id;
+        $this->executionId = $executionId;
+        $this->cancellationScope = $cancellationScope;
     }
 
     /**
@@ -63,21 +66,6 @@ final class TaskGroup implements TaskGroupInterface
                 $child->complete(TaskStatus::Cancelled);
             }
         }
-    }
-
-    public function id(): TaskId
-    {
-        return $this->id;
-    }
-
-    public function executionId(): ExecutionIdInterface
-    {
-        return $this->executionId;
-    }
-
-    public function cancellationScope(): CancellationScopeInterface
-    {
-        return $this->cancellationScope;
     }
 
     public function failure(): ?Throwable
@@ -136,31 +124,5 @@ final class TaskGroup implements TaskGroupInterface
         }
 
         return $this->status;
-    }
-
-    public function complete(TaskStatus $outcome): void
-    {
-        $this->transitionTo($outcome);
-    }
-
-    public function transitionTo(TaskStatus $next): void
-    {
-        if ($next === $this->status) {
-            return;
-        }
-
-        if (!$this->status->isTerminal() && !$this->status->canTransitionTo($next)) {
-            throw new InvalidLifecycleTransitionException($this->id, $this->status, $next);
-        }
-
-        if ($this->status->isTerminal()) {
-            if ($next->isTerminal()) {
-                throw new ConflictingCompletionException($this->id, $this->status, $next);
-            }
-
-            throw new InvalidLifecycleTransitionException($this->id, $this->status, $next);
-        }
-
-        $this->status = $next;
     }
 }
