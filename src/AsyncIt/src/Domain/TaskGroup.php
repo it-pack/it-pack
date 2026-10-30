@@ -69,7 +69,7 @@ final class TaskGroup implements TaskGroupInterface
 
         foreach ($this->children as $child) {
             if (!$child->status()->isTerminal()) {
-                $child->complete(TaskStatus::Cancelled);
+                $child->cancellationScope()->cancel(CancellationReason::ParentCancelled);
             }
         }
     }
