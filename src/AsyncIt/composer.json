@@ -80,8 +80,10 @@
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
         "refactor:check": "@rector:dry",
+        "assumptions": "vendor/bin/phpa src/",
         "quality": [
             "@composer validate --strict",
+            "@assumptions",
             "@refactor:check",
             "@cs:check",
             "@analyse",
