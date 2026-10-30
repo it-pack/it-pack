@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use Stringable;
 
 /**
  * Concrete {@see ExecutionScopeFactoryInterface} for the reference runtime.
@@ -14,8 +15,8 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  */
 final class ReferenceExecutionScopeFactory implements ExecutionScopeFactoryInterface
 {
-    public function create(string $discriminant): ExecutionScopeInterface
+    public function create(string|Stringable $discriminant): ExecutionScopeInterface
     {
-        return new ReferenceExecutionScope($discriminant);
+        return new ReferenceExecutionScope((string) $discriminant);
     }
 }

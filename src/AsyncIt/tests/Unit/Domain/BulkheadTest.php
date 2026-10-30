@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain;
 
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
+use ItPack\AsyncIt\Contract\Exception\BulkheadFullException;
 use ItPack\AsyncIt\Domain\Bulkhead;
-use ItPack\AsyncIt\Domain\Exception\BulkheadFullException;
 use ItPack\AsyncIt\Domain\RateLimiter;
 use PHPUnit\Framework\TestCase;
 

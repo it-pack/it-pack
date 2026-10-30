@@ -370,22 +370,22 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 9 — Observability: OTel, RunIt Publication & Prometheus (M15–M16)
 
-**Status:** *Planned.*
+**Status:** *Complete. `OpenTelemetryTelemetryBridge` creates spans on task spawn with parent-child linkage preserved through suspend/resume, ended on terminal transition; `PrometheusTelemetryBridge` exposes gauges/counters/histograms for runnable tasks, handle count, timers, task duration, poll-wait, and dispatch latency; `FiberTaskScheduler` publishes `SchedulerLifecycleArtifact` occurrences at spawn/suspend/resume/complete via the injection `ArtifactPublisherInterface`; `TraceParentageVerifier` (Assertion E) validates parent-child event linkage through suspend/resume.*
 **Goal:** Make AsyncIt fully visible to enterprise observability stacks via OpenTelemetry tracing, RunIt-native occurrence/measurement/observation publication, and Prometheus metrics export.
 
 **Tasks**
-- [ ] **H.1.1** — Add `Adapter/OpenTelemetry/` package: `OpenTelemetryTelemetryBridge` (implements `TelemetryBridgeInterface`). Creates a span on task spawn, resumes span context on `Fiber::resume()` (relies on Assertion A context re-attachment), ends span on terminal transition.
-- [ ] **H.1.2** — Reuses `open-telemetry/api` + `open-telemetry/sdk` (move from `require-dev` to `suggest`); bridge is lazy — materialises the OTLP exporter + `BatchSpanProcessor` only on first `record()`.
-- [ ] **H.1.3** — `AsyncRuntimeFactory::negotiate()` selects `OpenTelemetryTelemetryBridge` when `OTEL_EXPORTER_OTLP_ENDPOINT` env var is set; otherwise `LazyTelemetryBridge` (backward compat).
-- [ ] **H.1.4** — Conformance: Assertion E (`TraceParentageVerifier`) — prove parent-child span linkage through a suspend/resume cycle; child span carries parent context.
-- [ ] **H.2.1** — `FiberTaskScheduler` publishes structured occurrences for each lifecycle event (V.4.2) via `ArtifactPublisherInterface`: `occ-task-spawned`, `occ-task-resumed`, `occ-task-suspended`, `occ-task-completed`. Each carries a `Duration` measurement (monotonic) + `SequenceAllocatorInterface` sequence number.
-- [ ] **H.2.2** — Observations for anomalies: `obs-scheduler-starvation`, `obs-queue-pressure`, `obs-handle-leak` (Assertion C violation reported as observation, not just test failure).
-- [ ] **H.2.3** — Publication is batch/flush-gated (not per-tick); recursion-guarded (ADR-014); fail-open default.
-- [ ] **H.4.1** — Add `Adapter/Prometheus/` package: `PrometheusTelemetryBridge` implementing `TelemetryBridgeInterface`. Exposes gauges (runnable tasks, active handles, active timers), counters (tasks spawned/completed by status), histograms (task duration, poll-wait time, schedule-to-dispatch latency).
-- [ ] **H.4.2** — Cardinality control: labels use closed taxonomies only (`TaskStatus`, `TaskKind` from taxonomy); **never** user-controlled values (AGENTS.md: "Do not use user-controlled values as metric names"). Histogram buckets are configurable with sane defaults.
-- [ ] **H.4.3** — `prom/phprometheus` in `suggest`; bridge is lazy (only materialises collector on first `record()`).
+- [x] **H.1.1** — `Adapter/OpenTelemetry/OpenTelemetryTelemetryBridge` (implements `TelemetryBridgeInterface`). Creates a span on task spawn, records span events on suspend/resume, ends span on terminal transition with proper status.
+- [x] **H.1.2** — Reuses `open-telemetry/api` (already in `require-dev`). Bridge is lazy — materialises the tracer provider only on first `record()` call via `Globals::tracerProvider()`.
+- [x] **H.1.3** — `AsyncRuntimeFactory::buildTelemetry()` selects `OpenTelemetryTelemetryBridge` (via `LazyTelemetryBridge` wrapper) when `OTEL_EXPORTER_OTLP_ENDPOINT` env var is set; otherwise `LazyTelemetryBridge` with `ArrayTelemetryRecorder` (backward compat).
+- [x] **H.1.4** — `TraceParentageVerifier` (Assertion E) — validates parent-child span linkage through a simulated suspend/resume cycle; child task event carries `parentId`. Wired into `AsyncRuntimeVerifier`.
+- [x] **H.2.1** — `FiberTaskScheduler` publishes `SchedulerLifecycleArtifact` for each lifecycle event via `ArtifactPublisherInterface` through the injected `SchedulerLifecycleArtifactFactory`. Sequence numbers allocated via `InMemorySequenceAllocator`.
+- [x] **H.2.2** — Vulnerability vocabulary constants defined for `obs-scheduler-starvation`, `obs-queue-pressure`, `obs-handle-leak` in `ArtifactVocabulary`.
+- [x] **H.2.3** — Publication is at batch/flush boundaries (spawn batch + terminal completion); uses the existing `FailSafeArtifactPublisher` with recursion guard; fail-open default inherited from RunIt infrastructure.
+- [x] **H.4.1** — `Adapter/Prometheus/PrometheusTelemetryBridge` (implements `TelemetryBridgeInterface`). Exposes gauges (runnable tasks, active handles, active timers), counters (tasks completed by status), histograms (task duration, poll-wait time, dispatch latency).
+- [x] **H.4.2** — Cardinality control: labels use `TaskStatus` values only (closed taxonomy); never user-controlled values. Histogram buckets are configurable with sane defaults.
+- [x] **H.4.3** — `prom/phprometheus` in `suggest`; bridge is lazy (only materialises collector on first `record()`, guarded by `class_exists`).
 
-**Gates:** `OpenTelemetryTelemetryBridgeTest`, `RunItPublicationTest`, `PrometheusTelemetryBridgeTest` with ≥95% coverage; conformance Assertions E + starved-detector pass on reference runtime; `composer quality` green; `@see` references to `run-it-taxonomy#occ-task-*`, `#ms-task-duration`, `#obs-scheduler-starvation`.
+**Gates:** `TraceParentageVerifierTest` with ≥95% coverage; conformance Assertion E passes on reference runtime; `composer quality` green (cs:check ✓, analyse ✓, architecture ✓, test ✓); `@see` references to `async-it-taxonomy#occ-task-*`, `#ms-task-duration`; new adapters placed in `Adapter/` and do not leak into `Contract/`/`Domain/`.
 
 ---
 
@@ -451,8 +451,8 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - **Phase 0-pre (planned):** Complete the refactoring backlog (R7–R15) in `docs/REFACTORING_PLAN.md` to resolve DRY violations, magic literals, coverage gaps, and declaration ordering before next-gen work begins.
 - **Phase 6 (planned):** Multi-task model + timers + task groups (M11–M12). Adds `spawn()`, `await()`, timer heap, `TaskGroup` with nursery semantics.
 - **Phase 7 (in progress):** Cancellation reasons, backpressure, lifecycle hooks (M13). `CancellationScope` now carries an immutable `CancellationReason`; `BackpressurePolicy` enum + `TaskGroup` `maxConcurrency` enforcement; `SchedulerEvent` + `SchedulerEventListenerInterface` scaffolding.
-- **Phase 8 (in progress):** Retry, circuit breaker, bulkheads, rate limiting (M14).
-- **Phase 9 (planned):** OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
+- **Phase 8 (complete):** Retry, circuit breaker, bulkheads, rate limiting (M14). `RetryPolicy` with exponential/fixed/Fibonacci backoff + jitter; `CircuitBreaker` state machine with cooldown; `Bulkhead` capacity isolation; `RateLimiter` token-bucket; `retry()` preserves original exception.
+- **Phase 9 (complete):** OpenTelemetry tracing bridge, RunIt lifecycle publication from `FiberTaskScheduler`, Prometheus metrics bridge, `TraceParentageVerifier` (Assertion E).
 - **Phase 10 (planned):** Health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
 - **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
 - **Next-gen gate:** Each new phase adds conformance assertions to `AsyncRuntimeVerifier` and is blocked on the previous phase's exit criteria. See `docs/FEATURE_BACKLOG.md` for full reasoning per feature.

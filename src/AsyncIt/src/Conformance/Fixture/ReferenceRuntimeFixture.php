@@ -9,6 +9,7 @@ use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
+use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
@@ -17,6 +18,7 @@ use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -54,17 +56,21 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
         $this->clock = new DeterministicMonotonicClock();
         $this->publisher = new NullArtifactPublisher();
 
+        $executionId = ExecutionId::fromString('ref-exec');
+        $sequenceAllocator = new InMemorySequenceAllocator();
+
         $this->scheduler = new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
             new CancellationScopeFactory(),
             $this->clock,
-            ExecutionId::fromString('ref-exec'),
+            $executionId,
             $this->verifierPoller,
             $this->storage,
             new ReferenceExecutionScopeFactory(),
             $this->publisher,
+            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
         );
     }
 

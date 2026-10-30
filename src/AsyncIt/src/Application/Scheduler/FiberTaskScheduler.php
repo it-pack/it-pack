@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Scheduler;
 
 use Fiber;
+use ItPack\AsyncIt\Application\Artifact\ArtifactVocabulary;
 use ItPack\AsyncIt\Application\Artifact\SchedulerFailureArtifact;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\ExecutionScopeFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\FiberFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
@@ -25,6 +27,8 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
+use ItPack\RunIt\Domain\Shared\Instant;
 use LogicException;
 use Throwable;
 
@@ -92,6 +96,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
     private ?TaskInterface $currentTask = null;
 
+    /**
+     * @var array<string, int> Monotonic start time per task, used for duration measurements.
+     */
+    private array $taskStartTimes = [];
+
     public function __construct(
         private readonly FiberFactoryInterface $fiberFactory,
         private readonly TaskRecordFactoryInterface $taskRecordFactory,
@@ -103,6 +112,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         private readonly ContextStorageInterface $contextStorage,
         private readonly ExecutionScopeFactoryInterface $scopeFactory,
         private readonly ArtifactPublisherInterface $publisher,
+        private readonly SchedulerLifecycleArtifactFactory $lifecycleFactory,
     ) {
     }
 
@@ -123,6 +133,9 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         return $task;
     }
 
+    /**
+     * @throws Throwable
+     */
     public function await(TaskInterface $task): mixed
     {
         $current = $this->currentTask;
@@ -205,6 +218,9 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         return $this->results[$task->id()->value] ?? null;
     }
 
+    /**
+     * @throws Throwable
+     */
     public function awaitDelay(DurationInterface $duration): void
     {
         $task = $this->currentTask;
@@ -226,6 +242,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         $this->currentTask = null;
         Fiber::suspend();
         $this->currentTask = $task;
+
+        $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_RESUMED, TaskStatus::Running);
     }
 
     /**
@@ -244,7 +262,6 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     public function retry(callable $operation, RetryPolicyInterface $policy): mixed
     {
         $attempt = 1;
-        $original = null;
 
         while (true) {
             try {
@@ -261,32 +278,72 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                     throw $e;
                 }
 
-                $delay = $policy->delayForAttempt($attempt - 1);
-                $this->awaitDelay($delay);
+                $this->awaitDelay(
+                    $policy->delayForAttempt($attempt - 1)
+                );
             }
         }
     }
 
     /**
+     * @throws Throwable
+     */
+    private function publishLifecycle(
+        TaskInterface $task,
+        string $kind,
+        TaskStatus $status,
+        ?int $startTime = null,
+    ): void {
+        $this->publisher->publish(
+            $this->lifecycleFactory->create(
+                $task->id(),
+                $kind,
+                $status,
+                $startTime === null
+                    ? null :
+                    Duration::ofNanoseconds(
+                        $this->clock->monotonicNanoseconds() - $startTime
+                    ),
+                Instant::now(),
+            )
+        );
+    }
+
+    /**
      * Internal spawn: creates the fiber + record and pushes onto the ready queue.
+     * @throws Throwable
      */
     private function doSpawn(TaskInterface $task, callable $operation): void
     {
-        $fiber = $this->fiberFactory->create($operation);
-        $record = $this->taskRecordFactory->create($task, $fiber);
-        $this->records[$task->id()->value] = $record;
-        $this->ready[] = $record;
+        $this->ready[]
+            = $this->records[$task->id()->value]
+            = $this->taskRecordFactory->create(
+                $task,
+                $this->fiberFactory->create($operation)
+            );
+
+        $this->taskStartTimes[$task->id()->value] = $this->clock->monotonicNanoseconds();
+
+        $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_SPAWNED, TaskStatus::Created);
     }
 
+    /**
+     * @throws Throwable
+     */
     private function step(TaskRecord $record): void
     {
-        $scope = $this->scopeFactory->create($record->task()->id()->value);
-        $token = $this->contextStorage->attach($scope);
+        $token = $this->contextStorage->attach(
+            $this->scopeFactory->create(
+                $record->task()->id()
+            )
+        );
 
         $this->currentTask = $record->task();
 
         try {
             $this->resume($record);
+        } catch (Throwable $throwable) {
+            throw $throwable;
         } finally {
             $this->currentTask = null;
             $this->contextStorage->detach($token);
@@ -329,7 +386,10 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         mixed $result = null,
         ?Throwable $throwable = null,
     ): void {
-        $taskId = $record->task()->id()->value;
+        $task = $record->task();
+        $taskId = $task->id()->value;
+        $startTime = $this->taskStartTimes[$taskId] ?? null;
+        unset($this->taskStartTimes[$taskId]);
 
         if ($result !== null) {
             $this->results[$taskId] = $result;
@@ -339,7 +399,9 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
         }
 
-        $record->task()->complete($status);
+        $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_COMPLETED, $status, $startTime);
+
+        $task->complete($status);
         $this->releaseHandles($record);
         $record->markDone();
     }

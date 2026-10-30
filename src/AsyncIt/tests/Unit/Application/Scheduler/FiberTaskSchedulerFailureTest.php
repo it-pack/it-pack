@@ -8,12 +8,14 @@ use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
+use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -63,17 +65,21 @@ final class FiberTaskSchedulerFailureTest extends TestCase
 
     private function createScheduler(): FiberTaskScheduler
     {
+        $executionId = ExecutionId::fromString('exec-1');
+        $sequenceAllocator = new InMemorySequenceAllocator();
+
         return new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
             new CancellationScopeFactory(),
             new SystemMonotonicClock(),
-            ExecutionId::fromString('exec-1'),
+            $executionId,
             new SelectPoller(),
             new MemoryContextStorage(),
             new ReferenceExecutionScopeFactory(),
             new NullArtifactPublisher(),
+            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
         );
     }
 

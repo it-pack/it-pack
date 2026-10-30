@@ -32,6 +32,7 @@ final readonly class AsyncRuntimeVerifier implements VerifierInterface
         private DeterministicCleanupVerifier $cleanup,
         private GroupCancellationIsolationVerifier $groupCancellation = new GroupCancellationIsolationVerifier(),
         private TimerCleanupVerifier $timerCleanup = new TimerCleanupVerifier(),
+        private TraceParentageVerifier $traceParentage = new TraceParentageVerifier(),
     ) {
     }
 
@@ -44,7 +45,7 @@ final readonly class AsyncRuntimeVerifier implements VerifierInterface
     {
         $result = new ConformanceResult($this->port());
 
-        foreach ([$this->contextIsolation, $this->cleanup, $this->groupCancellation, $this->timerCleanup] as $verifier) {
+        foreach ([$this->contextIsolation, $this->cleanup, $this->groupCancellation, $this->timerCleanup, $this->traceParentage] as $verifier) {
             foreach ($verifier->verify($fixture) as $violation) {
                 $result = $result->add($violation);
             }

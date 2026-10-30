@@ -47,6 +47,9 @@
         "amphp/amp": "^3.1",
         "react/react": "^1.0"
     },
+    "suggest": {
+        "prom/phprometheus": "Required by ItPack\\AsyncIt\\Adapter\\Prometheus\\PrometheusTelemetryBridge for Prometheus metrics export."
+    },
     "repositories": [
         {
             "type": "path",

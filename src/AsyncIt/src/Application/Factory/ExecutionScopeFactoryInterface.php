@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use Stringable;
 
 /**
  * Creates the per-resume RunIt execution scope handed to the context storage.
@@ -17,5 +18,5 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  */
 interface ExecutionScopeFactoryInterface
 {
-    public function create(string $discriminant): ExecutionScopeInterface;
+    public function create(string|Stringable $discriminant): ExecutionScopeInterface;
 }

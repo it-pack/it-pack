@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\BulkheadInterface;
-use ItPack\AsyncIt\Domain\Exception\BulkheadFullException;
+use ItPack\AsyncIt\Contract\Exception\BulkheadFullException;
 
 /**
  * Semaphore-style resource isolation bulkhead.
