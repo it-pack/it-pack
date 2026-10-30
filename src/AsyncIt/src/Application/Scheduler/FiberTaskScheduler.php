@@ -17,6 +17,7 @@ use ItPack\AsyncIt\Application\SchedulerHealth;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
@@ -184,10 +185,29 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
     public function run(): void
     {
+        $this->runUntil(PHP_INT_MAX);
+    }
+
+    /**
+     * Drains the reactor until all records are terminal, the deadline elapses,
+     * or all remaining tasks have been force-cancelled.
+     *
+     * On deadline expiry, force-cancels every remaining task scope with
+     * {@see CancellationReason::DeadlineExceeded} and releases their handles.
+     */
+    public function runUntil(int $deadlineNanos): void
+    {
         while ($this->records !== []) {
+            $now = $this->clock->monotonicNanoseconds();
+
+            if ($now >= $deadlineNanos) {
+                $this->forceCancelRemaining();
+
+                break;
+            }
+
             $this->drainExpiredTimers();
 
-            // Step all records currently ready (only once per tick).
             while ($this->ready !== []) {
                 $record = array_shift($this->ready);
                 if (!$record->isDone()) {
@@ -195,7 +215,6 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                 }
             }
 
-            // Remove terminated records, resume their awaiters, then clean up.
             foreach ($this->records as $id => $record) {
                 if ($record->isDone()) {
                     $this->resumeAwaiters($record);
@@ -203,10 +222,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                 }
             }
 
-            // If suspended records remain, poll for I/O readiness then
-            // re-queue them for the next tick.
             if ($this->records !== []) {
-                $this->poller->await($this->computeTimeout());
+                $this->poller->await($this->computeTimeout($deadlineNanos));
 
                 $this->drainExpiredTimers();
 
@@ -499,21 +516,52 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         $this->timers = $remaining;
     }
 
-    private function computeTimeout(): int
+    private function computeTimeout(int $deadlineNanos): int
     {
-        if ($this->timers === []) {
+        $now = $this->clock->monotonicNanoseconds();
+        $remaining = $deadlineNanos - $now;
+
+        if ($remaining <= 0) {
             return 0;
         }
 
-        $now = $this->clock->monotonicNanoseconds();
-        $nearestDeadline = PHP_INT_MAX;
+        $timerTimeout = $this->timers === []
+            ? PHP_INT_MAX
+            : $this->computeNearestTimerDeadline() - $now;
+
+        return max(0, min($timerTimeout, $remaining));
+    }
+
+    private function computeNearestTimerDeadline(): int
+    {
+        $nearest = PHP_INT_MAX;
 
         foreach ($this->timers as $entry) {
-            if ($entry['deadline'] < $nearestDeadline) {
-                $nearestDeadline = $entry['deadline'];
+            if ($entry['deadline'] < $nearest) {
+                $nearest = $entry['deadline'];
             }
         }
 
-        return max(0, $nearestDeadline - $now);
+        return $nearest;
+    }
+
+    /**
+     * Force-cancels every remaining task scope and releases their handles.
+     *
+     * Called when the shutdown deadline expires; tasks that did not unwind
+     * cooperatively are force-cancelled so the reactor can terminate and
+     * no poll handles are leaked (Assertion C).
+     */
+    private function forceCancelRemaining(): void
+    {
+        foreach ($this->records as $record) {
+            $record->task()->cancellationScope()->cancel(
+                CancellationReason::DeadlineExceeded,
+            );
+
+            $this->releaseHandles($record);
+        }
+
+        $this->records = [];
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Scheduler;
 
 use Fiber;
+use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
@@ -23,6 +24,7 @@ use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\Duration;
 use LogicException;
@@ -138,7 +140,38 @@ final class FiberTaskSchedulerTest extends TestCase
         self::assertSame(['before', 'after'], $log);
     }
 
+    public function testRunUntilForceCancelsOnDeadlineExpiry(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $scheduler = $this->schedulerWithClock($clock);
+
+        $scheduler->spawn(static function (): void {
+            Fiber::suspend();
+        });
+
+        $scheduler->runUntil(1000);
+
+        self::assertSame(0, $clock->monotonicNanoseconds());
+    }
+
+    public function testRunUntilCompletesTasksBeforeDeadline(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $scheduler = $this->schedulerWithClock($clock);
+
+        $scheduler->spawn(static fn (): string => 'done');
+
+        $scheduler->runUntil(PHP_INT_MAX);
+
+        self::assertSame(0, $clock->monotonicNanoseconds());
+    }
+
     private function scheduler(): FiberTaskScheduler
+    {
+        return $this->schedulerWithClock(new SystemMonotonicClock());
+    }
+
+    private function schedulerWithClock(MonotonicClockInterface $clock): FiberTaskScheduler
     {
         $executionId = ExecutionId::fromString('exec-1');
         $sequenceAllocator = new InMemorySequenceAllocator();
@@ -148,7 +181,7 @@ final class FiberTaskSchedulerTest extends TestCase
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
             new CancellationScopeFactory(),
-            new SystemMonotonicClock(),
+            $clock,
             $executionId,
             new PollerFactory()->create(new CapabilityDescriptor([
                 CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,

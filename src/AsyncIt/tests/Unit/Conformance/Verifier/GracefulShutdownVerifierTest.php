@@ -12,8 +12,11 @@ use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\StreamPollHandle;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
 
@@ -49,13 +52,14 @@ final class GracefulShutdownVerifierTest extends TestCase
         $verifier = new GracefulShutdownVerifier();
 
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
-        $scheduler->method('run');
+        $scheduler->expects(self::once())->method('runUntil');
 
         $fixture = new FakeRuntimeFixture(
             $this->idleStorage(),
             0,
             scheduler: $scheduler,
             poller: $this->stubPoller(),
+            clock: $this->stubClock(),
             cancellationScope: $this->stubScope(),
         );
 
@@ -70,13 +74,14 @@ final class GracefulShutdownVerifierTest extends TestCase
         $verifier = new GracefulShutdownVerifier();
 
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
-        $scheduler->method('run');
+        $scheduler->expects(self::once())->method('runUntil');
 
         $fixture = new FakeRuntimeFixture(
             $this->idleStorage(),
             1,
             scheduler: $scheduler,
             poller: $this->leakPoller(),
+            clock: $this->stubClock(),
             cancellationScope: $this->stubScope(),
         );
 
@@ -134,6 +139,26 @@ final class GracefulShutdownVerifierTest extends TestCase
 
             public function onCancel(callable $callback): void
             {
+            }
+        };
+    }
+
+    private function stubClock(): MonotonicClockInterface
+    {
+        return new class () implements MonotonicClockInterface {
+            public function nowSeconds(): int
+            {
+                return 0;
+            }
+
+            public function monotonicNanoseconds(): int
+            {
+                return 0;
+            }
+
+            public function measure(int $fromInclusive, int $toInclusive): DurationInterface
+            {
+                return Duration::ofNanoseconds(0);
             }
         };
     }

@@ -396,7 +396,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 **Tasks**
 - [x] **H.3.1** — `SchedulerHealthInterface` (Contract, internal): `isHealthy(): bool`, `pendingTaskCount(): int`, `activeHandleCount(): int`, `uptime(): Duration`, `recentErrors(int $n): list<Throwable>`.
-- [x] **H.3.2** — `GracefulShutdown` (Application): on signal or explicit call, triggers root scope cancellation (cascading V.1), drains reactor via `scheduler->run()`, poll handle cleanup is handled by the scheduler on terminal transition (Assertion C).
+- [x] **H.3.2** — `GracefulShutdown` (Application): on signal or explicit call, triggers root scope cancellation (cascading V.1), drains reactor within `gracefulShutdownDeadline` via `scheduler->runUntil(deadlineNanos)`, force-cancelling stuck tasks with `CancellationReason::DeadlineExceeded` and releasing remaining handles (Assertion C).
 - [x] **H.3.3** — `FiberTaskScheduler::health(): SchedulerHealthInterface` accessor; `AsyncRuntime::health()` delegates when a scheduler is active.
 - [ ] **H.3.4** — Add `Adapter/Kubernetes/` probe handler (skipped — no concrete consumer).
 - [x] **H.3.5** — Conformance: Assertion F (`GracefulShutdownVerifier`).
