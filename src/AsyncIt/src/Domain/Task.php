@@ -6,7 +6,6 @@ namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\Behavior\TaskBehavior;
 use ItPack\AsyncIt\Domain\Exception\ConflictingCompletionException;

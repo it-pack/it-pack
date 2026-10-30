@@ -6,7 +6,7 @@ namespace ItPack\AsyncIt\Domain\Exception;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskId;
+use ItPack\AsyncIt\Domain\TaskId;
 use RuntimeException;
 
 /**

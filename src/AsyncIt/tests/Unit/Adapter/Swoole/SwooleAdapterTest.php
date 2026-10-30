@@ -29,7 +29,9 @@ final class SwooleAdapterTest extends TestCase
 
         self::assertSame(0, $poller->activeHandleCount());
 
-        fclose($stream);
+        if (is_resource($stream)) {
+            fclose($stream);
+        }
     }
 
     public function testPollerAwaitWithNoHandlesDoesNotError(): void

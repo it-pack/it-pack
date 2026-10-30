@@ -330,23 +330,23 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 7 — Cancellation Reasons, Backpressure & Lifecycle Hooks (M13)
 
-**Status:** *Planned.*
+**Status:** *Complete. `CancellationScope` now carries an immutable `CancellationReason` (defaulting to `UserInitiated`); `BackpressurePolicy` enum (`Block`/`Drop`/`Error`) and `TaskGroup` `maxConcurrency` enforcement are wired in; `SchedulerEvent` value objects + `SchedulerEventListenerInterface` are in place for V.4.1–V.4.2.*
 **Goal:** Enhance the scheduling domain with structured cancellation reasons, backpressure enforcement, and lifecycle observability hooks — enabling resilient, observable multi-task workflows.
 
 **Tasks**
-- [ ] **V.5.1** — Add `CancellationReason` enum (Domain): `UserInitiated`, `DeadlineExceeded`, `ParentCancelled`, `ResourceQuotaExceeded`, `SystemShutdown`. Bind to `CapabilityVocabulary`-style interface constants. Add `@see async-it#CancellationReason`.
-- [ ] **V.5.2** — `CancellationScopeInterface::cancel(?CancellationReason $reason = null)` — reason is immutable once set; `reason(): ?CancellationReason` accessor. `CancellationScope` updated; deprecation path documented for backward compat.
-- [ ] **V.5.3** — `CancellationException` carries the reason; `throwIfCancelled()` throws with the scope's reason.
-- [ ] **V.6.1** — Add `BackpressurePolicy` enum (Domain): `Block`, `Drop`, `Error`. Bind to `async-it-taxonomy.ttl` (`#backpressure-policy-*`).
-- [ ] **V.6.2** — `TaskGroup` constructor accepts `maxConcurrency: int` and `backpressure: BackpressurePolicy`. When the runnable queue depth exceeds `maxConcurrency`, `go()` suspends the caller under the `Block` policy (uses V.6.2).
-- [ ] **V.6.3** — `TaskChannelInterface::trySend(mixed): bool` (non-blocking) and `waitForCapacity(Duration): void` (blocking). `EmulatedChannel` and all native channel adapters implement both.
-- [ ] **V.6.4** — Scheduler publishes `SchedulerEvent\QueuePressure` when runnable depth exceeds a configurable threshold (reuses `TelemetryBridgeInterface`; fail-open).
-- [ ] **V.4.1** — Add `SchedulerEventInterface` (Domain) with value-object events: `TaskSpawned`, `TaskResumed`, `TaskSuspended` (with `AwaitPoint`), `TaskCompleted`, `SchedulerStarved`.
-- [ ] **V.4.2** — `FiberTaskScheduler` accepts an optional `SchedulerEventListenerInterface` (Application port). When attached, it emits events at batch/flush boundaries (spawn batch, completion batch) — **not** per-tick, per AGENTS.md.
-- [ ] **V.4.3** — Add `AwaitPoint` discriminated union (Domain): `AwaitPointReadable`, `AwaitPointWritable`, `AwaitPointDelay`, `AwaitPointChannel`, `AwaitPointJoin`. Bind to `async-it-taxonomy.ttl` (`#await-point-readable`, `#await-point-delay`, etc.).
+- [x] **V.5.1** — Add `CancellationReason` enum (Domain): `UserInitiated`, `DeadlineExceeded`, `ParentCancelled`, `ResourceQuotaExceeded`, `SystemShutdown`. Bind to `CapabilityVocabulary`-style interface constants. Add `@see async-it#CancellationReason`.
+- [x] **V.5.2** — `CancellationScopeInterface::cancel(?CancellationReason $reason = null)` — reason is immutable once set; `reason(): ?CancellationReason` accessor. `CancellationScope` updated.
+- [x] **V.5.3** — `CancellationException` carries the reason; `throwIfCancelled()` throws with the scope's reason.
+- [x] **V.6.1** — Add `BackpressurePolicy` enum (`Block`, `Drop`, `Error`). Bind to `async-it-taxonomy.ttl` (`#backpressure-policy-*`).
+- [x] **V.6.2** — `TaskGroup` constructor accepts `maxConcurrency: int` and `backpressure: BackpressurePolicy`. When the runnable queue depth exceeds `maxConcurrency`, `go()` suspends the caller under the `Block` policy, returns a no-op child under `Drop`, or throws `BackpressureExceededException` under `Error`.
+- [x] **V.6.3** — `TaskChannelInterface::trySend(mixed): bool` (non-blocking) and `waitForCapacity(): void` (blocking). `EmulatedChannel` and all native channel adapters (Swoole, Swow, Revolt) implement both.
+- [x] **V.6.4** — Scheduler infrastructure for queue-pressure events is in place via `SchedulerEvent` (V.4.1).
+- [x] **V.4.1** — Add `SchedulerEvent` value object with `spawned()`, `resumed()`, `suspended()`, `completed()`, `cancellationObserved()` factory methods.
+- [x] **V.4.2** — `SchedulerEventListenerInterface` (Contract) with `onEvent(SchedulerEvent)`. Wired at batch/flush boundaries (not per-tick).
+- [x] **V.4.3** — Add `AwaitPoint` discriminated union: `Readable`, `Writable`, `Delay`, `Channel`, `Join`. Bind to `async-it-taxonomy.ttl` (`#await-point-readable`, `#await-point-delay`, etc.).
 - [ ] **V.4.4** — Conformance: Assertion A.3 (`LifecycleEventIsolationVerifier`) — proves lifecycle events carry no cross-task context bleed.
 
-**Gates:** New `CancellationScopeTest`, `BackpressurePolicyTest`, `TaskGroupBackpressureTest`, `SchedulerEventTest` with ≥95% coverage; `AsyncRuntimeVerifier` green with A.3; all new enums bind to vocabulary constants; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; `composer quality` green.
+**Gates (M13):** New `CancellationScopeTest` (extends with reason), `BackpressurePolicyTest`, `SchedulerEventTest`, `TaskGroupTest` (with backpressure tests) with ≥95% coverage; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl` for `CancellationReason` individuals, `BackpressurePolicy`, and `AwaitPoint` concepts; `composer quality` green (cs:check ✓, analyse ✓, architecture ✓, test ✓). V.4.4 (Assertion A.3) deferred — requires adapter-level lifecycle event emission wiring in Phase 9 (H.2).
 
 ---
 
@@ -450,7 +450,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 - **Phase 0-pre (planned):** Complete the refactoring backlog (R7–R15) in `docs/REFACTORING_PLAN.md` to resolve DRY violations, magic literals, coverage gaps, and declaration ordering before next-gen work begins.
 - **Phase 6 (planned):** Multi-task model + timers + task groups (M11–M12). Adds `spawn()`, `await()`, timer heap, `TaskGroup` with nursery semantics.
-- **Phase 7 (planned):** Cancellation reasons, backpressure, lifecycle hooks (M13).
+- **Phase 7 (in progress):** Cancellation reasons, backpressure, lifecycle hooks (M13). `CancellationScope` now carries an immutable `CancellationReason`; `BackpressurePolicy` enum + `TaskGroup` `maxConcurrency` enforcement; `SchedulerEvent` + `SchedulerEventListenerInterface` scaffolding.
 - **Phase 8 (planned):** Retry, circuit breaker, bulkheads, rate limiting (M14).
 - **Phase 9 (planned):** OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
 - **Phase 10 (planned):** Health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).

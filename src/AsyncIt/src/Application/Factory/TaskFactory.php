@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Domain\Task;
+use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 

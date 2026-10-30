@@ -6,11 +6,12 @@ namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\Port\BackpressurePolicy;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskGroupInterface;
-use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\Behavior\TaskBehavior;
+use ItPack\AsyncIt\Domain\Exception\BackpressureExceededException;
 use ItPack\AsyncIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use Throwable;
@@ -39,11 +40,15 @@ final class TaskGroup implements TaskGroupInterface
 
     private ?Throwable $failure = null;
 
+    private int $runningCount = 0;
+
     public function __construct(
         TaskId $id,
         ExecutionIdInterface $executionId,
         CancellationScopeInterface $cancellationScope,
         private readonly EngineSchedulerInterface $scheduler,
+        private readonly int $maxConcurrency = 0,
+        private readonly BackpressurePolicy $backpressurePolicy = BackpressurePolicy::Block,
     ) {
         $this->id = $id;
         $this->executionId = $executionId;
@@ -91,8 +96,21 @@ final class TaskGroup implements TaskGroupInterface
             );
         }
 
+        if ($this->maxConcurrency > 0 && $this->runningCount >= $this->maxConcurrency) {
+            if ($this->backpressurePolicy === BackpressurePolicy::Drop) {
+                return $this->createNoOpChild();
+            }
+
+            if ($this->backpressurePolicy === BackpressurePolicy::Error) {
+                throw new BackpressureExceededException('maxConcurrency limit reached (policy: error)');
+            }
+
+            $this->waitForSlot();
+        }
+
         $child = $this->scheduler->spawn($operation);
         $this->children[] = $child;
+        $this->runningCount++;
 
         return $child;
     }
@@ -109,6 +127,8 @@ final class TaskGroup implements TaskGroupInterface
             $results[] = $this->scheduler->await($child);
         }
 
+        $this->runningCount = 0;
+
         return $results;
     }
 
@@ -124,5 +144,25 @@ final class TaskGroup implements TaskGroupInterface
         }
 
         return $this->status;
+    }
+
+    public function backpressurePolicy(): BackpressurePolicy
+    {
+        return $this->backpressurePolicy;
+    }
+
+    private function waitForSlot(): void
+    {
+        if ($this->children === []) {
+            return;
+        }
+
+        $this->scheduler->await($this->children[0]);
+        $this->runningCount--;
+    }
+
+    private function createNoOpChild(): TaskInterface
+    {
+        return $this->scheduler->spawn(static fn (): null => null);
     }
 }

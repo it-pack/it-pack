@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use Swoole\Coroutine\Channel;
 
@@ -36,6 +37,22 @@ final class SwooleChannel implements TaskChannelInterface
     public function receive(): mixed
     {
         return $this->channel->pop();
+    }
+
+    public function trySend(mixed $value): bool
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+
+        return (bool) $this->channel->push($value, 0);
+    }
+
+    public function waitForCapacity(): void
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
     }
 
     public function isClosed(): bool

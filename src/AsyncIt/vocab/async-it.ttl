@@ -284,6 +284,66 @@ asyncit:parentScope
     vs:term_status      "stable" ;
 .
 
+asyncit:hasCancellationReason
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has cancellation reason"@en ;
+    rdfs:comment        "Links a CancellationScope to the structured reason it was cancelled. The reason is immutable once set."@en ;
+    rdfs:domain         asyncit:CancellationScope ;
+    rdfs:range          asyncit:CancellationReason ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+# --- Cancellation Reason (closed set of controlled individuals) ----------------
+
+asyncit:CancellationReason
+    a                   owl:Class ;
+    rdfs:label          "Cancellation Reason"@en ;
+    rdfs:comment        "The structured reason a CancellationScope was cancelled. Once set, the reason is immutable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CancellationUserInitiated
+    a                   asyncit:CancellationReason ;
+    rdfs:label          "User Initiated"@en ;
+    rdfs:comment        "Cancellation explicitly requested by the application or user."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CancellationDeadlineExceeded
+    a                   asyncit:CancellationReason ;
+    rdfs:label          "Deadline Exceeded"@en ;
+    rdfs:comment        "Cancellation due to a timer or deadline expiring."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CancellationParentCancelled
+    a                   asyncit:CancellationReason ;
+    rdfs:label          "Parent Cancelled"@en ;
+    rdfs:comment        "Cancellation propagated from a parent scope in structured concurrency."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CancellationResourceQuotaExceeded
+    a                   asyncit:CancellationReason ;
+    rdfs:label          "Resource Quota Exceeded"@en ;
+    rdfs:comment        "Cancellation because a resource quota (handles, tasks, memory) was exceeded."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:CancellationSystemShutdown
+    a                   asyncit:CancellationReason ;
+    rdfs:label          "System Shutdown"@en ;
+    rdfs:comment        "Cancellation triggered by a graceful shutdown signal (e.g. SIGTERM)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
 asyncit:hasTimer
     a                   owl:ObjectProperty ;
     rdfs:label          "has timer"@en ;

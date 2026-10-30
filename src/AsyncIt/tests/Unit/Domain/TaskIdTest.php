@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Contract;
+namespace Tests\Unit\Domain;
 
 use InvalidArgumentException;
-use ItPack\AsyncIt\Contract\TaskId;
+use ItPack\AsyncIt\Domain\TaskId;
 use PHPUnit\Framework\TestCase;
 
 /**
- * @covers \ItPack\AsyncIt\Contract\TaskId
+ * @covers \ItPack\AsyncIt\Domain\TaskId
  */
 final class TaskIdTest extends TestCase
 {

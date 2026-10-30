@@ -180,6 +180,108 @@ asyncit-tax:task-custom
 # Capability key concepts
 # =============================================================================
 
+# Concept scheme for backpressure policies
+asyncit-tax:BackpressurePolicies
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Backpressure Policy Vocabulary"@en ;
+    rdfs:comment        "Extensible taxonomy of backpressure policies for task group and channel admission control."@en ;
+    skos:hasTopConcept  asyncit-tax:backpressure-block ,
+                        asyncit-tax:backpressure-drop ,
+                        asyncit-tax:backpressure-error ;
+.
+
+asyncit-tax:backpressure-block
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:BackpressurePolicies ;
+    skos:topConceptOf   asyncit-tax:BackpressurePolicies ;
+    skos:prefLabel      "Block backpressure"@en ;
+    skos:notation       "backpressure.block" ;
+    skos:definition     "Suspend the calling task until queue capacity is available (cooperative backpressure)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:backpressure-drop
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:BackpressurePolicies ;
+    skos:topConceptOf   asyncit-tax:BackpressurePolicies ;
+    skos:prefLabel      "Drop backpressure"@en ;
+    skos:notation       "backpressure.drop" ;
+    skos:definition     "Silently drop the incoming task or value when at capacity."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:backpressure-error
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:BackpressurePolicies ;
+    skos:topConceptOf   asyncit-tax:BackpressurePolicies ;
+    skos:prefLabel      "Error backpressure"@en ;
+    skos:notation       "backpressure.error" ;
+    skos:definition     "Raise an exception immediately when at capacity (fail-fast)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# Concept scheme for await points
+asyncit-tax:AwaitPointKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Await Point Kind Vocabulary"@en ;
+    rdfs:comment        "Discriminated-union tags for the kind of cooperation point a task is suspended on."@en ;
+    skos:hasTopConcept  asyncit-tax:await-point-readable ,
+                        asyncit-tax:await-point-writable ,
+                        asyncit-tax:await-point-delay ,
+                        asyncit-tax:await-point-channel ,
+                        asyncit-tax:await-point-join ;
+.
+
+asyncit-tax:await-point-readable
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await readable"@en ;
+    skos:notation       "await-point-readable" ;
+    skos:definition     "Suspended until a stream becomes readable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-writable
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await writable"@en ;
+    skos:notation       "await-point-writable" ;
+    skos:definition     "Suspended until a stream becomes writable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-delay
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await delay"@en ;
+    skos:notation       "await-point-delay" ;
+    skos:definition     "Suspended until a monotonic deadline expires."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-channel
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await channel"@en ;
+    skos:notation       "await-point-channel" ;
+    skos:definition     "Suspended while sending or receiving on a TaskChannel."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-join
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await join"@en ;
+    skos:notation       "await-point-join" ;
+    skos:definition     "Suspended awaiting the completion of a child task."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
 asyncit-tax:cap-fiber-execution
     a                   skos:Concept ;
     skos:inScheme       asyncit-tax:CapabilityKeys ;

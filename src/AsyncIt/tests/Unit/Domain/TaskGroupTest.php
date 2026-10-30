@@ -6,11 +6,12 @@ namespace Tests\Unit\Domain;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\Port\BackpressurePolicy;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskId;
-use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Domain\Exception\BackpressureExceededException;
 use ItPack\AsyncIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\AsyncIt\Domain\TaskGroup;
+use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -29,10 +30,7 @@ final class TaskGroupTest extends TestCase
 
     public function testGoSpawnsChildAndReturnsTask(): void
     {
-        $child = $this->createConfiguredMock(
-            TaskInterface::class,
-            ['status' => TaskStatus::Created],
-        );
+        $child = $this->makeTask(TaskStatus::Created);
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
         $scheduler->method('spawn')->willReturn($child);
 
@@ -44,7 +42,7 @@ final class TaskGroupTest extends TestCase
     public function testGoAfterCloseThrows(): void
     {
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
-        $scheduler->method('spawn')->willReturn($this->createMock(TaskInterface::class));
+        $scheduler->method('spawn')->willReturn($this->makeTask(TaskStatus::Created));
 
         $group = $this->buildGroup($scheduler);
         $group->close();
@@ -91,6 +89,56 @@ final class TaskGroupTest extends TestCase
         self::assertSame(TaskStatus::Failed, $group->status());
     }
 
+    public function testBackpressureErrorPolicyThrowsWhenMaxConcurrencyExceeded(): void
+    {
+        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler->method('spawn')->willReturn($this->makeTask(TaskStatus::Created));
+
+        $group = $this->buildGroup($scheduler, 1, BackpressurePolicy::Error);
+
+        $group->go(static fn (): string => 'first');
+
+        $this->expectException(BackpressureExceededException::class);
+
+        $group->go(static fn (): string => 'second');
+    }
+
+    public function testBackpressureDropPolicyReturnsNoOpChildWhenMaxConcurrencyExceeded(): void
+    {
+        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $realChild = $this->makeTask(TaskStatus::Created);
+        $noOpChild = $this->makeTask(TaskStatus::Succeeded);
+
+        $scheduler->expects($this->exactly(2))->method('spawn')
+            ->willReturnOnConsecutiveCalls($realChild, $noOpChild)
+        ;
+
+        $group = $this->buildGroup($scheduler, 1, BackpressurePolicy::Drop);
+
+        $first = $group->go(static fn (): string => 'first');
+        $second = $group->go(static fn (): string => 'second');
+
+        self::assertSame($realChild, $first);
+        self::assertSame($noOpChild, $second);
+    }
+
+    public function testBackpressureDefaultPolicyIsBlock(): void
+    {
+        $group = $this->createGroup();
+
+        self::assertSame(BackpressurePolicy::Block, $group->backpressurePolicy());
+    }
+
+    private function makeTask(TaskStatus $status): TaskStub
+    {
+        return new TaskStub(
+            new TaskId('child-1'),
+            ExecutionId::fromString('exec-1'),
+            $status,
+            $this->createMock(CancellationScopeInterface::class),
+        );
+    }
+
     private function createGroup(): TaskGroup
     {
         return $this->buildGroup(
@@ -98,13 +146,18 @@ final class TaskGroupTest extends TestCase
         );
     }
 
-    private function buildGroup(EngineSchedulerInterface $scheduler): TaskGroup
-    {
+    private function buildGroup(
+        EngineSchedulerInterface $scheduler,
+        int $maxConcurrency = 0,
+        BackpressurePolicy $policy = BackpressurePolicy::Block,
+    ): TaskGroup {
         return new TaskGroup(
             new TaskId('group-1'),
             ExecutionId::fromString('exec-1'),
             $this->createMock(CancellationScopeInterface::class),
             $scheduler,
+            $maxConcurrency,
+            $policy,
         );
     }
 }

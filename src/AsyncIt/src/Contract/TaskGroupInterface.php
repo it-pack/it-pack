@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
+use ItPack\AsyncIt\Contract\Port\BackpressurePolicy;
 use Throwable;
 
 /**
@@ -16,12 +17,20 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-first-failure
+ * @see https://w3id.org/itpack/asyncit#BackpressurePolicy
+ * @see https://w3id.org/itpack/asyncit-taxonomy#backpressure-block
+ * @see https://w3id.org/itpack/asyncit-taxonomy#backpressure-drop
+ * @see https://w3id.org/itpack/asyncit-taxonomy#backpressure-error
  */
 interface TaskGroupInterface extends TaskInterface
 {
     /**
      * Spawns a child task on the group's scheduler, inheriting the group's
      * cancellation scope.
+     *
+     * If the group has a maxConcurrency limit, the call respects the configured
+     * {@see BackpressurePolicy}: Block suspends the caller until a slot frees,
+     * Drop returns a no-op child immediately, Error throws.
      *
      * @return TaskInterface the spawned child task (awaitable)
      */
@@ -52,4 +61,11 @@ interface TaskGroupInterface extends TaskInterface
      * Any failure that occurred in a child task.
      */
     public function failure(): ?Throwable;
+
+    /**
+     * The backpressure policy applied when maxConcurrency is exceeded.
+     *
+     * @see https://w3id.org/itpack/asyncit-taxonomy#backpressure-block
+     */
+    public function backpressurePolicy(): BackpressurePolicy;
 }

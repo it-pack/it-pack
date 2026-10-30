@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Revolt;
 
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 
@@ -16,9 +17,8 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-revolt
-  * @api
-
-  */
+ *   @api
+ */
 final readonly class RevoltChannel implements TaskChannelInterface
 {
     public function __construct(private EmulatedChannel $channel)
@@ -33,6 +33,22 @@ final readonly class RevoltChannel implements TaskChannelInterface
     public function receive(): mixed
     {
         return $this->channel->receive();
+    }
+
+    public function trySend(mixed $value): bool
+    {
+        if ($this->channel->isClosed()) {
+            throw new ChannelClosedException();
+        }
+
+        return $this->channel->trySend($value);
+    }
+
+    public function waitForCapacity(): void
+    {
+        if ($this->channel->isClosed()) {
+            throw new ChannelClosedException();
+        }
     }
 
     public function isClosed(): bool

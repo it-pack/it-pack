@@ -6,9 +6,9 @@ namespace ItPack\AsyncIt\Domain\Behavior;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Domain\Exception\ConflictingCompletionException;
 use ItPack\AsyncIt\Domain\Exception\InvalidLifecycleTransitionException;
+use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 trait TaskBehavior

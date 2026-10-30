@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain;
 
+use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Domain\CancellationScope;
 use ItPack\AsyncIt\Domain\Exception\CancellationException;
 use PHPUnit\Framework\TestCase;
@@ -18,6 +19,7 @@ final class CancellationScopeTest extends TestCase
         $scope = new CancellationScope();
 
         self::assertFalse($scope->isCancelled());
+        self::assertNull($scope->reason());
     }
 
     public function testThrowIfCancelledDoesNotThrowWhenAlive(): void
@@ -96,5 +98,46 @@ final class CancellationScopeTest extends TestCase
         $scope->cancel();
 
         self::assertSame(['first', 'second'], $calls);
+    }
+
+    public function testCancelDefaultsToReasonUserInitiated(): void
+    {
+        $scope = new CancellationScope();
+
+        $scope->cancel();
+
+        self::assertSame(CancellationReason::UserInitiated, $scope->reason());
+    }
+
+    public function testCancelPreservesExplicitReason(): void
+    {
+        $scope = new CancellationScope();
+
+        $scope->cancel(CancellationReason::DeadlineExceeded);
+
+        self::assertSame(CancellationReason::DeadlineExceeded, $scope->reason());
+    }
+
+    public function testCancelIsIdempotentPreservesReason(): void
+    {
+        $scope = new CancellationScope();
+        $scope->cancel(CancellationReason::ParentCancelled);
+        $scope->cancel(CancellationReason::SystemShutdown);
+
+        self::assertSame(CancellationReason::ParentCancelled, $scope->reason());
+    }
+
+    public function testThrowIfCancelledCarriesReason(): void
+    {
+        $scope = new CancellationScope();
+        $scope->cancel(CancellationReason::ResourceQuotaExceeded);
+
+        try {
+            $scope->throwIfCancelled();
+
+            self::fail('Expected CancellationException');
+        } catch (CancellationException $cancellationException) {
+            self::assertSame(CancellationReason::ResourceQuotaExceeded, $cancellationException->reason());
+        }
     }
 }

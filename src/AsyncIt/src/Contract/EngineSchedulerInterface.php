@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
+use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 
 /**

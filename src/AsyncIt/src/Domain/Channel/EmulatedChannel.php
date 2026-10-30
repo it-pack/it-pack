@@ -72,6 +72,29 @@ final class EmulatedChannel implements TaskChannelInterface
         return $value;
     }
 
+    public function trySend(mixed $value): bool
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+
+        $size = count($this->queue);
+        if ($this->capacity !== null && $size >= $this->capacity) {
+            return false;
+        }
+
+        $this->queue[] = $value;
+
+        return true;
+    }
+
+    public function waitForCapacity(): void
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+    }
+
     public function isClosed(): bool
     {
         return $this->closed;

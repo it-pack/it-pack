@@ -18,6 +18,7 @@ use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
  * learn which backend is active.
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
+ * @see https://w3id.org/itpack/asyncit-taxonomy#backpressure-block
  * @api
  */
 interface TaskChannelInterface
@@ -36,6 +37,22 @@ interface TaskChannelInterface
      * @throws ChannelEmptyException when no value is available
      */
     public function receive(): mixed;
+
+    /**
+     * Attempts a non-blocking send. Returns false when the channel is full
+     * (backpressure policy: drop), true on success.
+     *
+     * @throws ChannelClosedException when closed
+     */
+    public function trySend(mixed $value): bool;
+
+    /**
+     * Blocks (suspends) the calling task until buffer capacity is available
+     * (backpressure policy: block) or the channel is closed.
+     *
+     * @throws ChannelClosedException when closed
+     */
+    public function waitForCapacity(): void;
 
     public function isClosed(): bool;
 

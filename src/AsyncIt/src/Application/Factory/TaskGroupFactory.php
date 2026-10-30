@@ -6,8 +6,8 @@ namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskGroupInterface;
-use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Domain\TaskGroup;
+use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 /**
