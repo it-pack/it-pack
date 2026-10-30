@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Contract;
 
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
+// Remove this import; keep the fully-qualified class name in the @see docblock.
 
 /**
  * The polling contract — an OS-readiness notifier, not a scheduler.
