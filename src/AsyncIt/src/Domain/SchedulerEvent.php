@@ -35,7 +35,7 @@ final readonly class SchedulerEvent implements SchedulerEventInterface
 
     public static function spawned(TaskInterface $task, ?TaskIdInterface $parentId = null): self
     {
-        return new self($task, SchedulerEventType::Spawned, TaskStatus::Created, null, $parentId);
+        return new self($task, SchedulerEventType::Spawned, TaskStatus::Created, parentId: $parentId);
     }
 
     public static function resumed(TaskInterface $task, ?AwaitPoint $awaitPoint = null): self

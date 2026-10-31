@@ -6,7 +6,9 @@ namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Fixture\ReferenceRuntimeFixture;
 use ItPack\AsyncIt\Conformance\Verifier\TraceParentageVerifier;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use PHPUnit\Framework\TestCase;
 use Tests\Unit\Conformance\Fixture\FakeRuntimeFixture;
 
@@ -29,14 +31,14 @@ final class TraceParentageVerifierTest extends TestCase
         $verifier = new TraceParentageVerifier();
 
         $storage = new class () implements ContextStorageInterface {
-            public function current(): ?\ItPack\RunIt\Contract\Application\ExecutionScopeInterface
+            public function current(): ?ExecutionScopeInterface
             {
                 return null;
             }
 
-            public function attach(\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope): \ItPack\RunIt\Contract\Port\ContextTokenInterface
+            public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
             {
-                return new class () implements \ItPack\RunIt\Contract\Port\ContextTokenInterface {
+                return new class () implements ContextTokenInterface {
                     public function id(): int
                     {
                         return 0;
@@ -44,7 +46,7 @@ final class TraceParentageVerifierTest extends TestCase
                 };
             }
 
-            public function detach(\ItPack\RunIt\Contract\Port\ContextTokenInterface $token): void
+            public function detach(ContextTokenInterface $token): void
             {
             }
         };
