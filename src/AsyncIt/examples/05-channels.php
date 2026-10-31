@@ -29,6 +29,7 @@ $result = $runtime->run($scope, static function () use ($runtime): string {
             echo "  producer: sent message-$i\n";
             $runtime->awaitDelay(Duration::ofNanoseconds(100_000));
         }
+
         $channel->close();
         echo "  producer: channel closed\n";
     });
@@ -45,9 +46,11 @@ $result = $runtime->run($scope, static function () use ($runtime): string {
                 if ($channel->isClosed()) {
                     break;
                 }
+
                 $runtime->awaitDelay(Duration::ofNanoseconds(50_000));
                 continue;
             }
+
             if ($channel->isClosed()) {
                 break;
             }
@@ -65,10 +68,9 @@ $result = $runtime->run($scope, static function () use ($runtime): string {
 echo '  consumer collected: ', $result, "\n";
 
 echo "\n=== trySend() non-blocking backpressure ===\n";
-$result = $runtime->run($scope, static function () use ($runtime): int {
+$result = $runtime->run($scope, static function (): int {
     $channel = new EmulatedChannel();
     $sent = 0;
-
     for ($i = 0; $i < 10; $i++) {
         if ($channel->trySend("item-$i")) {
             $sent++;
@@ -77,34 +79,30 @@ $result = $runtime->run($scope, static function () use ($runtime): int {
             echo "  trySend: item-$i rejected (channel would block)\n";
         }
     }
-
     return $sent;
 });
 
 echo '  items sent via trySend: ', $result, "\n";
 
 echo "\n=== ChannelClosedException after close() ===\n";
-$runtime->run($scope, static function () use ($runtime): void {
+$runtime->run($scope, static function (): void {
     $channel = new EmulatedChannel();
     $channel->send('last');
     $channel->close();
-
     try {
         $channel->send('after-close');
         echo "  ERROR: send after close should have thrown\n";
-    } catch (ChannelClosedException $e) {
+    } catch (ChannelClosedException) {
         echo "  ChannelClosedException on send after close caught as expected\n";
     }
-
     // Drain the value sent before close.
     echo '  receive after close (draining): ', $channel->receive(), "\n";
-
     // EmulatedChannel throws ChannelEmptyException when closed and empty,
     // not ChannelClosedException. The contract distinguishes the two.
     try {
         $channel->receive();
         echo "  ERROR: receive from empty closed channel should have thrown\n";
-    } catch (ChannelEmptyException $e) {
+    } catch (ChannelEmptyException) {
         echo "  ChannelEmptyException on receive from empty closed channel caught as expected\n";
     }
 });
@@ -118,7 +116,7 @@ echo "  sent 'a' and 'b' to capacity-2 channel\n";
 try {
     $boundedChannel->send('c');
     echo "  ERROR: send to full channel should have thrown\n";
-} catch (ChannelFullException $e) {
+} catch (ChannelFullException) {
     echo "  ChannelFullException caught (bounded buffer backpressure)\n";
 }
 
@@ -128,7 +126,7 @@ echo '  receive: ', $boundedChannel->receive(), "\n";
 try {
     $boundedChannel->receive();
     echo "  ERROR: receive from empty channel should have thrown\n";
-} catch (ChannelEmptyException $e) {
+} catch (ChannelEmptyException) {
     echo "  ChannelEmptyException caught (empty channel)\n";
 }
 

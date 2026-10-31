@@ -2,6 +2,32 @@
 
 declare(strict_types=1);
 
+use ItPack\AsyncIt\Application\Poller\SelectPoller;
+use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
+use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
+use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
+use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
+use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
+use ItPack\AsyncIt\Domain\CancellationScope;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
+use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Factory\FiberFactory;
+use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
+use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
+use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
+use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
+use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
+use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
+use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
+use ItPack\AsyncIt\Application\Factory\TaskGroupFactory;
+use ItPack\RunIt\Contract\Application\EngineCapability;
+use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
+use ItPack\AsyncIt\SDK\AsyncRuntime;
+use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
+
 /**
  * Bootstrap helper for AsyncIt examples.
  *
@@ -16,74 +42,74 @@ declare(strict_types=1);
  * array.
  *
  * @return array{
- *     runtime: \ItPack\AsyncIt\SDK\AsyncRuntime,
- *     scheduler: \ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler,
- *     rootScope: \ItPack\AsyncIt\Contract\CancellationScopeInterface,
- *     clock: \ItPack\RunIt\Adapter\Common\SystemMonotonicClock,
- *     poller: \ItPack\AsyncIt\Application\Poller\SelectPoller,
- *     telemetry: \ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder,
- *     storage: \ItPack\AsyncIt\Application\Context\MemoryContextStorage,
+ *     runtime: AsyncRuntime,
+ *     scheduler: FiberTaskScheduler,
+ *     rootScope: CancellationScopeInterface,
+ *     clock: SystemMonotonicClock,
+ *     poller: SelectPoller,
+ *     telemetry: ArrayTelemetryRecorder,
+ *     storage: MemoryContextStorage,
  * }
  */
 function makeReferenceRuntime(): array
 {
-    $verifierPoller = new \ItPack\AsyncIt\Application\Poller\SelectPoller();
-    $storage = new \ItPack\AsyncIt\Application\Context\MemoryContextStorage();
-    $clock = new \ItPack\RunIt\Adapter\Common\SystemMonotonicClock();
-    $publisher = new \ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher();
-    $telemetryRecorder = new \ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder();
-    $telemetry = new \ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge(
-        static fn (): \ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder => $telemetryRecorder,
+    $verifierPoller = new SelectPoller();
+    $storage = new MemoryContextStorage();
+    $clock = new SystemMonotonicClock();
+    $publisher = new NullArtifactPublisher();
+    $telemetryRecorder = new ArrayTelemetryRecorder();
+    $telemetry = new LazyTelemetryBridge(
+        static fn (): ArrayTelemetryRecorder => $telemetryRecorder,
     );
-    $rootScope = new \ItPack\AsyncIt\Domain\CancellationScope();
+    $rootScope = new CancellationScope();
 
-    $executionId = \ItPack\RunIt\Domain\Execution\ExecutionId::fromString('example-exec');
-    $sequenceAllocator = new \ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator();
+    $executionId = ExecutionId::fromString('example-exec');
+    $sequenceAllocator = new InMemorySequenceAllocator();
 
-    $scheduler = new \ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler(
-        new \ItPack\AsyncIt\Application\Factory\FiberFactory(),
-        new \ItPack\AsyncIt\Application\Factory\TaskRecordFactory(),
-        new \ItPack\AsyncIt\Application\Factory\TaskFactory(
-            new \ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator(),
+    $scheduler = new FiberTaskScheduler(
+        new FiberFactory(),
+        new TaskRecordFactory(),
+        new TaskFactory(
+            new RandomIdentifierGenerator(),
         ),
-        new \ItPack\AsyncIt\Application\Factory\CancellationScopeFactory(),
+        new CancellationScopeFactory(),
         $clock,
         $executionId,
         $verifierPoller,
         $storage,
-        new \ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory(),
+        new ReferenceExecutionScopeFactory(),
         $publisher,
-        new \ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory(
+        new SchedulerLifecycleArtifactFactory(
             $sequenceAllocator,
             $executionId,
         ),
-        new \ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener($telemetry),
+        new TelemetryBridgeEventListener($telemetry),
     );
 
-    $schedulerFactory = new \ItPack\AsyncIt\Application\Factory\SchedulerFactory(
-        new \ItPack\AsyncIt\Application\Factory\FiberFactory(),
-        new \ItPack\AsyncIt\Application\Factory\TaskRecordFactory(),
-        new \ItPack\AsyncIt\Application\Factory\TaskFactory(
-            new \ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator(),
+    $schedulerFactory = new SchedulerFactory(
+        new FiberFactory(),
+        new TaskRecordFactory(),
+        new TaskFactory(
+            new RandomIdentifierGenerator(),
         ),
-        new \ItPack\AsyncIt\Application\Factory\CancellationScopeFactory(),
+        new CancellationScopeFactory(),
         $clock,
         $verifierPoller,
         $storage,
         $publisher,
     );
 
-    $taskGroupFactory = new \ItPack\AsyncIt\Application\Factory\TaskGroupFactory(
-        new \ItPack\AsyncIt\Application\Factory\CancellationScopeFactory(),
+    $taskGroupFactory = new TaskGroupFactory(
+        new CancellationScopeFactory(),
     );
 
-    $idGenerator = new \ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator();
+    $idGenerator = new RandomIdentifierGenerator();
 
-    $capability = new \ItPack\RunIt\Contract\Application\EngineCapability(true, true, true);
+    $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
 
-    $channel = new \ItPack\AsyncIt\Domain\Channel\EmulatedChannel();
+    $channel = new EmulatedChannel();
 
-    $runtime = new \ItPack\AsyncIt\SDK\AsyncRuntime(
+    $runtime = new AsyncRuntime(
         $schedulerFactory,
         $taskGroupFactory,
         $idGenerator,
@@ -106,7 +132,7 @@ function makeReferenceRuntime(): array
 /**
  * Builds a ReferenceExecutionScope for the given discriminant.
  */
-function makeScope(string $discriminant): \ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope
+function makeScope(string $discriminant): ReferenceExecutionScope
 {
-    return new \ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope($discriminant);
+    return new ReferenceExecutionScope($discriminant);
 }

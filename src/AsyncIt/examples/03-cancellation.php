@@ -48,7 +48,7 @@ $runtime->run($scope, static function () use ($runtime, $appScope): void {
     $appScope->cancel(CancellationReason::UserInitiated);
 
     $result = $runtime->await($task);
-    echo 'parent: worker returned: ', var_export($result, true), "\n";
+    echo 'parent: worker returned: ', var_export($result, return: true), "\n";
 });
 
 echo "\n=== throwIfCancelled() pattern ===\n";
@@ -70,7 +70,7 @@ $runtime->run($scope, static function () use ($runtime, $throwScope): void {
                 echo "  worker2: iteration $i\n";
                 $runtime->awaitDelay(Duration::ofNanoseconds(80_000));
             }
-        } catch (CancellationException $e) {
+        } catch (CancellationException) {
             echo "  worker2: caught CancellationException, performing cleanup\n";
         }
 

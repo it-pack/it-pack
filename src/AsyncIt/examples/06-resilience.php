@@ -42,7 +42,7 @@ $runtime->run($scope, static function () use ($runtime, &$attempts, $policy, &$r
         echo "  attempt $attempts\n";
 
         if ($attempts < 3) {
-            throw new \RuntimeException("transient failure on attempt $attempts");
+            throw new RuntimeException("transient failure on attempt $attempts");
         }
 
         return "success on attempt $attempts";
@@ -58,10 +58,10 @@ $runtime->run($scope, static function () use ($runtime, &$attempts, $policy, &$r
             $result = $operation();
 
             break;
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $lastError = $e;
 
-            if ($attempt >= $policy->maxAttempts || !$policy->isRetryable(\get_class($e))) {
+            if ($attempt >= $policy->maxAttempts || !$policy->isRetryable($e::class)) {
                 throw $e;
             }
 
@@ -87,9 +87,9 @@ $policy2 = new RetryPolicy(
 try {
     $runtime->run($scope, static function () use (&$attempts2): void {
         $attempts2++;
-        throw new \LogicException('permanent failure');
+        throw new LogicException('permanent failure');
     });
-} catch (\LogicException $e) {
+} catch (LogicException) {
     echo '  LogicException propagated after ', $attempts2, " attempt(s) (not retried)\n";
 }
 
@@ -114,12 +114,12 @@ for ($i = 1; $i <= 5; $i++) {
         $breaker->allowExecution(static function () use (&$failCount): string {
             $failCount++;
 
-            throw new \RuntimeException("downstream failure #$failCount");
+            throw new RuntimeException("downstream failure #$failCount");
         });
         echo "  call $i: success\n";
-    } catch (CircuitBreakerOpenException $e) {
+    } catch (CircuitBreakerOpenException) {
         echo "  call $i: circuit OPEN (short-circuited)\n";
-    } catch (\RuntimeException $e) {
+    } catch (RuntimeException) {
         echo "  call $i: failure (state: ", $breaker->state()->value, ")\n";
     }
 }
@@ -131,9 +131,7 @@ $runtime->run($scope, static function () use ($runtime): void {
     $runtime->awaitDelay(Duration::ofNanoseconds(150_000_000)); // wait past cooldown
 });
 
-$breaker->allowExecution(static function (): string {
-    return 'probe success';
-});
+$breaker->allowExecution(static fn (): string => 'probe success');
 echo '  after cooldown + success: ', $breaker->state()->value, "\n";
 
 echo "\n=== Circuit state transitions ===\n";

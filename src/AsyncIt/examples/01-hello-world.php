@@ -15,8 +15,6 @@ $scope = makeScope('hello-world');
  * the RunIt execution scope is attached on resume and detached under `finally`
  * on every suspension (conformance Assertion A).
  */
-$result = $runtime->run($scope, static function (): string {
-    return 'Hello from AsyncIt';
-});
+$result = $runtime->run($scope, static fn (): string => 'Hello from AsyncIt');
 
 echo $result, "\n";

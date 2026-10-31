@@ -48,7 +48,7 @@ echo "  detached context-A\n";
 try {
     $storage->detach($tokenA);
     echo "  ERROR: double-detach should have thrown\n";
-} catch (\LogicException $e) {
+} catch (LogicException) {
     echo "  double-detach rejected as expected\n";
 }
 
@@ -57,7 +57,7 @@ $bogusToken = new ContextToken(99999);
 try {
     $storage->detach($bogusToken);
     echo "  ERROR: invalid token should have thrown\n";
-} catch (\LogicException $e) {
+} catch (LogicException) {
     echo "  invalid token rejected as expected\n";
 }
 

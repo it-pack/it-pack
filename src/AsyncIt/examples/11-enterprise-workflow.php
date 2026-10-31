@@ -48,10 +48,11 @@ $runtime->run($scope, static function () use (
             try {
                 $result = $resultsChannel->receive();
                 echo "  [collector] $result\n";
-            } catch (ChannelEmptyException $e) {
+            } catch (ChannelEmptyException) {
                 if ($resultsChannel->isClosed()) {
                     break;
                 }
+
                 $runtime->awaitDelay(Duration::ofNanoseconds(50_000));
             }
         }
@@ -99,11 +100,12 @@ $runtime->run($scope, static function () use (
                         try {
                             // Order 4 always fails → exhausts retries → cancels workflow.
                             if ($id === 4) {
-                                throw new \RuntimeException('payment gateway timeout');
+                                throw new RuntimeException('payment gateway timeout');
                             }
+
                             echo "  [order-$id] charge confirmed (attempt $attempt)\n";
                             break;
-                        } catch (\RuntimeException $e) {
+                        } catch (RuntimeException $e) {
                             echo "  [order-$id] charge attempt $attempt failed: ", $e->getMessage(), "\n";
                             if ($attempt >= 3) {
                                 $workflowScope->cancel(CancellationReason::UserInitiated);

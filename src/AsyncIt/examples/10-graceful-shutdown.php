@@ -48,9 +48,11 @@ $runtime->run($scope, static function () use ($runtime, $rootScope): void {
 
                     return;
                 }
+
                 echo "  task-$index: tick $j\n";
                 $runtime->awaitDelay(Duration::ofNanoseconds(50_000));
             }
+
             echo "  task-$index: completed normally\n";
         });
     }

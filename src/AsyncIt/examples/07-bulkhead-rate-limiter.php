@@ -32,7 +32,7 @@ $runtime->run($scope, static function () use ($runtime, $bulkhead, &$active, &$p
         $tasks[] = $runtime->spawn(static function () use ($runtime, $bulkhead, $index, &$active, &$peak): string {
             try {
                 $bulkhead->tryAcquire();
-            } catch (BulkheadFullException $e) {
+            } catch (BulkheadFullException) {
                 return "task-$index: rejected (bulkhead full)";
             }
 
@@ -151,6 +151,7 @@ $runtime->run($scope, static function () use ($runtime, $limiter2): void {
             echo "  request $i: awaiting permit (", $delay->nanoseconds() / 1_000_000, " ms)\n";
             $runtime->awaitDelay($delay);
         }
+
         $limiter2->consume();
         echo "  request $i: permit acquired, proceeding\n";
     }

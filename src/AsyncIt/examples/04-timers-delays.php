@@ -18,16 +18,16 @@ echo "=== awaitDelay with monotonic Duration ===\n";
 // Durations use monotonic clocks (hrtime), never wall-clock, so durations are
 // free of wall-clock skew (conformance Assertion B).
 $runtime->run($scope, static function () use ($runtime): void {
-    $start = hrtime(true);
+    $start = hrtime(as_number: true);
 
     $runtime->awaitDelay(Duration::ofMilliseconds(50));
-    $elapsed1 = hrtime(true) - $start;
+    $elapsed1 = hrtime(as_number: true) - $start;
 
     $runtime->awaitDelay(Duration::ofSeconds(0));
-    $elapsed2 = hrtime(true) - $start;
+    $elapsed2 = hrtime(as_number: true) - $start;
 
     $runtime->awaitDelay(Duration::ofNanoseconds(5_000_000));
-    $elapsed3 = hrtime(true) - $start;
+    $elapsed3 = hrtime(as_number: true) - $start;
 
     echo '  delay(50ms)   elapsed: ', number_format($elapsed1 / 1_000_000, 2), " ms\n";
     echo '  delay(0s)     elapsed: ', number_format($elapsed2 / 1_000_000, 2), " ms\n";
