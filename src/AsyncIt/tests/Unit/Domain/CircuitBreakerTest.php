@@ -20,7 +20,7 @@ use Throwable;
  */
 final class CircuitBreakerTest extends TestCase
 {
-    private MockObject $clock;
+    private MonotonicClockInterface&MockObject $clock;
 
     protected function setUp(): void
     {
