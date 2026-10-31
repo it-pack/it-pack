@@ -30,6 +30,8 @@ final readonly class SchedulerConfiguration
 
     /**
      * @param float $telemetrySamplingRate 0.0 (none) to 1.0 (all)
+     * @param float|null $canaryWeight 0.0 (none) to 1.0 (all) fraction of tasks routed to canary
+     * @param self|null $canaryConfig The canary configuration snapshot (null when not a canary profile)
      */
     private function __construct(
         public int $maxConcurrency,
@@ -39,6 +41,8 @@ final readonly class SchedulerConfiguration
         public float $telemetrySamplingRate,
         public DurationInterface $gracefulShutdownDeadline,
         public bool $debug,
+        public ?float $canaryWeight = null,
+        public ?self $canaryConfig = null,
     ) {
         if ($maxConcurrency < 1 || $maxConcurrency > self::MAX_CONCURRENCY_CEILING) {
             throw new DomainException(
@@ -49,6 +53,12 @@ final readonly class SchedulerConfiguration
         if ($telemetrySamplingRate < 0.0 || $telemetrySamplingRate > 1.0) {
             throw new DomainException(
                 'telemetrySamplingRate must be between 0.0 and 1.0, got ' . $telemetrySamplingRate . '.',
+            );
+        }
+
+        if ($canaryWeight !== null && ($canaryWeight < 0.0 || $canaryWeight > 1.0)) {
+            throw new DomainException(
+                'canaryWeight must be between 0.0 and 1.0, got ' . $canaryWeight . '.',
             );
         }
 
@@ -71,12 +81,48 @@ final readonly class SchedulerConfiguration
     }
 
     /**
+     * Returns a canary profile configuration that routes {@see $weight} fraction
+     * of tasks to a canary scheduler. Builds from {@see defaults()} so every
+     * non-canary field inherits the baseline defaults, then applies only the
+     * canary weight. The returned config carries {@see $canaryWeight} and a
+     * null {@see $canaryConfig}; the caller pairs it with a baseline config
+     * via {@see CanaryScheduler}.
+     *
+     * @param float $weight 0.0 (none) to 1.0 (all) fraction routed to canary
+     */
+    public static function forCanary(float $weight): self
+    {
+        return self::defaults()->withChanges(['canaryWeight' => $weight]);
+    }
+
+    /**
      * Atomically returns a new immutable snapshot with the given overrides.
      *
      * @param array<string, mixed> $diffs key/value pairs matching property names
+     * @throws DomainException when a diff key is not a known property
      */
     public function withChanges(array $diffs): self
     {
+        $knownKeys = [
+            'maxConcurrency',
+            'defaultTimeout',
+            'schedulingPolicy',
+            'backpressurePolicy',
+            'telemetrySamplingRate',
+            'gracefulShutdownDeadline',
+            'debug',
+            'canaryWeight',
+            'canaryConfig',
+        ];
+
+        foreach (array_keys($diffs) as $key) {
+            if (!in_array($key, $knownKeys, strict: true)) {
+                throw new DomainException(
+                    'Unknown configuration key "' . $key . '" in withChanges().',
+                );
+            }
+        }
+
         /** @var int $maxConcurrency */
         $maxConcurrency = $diffs['maxConcurrency'] ?? $this->maxConcurrency;
         /** @var DurationInterface|null $defaultTimeout */
@@ -91,6 +137,10 @@ final readonly class SchedulerConfiguration
         $gracefulShutdownDeadline = $diffs['gracefulShutdownDeadline'] ?? $this->gracefulShutdownDeadline;
         /** @var bool $debug */
         $debug = $diffs['debug'] ?? $this->debug;
+        /** @var float|null $canaryWeight */
+        $canaryWeight = $diffs['canaryWeight'] ?? $this->canaryWeight;
+        /** @var self|null $canaryConfig */
+        $canaryConfig = $diffs['canaryConfig'] ?? $this->canaryConfig;
 
         return new self(
             maxConcurrency: $maxConcurrency,
@@ -100,6 +150,8 @@ final readonly class SchedulerConfiguration
             telemetrySamplingRate: $telemetrySamplingRate,
             gracefulShutdownDeadline: $gracefulShutdownDeadline,
             debug: $debug,
+            canaryWeight: $canaryWeight,
+            canaryConfig: $canaryConfig,
         );
     }
 

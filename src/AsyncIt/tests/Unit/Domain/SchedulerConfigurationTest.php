@@ -27,6 +27,8 @@ final class SchedulerConfigurationTest extends TestCase
         self::assertSame(1.0, $config->telemetrySamplingRate);
         self::assertTrue(Duration::ofSeconds(30)->equals($config->gracefulShutdownDeadline));
         self::assertFalse($config->debug);
+        self::assertNull($config->canaryWeight);
+        self::assertNull($config->canaryConfig);
     }
 
     public function testWithChangesReturnsNewInstance(): void
@@ -89,5 +91,57 @@ final class SchedulerConfigurationTest extends TestCase
 
         $original = SchedulerConfiguration::defaults();
         $original->withChanges(['gracefulShutdownDeadline' => Duration::ofSeconds(0)]);
+    }
+
+    public function testForCanarySetsCanaryWeight(): void
+    {
+        $config = SchedulerConfiguration::forCanary(0.3);
+
+        self::assertSame(0.3, $config->canaryWeight);
+        self::assertNull($config->canaryConfig);
+    }
+
+    public function testForCanaryRejectsWeightOutOfRange(): void
+    {
+        $this->expectException(DomainException::class);
+
+        SchedulerConfiguration::forCanary(-0.1);
+    }
+
+    public function testForCanaryRejectsWeightAboveOne(): void
+    {
+        $this->expectException(DomainException::class);
+
+        SchedulerConfiguration::forCanary(1.1);
+    }
+
+    public function testWithChangesCanCarryCanaryWeight(): void
+    {
+        $original = SchedulerConfiguration::defaults();
+
+        $new = $original->withChanges(['canaryWeight' => 0.7, 'debug' => true]);
+
+        self::assertSame(0.7, $new->canaryWeight);
+        self::assertTrue($new->debug);
+        self::assertNull($original->canaryWeight);
+    }
+
+    public function testWithChangesCanCarryCanaryConfig(): void
+    {
+        $baseline = SchedulerConfiguration::defaults();
+        $canary = SchedulerConfiguration::forCanary(0.5);
+
+        $new = $baseline->withChanges(['canaryConfig' => $canary]);
+
+        self::assertSame($canary, $new->canaryConfig);
+        self::assertNull($baseline->canaryConfig);
+    }
+
+    public function testWithChangesRejectsUnknownKey(): void
+    {
+        $this->expectException(DomainException::class);
+
+        $config = SchedulerConfiguration::defaults();
+        $config->withChanges(['nonexistentKey' => 'value']);
     }
 }

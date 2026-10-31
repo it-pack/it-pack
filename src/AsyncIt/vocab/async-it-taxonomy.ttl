@@ -564,3 +564,45 @@ asyncit-tax:jitter-equal
     skos:definition     "Delay is base/2 + random(0, base/2) (decorrelated)."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
 .
+
+# =============================================================================
+# Telemetry schema type concepts
+# =============================================================================
+
+asyncit-tax:TelemetrySchemaTypes
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Telemetry Schema Type Taxonomy"@en ;
+    rdfs:comment        "Taxonomy of telemetry schema types (occurrence, measurement, observation). Extensible: consumers may define additional types."@en ;
+    skos:hasTopConcept  asyncit-tax:schema-occurrence ,
+                        asyncit-tax:schema-measurement ,
+                        asyncit-tax:schema-observation .
+.
+
+asyncit-tax:schema-occurrence
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TelemetrySchemaTypes ;
+    skos:topConceptOf   asyncit-tax:TelemetrySchemaTypes ;
+    skos:prefLabel      "Occurrence schema"@en ;
+    skos:notation       "schema.occurrence" ;
+    skos:definition     "JSON Schema for a scheduler occurrence published into the RunIt artifact stream."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> .
+.
+
+asyncit-tax:schema-measurement
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TelemetrySchemaTypes ;
+    skos:topConceptOf   asyncit-tax:TelemetrySchemaTypes ;
+    skos:prefLabel      "Measurement schema"@en ;
+    skos:notation       "schema.measurement" ;
+    skos:definition     "JSON Schema for a scheduler measurement (e.g. task duration, poll wait time) published into the RunIt artifact stream."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> .
+.
+
+asyncit-tax:schema-observation
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:TelemetrySchemaTypes ;
+    skos:topConceptOf   asyncit-tax:TelemetrySchemaTypes ;
+    skos:prefLabel      "Observation schema"@en ;
+    skos:notation       "schema.observation" ;
+    skos:definition     "JSON Schema for a scheduler observation (e.g. queue pressure, handle leak) published into the RunIt artifact stream."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> .
