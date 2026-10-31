@@ -430,8 +430,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - [x] **A.3.4** — AGENTS.md compliance: "Do not serialize arbitrary objects as scheduling state" — only task *definitions* are serialized; suspended Fibers are never persisted.
 - [x] **A.4.1** — Add `RemoteSchedulerPortInterface` (Contract): `execute(RemoteTask): PromiseInterface`. Implementations: gRPC bridge, AMQP bridge.
 - [x] **A.4.2** — Add `FederatedScheduler` (Application): accepts `RemoteTask` submissions; routes to remote schedulers via the port; propagates `CancellationScope` across the federation boundary via serializable token.
-- [ ] **A.4.3** — AGENTS.md compliance: distributed cancellation degrades gracefully (local timeout + dead-letter). Correlation IDs (RunIt `IdentifierGeneratorInterface`) propagate across federation.
-- [ ] **A.5.1** — Add `SchedulerMiddlewareInterface` (Contract): `process(TaskInterface, callable $next): mixed`.
+- [x] **A.4.3** — AGENTS.md compliance: distributed cancellation degrades gracefully (local timeout + dead-letter). Correlation IDs (RunIt `IdentifierGeneratorInterface`) propagate across federation.- [ ] **A.5.1** — Add `SchedulerMiddlewareInterface` (Contract): `process(TaskInterface, callable $next): mixed`.
 - [ ] **A.5.2** — Add `MiddlewareScheduler` (Application): decorator wrapping `FiberTaskScheduler` with an ordered pipeline.
 - [ ] **A.5.3** — Reference middleware: `TraceContextInjector`, `ResourceQuotaChecker`, `BackpressureGate`, `ContextAttacher`.
 - [ ] **A.6.1** — Add `TelemetrySchemaRegistry` (Domain): versioned JSON-Schema descriptors for each occurrence/measurement/observation type. Each schema has `@see` to its ontology IRI.

@@ -341,6 +341,13 @@ asyncit:FederatedScheduler
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
     vs:term_status      "stable" .
 
+asyncit:DeadLetterQueue
+    a                   owl:Class ;
+    rdfs:label          "Dead Letter Queue"@en ;
+    rdfs:comment        "Queue for timed-out or undeliverable RemoteTask submissions in a federated deployment. Tasks that exceed a local timeout or whose remote scheduler is unreachable are enqueued here for later inspection, replay, or discard rather than being left hanging indefinitely."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
 # =============================================================================
 # Object properties
 # =============================================================================
