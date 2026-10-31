@@ -249,7 +249,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             }
 
             if ($this->records !== []) {
-                $this->poller->await($this->computeTimeout($deadlineNanoseconds));
+if ($this->ready !== []) {
+                continue;
+            }
+
+            $this->poller->await($this->computeTimeout($deadlineNanoseconds));
 
                 $this->drainExpiredTimers();
             }
