@@ -44,11 +44,15 @@ final readonly class RevoltChannel implements TaskChannelInterface
         return $this->channel->trySend($value);
     }
 
+    /**
+     * Returns immediately. Delegates to the underlying {@see EmulatedChannel}
+     * which cannot block without event-loop integration.
+     *
+     * @throws ChannelClosedException when closed
+     */
     public function waitForCapacity(): void
     {
-        if ($this->channel->isClosed()) {
-            throw new ChannelClosedException();
-        }
+        $this->channel->waitForCapacity();
     }
 
     public function isClosed(): bool
