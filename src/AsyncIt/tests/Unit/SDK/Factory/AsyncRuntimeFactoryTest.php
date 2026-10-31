@@ -28,7 +28,9 @@ final class AsyncRuntimeFactoryTest extends TestCase
 
     public function testCreateNegotiatesSwooleWhenCoroutinesAvailable(): void
     {
-        $runtime = AsyncRuntimeFactory::create();
+        if (!class_exists('Swoole\\Coroutine') || !class_exists('Swoole\\Coroutine\\Channel')) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
         $capability = $runtime->capability();
 
         // Swoole is installed: negotiate() selects the Swoole branch.
