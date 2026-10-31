@@ -348,6 +348,15 @@ asyncit:DeadLetterQueue
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
     vs:term_status      "stable" .
 
+# --- Scheduler middleware ------------------------------------------------------
+
+asyncit:SchedulerMiddleware
+    a                   owl:Class ;
+    rdfs:label          "Scheduler Middleware"@en ;
+    rdfs:comment        "A middleware layer that decorates a Scheduler's task dispatch pipeline. Each middleware receives a TaskInterface and a callable $next, enabling cross-cutting concerns such as trace context injection, resource quota enforcement, backpressure gating, and context attachment without modifying the scheduler core."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
 # =============================================================================
 # Object properties
 # =============================================================================
