@@ -39,7 +39,7 @@ trait CoroutineContextStorageTrait
             return null;
         }
 
-        $top = $slot->stack[array_key_last($slot->stack)];
+        $top = array_last($slot->stack);
 
         return $slot->scopes[$top] ?? null;
     }
@@ -64,7 +64,7 @@ trait CoroutineContextStorageTrait
             throw new LogicException('Cannot detach: no context is currently attached.');
         }
 
-        $top = $slot->stack[array_key_last($slot->stack)];
+        $top = array_last($slot->stack);
         if ($top !== $token->id()) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }

@@ -79,6 +79,7 @@ $result = $runtime->run($scope, static function (): int {
             echo "  trySend: item-$i rejected (channel would block)\n";
         }
     }
+
     return $sent;
 });
 
@@ -95,6 +96,7 @@ $runtime->run($scope, static function (): void {
     } catch (ChannelClosedException) {
         echo "  ChannelClosedException on send after close caught as expected\n";
     }
+
     // Drain the value sent before close.
     echo '  receive after close (draining): ', $channel->receive(), "\n";
     // EmulatedChannel throws ChannelEmptyException when closed and empty,

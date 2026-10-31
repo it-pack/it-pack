@@ -59,3 +59,11 @@ parameters:
         - { message: '#^Unused .+SchedulerHealthInterface::(isHealthy|pendingTaskCount|activeHandleCount|uptime|recentErrors)$#', path: src/Contract/SchedulerHealthInterface.php }
         # Phase 10: SchedulingPolicy enum cases are consumed by future policy engine.
         - { message: '#^Unused .+SchedulingPolicy::(Priority|WeightedFair)$#', path: src/Contract/Port/SchedulingPolicy.php }
+        # Phase 11 A.3.1: PersistentTaskInterface methods consumed via contract boundary.
+        - { message: '#^Unused .+PersistentTaskInterface::(id|operation|payload|deadline|status)$#', path: src/Contract/PersistentTaskInterface.php }
+        # Phase 11 A.3.2: PersistentTaskQueueInterface methods consumed via contract boundary.
+        - { message: '#^Unused .+PersistentTaskQueueInterface::(enqueue|dequeue|acknowledge|requeue|listPending|pendingCount)$#', path: src/Contract/Port/PersistentTaskQueueInterface.php }
+        # Phase 11 A.3.2: RedisClientInterface methods consumed via dynamic pipeline() calls in RedisTaskQueue.
+        - { message: '#^Unused .+RedisClientInterface::(hSet|hGet|hDel|hGetAll|hLen|lPush|rPop|lRem|hScan|pipeline|hSetNx)$#', path: src/Adapter/Redis/RedisClientInterface.php }
+        # Phase 11 A.3.2: Dynamic method call in test fake pipeline() — consumed via interface contract.
+        - { message: '#^Variable method call on#', path: tests/Unit/Adapter/Redis/RedisTaskQueueTest.php }

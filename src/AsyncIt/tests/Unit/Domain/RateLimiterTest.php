@@ -73,6 +73,7 @@ final class RateLimiterTest extends TestCase
         $limiter = new RateLimiter(2, 1, $clock);
 
         $limiter->tryConsume();
+
         $clock->advance(5_000_000_000);
 
         self::assertTrue($limiter->tryConsume());
@@ -118,6 +119,7 @@ final class RateLimiterTest extends TestCase
         $limiter = new RateLimiter(1, 10, $clock);
 
         $limiter->tryConsume();
+
         $duration = $limiter->waitForPermit();
 
         self::assertSame(100_000_000, $duration->nanoseconds());
@@ -130,6 +132,7 @@ final class RateLimiterTest extends TestCase
 
         $limiter->tryConsume();
         $limiter->tryConsume();
+
         $duration = $limiter->waitForPermit();
 
         self::assertSame(500_000_000, $duration->nanoseconds());
@@ -149,6 +152,7 @@ final class RateLimiterTest extends TestCase
         $limiter = new RateLimiter(1, 1, $clock);
 
         $limiter->tryConsume();
+
         $duration = $limiter->waitForPermit();
 
         self::assertSame(1_000_000_000, $duration->nanoseconds());
@@ -160,6 +164,7 @@ final class RateLimiterTest extends TestCase
         $limiter = new RateLimiter(1, 3, $clock);
 
         $limiter->tryConsume();
+
         $duration = $limiter->waitForPermit();
 
         self::assertSame(333_333_333, $duration->nanoseconds());

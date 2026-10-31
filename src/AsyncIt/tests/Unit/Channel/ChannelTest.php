@@ -231,6 +231,7 @@ final class ChannelTest extends TestCase
             $channel->send('one');
 
             $channel->waitForCapacity();
+
             $returned = true;
         });
 

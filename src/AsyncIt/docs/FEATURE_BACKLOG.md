@@ -201,15 +201,15 @@ The core scheduling kernel is now **conforming, capability-negotiated, and multi
 
 ## 4. Security & Compliance Themes
 
-| Theme | Feature(s) | AGENTS.md Requirement | Status |
-|---|---|---|---|
-| Context isolation | V.1–V.10, H.9 | "Detach at yield point, re-attach on resume; zero bleed" | ✅ Assertion A |
-| Handle leak prevention | V.9, H.9 | "Release StreamPollHandle on terminal transition; Assertion C" | ✅ Assertion C |
-| Secret redaction | H.1, H.2 | "Classification delegated to RunIt; deny-by-default" | ✅ RunIt-owned |
-| Tenant isolation | H.5 (planned) | "Tenant isolation (persistent-worker request leakage)" | ◻ Not started |
-| Resource bounds | V.6, H.6 | "No unbounded queues/channels/payloads" | ✅ BackpressurePolicy |
-| Metric cardinality | H.4 | "Do not use user-controlled values as metric names" | ✅ Closed taxonomy labels |
-| No global state | Core | "No global/static request-specific scheduling metadata" | ✅ Core avoids it |
+| Theme                  | Feature(s)    | AGENTS.md Requirement                                          | Status                   |
+|------------------------|---------------|----------------------------------------------------------------|--------------------------|
+| Context isolation      | V.1–V.10, H.9 | "Detach at yield point, re-attach on resume; zero bleed"       | ✅ Assertion A            |
+| Handle leak prevention | V.9, H.9      | "Release StreamPollHandle on terminal transition; Assertion C" | ✅ Assertion C            |
+| Secret redaction       | H.1, H.2      | "Classification delegated to RunIt; deny-by-default"           | ✅ RunIt-owned            |
+| Tenant isolation       | H.5 (planned) | "Tenant isolation (persistent-worker request leakage)"         | ◻ Not started            |
+| Resource bounds        | V.6, H.6      | "No unbounded queues/channels/payloads"                        | ✅ BackpressurePolicy     |
+| Metric cardinality     | H.4           | "Do not use user-controlled values as metric names"            | ✅ Closed taxonomy labels |
+| No global state        | Core          | "No global/static request-specific scheduling metadata"        | ✅ Core avoids it         |
 
 **Gap:** Multi-tenant isolation (H.5 from the original backlog) has not been implemented. `TenantId` value object + `IsolationBoundary` scheduler wrapper + per-tenant handle/timer registry + extended Assertion A with multi-tenant interleaving. Priority: MEDIUM-LOW — only relevant for multi-tenant SaaS deployments.
 
@@ -217,39 +217,39 @@ The core scheduling kernel is now **conforming, capability-negotiated, and multi
 
 ## 5. Priority Matrix & Implementation Sequencing
 
-| Phase | Feature(s) | Dependencies | Rationale |
-|---|---|---|---|
-| **1 (Immediate)** | V.9 (`awaitReadable`/`awaitWritable`) | M11–M12 (timers, spawn/await) | Closes the biggest API gap vs. README; enables all IO workflows |
-| **1 (Immediate)** | V.10 (combinators: `race`, `all`, `any`, `join`) | V.9, V.1 | Reduces ad-hoc structured-concurrency bugs; handle-leak prevention |
-| **2** | V.11 (`TaskResult` type) | M11–M12 | Typed outcomes; enables functional composition |
-| **2** | V.12 (async generator streams) | V.9, V.10, V.6 | Streaming workloads; niche but idiomatic PHP |
-| **3** | H.9 (persistent task queue) | M11–M12 | Crash recovery for long-running workflows |
-| **3** | H.5 (multi-tenant isolation) | M11–M12 | SaaS safety; only if multi-tenant deployment exists |
-| **4** | H.10 (federation) | H.9 | Cross-process delegation |
-| **4** | H.11 (middleware pipeline) | — | Composable cross-cutting concerns |
-| **4** | H.12 (schema registry) | H.1/H.2/H.4 | Telemetry schema evolution |
-| **5** | H.13 (canary + hot reload) | H.4, H.7 | Production rollout safety |
+| Phase             | Feature(s)                                       | Dependencies                  | Rationale                                                          |
+|-------------------|--------------------------------------------------|-------------------------------|--------------------------------------------------------------------|
+| **1 (Immediate)** | V.9 (`awaitReadable`/`awaitWritable`)            | M11–M12 (timers, spawn/await) | Closes the biggest API gap vs. README; enables all IO workflows    |
+| **1 (Immediate)** | V.10 (combinators: `race`, `all`, `any`, `join`) | V.9, V.1                      | Reduces ad-hoc structured-concurrency bugs; handle-leak prevention |
+| **2**             | V.11 (`TaskResult` type)                         | M11–M12                       | Typed outcomes; enables functional composition                     |
+| **2**             | V.12 (async generator streams)                   | V.9, V.10, V.6                | Streaming workloads; niche but idiomatic PHP                       |
+| **3**             | H.9 (persistent task queue)                      | M11–M12                       | Crash recovery for long-running workflows                          |
+| **3**             | H.5 (multi-tenant isolation)                     | M11–M12                       | SaaS safety; only if multi-tenant deployment exists                |
+| **4**             | H.10 (federation)                                | H.9                           | Cross-process delegation                                           |
+| **4**             | H.11 (middleware pipeline)                       | —                             | Composable cross-cutting concerns                                  |
+| **4**             | H.12 (schema registry)                           | H.1/H.2/H.4                   | Telemetry schema evolution                                         |
+| **5**             | H.13 (canary + hot reload)                       | H.4, H.7                      | Production rollout safety                                          |
 
 Each new feature adds conformance assertions to `AsyncRuntimeVerifier` (`src/Conformance/Verifier/`) in the phase that introduces the behavior. Proposed new assertions:
 
-| Assertion | Verifier | Feature(s) |
-|---|---|---|
-| **D — IO Await Cleanup** | `IOAwaitCleanupVerifier` | V.9 (handles released on timeout/cancel) |
-| **E — Combinator Cancellation** | `CombinatorCancellationVerifier` | V.10 (losers cancelled, no leaks) |
-| **G — Tenant Isolation** | `TenantIsolationVerifier` | H.5 (cross-tenant context/handle bleed) |
+| Assertion                       | Verifier                         | Feature(s)                               |
+|---------------------------------|----------------------------------|------------------------------------------|
+| **D — IO Await Cleanup**        | `IOAwaitCleanupVerifier`         | V.9 (handles released on timeout/cancel) |
+| **E — Combinator Cancellation** | `CombinatorCancellationVerifier` | V.10 (losers cancelled, no leaks)        |
+| **G — Tenant Isolation**        | `TenantIsolationVerifier`        | H.5 (cross-tenant context/handle bleed)  |
 
 ---
 
 ## 6. Risk Register
 
-| Risk | Mitigation | Affected Feature(s) |
-|---|---|---|
-| Interface method additions break third-party schedulers | Use focused extension interfaces (`AwaitableIOInterface`, `ResultAwareSchedulerInterface`) | V.9, V.11 |
-| Handle leaks in IO await primitives | Extend Assertion C; per-task handle registry; release on terminal/timeout/cancel | V.9 |
-| Combinator deadlock (cancel loser while it holds a resource) | Document "don't block-and-wait on same scheduler"; default to cooperative cancellation | V.10 |
-| Generic `TaskResult` PHPDoc-only (no runtime enforcement) | Document clearly; consider `mixed` fallback for runtime | V.11 |
-| Persistence backend lock-in | `PersistentTaskQueueInterface` is a port; Redis is one adapter | H.9 |
-| Distributed cancellation unreliability | Local timeout + dead-letter; document consistency model | H.10 |
+| Risk                                                         | Mitigation                                                                                 | Affected Feature(s) |
+|--------------------------------------------------------------|--------------------------------------------------------------------------------------------|---------------------|
+| Interface method additions break third-party schedulers      | Use focused extension interfaces (`AwaitableIOInterface`, `ResultAwareSchedulerInterface`) | V.9, V.11           |
+| Handle leaks in IO await primitives                          | Extend Assertion C; per-task handle registry; release on terminal/timeout/cancel           | V.9                 |
+| Combinator deadlock (cancel loser while it holds a resource) | Document "don't block-and-wait on same scheduler"; default to cooperative cancellation     | V.10                |
+| Generic `TaskResult` PHPDoc-only (no runtime enforcement)    | Document clearly; consider `mixed` fallback for runtime                                    | V.11                |
+| Persistence backend lock-in                                  | `PersistentTaskQueueInterface` is a port; Redis is one adapter                             | H.9                 |
+| Distributed cancellation unreliability                       | Local timeout + dead-letter; document consistency model                                    | H.10                |
 
 ---
 

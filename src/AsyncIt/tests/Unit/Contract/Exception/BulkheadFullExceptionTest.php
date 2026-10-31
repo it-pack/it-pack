@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Contract\Exception;
 
+use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use ItPack\AsyncIt\Contract\Exception\BulkheadFullException;
 use PHPUnit\Framework\TestCase;
 
@@ -44,6 +45,6 @@ final class BulkheadFullExceptionTest extends TestCase
     {
         $exception = new BulkheadFullException(1);
 
-        self::assertInstanceOf(\ItPack\AsyncIt\Contract\AsyncItExceptionInterface::class, $exception);
+        self::assertInstanceOf(AsyncItExceptionInterface::class, $exception);
     }
 }

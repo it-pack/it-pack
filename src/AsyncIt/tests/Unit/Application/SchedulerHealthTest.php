@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application;
 
+use Fiber;
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
 use ItPack\AsyncIt\Application\SchedulerHealth;
+use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -40,8 +43,8 @@ final class SchedulerHealthTest extends TestCase
 
     public function testPendingTaskCountCountsIncompleteRecords(): void
     {
-        $runningRecord = $this->createRecord(false);
-        $doneRecord = $this->createRecord(true);
+        $runningRecord = $this->createRecord(done: false);
+        $doneRecord = $this->createRecord(done: true);
 
         $health = SchedulerHealth::capture(
             [$runningRecord, $doneRecord],
@@ -63,7 +66,7 @@ final class SchedulerHealthTest extends TestCase
 
     public function testUptimeReturnsDurationSinceStart(): void
     {
-        $clock = $this->createMock(\ItPack\RunIt\Contract\Port\MonotonicClockInterface::class);
+        $clock = $this->createMock(MonotonicClockInterface::class);
         $clock->method('monotonicNanoseconds')->willReturn(5_000_000_000);
 
         $health = SchedulerHealth::capture([], 0, $clock, 1_000_000_000, []);
@@ -118,8 +121,8 @@ final class SchedulerHealthTest extends TestCase
 
     private function createRecord(bool $done): TaskRecord
     {
-        $task = $this->createMock(\ItPack\AsyncIt\Contract\TaskInterface::class);
-        $fiber = new \Fiber(static function (): void {
+        $task = $this->createMock(TaskInterface::class);
+        $fiber = new Fiber(static function (): void {
         });
 
         $record = new TaskRecord($task, $fiber);

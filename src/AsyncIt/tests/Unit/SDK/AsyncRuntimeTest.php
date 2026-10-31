@@ -226,7 +226,7 @@ final class AsyncRuntimeTest extends TestCase
         $schedulerFactory = $this->createMock(SchedulerFactoryInterface::class);
         $taskGroupFactory = $this->createMock(TaskGroupFactoryInterface::class);
 
-        $capability = new EngineCapability(true, true, true);
+        $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
 
         return new AsyncRuntime(
             $schedulerFactory,
