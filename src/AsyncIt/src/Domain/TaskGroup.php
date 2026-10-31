@@ -80,11 +80,18 @@ final class TaskGroup implements TaskGroupInterface
     }
 
     /**
-     * Records the first failure observed among the group's children.
+     * Records the first failure observed among the group's children and
+     * cancels the group scope, cascading cancellation to all sibling tasks.
+     * Subsequent calls are no-ops (failure and cancellation are idempotent).
      */
     public function fail(Throwable $failure): void
     {
-        $this->failure ??= $failure;
+        if ($this->failure instanceof Throwable) {
+            return;
+        }
+
+        $this->failure = $failure;
+        $this->cancellationScope->cancel(CancellationReason::ParentCancelled);
     }
 
     public function go(callable $operation): TaskInterface
