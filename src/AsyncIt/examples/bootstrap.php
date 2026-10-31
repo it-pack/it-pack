@@ -23,6 +23,7 @@ use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactory;
+use ItPack\AsyncIt\Application\Factory\TaskStreamFactory;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
@@ -116,6 +117,7 @@ function makeReferenceRuntime(): array
         $schedulerFactory,
         $taskGroupFactory,
         $combinatorFactory,
+        new TaskStreamFactory(),
         $idGenerator,
         $capability,
         $channel,

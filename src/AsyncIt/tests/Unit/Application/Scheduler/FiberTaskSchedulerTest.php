@@ -620,6 +620,33 @@ final class FiberTaskSchedulerTest extends TestCase
         self::fail('Expected RuntimeException was not thrown.');
     }
 
+    public function testResultTypedReturnsTypedOutcome(): void
+    {
+        $scheduler = $this->scheduler();
+        $task = $this->task();
+
+        $scheduler->submit($task, static fn (): string => 'typed result');
+
+        $scheduler->run();
+
+        $result = $scheduler->resultTyped($task);
+
+        self::assertTrue($result->isSuccess());
+        self::assertFalse($result->isFailure());
+        self::assertSame('typed result', $result->value());
+        self::assertNull($result->error());
+        self::assertSame(TaskStatus::Succeeded, $result->status());
+    }
+
+    public function testResultTypedThrowsForNonTerminalTask(): void
+    {
+        $scheduler = $this->scheduler();
+        $task = $this->task();
+
+        $this->expectException(LogicException::class);
+        $scheduler->resultTyped($task);
+    }
+
     private function scheduler(): FiberTaskScheduler
     {
         return $this->schedulerWithClock(new SystemMonotonicClock());

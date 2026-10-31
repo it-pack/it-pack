@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK;
 
+use Generator;
 use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskStreamFactory;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
@@ -188,6 +190,72 @@ final class AsyncRuntimeTest extends TestCase
         self::assertSame(99, $value);
     }
 
+    public function testStreamYieldsTaskResultsOneAtATime(): void
+    {
+        $runtime = $this->runtime();
+
+        $results = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static function () use ($runtime): array {
+                $collected = [];
+
+                $stream = $runtime->stream(static function (): Generator {
+                    yield static fn (): int => 10;
+                    yield static fn (): int => 20;
+                    yield static fn (): int => 30;
+                });
+
+                $stream->rewind();
+
+                while ($stream->valid()) {
+                    $collected[] = $stream->current();
+                    $stream->next();
+                }
+
+                return $collected;
+            },
+        );
+
+        self::assertSame([10, 20, 30], $results);
+    }
+
+    public function testStreamWithEmptyGeneratorReturnsNoItems(): void
+    {
+        $runtime = $this->runtime();
+
+        $results = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static function () use ($runtime): array {
+                $collected = [];
+
+                $stream = $runtime->stream(static function (): Generator {
+                    yield from [];
+                });
+
+                $stream->rewind();
+
+                while ($stream->valid()) {
+                    $collected[] = $stream->current();
+                    $stream->next();
+                }
+
+                return $collected;
+            },
+        );
+
+        self::assertSame([], $results);
+    }
+
+    public function testStreamOutsideRunningExecutionThrows(): void
+    {
+        $runtime = $this->runtime();
+
+        $this->expectException(LogicException::class);
+        $runtime->stream(static function (): Generator {
+            yield static fn (): int => 1;
+        });
+    }
+
     public function testOnCapabilitiesChangedSwapsDescriptorWhenSchedulerActive(): void
     {
         $runtime = $this->runtime();
@@ -227,6 +295,7 @@ final class AsyncRuntimeTest extends TestCase
         $schedulerFactory = $this->createMock(SchedulerFactoryInterface::class);
         $taskGroupFactory = $this->createMock(TaskGroupFactoryInterface::class);
         $combinatorFactory = $this->createMock(CombinatorFactoryInterface::class);
+        $taskStreamFactory = new TaskStreamFactory();
 
         $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
 
@@ -234,6 +303,7 @@ final class AsyncRuntimeTest extends TestCase
             $schedulerFactory,
             $taskGroupFactory,
             $combinatorFactory,
+            $taskStreamFactory,
             $idGenerator,
             $capability,
             $channel,

@@ -23,6 +23,7 @@ use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\ResultTypedSchedulerInterface;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerEventInterface;
 use ItPack\AsyncIt\Contract\SchedulerEventListenerInterface;
@@ -30,8 +31,10 @@ use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\AsyncIt\Domain\SchedulerEvent;
 use ItPack\AsyncIt\Domain\TaskId;
+use ItPack\AsyncIt\Domain\TaskResult;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -40,6 +43,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use ItPack\RunIt\Domain\Shared\Instant;
 use LogicException;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -59,8 +63,14 @@ use Throwable;
   * @api
 
   */
-final class FiberTaskScheduler implements EngineSchedulerInterface, AwaitableIOInterface, DeadlineSchedulerInterface
+final class FiberTaskScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface, AwaitableIOInterface, DeadlineSchedulerInterface
 {
+    /**
+     * Maximum number of terminal task outcomes retained in {@see $taskResults}.
+     * Older outcomes are evicted (FIFO) to bound memory growth.
+     */
+    private const int MAX_TASK_RESULTS = 1000;
+
     /**
      * @var array<string, TaskRecord>
      */
@@ -75,6 +85,13 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, AwaitableIOI
      * @var array<string, mixed>
      */
     private array $results = [];
+
+    /**
+     * Typed terminal outcomes keyed by task id.
+     *
+     * @var array<string, TaskResultInterface>
+     */
+    private array $taskResults = [];
 
     /**
      * Array of pending timer deadlines, kept sorted by deadline.
@@ -307,6 +324,19 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, AwaitableIOI
     public function result(TaskInterface $task): mixed
     {
         return $this->results[$task->id()->value] ?? null;
+    }
+
+    public function resultTyped(TaskInterface $task): TaskResultInterface
+    {
+        $taskId = $task->id()->value;
+
+        if (!isset($this->taskResults[$taskId])) {
+            throw new LogicException(
+                sprintf('Task %s is not tracked by this scheduler or has not reached a terminal state.', $taskId),
+            );
+        }
+
+        return $this->taskResults[$taskId];
     }
 
     /**
@@ -676,9 +706,31 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, AwaitableIOI
 
         $this->results[$taskId] = $result;
 
+        $duration = $startTime === null
+            ? Duration::ofNanoseconds(0)
+            : Duration::ofNanoseconds($this->clock->monotonicNanoseconds() - $startTime);
+
         if ($throwable instanceof Throwable) {
+            $this->taskResults[$taskId] = TaskResult::failure($throwable, $status, $duration);
             $this->publisher->publish(new SchedulerFailureArtifact($throwable->getMessage()));
             $this->errors[] = $throwable;
+        }
+
+        if (!isset($this->taskResults[$taskId]) && $status === TaskStatus::Succeeded) {
+            $this->taskResults[$taskId] = TaskResult::success($result, $status, $duration);
+        }
+
+        if (!isset($this->taskResults[$taskId]) && $status !== TaskStatus::Succeeded) {
+            $this->taskResults[$taskId] = TaskResult::failure(
+                new RuntimeException('Task completed with non-success status.'),
+                $status,
+                $duration,
+            );
+        }
+
+        // Bound the typed-results buffer: evict oldest outcomes when the cap is exceeded.
+        while (\count($this->taskResults) > self::MAX_TASK_RESULTS) {
+            array_shift($this->taskResults);
         }
 
         $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_COMPLETED, $status, $startTime);

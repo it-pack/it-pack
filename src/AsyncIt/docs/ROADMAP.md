@@ -460,17 +460,17 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ---
 
-### Phase 13 — Typed Task Results & Async Generator Streams (V.11, V.12) *(planned)*
+### Phase 13 — Typed Task Results & Async Generator Streams (V.11, V.12) *(completed)*
 
-**Status:** *Planned.*
+**Status:** *Completed.*
 **Goal:** Make terminal task outcomes explicit at the type level (`TaskResult<T, E>`) and bridge PHP async generators to the task scheduler (`TaskStream`). Corresponds to backlog features V.11 and V.12.
 
 **Tasks**
-- [ ] **V.11.1** — `TaskResult<T>` generic value object (PHP 8.4 class-template generics via PHPDoc `@template`): `isSuccess()`, `isFailure()`, `value(): T`, `error(): ?Throwable`, `status(): TaskStatus`, `duration(): Duration`. `readonly`, final, interface-backed. Bind to `async-it#TaskResult` and `runit#Observation`.
-- [ ] **V.11.2** — `EngineSchedulerInterface::resultTyped(TaskInterface): TaskResultInterface` (new method; `result()` keeps `mixed` for backward compat). `FiberTaskScheduler` captures the return value or caught `Throwable` into `TaskResult` on terminal transition.
-- [ ] **V.12.1** — `TaskStreamInterface` (`AsyncIterator`-compatible) + `TaskStream` implementation wrapping a `Generator`/`AsyncGenerator`. Bind to `async-it-taxonomy#task-kind-stream`.
-- [ ] **V.12.2** — Scheduler pulls from the generator at await boundaries, spawning each yielded callable as a task; backpressure (V.6) gates emission rate. Start with synchronous generators adapted one-task-at-a-time.
-- [ ] **V.12.3** — SDK: `AsyncRuntime::stream(callable $generator): TaskStreamInterface`.
+- [x] **V.11.1** — `TaskResult<T>` generic value object (PHP 8.4 class-template generics via PHPDoc `@template`): `isSuccess()`, `isFailure()`, `value(): T`, `error(): ?Throwable`, `status(): TaskStatus`, `duration(): Duration`. `readonly`, final, interface-backed. Bind to `async-it#TaskResult` and `runit#Observation`.
+- [x] **V.11.2** — `EngineSchedulerInterface::resultTyped(TaskInterface): TaskResultInterface` (new method; `result()` keeps `mixed` for backward compat). `FiberTaskScheduler` captures the return value or caught `Throwable` into `TaskResult` on terminal transition.
+- [x] **V.12.1** — `TaskStreamInterface` (`AsyncIterator`-compatible) + `TaskStream` implementation wrapping a `Generator`/`AsyncGenerator`. Bind to `async-it-taxonomy#task-kind-stream`.
+- [x] **V.12.2** — Scheduler pulls from the generator at await boundaries, spawning each yielded callable as a task; backpressure (V.6) gates emission rate. Start with synchronous generators adapted one-task-at-a-time.
+- [x] **V.12.3** — SDK: `AsyncRuntime::stream(callable $generator): TaskStreamInterface`.
 
 **Gates:** `TaskResultTest` with generics PHPDoc coverage; `TaskStreamTest` (one-at-a-time and bounded-concurrent emission); V.11 result-type captures both success and failure terminal transitions; `composer quality` green; `@see` references added; document that generic classes are PHPDoc-only with no runtime enforcement.
 
@@ -482,13 +482,13 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 |-----------------------------------------------------------|------------|---------------|-------------------------------------------------------------------------------------------------------------------|
 | IO await primitives `awaitReadable`/`awaitWritable`       | V.9        | Phase 12      | ◼ Completed                                                                                                       |
 | Structured combinators `race`/`all`/`any`/`join`/`select` | V.10       | Phase 12      | ◼ Completed                                                                                                       |
-| Typed task results `TaskResult<T, E>`                     | V.11       | Phase 13      | ◻ Planned                                                                                                         |
-| Async generator / `TaskStream`                            | V.12       | Phase 13      | ◻ Planned                                                                                                         |
+| Typed task results `TaskResult<T, E>`                     | V.11       | Phase 13      | ◼ Completed                                                                                                       |
+| Async generator / `TaskStream`                            | V.12       | Phase 13      | ◼ Completed                                                                                                       |
 | Persistent task queue & crash recovery                    | H.9 / A.3  | Phase 11      | ⚠ Partially complete (PersistentTask + port contract + Redis adapter + delivery semantics done; A.3.3–A.4 remain) |
 | Scheduler federation & hierarchical scheduling            | H.10 / A.4 | Phase 11      | ◻ Planned                                                                                                         |
 | Scheduler middleware pipeline                             | H.11 / A.5 | Phase 11      | ◻ Planned                                                                                                         |
-| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ✅ Complete                                                                                                       |
-| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ✅ Complete                                                                                                       |
+| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ✅ Complete                                                                                                        |
+| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ✅ Complete                                                                                                        |
 | Dynamic capability evolution                              | A.1 / A.2  | Phase 11      | ⚠ Partially complete (A.2 done)                                                                                   |
 
 ---
@@ -511,7 +511,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - **Phase 10 (complete):** Scheduler health interface + snapshot, graceful shutdown, immutable `SchedulerConfiguration`, `GracefulShutdownVerifier` (Assertion F).
 - **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue (H.9), scheduler federation (H.10), middleware pipeline (H.11), schema registry (H.12), canary deployments (H.13) (M18–M20).
 - **Phase 12 (completed):** IO await primitives `awaitReadable`/`awaitWritable` (V.9) and structured combinators `race`/`all`/`any`/`join`/`select` (V.10).
-- **Phase 13 (planned):** Typed `TaskResult<T, E>` outcomes (V.11) and async generator / `TaskStream` (V.12).
+- **Phase 13 (completed):** Typed `TaskResult<T, E>` outcomes (V.11) and async generator / `TaskStream` (V.12).
 - **Next-gen gate:** Each new phase adds conformance assertions to `AsyncRuntimeVerifier` and is blocked on the previous phase's exit criteria. See `docs/FEATURE_BACKLOG.md` for full reasoning per feature.
 
 ---
@@ -652,6 +652,5 @@ The roadmap converts the brainstorm and implementation plan into constraint-bear
 - **Operational maturity** (Phase 10, complete): health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
 - **Scale-out** (Phase 11): dynamic capability descriptors, persistent task queue (H.9), scheduler federation (H.10), middleware pipeline (H.11), schema registry (H.12), canary deployments (H.13) (M18–M20).
 - **IO & combinators** (Phase 12, complete): `awaitReadable`/`awaitWritable` (V.9), `race`/`all`/`any`/`join`/`select` (V.10).
-- **Typed results & streams** (Phase 13): `TaskResult<T, E>` (V.11), `TaskStream` / async generators (V.12).
-
+- **Typed results & streams** (Phase 13, complete): `TaskResult<T, E>` (V.11), `TaskStream` / async generators (V.12).
 Each phase adds conformance assertions (A.2–A.3 group isolation, C.2 timer cleanup, E trace parentage, F graceful shutdown) to `src/Conformance/Verifier/`, extending the `AsyncRuntimeVerifier` suite. New capability kinds are added to the relevant task only when a concrete consumer exists (AGENTS.md: "Do not add a public extension point until there is a concrete consumer or adapter use case").

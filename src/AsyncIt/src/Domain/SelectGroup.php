@@ -108,21 +108,14 @@ final class SelectGroup implements CombinatorInterface
 
         // Fallback: sequential await.
         $result = ['task' => null, 'result' => null];
-        foreach ($this->children as $child) {
-            if ($child->status()->isTerminal()) {
-                $result['result'] = $this->scheduler->result($child);
-                $result['task'] = $child;
-                $this->cancelRemaining($child);
-                $this->transitionTo(TaskStatus::Succeeded);
-                break;
-            }
+        $child = $this->children[0];
+        $result['result'] = $child->status()->isTerminal()
+            ? $this->scheduler->result($child)
+            : $this->scheduler->await($child);
+        $result['task'] = $child;
 
-            $result['result'] = $this->scheduler->await($child);
-            $result['task'] = $child;
-            $this->cancelRemaining($child);
-            $this->transitionTo(TaskStatus::Succeeded);
-            break;
-        }
+        $this->cancelRemaining($child);
+        $this->transitionTo(TaskStatus::Succeeded);
 
         return $result;
     }

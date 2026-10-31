@@ -10,15 +10,19 @@ use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\ResultTypedSchedulerInterface;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\SchedulerMiddlewareInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\AsyncIt\Domain\TaskId;
+use ItPack\AsyncIt\Domain\TaskResult;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -78,7 +82,7 @@ final class OrderLog
     public array $entries = [];
 }
 
-final class FakeEngineScheduler implements EngineSchedulerInterface
+final class FakeEngineScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface
 {
     public function dispatch(TaskInterface $task, callable $operation): mixed
     {
@@ -129,6 +133,11 @@ final class FakeEngineScheduler implements EngineSchedulerInterface
 
     public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
     {
+    }
+
+    public function resultTyped(TaskInterface $task): TaskResultInterface
+    {
+        return TaskResult::success('inner-result', TaskStatus::Succeeded, Duration::ofNanoseconds(0));
     }
 }
 

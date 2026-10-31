@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\SDK;
 
+use Generator;
 use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskStreamFactoryInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\CapabilityObserverInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskStreamInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
@@ -51,6 +54,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         private readonly SchedulerFactoryInterface $schedulerFactory,
         private readonly TaskGroupFactoryInterface $taskGroupFactory,
         private readonly CombinatorFactoryInterface $combinatorFactory,
+        private readonly TaskStreamFactoryInterface $taskStreamFactory,
         private readonly IdentifierGeneratorInterface $idGenerator,
         private readonly EngineCapability $capability,
         private readonly TaskChannelInterface $channel,
@@ -237,6 +241,29 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
     public function join(array $operations): void
     {
         $this->all($operations);
+    }
+
+    /**
+     * Lazily streams tasks from a generator, one at a time.
+     *
+     * Each callable yielded by the generator is spawned as a task on the
+     * active scheduler and awaited to completion before the next item is
+     * pulled. Backpressure is applied naturally: `next()` on the returned
+     * stream blocks until the current task reaches a terminal state.
+     *
+     * Must be called from within a running execution (inside an operation
+     * passed to {@see run()}).
+     *
+     * @param callable(): Generator $generator
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-kind-stream
+     */
+    public function stream(callable $generator): TaskStreamInterface
+    {
+        if (!$this->scheduler instanceof EngineSchedulerInterface) {
+            throw new LogicException('stream() must be called within a running execution.');
+        }
+
+        return $this->taskStreamFactory->create($this->scheduler, $generator());
     }
 
     public function capability(): EngineCapability

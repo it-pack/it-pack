@@ -7,12 +7,15 @@ namespace ItPack\AsyncIt\Application\Federation;
 use Closure;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\ResultTypedSchedulerInterface;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\SchedulerMiddlewareInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
+use LogicException;
 
 /**
  * Decorator wrapping an {@see EngineSchedulerInterface} with an ordered
@@ -32,7 +35,7 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  * @see https://w3id.org/itpack/runit#Execution
  * @api
  */
-final readonly class MiddlewareScheduler implements EngineSchedulerInterface
+final readonly class MiddlewareScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface
 {
     private Closure $chain;
 
@@ -110,6 +113,15 @@ final readonly class MiddlewareScheduler implements EngineSchedulerInterface
     public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
     {
         $this->inner->swapCapabilities($descriptor);
+    }
+
+    public function resultTyped(TaskInterface $task): TaskResultInterface
+    {
+        if (!$this->inner instanceof ResultTypedSchedulerInterface) {
+            throw new LogicException('Inner scheduler does not support resultTyped().');
+        }
+
+        return $this->inner->resultTyped($task);
     }
 
     /**

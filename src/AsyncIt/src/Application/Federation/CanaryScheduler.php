@@ -7,11 +7,14 @@ namespace ItPack\AsyncIt\Application\Federation;
 use InvalidArgumentException;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\ResultTypedSchedulerInterface;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
+use LogicException;
 use Throwable;
 
 /**
@@ -29,7 +32,7 @@ use Throwable;
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CanaryScheduler implements EngineSchedulerInterface
+final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface
 {
     /**
      * @var array{
@@ -148,6 +151,31 @@ final class CanaryScheduler implements EngineSchedulerInterface
     {
         $this->baseline->swapCapabilities($descriptor);
         $this->canary->swapCapabilities($descriptor);
+    }
+
+    public function resultTyped(TaskInterface $task): TaskResultInterface
+    {
+        if ($this->baseline instanceof ResultTypedSchedulerInterface) {
+            try {
+                return $this->baseline->resultTyped($task);
+            } catch (LogicException $baselineError) {
+                if ($this->canary instanceof ResultTypedSchedulerInterface) {
+                    try {
+                        return $this->canary->resultTyped($task);
+                    } catch (LogicException) {
+                        throw $baselineError;
+                    }
+                }
+
+                throw $baselineError;
+            }
+        }
+
+        if ($this->canary instanceof ResultTypedSchedulerInterface) {
+            return $this->canary->resultTyped($task);
+        }
+
+        throw new LogicException('Neither baseline nor canary scheduler supports resultTyped().');
     }
 
     /**
