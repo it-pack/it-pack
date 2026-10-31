@@ -14,12 +14,14 @@ use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Application\SchedulerHealth;
+use ItPack\AsyncIt\Contract\AwaitableIOInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerEventInterface;
@@ -57,7 +59,7 @@ use Throwable;
   * @api
 
   */
-final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSchedulerInterface
+final class FiberTaskScheduler implements EngineSchedulerInterface, AwaitableIOInterface, DeadlineSchedulerInterface
 {
     /**
      * @var array<string, TaskRecord>
@@ -81,7 +83,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
      * deadline floats to the front so {@see drainExpiredTimers()} and
      * {@see computeTimeout()} are O(1) when no timers are pending.
      *
-     * @var list<array{deadline: int, record: TaskRecord}>
+     * @var list<array{deadline: int, record: TaskRecord} | array{deadline: int, record: TaskRecord, type: 'io', taskId: string}>
      */
     private array $timers = [];
 
@@ -117,6 +119,36 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
      * @var list<Throwable>
      */
     private array $errors = [];
+
+    /**
+     * Tasks awaiting IO readiness, keyed by handle id.
+     *
+     * @var array<string, TaskRecord>
+     */
+    private array $ioAwaiters = [];
+
+    /**
+     * Task id => handle id for IO-awaiting tasks, used to look up the handle
+     * when a deadline timer expires for an IO-awaiting task.
+     *
+     * @var array<string, string>
+     */
+    private array $ioTaskHandles = [];
+
+    /**
+     * Tasks awaiting any of several tasks, keyed by the awaited task's id.
+     * Used by awaitAny() to resume when the first of several tasks completes.
+     *
+     * @var array<string, list<TaskRecord>>
+     */
+    private array $anyAwaiters = [];
+
+    /**
+     * Awaiter task id => id of the task that completed first (for awaitAny()).
+     *
+     * @var array<string, string>
+     */
+    private array $anyCompletedTaskId = [];
 
     private CapabilityDescriptorInterface|null $capabilities = null;
 
@@ -240,6 +272,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
             foreach ($this->records as $id => $record) {
                 if ($record->isDone()) {
                     $this->resumeAwaiters($record);
+                    $this->resumeAnyAwaiters($record);
                     unset($this->records[$id]);
                 }
             }
@@ -257,6 +290,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
                 $this->poller->await($this->computeTimeout($deadlineNanoseconds));
 
                 $this->drainExpiredTimers();
+
+                $this->drainReadyHandles();
             }
         }
     }
@@ -347,6 +382,91 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
     }
 
     /**
+     * Suspends the current task until the handle's stream is ready for reading,
+     * or the optional monotonic timeout elapses.
+     *
+     * Returns true when readable, false when the timeout expired.
+     */
+    public function awaitReadable(StreamPollHandleInterface $handle, DurationInterface|null $timeout = null): bool
+    {
+        return $this->awaitIo($handle, AwaitPoint::Readable, $timeout);
+    }
+
+    /**
+     * Suspends the current task until the handle's stream is ready for writing,
+     * or the optional monotonic timeout elapses.
+     *
+     * Returns true when writable, false when the timeout expired.
+     */
+    public function awaitWritable(StreamPollHandleInterface $handle, DurationInterface|null $timeout = null): bool
+    {
+        return $this->awaitIo($handle, AwaitPoint::Writable, $timeout);
+    }
+
+    /**
+     * Registers a stream with the scheduler's poller and returns a handle.
+     *
+     * The handle can be passed to {@see awaitReadable()} or {@see awaitWritable()}.
+     * The caller is responsible for ensuring the handle is released (via
+     * {@see PollerPortInterface::release()}) when no longer needed; the scheduler
+     * releases it automatically on task terminal transition.
+     */
+    public function registerStream(mixed $stream): StreamPollHandleInterface
+    {
+        return $this->poller->register($stream);
+    }
+
+    /**
+     * Suspends the current task until ANY of the given tasks completes.
+     *
+     * Returns the id of the first completed task. All registrations are cleaned
+     * up after resume so the awaiter is not re-resumed when other tasks later
+     * complete.
+     *
+     * @param list<TaskInterface> $tasks
+     * @return string The id of the first completed task
+     *
+     * @throws LogicException when called outside a running task
+     */
+    public function awaitAny(array $tasks): string
+    {
+        $current = $this->currentTask;
+
+        if (!$current instanceof TaskInterface) {
+            throw new LogicException('awaitAny() must be called within a running task.');
+        }
+
+        $record = $this->records[$current->id()->value] ?? null;
+
+        if ($record === null) {
+            throw new LogicException('Current task is not tracked by this scheduler.');
+        }
+
+        foreach ($tasks as $task) {
+            $taskId = $task->id()->value;
+
+            if (isset($this->results[$taskId])) {
+                return $taskId;
+            }
+
+            if (!isset($this->records[$taskId])) {
+                throw new LogicException('Cannot await a task this scheduler does not own.');
+            }
+
+            $this->anyAwaiters[$taskId][] = $record;
+        }
+
+        Fiber::suspend();
+        $this->currentTask = $current;
+
+        // Find which task completed first.
+        $completedId = $this->anyCompletedTaskId[$current->id()->value] ?? null;
+        unset($this->anyCompletedTaskId[$current->id()->value]);
+
+        return $completedId ?? $current->id()->value;
+    }
+
+    /**
      * Runs the operation with retry semantics governed by the policy.
      *
      * On each failed attempt, checks whether the exception is retryable
@@ -383,6 +503,55 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
                 );
             }
         }
+    }
+
+    /**
+     * Shared implementation for awaitReadable/awaitWritable.
+     *
+     * Registers the handle on the task record, suspends the fiber, and resumes
+     * with true when the poller signals readiness or false when the deadline
+     * timer fires. The handle is released on terminal transition.
+     */
+    private function awaitIo(StreamPollHandleInterface $handle, AwaitPoint $point, DurationInterface|null $timeout): bool
+    {
+        $task = $this->currentTask;
+
+        if (!$task instanceof TaskInterface) {
+            throw new LogicException(sprintf('%s() must be called within a running task.', $point->name));
+        }
+
+        $taskId = $task->id()->value;
+        $record = $this->records[$taskId] ?? null;
+
+        if ($record === null) {
+            throw new LogicException('Current task is not tracked by this scheduler.');
+        }
+
+        $handleId = $handle->id;
+
+        $this->ioAwaiters[$handleId] = $record;
+        $this->ioTaskHandles[$taskId] = $handleId;
+        $record->addHandle($handle);
+
+        if ($timeout instanceof DurationInterface) {
+            $now = $this->clock->monotonicNanoseconds();
+            $deadline = $now + $timeout->nanoseconds();
+            $this->timers[] = ['deadline' => $deadline, 'record' => $record, 'type' => 'io', 'taskId' => $taskId];
+        }
+
+        $this->notifyListeners(SchedulerEvent::suspended($task, $point));
+
+        $this->currentTask = null;
+        $result = Fiber::suspend();
+        $this->currentTask = $task;
+
+        unset($this->ioAwaiters[$handleId]);
+        unset($this->ioTaskHandles[$taskId]);
+
+        $this->publishLifecycle($task, ArtifactVocabulary::KIND_TASK_RESUMED, TaskStatus::Running);
+        $this->notifyListeners(SchedulerEvent::resumed($task, $point));
+
+        return (bool) $result;
     }
 
     /**
@@ -524,9 +693,14 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
 
     private function releaseHandles(TaskRecord $record): void
     {
+        $taskId = $record->task()->id()->value;
+
         foreach ($record->handles() as $handle) {
             $this->poller->release($handle);
+            unset($this->ioAwaiters[$handle->id]);
         }
+
+        unset($this->ioTaskHandles[$taskId]);
 
         $record->clearHandles();
     }
@@ -546,6 +720,45 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
         }
     }
 
+    /**
+     * Resumes tasks that were awaiting any of several tasks via awaitAny().
+     * When the completed task is one of the awaited tasks, all awaiters are
+     * resumed with its result and cleaned up from any other anyAwaiters lists.
+     */
+    private function resumeAnyAwaiters(TaskRecord $completed): void
+    {
+        $completedId = $completed->task()->id()->value;
+        $awaiters = $this->anyAwaiters[$completedId] ?? [];
+        unset($this->anyAwaiters[$completedId]);
+
+        if ($awaiters === []) {
+            return;
+        }
+
+        $result = $this->results[$completedId] ?? null;
+
+        foreach ($awaiters as $awaiterRecord) {
+            $awaiterId = $awaiterRecord->task()->id()->value;
+            $this->anyCompletedTaskId[$awaiterId] = $completedId;
+            $this->pendingResumeValues[$awaiterId] = $result;
+            $this->ready[] = $awaiterRecord;
+        }
+
+        // Clean up: remove resumed awaiters from any other anyAwaiters lists
+        // so they are not re-resumed when other tasks complete.
+        foreach ($awaiters as $awaiterRecord) {
+            $awaiterId = $awaiterRecord->task()->id()->value;
+            foreach ($this->anyAwaiters as $otherId => $others) {
+                $this->anyAwaiters[$otherId] = array_values(
+                    array_filter(
+                        $others,
+                        static fn (TaskRecord $r): bool => $r->task()->id()->value !== $awaiterId
+                    ),
+                );
+            }
+        }
+    }
+
     private function drainExpiredTimers(): void
     {
         $now = $this->clock->monotonicNanoseconds();
@@ -553,7 +766,23 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
 
         foreach ($this->timers as $entry) {
             if ($entry['deadline'] <= $now) {
-                $this->ready[] = $entry['record'];
+                $record = $entry['record'];
+                $taskId = $record->task()->id()->value;
+
+                if (isset($entry['type'])) {
+                    // IO deadline expired: resume the awaiting task with false.
+                    $handleId = $this->ioTaskHandles[$taskId] ?? null;
+                    if ($handleId !== null) {
+                        unset($this->ioAwaiters[$handleId]);
+                    }
+
+                    unset($this->ioTaskHandles[$taskId]);
+                    $this->pendingResumeValues[$taskId] = false;
+                    $this->ready[] = $record;
+                    continue;
+                }
+
+                $this->ready[] = $record;
 
                 continue;
             }
@@ -562,6 +791,32 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
         }
 
         $this->timers = $remaining;
+    }
+
+    /**
+     * Resumes tasks whose poll handles became ready, passing true to the
+     * suspended Fiber. Handles that have no awaiting task are ignored.
+     */
+    private function drainReadyHandles(): void
+    {
+        $readyHandles = $this->poller->readyHandles();
+
+        foreach ($readyHandles as $handle) {
+            $handleId = $handle->id;
+
+            if (!isset($this->ioAwaiters[$handleId])) {
+                continue;
+            }
+
+            $record = $this->ioAwaiters[$handleId];
+            $taskId = $record->task()->id()->value;
+
+            unset($this->ioAwaiters[$handleId]);
+            unset($this->ioTaskHandles[$taskId]);
+
+            $this->pendingResumeValues[$taskId] = true;
+            $this->ready[] = $record;
+        }
     }
 
     /**
@@ -623,6 +878,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
             if (!$record->isDone() && $record->task()->cancellationScope()->isCancelled()) {
                 $this->complete($record, TaskStatus::Cancelled);
                 $this->resumeAwaiters($record);
+                $this->resumeAnyAwaiters($record);
                 unset($this->records[$id]);
             }
         }
@@ -654,6 +910,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSche
 
             $this->complete($record, TaskStatus::Cancelled);
             $this->resumeAwaiters($record);
+            $this->resumeAnyAwaiters($record);
         }
     }
 }

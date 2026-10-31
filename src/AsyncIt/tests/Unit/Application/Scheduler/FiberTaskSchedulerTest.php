@@ -407,6 +407,117 @@ final class FiberTaskSchedulerTest extends TestCase
         $scheduler->awaitDelay(Duration::ofNanoseconds(1));
     }
 
+    public function testAwaitReadableReturnsTrueWhenStreamBecomesReadable(): void
+    {
+        $scheduler = $this->scheduler();
+        $log = [];
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertNotFalse($pair);
+
+        $readHandle = $scheduler->registerStream($pair[0]);
+        $writeStream = $pair[1];
+
+        $scheduler->spawn(static function () use (&$log, $scheduler, $readHandle): void {
+            $log[] = 'before';
+            $ready = $scheduler->awaitReadable($readHandle, Duration::ofSeconds(5));
+            $log[] = 'after';
+            $log[] = $ready ? 'ready' : 'timeout';
+        });
+
+        $scheduler->spawn(static function () use ($writeStream): void {
+            fwrite($writeStream, 'x');
+        });
+
+        $scheduler->run();
+
+        self::assertSame(['before', 'after', 'ready'], $log);
+
+        fclose($pair[0]);
+        fclose($pair[1]);
+    }
+
+    public function testAwaitReadableReturnsFalseOnTimeout(): void
+    {
+        $scheduler = $this->scheduler();
+        $log = [];
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertNotFalse($pair);
+
+        $readHandle = $scheduler->registerStream($pair[0]);
+
+        $scheduler->spawn(static function () use (&$log, $scheduler, $readHandle): void {
+            $log[] = $scheduler->awaitReadable($readHandle, Duration::ofNanoseconds(1)) ? 'ready' : 'timeout';
+        });
+
+        $scheduler->run();
+
+        self::assertSame(['timeout'], $log);
+
+        fclose($pair[0]);
+        fclose($pair[1]);
+    }
+
+    public function testAwaitReadableThrowsWhenNoCurrentTask(): void
+    {
+        $scheduler = $this->scheduler();
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertNotFalse($pair);
+
+        $handle = $scheduler->registerStream($pair[0]);
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Readable() must be called within a running task.');
+
+        $scheduler->awaitReadable($handle);
+
+        fclose($pair[0]);
+        fclose($pair[1]);
+    }
+
+    public function testAwaitWritableReturnsTrueWhenStreamIsWritable(): void
+    {
+        $scheduler = $this->scheduler();
+        $log = [];
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertNotFalse($pair);
+
+        $writeHandle = $scheduler->registerStream($pair[0]);
+
+        $scheduler->spawn(static function () use (&$log, $scheduler, $writeHandle): void {
+            $log[] = 'before';
+            $ready = $scheduler->awaitWritable($writeHandle, Duration::ofSeconds(5));
+            $log[] = 'after';
+            $log[] = $ready ? 'ready' : 'timeout';
+        });
+
+        $scheduler->run();
+
+        self::assertSame(['before', 'after', 'ready'], $log);
+
+        fclose($pair[0]);
+        fclose($pair[1]);
+    }
+
+    public function testAwaitWritableReturnsFalseOnTimeout(): void
+    {
+        $scheduler = $this->scheduler();
+        $log = [];
+        $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
+        self::assertNotFalse($pair);
+
+        $writeHandle = $scheduler->registerStream($pair[0]);
+
+        $scheduler->spawn(static function () use (&$log, $scheduler, $writeHandle): void {
+            $log[] = $scheduler->awaitWritable($writeHandle, Duration::ofNanoseconds(1)) ? 'ready' : 'timeout';
+        });
+
+        $scheduler->run();
+
+        self::assertSame(['timeout'], $log);
+
+        fclose($pair[0]);
+        fclose($pair[1]);
+    }
+
     public function testRetryReturnsResultOnFirstSuccess(): void
     {
         $scheduler = $this->scheduler();

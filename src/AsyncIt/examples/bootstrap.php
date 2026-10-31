@@ -17,6 +17,7 @@ use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
+use ItPack\AsyncIt\Application\Factory\CombinatorFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
@@ -99,8 +100,10 @@ function makeReferenceRuntime(): array
         $publisher,
     );
 
+    $cancellationScopeFactory = new CancellationScopeFactory();
+    $combinatorFactory = new CombinatorFactory($cancellationScopeFactory);
     $taskGroupFactory = new TaskGroupFactory(
-        new CancellationScopeFactory(),
+        $cancellationScopeFactory,
     );
 
     $idGenerator = new RandomIdentifierGenerator();
@@ -112,6 +115,7 @@ function makeReferenceRuntime(): array
     $runtime = new AsyncRuntime(
         $schedulerFactory,
         $taskGroupFactory,
+        $combinatorFactory,
         $idGenerator,
         $capability,
         $channel,

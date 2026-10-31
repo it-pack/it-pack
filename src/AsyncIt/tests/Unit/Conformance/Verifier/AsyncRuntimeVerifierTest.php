@@ -109,6 +109,11 @@ final class AsyncRuntimeVerifierTest extends TestCase
             {
                 return 0;
             }
+
+            public function readyHandles(): array
+            {
+                return [];
+            }
         };
 
         return new FakeRuntimeFixture(

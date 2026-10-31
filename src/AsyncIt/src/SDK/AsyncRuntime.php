@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\SDK;
 
+use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
@@ -49,6 +50,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
     public function __construct(
         private readonly SchedulerFactoryInterface $schedulerFactory,
         private readonly TaskGroupFactoryInterface $taskGroupFactory,
+        private readonly CombinatorFactoryInterface $combinatorFactory,
         private readonly IdentifierGeneratorInterface $idGenerator,
         private readonly EngineCapability $capability,
         private readonly TaskChannelInterface $channel,
@@ -129,6 +131,114 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         $this->scheduler->awaitDelay($duration);
     }
 
+    /**
+     * Runs all operations concurrently and returns the result of the first to
+     * complete. Cancels remaining operations.
+     *
+     * @param list<callable> $operations
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-race
+     */
+    public function race(array $operations): mixed
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createRace(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and returns all results in spawn order.
+     *
+     * @param list<callable> $operations
+     * @return list<mixed>
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-all
+     */
+    public function all(array $operations): array
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createAll(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and returns the result of the first to
+     * succeed. Ignores failures of other children; throws if all fail.
+     *
+     * @param list<callable> $operations
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-any
+     */
+    public function any(array $operations): mixed
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createAny(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and returns the winning task and its
+     * result.
+     *
+     * @param list<callable> $operations
+     * @return array{task: TaskInterface|null, result: mixed}
+     * @see https://w3id.org/itpack/asyncit-taxonomy#await-point-select
+     */
+    public function select(array $operations): array
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createSelect(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and waits for all to complete.
+     *
+     * @param list<callable> $operations
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-all
+     */
+    public function join(array $operations): void
+    {
+        $this->all($operations);
+    }
+
     public function capability(): EngineCapability
     {
         return $this->capability;
@@ -159,5 +269,14 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
     public static function discover(): self
     {
         return AsyncRuntimeFactory::create();
+    }
+
+    private function activeScheduler(): EngineSchedulerInterface
+    {
+        if (!$this->scheduler instanceof EngineSchedulerInterface) {
+            throw new LogicException('scheduler combinator must be called within a running execution.');
+        }
+
+        return $this->scheduler;
     }
 }

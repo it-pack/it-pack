@@ -183,6 +183,11 @@ final class GracefulShutdownVerifierTest extends TestCase
             {
                 return 0;
             }
+
+            public function readyHandles(): array
+            {
+                return [];
+            }
         };
     }
 
@@ -205,6 +210,11 @@ final class GracefulShutdownVerifierTest extends TestCase
             public function activeHandleCount(): int
             {
                 return 1;
+            }
+
+            public function readyHandles(): array
+            {
+                return [];
             }
         };
     }

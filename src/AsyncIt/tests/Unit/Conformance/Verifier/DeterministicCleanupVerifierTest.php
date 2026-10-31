@@ -101,6 +101,11 @@ final class DeterministicCleanupVerifierTest extends TestCase
             {
                 return 0;
             }
+
+            public function readyHandles(): array
+            {
+                return [];
+            }
         };
     }
 }

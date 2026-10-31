@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\SDK\Factory;
 
 use ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
+use ItPack\AsyncIt\Application\Factory\CombinatorFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\PollerFactory;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
@@ -106,9 +107,12 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
 
         $discovery = new RuntimeDiscoveryFactory()->create($descriptor);
 
+        $combinatorFactory = new CombinatorFactory($cancellationScopeFactory);
+
         $runtime = new AsyncRuntime(
             $schedulerFactory,
             $taskGroupFactory,
+            $combinatorFactory,
             $idGenerator,
             $capability,
             $channel,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK;
 
+use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
@@ -225,12 +226,14 @@ final class AsyncRuntimeTest extends TestCase
 
         $schedulerFactory = $this->createMock(SchedulerFactoryInterface::class);
         $taskGroupFactory = $this->createMock(TaskGroupFactoryInterface::class);
+        $combinatorFactory = $this->createMock(CombinatorFactoryInterface::class);
 
         $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
 
         return new AsyncRuntime(
             $schedulerFactory,
             $taskGroupFactory,
+            $combinatorFactory,
             $idGenerator,
             $capability,
             $channel,
