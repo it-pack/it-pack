@@ -296,8 +296,9 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ---
 
-> The phases below (Phase 6–Phase 11) implement the features catalogued in
-> `docs/FEATURE_BACKLOG.md`. Each phase depends on the previous one; no phase
+> The phases below (Phase 6–Phase 13) implement the features catalogued in
+> `docs/FEATURE_BACKLOG.md` (verticals V.9–V.12, horizontals H.9–H.13, and
+> platform feature A.1). Each phase depends on the previous one; no phase
 > may start before its parent's exit gate is green. New conformance assertions
 > are added to `src/Conformance/Verifier/` in the phase that introduces the
 > behavior they verify.
@@ -412,7 +413,14 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 ### Phase 11 — Scale-Out: Dynamic Capabilities, Persistence, Federation & Middleware (M18–M20)
 
 **Status:** *Phase 11A (Dynamic Capabilities) complete. A.3–A.7 remain planned.*
-**Goal:** Enable AsyncIt for distributed, large-scale deployments: dynamically-evolving capability descriptors, persistent task queues with crash recovery, federated scheduling across processes/machines, a scheduler middleware pipeline, a telemetry schema registry, and canary deployment support.
+**Goal:** Enable AsyncIt for distributed, large-scale deployments: dynamically-evolving capability descriptors, persistent task queues with crash recovery, federated scheduling across processes/machines, a scheduler middleware pipeline, a telemetry schema registry, and canary deployment support. Corresponds to backlog features H.9–H.13.
+
+**Horizontal feature mapping (FEATURE_BACKLOG.md §2):**
+- **H.9** Persistent Task Queue & Crash Recovery → `A.3` (PersistentTask, PersistentTaskQueueInterface, RedisTaskQueue)
+- **H.10** Scheduler Federation & Hierarchical Scheduling → `A.4` (RemoteSchedulerPortInterface, FederatedScheduler)
+- **H.11** Scheduler Middleware Pipeline → `A.5` (SchedulerMiddlewareInterface, MiddlewareScheduler)
+- **H.12** Telemetry Schema Registry → `A.6` (TelemetrySchemaRegistry, ArtifactNormalizer)
+- **H.13** Hot Configuration Reload & Canary Deployments → `A.7` (SchedulerConfiguration::forCanary, CanaryScheduler)
 
 **Tasks**
 - [x] **A.2.1** — `CapabilityDescriptor` gains `version: int` (monotonic schema version, starts at 1).
@@ -436,6 +444,58 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 **Gates:** Each sub-feature has dedicated unit tests (≥90% coverage for new code; 100% for critical branching in V.7/A.4/A.7); `composer quality` green; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; no speculative abstraction without a concrete consumer (AGENTS.md); new adapters placed in `Adapter/` and do not leak runtime types into `Contract/`/`Domain/`.
 
+---
+
+### Phase 12 — IO Await Primitives & Structured Combinators (V.9, V.10) *(planned)*
+
+**Status:** *Planned.*
+**Goal:** Close the largest API gap vs. the README — first-class IO await primitives (`awaitReadable`/`awaitWritable`) and structured-combinator suite (`race`, `all`, `any`, `join`, `select`) — enabling all IO-driven workflows and reducing ad-hoc structured-concurrency bugs. Corresponds to backlog features V.9 and V.10.
+
+**Tasks**
+- [ ] **V.9.1** — Add `awaitReadable(StreamPollHandleInterface, ?DurationInterface): bool` and `awaitWritable(StreamPollHandleInterface, ?DurationInterface): bool` to `EngineSchedulerInterface` (via a focused `AwaitableIOInterface` extension to avoid breaking third-party implementors post-1.0.0). Bind to `async-it#StreamPollHandle` and `async-it-taxonomy#await-point-read-wait`.
+- [ ] **V.9.2** — `FiberTaskScheduler` registers the handle with the poller, associates a monotonic deadline timer with the task's await record, suspends via `Fiber::suspend()`, and resumes when the poller signals readiness or the timer fires. Every registered handle is released on terminal transition, timeout, or cancellation (extends Assertion C).
+- [ ] **V.9.3** — Add `AwaitPointReadable` / `AwaitPointWritable` variants to the `AwaitPoint` discriminated union (`async-it-taxonomy#await-point-readable`, `#await-point-writable`).
+- [ ] **V.10.1** — Domain combinator value objects (`RaceGroup`, `AllGroup`, `AnyGroup`, `SelectGroup`) each wrapping a `CancellationScope` and a set of child tasks. Bind to `async-it-taxonomy#task-group-strategy-race`, `#task-group-strategy-all`, `#task-group-strategy-any`, `#await-point-select`.
+- [ ] **V.10.2** — `FiberTaskScheduler` drives each combinator's await loop; `select()` integrates with `AwaitPoint` discrimination so the scheduler knows which handle fired.
+- [ ] **V.10.3** — SDK: `AsyncRuntime::race(...)`, `::all(...)`, `::any(...)`, `::select(...)`, `::join(...)` delegate to the active scheduler. `select()` deferred until V.9 IO await primitives exist.
+
+**Gates:** `awaitReadable`/`awaitWritable` unit tests with handle-release-on-timeout/cancel coverage; combinator tests for race/all/any/join (select skipped until V.9); new conformance assertions D (`IOAwaitCleanupVerifier`) and E (`CombinatorCancellationVerifier`) added to `AsyncRuntimeVerifier`; `composer quality` green; `@see` references added; no `else`/Yoda/magic literals; every concrete class `final` + interface-backed.
+
+---
+
+### Phase 13 — Typed Task Results & Async Generator Streams (V.11, V.12) *(planned)*
+
+**Status:** *Planned.*
+**Goal:** Make terminal task outcomes explicit at the type level (`TaskResult<T, E>`) and bridge PHP async generators to the task scheduler (`TaskStream`). Corresponds to backlog features V.11 and V.12.
+
+**Tasks**
+- [ ] **V.11.1** — `TaskResult<T>` generic value object (PHP 8.4 class-template generics via PHPDoc `@template`): `isSuccess()`, `isFailure()`, `value(): T`, `error(): ?Throwable`, `status(): TaskStatus`, `duration(): Duration`. `readonly`, final, interface-backed. Bind to `async-it#TaskResult` and `runit#Observation`.
+- [ ] **V.11.2** — `EngineSchedulerInterface::resultTyped(TaskInterface): TaskResultInterface` (new method; `result()` keeps `mixed` for backward compat). `FiberTaskScheduler` captures the return value or caught `Throwable` into `TaskResult` on terminal transition.
+- [ ] **V.12.1** — `TaskStreamInterface` (`AsyncIterator`-compatible) + `TaskStream` implementation wrapping a `Generator`/`AsyncGenerator`. Bind to `async-it-taxonomy#task-kind-stream`.
+- [ ] **V.12.2** — Scheduler pulls from the generator at await boundaries, spawning each yielded callable as a task; backpressure (V.6) gates emission rate. Start with synchronous generators adapted one-task-at-a-time.
+- [ ] **V.12.3** — SDK: `AsyncRuntime::stream(callable $generator): TaskStreamInterface`.
+
+**Gates:** `TaskResultTest` with generics PHPDoc coverage; `TaskStreamTest` (one-at-a-time and bounded-concurrent emission); V.11 result-type captures both success and failure terminal transitions; `composer quality` green; `@see` references added; document that generic classes are PHPDoc-only with no runtime enforcement.
+
+---
+
+### Feature status summary (FEATURE_BACKLOG.md features)
+
+| Feature | Backlog ID | Roadmap phase | Status |
+|---|---|---|---|
+| IO await primitives `awaitReadable`/`awaitWritable` | V.9 | Phase 12 | ◻ Planned |
+| Structured combinators `race`/`all`/`any`/`join`/`select` | V.10 | Phase 12 | ◻ Planned |
+| Typed task results `TaskResult<T, E>` | V.11 | Phase 13 | ◻ Planned |
+| Async generator / `TaskStream` | V.12 | Phase 13 | ◻ Planned |
+| Persistent task queue & crash recovery | H.9 / A.3 | Phase 11 | ◻ Planned |
+| Scheduler federation & hierarchical scheduling | H.10 / A.4 | Phase 11 | ◻ Planned |
+| Scheduler middleware pipeline | H.11 / A.5 | Phase 11 | ◻ Planned |
+| Telemetry schema registry | H.12 / A.6 | Phase 11 | ◻ Planned |
+| Hot config reload & canary deployments | H.13 / A.7 | Phase 11 | ◻ Planned |
+| Dynamic capability evolution | A.1 / A.2 | Phase 11 | ⚠ Partially complete (A.2 done) |
+
+---
+
 ## 5. Status updates (major milestones)
 
 - **After Phase 0:** Tooling and architecture guards are in place; the package is buildable and enforceable, but no behavior exists yet. Next: contract freeze (M3). Blocker: none.
@@ -452,7 +512,9 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - **Phase 8 (complete):** Retry, circuit breaker, bulkheads, rate limiting (M14). `RetryPolicy` with exponential/fixed/Fibonacci backoff + jitter; `CircuitBreaker` state machine with cooldown; `Bulkhead` capacity isolation; `RateLimiter` token-bucket; `retry()` preserves original exception.
 - **Phase 9 (complete):** OpenTelemetry tracing bridge, RunIt lifecycle publication, Prometheus metrics bridge, `TraceParentageVerifier` (Assertion E).
 - **Phase 10 (complete):** Scheduler health interface + snapshot, graceful shutdown, immutable `SchedulerConfiguration`, `GracefulShutdownVerifier` (Assertion F).
-- **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
+- **Phase 11 (planned):** Dynamic capability descriptors, persistent task queue (H.9), scheduler federation (H.10), middleware pipeline (H.11), schema registry (H.12), canary deployments (H.13) (M18–M20).
+- **Phase 12 (planned):** IO await primitives `awaitReadable`/`awaitWritable` (V.9) and structured combinators `race`/`all`/`any`/`join`/`select` (V.10).
+- **Phase 13 (planned):** Typed `TaskResult<T, E>` outcomes (V.11) and async generator / `TaskStream` (V.12).
 - **Next-gen gate:** Each new phase adds conformance assertions to `AsyncRuntimeVerifier` and is blocked on the previous phase's exit criteria. See `docs/FEATURE_BACKLOG.md` for full reasoning per feature.
 
 ---
@@ -585,12 +647,14 @@ Note the absence of `else`, the early-return guard, `final` + interface, injecte
 
 The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-only, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, phparkitect, and mutation testing. All five implementation phases (M0–M10) are complete; follow-on quality-gate work (R7–R15) is tracked in `docs/REFACTORING_PLAN.md` and `docs/TODOS.md`, and must be green before Phase 6 begins. `composer quality` is NOT yet fully green — see the §5 status updates and the open task list.
 
-**Next-gen phases (Phase 6–Phase 11)** are documented in this roadmap as the strategic continuation. They implement the features catalogued in `docs/FEATURE_BACKLOG.md`, organised into three waves:
+**Next-gen phases (Phase 6–Phase 13)** are documented in this roadmap as the strategic continuation. They implement the features catalogued in `docs/FEATURE_BACKLOG.md`, organised into waves:
 - **Foundational** (Phase 6): multi-task model + timers + task groups (M11–M12).
 - **Core verticals** (Phase 7): cancellation reasons, backpressure, lifecycle hooks (M13).
 - **Resilience** (Phase 8): retry, circuit breaker, bulkheads, rate limiting (M14).
 - **Observability** (Phase 9): OpenTelemetry tracing, RunIt occurrence/measurement/observation publication, Prometheus metrics (M15–M16).
 - **Operational maturity** (Phase 10, complete): health/liveness probes, graceful shutdown, configuration & policy engine, introspection/debugging (M17).
-- **Scale-out** (Phase 11): dynamic capability descriptors, persistent task queue, scheduler federation, middleware pipeline, schema registry, canary deployments (M18–M20).
+- **Scale-out** (Phase 11): dynamic capability descriptors, persistent task queue (H.9), scheduler federation (H.10), middleware pipeline (H.11), schema registry (H.12), canary deployments (H.13) (M18–M20).
+- **IO & combinators** (Phase 12): `awaitReadable`/`awaitWritable` (V.9), `race`/`all`/`any`/`join`/`select` (V.10).
+- **Typed results & streams** (Phase 13): `TaskResult<T, E>` (V.11), `TaskStream` / async generators (V.12).
 
 Each phase adds conformance assertions (A.2–A.3 group isolation, C.2 timer cleanup, E trace parentage, F graceful shutdown) to `src/Conformance/Verifier/`, extending the `AsyncRuntimeVerifier` suite. New capability kinds are added to the relevant task only when a concrete consumer exists (AGENTS.md: "Do not add a public extension point until there is a concrete consumer or adapter use case").
