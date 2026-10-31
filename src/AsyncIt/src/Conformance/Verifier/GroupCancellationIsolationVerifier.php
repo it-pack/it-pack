@@ -27,7 +27,7 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
  * @see https://w3id.org/itpack/asyncit#TaskGroup
  * @see https://w3id.org/itpack/asyncit#CancellationScope
  * @see https://w3id.org/itpack/runit#Execution
- *   @api
+ * @api
  */
 final class GroupCancellationIsolationVerifier implements VerifierInterface
 {

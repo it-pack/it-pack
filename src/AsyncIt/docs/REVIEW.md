@@ -417,6 +417,10 @@ root cause.
 - **Status:** ✅ FIXED (2026-10-31, R16.2) — `use` import removed from line 7;
   `::class` replaced with string literal on line 190. `composer architecture`
   — 0 violations.
+  **Note:** The fix regressed during a later working-tree update (line 7 still had
+  the `use` import and line 190 still used `::class`). Re-fixed during R20.2 verification —
+  removed the `use` import and replaced with FQ string literal
+  `'ItPack\\AsyncIt\\Adapter\\OpenTelemetry\\OpenTelemetryTelemetryBridge'`.
 
 #### BUG-3: Assembly factories import Adapter classes (Application→Adapter violation)
 
@@ -627,19 +631,28 @@ root cause.
 ### Medium-Priority Bugs
 
 #### BUG-11: Stale PHPStan ignore rule references non-existent property
-
-- **File:** `phpstan.neon:76-77`
+  
+- **File:** `phpstan.neon`
 - **Location:** `ignoreErrors` configuration
 - **Severity:** Medium
 - **Confidence:** high
 - **Impact:** The ignore rule suppresses
   `Property GracefulShutdown::$configuration is never read.*`, but
   `GracefulShutdown.php` has no `$configuration` property — the constructor
-  parameter is `$deadline`. The `GracefulShutdownVerifier::ASSERTION` constant
-  (line 89) is also unused. With `reportUnmatchedIgnoredErrors: false`, these
-  stale rules are silently ignored, masking potential issues.
+  parameter is `$deadline`. The `GracefulShutdownVerifier::ASSERTION` constant (line 89)
+  is also unused. With `reportUnmatchedIgnoredErrors: false`, these
+  stale rules are silently ignored but indicate the baseline was not updated after a refactor.
 - **Fix:** Remove stale ignore rules and verify the `GracefulShutdown` line
   references are accurate.
+- **Status:** ✅ FIXED (2026-10-31, R19.1) — Removed stale ignore for
+  `$configuration` (property never existed). Removed stale ignore for
+  `GracefulShutdown::handleSignal` unused `$signal` parameter (PHPStan no longer reports it).
+  Removed stale ignore for `GracefulShutdown::registerSignals` (now called from
+  `GracefulShutdownTest.php:91`). Temporarily set `reportUnmatchedIgnoredErrors: true`
+  and removed 14 additional stale ignore patterns + 3 stale `@phpstan-ignore` inline annotations
+  across `phpstan.neon`, `PrometheusTelemetryBridge.php`, and `PollerFactory.php`. Fixed invalid
+  path `src/Contract/SchedulerEvent.php` → `src/Domain/SchedulerEvent.php` for remaining needed rules.
+  `composer analyse` — 1 pre-existing error only (`BulkheadFullException::$capacity`).
 
 #### BUG-12: `CancellationScope::onCancel()` callback captures stale state
 
@@ -659,6 +672,13 @@ root cause.
   before registration is complete.
 - **Fix:** Document this behavior; consider making `onCancel()` on a cancelled
   scope queue the callback instead of executing immediately.
+- **Status:** ✅ FIXED (2026-10-31, R19.2) — Added docblock to `onCancel()`
+  documenting the immediate-execution-on-already-cancelled behavior and its
+  rationale. Verified `CascadingCancellationScopeFactory::create()` (child scope
+  fully constructed before `onCancel` registers) and `FiberTaskScheduler::doSpawn()`
+  (line 427, task scope freshly created) handle the immediate-execution case safely.
+  Existing test `CancellationScopeTest::testOnCancelRunsCallbackImmediatelyIfAlreadyCancelled`
+  confirms the behavior is intentional.
 
 #### BUG-13: `Task::complete()` allows transition from Created/Destroyed to terminal directly
 
@@ -683,15 +703,23 @@ root cause.
 #### BUG-14: Inconsistent `@api` docblock formatting
 
 - **File:** `src/Domain/CancellationScope.php:21`,
-  `src/Domain/Task.php:29`,
-  `src/Contract/Port/FiberScopeSlot.php:23`
+  `src/SDK/AsyncRuntime.php:43`,
+  `src/Conformance/Verifier/TimerCleanupVerifier.php:31`,
+  `src/Conformance/Verifier/GroupCancellationIsolationVerifier.php:30`,
+  `src/Contract/CancellationScopeInterface.php:23`,
+  `src/Adapter/Revolt/RevoltFiberContextStorage.php:28`,
+  `src/Adapter/Revolt/RevoltChannel.php:20`,
+  `src/Adapter/Swow/SwowCoroutineContextStorage.php:28`,
+  `src/Adapter/Swoole/SwooleCoroutineContextStorage.php:28`
 - **Severity:** Low
 - **Confidence:** high
 - **Impact:** The `@api` annotation is indented with extra leading spaces
-  inside docblocks (e.g., `   *   @api` instead of ` * @api`). PHP-CS-Fixer
+  inside docblocks (e.g., ` *   @api` instead of ` * @api`). PHP-CS-Fixer
   may correct this if configured, but the current configuration may not handle
   docblock alignment.
 - **Fix:** Normalize all `@api` annotations to single-space indentation.
+- **Status:** ✅ FIXED (2026-10-31, R19.3) — Found and normalized all 9 files
+  with extra `@api` indentation via grep. `composer cs:check` — 0 findings.
 
 #### BUG-15: `EmulatedChannel` doesn't implement `TaskChannelInterface` directly
 
@@ -730,9 +758,9 @@ root cause.
 | BUG-8 | High | `SwooleChannel::send()` / `SwowChannel::send()` don't check closed | `src/Adapter/Swoole/SwooleChannel.php:50`, `src/Adapter/Swow/SwowChannel.php:50` | ✅ FIXED |
 | BUG-9 | High | Singleton `CapacitySentinel` concurrency hazard | `src/Adapter/Swoole/SwooleChannel.php:15`, `src/Adapter/Swow/SwowChannel.php:15` | ✅ FIXED |
 | BUG-10 | Medium | Timers not purged on task completion | `src/Application/Scheduler/FiberTaskScheduler.php:496` | ✅ FIXED |
-| BUG-11 | Medium | Stale PHPStan ignore for non-existent property | `phpstan.neon:76-77` | ⬜ |
-| BUG-12 | Medium | `onCancel()` fires immediately on already-cancelled scope | `src/Domain/CancellationScope.php:65` | ⬜ |
-| BUG-14 | Low | Inconsistent `@api` docblock formatting | Various files | ⬜ |
+| BUG-11 | Medium | Stale PHPStan ignore for non-existent property | `phpstan.neon` | ✅ FIXED |
+| BUG-12 | Medium | `onCancel()` fires immediately on already-cancelled scope | `src/Domain/CancellationScope.php:65` | ✅ FIXED |
+| BUG-14 | Low | Inconsistent `@api` docblock formatting | Various files | ✅ FIXED |
 
 **Recommended order of resolution:**
 

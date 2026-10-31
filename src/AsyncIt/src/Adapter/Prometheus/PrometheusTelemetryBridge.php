@@ -88,9 +88,6 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
         return [];
     }
 
-    /**
-     * @phpstan-ignore-next-line
-     */
     private function materialize(): void
     {
         if ($this->initialized) {
@@ -205,7 +202,6 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
      */
     private function recordHistogram(string $name, float|int $durationNs, ?array $labels = null): void
     {
-        /** @phpstan-ignore-next-line */
         $histogram = $this->instruments[$name] ?? null;
 
         if ($histogram === null) {

@@ -44,7 +44,6 @@ final class PollerFactory implements PollerFactoryInterface
     {
         // Resolved as always-false under PHP < 8.6 analysis; in CI on PHP 8.6 the
         // native `Io\Poll` poller is selected. `class_exists` guards the runtime.
-        /** @phpstan-ignore-next-line greaterOrEqual.alwaysFalse, booleanAnd.alwaysFalse */
         return \PHP_VERSION_ID >= 80600 && class_exists('Io\\Poll');
     }
 }

@@ -34,7 +34,7 @@ final class CapacitySentinel
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
- *   @api
+ * @api
 
  */
 final class SwooleChannel implements TaskChannelInterface

@@ -20,7 +20,7 @@ use ItPack\AsyncIt\Contract\Port\CancellationReason;
  *
  * @see https://w3id.org/itpack/asyncit#CancellationScope
  * @see https://w3id.org/itpack/asyncit#CancellationReason
- *   @api
+ * @api
  */
 interface CancellationScopeInterface
 {

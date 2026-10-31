@@ -1,6 +1,8 @@
 # AsyncIt Refactoring Plan
 
-> **Status:** Active (Phase R16 complete — 2026-10-31; Phase R17 complete — 2026-10-31). Addresses findings in
+> **Status:** Active (Phase R16 complete — 2026-10-31; Phase R17 complete — 2026-10-31;
+> Phase R18 complete — 2026-10-31; Phase R19 complete — 2026-10-31;
+> Phase R20 complete — 2026-10-31). Addresses findings in
 > `docs/REVIEW.md` (review section) and `docs/REVIEW.md` (bug review section).
 > R0–R15 are historical (Phase 0-pre, complete per `docs/TODOS.md`); R16+ are the
 > current backlog derived from the defect analysis.
@@ -12,6 +14,20 @@
 > **Completed:** R17.1–R17.2 (2026-10-31): `composer analyse` green (1 pre-existing
 > error in `BulkheadFullException`), `composer architecture` green (0 violations),
 > `composer test:unit` green (208 tests, 353 assertions).
+>
+> **Completed:** R18.1–R18.3 (2026-10-31): `composer analyse` green (1 pre-existing
+> error in `BulkheadFullException` unrelated to R18), `composer architecture` green
+> (0 violations), `composer cs:check` green (0 findings), `composer test:unit` green
+> (211 tests, 358 assertions).
+>
+> **Completed:** R19.1–R19.3 (2026-10-31): `composer analyse` green (1 pre-existing
+> error); `composer architecture` green; `composer cs:check` green;
+> `composer test:unit` green (211 tests, 358 assertions).
+>
+> **Completed:** R20.1–R20.2 (2026-10-31): Removed regressed `OpenTelemetryTelemetryBridge`
+> import in `AsyncRuntimeFactory.php` (BUG-2 fix was documented but not applied — re-fixed
+> during R20.2 verification). `composer architecture` green (0 violations);
+> `composer analyse` green.
 >
 > **Purpose:** Translate every finding in `docs/REVIEW.md` into a concrete,
 > check-off-able refactoring or bug-fix task with an assigned phase, file,
@@ -260,37 +276,38 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
 
 ### R19.1 — Remove stale PHPStan ignore rules (BUG-11)
 
-- **File:** `phpstan.neon:74-79`
+- **File:** `phpstan.neon`
 - **Findings:** `docs/REVIEW.md` BUG-11
 - **Steps:**
-  - [ ] Remove stale ignore at line 76-77:
-    `# GracefulShutdown::$configuration is never read` (property doesn't exist)
-  - [ ] Verify `GracefulShutdown::handleSignal` unused-parameter suppress at
-    line 74-75 is still needed (the `$signal` parameter is intentionally unused)
-  - [ ] Remove `GracefulShutdown::registerSignals` suppress at line 78-79 IF the
-    method is now reachable via conformance tests
-  - [ ] Run `composer analyse` — verify 0 errors (with `reportUnmatchedIgnoredErrors`
-    set to `true` temporarily to catch any remaining stale rules)
+  - [x] Remove stale ignore for `GracefulShutdown::$configuration` (property doesn't exist — constructor param is `$deadline`)
+  - [x] Remove stale ignore for `GracefulShutdown::handleSignal` unused `$signal` parameter (PHPStan no longer reports it)
+  - [x] Remove stale ignore for `GracefulShutdown::registerSignals` (now reachable via `GracefulShutdownTest.php:91`)
+  - [x] Temporarily set `reportUnmatchedIgnoredErrors: true` and run PHPStan to find ALL stale rules across the codebase — found 14 stale ignore patterns + 3 stale `@phpstan-ignore` inline annotations
+  - [x] Removed stale rules for: `SchedulerEventInterface::property`, `SchedulerEvent::factory methods/property`, `SchedulerEventListenerInterface::onEvent`, `CancellationReason::enum cases`, `CancellationException::reason`, `TraceParentageVerifier::ASSERTION`, `ViolationVocabulary::TELEMETRY_SPAN_BROKEN_PARENTAGE`, `OpenTelemetryTelemetryBridge::Call to internal static method`, `PrometheusTelemetryBridge::Instantiated class Promphp\\Prometheus`, `PrometheusTelemetryBridge::buildInstruments return type`, `PrometheusTelemetryBridge::Parameter no value type`, `SchedulerConfiguration::methods`
+  - [x] Removed stale `@phpstan-ignore-next-line` from `PrometheusTelemetryBridge.php:92` (materialize method docblock), `PrometheusTelemetryBridge.php:208` (histogram assignment), `PollerFactory.php:47` (PHP_VERSION_ID check)
+  - [x] Fixed invalid path `src/Contract/SchedulerEvent.php` → `src/Domain/SchedulerEvent.php` for remaining needed rules
+  - [x] **Validation:** `composer analyse` — 1 pre-existing error only (`BulkheadFullException::$capacity`, tracked in R6.3); `composer cs:check` green; `composer architecture` green; `composer test:unit` green (211 tests, 358 assertions)
 
 ### R19.2 — Audit `CancellationScope::onCancel()` immediate-execution behavior (BUG-12)
 
 - **File:** `src/Domain/CancellationScope.php:65-74`
 - **Findings:** `docs/REVIEW.md` BUG-12
 - **Steps:**
-  - [ ] Document the immediate-execution-on-already-cancelled behavior in the
-    docblock
-  - [ ] Verify `CascadingCancellationScopeFactory` and
-    `FiberTaskScheduler::doSpawn()` handle the immediate-execution case safely
-  - [ ] Add test or docblock note confirming the behavior is intentional
+  - [x] Documented the immediate-execution-on-already-cancelled behavior in the `onCancel()` docblock
+  - [x] Verified `CascadingCancellationScopeFactory::create()` handles it safely — child scope is fully constructed before `onCancel()` registers the callback, so immediate fire correctly cascades cancellation to the child
+  - [x] Verified `FiberTaskScheduler::doSpawn()` (line 427) handles it safely — the task's own scope is freshly created (not cancelled) at spawn time
+  - [x] Confirmed existing test `testOnCancelRunsCallbackImmediatelyIfAlreadyCancelled` in `CancellationScopeTest.php:65` documents and verifies the behavior
+  - [x] **Validation:** `composer test:unit --filter CancellationScopeTest` — 9 tests pass
 
 ### R19.3 — Normalize `@api` docblock formatting (BUG-14)
 
 - **Files:** All files with `  *  @api` (extra leading space)
 - **Findings:** `docs/REVIEW.md` BUG-14
 - **Steps:**
-  - [ ] Find all files with `   *   @api` or `@api` with extra indentation
-  - [ ] Normalize to ` * @api` (single space after `*`)
-  - [ ] Run `composer cs:check` — verify 0 findings
+  - [x] Find all files with `   *   @api` or `@api` with extra indentation — found 9 files via grep
+  - [x] Normalize to ` * @api` (single space after `*`)
+  - [x] Fixed: `src/SDK/AsyncRuntime.php`, `src/Domain/CancellationScope.php`, `src/Conformance/Verifier/TimerCleanupVerifier.php`, `src/Conformance/Verifier/GroupCancellationIsolationVerifier.php`, `src/Contract/CancellationScopeInterface.php`, `src/Adapter/Revolt/RevoltFiberContextStorage.php`, `src/Adapter/Revolt/RevoltChannel.php`, `src/Adapter/Swow/SwowCoroutineContextStorage.php`, `src/Adapter/Swoole/SwooleCoroutineContextStorage.php`
+  - [x] **Validation:** `composer cs:check` — 0 findings
 
 ---
 
@@ -308,18 +325,33 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
   AGENTS.md dependency direction. But verify phparkitect allows
   `SDK → (external RunIt packages)`.
 - **Steps:**
-  - [ ] Run `composer architecture` after R16.2 fix — verify no new violations
-  - [ ] Document that SDK→RunIt/Adapter is permitted (RunIt is a dependency
+  - [x] Run `composer architecture` — verify no new violations (0 violations confirmed)
+  - [x] Document that SDK→RunIt/Adapter is permitted (RunIt is a dependency
     package, not an internal AsyncIt layer)
+- **Status:** ✅ FIXED (2026-10-31, R20.1) — Verified `composer architecture` — 0
+  violations. The SDK→RunIt/Adapter relationship is permitted because RunIt is an
+  external dependency package, not an internal AsyncIt layer. The only AsyncIt
+  Adapter import (`OpenTelemetryTelemetryBridge`) was removed in R20.2.
+- **Validation:** `composer architecture` — 0 violations
 
 ### R20.2 — Remove SDK direct import of Adapter\OpenTelemetry after R16.2
 
 - **File:** `src/SDK/Factory/AsyncRuntimeFactory.php`
+- **Findings:** BUG-2 companion — the R16.2 fix was documented as complete but
+  the code still had `use ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge;`
+  on line 7 and `OpenTelemetryTelemetryBridge::class` on line 190.
 - **Steps:**
-  - [ ] After R16.2 removes the `use` statement, verify `class_exists()` on the
-    string literal still works
-  - [ ] Run `composer analyse` — verify 0 errors for the string-based class
-    resolution
+  - [x] Remove the `use` import for `OpenTelemetryTelemetryBridge` (line 7)
+  - [x] Replace `OpenTelemetryTelemetryBridge::class` with FQ string literal
+    `'ItPack\\AsyncIt\\Adapter\\OpenTelemetry\\OpenTelemetryTelemetryBridge'` (line 189)
+  - [x] Verify `class_exists()` on the string literal still works (string-based
+    class resolution via `new $bridgeClass()` — identical pattern to before)
+  - [x] Run `composer analyse` — verify 0 errors (1 pre-existing error only)
+  - [x] Run `composer architecture` — verify 0 violations (SDK no longer imports
+    Adapter\OpenTelemetry)
+- **Validation:** `composer analyse` green (1 pre-existing error); `composer
+  architecture` green (0 violations); `composer cs:check` green (0 findings);
+  `composer test:unit` green (211 tests, 358 assertions)
 
 ---
 

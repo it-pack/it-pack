@@ -62,6 +62,20 @@ final class ChannelTest extends TestCase
         self::assertSame('c', $channel->receive());
     }
 
+    public function testBoundedEmulatedChannelCapacityAccountsForHeadWithoutCompaction(): void
+    {
+        $channel = new EmulatedChannel(3);
+        $channel->send('a');
+        $channel->send('b');
+        $channel->send('c');
+        self::assertSame('a', $channel->receive());
+
+        $channel->send('d');
+        self::assertSame('b', $channel->receive());
+        self::assertSame('c', $channel->receive());
+        self::assertSame('d', $channel->receive());
+    }
+
     public function testEmulatedChannelSendThrowsAfterClose(): void
     {
         $channel = new EmulatedChannel();
