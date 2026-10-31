@@ -423,18 +423,18 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
 
 - **File:** `docs/IMPLEMENTATION_PLAN.md`
 - **Steps:**
-  - [ ] Update the Section 12 caveat paragraph to reflect that the
+  - [x] Update the Section 12 caveat paragraph to reflect that the
     refactoring backlog (R0–R15) is complete per TODOS.md
-  - [ ] Add a forward-reference to this plan for R16+
-  - [ ] Remove the reference to `docs/REFACTORING_PLAN.md` as "missing" — it
+  - [x] Add a forward-reference to this plan for R16+
+  - [x] Remove the reference to `docs/REFACTORING_PLAN.md` as "missing" — it
     now exists
 
 ### R22.2 — Update `docs/TODOS.md`
 
 - **File:** `docs/TODOS.md`
 - **Steps:**
-  - [ ] Add R16–R22 task items as `[ ]` (pending)
-  - [ ] Mark R6.3 as pending with cross-reference to R21
+  - [x] Add R16–R22 task items as `[ ]` (pending)
+  - [x] Mark R6.3 as pending with cross-reference to R21
 
 ---
 

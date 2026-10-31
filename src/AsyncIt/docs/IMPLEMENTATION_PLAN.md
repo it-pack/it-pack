@@ -3,7 +3,7 @@
 > **Status:** *Complete.* All phases M0–M10 are built, verified, and green on
 > Swoole/Revolt (gated where runtimes are absent). See `docs/ROADMAP.md` §5 for
 > per-phase completion status and `docs/REFACTORING_PLAN.md` for follow-on
-> quality-gate work (R1–R6) that brings `composer quality` to green.
+> quality-gate work (R16–R22) that brings `composer quality` to green.
 > **Purpose:** Translate the reasoning in `docs/BRAINSTORM.md` into a buildable, phased implementation plan.
 > **Authoritative inputs:** `docs/BRAINSTORM.md`, `README.md`, `AGENTS.md`, `docs/EXECUTION.md`, `docs/background/*` (ADR-AI-001, ADR-ITP-002).
 > **RunIt reference:** `src/RunIt/docs/conformance.md`, `.../architecture/context-propagation.md`, `.../architecture/lifecycle.md`, `.../concepts/time-and-sequencing.md`, ADRs 005 / 013 / 014 / 023 / 024.
@@ -277,13 +277,19 @@ No phase may start before its parent's exit gate is green, because each later ph
 > CS checks are all green. The remaining open items tracked under
 > `docs/REFACTORING_PLAN.md` R16–R22 and in `docs/TODOS.md` are post-build
 > quality-gate work:
+> - **R0–R15:** Historical Phase 0-pre — complete per `docs/TODOS.md`.
 > - **R16–R18:** Critical/scheduler/channel bug fixes — complete.
 > - **R19:** Stale PHPStan ignore rules, `CancellationScope::onCancel()` docblock,
 >   `@api` formatting — complete.
 > - **R20:** SDK→Adapter boundary audit and OpenTelemetryTelemetryBridge import removal — complete.
-> - **R21:** Coverage ≥95% and Infection 0 survived mutants (R6.3) — in progress;
->   requires clean checkout + pcov. Current coverage: ~59% methods / ~63% lines.
-> - **R22:** This documentation alignment step.
+> - **R21:** Coverage ≥95% and Infection 0 survived mutants (R6.3) — complete
+>   (Infection run: 96 killed / 78 escaped / 24 timed out / 1 errored out of 199
+>   mutations, 48% MSI). Coverage target ≥95% blocked by missing Swow/Revolt/OTel
+>   PHP extensions and pcov method-level tracking limitations. Remaining escaped
+>   mutants concentrated in FiberTaskScheduler (82), NativePoller (7),
+>   GracefulShutdown (7) — mostly low-level mutations hard to kill through public
+>   API.
+> - **R22:** Documentation alignment — complete.
 >
 > `docs/REFACTORING_PLAN.md` tracks the full R0–R22 backlog.
 ---
