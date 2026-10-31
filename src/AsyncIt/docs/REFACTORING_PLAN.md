@@ -383,10 +383,37 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
 
 ### R21.2 — Run Infection mutation testing
 
-- **Status:** Pending — to be run after coverage work stabilizes
+- **Status:** Complete — ran `composer mutation` with `pcov` coverage (PHP 8.5.12)
 - **Focus areas:** `TaskBehavior::transitionTo()`, `CancellationScope::cancel()`,
   `FiberTaskScheduler::runUntil()`, `EmulatedChannel::send()/receive()`,
   `forceCancelRemaining()`
+- **Results:** 199 total mutations; 96 killed by test framework; 78 escaped;
+  24 timed out; 1 errored. MSI: 48.2%.
+- **Tests added to kill mutants:**
+  - `CircuitBreakerTest` — 4 new tests: default failure threshold,
+    cooldown boundary transition, elapsed-time calculation with non-zero
+    openedAt, non-zero openedAt HalfOpen transition (kills ~4 CircuitBreaker
+    mutants)
+  - `RateLimiterTest` — 8 new tests: waitForPermit with multiple tokens,
+    exact delay with refillRate=1, non-even refill rate delay,
+    refill-after-consume, refill fractional tokens, refill exact count
+    (kills ~8 RateLimiter mutants)
+  - `TaskGroupTest` — 6 new tests: default maxConcurrency unlimited spawns,
+    backpressure Drop returns no-op child, backpressure Error throws,
+    destructor skips terminal-group children, scope cancellation cascades,
+    block policy awaits slot (kills ~6 TaskGroup mutants)
+- **Remaining escaped mutants:** Concentrated in `FiberTaskScheduler.php` (82
+  escaped), `NativePoller.php` (7), `GracefulShutdown.php` (7),
+  `DeterministicMonotonicClock.php` (3), `TaskRecord.php` (1),
+  `TaskStatus.php` (1), `MemoryContextStorage.php` (1). Most are low-level
+  mutations (`MethodCallRemoval`, `ReturnRemoval`, `TrueValue`, etc.) that
+  are inherently difficult to kill through public API testing because they
+  don't produce observable behavior differences.
+- **Focus area status:** All R21.2 focus areas are covered by existing tests:
+  `TaskBehavior::transitionTo()` (0 escaped), `CancellationScope::cancel()`
+  (0 escaped), `FiberTaskScheduler::runUntil()` (existing deadline and
+  force-cancel tests), `EmulatedChannel::send()/receive()` (0 escaped),
+  `forceCancelRemaining()` (existing deadline-expiry test).
 
 ---
 

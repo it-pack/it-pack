@@ -134,4 +134,78 @@ final class RateLimiterTest extends TestCase
 
         self::assertSame(500_000_000, $duration->nanoseconds());
     }
+
+    public function testWaitForPermitReturnsZeroWhenMultipleTokensAvailable(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $limiter = new RateLimiter(3, 10, $clock);
+
+        self::assertSame(0, $limiter->waitForPermit()->nanoseconds());
+    }
+
+    public function testWaitForPermitCalculatesExactDelayWithRefillRateOne(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $limiter = new RateLimiter(1, 1, $clock);
+
+        $limiter->tryConsume();
+        $duration = $limiter->waitForPermit();
+
+        self::assertSame(1_000_000_000, $duration->nanoseconds());
+    }
+
+    public function testWaitForPermitCalculatesDelayForNonEvenRefillRate(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $limiter = new RateLimiter(1, 3, $clock);
+
+        $limiter->tryConsume();
+        $duration = $limiter->waitForPermit();
+
+        self::assertSame(333_333_333, $duration->nanoseconds());
+    }
+
+    public function testWaitForPermitReturnsZeroAfterRefillAddsTokens(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $limiter = new RateLimiter(1, 10, $clock);
+
+        $limiter->tryConsume();
+        self::assertFalse($limiter->tryConsume());
+
+        $clock->advance(100_000_000);
+
+        self::assertSame(0, $limiter->waitForPermit()->nanoseconds());
+    }
+
+    public function testRefillCalculatesCorrectTokenCount(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $limiter = new RateLimiter(10, 10, $clock);
+
+        for ($i = 0; $i < 10; $i++) {
+            self::assertTrue($limiter->tryConsume());
+        }
+
+        self::assertFalse($limiter->tryConsume());
+
+        $clock->advance(100_000_000);
+
+        self::assertTrue($limiter->tryConsume());
+        self::assertFalse($limiter->tryConsume());
+    }
+
+    public function testRefillDoesNotAddFractionalTokens(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $limiter = new RateLimiter(5, 10, $clock);
+
+        for ($i = 0; $i < 5; $i++) {
+            self::assertTrue($limiter->tryConsume());
+        }
+
+        $clock->advance(50_000_000);
+
+        self::assertFalse($limiter->tryConsume());
+    }
 }
