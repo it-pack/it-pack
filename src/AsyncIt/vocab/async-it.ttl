@@ -357,6 +357,49 @@ asyncit:SchedulerMiddleware
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
     vs:term_status      "stable" .
 
+# --- Telemetry schema registry -------------------------------------------------
+
+asyncit:TelemetrySchemaRegistry
+    a                   owl:Class ;
+    rdfs:label          "Telemetry Schema Registry"@en ;
+    rdfs:comment        "Versioned JSON-Schema descriptors for each occurrence/measurement/observation type published by the scheduler. Each schema is versioned and carries an @see reference to its ontology IRI so consumers can validate artifacts against a known, stable schema."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
+asyncit:TelemetrySchema
+    a                   owl:Class ;
+    rdfs:label          "Telemetry Schema"@en ;
+    rdfs:comment        "A single versioned JSON-Schema descriptor for one telemetry type (occurrence, measurement, or observation). Carries the schema document, its version, and the type it validates."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
+asyncit:hasSchema
+    a                   owl:ObjectProperty ;
+    rdfs:label          "has schema"@en ;
+    rdfs:comment        "Links a TelemetrySchemaRegistry to a TelemetrySchema it describes."@en ;
+    rdfs:domain         asyncit:TelemetrySchemaRegistry ;
+    rdfs:range          asyncit:TelemetrySchema ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
+asyncit:schemaVersion
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "schema version"@en ;
+    rdfs:comment        "Monotonic schema version number (starts at 1)."@en ;
+    rdfs:domain         asyncit:TelemetrySchema ;
+    rdfs:range          xsd:integer ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
+asyncit:schemaType
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "schema type"@en ;
+    rdfs:comment        "The telemetry type this schema validates: occurrence, measurement, or observation."@en ;
+    rdfs:domain         asyncit:TelemetrySchema ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
 # =============================================================================
 # Object properties
 # =============================================================================

@@ -410,7 +410,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 11 — Scale-Out: Dynamic Capabilities, Persistence, Federation & Middleware (M18–M20)
 
-**Status:** *Phase 11A (Dynamic Capabilities) complete. A.3.1 (PersistentTask + PersistentTaskInterface) complete. A.3.2 (Redis adapter + port contract) complete. A.3.3–A.3.4 (delivery semantics + idempotency) complete. A.4.1 (RemoteSchedulerPortInterface) complete. A.4.2 (FederatedScheduler) complete. A.4.3 (distributed cancellation + dead-letter) complete. A.5.1 (SchedulerMiddlewareInterface) complete. A.5.2 (MiddlewareScheduler) complete. A.5.3 (reference middleware) complete. A.6–A.7 remain planned.*
+**Status:** *Phase 11A (Dynamic Capabilities) complete. A.3.1 (PersistentTask + PersistentTaskInterface) complete. A.3.2 (Redis adapter + port contract) complete. A.3.3–A.3.4 (delivery semantics + idempotency) complete. A.4.1 (RemoteSchedulerPortInterface) complete. A.4.2 (FederatedScheduler) complete. A.4.3 (distributed cancellation + dead-letter) complete. A.5.1 (SchedulerMiddlewareInterface) complete. A.5.2 (MiddlewareScheduler) complete. A.5.3 (reference middleware) complete. A.6.1 (TelemetrySchemaRegistry) complete. A.6.2 (ArtifactNormalizer) complete. A.7.1 (forCanary) complete. A.7.2 (CanaryScheduler) complete. A.7.3 (hot config swap) complete.*
 **Goal:** Enable AsyncIt for distributed, large-scale deployments: dynamically-evolving capability descriptors, persistent task queues with crash recovery, federated scheduling across processes/machines, a scheduler middleware pipeline, a telemetry schema registry, and canary deployment support. Corresponds to backlog features H.9–H.13.
 
 **Horizontal feature mapping (FEATURE_BACKLOG.md §2):**
@@ -433,11 +433,11 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - [x] **A.4.3** — AGENTS.md compliance: distributed cancellation degrades gracefully (local timeout + dead-letter). Correlation IDs (RunIt `IdentifierGeneratorInterface`) propagate across federation.- [x] **A.5.1** — Add `SchedulerMiddlewareInterface` (Contract): `process(TaskInterface, callable $next): mixed`.
 - [x] **A.5.2** — Add `MiddlewareScheduler` (Application): decorator wrapping `FiberTaskScheduler` with an ordered pipeline.
 - [x] **A.5.3** — Reference middleware: `TraceContextInjector`, `ResourceQuotaChecker`, `BackpressureGate`, `ContextAttacher`.
-- [ ] **A.6.1** — Add `TelemetrySchemaRegistry` (Domain): versioned JSON-Schema descriptors for each occurrence/measurement/observation type. Each schema has `@see` to its ontology IRI.
-- [ ] **A.6.2** — `ArtifactNormalizer` (Application): produces version-tagged, schema-conformant arrays. Consumers validate against the registry.
-- [ ] **A.7.1** — `SchedulerConfiguration::forCanary(float $weight): self` — routes `weight` fraction of tasks to the canary config.
-- [ ] **A.7.2** — `CanaryScheduler` (Application): wraps a base scheduler; compares latency/error metrics between canary and baseline; auto-rolls-back on threshold breach.
-- [ ] **A.7.3** — Hot config swap: `SchedulerConfiguration::withChanges()` produces a new snapshot atomically; the scheduler swaps it at a safe point (between reactor ticks).
+- [x] **A.6.1** — Add `TelemetrySchemaRegistry` (Domain): versioned JSON-Schema descriptors for each occurrence/measurement/observation type. Each schema has `@see` to its ontology IRI.
+- [x] **A.6.2** — `ArtifactNormalizer` (Application): produces version-tagged, schema-conformant arrays. Consumers validate against the registry.
+- [x] **A.7.1** — `SchedulerConfiguration::forCanary(float $weight): self` — routes `weight` fraction of tasks to the canary config.
+- [x] **A.7.2** — `CanaryScheduler` (Application): wraps a base scheduler; compares latency/error metrics between canary and baseline; auto-rolls-back on threshold breach.
+- [x] **A.7.3** — Hot config swap: `SchedulerConfiguration::withChanges()` produces a new snapshot atomically; `MiddlewareScheduler::setConfiguration()` swaps it at a safe point.
 
 **Gates:** Each sub-feature has dedicated unit tests (≥90% coverage for new code; 100% for critical branching in V.7/A.4/A.7); `composer quality` green; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; no speculative abstraction without a concrete consumer (AGENTS.md); new adapters placed in `Adapter/` and do not leak runtime types into `Contract/`/`Domain/`.
 
@@ -487,8 +487,8 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 | Persistent task queue & crash recovery                    | H.9 / A.3  | Phase 11      | ⚠ Partially complete (PersistentTask + port contract + Redis adapter + delivery semantics done; A.3.3–A.4 remain) |
 | Scheduler federation & hierarchical scheduling            | H.10 / A.4 | Phase 11      | ◻ Planned                                                                                                         |
 | Scheduler middleware pipeline                             | H.11 / A.5 | Phase 11      | ◻ Planned                                                                                                         |
-| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ◻ Planned                                                                                                         |
-| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ◻ Planned                                                                                                         |
+| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ✅ Complete                                                                                                       |
+| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ✅ Complete                                                                                                       |
 | Dynamic capability evolution                              | A.1 / A.2  | Phase 11      | ⚠ Partially complete (A.2 done)                                                                                   |
 
 ---
