@@ -42,7 +42,7 @@ use Arkitect\Rules\Rule;
  * composition root for adapter assembly — the reverse direction
  * (Adapter → Application) is forbidden. See
  * docs/IMPLEMENTATION_PLAN.md §1 for rationale.
-         */
+ */
 return static function (Config $config): void {
     $classSet = ClassSet::fromDir(__DIR__ . '/src');
 
