@@ -8,7 +8,7 @@
 
 ---
 
-## 🟡 AsyncIt refactoring — R0–R20 COMPLETE; R21 IN PROGRESS
+## 🟢 AsyncIt refactoring — R0–R23 COMPLETE
 
 > **Source:** `docs/REFACTORING_PLAN.md`, `docs/REVIEW.md`, `docs/ROADMAP.md`
 >
@@ -172,3 +172,4 @@
 | R20 | ✅ Complete | `composer architecture` green (0 violations); SDK→Adapter import removed |
 | R21 | ✅ Complete | Coverage 70.18% methods / 71.61% lines (below 95% target — blocked by missing Swow/Revolt/OTel extensions); Infection run: 96 killed / 78 escaped / 24 timed out / 1 errored out of 199 mutations (48% MSI). Remaining escaped mutants concentrated in FiberTaskScheduler (82), NativePoller (7), GracefulShutdown (7) — mostly low-level mutations hard to kill through public API. All R21.2 focus areas covered by tests. |
 | R22 | ✅ Complete | Documentation aligned with code reality |
+| R23 | ✅ Complete | Extracted `runUntil()` from `EngineSchedulerInterface` into optional `DeadlineSchedulerInterface`; `FiberTaskScheduler`, `GracefulShutdown`, `GracefulShutdownVerifier` updated |

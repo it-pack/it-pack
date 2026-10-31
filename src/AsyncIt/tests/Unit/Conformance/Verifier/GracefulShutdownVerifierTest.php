@@ -6,7 +6,7 @@ namespace Tests\Unit\Conformance\Verifier;
 
 use ItPack\AsyncIt\Conformance\Verifier\GracefulShutdownVerifier;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
@@ -51,7 +51,7 @@ final class GracefulShutdownVerifierTest extends TestCase
     {
         $verifier = new GracefulShutdownVerifier();
 
-        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler = $this->createMock(DeadlineSchedulerInterface::class);
         $scheduler->expects($this->once())->method('runUntil');
 
         $fixture = new FakeRuntimeFixture(
@@ -73,7 +73,7 @@ final class GracefulShutdownVerifierTest extends TestCase
     {
         $verifier = new GracefulShutdownVerifier();
 
-        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler = $this->createMock(DeadlineSchedulerInterface::class);
         $scheduler->expects($this->once())->method('runUntil');
 
         $fixture = new FakeRuntimeFixture(

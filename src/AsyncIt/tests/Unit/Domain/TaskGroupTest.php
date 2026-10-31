@@ -298,7 +298,8 @@ final class TaskGroupTest extends TestCase
         $child = $this->makeTask(TaskStatus::Created);
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
         $scheduler->expects($this->exactly(2))->method('spawn')
-            ->willReturn($this->makeTask(TaskStatus::Created), $this->makeTask(TaskStatus::Created));
+            ->willReturn($this->makeTask(TaskStatus::Created), $this->makeTask(TaskStatus::Created))
+        ;
 
         $group = $this->buildGroup($scheduler);
 

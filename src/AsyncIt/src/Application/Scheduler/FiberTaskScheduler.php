@@ -15,6 +15,7 @@ use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Application\SchedulerHealth;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
+use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
@@ -56,7 +57,7 @@ use Throwable;
   * @api
 
   */
-final class FiberTaskScheduler implements EngineSchedulerInterface
+final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSchedulerInterface
 {
     /**
      * @var array<string, TaskRecord>
@@ -249,11 +250,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             }
 
             if ($this->records !== []) {
-if ($this->ready !== []) {
-                continue;
-            }
+                if ($this->ready !== []) {
+                    continue;
+                }
 
-            $this->poller->await($this->computeTimeout($deadlineNanoseconds));
+                $this->poller->await($this->computeTimeout($deadlineNanoseconds));
 
                 $this->drainExpiredTimers();
             }

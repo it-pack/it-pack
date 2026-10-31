@@ -6,7 +6,7 @@ namespace Tests\Unit\Application;
 
 use ItPack\AsyncIt\Application\GracefulShutdown;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
@@ -27,7 +27,7 @@ final class GracefulShutdownTest extends TestCase
         $scope->expects($this->once())->method('cancel');
 
         $receivedDeadline = null;
-        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler = $this->createMock(DeadlineSchedulerInterface::class);
         $scheduler
             ->expects($this->once())
             ->method('runUntil')
@@ -61,7 +61,7 @@ final class GracefulShutdownTest extends TestCase
         $scope = $this->createMock(CancellationScopeInterface::class);
         $scope->expects($this->once())->method('cancel');
 
-        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler = $this->createMock(DeadlineSchedulerInterface::class);
         $scheduler->expects($this->once())->method('runUntil');
 
         $shutdown = new GracefulShutdown(
@@ -77,7 +77,7 @@ final class GracefulShutdownTest extends TestCase
 
     public function testShutdownDoesNotRegisterSignalsInUnitTestEnvironment(): void
     {
-        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler = $this->createMock(DeadlineSchedulerInterface::class);
         $scope = $this->createMock(CancellationScopeInterface::class);
         $clock = $this->createMock(MonotonicClockInterface::class);
 

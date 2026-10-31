@@ -9,7 +9,7 @@ use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Result\ConformanceResult;
 use ItPack\AsyncIt\Conformance\Result\ConformanceViolation;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\AsyncIt\Contract\Port\ViolationVocabulary;
 use LogicException;
 
@@ -33,7 +33,7 @@ final class GracefulShutdownVerifier implements VerifierInterface
 
     public function port(): string
     {
-        return EngineSchedulerInterface::class;
+        return DeadlineSchedulerInterface::class;
     }
 
     public function verify(AsyncRuntimeFixtureInterface $fixture): ConformanceResult
@@ -51,10 +51,10 @@ final class GracefulShutdownVerifier implements VerifierInterface
             return $result;
         }
 
-        if (!($scheduler instanceof EngineSchedulerInterface)) {
+        if (!($scheduler instanceof DeadlineSchedulerInterface)) {
             $result = $result->add(new ConformanceViolation(
                 ViolationVocabulary::FIXTURE_UNSUPPORTED,
-                'Fixture scheduler does not implement EngineSchedulerInterface; cannot run shutdown assertion.',
+                'Fixture scheduler does not implement DeadlineSchedulerInterface; cannot run shutdown assertion.',
             ));
 
             return $result;

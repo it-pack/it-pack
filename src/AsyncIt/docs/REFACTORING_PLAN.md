@@ -438,6 +438,38 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
 
 ---
 
+## Phase R23 — Optional Deadline Scheduler Capability (backward compatibility)
+
+### R23.1 — Extract `runUntil()` from `EngineSchedulerInterface` into `DeadlineSchedulerInterface`
+
+- **File:** `src/Contract/DeadlineSchedulerInterface.php` (new),
+  `src/Contract/EngineSchedulerInterface.php`,
+  `src/Application/Scheduler/FiberTaskScheduler.php`,
+  `src/Application/GracefulShutdown.php`,
+  `src/Conformance/Verifier/GracefulShutdownVerifier.php`
+- **Findings:** Review feedback — adding `runUntil()` to `EngineSchedulerInterface`
+  is a source-level backward-incompatible change: every downstream
+  `EngineSchedulerInterface` implementation must add the method or become
+  non-instantiable. Since `GracefulShutdown` is the only consumer, `runUntil()`
+  should live in a separate optional interface rather than the core engine
+  scheduler contract.
+- **Steps:**
+  - [x] Create `DeadlineSchedulerInterface` extending `SchedulerInterface` with
+    `runUntil(int $deadlineNanoseconds): void` (new file)
+  - [x] Remove `runUntil()` from `EngineSchedulerInterface`
+  - [x] `FiberTaskScheduler` implements both `EngineSchedulerInterface` and
+    `DeadlineSchedulerInterface`
+  - [x] `GracefulShutdown` depends on `DeadlineSchedulerInterface` instead of
+    `EngineSchedulerInterface`
+  - [x] `GracefulShutdownVerifier` checks `DeadlineSchedulerInterface` (Assertion F)
+  - [x] Update `GracefulShutdownTest` and `GracefulShutdownVerifierTest` mocks
+- **Validation:** `composer cs:check` 0 findings; `composer analyse` no new errors
+  (5 pre-existing in `AsyncRuntimeFactoryTest.php`); `composer architecture` 0
+  violations; `composer test:unit` all affected tests pass (36 tests,
+  GracefulShutdownTest + GracefulShutdownVerifierTest + FiberTaskSchedulerTest)
+
+---
+
 ## Execution Order
 
 ```text
@@ -472,6 +504,8 @@ are verified green.
 | R20   | `composer architecture` green                                    | Run phparkitect                                                                 |
 | R21   | Coverage ≥95%; 0 survived mutants                                | Run `composer test --coverage` + `composer mutation`                            |
 | R22   | Docs reflect code reality                                        | Manual review                                                                   |
+| R23   | No new public methods on `EngineSchedulerInterface`              | Run `composer cs:check` + `composer analyse` + `composer architecture` +      |
+|       |                                                                  | affected test suites                                                            |
 
 ## Rollback Plan
 

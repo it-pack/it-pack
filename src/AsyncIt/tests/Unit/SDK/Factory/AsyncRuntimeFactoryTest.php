@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Factory;
 
-use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
@@ -31,6 +30,9 @@ final class AsyncRuntimeFactoryTest extends TestCase
         if (!class_exists('Swoole\\Coroutine') || !class_exists('Swoole\\Coroutine\\Channel')) {
             self::markTestSkipped('Swoole runtime not available.');
         }
+
+        $runtime = AsyncRuntimeFactory::create();
+
         $capability = $runtime->capability();
 
         // Swoole is installed: negotiate() selects the Swoole branch.
