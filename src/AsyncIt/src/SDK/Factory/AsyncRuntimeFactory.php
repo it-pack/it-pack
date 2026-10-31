@@ -181,6 +181,8 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
      *
      * Uses a string class name with class_exists to avoid a hard dependency on
      * the Adapter layer — respecting the architectural boundary.
+     *
+     * @see \ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge
      */
     private function buildTelemetry(): TelemetryBridgeInterface
     {
