@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Revolt;
 
+use Fiber;
 use ItPack\AsyncIt\Domain\CoroutineContextStorageTrait;
 use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use WeakMap;
 
 /**
  * Revolt Fiber-aware {@see ContextStorageInterface}.
@@ -30,19 +32,10 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
     use CoroutineContextStorageTrait;
 
     /**
-     * @var \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot>
+     * @param WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber
      */
-    private \WeakMap $perFiber;
-
-    private readonly FiberScopeSlotFactoryInterface $slotFactory;
-
-    /**
-     * @param \WeakMap<\Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber
-     */
-    public function __construct(\WeakMap $perFiber, FiberScopeSlotFactoryInterface $slotFactory)
+    public function __construct(private WeakMap $perFiber, private readonly FiberScopeSlotFactoryInterface $slotFactory)
     {
-        $this->perFiber = $perFiber;
-        $this->slotFactory = $slotFactory;
     }
 
     protected function slotFactory(): FiberScopeSlotFactoryInterface
@@ -52,16 +45,14 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
 
     protected function slot(): FiberScopeSlot
     {
-        /** @var \Fiber<mixed, mixed, mixed, mixed>|null $fiber */
-        $fiber = \Fiber::getCurrent();
+        /** @var Fiber<mixed, mixed, mixed, mixed>|null $fiber */
+        $fiber = Fiber::getCurrent();
 
         if ($fiber === null) {
             return $this->fallback();
         }
 
-        if (!isset($this->perFiber[$fiber])) {
-            $this->perFiber[$fiber] = $this->slotFactory->create();
-        }
+        $this->perFiber[$fiber] ??= $this->slotFactory->create();
 
         return $this->perFiber[$fiber];
     }

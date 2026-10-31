@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
+use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Domain\Exception\CancellationException;
 
 /**
@@ -16,12 +17,14 @@ use ItPack\AsyncIt\Domain\Exception\CancellationException;
  * cancelled. The scope is never used to preemptively kill a Fiber.
  *
  * @see https://w3id.org/itpack/asyncit#CancellationScope
-  * @api
-
-  */
+ * @see https://w3id.org/itpack/asyncit#hasCancellationReason
+ *   @api
+ */
 final class CancellationScope implements CancellationScopeInterface
 {
     private bool $cancelled = false;
+
+    private ?CancellationReason $reason = null;
 
     /**
      * @var list<callable>
@@ -33,10 +36,29 @@ final class CancellationScope implements CancellationScopeInterface
         return $this->cancelled;
     }
 
+    public function cancel(?CancellationReason $reason = null): void
+    {
+        if ($this->cancelled) {
+            return;
+        }
+
+        $this->cancelled = true;
+        $this->reason = $reason ?? CancellationReason::UserInitiated;
+
+        foreach ($this->callbacks as $callback) {
+            $callback();
+        }
+    }
+
+    public function reason(): ?CancellationReason
+    {
+        return $this->reason;
+    }
+
     public function throwIfCancelled(): void
     {
         if ($this->cancelled) {
-            throw new CancellationException();
+            throw new CancellationException($this->reason ?? CancellationReason::UserInitiated);
         }
     }
 
@@ -49,17 +71,5 @@ final class CancellationScope implements CancellationScopeInterface
         }
 
         $this->callbacks[] = $callback;
-    }
-
-    public function cancel(): void
-    {
-        if ($this->cancelled) {
-            return;
-        }
-
-        $this->cancelled = true;
-        foreach ($this->callbacks as $callback) {
-            $callback();
-        }
     }
 }

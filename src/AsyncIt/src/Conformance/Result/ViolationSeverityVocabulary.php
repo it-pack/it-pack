@@ -16,5 +16,6 @@ namespace ItPack\AsyncIt\Conformance\Result;
 interface ViolationSeverityVocabulary
 {
     public const SEVERITY_ERROR = 'error';
+
     public const SEVERITY_WARNING = 'warning';
 }

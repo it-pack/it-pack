@@ -12,6 +12,10 @@ namespace ItPack\AsyncIt\Contract\Port;
  * {@see CapabilityVocabulary} and published as SKOS concepts in the AsyncIt
  * Scheduling Taxonomy.
  *
+ * Deprecated capability kinds remain in the enum as {@see CapabilityStatus::Unavailable}
+ * rather than being removed, so consumers can distinguish "never supported" from
+ * "supported but disabled." See `docs/FEATURE_BACKLOG.md` for the full policy.
+ *
  * @see https://w3id.org/itpack/asyncit#CapabilityKind
  */
 enum CapabilityKind: string

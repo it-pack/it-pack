@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract;
 
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 
 /**
  * The polling contract — an OS-readiness notifier, not a scheduler.
  *
  * `Io\Poll` (PHP 8.6) and the `SelectPoller` fallback both implement this port.
  * The poller only signals resource readiness; it must never manage tasks,
- * timers, or Fiber lifecycles. Every {@see StreamPollHandle} it returns must be
- * released on terminal transition (conformance Assertion C).
+ * timers, or Fiber lifecycles. Every {@see StreamPollHandleInterface} it returns
+ * must be released on terminal transition (conformance Assertion C).
  *
  * @see https://w3id.org/itpack/asyncit#Poller
  * @see https://w3id.org/itpack/asyncit#StreamPollHandle
@@ -24,12 +24,12 @@ interface PollerPortInterface
      *
      * @param mixed $stream a stream resource or socket accepted by the backend
      */
-    public function register(mixed $stream): StreamPollHandle;
+    public function register(mixed $stream): StreamPollHandleInterface;
 
     /**
      * Releases a previously registered handle, detaching any OS-level watcher.
      */
-    public function release(StreamPollHandle $handle): void;
+    public function release(StreamPollHandleInterface $handle): void;
 
     /**
      * Blocks until at least one registered stream is ready or the monotonic
@@ -40,7 +40,7 @@ interface PollerPortInterface
     /**
      * Number of handles currently registered with the poller.
      *
-     * Used by conformance Assertion C to prove every {@see StreamPollHandle} is
+     * Used by conformance Assertion C to prove every {@see StreamPollHandleInterface} is
      * released on terminal transition (no dangling watchers).
      *
      * @see https://w3id.org/itpack/asyncit#StreamPollHandle

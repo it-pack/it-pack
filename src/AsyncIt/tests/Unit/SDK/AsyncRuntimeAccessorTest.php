@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK;
 
+use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,7 +21,7 @@ final class AsyncRuntimeAccessorTest extends TestCase
         $runtime = $this->createRuntime();
 
         self::assertInstanceOf(
-            \ItPack\AsyncIt\Contract\TaskChannelInterface::class,
+            TaskChannelInterface::class,
             $runtime->channel(),
         );
     }
@@ -38,7 +40,7 @@ final class AsyncRuntimeAccessorTest extends TestCase
 
         $capability = $runtime->capability();
 
-        self::assertInstanceOf(\ItPack\RunIt\Contract\Application\EngineCapability::class, $capability);
+        self::assertInstanceOf(EngineCapability::class, $capability);
     }
 
     private function createRuntime(): AsyncRuntime

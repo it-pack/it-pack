@@ -6,14 +6,15 @@ namespace Tests\Unit\Application\Factory;
 
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
 
 /**
  * @covers \ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssembler
@@ -36,7 +37,7 @@ final class RuntimeAdapterAssemblerTest extends TestCase
 
     public function testAssembleSwooleReturnsSwoolePrimitives(): void
     {
-        if (!class_exists('Swoole\\Coroutine')) {
+        if (!class_exists(Coroutine::class)) {
             self::markTestSkipped('Swoole extension not available.');
         }
 

@@ -4,7 +4,27 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Swow;
 
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
+use Swow\Coroutine\Channel;
+
+/**
+ * Internal sentinel object used by {@see SwowChannel::waitForCapacity()}
+ * to mark a blocking push, compared by identity.
+ */
+final class CapacitySentinel
+{
+    private static ?self $instance = null;
+
+    private function __construct()
+    {
+    }
+
+    public static function instance(): self
+    {
+        return self::$instance ??= new self();
+    }
+}
 
 /**
  * Native {@see TaskChannelInterface} over `Swow\Coroutine\Channel`.
@@ -23,7 +43,7 @@ final class SwowChannel implements TaskChannelInterface
 {
     private bool $closed = false;
 
-    public function __construct(private readonly \Swow\Coroutine\Channel $channel)
+    public function __construct(private readonly Channel $channel)
     {
     }
 
@@ -35,6 +55,55 @@ final class SwowChannel implements TaskChannelInterface
     public function receive(): mixed
     {
         return $this->channel->pop();
+    }
+
+    public function trySend(mixed $value): bool
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+
+        if ($this->channel->isFull()) {
+            return false;
+        }
+
+        $this->channel->push($value);
+
+        return true;
+    }
+
+    public function waitForCapacity(): void
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+
+        // Unbounded channels are never full — return immediately.
+        if (!$this->channel->isFull()) {
+            return;
+        }
+
+        // Block the coroutine until a consumer frees a slot. push() yields
+        // when the channel is full, resuming once capacity is available.
+        $sentinel = CapacitySentinel::instance();
+        $this->channel->push($sentinel);
+
+        // Remove the sentinel to restore the channel's original contents.
+        // Swow's pop() returns the FIFO front, so we drain and re-queue
+        // items until the sentinel is found.
+        $drained = [];
+        while (!$this->channel->isEmpty()) {
+            $item = $this->channel->pop();
+            if ($item === $sentinel) {
+                break;
+            }
+
+            $drained[] = $item;
+        }
+
+        foreach ($drained as $item) {
+            $this->channel->push($item);
+        }
     }
 
     public function isClosed(): bool

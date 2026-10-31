@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain;
 
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskId;
 use ItPack\AsyncIt\Domain\CancellationScope;
 use ItPack\AsyncIt\Domain\Exception\ConflictingCompletionException;
 use ItPack\AsyncIt\Domain\Exception\InvalidLifecycleTransitionException;
 use ItPack\AsyncIt\Domain\Task;
+use ItPack\AsyncIt\Domain\TaskId;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -92,7 +93,7 @@ final class TaskTest extends TestCase
     {
         return new Task(
             new TaskId('task-1'),
-            $this->createMock(\ItPack\RunIt\Contract\Domain\ExecutionIdInterface::class),
+            $this->createMock(ExecutionIdInterface::class),
             new CancellationScope(),
         );
     }

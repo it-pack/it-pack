@@ -180,6 +180,108 @@ asyncit-tax:task-custom
 # Capability key concepts
 # =============================================================================
 
+# Concept scheme for backpressure policies
+asyncit-tax:BackpressurePolicies
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Backpressure Policy Vocabulary"@en ;
+    rdfs:comment        "Extensible taxonomy of backpressure policies for task group and channel admission control."@en ;
+    skos:hasTopConcept  asyncit-tax:backpressure-block ,
+                        asyncit-tax:backpressure-drop ,
+                        asyncit-tax:backpressure-error ;
+.
+
+asyncit-tax:backpressure-block
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:BackpressurePolicies ;
+    skos:topConceptOf   asyncit-tax:BackpressurePolicies ;
+    skos:prefLabel      "Block backpressure"@en ;
+    skos:notation       "backpressure.block" ;
+    skos:definition     "Suspend the calling task until queue capacity is available (cooperative backpressure)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:backpressure-drop
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:BackpressurePolicies ;
+    skos:topConceptOf   asyncit-tax:BackpressurePolicies ;
+    skos:prefLabel      "Drop backpressure"@en ;
+    skos:notation       "backpressure.drop" ;
+    skos:definition     "Silently drop the incoming task or value when at capacity."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:backpressure-error
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:BackpressurePolicies ;
+    skos:topConceptOf   asyncit-tax:BackpressurePolicies ;
+    skos:prefLabel      "Error backpressure"@en ;
+    skos:notation       "backpressure.error" ;
+    skos:definition     "Raise an exception immediately when at capacity (fail-fast)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# Concept scheme for await points
+asyncit-tax:AwaitPointKinds
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Await Point Kind Vocabulary"@en ;
+    rdfs:comment        "Discriminated-union tags for the kind of cooperation point a task is suspended on."@en ;
+    skos:hasTopConcept  asyncit-tax:await-point-readable ,
+                        asyncit-tax:await-point-writable ,
+                        asyncit-tax:await-point-delay ,
+                        asyncit-tax:await-point-channel ,
+                        asyncit-tax:await-point-join ;
+.
+
+asyncit-tax:await-point-readable
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await readable"@en ;
+    skos:notation       "await-point-readable" ;
+    skos:definition     "Suspended until a stream becomes readable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-writable
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await writable"@en ;
+    skos:notation       "await-point-writable" ;
+    skos:definition     "Suspended until a stream becomes writable."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-delay
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await delay"@en ;
+    skos:notation       "await-point-delay" ;
+    skos:definition     "Suspended until a monotonic deadline expires."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-channel
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await channel"@en ;
+    skos:notation       "await-point-channel" ;
+    skos:definition     "Suspended while sending or receiving on a TaskChannel."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:await-point-join
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:AwaitPointKinds ;
+    skos:topConceptOf   asyncit-tax:AwaitPointKinds ;
+    skos:prefLabel      "Await join"@en ;
+    skos:notation       "await-point-join" ;
+    skos:definition     "Suspended awaiting the completion of a child task."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
 asyncit-tax:cap-fiber-execution
     a                   skos:Concept ;
     skos:inScheme       asyncit-tax:CapabilityKeys ;
@@ -380,5 +482,85 @@ asyncit-tax:poller-interop-amp
     skos:prefLabel      "Amp Interop Poller"@en ;
     skos:notation       "interop.amp" ;
     skos:definition     "Interop bridge letting an Amp event loop host AsyncIt tasks; scheduling semantics unchanged."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# Concept scheme for retry strategies
+asyncit-tax:RetryStrategies
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Retry Strategy Vocabulary"@en ;
+    rdfs:comment        "Taxonomy of backoff strategies for retry semantics."@en ;
+    skos:hasTopConcept  asyncit-tax:retry-exponential ,
+                        asyncit-tax:retry-fixed ,
+                        asyncit-tax:retry-fibonacci ;
+.
+
+asyncit-tax:retry-exponential
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RetryStrategies ;
+    skos:topConceptOf   asyncit-tax:RetryStrategies ;
+    skos:prefLabel      "Exponential backoff"@en ;
+    skos:notation       "retry.exponential" ;
+    skos:definition     "Delay doubles with each attempt."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:retry-fixed
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RetryStrategies ;
+    skos:topConceptOf   asyncit-tax:RetryStrategies ;
+    skos:prefLabel      "Fixed backoff"@en ;
+    skos:notation       "retry.fixed" ;
+    skos:definition     "Constant delay between attempts."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:retry-fibonacci
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:RetryStrategies ;
+    skos:topConceptOf   asyncit-tax:RetryStrategies ;
+    skos:prefLabel      "Fibonacci backoff"@en ;
+    skos:notation       "retry.fibonacci" ;
+    skos:definition     "Delay follows the Fibonacci sequence."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+# Concept scheme for jitter strategies
+asyncit-tax:JitterStrategies
+    a                   skos:ConceptScheme ;
+    rdfs:label          "Jitter Strategy Vocabulary"@en ;
+    rdfs:comment        "Taxonomy of jitter strategies applied to retry backoff delays."@en ;
+    skos:hasTopConcept  asyncit-tax:jitter-none ,
+                        asyncit-tax:jitter-full ,
+                        asyncit-tax:jitter-equal ;
+.
+
+asyncit-tax:jitter-none
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:JitterStrategies ;
+    skos:topConceptOf   asyncit-tax:JitterStrategies ;
+    skos:prefLabel      "No jitter"@en ;
+    skos:notation       "jitter.none" ;
+    skos:definition     "Delay is deterministic (no randomization)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:jitter-full
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:JitterStrategies ;
+    skos:topConceptOf   asyncit-tax:JitterStrategies ;
+    skos:prefLabel      "Full jitter"@en ;
+    skos:notation       "jitter.full" ;
+    skos:definition     "Delay is randomized uniformly in [0, base delay)."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
+.
+
+asyncit-tax:jitter-equal
+    a                   skos:Concept ;
+    skos:inScheme       asyncit-tax:JitterStrategies ;
+    skos:topConceptOf   asyncit-tax:JitterStrategies ;
+    skos:prefLabel      "Equal jitter"@en ;
+    skos:notation       "jitter.equal" ;
+    skos:definition     "Delay is base/2 + random(0, base/2) (decorrelated)."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit/taxonomy> ;
 .

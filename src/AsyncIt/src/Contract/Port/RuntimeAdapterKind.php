@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Contract\Port;
 
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+
 /**
  * Closed set of runtime adapters AsyncIt may bind to.
  *

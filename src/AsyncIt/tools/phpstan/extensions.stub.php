@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 /**
  * PHPStan stubs for runtime/extension classes that may be absent in the
- * analysis environment (PHP 8.6 `Io\Poll`, the Swow extension). They exist
- * only to satisfy static analysis; they are never autoloaded at runtime.
+ * analysis environment (PHP 8.6 `Io\Poll`, the Swoole and Swow extensions).
+ * They exist only to satisfy static analysis; they are never autoloaded
+ * at runtime.
  */
 
 namespace Io {
@@ -43,6 +44,44 @@ namespace Swow {
     }
 }
 
+namespace Swoole\Coroutine {
+    final class Channel
+    {
+        public function __construct(int $size = 0)
+        {
+        }
+
+        public function push(mixed $data, float $timeout = -1): bool
+        {
+            return true;
+        }
+
+        public function pop(float $timeout = -1): mixed
+        {
+            return null;
+        }
+
+        public function close(): void
+        {
+        }
+
+        public function isFull(): bool
+        {
+            return false;
+        }
+
+        public function isEmpty(): bool
+        {
+            return true;
+        }
+
+        public function length(): int
+        {
+            return 0;
+        }
+    }
+}
+
 namespace Swow\Coroutine {
     final class Channel
     {
@@ -67,6 +106,21 @@ namespace Swow\Coroutine {
         public function isAvailable(): bool
         {
             return true;
+        }
+
+        public function isFull(): bool
+        {
+            return false;
+        }
+
+        public function isEmpty(): bool
+        {
+            return true;
+        }
+
+        public function length(): int
+        {
+            return 0;
         }
     }
 }

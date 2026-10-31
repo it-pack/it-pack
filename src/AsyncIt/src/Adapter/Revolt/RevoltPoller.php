@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Revolt;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
+use Revolt\EventLoop;
+use Throwable;
 
 /**
  * Revolt-backed {@see PollerPortInterface}.
@@ -40,7 +43,7 @@ final class RevoltPoller implements PollerPortInterface
 
     private int $counter = 0;
 
-    public function register(mixed $stream): StreamPollHandle
+    public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'revolt-' . ++$this->counter;
         $this->handles[$id] = $stream;
@@ -50,16 +53,17 @@ final class RevoltPoller implements PollerPortInterface
         return new StreamPollHandle($id);
     }
 
-    public function release(StreamPollHandle $handle): void
+    public function release(StreamPollHandleInterface $handle): void
     {
         $id = $handle->id;
 
         if (isset($this->revoltIds[$id])) {
             try {
-                \Revolt\EventLoop::cancel($this->revoltIds[$id]);
-            } catch (\Throwable) {
+                EventLoop::cancel($this->revoltIds[$id]);
+            } catch (Throwable) {
                 // Loop may not be running; bookkeeping below is the source of truth.
             }
+
             unset($this->revoltIds[$id]);
         }
 
@@ -78,14 +82,14 @@ final class RevoltPoller implements PollerPortInterface
 
     private function registerWithLoop(string $id, mixed $stream): void
     {
-        if (!is_resource($stream) || !class_exists('Revolt\\EventLoop')) {
+        if (!is_resource($stream) || !class_exists(EventLoop::class)) {
             return;
         }
 
         // Revolt's loop only accepts real descriptors; for non-selectable
         // resources (e.g. php://memory) registration returns null/false, which
         // we ignore — readiness is still probed via stream_select in await().
-        $callbackId = @\Revolt\EventLoop::onReadable($stream, static fn (): null => null);
+        $callbackId = @EventLoop::onReadable($stream, static fn (): null => null);
 
         if ($callbackId !== '') {
             $this->revoltIds[$id] = $callbackId;

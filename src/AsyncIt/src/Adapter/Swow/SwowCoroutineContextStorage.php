@@ -8,6 +8,8 @@ use ItPack\AsyncIt\Domain\CoroutineContextStorageTrait;
 use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use Swow\Coroutine;
+use Throwable;
 
 /**
  * Swow coroutine-aware {@see ContextStorageInterface}.
@@ -34,11 +36,8 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
      */
     private array $perCoroutine = [];
 
-    private readonly FiberScopeSlotFactoryInterface $slotFactory;
-
-    public function __construct(FiberScopeSlotFactoryInterface $slotFactory)
+    public function __construct(private readonly FiberScopeSlotFactoryInterface $slotFactory)
     {
-        $this->slotFactory = $slotFactory;
     }
 
     protected function slotFactory(): FiberScopeSlotFactoryInterface
@@ -54,9 +53,7 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
             return $this->fallback();
         }
 
-        if (!isset($this->perCoroutine[$cid])) {
-            $this->perCoroutine[$cid] = $this->slotFactory->create();
-        }
+        $this->perCoroutine[$cid] ??= $this->slotFactory->create();
 
         return $this->perCoroutine[$cid];
     }
@@ -68,8 +65,8 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
         }
 
         try {
-            $id = \Swow\Coroutine::getCid();
-        } catch (\Throwable) {
+            $id = Coroutine::getCid();
+        } catch (Throwable) {
             return -1;
         }
 

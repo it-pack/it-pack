@@ -6,20 +6,30 @@ namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
+use ItPack\AsyncIt\Application\Factory\CascadingCancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
+use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
+use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\CancellationScope;
+use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
+use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
+use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
+use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
+use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
-
 /**
  * The reference AsyncIt runtime assembled for conformance.
  *
@@ -31,17 +41,23 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+
+final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
-    private readonly SelectPoller $verifierPoller;
+    private SelectPoller $verifierPoller;
 
-    private readonly MemoryContextStorage $storage;
+    private MemoryContextStorage $storage;
 
-    private readonly DeterministicMonotonicClock $clock;
+    private DeterministicMonotonicClock $clock;
 
-    private readonly NullArtifactPublisher $publisher;
+    private NullArtifactPublisher $publisher;
 
-    private readonly FiberTaskScheduler $scheduler;
+    private LazyTelemetryBridge $telemetry;
+
+    private FiberTaskScheduler $scheduler;
+
+    private CancellationScopeInterface $rootScope;
 
     public function __construct()
     {
@@ -49,14 +65,27 @@ final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
         $this->storage = new MemoryContextStorage();
         $this->clock = new DeterministicMonotonicClock();
         $this->publisher = new NullArtifactPublisher();
+        $this->telemetry = new LazyTelemetryBridge(
+            static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
+        );
+        $this->rootScope = new CancellationScope();
+
+        $executionId = ExecutionId::fromString('ref-exec');
+        $sequenceAllocator = new InMemorySequenceAllocator();
 
         $this->scheduler = new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
-            new SelectPoller(),
+            new TaskFactory(new RandomIdentifierGenerator()),
+            new CascadingCancellationScopeFactory($this->rootScope),
+            $this->clock,
+            $executionId,
+            $this->verifierPoller,
             $this->storage,
             new ReferenceExecutionScopeFactory(),
             $this->publisher,
+            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            new TelemetryBridgeEventListener($this->telemetry),
         );
     }
 
@@ -68,6 +97,11 @@ final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
     public function scheduler(): SchedulerInterface
     {
         return $this->scheduler;
+    }
+
+    public function cancellationScope(): CancellationScopeInterface
+    {
+        return $this->rootScope;
     }
 
     public function poller(): PollerPortInterface
@@ -88,6 +122,11 @@ final class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
     public function publisher(): ArtifactPublisherInterface
     {
         return $this->publisher;
+    }
+
+    public function telemetry(): TelemetryBridgeInterface
+    {
+        return $this->telemetry;
     }
 
     public function activePollHandleCount(): int

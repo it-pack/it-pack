@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Conformance\Contract\PortFixtureInterface;
+use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
+use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -35,6 +37,14 @@ interface AsyncRuntimeFixtureInterface extends PortFixtureInterface
 {
     public function scheduler(): SchedulerInterface;
 
+    /**
+     * The root cancellation scope controlling the runtime under test.
+     *
+     * Used by GracefulShutdownVerifier (Assertion F) to trigger cascading
+     * cancellation.
+     */
+    public function cancellationScope(): CancellationScopeInterface;
+
     public function poller(): PollerPortInterface;
 
     public function contextStorage(): ContextStorageInterface;
@@ -42,6 +52,14 @@ interface AsyncRuntimeFixtureInterface extends PortFixtureInterface
     public function clock(): MonotonicClockInterface;
 
     public function publisher(): ArtifactPublisherInterface;
+
+    /**
+     * The runtime's telemetry bridge, or null when the fixture does not expose one.
+     *
+     * Used by TraceParentageVerifier (Assertion E) to read recorded lifecycle
+     * events and verify parent-child span linkage.
+     */
+    public function telemetry(): ?TelemetryBridgeInterface;
 
     /**
      * Number of poll handles the runtime still holds and has not released.

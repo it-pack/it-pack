@@ -22,9 +22,14 @@ namespace ItPack\AsyncIt\Contract\Port;
 interface TaskStatusVocabulary
 {
     public const CREATED = 'created';
+
     public const RUNNING = 'running';
+
     public const SUCCEEDED = 'succeeded';
+
     public const FAILED = 'failed';
+
     public const CANCELLED = 'cancelled';
+
     public const TIMED_OUT = 'timed_out';
 }

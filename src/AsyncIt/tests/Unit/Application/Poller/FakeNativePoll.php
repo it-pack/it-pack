@@ -17,7 +17,7 @@ final class FakeNativePoll
 
     public int $pollCalls = 0;
 
-    public function register(mixed $stream, int $events): bool
+    public function register(mixed $stream): bool
     {
         $this->registered[] = $stream;
 
@@ -34,10 +34,9 @@ final class FakeNativePoll
     /**
      * @return array<int, mixed>
      */
-    public function poll(int $timeout): array
+    public function poll(): array
     {
         $this->pollCalls++;
-
         return [];
     }
 }

@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swow;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
+use Swow\Event;
+use Throwable;
 
 /**
  * Swow-backed {@see PollerPortInterface}.
@@ -39,7 +42,7 @@ final class SwowPoller implements PollerPortInterface
 
     private int $counter = 0;
 
-    public function register(mixed $stream): StreamPollHandle
+    public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'swow-' . ++$this->counter;
         $this->handles[$id] = $stream;
@@ -49,7 +52,7 @@ final class SwowPoller implements PollerPortInterface
         return new StreamPollHandle($id);
     }
 
-    public function release(StreamPollHandle $handle): void
+    public function release(StreamPollHandleInterface $handle): void
     {
         $id = $handle->id;
 
@@ -57,11 +60,12 @@ final class SwowPoller implements PollerPortInterface
             $stream = $this->handles[$id] ?? null;
             if (is_resource($stream)) {
                 try {
-                    \Swow\Event::del($stream);
-                } catch (\Throwable) {
+                    Event::del($stream);
+                } catch (Throwable) {
                     // Reactor may not be running; bookkeeping is the source of truth.
                 }
             }
+
             unset($this->swowRegistered[$id]);
         }
 
@@ -88,7 +92,7 @@ final class SwowPoller implements PollerPortInterface
         // non-selectable resources (e.g. php://memory) Event::add returns false
         // and emits a warning, which we suppress and ignore — readiness is still
         // probed via stream_select in await().
-        $registered = @\Swow\Event::add($stream, null, null, \Swow\Event::TYPE_READ);
+        $registered = @Event::add($stream, null, null, Event::TYPE_READ);
 
         if ($registered === true) {
             $this->swowRegistered[$id] = true;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Conformance\Fixture;
 
+use BadMethodCallException;
 use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
@@ -23,42 +24,38 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
  */
 final class FakeExecutionScope implements ExecutionScopeInterface
 {
-    public function __construct()
-    {
-    }
-
     public function execution(): ExecutionInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 
     public function context(): ExecutionContextInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 
     public function activities(): ActivityRunnerInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 
     public function measurements(): MeasurementRecorderInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 
     public function observations(): ObservationRecorderInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 
     public function occurrences(): OccurrenceRecorderInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 
     public function snapshots(): SnapshotRecorderInterface
     {
-        throw new \BadMethodCallException('FakeExecutionScope is an identity stand-in.');
+        throw new BadMethodCallException('FakeExecutionScope is an identity stand-in.');
     }
 }

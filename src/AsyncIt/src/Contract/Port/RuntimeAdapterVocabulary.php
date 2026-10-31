@@ -20,7 +20,10 @@ namespace ItPack\AsyncIt\Contract\Port;
 interface RuntimeAdapterVocabulary
 {
     public const ADAPTER_REFERENCE = 'reference';
+
     public const ADAPTER_REVOLT = 'revolt';
+
     public const ADAPTER_SWOOLE = 'swoole';
+
     public const ADAPTER_SWOW = 'swow';
 }

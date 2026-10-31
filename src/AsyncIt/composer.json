@@ -21,8 +21,8 @@
         }
     ],
     "require": {
-        "php": "^8.4",
-        "it-pack/run-it": "*@dev",
+        "php": "^8.5",
+        "it-pack/run-it": "dev-main",
         "symfony/polyfill-php86": "^1.43",
         "symfony/polyfill-io-poll": "^1.43"
     },
@@ -46,6 +46,9 @@
         "infection/codeception-adapter": "^0.4",
         "amphp/amp": "^3.1",
         "react/react": "^1.0"
+    },
+    "suggest": {
+        "prom/phprometheus": "Required by ItPack\\AsyncIt\\Adapter\\Prometheus\\PrometheusTelemetryBridge for Prometheus metrics export."
     },
     "repositories": [
         {
@@ -76,8 +79,15 @@
         "lint:types": "php tools/lint/single-type-per-file.php",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "security:audit": "composer audit --abandoned=report",
+        "rector": "vendor/bin/rector",
+        "refactor": "@rector process",
+        "refactor:dry": "@rector process --dry-run",
+        "refactor:check": "@rector:dry",
+        "assumptions": "vendor/bin/phpa src/",
         "quality": [
             "@composer validate --strict",
+            "@assumptions",
+            "@refactor:check",
             "@cs:check",
             "@analyse",
             "@architecture",

@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace ItPack\AsyncIt\Contract;
+namespace ItPack\AsyncIt\Domain;
 
 use InvalidArgumentException;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 
 /**
  * Opaque identifier of a single scheduled task within an execution.
@@ -16,13 +17,13 @@ use InvalidArgumentException;
  * @see https://w3id.org/itpack/asyncit#Task
  * @see https://w3id.org/itpack/runit#executionId
  */
-final class TaskId implements ValueObjectInterface
+final class TaskId implements TaskIdInterface
 {
     public string $value {
         get => $this->id;
     }
 
-    private string $id;
+    private readonly string $id;
 
     public function __construct(string $id)
     {

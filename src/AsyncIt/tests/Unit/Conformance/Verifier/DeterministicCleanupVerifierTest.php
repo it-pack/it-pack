@@ -8,7 +8,8 @@ use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Result\ViolationSeverity;
 use ItPack\AsyncIt\Conformance\Verifier\DeterministicCleanupVerifier;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
@@ -83,12 +84,12 @@ final class DeterministicCleanupVerifierTest extends TestCase
     private function stubPoller(): PollerPortInterface
     {
         return new class () implements PollerPortInterface {
-            public function register(mixed $stream): StreamPollHandle
+            public function register(mixed $stream): StreamPollHandleInterface
             {
                 return new StreamPollHandle('stub');
             }
 
-            public function release(StreamPollHandle $handle): void
+            public function release(StreamPollHandleInterface $handle): void
             {
             }
 

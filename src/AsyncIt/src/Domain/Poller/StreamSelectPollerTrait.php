@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain\Poller;
 
 use ItPack\AsyncIt\Contract\Port\PollerVocabulary;
+use ValueError;
 
 /**
  * Shared readiness probe for stream-based pollers.
@@ -54,7 +55,7 @@ trait StreamSelectPollerTrait
 
         try {
             @stream_select($read, $write, $except, $seconds, $microseconds);
-        } catch (\ValueError) {
+        } catch (ValueError) {
             // No selectable descriptors (e.g. in-memory test streams); the
             // scheduler re-probes on the next tick.
         }

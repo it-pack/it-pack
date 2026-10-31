@@ -22,7 +22,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
   */
 interface TaskInterface
 {
-    public function id(): TaskId;
+    public function id(): TaskIdInterface;
 
     public function executionId(): ExecutionIdInterface;
 

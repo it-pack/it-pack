@@ -30,7 +30,7 @@ use ItPack\AsyncIt\Contract\SchedulerInterface;
   */
 final class ContextIsolationVerifier implements VerifierInterface
 {
-    public const ASSERTION = 'A';
+    public const string ASSERTION = 'A';
 
     public function port(): string
     {

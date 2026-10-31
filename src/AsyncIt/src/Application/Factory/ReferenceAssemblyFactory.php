@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 
 /**
@@ -18,10 +18,10 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
  */
-final class ReferenceAssemblyFactory implements RuntimeAssemblyFactoryInterface
+final readonly class ReferenceAssemblyFactory implements RuntimeAssemblyFactoryInterface
 {
     public function __construct(
-        private readonly PollerFactoryInterface $pollerFactory = new PollerFactory(),
+        private PollerFactoryInterface $pollerFactory = new PollerFactory(),
     ) {
     }
 

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Discovery\ReferenceRuntimeDiscovery;
-use ItPack\AsyncIt\Contract\CapabilityDescriptor;
 use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Selects the reference runtime assembly from a negotiated

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandle;
+use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
+use ItPack\AsyncIt\Domain\StreamPollHandle;
+use Swoole\Event;
 
 /**
  * Swoole-backed {@see PollerPortInterface}.
@@ -40,7 +42,7 @@ final class SwoolePoller implements PollerPortInterface
 
     private int $counter = 0;
 
-    public function register(mixed $stream): StreamPollHandle
+    public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'swoole-' . ++$this->counter;
         $this->handles[$id] = $stream;
@@ -50,15 +52,16 @@ final class SwoolePoller implements PollerPortInterface
         return new StreamPollHandle($id);
     }
 
-    public function release(StreamPollHandle $handle): void
+    public function release(StreamPollHandleInterface $handle): void
     {
         $id = $handle->id;
 
         if (isset($this->swooleRegistered[$id])) {
             $stream = $this->handles[$id] ?? null;
             if (is_resource($stream)) {
-                @\Swoole\Event::del($stream);
+                @Event::del($stream);
             }
+
             unset($this->swooleRegistered[$id]);
         }
 
@@ -77,7 +80,7 @@ final class SwoolePoller implements PollerPortInterface
 
     private function registerWithReactor(string $id, mixed $stream): void
     {
-        if (!is_resource($stream) || !class_exists('Swoole\\Event')) {
+        if (!is_resource($stream) || !class_exists(Event::class)) {
             return;
         }
 
@@ -85,7 +88,7 @@ final class SwoolePoller implements PollerPortInterface
         // non-selectable resources (e.g. php://memory) Event::add returns false
         // and emits a warning, which we suppress and ignore — readiness is still
         // probed via stream_select in await().
-        $registered = @\Swoole\Event::add($stream, null, null, SWOOLE_EVENT_READ);
+        $registered = @Event::add($stream, read_callback: null, events: SWOOLE_EVENT_READ);
 
         if ($registered === true) {
             $this->swooleRegistered[$id] = true;

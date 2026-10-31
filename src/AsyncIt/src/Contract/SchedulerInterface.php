@@ -28,4 +28,10 @@ interface SchedulerInterface
      * the poller, and repeat until idle.
      */
     public function run(): void;
+
+    /**
+     * Returns the stored result of a completed task, or null if the task
+     * has not yet completed or produced no value.
+     */
+    public function result(TaskInterface $task): mixed;
 }

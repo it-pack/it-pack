@@ -11,10 +11,18 @@ namespace ItPack\AsyncIt\Contract;
  * a {@see CapabilityDescriptor}; they never branch on `extension_loaded(...)`.
  *
  * @see https://w3id.org/itpack/asyncit#RuntimeAdapter
-  * @api
-
-  */
+ * @api
+ */
 interface RuntimeDiscoveryInterface
 {
-    public function discover(): CapabilityDescriptor;
+    public function discover(): CapabilityDescriptorInterface;
+
+    /**
+     * Registers an observer that receives capability changes pushed by the
+     * runtime adapter (e.g., when native channels become unavailable).
+     *
+     * The observer is invoked at the next safe reactor tick, never inline.
+     * Implementations that do not support observation are a no-op.
+     */
+    public function observe(CapabilityObserverInterface $observer): void;
 }
