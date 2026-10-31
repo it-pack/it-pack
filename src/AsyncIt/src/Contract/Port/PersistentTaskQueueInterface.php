@@ -47,9 +47,10 @@ interface PersistentTaskQueueInterface
     /**
      * Returns all pending task definitions for rehydration on restart.
      *
+     * @param int|null $limit Maximum number of definitions to return (null = all).
      * @return list<PersistentTaskInterface>
      */
-    public function listPending(): array;
+    public function listPending(?int $limit = null): array;
 
     /**
      * Returns the number of pending task definitions in the queue.

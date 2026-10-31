@@ -28,20 +28,20 @@ Before and during implementation, the following dimensions are reviewed at every
 
 ## 2. Constraint → ADR manifest
 
-| Constraint | Manifesting ADR / source |
-|---|---|
-| Mechanical split; AsyncIt as infrastructure port; capability negotiation | `ADR-ITP-002` |
-| Observed cooperative cancellation; `ConflictingCompletionException`; handle unwiring | `ADR-AI-001` |
-| Ambient context is adapter-backed; no global mutable state | RunIt `ADR-005` |
-| Fiber/Swoole adapters restore/clear context in `finally`; no worker leakage | RunIt `ADR-013` |
-| Publication recursion guards; failure reporter never re-enters failed publisher | RunIt `ADR-014` |
+| Constraint                                                                           | Manifesting ADR / source   |
+|--------------------------------------------------------------------------------------|----------------------------|
+| Mechanical split; AsyncIt as infrastructure port; capability negotiation             | `ADR-ITP-002`              |
+| Observed cooperative cancellation; `ConflictingCompletionException`; handle unwiring | `ADR-AI-001`               |
+| Ambient context is adapter-backed; no global mutable state                           | RunIt `ADR-005`            |
+| Fiber/Swoole adapters restore/clear context in `finally`; no worker leakage          | RunIt `ADR-013`            |
+| Publication recursion guards; failure reporter never re-enters failed publisher      | RunIt `ADR-014`            |
 | Lifecycle matrix owned by the aggregate (`canTransitionTo()`); idempotent completion | RunIt `ADR-023`, `ADR-024` |
-| Monotonic time; wall/mono separation; immutable sequences | RunIt `ADR-009`, `ADR-019` |
-| Sensitive values deny-by-default | RunIt `ADR-012` |
-| Every concrete class `final` and interface-backed | RunIt `ADR-015` |
-| Opaque, pluggable identifier generation | RunIt `ADR-017` |
-| Extensible validated strings over closed enums for user names/kinds | RunIt `ADR-018` |
-| Core has no mandatory integration (RunIt optional at the port boundary) | RunIt `ADR-010` |
+| Monotonic time; wall/mono separation; immutable sequences                            | RunIt `ADR-009`, `ADR-019` |
+| Sensitive values deny-by-default                                                     | RunIt `ADR-012`            |
+| Every concrete class `final` and interface-backed                                    | RunIt `ADR-015`            |
+| Opaque, pluggable identifier generation                                              | RunIt `ADR-017`            |
+| Extensible validated strings over closed enums for user names/kinds                  | RunIt `ADR-018`            |
+| Core has no mandatory integration (RunIt optional at the port boundary)              | RunIt `ADR-010`            |
 
 ---
 
@@ -425,7 +425,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - [x] **A.2.2** — Add `CapabilityObserverInterface` (Contract): adapters push capability changes (e.g., "native channels became unavailable"). Scheduler reacts by atomically swapping the `TaskChannel` backend from native to emulated via `swapCapabilities()`.
 - [x] **A.2.3** — Capability deprecation policy: old kinds remain `Unavailable` (not removed); consumers distinguish "never supported" from "supported but disabled." Documented in `CapabilityKind` docblock + `FEATURE_BACKLOG.md`.
 - [x] **A.3.1** — Separate **scheduling state** (ephemeral, in-memory) from **task definitions** (serializable, durable). Add `PersistentTask` (Domain, `readonly`): `TaskId`, `operation` (job class name string — never a raw closure), `deadline: ?DurationInterface`, `payload: array`. Add `PersistentTaskInterface` contract and `PersistentTaskException`. Per AGENTS.md: only task *definitions* are serialized; suspended Fibers are never persisted.
-- [ ] **A.3.2** — Add `Adapter/Redis/` package: `RedisTaskQueue` implementing `PersistentTaskQueueInterface` (Application port). Stores pending task definitions in Redis; rehydrates into `FiberTaskScheduler` on restart. Port contract `PersistentTaskQueueInterface` is in place.
+- [x] **A.3.2** — Add `Adapter/Redis/` package: `RedisTaskQueue` implementing `PersistentTaskQueueInterface` (Application port). Stores pending task definitions in Redis (hash for id → definition, list for FIFO order); rehydrates into `FiberTaskScheduler` on restart. A vendor-neutral `RedisClientInterface` is injected via constructor; `predis/predis` suggested for a ready-made client.
 - [ ] **A.3.3** — Delivery semantics: at-least-once by default; exactly-once via idempotent payloads + `DeduplicationRecord` keyed by `IdentifierGeneratorInterface`.
 - [ ] **A.3.4** — AGENTS.md compliance: "Do not serialize arbitrary objects as scheduling state" — only task *definitions* are serialized; suspended Fibers are never persisted.
 - [ ] **A.4.1** — Add `RemoteSchedulerPortInterface` (Contract): `execute(RemoteTask): PromiseInterface`. Implementations: gRPC bridge, AMQP bridge.
@@ -479,18 +479,18 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Feature status summary (FEATURE_BACKLOG.md features)
 
-| Feature | Backlog ID | Roadmap phase | Status |
-|---|---|---|---|
-| IO await primitives `awaitReadable`/`awaitWritable` | V.9 | Phase 12 | ◻ Planned |
-| Structured combinators `race`/`all`/`any`/`join`/`select` | V.10 | Phase 12 | ◻ Planned |
-| Typed task results `TaskResult<T, E>` | V.11 | Phase 13 | ◻ Planned |
-| Async generator / `TaskStream` | V.12 | Phase 13 | ◻ Planned |
-| Persistent task queue & crash recovery | H.9 / A.3 | Phase 11 | ⚠ Partially complete (PersistentTask + port contract done; Redis adapter pending) |
-| Scheduler federation & hierarchical scheduling | H.10 / A.4 | Phase 11 | ◻ Planned |
-| Scheduler middleware pipeline | H.11 / A.5 | Phase 11 | ◻ Planned |
-| Telemetry schema registry | H.12 / A.6 | Phase 11 | ◻ Planned |
-| Hot config reload & canary deployments | H.13 / A.7 | Phase 11 | ◻ Planned |
-| Dynamic capability evolution | A.1 / A.2 | Phase 11 | ⚠ Partially complete (A.2 done) |
+| Feature                                                   | Backlog ID | Roadmap phase | Status                                                                            |
+|-----------------------------------------------------------|------------|---------------|-----------------------------------------------------------------------------------|
+| IO await primitives `awaitReadable`/`awaitWritable`       | V.9        | Phase 12      | ◻ Planned                                                                         |
+| Structured combinators `race`/`all`/`any`/`join`/`select` | V.10       | Phase 12      | ◻ Planned                                                                         |
+| Typed task results `TaskResult<T, E>`                     | V.11       | Phase 13      | ◻ Planned                                                                         |
+| Async generator / `TaskStream`                            | V.12       | Phase 13      | ◻ Planned                                                                         |
+| Persistent task queue & crash recovery                    | H.9 / A.3  | Phase 11      | ⚠ Partially complete (PersistentTask + port contract done; Redis adapter pending) |
+| Scheduler federation & hierarchical scheduling            | H.10 / A.4 | Phase 11      | ◻ Planned                                                                         |
+| Scheduler middleware pipeline                             | H.11 / A.5 | Phase 11      | ◻ Planned                                                                         |
+| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ◻ Planned                                                                         |
+| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ◻ Planned                                                                         |
+| Dynamic capability evolution                              | A.1 / A.2  | Phase 11      | ⚠ Partially complete (A.2 done)                                                   |
 
 ---
 

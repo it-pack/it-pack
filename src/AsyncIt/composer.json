@@ -1,19 +1,8 @@
 {
     "name": "it-pack/async-it",
     "description": "Portable, Capability-Oriented Asynchronous Execution and Scheduling for the ItPack Semantic Stack.",
-    "type": "library",
     "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "ItPack\\AsyncIt\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/",
-            "Tools\\PhpStan\\AsyncItRules\\": "tools/phpstan/asyncit-rules/src/"
-        }
-    },
+    "type": "library",
     "authors": [
         {
             "name": "tidal",
@@ -23,31 +12,32 @@
     "require": {
         "php": "^8.5",
         "it-pack/run-it": "dev-main",
-        "symfony/polyfill-php86": "^1.43",
-        "symfony/polyfill-io-poll": "^1.43"
+        "symfony/polyfill-io-poll": "^1.43",
+        "symfony/polyfill-php86": "^1.43"
     },
     "require-dev": {
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
-        "phparkitect/phparkitect": "^1.2",
-        "codeception/module-phpbrowser": "^4.1",
+        "amphp/amp": "^3.1",
         "codeception/module-asserts": "^3.3",
-        "symfony/http-client": "^8.1",
+        "codeception/module-phpbrowser": "^4.1",
+        "infection/codeception-adapter": "^0.4",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
         "nyholm/psr7": "^1.8",
-        "psr/clock": "^1.0",
-        "psr/log": "^3.0",
-        "psr/event-dispatcher": "^1.0",
-        "psr/http-server-middleware": "^1.0",
-        "psr/http-client": "^1.0",
-        "psr/http-server-handler": "^1.0",
         "open-telemetry/api": "^1.9",
         "open-telemetry/sdk": "^1.0",
-        "infection/codeception-adapter": "^0.4",
-        "amphp/amp": "^3.1",
-        "react/react": "^1.0"
+        "phparkitect/phparkitect": "^1.2",
+        "psr/clock": "^1.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/http-client": "^1.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+        "psr/log": "^3.0",
+        "react/react": "^1.0",
+        "symfony/http-client": "^8.1"
     },
     "suggest": {
+        "predis/predis": "Required by ItPack\\AsyncIt\\Adapter\\Redis\\RedisTaskQueue for Redis-backed persistent task queue storage.",
         "prom/phprometheus": "Required by ItPack\\AsyncIt\\Adapter\\Prometheus\\PrometheusTelemetryBridge for Prometheus metrics export."
     },
     "repositories": [
@@ -59,31 +49,37 @@
             }
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "ItPack\\AsyncIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Tools\\PhpStan\\AsyncItRules\\": "tools/phpstan/asyncit-rules/src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dantleech/what-changed": true,
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true,
+            "tbachert/spi": false
+        }
+    },
     "scripts": {
-        "test": [
-            "@test:unit",
-            "@test:integration",
-            "@test:conformance",
-            "@test:concurrency"
-        ],
-        "test:unit": "vendor/bin/codecept run Unit",
-        "test:integration": "vendor/bin/codecept run Integration",
-        "test:conformance": "vendor/bin/codecept run Conformance",
-        "test:concurrency": "vendor/bin/codecept run Concurrency",
-        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
-        "cs:fix": "vendor/bin/php-cs-fixer fix",
         "analyse": "vendor/bin/phpstan analyse",
         "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
         "architecture": "vendor/bin/phparkitect check",
+        "assumptions": "vendor/bin/phpa src/",
+        "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "vendor/bin/php-cs-fixer fix",
         "lint:length": "php tools/lint/line-length.php",
         "lint:types": "php tools/lint/single-type-per-file.php",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
-        "security:audit": "composer audit --abandoned=report",
-        "rector": "vendor/bin/rector",
-        "refactor": "@rector process",
-        "refactor:dry": "@rector process --dry-run",
-        "refactor:check": "@rector:dry",
-        "assumptions": "vendor/bin/phpa src/",
         "quality": [
             "@composer validate --strict",
             "@assumptions",
@@ -95,15 +91,21 @@
             "@lint:types",
             "@test",
             "@security:audit"
-        ]
-    },
-    "config": {
-        "allow-plugins": {
-            "infection/extension-installer": true,
-            "php-http/discovery": true,
-            "dantleech/what-changed": true,
-            "tbachert/spi": false,
-            "phpstan/extension-installer": true
-        }
+        ],
+        "rector": "vendor/bin/rector",
+        "refactor": "@rector process",
+        "refactor:check": "@rector:dry",
+        "refactor:dry": "@rector process --dry-run",
+        "security:audit": "composer audit --abandoned=report",
+        "test": [
+            "@test:unit",
+            "@test:integration",
+            "@test:conformance",
+            "@test:concurrency"
+        ],
+        "test:concurrency": "vendor/bin/codecept run Concurrency",
+        "test:conformance": "vendor/bin/codecept run Conformance",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:unit": "vendor/bin/codecept run Unit"
     }
 }
