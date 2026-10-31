@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Factory;
 
-use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
+use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -66,8 +66,11 @@ final class AsyncRuntimeFactoryTest extends TestCase
 
     public function testCreateWithSwooleUsesLazyTelemetryBridge(): void
     {
+        // No OTEL exporter endpoint: the factory must fall back to the lazy bridge.
+        putenv('OTEL_EXPORTER_OTLP_ENDPOINT');
+
         $runtime = AsyncRuntimeFactory::create();
 
-        self::assertInstanceOf(TelemetryBridgeInterface::class, $runtime->telemetry());
+        self::assertInstanceOf(LazyTelemetryBridge::class, $runtime->telemetry());
     }
 }
