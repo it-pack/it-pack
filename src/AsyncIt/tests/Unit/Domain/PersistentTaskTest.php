@@ -79,7 +79,7 @@ final class PersistentTaskTest extends TestCase
 
     public function testIsDeadlineExceededReturnsFalseBeforeDeadline(): void
     {
-        $farFuture = Duration::ofNanoseconds(hrtime(true) + 86_400_000_000_000);
+        $farFuture = Duration::ofNanoseconds(hrtime(as_number: true) + 86_400_000_000_000);
 
         $task = new PersistentTask(
             id: new TaskId('persist-6'),
@@ -92,7 +92,7 @@ final class PersistentTaskTest extends TestCase
 
     public function testIsDeadlineExceededReturnsTrueAfterDeadline(): void
     {
-        $past = Duration::ofNanoseconds(max(hrtime(true) - 1, 0));
+        $past = Duration::ofNanoseconds(max(hrtime(as_number: true) - 1, 0));
 
         $task = new PersistentTask(
             id: new TaskId('persist-7'),

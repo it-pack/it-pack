@@ -69,10 +69,10 @@ final readonly class PersistentTask implements PersistentTaskInterface
 
     public function isDeadlineExceeded(): bool
     {
-        if ($this->deadline === null) {
+        if (!$this->deadline instanceof DurationInterface) {
             return false;
         }
 
-        return $this->deadline->nanoseconds() <= hrtime(true);
+        return $this->deadline->nanoseconds() <= hrtime(as_number: true);
     }
 }

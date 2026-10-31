@@ -217,6 +217,7 @@ final class TaskGroupTest extends TestCase
         $group->go(static fn (): string => 'result1');
         $group->go(static fn (): string => 'result2');
         $group->close();
+
         $results = $group->await();
 
         self::assertSame(['result1', 'result2'], $results);
@@ -295,7 +296,7 @@ final class TaskGroupTest extends TestCase
 
     public function testDefaultMaxConcurrencyAllowsUnlimitedSpawns(): void
     {
-        $child = $this->makeTask(TaskStatus::Created);
+        $this->makeTask(TaskStatus::Created);
         $scheduler = $this->createMock(EngineSchedulerInterface::class);
         $scheduler->expects($this->exactly(2))->method('spawn')
             ->willReturn($this->makeTask(TaskStatus::Created), $this->makeTask(TaskStatus::Created))

@@ -46,7 +46,7 @@ final class MemoryContextStorage implements ContextStorageInterface
             return null;
         }
 
-        $top = $this->stack[array_key_last($this->stack)];
+        $top = array_last($this->stack);
 
         return $this->scopes[$top->id()] ?? null;
     }
@@ -67,7 +67,7 @@ final class MemoryContextStorage implements ContextStorageInterface
             throw new LogicException('Cannot detach: no context is currently attached.');
         }
 
-        $top = $this->stack[array_key_last($this->stack)];
+        $top = array_last($this->stack);
         if ($top !== $token) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }

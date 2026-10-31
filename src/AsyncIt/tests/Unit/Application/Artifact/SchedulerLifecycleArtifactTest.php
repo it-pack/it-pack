@@ -59,9 +59,7 @@ final class SchedulerLifecycleArtifactTest extends TestCase
             $executionId,
             ArtifactVocabulary::KIND_TASK_COMPLETED,
             TaskStatus::Cancelled,
-            null,
-            $sequence,
-            null,
+            sequence: $sequence,
         );
 
         $normalized = $artifact->normalize();
@@ -114,8 +112,7 @@ final class SchedulerLifecycleArtifactTest extends TestCase
             $executionId,
             ArtifactVocabulary::KIND_TASK_SPAWNED,
             TaskStatus::Running,
-            null,
-            $sequence,
+            sequence: $sequence,
         );
 
         self::assertSame(0, $artifact->sequence());
@@ -144,8 +141,7 @@ final class SchedulerLifecycleArtifactTest extends TestCase
             $executionId,
             ArtifactVocabulary::KIND_TASK_SPAWNED,
             TaskStatus::Running,
-            null,
-            $sequence,
+            sequence: $sequence,
         );
 
         self::assertSame(0, $artifact->count());
@@ -159,9 +155,7 @@ final class SchedulerLifecycleArtifactTest extends TestCase
             ExecutionId::fromString('e1'),
             ArtifactVocabulary::KIND_TASK_SPAWNED,
             TaskStatus::Running,
-            null,
-            null,
-            $timestamp,
+            timestamp: $timestamp,
         );
 
         self::assertSame(1_700_000_000, $artifact->timestamp());

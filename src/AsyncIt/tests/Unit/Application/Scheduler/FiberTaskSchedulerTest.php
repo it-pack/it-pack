@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Scheduler;
 
 use Fiber;
+use InvalidArgumentException;
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
@@ -19,6 +20,7 @@ use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
+use ItPack\AsyncIt\Contract\Port\JitterStrategy;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\CapabilityDescriptor;
@@ -377,8 +379,8 @@ final class FiberTaskSchedulerTest extends TestCase
         $thrown = null;
         try {
             $scheduler->run();
-        } catch (LogicException $e) {
-            $thrown = $e;
+        } catch (LogicException $logicException) {
+            $thrown = $logicException;
         }
 
         self::assertNotNull($thrown);
@@ -411,7 +413,7 @@ final class FiberTaskSchedulerTest extends TestCase
         $policy = new RetryPolicy(
             maxAttempts: 3,
             baseDelay: Duration::ofNanoseconds(1),
-            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+            jitter: JitterStrategy::None,
         );
         $calls = 0;
 
@@ -431,7 +433,7 @@ final class FiberTaskSchedulerTest extends TestCase
         $policy = new RetryPolicy(
             maxAttempts: 3,
             baseDelay: Duration::ofNanoseconds(1),
-            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+            jitter: JitterStrategy::None,
         );
         $calls = 0;
         $result = null;
@@ -461,18 +463,18 @@ final class FiberTaskSchedulerTest extends TestCase
         $policy = new RetryPolicy(
             maxAttempts: 3,
             baseDelay: Duration::ofNanoseconds(1),
+            jitter: JitterStrategy::None,
             retryable: ['RuntimeException'],
-            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
         );
 
-        $task = $scheduler->spawn(static function () use ($scheduler, $policy): void {
-            $scheduler->retry(static fn (): never => throw new \InvalidArgumentException('non-retryable'), $policy);
+        $scheduler->spawn(static function () use ($scheduler, $policy): void {
+            $scheduler->retry(static fn (): never => throw new InvalidArgumentException('non-retryable'), $policy);
         });
 
         try {
             $scheduler->run();
-        } catch (\InvalidArgumentException $e) {
-            self::assertSame('non-retryable', $e->getMessage());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            self::assertSame('non-retryable', $invalidArgumentException->getMessage());
             return;
         }
 
@@ -485,7 +487,7 @@ final class FiberTaskSchedulerTest extends TestCase
         $policy = new RetryPolicy(
             maxAttempts: 2,
             baseDelay: Duration::ofNanoseconds(1),
-            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+            jitter: JitterStrategy::None,
         );
         $calls = 0;
         $task = $scheduler->spawn(static function () use ($scheduler, $policy, &$calls): void {
@@ -497,8 +499,8 @@ final class FiberTaskSchedulerTest extends TestCase
 
         try {
             $scheduler->run();
-        } catch (RuntimeException $e) {
-            self::assertSame('always fails', $e->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame('always fails', $runtimeException->getMessage());
             self::assertSame(2, $calls);
             self::assertSame(TaskStatus::Failed, $task->status());
             return;

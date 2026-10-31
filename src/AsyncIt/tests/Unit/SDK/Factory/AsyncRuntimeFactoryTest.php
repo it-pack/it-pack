@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Factory;
 
+use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
+use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
+use Swoole\Coroutine\Channel;
 
 /**
  * Proves the factory assembles a working runtime with the negotiated adapter.
@@ -27,7 +31,7 @@ final class AsyncRuntimeFactoryTest extends TestCase
 
     public function testCreateNegotiatesSwooleWhenCoroutinesAvailable(): void
     {
-        if (!class_exists('Swoole\\Coroutine') || !class_exists('Swoole\\Coroutine\\Channel')) {
+        if (!class_exists(Coroutine::class) || !class_exists(Channel::class)) {
             self::markTestSkipped('Swoole runtime not available.');
         }
 
@@ -46,7 +50,7 @@ final class AsyncRuntimeFactoryTest extends TestCase
         $runtime = AsyncRuntimeFactory::create();
 
         $value = $runtime->run(
-            new \ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope('test'),
+            new ReferenceExecutionScope('test'),
             static fn (): int => 42,
         );
 
@@ -55,13 +59,13 @@ final class AsyncRuntimeFactoryTest extends TestCase
 
     public function testCreateWithSwooleUsesNativeChannel(): void
     {
-        if (!class_exists('Swoole\\Coroutine\\Channel')) {
+        if (!class_exists(Channel::class)) {
             self::markTestSkipped('Swoole runtime not available.');
         }
 
         $runtime = AsyncRuntimeFactory::create();
 
-        self::assertInstanceOf(\ItPack\AsyncIt\Adapter\Swoole\SwooleChannel::class, $runtime->channel());
+        self::assertInstanceOf(SwooleChannel::class, $runtime->channel());
     }
 
     public function testCreateWithSwooleUsesLazyTelemetryBridge(): void
