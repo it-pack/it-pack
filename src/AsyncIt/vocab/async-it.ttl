@@ -324,8 +324,22 @@ asyncit:RemoteSchedulerPort
     rdfs:label          "Remote Scheduler Port"@en ;
     rdfs:comment        "Application port for submitting a RemoteTask to a remote AsyncIt scheduler instance (e.g. via gRPC or AMQP bridge). Returns a Promise whose result resolves when the remote task completes. Distributed cancellation degrades gracefully via local timeout plus dead-letter."@en ;
     rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
-    vs:term_status      "stable" ;
+    vs:term_status      "stable" .
 .
+
+asyncit:CancellationToken
+    a                   owl:Class ;
+    rdfs:label          "Cancellation Token"@en ;
+    rdfs:comment        "Serializable cancellation scope state propagated across federation boundaries. Carries a scope id, optional cancellation reason, and a cancelled flag so remote schedulers can observe distributed cancellation."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
+
+asyncit:FederatedScheduler
+    a                   owl:Class ;
+    rdfs:label          "Federated Scheduler"@en ;
+    rdfs:comment        "Application service that submits RemoteTask definitions to remote AsyncIt schedulers via a RemoteSchedulerPort. Propagates CancellationScope across the federation boundary via a serializable CancellationToken embedded in the task payload."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" .
 
 # =============================================================================
 # Object properties
