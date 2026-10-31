@@ -53,9 +53,13 @@ final class AsyncRuntimeFactoryTest extends TestCase
 
     public function testCreateWithSwooleUsesNativeChannel(): void
     {
+        if (!class_exists('Swoole\\Coroutine\\Channel')) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
         $runtime = AsyncRuntimeFactory::create();
 
-        self::assertInstanceOf(TaskChannelInterface::class, $runtime->channel());
+        self::assertInstanceOf(\ItPack\AsyncIt\Adapter\Swoole\SwooleChannel::class, $runtime->channel());
     }
 
     public function testCreateWithSwooleUsesLazyTelemetryBridge(): void
