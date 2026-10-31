@@ -9,6 +9,24 @@ use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use Swoole\Coroutine\Channel;
 
 /**
+ * Internal sentinel object used by {@see SwooleChannel::waitForCapacity()}
+ * to mark a blocking push, compared by identity.
+ */
+final class CapacitySentinel
+{
+    private static ?self $instance = null;
+
+    private function __construct()
+    {
+    }
+
+    public static function instance(): self
+    {
+        return self::$instance ??= new self();
+    }
+}
+
+/**
  * Native {@see TaskChannelInterface} over `Swoole\Coroutine\Channel`.
  *
  * Selected only when the negotiated {@see \ItPack\AsyncIt\Contract\Port\CapabilityKind::NativeChannels}
@@ -18,9 +36,9 @@ use Swoole\Coroutine\Channel;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
-  * @api
+ *   @api
 
-  */
+ */
 final class SwooleChannel implements TaskChannelInterface
 {
     private bool $closed = false;
@@ -45,7 +63,13 @@ final class SwooleChannel implements TaskChannelInterface
             throw new ChannelClosedException();
         }
 
-        return $this->channel->push($value, 0);
+        if ($this->channel->isFull()) {
+            return false;
+        }
+
+        $this->channel->push($value);
+
+        return true;
     }
 
     public function waitForCapacity(): void
@@ -54,22 +78,26 @@ final class SwooleChannel implements TaskChannelInterface
             throw new ChannelClosedException();
         }
 
-        // Unbounded channels are never full — return immediately.
         if (!$this->channel->isFull()) {
             return;
         }
 
-        // For bounded channels at capacity, suspend the coroutine until a
-        // consumer frees a slot. Swoole\Coroutine\Channel::push() blocks
-        // natively at the coroutine level when the channel is full. We push
-        // a sentinel and immediately pop it. In Swoole's cooperative scheduling
-        // model there is no yield point between push() returning and pop()
-        // executing, so no other coroutine can observe the sentinel. This
-        // atomicity assumption holds as long as the Swoole extension
-        // preserves cooperative scheduling guarantees between consecutive
-        // non-blocking Channel operations.
-        $this->channel->push(null);
-        $this->channel->pop();
+        $sentinel = CapacitySentinel::instance();
+        $this->channel->push($sentinel);
+
+        $drained = [];
+        while (!$this->channel->isEmpty()) {
+            $item = $this->channel->pop();
+            if ($item === $sentinel) {
+                break;
+            }
+
+            $drained[] = $item;
+        }
+
+        foreach ($drained as $item) {
+            $this->channel->push($item);
+        }
     }
 
     public function isClosed(): bool

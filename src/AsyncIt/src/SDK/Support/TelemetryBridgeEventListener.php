@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\SDK\Support;
 
+use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\SchedulerEventType;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\SchedulerEventInterface;
 use ItPack\AsyncIt\Contract\SchedulerEventListenerInterface;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 
 /**
@@ -21,18 +23,13 @@ use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-spawned
  * @api
  */
-final class TelemetryBridgeEventListener implements SchedulerEventListenerInterface
+final readonly class TelemetryBridgeEventListener implements SchedulerEventListenerInterface
 {
-    private readonly TelemetryBridgeInterface $bridge;
-
     /**
      * @param array<string, mixed> $staticContext
      */
-    public function __construct(
-        TelemetryBridgeInterface $bridge,
-        private readonly array $staticContext = [],
-    ) {
-        $this->bridge = $bridge;
+    public function __construct(private TelemetryBridgeInterface $bridge, private array $staticContext = [])
+    {
     }
 
     public function onEvent(SchedulerEventInterface $event): void
@@ -49,7 +46,7 @@ final class TelemetryBridgeEventListener implements SchedulerEventListenerInterf
 
         $context['taskId'] = $event->task->id()->value;
 
-        if ($event->parentId !== null) {
+        if ($event->parentId instanceof TaskIdInterface) {
             $context['parentId'] = $event->parentId->value;
         }
 
@@ -63,7 +60,7 @@ final class TelemetryBridgeEventListener implements SchedulerEventListenerInterf
             };
         }
 
-        if ($event->awaitPoint !== null) {
+        if ($event->awaitPoint instanceof AwaitPoint) {
             $context['awaitPoint'] = $event->awaitPoint->name;
         }
 

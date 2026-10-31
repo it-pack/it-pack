@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
-use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
+use ItPack\AsyncIt\Application\Factory\CascadingCancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
@@ -18,6 +18,7 @@ use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\CancellationScope;
 use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
@@ -60,8 +61,6 @@ trait RuntimeFixtureTrait
     private LazyTelemetryBridge $telemetry;
 
     private CancellationScopeInterface $rootScope;
-
-    private CancellationScopeFactory $cancellationScopeFactory;
 
     public function scheduler(): SchedulerInterface
     {
@@ -127,8 +126,7 @@ trait RuntimeFixtureTrait
         $this->telemetry = new LazyTelemetryBridge(
             static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
         );
-        $this->cancellationScopeFactory = new CancellationScopeFactory();
-        $this->rootScope = $this->cancellationScopeFactory->create();
+        $this->rootScope = new CancellationScope();
 
         $sequenceAllocator = new InMemorySequenceAllocator();
         $executionId = ExecutionId::fromString('ref-exec');
@@ -137,7 +135,7 @@ trait RuntimeFixtureTrait
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
-            $this->cancellationScopeFactory,
+            new CascadingCancellationScopeFactory($this->rootScope),
             $this->clock,
             $executionId,
             $schedulerPoller,

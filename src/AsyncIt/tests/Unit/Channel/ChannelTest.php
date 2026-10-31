@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 
 use function Swoole\Coroutine\go;
@@ -86,9 +87,9 @@ final class ChannelTest extends TestCase
 
             // Consumer coroutine: yields, then pops, freeing a slot
             go(static function () use ($channel, &$received): void {
-                \Swoole\Coroutine::sleep(0.01);
+                Coroutine::sleep(0.01);
                 $channel->receive(); // pop 'initial'
-                \Swoole\Coroutine::sleep(0.01);
+                Coroutine::sleep(0.01);
                 $received = $channel->receive(); // should get 'after-wait'
             });
         });

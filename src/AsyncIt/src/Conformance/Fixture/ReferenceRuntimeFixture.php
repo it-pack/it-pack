@@ -6,7 +6,7 @@ namespace ItPack\AsyncIt\Conformance\Fixture;
 
 use ItPack\AsyncIt\Application\Clock\DeterministicMonotonicClock;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
-use ItPack\AsyncIt\Application\Factory\CancellationScopeFactory;
+use ItPack\AsyncIt\Application\Factory\CascadingCancellationScopeFactory;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
@@ -20,6 +20,7 @@ use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\CancellationScope;
 use ItPack\AsyncIt\SDK\Support\ArrayTelemetryRecorder;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
 use ItPack\AsyncIt\SDK\Support\TelemetryBridgeEventListener;
@@ -29,8 +30,6 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionId;
-
 /**
  * The reference AsyncIt runtime assembled for conformance.
  *
@@ -42,6 +41,8 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
  */
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+
 final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
     private SelectPoller $verifierPoller;
@@ -58,8 +59,6 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
 
     private CancellationScopeInterface $rootScope;
 
-    private CancellationScopeFactory $cancellationScopeFactory;
-
     public function __construct()
     {
         $this->verifierPoller = new SelectPoller();
@@ -69,8 +68,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
         $this->telemetry = new LazyTelemetryBridge(
             static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder(),
         );
-        $this->cancellationScopeFactory = new CancellationScopeFactory();
-        $this->rootScope = $this->cancellationScopeFactory->create();
+        $this->rootScope = new CancellationScope();
 
         $executionId = ExecutionId::fromString('ref-exec');
         $sequenceAllocator = new InMemorySequenceAllocator();
@@ -79,7 +77,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
             new FiberFactory(),
             new TaskRecordFactory(),
             new TaskFactory(new RandomIdentifierGenerator()),
-            $this->cancellationScopeFactory,
+            new CascadingCancellationScopeFactory($this->rootScope),
             $this->clock,
             $executionId,
             $this->verifierPoller,

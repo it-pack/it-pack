@@ -120,7 +120,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
     private CapabilityDescriptorInterface|null $capabilities = null;
 
     /** @var list<SchedulerEventListenerInterface> */
-    private array $listeners;
+    private readonly array $listeners;
 
     public function __construct(
         private readonly FiberFactoryInterface $fiberFactory,
@@ -231,6 +231,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                         $this->complete($record, TaskStatus::Cancelled);
                         continue;
                     }
+
                     $this->step($record);
                 }
             }
