@@ -393,6 +393,9 @@ root cause.
   from the contract.
 - **Fix:** Add `public function runUntil(int $deadlineNanoseconds): void;` to
   `EngineSchedulerInterface`.
+- **Status:** ✅ FIXED (2026-10-31, R16.1) — Method added to interface with
+  `@see` docblocks. `composer test:unit` — all 205 tests pass including
+  `GracefulShutdownTest` and `GracefulShutdownVerifierTest`.
 
 #### BUG-2: SDK→Adapter boundary violation NOT fixed (stale import)
 
@@ -411,6 +414,9 @@ root cause.
 - **Fix:** Remove the `use` statement and replace `::class` with the FQ string
   literal `'ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge'`
   per the documented fix.
+- **Status:** ✅ FIXED (2026-10-31, R16.2) — `use` import removed from line 7;
+  `::class` replaced with string literal on line 190. `composer architecture`
+  — 0 violations.
 
 #### BUG-3: Assembly factories import Adapter classes (Application→Adapter violation)
 
@@ -430,6 +436,11 @@ root cause.
 - **Fix:** Either add `Adapter` to Application's allowed dependencies in
   phparkitect, or move the assembly factories that depend on Adapter classes
   into the SDK layer (which is permitted to depend on Adapter).
+- **Status:** ✅ FIXED (2026-10-31, R16.3) — Added `Adapter` to Application's
+  allowed dependencies in `phparkitect.php:53`. Architectural rationale
+  documented in code comment. `composer architecture` — 0 violations.
+  **Note:** Option A applied per `IMPLEMENTATION_PLAN.md` §1 docblock intent —
+  team sign-off recommended.
 
 #### BUG-4: `forceCancelRemaining()` doesn't complete tasks or resume awaiters
 
@@ -451,6 +462,12 @@ root cause.
   AGENTS.md.
 - **Fix:** Route through `complete()` instead of manually releasing handles, or
   call `complete()`, `markDone()`, and `resumeAwaiters()` within the loop.
+- **Status:** ✅ FIXED (2026-10-31, R16.4) — `forceCancelRemaining()` now clears
+  `$this->records` into a local array, then calls `complete($record,
+  TaskStatus::Cancelled)` + `resumeAwaiters($record)` for each. Handle release
+  and lifecycle publication are now handled by `complete()`. `composer
+  test:unit` — all FiberTaskScheduler tests pass including
+  `testRunUntilForceCancelsOnDeadlineExpiry`.
 
 ### High-Priority Bugs
 

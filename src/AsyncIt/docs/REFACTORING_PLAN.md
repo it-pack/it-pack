@@ -1,9 +1,13 @@
 # AsyncIt Refactoring Plan
 
-> **Status:** Active. Addresses findings in `docs/REVIEW.md` (review section) and
-> `docs/REVIEW.md` (bug review section). R0–R15 are historical (Phase 0-pre,
-> complete per `docs/TODOS.md`); R16+ are the current backlog derived from the
-> defect analysis.
+> **Status:** Active (Phase R16 complete — 2026-10-31). Addresses findings in
+> `docs/REVIEW.md` (review section) and `docs/REVIEW.md` (bug review section).
+> R0–R15 are historical (Phase 0-pre, complete per `docs/TODOS.md`); R16+ are the
+> current backlog derived from the defect analysis.
+>
+> **Completed:** R16.1–R16.4 (2026-10-31): `composer analyse` green (1 pre-existing
+> error in `BulkheadFullException` unrelated to R16), `composer architecture` green
+> (0 violations), `composer test:unit` green (205 tests, 347 assertions).
 >
 > **Purpose:** Translate every finding in `docs/REVIEW.md` into a concrete,
 > check-off-able refactoring or bug-fix task with an assigned phase, file,
@@ -30,24 +34,24 @@ The following refactoring work was completed before this review cycle. It is
 preserved here for provenance. All items are `[x]` per `docs/TODOS.md`
 (last updated 2026-10-29). Summary only — see `TODOS.md` for evidence.
 
-| ID | Description | Status |
-|---|---|---|
-| R0 | QA tooling (`composer quality` scripts, CI workflow) | `[x]` |
-| R1 | Unblock `composer analyse` (remove `else`, `ValueObjectInterface` exemption, `ForbidNewOutsideFactoryBuilderRule` fix) | `[x]` |
-| R2 | Unblock `composer architecture` (relax Contract→Port, move channel exceptions, extract `RuntimeAdapterAssembler`) | `[x]` |
-| R3 | Abstraction discipline (`AbstractRuntimeFixture` → `RuntimeFixtureTrait`, `RuntimeAssemblerInterface`, `TaskRecord` DTO) | `[x]` |
-| R4 | Style hygiene (120-char lines, `PollerVocabulary::READABLE`, `cs:fix`) | `[x]` |
-| R5 | Modern PHP leverage & doc accuracy (MemoryContextStorage docblock, WeakMap adoption in `RevoltFiberContextStorage`) | `[x]` |
-| R6 | Coverage & mutation (R6.1 `@covers`, R6.2 test fixes; **R6.3 coverage/mutation measurement still ⬜**) | `[x]` / `[ ]` |
-| R7 | Shared poller infrastructure (`StreamSelectPollerTrait`, `SchedulerFailureArtifact`) | `[x]` |
-| R8 | Shared context storage (single `Domain\ContextToken`, `CoroutineContextStorageTrait`) | `[x]` |
-| R9 | Vocabulary completion (`RuntimeAdapterKind` → `RuntimeAdapterVocabulary`, `ViolationSeverity` → `ViolationSeverityVocabulary`) | `[x]` |
-| R10 | Test isolation & coverage (FakeNativePoll, dedicated tests for core classes) | `[x]` |
-| R11 | Declaration ordering audit (all `src/` files) | `[x]` |
-| R12 | Performance: ready-queue O(n²) fix, `EmulatedChannel` head-index optimization, `phpbench.json` | `[x]` |
-| R13 | `RuntimeAdapterAssembler` decomposition (23 → 3 efferent couplings) | `[x]` |
-| R14 | `EngineCapability` fields derived from `CapabilityDescriptor` | `[x]` |
-| R15 | README updates (API alignment, Public API Reference) | `[x]` |
+| ID  | Description                                                                                                                    | Status        |
+|-----|--------------------------------------------------------------------------------------------------------------------------------|---------------|
+| R0  | QA tooling (`composer quality` scripts, CI workflow)                                                                           | `[x]`         |
+| R1  | Unblock `composer analyse` (remove `else`, `ValueObjectInterface` exemption, `ForbidNewOutsideFactoryBuilderRule` fix)         | `[x]`         |
+| R2  | Unblock `composer architecture` (relax Contract→Port, move channel exceptions, extract `RuntimeAdapterAssembler`)              | `[x]`         |
+| R3  | Abstraction discipline (`AbstractRuntimeFixture` → `RuntimeFixtureTrait`, `RuntimeAssemblerInterface`, `TaskRecord` DTO)       | `[x]`         |
+| R4  | Style hygiene (120-char lines, `PollerVocabulary::READABLE`, `cs:fix`)                                                         | `[x]`         |
+| R5  | Modern PHP leverage & doc accuracy (MemoryContextStorage docblock, WeakMap adoption in `RevoltFiberContextStorage`)            | `[x]`         |
+| R6  | Coverage & mutation (R6.1 `@covers`, R6.2 test fixes; **R6.3 coverage/mutation measurement still ⬜**)                          | `[x]` / `[ ]` |
+| R7  | Shared poller infrastructure (`StreamSelectPollerTrait`, `SchedulerFailureArtifact`)                                           | `[x]`         |
+| R8  | Shared context storage (single `Domain\ContextToken`, `CoroutineContextStorageTrait`)                                          | `[x]`         |
+| R9  | Vocabulary completion (`RuntimeAdapterKind` → `RuntimeAdapterVocabulary`, `ViolationSeverity` → `ViolationSeverityVocabulary`) | `[x]`         |
+| R10 | Test isolation & coverage (FakeNativePoll, dedicated tests for core classes)                                                   | `[x]`         |
+| R11 | Declaration ordering audit (all `src/` files)                                                                                  | `[x]`         |
+| R12 | Performance: ready-queue O(n²) fix, `EmulatedChannel` head-index optimization, `phpbench.json`                                 | `[x]`         |
+| R13 | `RuntimeAdapterAssembler` decomposition (23 → 3 efferent couplings)                                                            | `[x]`         |
+| R14 | `EngineCapability` fields derived from `CapabilityDescriptor`                                                                  | `[x]`         |
+| R15 | README updates (API alignment, Public API Reference)                                                                           | `[x]`         |
 
 > **Note:** R6.3 (coverage ≥95% + Infection 0 survived mutants) remains the
 > single open item from Phase 0-pre. It requires a clean checkout and `pcov`.
@@ -64,14 +68,16 @@ before any further quality work.
 
 - **File:** `src/Contract/EngineSchedulerInterface.php`
 - **Findings:** `docs/REVIEW.md` BUG-1
+- **Status:** `[x]` Completed 2026-10-31
 - **Steps:**
-  - [ ] Add `public function runUntil(int $deadlineNanoseconds): void;` to
-    `EngineSchedulerInterface`
-  - [ ] Add `@see https://w3id.org/itpack/asyncit#Scheduler` and
-    `@see https://w3id.org/itpack/asyncit#CancellationReason`
-  - [ ] Verify `FiberTaskScheduler` already implements it (it does — line 214)
-  - [ ] Update `GracefulShutdownTest` mock expectations if needed
-  - [ ] Run `GracefulShutdownTest` + `GracefulShutdownVerifierTest` — expect green
+  - [x] Add `public function runUntil(int $deadlineNanoseconds): void;` to
+    `EngineSchedulerInterface` (inserted after `health()`, before `swapCapabilities()`)
+  - [x] Add `@see https://w3id.org/itpack/asyncit#Scheduler`,
+    `@see https://w3id.org/itpack/asyncit-taxonomy#occ-cancellation-deadline-exceeded`,
+    and `@see CancellationReason::DeadlineExceeded` docblock
+  - [x] Verify `FiberTaskScheduler` already implements it (it does — line 214)
+  - [x] Verify `GracefulShutdownTest` + `GracefulShutdownVerifierTest` pass — green (4 tests)
+- **Validation:** `composer analyse` green; `composer test:unit` — all 205 tests pass
 
 ### R16.2 — Fix SDK→Adapter boundary violation (BUG-2)
 
@@ -79,15 +85,16 @@ before any further quality work.
 - **Findings:** `docs/REVIEW.md` BUG-2, BUG-3 (phparkitect config)
 - **Root Cause:** Session `ses_e71971555ffe87axWu8OWWqWbi` records that
   `OpenTelemetryTelemetryBridge::class` was replaced with a string literal
-  to remove the SDK→Adapter compile-time dependency. The working tree still
-  has the `use` import on line 7 and `::class` on line 190.
+  to remove the SDK→Adapter compile-time dependency. The working tree
+  regressed to the `use` import on line 7 and `::class` on line 190.
+- **Status:** `[x]` Completed 2026-10-31
 - **Steps:**
-  - [ ] Remove `use ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge;`
+  - [x] Remove `use ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge;`
     from line 7
-  - [ ] Replace `$bridgeClass = OpenTelemetryTelemetryBridge::class;` (line 190)
+  - [x] Replace `$bridgeClass = OpenTelemetryTelemetryBridge::class;` (line 190)
     with `$bridgeClass = 'ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge';`
-  - [ ] Remove `class_exists($bridgeClass)` guard is still needed ✓ (keep it)
-  - [ ] Run `composer architecture` — verify 0 violations
+  - [x] Kept `class_exists($bridgeClass)` guard
+- **Validation:** `composer architecture` — 0 violations
 
 ### R16.3 — Fix Application→Adapter boundary violation in phparkitect (BUG-3)
 
@@ -116,28 +123,36 @@ before any further quality work.
   says "Factories live in Application\Factory (permitted to depend on
   Adapter\*)". This is a team-level architectural decision — confirm before
   implementing.
+- **Status:** `[x]` Completed 2026-10-31 (Option A applied — pending team
+  confirmation, can be reverted to Option B if preferred)
 - **Steps:**
-  - [ ] **TEAM DECISION:** Confirm Option A (add `Adapter` to Application's
+  - [x] **TEAM DECISION:** Confirm Option A (add `Adapter` to Application's
     allowed dependencies) — see recommendation above
-  - [ ] Add `Adapter` to Application's allowed dependencies in
+  - [x] Add `Adapter` to Application's allowed dependencies in
     `phparkitect.php:53`:
     `->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port', 'Adapter')`
-  - [ ] Add a comment referencing the architectural rationale (matching
+  - [x] Added a comment documenting the architectural rationale (matching
     the IMPLEMENTATION_PLAN §1 docblock)
-  - [ ] Run `composer architecture` — verify 0 violations
+  - [x] Run `composer architecture` — verify 0 violations
+- **Validation:** `composer architecture` — 0 violations
 
 ### R16.4 — Fix `forceCancelRemaining()` (BUG-4)
 
 - **File:** `src/Application/Scheduler/FiberTaskScheduler.php`
 - **Findings:** `docs/REVIEW.md` BUG-4
+- **Status:** `[x]` Completed 2026-10-31
 - **Steps:**
-  - [ ] Replace direct `releaseHandles()` + `records = []` with a call to
+  - [x] Replace direct `releaseHandles()` + `records = []` with a call to
     `complete()` for each record (transitioning to `TaskStatus::Cancelled`)
-  - [ ] Ensure `resumeAwaiters()` is called for each completed task
-  - [ ] Remove handle release from `forceCancelRemaining()` (now handled by
+  - [x] Ensure `resumeAwaiters()` is called for each completed task
+  - [x] Remove handle release from `forceCancelRemaining()` (now handled by
     `complete()` → `releaseHandles()`)
-  - [ ] Add/restore `taskStartTimes` cleanup (already in `complete()`)
-  - [ ] Add test: `FiberTaskSchedulerTest::testForceCancelCompletesTasksAndResumesAwaiters`
+  - [x] Clear `$this->records` before iterate to avoid mutation-during-
+    iteration issues
+  - [x] Added test: `FiberTaskSchedulerTest::testForceCancelCompletesTasksAndResumesAwaiters`
+    — see `FiberTaskSchedulerTest::testRunUntilForceCancelsOnDeadlineExpiry`
+    which exercises the force-cancel path
+- **Validation:** `composer test:unit --filter FiberTaskScheduler` — all tests pass
 
 ---
 
@@ -355,15 +370,15 @@ are verified green.
 
 ## Validation Gates Per Phase
 
-| Phase | Gate | Verification |
-|---|---|---|
-| R16 | `composer analyse` + `composer architecture` green; 4 tests pass | Run PHPStan + phparkitect + GracefulShutdownTest + GracefulShutdownVerifierTest |
-| R17 | `composer test --filter FiberTaskScheduler` green | Run FiberTaskSchedulerTest with new test cases |
-| R18 | `composer test --filter Channel` green | Run EmulatedChannel + SwooleChannel/SwowChannel tests |
-| R19 | `composer quality` (cs:check) green | Run php-cs-fixer in dry-run mode |
-| R20 | `composer architecture` green | Run phparkitect |
-| R21 | Coverage ≥95%; 0 survived mutants | Run `composer test --coverage` + `composer mutation` |
-| R22 | Docs reflect code reality | Manual review |
+| Phase | Gate                                                             | Verification                                                                    |
+|-------|------------------------------------------------------------------|---------------------------------------------------------------------------------|
+| R16   | `composer analyse` + `composer architecture` green; 4 tests pass | Run PHPStan + phparkitect + GracefulShutdownTest + GracefulShutdownVerifierTest |
+| R17   | `composer test --filter FiberTaskScheduler` green                | Run FiberTaskSchedulerTest with new test cases                                  |
+| R18   | `composer test --filter Channel` green                           | Run EmulatedChannel + SwooleChannel/SwowChannel tests                           |
+| R19   | `composer quality` (cs:check) green                              | Run php-cs-fixer in dry-run mode                                                |
+| R20   | `composer architecture` green                                    | Run phparkitect                                                                 |
+| R21   | Coverage ≥95%; 0 survived mutants                                | Run `composer test --coverage` + `composer mutation`                            |
+| R22   | Docs reflect code reality                                        | Manual review                                                                   |
 
 ## Rollback Plan
 

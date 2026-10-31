@@ -93,6 +93,19 @@ interface EngineSchedulerInterface extends SchedulerInterface
     public function health(): SchedulerHealthInterface;
 
     /**
+     * Runs the reactor to completion, draining the ready queue and poll
+     * handles until the monotonic deadline (in nanoseconds) elapses.
+     *
+     * Used by {@see GracefulShutdown} to bound shutdown draining: when the
+     * deadline expires, remaining tasks are force-cancelled.
+     *
+     * @see https://w3id.org/itpack/asyncit#Scheduler
+     * @see https://w3id.org/itpack/asyncit-taxonomy#occ-cancellation-deadline-exceeded
+     * @see \ItPack\AsyncIt\Contract\Port\CancellationReason::DeadlineExceeded
+     */
+    public function runUntil(int $deadlineNanoseconds): void;
+
+    /**
      * Atomically swaps the negotiated capability descriptor.
      *
      * Called by the {@see CapabilityObserverInterface}

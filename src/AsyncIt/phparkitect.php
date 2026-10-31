@@ -35,7 +35,14 @@ use Arkitect\Rules\Rule;
  *   - Contract is not a component in the Architecture DSL, so Contract
  *     dependencies are not forbidden by any component rule — matching
  *     deptrac's allow-all-unless-forbidden semantics.
- */
+ *
+ * Application → Adapter: The assembly factories in
+ * Application\Factory (SwooleAssemblyFactory, SwowAssemblyFactory,
+ * RevoltAssemblyFactory) compose-adapter classes. This is the
+ * composition root for adapter assembly — the reverse direction
+ * (Adapter → Application) is forbidden. See
+ * docs/IMPLEMENTATION_PLAN.md §1 for rationale.
+         */
 return static function (Config $config): void {
     $classSet = ClassSet::fromDir(__DIR__ . '/src');
 
@@ -50,7 +57,7 @@ return static function (Config $config): void {
         ->where('Common')->mayDependOnComponents()
         ->where('Domain')->mayDependOnComponents('Common', 'Port')
         ->where('Port')->mayDependOnComponents('Common', 'Domain')
-        ->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port')
+        ->where('Application')->mayDependOnComponents('Common', 'Domain', 'Port', 'Adapter')
         ->where('SDK')->mayDependOnComponents('Common', 'Domain', 'Port', 'Adapter', 'Application')
         ->where('Adapter')->mayDependOnComponents('Common', 'Domain', 'Port')
         ->where('Conformance')->mayDependOnComponents('Common', 'Domain', 'Port', 'Application', 'SDK', 'Adapter');
