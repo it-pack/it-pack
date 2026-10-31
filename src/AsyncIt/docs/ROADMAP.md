@@ -410,7 +410,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Phase 11 — Scale-Out: Dynamic Capabilities, Persistence, Federation & Middleware (M18–M20)
 
-**Status:** *Phase 11A (Dynamic Capabilities) complete. A.3.1 (PersistentTask + PersistentTaskInterface) complete. A.3.2 port contract done; Redis adapter pending. A.3.3–A.7 remain planned.*
+**Status:** *Phase 11A (Dynamic Capabilities) complete. A.3.1 (PersistentTask + PersistentTaskInterface) complete. A.3.2 (Redis adapter + port contract) complete. A.3.3–A.3.4 (delivery semantics + idempotency) complete. A.3.3–A.7 remain planned.*
 **Goal:** Enable AsyncIt for distributed, large-scale deployments: dynamically-evolving capability descriptors, persistent task queues with crash recovery, federated scheduling across processes/machines, a scheduler middleware pipeline, a telemetry schema registry, and canary deployment support. Corresponds to backlog features H.9–H.13.
 
 **Horizontal feature mapping (FEATURE_BACKLOG.md §2):**
@@ -426,8 +426,8 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - [x] **A.2.3** — Capability deprecation policy: old kinds remain `Unavailable` (not removed); consumers distinguish "never supported" from "supported but disabled." Documented in `CapabilityKind` docblock + `FEATURE_BACKLOG.md`.
 - [x] **A.3.1** — Separate **scheduling state** (ephemeral, in-memory) from **task definitions** (serializable, durable). Add `PersistentTask` (Domain, `readonly`): `TaskId`, `operation` (job class name string — never a raw closure), `deadline: ?DurationInterface`, `payload: array`. Add `PersistentTaskInterface` contract and `PersistentTaskException`. Per AGENTS.md: only task *definitions* are serialized; suspended Fibers are never persisted.
 - [x] **A.3.2** — Add `Adapter/Redis/` package: `RedisTaskQueue` implementing `PersistentTaskQueueInterface` (Application port). Stores pending task definitions in Redis (hash for id → definition, list for FIFO order); rehydrates into `FiberTaskScheduler` on restart. A vendor-neutral `RedisClientInterface` is injected via constructor; `predis/predis` suggested for a ready-made client.
-- [ ] **A.3.3** — Delivery semantics: at-least-once by default; exactly-once via idempotent payloads + `DeduplicationRecord` keyed by `IdentifierGeneratorInterface`.
-- [ ] **A.3.4** — AGENTS.md compliance: "Do not serialize arbitrary objects as scheduling state" — only task *definitions* are serialized; suspended Fibers are never persisted.
+- [x] **A.3.3** — Delivery semantics: at-least-once by default; exactly-once via idempotent payloads + `DeduplicationRecord` keyed by `IdentifierGeneratorInterface`.
+- [x] **A.3.4** — AGENTS.md compliance: "Do not serialize arbitrary objects as scheduling state" — only task *definitions* are serialized; suspended Fibers are never persisted.
 - [ ] **A.4.1** — Add `RemoteSchedulerPortInterface` (Contract): `execute(RemoteTask): PromiseInterface`. Implementations: gRPC bridge, AMQP bridge.
 - [ ] **A.4.2** — Add `FederatedScheduler` (Application): accepts `RemoteTask` submissions; routes to remote schedulers via the port; propagates `CancellationScope` across the federation boundary via serializable token.
 - [ ] **A.4.3** — AGENTS.md compliance: distributed cancellation degrades gracefully (local timeout + dead-letter). Correlation IDs (RunIt `IdentifierGeneratorInterface`) propagate across federation.
@@ -479,18 +479,18 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 
 ### Feature status summary (FEATURE_BACKLOG.md features)
 
-| Feature                                                   | Backlog ID | Roadmap phase | Status                                                                            |
-|-----------------------------------------------------------|------------|---------------|-----------------------------------------------------------------------------------|
-| IO await primitives `awaitReadable`/`awaitWritable`       | V.9        | Phase 12      | ◻ Planned                                                                         |
-| Structured combinators `race`/`all`/`any`/`join`/`select` | V.10       | Phase 12      | ◻ Planned                                                                         |
-| Typed task results `TaskResult<T, E>`                     | V.11       | Phase 13      | ◻ Planned                                                                         |
-| Async generator / `TaskStream`                            | V.12       | Phase 13      | ◻ Planned                                                                         |
-| Persistent task queue & crash recovery                    | H.9 / A.3  | Phase 11      | ⚠ Partially complete (PersistentTask + port contract done; Redis adapter pending) |
-| Scheduler federation & hierarchical scheduling            | H.10 / A.4 | Phase 11      | ◻ Planned                                                                         |
-| Scheduler middleware pipeline                             | H.11 / A.5 | Phase 11      | ◻ Planned                                                                         |
-| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ◻ Planned                                                                         |
-| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ◻ Planned                                                                         |
-| Dynamic capability evolution                              | A.1 / A.2  | Phase 11      | ⚠ Partially complete (A.2 done)                                                   |
+| Feature                                                   | Backlog ID | Roadmap phase | Status                                                                                                            |
+|-----------------------------------------------------------|------------|---------------|-------------------------------------------------------------------------------------------------------------------|
+| IO await primitives `awaitReadable`/`awaitWritable`       | V.9        | Phase 12      | ◻ Planned                                                                                                         |
+| Structured combinators `race`/`all`/`any`/`join`/`select` | V.10       | Phase 12      | ◻ Planned                                                                                                         |
+| Typed task results `TaskResult<T, E>`                     | V.11       | Phase 13      | ◻ Planned                                                                                                         |
+| Async generator / `TaskStream`                            | V.12       | Phase 13      | ◻ Planned                                                                                                         |
+| Persistent task queue & crash recovery                    | H.9 / A.3  | Phase 11      | ⚠ Partially complete (PersistentTask + port contract + Redis adapter + delivery semantics done; A.3.3–A.4 remain) |
+| Scheduler federation & hierarchical scheduling            | H.10 / A.4 | Phase 11      | ◻ Planned                                                                                                         |
+| Scheduler middleware pipeline                             | H.11 / A.5 | Phase 11      | ◻ Planned                                                                                                         |
+| Telemetry schema registry                                 | H.12 / A.6 | Phase 11      | ◻ Planned                                                                                                         |
+| Hot config reload & canary deployments                    | H.13 / A.7 | Phase 11      | ◻ Planned                                                                                                         |
+| Dynamic capability evolution                              | A.1 / A.2  | Phase 11      | ⚠ Partially complete (A.2 done)                                                                                   |
 
 ---
 

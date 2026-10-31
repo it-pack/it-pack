@@ -25,8 +25,14 @@ interface PersistentTaskQueueInterface
 {
     /**
      * Adds a task definition to the pending queue.
+     *
+     * When an idempotency key is supplied, exactly-once delivery is enforced:
+     * if the key was already used for a persisted task, the enqueue is a no-op
+     * and the existing task is not duplicated. Without a key, delivery is
+     * at-least-once (the default). Idempotency keys are typically generated
+     * via RunIt's {@see \ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface}.
      */
-    public function enqueue(PersistentTaskInterface $task): void;
+    public function enqueue(PersistentTaskInterface $task, ?string $idempotencyKey = null): void;
 
     /**
      * Removes and returns the next pending task definition, or null if the

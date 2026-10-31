@@ -27,6 +27,19 @@ interface RedisClientInterface
     public function hSet(string $key, string $field, string $value): int;
 
     /**
+     * Sets a field in a hash only if the field does not already exist.
+     *
+     * Provides atomic check-and-set semantics: returns 1 when the field was
+     * set (it did not exist before), 0 when the field already existed.
+     *
+     * @param string $key   Hash key
+     * @param string $field Field name
+     * @param string $value Field value
+     * @return int 1 if the field was set, 0 if the field already existed
+     */
+    public function hSetNx(string $key, string $field, string $value): int;
+
+    /**
      * Gets the value of a field in a hash.
      *
      * @return string|null Field value, or null if the field does not exist

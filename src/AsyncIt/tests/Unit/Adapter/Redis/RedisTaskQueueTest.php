@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter\Redis;
 
+use InvalidArgumentException;
 use ItPack\AsyncIt\Adapter\Redis\Exception\RedisTaskQueueException;
 use ItPack\AsyncIt\Adapter\Redis\RedisClientInterface;
 use ItPack\AsyncIt\Adapter\Redis\RedisTaskQueue;
@@ -174,10 +175,142 @@ final class RedisTaskQueueTest extends TestCase
         self::assertSame('task-valid', $pending[0]->id()->value);
     }
 
+    public function testEnqueueWithSameIdempotencyKeyIsDeduplicated(): void
+    {
+        $queue = $this->queue();
+        $task = new PersistentTask(
+            id: new TaskId('task-1'),
+            operation: 'App\Job\SendEmail',
+            payload: ['to' => 'user@example.com'],
+        );
+
+        $queue->enqueue($task, idempotencyKey: 'idem-1');
+        $queue->enqueue($task, idempotencyKey: 'idem-1');
+
+        self::assertSame(1, $queue->pendingCount());
+    }
+
+    public function testEnqueueWithDifferentIdempotencyKeysQueuesBoth(): void
+    {
+        $queue = $this->queue();
+
+        $queue->enqueue(new PersistentTask(
+            id: new TaskId('task-a'),
+            operation: 'App\Job\A',
+        ), idempotencyKey: 'idem-a');
+
+        $queue->enqueue(new PersistentTask(
+            id: new TaskId('task-b'),
+            operation: 'App\Job\B',
+        ), idempotencyKey: 'idem-b');
+
+        self::assertSame(2, $queue->pendingCount());
+    }
+
+    public function testEnqueueWithoutIdempotencyKeyIsAtLeastOnce(): void
+    {
+        $queue = $this->queue();
+
+        // No idempotency key: enqueueing two different tasks creates two entries.
+        $queue->enqueue(new PersistentTask(
+            id: new TaskId('task-1'),
+            operation: 'App\Job\SendEmail',
+        ));
+        $queue->enqueue(new PersistentTask(
+            id: new TaskId('task-2'),
+            operation: 'App\Job\SendEmail',
+        ));
+
+        self::assertSame(2, $queue->pendingCount());
+    }
+
+    public function testEnqueueRejectsEmptyIdempotencyKey(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $queue = $this->queue();
+        $queue->enqueue(
+            new PersistentTask(id: new TaskId('task-1'), operation: 'App\Job\SendEmail'),
+            idempotencyKey: '',
+        );
+    }
+
+    public function testEnqueueRejectsOverlongIdempotencyKey(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $queue = $this->queue();
+        $queue->enqueue(
+            new PersistentTask(id: new TaskId('task-1'), operation: 'App\Job\SendEmail'),
+            idempotencyKey: str_repeat('a', 256),
+        );
+    }
+
+    public function testEnqueueRejectsInvalidIdempotencyKeyChars(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        $queue = $this->queue();
+        $queue->enqueue(
+            new PersistentTask(id: new TaskId('task-1'), operation: 'App\Job\SendEmail'),
+            idempotencyKey: 'bad key!',
+        );
+    }
+
+    public function testDequeueCleansUpDedupMapping(): void
+    {
+        $queue = $this->queue();
+        $task = new PersistentTask(
+            id: new TaskId('task-1'),
+            operation: 'App\Job\SendEmail',
+        );
+
+        $queue->enqueue($task, idempotencyKey: 'idem-1');
+        self::assertSame(1, $queue->pendingCount());
+
+        $dequeued = $queue->dequeue();
+        self::assertNotNull($dequeued);
+        self::assertSame(0, $queue->pendingCount());
+
+        // Same idempotency key can be reused after dequeue.
+        $queue->enqueue(
+            new PersistentTask(id: new TaskId('task-2'), operation: 'App\Job\SendEmail'),
+            idempotencyKey: 'idem-1',
+        );
+        self::assertSame(1, $queue->pendingCount());
+    }
+
+    public function testAcknowledgeCleansUpDedupMapping(): void
+    {
+        $queue = $this->queue();
+        $task = new PersistentTask(
+            id: new TaskId('task-1'),
+            operation: 'App\Job\SendEmail',
+        );
+
+        $queue->enqueue($task, idempotencyKey: 'idem-1');
+        self::assertSame(1, $queue->pendingCount());
+
+        $queue->acknowledge(new TaskId('task-1'));
+        self::assertSame(0, $queue->pendingCount());
+
+        // Same idempotency key can be reused after acknowledge.
+        $queue->enqueue(
+            new PersistentTask(id: new TaskId('task-2'), operation: 'App\Job\SendEmail'),
+            idempotencyKey: 'idem-1',
+        );
+        self::assertSame(1, $queue->pendingCount());
+    }
+
     public function testRedisClientExceptionIsWrapped(): void
     {
         $client = new class () implements RedisClientInterface {
             public function hSet(string $key, string $field, string $value): int
+            {
+                throw new RuntimeException('redis down');
+            }
+
+            public function hSetNx(string $key, string $field, string $value): int
             {
                 throw new RuntimeException('redis down');
             }
@@ -271,6 +404,21 @@ final class InMemoryRedisClient implements RedisClientInterface
         $this->hashes[$key][$field] = $value;
 
         return array_key_exists($key, $this->hashes) && array_key_exists($field, $this->hashes[$key]) ? 1 : 0;
+    }
+
+    public function hSetNx(string $key, string $field, string $value): int
+    {
+        if (!array_key_exists($key, $this->hashes)) {
+            $this->hashes[$key] = [];
+        }
+
+        if (array_key_exists($field, $this->hashes[$key])) {
+            return 0;
+        }
+
+        $this->hashes[$key][$field] = $value;
+
+        return 1;
     }
 
     public function hGet(string $key, string $field): ?string

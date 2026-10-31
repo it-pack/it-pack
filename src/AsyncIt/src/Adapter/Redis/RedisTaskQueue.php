@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Redis;
 
+use InvalidArgumentException;
 use ItPack\AsyncIt\Adapter\Redis\Exception\RedisTaskQueueException;
 use ItPack\AsyncIt\Contract\PersistentTaskInterface;
 use ItPack\AsyncIt\Contract\Port\PersistentTaskQueueInterface;
@@ -42,6 +43,8 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
 
     public const string QUEUE_KEY = self::PREFIX . 'queue';
 
+    public const string DEDUPE_KEY = self::PREFIX . 'dedup';
+
     private const int LIST_PAGE_SIZE = 100;
 
     public function __construct(
@@ -49,12 +52,23 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
     ) {
     }
 
-    public function enqueue(PersistentTaskInterface $task): void
+    public function enqueue(PersistentTaskInterface $task, ?string $idempotencyKey = null): void
     {
-        $serialized = $this->serialize($task);
+        $this->validateIdempotencyKey($idempotencyKey);
+
+        $serialized = $this->serialize($task, $idempotencyKey);
         $id = (string) $task->id();
 
         try {
+            if ($idempotencyKey !== null) {
+                // Atomic check-and-set: HSETNX returns 1 only when the field
+                // did not already exist, so exactly one caller proceeds.
+                $set = $this->client->hSetNx(self::DEDUPE_KEY, $idempotencyKey, $id);
+                if ($set === 0) {
+                    return;
+                }
+            }
+
             $this->client->pipeline([
                 ['hSet', [self::DEFINITIONS_KEY, $id, $serialized]],
                 ['lPush', [self::QUEUE_KEY, $id]],
@@ -83,6 +97,12 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
                 return null;
             }
 
+            // Clean up dedup mapping so the idempotency key can be reused.
+            $data = json_decode($serialized, associative: true, depth: 512);
+            if (is_array($data) && isset($data['idempotencyKey']) && is_string($data['idempotencyKey'])) {
+                $this->client->hDel(self::DEDUPE_KEY, $data['idempotencyKey']);
+            }
+
             return $this->deserialize($serialized);
         } catch (Throwable $throwable) {
             throw new RedisTaskQueueException('Failed to dequeue task.', 0, $throwable);
@@ -94,10 +114,21 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
         $taskId = (string) $id;
 
         try {
-            $this->client->pipeline([
+            /** @var array{0: ?string, 1: int, 2: int} $results */
+            $results = $this->client->pipeline([
+                ['hGet', [self::DEFINITIONS_KEY, $taskId]],
                 ['lRem', [self::QUEUE_KEY, 0, $taskId]],
                 ['hDel', [self::DEFINITIONS_KEY, $taskId]],
             ]);
+            $serialized = $results[0];
+
+            // Clean up dedup mapping so the idempotency key can be reused.
+            if ($serialized !== null && $serialized !== '') {
+                $data = json_decode($serialized, associative: true, depth: 512);
+                if (is_array($data) && isset($data['idempotencyKey']) && is_string($data['idempotencyKey'])) {
+                    $this->client->hDel(self::DEDUPE_KEY, $data['idempotencyKey']);
+                }
+            }
         } catch (Throwable $throwable) {
             throw new RedisTaskQueueException('Failed to acknowledge task.', 0, $throwable);
         }
@@ -171,7 +202,7 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
         return $this->client->hLen(self::DEFINITIONS_KEY);
     }
 
-    private function serialize(PersistentTaskInterface $task): string
+    private function serialize(PersistentTaskInterface $task, ?string $idempotencyKey = null): string
     {
         $data = [
             'id' => (string) $task->id(),
@@ -181,7 +212,30 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
             'status' => $task->status()->value,
         ];
 
+        if ($idempotencyKey !== null) {
+            $data['idempotencyKey'] = $idempotencyKey;
+        }
+
         return json_encode($data, JSON_THROW_ON_ERROR);
+    }
+
+    private function validateIdempotencyKey(?string $key): void
+    {
+        if ($key === null) {
+            return;
+        }
+
+        if ($key === '') {
+            throw new InvalidArgumentException('Idempotency key must not be empty.');
+        }
+
+        if (strlen($key) > 255) {
+            throw new InvalidArgumentException('Idempotency key must not exceed 255 characters.');
+        }
+
+        if (preg_match('/^[A-Za-z0-9._:-]+$/', $key) !== 1) {
+            throw new InvalidArgumentException('Idempotency key contains invalid characters.');
+        }
     }
 
     private function deserialize(string $serialized): PersistentTaskInterface

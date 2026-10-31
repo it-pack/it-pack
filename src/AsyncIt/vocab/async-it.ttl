@@ -283,6 +283,24 @@ asyncit:ViolationSeverity
     vs:term_status      "stable" ;
 .
 
+asyncit:DeduplicationRecord
+    a                   owl:Class ;
+    rdfs:label          "Deduplication Record"@en ;
+    rdfs:comment        "A record mapping an idempotency key to a persisted task id, enabling exactly-once delivery for persistent task queues. Records are keyed by identifiers from RunIt's IdentifierGeneratorInterface."@en ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
+asyncit:hasDeduplicationKey
+    a                   owl:DatatypeProperty ;
+    rdfs:label          "deduplication key"@en ;
+    rdfs:comment        "The idempotency key used to detect duplicate enqueue attempts. Keyed by RunIt's IdentifierGeneratorInterface."@en ;
+    rdfs:domain         asyncit:DeduplicationRecord ;
+    rdfs:range          xsd:string ;
+    rdfs:isDefinedBy    <https://w3id.org/itpack/asyncit> ;
+    vs:term_status      "stable" ;
+.
+
 # =============================================================================
 # Object properties
 # =============================================================================
