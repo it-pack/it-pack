@@ -15,6 +15,7 @@ use ItPack\AsyncIt\Application\Factory\TaskFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactoryInterface;
 use ItPack\AsyncIt\Application\SchedulerHealth;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
+use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
@@ -56,7 +57,7 @@ use Throwable;
   * @api
 
   */
-final class FiberTaskScheduler implements EngineSchedulerInterface
+final class FiberTaskScheduler implements EngineSchedulerInterface, DeadlineSchedulerInterface
 {
     /**
      * @var array<string, TaskRecord>
@@ -211,12 +212,12 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
      * On deadline expiry, force-cancels every remaining task scope with
      * {@see CancellationReason::DeadlineExceeded} and releases their handles.
      */
-    public function runUntil(int $deadlineNanos): void
+    public function runUntil(int $deadlineNanoseconds): void
     {
         while ($this->records !== []) {
             $now = $this->clock->monotonicNanoseconds();
 
-            if ($now >= $deadlineNanos) {
+            if ($now >= $deadlineNanoseconds) {
                 $this->forceCancelRemaining();
 
                 break;
@@ -249,13 +250,13 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
             }
 
             if ($this->records !== []) {
-                $this->poller->await($this->computeTimeout($deadlineNanos));
+                if ($this->ready !== []) {
+                    continue;
+                }
+
+                $this->poller->await($this->computeTimeout($deadlineNanoseconds));
 
                 $this->drainExpiredTimers();
-
-                foreach ($this->records as $record) {
-                    $this->ready[] = $record;
-                }
             }
         }
     }
@@ -517,6 +518,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
         $task->complete($status);
         $this->releaseHandles($record);
+        $this->clearTimers($record);
         $record->markDone();
     }
 
@@ -540,6 +542,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         foreach ($awaiters as $awaiterRecord) {
             $awaiterId = $awaiterRecord->task()->id()->value;
             $this->pendingResumeValues[$awaiterId] = $result;
+            $this->ready[] = $awaiterRecord;
         }
     }
 
@@ -559,6 +562,23 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         $this->timers = $remaining;
+    }
+
+    /**
+     * Removes any timer entries referencing the given record from
+     * {@see $timers}. Called from {@see complete()} to ensure that tasks
+     * which completed (successfully, failed, or cancelled) before their
+     * delay timer expired do not leave stale entries that could re-queue
+     * an already-terminal record on a future {@see drainExpiredTimers()} tick.
+     */
+    private function clearTimers(TaskRecord $record): void
+    {
+        $this->timers = array_values(
+            array_filter(
+                $this->timers,
+                static fn (array $entry): bool => $entry['record'] !== $record,
+            ),
+        );
     }
 
     private function computeTimeout(int $deadlineNanos): int
@@ -614,17 +634,26 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
      * Called when the shutdown deadline expires; tasks that did not unwind
      * cooperatively are force-cancelled so the reactor can terminate and
      * no poll handles are leaked (Assertion C).
+     *
+     * Tasks are completed via {@see complete()} with
+     * {@see TaskStatus::Cancelled}, which handles handle release, lifecycle
+     * publication, and markDone. {@see resumeAwaiters()} is called to set
+     * pendingResumeValues for tasks awaiting this one — in the force-cancel
+     * path these awaiters are themselves force-cancelled in the same loop,
+     * so the values are harmlessly not consumed.
      */
     private function forceCancelRemaining(): void
     {
-        foreach ($this->records as $record) {
+        $records = array_values($this->records);
+        $this->records = [];
+
+        foreach ($records as $record) {
             $record->task()->cancellationScope()->cancel(
                 CancellationReason::DeadlineExceeded,
             );
 
-            $this->releaseHandles($record);
+            $this->complete($record, TaskStatus::Cancelled);
+            $this->resumeAwaiters($record);
         }
-
-        $this->records = [];
     }
 }

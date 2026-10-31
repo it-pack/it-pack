@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Channel;
 
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
 use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
@@ -47,6 +48,41 @@ final class ChannelTest extends TestCase
 
         $this->expectException(ChannelFullException::class);
         $channel->send('b');
+    }
+
+    public function testBoundedEmulatedChannelReusesCapacityAfterReceive(): void
+    {
+        $channel = new EmulatedChannel(2);
+        $channel->send('a');
+        $channel->send('b');
+        self::assertSame('a', $channel->receive());
+
+        $channel->send('c');
+        self::assertSame('b', $channel->receive());
+        self::assertSame('c', $channel->receive());
+    }
+
+    public function testBoundedEmulatedChannelCapacityAccountsForHeadWithoutCompaction(): void
+    {
+        $channel = new EmulatedChannel(3);
+        $channel->send('a');
+        $channel->send('b');
+        $channel->send('c');
+        self::assertSame('a', $channel->receive());
+
+        $channel->send('d');
+        self::assertSame('b', $channel->receive());
+        self::assertSame('c', $channel->receive());
+        self::assertSame('d', $channel->receive());
+    }
+
+    public function testEmulatedChannelSendThrowsAfterClose(): void
+    {
+        $channel = new EmulatedChannel();
+        $channel->close();
+
+        $this->expectException(ChannelClosedException::class);
+        $channel->send('after-close');
     }
 
     public function testSwooleChannelRoundTrip(): void
@@ -95,5 +131,131 @@ final class ChannelTest extends TestCase
         });
 
         self::assertSame('after-wait', $received);
+    }
+
+    public function testSwooleChannelSendThrowsAfterClose(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $threw = false;
+
+        run(static function () use (&$threw): void {
+            $channel = new SwooleChannel(new Channel());
+            $channel->close();
+
+            try {
+                $channel->send('after-close');
+            } catch (ChannelClosedException) {
+                $threw = true;
+            }
+        });
+
+        self::assertTrue($threw);
+    }
+
+    public function testSwooleChannelTrySendReturnsTrueUntilFull(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $result = null;
+
+        run(static function () use (&$result): void {
+            $channel = new SwooleChannel(new Channel(2));
+            $result = [
+                $channel->trySend('a'),
+                $channel->trySend('b'),
+                $channel->trySend('c'),
+                $channel->trySend('d'),
+            ];
+        });
+
+        self::assertSame([true, true, false, false], $result);
+    }
+
+    public function testSwooleChannelIsClosedReturnsFalseThenTrue(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $before = null;
+        $after = null;
+
+        run(static function () use (&$before, &$after): void {
+            $channel = new SwooleChannel(new Channel());
+            $before = $channel->isClosed();
+            $channel->close();
+            $after = $channel->isClosed();
+        });
+
+        self::assertFalse($before);
+        self::assertTrue($after);
+    }
+
+    public function testSwooleChannelTrySendThrowsAfterClose(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $threw = false;
+
+        run(static function () use (&$threw): void {
+            $channel = new SwooleChannel(new Channel());
+            $channel->close();
+
+            try {
+                $channel->trySend('after-close');
+            } catch (ChannelClosedException) {
+                $threw = true;
+            }
+        });
+
+        self::assertTrue($threw);
+    }
+
+    public function testSwooleChannelWaitForCapacityReturnsImmediatelyWhenNotFull(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $returned = false;
+
+        run(static function () use (&$returned): void {
+            $channel = new SwooleChannel(new Channel(2));
+            $channel->send('one');
+
+            $channel->waitForCapacity();
+            $returned = true;
+        });
+
+        self::assertTrue($returned);
+    }
+
+    public function testSwooleChannelWaitForCapacityThrowsWhenClosed(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $threw = false;
+
+        run(static function () use (&$threw): void {
+            $channel = new SwooleChannel(new Channel(2));
+            $channel->close();
+
+            try {
+                $channel->waitForCapacity();
+            } catch (ChannelClosedException) {
+                $threw = true;
+            }
+        });
+
+        self::assertTrue($threw);
     }
 }

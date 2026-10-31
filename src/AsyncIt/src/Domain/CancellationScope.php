@@ -18,7 +18,7 @@ use ItPack\AsyncIt\Domain\Exception\CancellationException;
  *
  * @see https://w3id.org/itpack/asyncit#CancellationScope
  * @see https://w3id.org/itpack/asyncit#hasCancellationReason
- *   @api
+ * @api
  */
 final class CancellationScope implements CancellationScopeInterface
 {
@@ -62,6 +62,14 @@ final class CancellationScope implements CancellationScopeInterface
         }
     }
 
+    /**
+     * Registers a callback executed when the scope is cancelled.
+     *
+     * If the scope is already cancelled, the callback fires immediately (synchronously)
+     * rather than being queued for later. This is intentional so that
+     * {@see CascadingCancellationScopeFactory} correctly cascades cancellation to
+     * child scopes even when the root is already cancelled at creation time.
+     */
     public function onCancel(callable $callback): void
     {
         if ($this->cancelled) {

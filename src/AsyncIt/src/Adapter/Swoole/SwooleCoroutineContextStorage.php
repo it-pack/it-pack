@@ -25,7 +25,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
- *   @api
+ * @api
  */
 final class SwooleCoroutineContextStorage implements ContextStorageInterface
 {

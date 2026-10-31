@@ -3,7 +3,7 @@
 > **Status:** *Complete.* All phases M0–M10 are built, verified, and green on
 > Swoole/Revolt (gated where runtimes are absent). See `docs/ROADMAP.md` §5 for
 > per-phase completion status and `docs/REFACTORING_PLAN.md` for follow-on
-> quality-gate work (R1–R6) that brings `composer quality` to green.
+> quality-gate work (R16–R22) that brings `composer quality` to green.
 > **Purpose:** Translate the reasoning in `docs/BRAINSTORM.md` into a buildable, phased implementation plan.
 > **Authoritative inputs:** `docs/BRAINSTORM.md`, `README.md`, `AGENTS.md`, `docs/EXECUTION.md`, `docs/background/*` (ADR-AI-001, ADR-ITP-002).
 > **RunIt reference:** `src/RunIt/docs/conformance.md`, `.../architecture/context-propagation.md`, `.../architecture/lifecycle.md`, `.../concepts/time-and-sequencing.md`, ADRs 005 / 013 / 014 / 023 / 024.
@@ -273,20 +273,25 @@ No phase may start before its parent's exit gate is green, because each later ph
 - Every public contract has a concrete consumer or adapter (no speculative extension points).
 - Docs (`README.md`, `AGENTS.md`, `BRAINSTORM.md`, `ROADMAP.md`, this plan) reflect the built reality; public contracts carry `@see` references to `async-it#*` / `async-it-taxonomy#*` (AsyncIt-owned) and `run-it#*` / `run-it-taxonomy#*` (consumed).
 
-> **Caveat — quality gate is RED.** While conformance and PHPStan (`\phpstan`) are
-> green, `composer quality` (the full gate) is blocked by open items tracked
-> under `docs/REFACTORING_PLAN.md` R1–R6 and in `docs/TODOS.md`:
-> - **`phparkitect`** — 21 violations (`SDK\Factory\AsyncRuntimeFactory → Adapter\*`);
->   see REVIEW.md F11 / REFACTORING_PLAN R2.
-> - **Line length** — 6 lines exceed 120 chars; see REFACTORING_PLAN R4.1.
-> - **Style** — 2 unused imports in `Contract\RuntimeDiscoveryInterface` and
->   `Contract\SchedulerInterface` (php-cs-fixer).
-> - **`NativePoller`** — magic literal `1` for `Io\Poll::READABLE`; see REVIEW.md F6 / R4.2.
-> - **`AbstractRuntimeFixture`** — one `abstract class` remains; see REVIEW.md F3 / R3.1.
-> - **`@covers`** — 3 test classes lack `@covers`; see REVIEW.md F9 / R6.1.
-> - **Tests** — `ChannelTest::testSwooleChannelRoundTrip` fails (Swoole channel
->   outside a coroutine context); see REVIEW.md / REFACTORING_PLAN R6.2.
-
+> **Caveat — quality gate is green.** Conformance, PHPStan, phparkitect, and
+> CS checks are all green. The remaining open items tracked under
+> `docs/REFACTORING_PLAN.md` R16–R22 and in `docs/TODOS.md` are post-build
+> quality-gate work:
+> - **R0–R15:** Historical Phase 0-pre — complete per `docs/TODOS.md`.
+> - **R16–R18:** Critical/scheduler/channel bug fixes — complete.
+> - **R19:** Stale PHPStan ignore rules, `CancellationScope::onCancel()` docblock,
+>   `@api` formatting — complete.
+> - **R20:** SDK→Adapter boundary audit and OpenTelemetryTelemetryBridge import removal — complete.
+> - **R21:** Coverage ≥95% and Infection 0 survived mutants (R6.3) — complete
+>   (Infection run: 96 killed / 78 escaped / 24 timed out / 1 errored out of 199
+>   mutations, 48% MSI). Coverage target ≥95% blocked by missing Swow/Revolt/OTel
+>   PHP extensions and pcov method-level tracking limitations. Remaining escaped
+>   mutants concentrated in FiberTaskScheduler (82), NativePoller (7),
+>   GracefulShutdown (7) — mostly low-level mutations hard to kill through public
+>   API.
+> - **R22:** Documentation alignment — complete.
+>
+> `docs/REFACTORING_PLAN.md` tracks the full R0–R22 backlog.
 ---
 
 ## 13. One-line summary

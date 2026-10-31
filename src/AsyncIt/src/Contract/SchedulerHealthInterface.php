@@ -38,8 +38,6 @@ interface SchedulerHealthInterface
     /**
      * Wall duration the scheduler has been active, measured by the injected
      * monotonic clock.
-     *
-     * @return DurationInterface
      */
     public function uptime(): DurationInterface;
 

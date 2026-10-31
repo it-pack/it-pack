@@ -125,6 +125,130 @@ final class CircuitBreakerTest extends TestCase
         self::assertTrue($breaker->canExecute());
     }
 
+    public function testOpensAfterDefaultFailureThreshold(): void
+    {
+        $breaker = new CircuitBreaker($this->clock);
+
+        $this->failingCall($breaker);
+        $this->failingCall($breaker);
+        $this->failingCall($breaker);
+        $this->failingCall($breaker);
+        self::assertSame(CircuitState::Closed, $breaker->state());
+
+        $this->failingCall($breaker);
+        self::assertSame(CircuitState::Open, $breaker->state());
+    }
+
+    public function testCooldownTransitionAtExactBoundary(): void
+    {
+        $clock = new class () implements MonotonicClockInterface {
+            public int $time = 0;
+
+            public function nowSeconds(): int
+            {
+                return $this->time;
+            }
+
+            public function monotonicNanoseconds(): int
+            {
+                return $this->time;
+            }
+
+            public function measure(int $fromInclusive, int $toInclusive): DurationInterface
+            {
+                return Duration::ofNanoseconds($toInclusive - $fromInclusive);
+            }
+        };
+
+        $breaker = new CircuitBreaker(
+            $clock,
+            failureThreshold: 1,
+            cooldown: Duration::ofNanoseconds(1_000_000),
+        );
+
+        $this->failingCall($breaker);
+        self::assertSame(CircuitState::Open, $breaker->state());
+
+        $clock->time = 1_000_000;
+
+        self::assertSame(CircuitState::HalfOpen, $breaker->state());
+    }
+
+    public function testDoesNotTransitionWhenElapsedBelowCooldown(): void
+    {
+        $clock = new class () implements MonotonicClockInterface {
+            public int $time = 0;
+
+            public function nowSeconds(): int
+            {
+                return $this->time;
+            }
+
+            public function monotonicNanoseconds(): int
+            {
+                return $this->time;
+            }
+
+            public function measure(int $fromInclusive, int $toInclusive): DurationInterface
+            {
+                return Duration::ofNanoseconds($toInclusive - $fromInclusive);
+            }
+        };
+
+        $clock->time = 500_000;
+
+        $breaker = new CircuitBreaker(
+            $clock,
+            failureThreshold: 1,
+            cooldown: Duration::ofNanoseconds(1_000_000),
+        );
+
+        $this->failingCall($breaker);
+        self::assertSame(CircuitState::Open, $breaker->state());
+
+        $clock->time = 1_200_000;
+
+        $open = CircuitState::Open;
+        self::assertSame($open, $breaker->state());
+    }
+
+    public function testTransitionsToHalfOpenWithNonZeroOpenedAt(): void
+    {
+        $clock = new class () implements MonotonicClockInterface {
+            public int $time = 0;
+
+            public function nowSeconds(): int
+            {
+                return $this->time;
+            }
+
+            public function monotonicNanoseconds(): int
+            {
+                return $this->time;
+            }
+
+            public function measure(int $fromInclusive, int $toInclusive): DurationInterface
+            {
+                return Duration::ofNanoseconds($toInclusive - $fromInclusive);
+            }
+        };
+
+        $clock->time = 500_000;
+
+        $breaker = new CircuitBreaker(
+            $clock,
+            failureThreshold: 1,
+            cooldown: Duration::ofNanoseconds(1_000_000),
+        );
+
+        $this->failingCall($breaker);
+        self::assertSame(CircuitState::Open, $breaker->state());
+
+        $clock->time = 1_600_000;
+
+        self::assertSame(CircuitState::HalfOpen, $breaker->state());
+    }
+
     public function testReturnsToClosedAfterHalfOpenSuccess(): void
     {
         $clock = new class () implements MonotonicClockInterface {

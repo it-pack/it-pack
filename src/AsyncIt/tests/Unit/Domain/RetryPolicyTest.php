@@ -97,4 +97,70 @@ final class RetryPolicyTest extends TestCase
 
         self::assertSame(2_000_000_000, $policy->delayForAttempt(1)->nanoseconds());
     }
+
+    public function testFibonacciDelayFollowsSequence(): void
+    {
+        $policy = new RetryPolicy(
+            baseDelay: Duration::ofNanoseconds(1_000_000_000),
+            strategy: RetryStrategy::Fibonacci,
+            jitter: JitterStrategy::None,
+        );
+
+        self::assertSame(1_000_000_000, $policy->delayForAttempt(1)->nanoseconds());
+        self::assertSame(1_000_000_000, $policy->delayForAttempt(2)->nanoseconds());
+        self::assertSame(2_000_000_000, $policy->delayForAttempt(3)->nanoseconds());
+        self::assertSame(3_000_000_000, $policy->delayForAttempt(4)->nanoseconds());
+    }
+
+    public function testFullJitterReturnsValueWithinRange(): void
+    {
+        $policy = new RetryPolicy(
+            baseDelay: Duration::ofNanoseconds(1_000_000_000),
+            strategy: RetryStrategy::Exponential,
+            jitter: JitterStrategy::Full,
+        );
+
+        for ($i = 0; $i < 10; $i++) {
+            $delay = $policy->delayForAttempt(2)->nanoseconds();
+            self::assertGreaterThanOrEqual(0, $delay);
+            self::assertLessThanOrEqual(2_000_000_000, $delay);
+        }
+    }
+
+    public function testFullJitterReturnsZeroForZeroDelay(): void
+    {
+        $policy = new RetryPolicy(
+            baseDelay: Duration::ofNanoseconds(0),
+            strategy: RetryStrategy::Fixed,
+            jitter: JitterStrategy::Full,
+        );
+
+        self::assertSame(0, $policy->delayForAttempt(1)->nanoseconds());
+    }
+
+    public function testEqualJitterReturnsValueWithinRange(): void
+    {
+        $policy = new RetryPolicy(
+            baseDelay: Duration::ofNanoseconds(1_000_000_000),
+            strategy: RetryStrategy::Exponential,
+            jitter: JitterStrategy::Equal,
+        );
+
+        for ($i = 0; $i < 10; $i++) {
+            $delay = $policy->delayForAttempt(2)->nanoseconds();
+            self::assertGreaterThanOrEqual(1_000_000_000, $delay);
+            self::assertLessThanOrEqual(2_000_000_000, $delay);
+        }
+    }
+
+    public function testEqualJitterReturnsZeroForZeroDelay(): void
+    {
+        $policy = new RetryPolicy(
+            baseDelay: Duration::ofNanoseconds(0),
+            strategy: RetryStrategy::Fixed,
+            jitter: JitterStrategy::Equal,
+        );
+
+        self::assertSame(0, $policy->delayForAttempt(1)->nanoseconds());
+    }
 }

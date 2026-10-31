@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\DeadlineSchedulerInterface;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
@@ -29,7 +29,7 @@ final class GracefulShutdown
     private bool $initiated = false;
 
     public function __construct(
-        private readonly EngineSchedulerInterface $scheduler,
+        private readonly DeadlineSchedulerInterface $scheduler,
         private readonly CancellationScopeInterface $rootScope,
         private readonly MonotonicClockInterface $clock,
         private readonly DurationInterface $deadline,

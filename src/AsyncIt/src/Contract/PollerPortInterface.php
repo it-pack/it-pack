@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Contract;
 
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
+
 // Remove this import; keep the fully-qualified class name in the @see docblock.
 
 /**

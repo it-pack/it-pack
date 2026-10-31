@@ -17,7 +17,7 @@ use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-revolt
- *   @api
+ * @api
  */
 final readonly class RevoltChannel implements TaskChannelInterface
 {
