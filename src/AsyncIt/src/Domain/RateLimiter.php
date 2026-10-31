@@ -101,8 +101,7 @@ final class RateLimiter
 
         if ($tokensToAdd > 0) {
             $this->tokens = min($this->capacity, $this->tokens + $tokensToAdd);
+            $this->lastRefillMonotonic += (int) ($tokensToAdd * $nanosPerToken);
         }
-
-        $this->lastRefillMonotonic = $now;
     }
 }

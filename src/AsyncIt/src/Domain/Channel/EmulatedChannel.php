@@ -78,7 +78,7 @@ final class EmulatedChannel implements TaskChannelInterface
             throw new ChannelClosedException();
         }
 
-        $size = count($this->queue);
+        $size = count($this->queue) - $this->head;
         if ($this->capacity !== null && $size >= $this->capacity) {
             return false;
         }
