@@ -37,10 +37,10 @@ final class CircuitBreaker
     private ?int $openedAtMonotonic = null;
 
     public function __construct(
+        private readonly MonotonicClockInterface $clock,
         ?int $failureThreshold = null,
         ?DurationInterface $failureTimeout = null,
         ?DurationInterface $cooldown = null,
-        private readonly ?MonotonicClockInterface $clock = null,
     ) {
         $this->failureThreshold = $failureThreshold ?? 5;
         $this->failureTimeout = $failureTimeout ?? Duration::ofNanoseconds(60_000_000_000);
@@ -88,10 +88,6 @@ final class CircuitBreaker
             return;
         }
 
-        if (!$this->clock instanceof MonotonicClockInterface) {
-            return;
-        }
-
         $elapsed = $this->clock->monotonicNanoseconds() - $this->openedAtMonotonic;
         if ($elapsed >= $this->cooldown->nanoseconds()) {
             $this->state = CircuitState::HalfOpen;
@@ -126,6 +122,6 @@ final class CircuitBreaker
     private function transitionToOpen(): void
     {
         $this->state = CircuitState::Open;
-        $this->openedAtMonotonic = $this->clock?->monotonicNanoseconds();
+        $this->openedAtMonotonic = $this->clock->monotonicNanoseconds();
     }
 }
