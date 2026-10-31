@@ -383,7 +383,7 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
 
 ### R21.2 — Run Infection mutation testing
 
-- **Status:** Complete — ran `composer mutation` with `pcov` coverage (PHP 8.5.12)
+- **Status:** Measurement complete; quality gate remains open — coverage is 70.18% methods / 71.61% lines versus the ≥95% target, and Infection reported escaped, timed-out, and errored mutations.
 - **Focus areas:** `TaskBehavior::transitionTo()`, `CancellationScope::cancel()`,
   `FiberTaskScheduler::runUntil()`, `EmulatedChannel::send()/receive()`,
   `forceCancelRemaining()`
