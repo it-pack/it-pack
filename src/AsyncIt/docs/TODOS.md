@@ -8,7 +8,7 @@
 
 ---
 
-## 🟢 AsyncIt refactoring — R0–R21 COMPLETE
+## 🟡 AsyncIt refactoring — R0–R20 COMPLETE; R21 IN PROGRESS
 
 > **Source:** `docs/REFACTORING_PLAN.md`, `docs/REVIEW.md`, `docs/ROADMAP.md`
 >
