@@ -117,4 +117,19 @@ final class TelemetryBridgeEventListenerTest extends TestCase
 
         self::assertSame('trace-exec', $events[0]['context']['executionId']);
     }
+
+    public function testCompletedEventWithNonTerminalStatusUsesStatusName(): void
+    {
+        $task = $this->createMock(TaskInterface::class);
+        $task->method('id')->willReturn(new TaskId('t1'));
+
+        $bridge = new LazyTelemetryBridge(static fn (): ArrayTelemetryRecorder => new ArrayTelemetryRecorder());
+        $listener = new TelemetryBridgeEventListener($bridge);
+
+        $listener->onEvent(SchedulerEvent::completed($task, TaskStatus::Running));
+
+        $events = $bridge->events();
+
+        self::assertSame('Running', $events[0]['context']['status']);
+    }
 }

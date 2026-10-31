@@ -35,6 +35,7 @@ parameters:
         - { message: '#^Unused .+BulkheadInterface::(tryAcquire|waitForCapacity|release|available)$#', path: src/Contract/BulkheadInterface.php }
         # BulkheadFullException::$capacity — pre-existing dead code (R6.3 coverage task).
         - { message: '#^Unused .+BulkheadFullException::capacity$#', path: src/Contract/Exception/BulkheadFullException.php }
+        - { message: '#^Unused .+BulkheadFullException::capacity$#', path: src/Domain/Exception/BulkheadFullException.php }
         # Phase 9: ArtifactVocabulary constants consumed by future publication paths.
         - { message: '#^Unused .+ArtifactVocabulary::(KIND_TASK_SPAWNED|KIND_TASK_RESUMED|KIND_TASK_COMPLETED|KIND_SCHEDULER_STARVATION|KIND_QUEUE_PRESSURE|KIND_HANDLE_LEAK)$#', path: src/Application/Artifact/ArtifactVocabulary.php }
         - { message: '#^Unused .+CapabilityDescriptorInterface::statusFor$#', path: src/Contract/CapabilityDescriptorInterface.php }

@@ -94,4 +94,50 @@ final class EmulatedChannelTest extends TestCase
         $this->expectException(ChannelClosedException::class);
         $channel->waitForCapacity();
     }
+
+    public function testTrySendReturnsTrueWhenNotFull(): void
+    {
+        $channel = new EmulatedChannel(2);
+
+        self::assertTrue($channel->trySend('first'));
+        self::assertTrue($channel->trySend('second'));
+    }
+
+    public function testTrySendReturnsFalseWhenFull(): void
+    {
+        $channel = new EmulatedChannel(1);
+        $channel->send('initial');
+
+        self::assertFalse($channel->trySend('overflow'));
+    }
+
+    public function testTrySendOnUnboundedChannelAlwaysSucceeds(): void
+    {
+        $channel = new EmulatedChannel();
+
+        for ($i = 0; $i < 50; $i++) {
+            self::assertTrue($channel->trySend($i));
+        }
+
+        self::assertFalse($channel->isClosed());
+    }
+
+    public function testTrySendThrowsWhenClosed(): void
+    {
+        $channel = new EmulatedChannel(2);
+        $channel->close();
+
+        $this->expectException(ChannelClosedException::class);
+        $channel->trySend('value');
+    }
+
+    public function testTrySendReusesCapacityAfterReceive(): void
+    {
+        $channel = new EmulatedChannel(1);
+        $channel->send('a');
+        self::assertSame('a', $channel->receive());
+
+        self::assertTrue($channel->trySend('b'));
+        self::assertFalse($channel->trySend('c'));
+    }
 }

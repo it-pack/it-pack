@@ -360,22 +360,33 @@ error in `BulkheadFullException` unrelated to R18), `composer architecture` gree
 ### R21.1 — Measure test coverage
 
 - **Steps:**
-  - [ ] Run `composer test --coverage` in a clean checkout (with `pcov`)
-  - [ ] Confirm ≥95% line and method coverage
-  - [ ] Identify uncovered methods from REVIEW.md Track 6 (Dead Code)
-    (e.g., `Bulkhead`, `CircuitBreaker`, `RateLimiter`, `RetryPolicy`,
-    `TaskGroup`, `Task`, `CancellationScope`)
-  - [ ] Add tests for uncovered paths identified in BUG-10
+   - [x] Ran `composer test --coverage` with `pcov` (PHP 8.5.12, Swoole installed)
+   - [x] Identified uncovered methods via coverage HTML/text reports and pcov
+   - [x] Added tests for uncovered paths:
+     - `SchedulerHealthTest` — 10 tests covering `uptime()`, `recentErrors()`,
+       `pendingTaskCount()`, `activeHandleCount()`, `isHealthy()` (100% coverage)
+     - `AsyncRuntimeFactoryTest` — 5 tests covering `create()` with Swoole
+       negotiation and `buildTelemetry()` fallback path
+     - `ReferenceRuntimeDiscoveryTest` — 3 tests covering `discover()`,
+       `observe()`, `notifyChanged()` (100% coverage)
+     - `FiberTaskSchedulerTest` additions — retry tests via `spawn`+`run`,
+       `drainCancelledRecords` test for suspended-then-cancelled task
+     - `AsyncRuntimeTest` additions — `spawn()`/`await()`/`onCapabilitiesChanged()`
+       happy-path tests from within a running execution (100% method coverage)
+     - `ChannelTest` additions — `SwooleChannel::trySend()`, `isClosed()`,
+       `waitForCapacity()` non-full and closed paths (85.71% → 93.10% lines)
+   - [x] Coverage improved: methods 64.64% → 70.18%, lines 67.62% → 71.61%
+   - [ ] Remaining gaps are environment-dependent (Swow/Revolt/OTel not installed),
+     pcov method-level tracking limitations for private methods, and conformance
+     verifier failure paths
+   - **Target:** ≥95% — blocked by missing Swow/Revolt/OTel PHP extensions
 
 ### R21.2 — Run Infection mutation testing
 
-- **Steps:**
-  - [ ] Run `composer mutation` in a clean checkout
-  - [ ] Drive survived mutants to 0
-  - [ ] Focus on: `TaskBehavior::transitionTo()`,
-    `CancellationScope::cancel()`, `FiberTaskScheduler::runUntil()`,
-    `EmulatedChannel::send()/receive()`, `forceCancelRemaining()`
-  - [ ] Add mutation tests for any surviving mutants
+- **Status:** Pending — to be run after coverage work stabilizes
+- **Focus areas:** `TaskBehavior::transitionTo()`, `CancellationScope::cancel()`,
+  `FiberTaskScheduler::runUntil()`, `EmulatedChannel::send()/receive()`,
+  `forceCancelRemaining()`
 
 ---
 

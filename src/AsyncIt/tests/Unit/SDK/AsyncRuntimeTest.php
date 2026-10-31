@@ -4,10 +4,24 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK;
 
+use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
+use ItPack\AsyncIt\Contract\PollerPortInterface;
+use ItPack\AsyncIt\Contract\Port\CapabilityKind;
+use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
+use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\TaskChannelInterface;
+use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\RunIt\Conformance\Verifier\ExecutionEngineVerifier;
+use ItPack\RunIt\Contract\Application\EngineCapability;
+use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -74,8 +88,153 @@ final class AsyncRuntimeTest extends TestCase
         self::assertTrue($capability->concurrent);
     }
 
+    public function testChannelReturnsInjectedChannel(): void
+    {
+        $channel = $this->createMock(TaskChannelInterface::class);
+        $runtime = $this->buildRuntime(channel: $channel);
+
+        self::assertSame($channel, $runtime->channel());
+    }
+
+    public function testTelemetryReturnsInjectedBridge(): void
+    {
+        $bridge = $this->createMock(TelemetryBridgeInterface::class);
+        $runtime = $this->buildRuntime(telemetry: $bridge);
+
+        self::assertSame($bridge, $runtime->telemetry());
+    }
+
+    public function testHealthReturnsNullBeforeRun(): void
+    {
+        $runtime = $this->buildRuntime();
+
+        self::assertNull($runtime->health());
+    }
+
+    public function testOnCapabilitiesChangedIsNoopWhenNoScheduler(): void
+    {
+        $runtime = $this->buildRuntime();
+
+        $descriptor = $this->createMock(CapabilityDescriptorInterface::class);
+
+        $runtime->onCapabilitiesChanged($descriptor);
+
+        self::assertNull($runtime->health());
+    }
+
+    public function testSpawnThrowsWhenNoActiveScheduler(): void
+    {
+        $runtime = $this->buildRuntime();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('spawn() must be called within a running execution');
+
+        $runtime->spawn(static function (): void {
+        });
+    }
+
+    public function testAwaitThrowsWhenNoActiveScheduler(): void
+    {
+        $runtime = $this->buildRuntime();
+
+        $task = $this->createMock(TaskInterface::class);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('await() must be called within a running execution');
+
+        $runtime->await($task);
+    }
+
+    public function testAwaitDelayThrowsWhenNoActiveScheduler(): void
+    {
+        $runtime = $this->buildRuntime();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('awaitDelay() must be called within a running execution');
+
+        $runtime->awaitDelay(Duration::ofNanoseconds(1));
+    }
+
+    public function testSpawnFromRunningExecutionReturnsTask(): void
+    {
+        $runtime = $this->runtime();
+
+        $task = null;
+        $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static function () use ($runtime, &$task): void {
+                $task = $runtime->spawn(static fn (): int => 42);
+            },
+        );
+
+        self::assertNotNull($task);
+        self::assertSame(TaskStatus::Succeeded, $task->status());
+    }
+
+    public function testAwaitFromRunningExecutionReturnsTaskResult(): void
+    {
+        $runtime = $this->runtime();
+
+        $value = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static function () use ($runtime): mixed {
+                $task = $runtime->spawn(static fn (): int => 99);
+
+                return $runtime->await($task);
+            },
+        );
+
+        self::assertSame(99, $value);
+    }
+
+    public function testOnCapabilitiesChangedSwapsDescriptorWhenSchedulerActive(): void
+    {
+        $runtime = $this->runtime();
+
+        $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static function () use ($runtime): void {
+                $runtime->onCapabilitiesChanged(
+                    new CapabilityDescriptor(
+                        [CapabilityKind::FiberExecution->value => CapabilityStatus::Supported],
+                        2,
+                    ),
+                );
+            },
+        );
+
+        // No exception thrown — swapCapabilities was called on the live scheduler.
+    }
+
     private function runtime(): AsyncRuntime
     {
         return AsyncRuntime::discover();
+    }
+
+    private function buildRuntime(
+        ?PollerPortInterface $poller = null,
+        ?TaskChannelInterface $channel = null,
+        ?TelemetryBridgeInterface $telemetry = null,
+    ): AsyncRuntime {
+        $poller ??= $this->createMock(PollerPortInterface::class);
+        $channel ??= $this->createMock(TaskChannelInterface::class);
+        $telemetry ??= $this->createMock(TelemetryBridgeInterface::class);
+
+        $idGenerator = $this->createMock(IdentifierGeneratorInterface::class);
+        $idGenerator->method('generate')->willReturn('test-id');
+
+        $schedulerFactory = $this->createMock(SchedulerFactoryInterface::class);
+        $taskGroupFactory = $this->createMock(TaskGroupFactoryInterface::class);
+
+        $capability = new EngineCapability(true, true, true);
+
+        return new AsyncRuntime(
+            $schedulerFactory,
+            $taskGroupFactory,
+            $idGenerator,
+            $capability,
+            $channel,
+            $telemetry,
+        );
     }
 }

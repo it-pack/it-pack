@@ -22,6 +22,8 @@ use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+use ItPack\AsyncIt\Domain\RetryPolicy;
+use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
@@ -257,6 +259,252 @@ final class FiberTaskSchedulerTest extends TestCase
 
         self::assertSame(TaskStatus::Cancelled, $task->status());
         self::assertSame(TaskStatus::Succeeded, $sibling->status());
+    }
+
+    public function testDrainCancelledRecordsCompletesSuspendedCancelledTask(): void
+    {
+        $scheduler = $this->scheduler();
+
+        $suspended = $scheduler->spawn(static function () use ($scheduler): void {
+            $scheduler->awaitDelay(Duration::ofMilliseconds(500));
+        });
+
+        $scheduler->spawn(static function () use ($suspended): void {
+            $suspended->cancellationScope()->cancel(CancellationReason::ParentCancelled);
+        });
+
+        $scheduler->run();
+
+        self::assertSame(TaskStatus::Cancelled, $suspended->status());
+    }
+
+    public function testHealthReturnsSnapshotWithZeroHandlesWhenIdle(): void
+    {
+        $scheduler = $this->scheduler();
+
+        $health = $scheduler->health();
+
+        self::assertTrue($health->isHealthy());
+        self::assertSame(0, $health->pendingTaskCount());
+        self::assertSame(0, $health->activeHandleCount());
+    }
+
+    public function testHealthReportsPendingTasksAfterSpawn(): void
+    {
+        $scheduler = $this->scheduler();
+
+        $scheduler->spawn(static function (): void {
+            Fiber::suspend();
+        });
+
+        $health = $scheduler->health();
+
+        self::assertSame(1, $health->pendingTaskCount());
+    }
+
+    public function testCapabilitiesIsNullByDefault(): void
+    {
+        $scheduler = $this->scheduler();
+
+        self::assertNull($scheduler->capabilities());
+    }
+
+    public function testSwapCapabilitiesSetsDescriptor(): void
+    {
+        $scheduler = $this->scheduler();
+        $descriptor = new CapabilityDescriptor([
+            CapabilityKind::FiberExecution->value => CapabilityStatus::Supported,
+        ]);
+
+        $scheduler->swapCapabilities($descriptor);
+
+        self::assertSame($descriptor, $scheduler->capabilities());
+    }
+
+    public function testTaskRecordsIsEmptyInitially(): void
+    {
+        $scheduler = $this->scheduler();
+
+        self::assertSame([], $scheduler->taskRecords());
+    }
+
+    public function testDispatchReturnsOperationResult(): void
+    {
+        $scheduler = $this->scheduler();
+        $task = $this->task();
+
+        $result = $scheduler->dispatch($task, static fn (): string => 'dispatched');
+
+        self::assertSame('dispatched', $result);
+        self::assertSame(TaskStatus::Succeeded, $task->status());
+    }
+
+    public function testSpawnWithExplicitTaskIdUsesProvidedId(): void
+    {
+        $scheduler = $this->scheduler();
+        $explicitId = new TaskId('explicit-id');
+
+        $task = $scheduler->spawn(static fn (): string => 'result', $explicitId);
+
+        self::assertSame('explicit-id', $task->id()->value);
+    }
+
+    public function testAwaitReturnsResultImmediatelyWhenAlreadyAvailable(): void
+    {
+        $scheduler = $this->scheduler();
+        $result = '';
+
+        $child = $scheduler->spawn(static fn (): string => 'child');
+        $scheduler->spawn(static function () use ($scheduler, $child, &$result): void {
+            $scheduler->await($child);
+            $result = $scheduler->await($child);
+        });
+
+        $scheduler->run();
+
+        self::assertSame('child', $result);
+    }
+
+    public function testAwaitThrowsWhenCurrentTaskNotTracked(): void
+    {
+        $scheduler = $this->scheduler();
+        $untrackedTask = $this->task();
+
+        $scheduler->spawn(static function () use ($scheduler, $untrackedTask): void {
+            $scheduler->await($untrackedTask);
+        });
+
+        $thrown = null;
+        try {
+            $scheduler->run();
+        } catch (LogicException $e) {
+            $thrown = $e;
+        }
+
+        self::assertNotNull($thrown);
+        self::assertSame('Cannot await a task this scheduler does not own.', $thrown->getMessage());
+    }
+
+    public function testAwaitThrowsWhenNoCurrentTask(): void
+    {
+        $scheduler = $this->scheduler();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('await() must be called within a running task');
+
+        $scheduler->await($this->task());
+    }
+
+    public function testAwaitDelayThrowsWhenNoCurrentTask(): void
+    {
+        $scheduler = $this->scheduler();
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('awaitDelay() must be called within a running task');
+
+        $scheduler->awaitDelay(Duration::ofNanoseconds(1));
+    }
+
+    public function testRetryReturnsResultOnFirstSuccess(): void
+    {
+        $scheduler = $this->scheduler();
+        $policy = new RetryPolicy(
+            maxAttempts: 3,
+            baseDelay: Duration::ofNanoseconds(1),
+            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+        );
+        $calls = 0;
+
+        $result = $scheduler->retry(static function () use (&$calls): string {
+            $calls++;
+
+            return 'success';
+        }, $policy);
+
+        self::assertSame('success', $result);
+        self::assertSame(1, $calls);
+    }
+
+    public function testRetryRetriesOnFailureThenSucceeds(): void
+    {
+        $scheduler = $this->scheduler();
+        $policy = new RetryPolicy(
+            maxAttempts: 3,
+            baseDelay: Duration::ofNanoseconds(1),
+            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+        );
+        $calls = 0;
+        $result = null;
+
+        $task = $scheduler->spawn(static function () use ($scheduler, $policy, &$calls, &$result): void {
+            $result = $scheduler->retry(static function () use (&$calls): string {
+                $calls++;
+
+                if ($calls < 3) {
+                    throw new RuntimeException('transient');
+                }
+
+                return 'recovered';
+            }, $policy);
+        });
+
+        $scheduler->run();
+
+        self::assertSame('recovered', $result);
+        self::assertSame(3, $calls);
+        self::assertSame(TaskStatus::Succeeded, $task->status());
+    }
+
+    public function testRetryDoesNotRetryNonRetryableException(): void
+    {
+        $scheduler = $this->scheduler();
+        $policy = new RetryPolicy(
+            maxAttempts: 3,
+            baseDelay: Duration::ofNanoseconds(1),
+            retryable: ['RuntimeException'],
+            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+        );
+
+        $task = $scheduler->spawn(static function () use ($scheduler, $policy): void {
+            $scheduler->retry(static fn (): never => throw new \InvalidArgumentException('non-retryable'), $policy);
+        });
+
+        try {
+            $scheduler->run();
+        } catch (\InvalidArgumentException $e) {
+            self::assertSame('non-retryable', $e->getMessage());
+            return;
+        }
+
+        self::fail('Expected InvalidArgumentException was not thrown.');
+    }
+
+    public function testRetryExhaustsMaxAttemptsAndRethrows(): void
+    {
+        $scheduler = $this->scheduler();
+        $policy = new RetryPolicy(
+            maxAttempts: 2,
+            baseDelay: Duration::ofNanoseconds(1),
+            jitter: \ItPack\AsyncIt\Contract\Port\JitterStrategy::None,
+        );
+        $calls = 0;
+        $task = $scheduler->spawn(static function () use ($scheduler, $policy, &$calls): void {
+            $scheduler->retry(static function () use (&$calls): never {
+                $calls++;
+                throw new RuntimeException('always fails');
+            }, $policy);
+        });
+
+        try {
+            $scheduler->run();
+        } catch (RuntimeException $e) {
+            self::assertSame('always fails', $e->getMessage());
+            self::assertSame(2, $calls);
+            self::assertSame(TaskStatus::Failed, $task->status());
+            return;
+        }
+
+        self::fail('Expected RuntimeException was not thrown.');
     }
 
     private function scheduler(): FiberTaskScheduler
