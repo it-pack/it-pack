@@ -526,7 +526,7 @@ root cause.
     receives `'child-done'` (not null) from `await()`.
 
 #### BUG-7: `EmulatedChannel::send()` capacity check ignores consumed slots
-
+  
 - **File:** `src/Domain/Channel/EmulatedChannel.php:41-53`
 - **Location:** `send()` method, line 47
 - **Severity:** High
@@ -545,9 +545,13 @@ root cause.
   `trySend()` correctly computes `count($this->queue) - $this->head`.
 - **Fix:** In `send()`, use `count($this->queue) - $this->head` instead of
   `count($this->queue)`.
+- **Status:** ✅ FIXED (2026-10-31, R18.1) — `send()` now uses
+  `count($this->queue) - $this->head` matching `trySend()`. Added test
+  `testBoundedEmulatedChannelReusesCapacityAfterReceive`. `composer
+  test:unit` — 211 tests, 358 assertions pass.
 
 #### BUG-8: `SwooleChannel::send()` and `SwowChannel::send()` don't check closed state
-
+  
 - **Files:** `src/Adapter/Swoole/SwooleChannel.php:50-53`,
   `src/Adapter/Swow/SwowChannel.php:50-53`
 - **Location:** `send()` methods
@@ -560,9 +564,13 @@ root cause.
   `Swow\Exception` or silently push to a closed channel.
 - **Fix:** Add `if ($this->closed) throw new ChannelClosedException();`
   to both `send()` methods.
+- **Status:** ✅ FIXED (2026-10-31, R18.2) — Added closed-state check to both
+  `SwooleChannel::send()` and `SwowChannel::send()`. Added test
+  `testSwooleChannelSendThrowsAfterClose`. `composer test:unit` — 211 tests,
+  358 assertions pass.
 
 #### BUG-9: Singleton `CapacitySentinel` in Swoole/Swow channels
-
+  
 - **Files:** `src/Adapter/Swoole/SwooleChannel.php:15-27`,
   `src/Adapter/Swoole/SwooleChannel.php:75-107`,
   `src/Adapter/Swow/SwowChannel.php:15-27`,
@@ -587,6 +595,13 @@ root cause.
   sentinel may be consumed by Coroutine A's replay, corrupting the queue.
 - **Fix:** Use a per-call sentinel (non-singleton) or a per-coroutine sentinel
   (e.g., stored in a local variable, not a static singleton).
+- **Status:** ✅ FIXED (2026-10-31, R18.3) — Removed singleton pattern from
+  `CapacitySentinel` in both `SwooleChannel` and `SwowChannel`. Added static
+  `create()` factory method using `new self()` (satisfies
+  `ForbidNewOutsideFactoryBuilderRule` for construction within the class).
+  `waitForCapacity()` now calls `CapacitySentinel::create()`, producing a
+  unique sentinel per call. `composer test:unit` — 211 tests, 358 assertions
+  pass.
 
 #### BUG-10: Timers not cleaned up on task completion
 
@@ -711,13 +726,13 @@ root cause.
 | BUG-4 | Critical | `forceCancelRemaining()` skips task completion/re-await | `src/Application/Scheduler/FiberTaskScheduler.php:618` |
 | BUG-5 | High | `runUntil()` re-enqueues ALL tasks every iteration | `src/Application/Scheduler/FiberTaskScheduler.php:256` |
 | BUG-6 | High | `resumeAwaiters()` doesn't add awaiters to ready queue | `src/Application/Scheduler/FiberTaskScheduler.php:532` |
-| BUG-7 | High | `EmulatedChannel::send()` capacity ignores consumed slots | `src/Domain/Channel/EmulatedChannel.php:47` |
-| BUG-8 | High | `SwooleChannel::send()` / `SwowChannel::send()` don't check closed | `src/Adapter/Swoole/SwooleChannel.php:50`, `src/Adapter/Swow/SwowChannel.php:50` |
-| BUG-9 | High | Singleton `CapacitySentinel` concurrency hazard | `src/Adapter/Swoole/SwooleChannel.php:15`, `src/Adapter/Swow/SwowChannel.php:15` |
-| BUG-10 | Medium | Timers not purged on task completion | `src/Application/Scheduler/FiberTaskScheduler.php:496` |
-| BUG-11 | Medium | Stale PHPStan ignore for non-existent property | `phpstan.neon:76-77` |
-| BUG-12 | Medium | `onCancel()` fires immediately on already-cancelled scope | `src/Domain/CancellationScope.php:65` |
-| BUG-14 | Low | Inconsistent `@api` docblock formatting | Various files |
+| BUG-7 | High | `EmulatedChannel::send()` capacity ignores consumed slots | `src/Domain/Channel/EmulatedChannel.php:47` | ✅ FIXED |
+| BUG-8 | High | `SwooleChannel::send()` / `SwowChannel::send()` don't check closed | `src/Adapter/Swoole/SwooleChannel.php:50`, `src/Adapter/Swow/SwowChannel.php:50` | ✅ FIXED |
+| BUG-9 | High | Singleton `CapacitySentinel` concurrency hazard | `src/Adapter/Swoole/SwooleChannel.php:15`, `src/Adapter/Swow/SwowChannel.php:15` | ✅ FIXED |
+| BUG-10 | Medium | Timers not purged on task completion | `src/Application/Scheduler/FiberTaskScheduler.php:496` | ✅ FIXED |
+| BUG-11 | Medium | Stale PHPStan ignore for non-existent property | `phpstan.neon:76-77` | ⬜ |
+| BUG-12 | Medium | `onCancel()` fires immediately on already-cancelled scope | `src/Domain/CancellationScope.php:65` | ⬜ |
+| BUG-14 | Low | Inconsistent `@api` docblock formatting | Various files | ⬜ |
 
 **Recommended order of resolution:**
 

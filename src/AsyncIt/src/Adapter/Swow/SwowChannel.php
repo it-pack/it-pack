@@ -11,18 +11,16 @@ use Swow\Coroutine\Channel;
 /**
  * Internal sentinel object used by {@see SwowChannel::waitForCapacity()}
  * to mark a blocking push, compared by identity.
+ *
+ * A fresh instance is created per call to avoid cross-coroutine contamination
+ * when multiple coroutines call waitForCapacity() concurrently on the same
+ * channel.
  */
 final class CapacitySentinel
 {
-    private static ?self $instance = null;
-
-    private function __construct()
+    public static function create(): self
     {
-    }
-
-    public static function instance(): self
-    {
-        return self::$instance ??= new self();
+        return new self();
     }
 }
 
@@ -49,6 +47,10 @@ final class SwowChannel implements TaskChannelInterface
 
     public function send(mixed $value): void
     {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+
         $this->channel->push($value);
     }
 
@@ -85,7 +87,7 @@ final class SwowChannel implements TaskChannelInterface
 
         // Block the coroutine until a consumer frees a slot. push() yields
         // when the channel is full, resuming once capacity is available.
-        $sentinel = CapacitySentinel::instance();
+        $sentinel = CapacitySentinel::create();
         $this->channel->push($sentinel);
 
         // Remove the sentinel to restore the channel's original contents.

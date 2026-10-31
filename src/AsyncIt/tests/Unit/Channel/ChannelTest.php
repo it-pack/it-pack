@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Channel;
 
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
+use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\Exception\ChannelEmptyException;
 use ItPack\AsyncIt\Contract\Exception\ChannelFullException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
@@ -47,6 +48,27 @@ final class ChannelTest extends TestCase
 
         $this->expectException(ChannelFullException::class);
         $channel->send('b');
+    }
+
+    public function testBoundedEmulatedChannelReusesCapacityAfterReceive(): void
+    {
+        $channel = new EmulatedChannel(2);
+        $channel->send('a');
+        $channel->send('b');
+        self::assertSame('a', $channel->receive());
+
+        $channel->send('c');
+        self::assertSame('b', $channel->receive());
+        self::assertSame('c', $channel->receive());
+    }
+
+    public function testEmulatedChannelSendThrowsAfterClose(): void
+    {
+        $channel = new EmulatedChannel();
+        $channel->close();
+
+        $this->expectException(ChannelClosedException::class);
+        $channel->send('after-close');
     }
 
     public function testSwooleChannelRoundTrip(): void
@@ -95,5 +117,27 @@ final class ChannelTest extends TestCase
         });
 
         self::assertSame('after-wait', $received);
+    }
+
+    public function testSwooleChannelSendThrowsAfterClose(): void
+    {
+        if (!class_exists(Channel::class)) {
+            self::markTestSkipped('Swoole runtime not available.');
+        }
+
+        $threw = false;
+
+        run(static function () use (&$threw): void {
+            $channel = new SwooleChannel(new Channel());
+            $channel->close();
+
+            try {
+                $channel->send('after-close');
+            } catch (ChannelClosedException) {
+                $threw = true;
+            }
+        });
+
+        self::assertTrue($threw);
     }
 }

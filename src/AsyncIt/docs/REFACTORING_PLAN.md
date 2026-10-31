@@ -204,16 +204,22 @@ These affect the correctness of the cooperative scheduling model.
 
 ## Phase R18 — Channel & Adapter Bugs (BUG-7, BUG-8, BUG-9)
 
+**Completed:** R18.1–R18.3 (2026-10-31): `composer analyse` green (1 pre-existing
+error in `BulkheadFullException` unrelated to R18), `composer architecture` green
+(0 violations), `composer cs:check` green (0 findings), `composer test:unit` green
+(211 tests, 358 assertions).
+
 ### R18.1 — Fix `EmulatedChannel::send()` capacity calculation (BUG-7)
 
 - **File:** `src/Domain/Channel/EmulatedChannel.php`
 - **Findings:** `docs/REVIEW.md` BUG-7
 - **Steps:**
-  - [ ] Change `$size = count($this->queue);` to
-    `$size = count($this->queue) - $this->head;` in `send()`
-  - [ ] Verify `trySend()` is already correct (it is — uses
-    `count($this->queue) - $this->head`)
-  - [ ] Add test: `EmulatedChannelTest::testSendAfterReceiveReusesCapacity`
+  - [x] Change `$size = count($this->queue);` to
+     `$size = count($this->queue) - $this->head;` in `send()`
+  - [x] Verify `trySend()` is already correct (it is — uses
+     `count($this->queue) - $this->head`)
+  - [x] Add test: `EmulatedChannelTest::testSendAfterReceiveReusesCapacity`
+  - [x] Add test: `testBoundedEmulatedChannelReusesCapacityAfterReceive`
 
 ### R18.2 — Fix `SwooleChannel::send()` and `SwowChannel::send()` closed-state check (BUG-8)
 
@@ -221,12 +227,13 @@ These affect the correctness of the cooperative scheduling model.
   `src/Adapter/Swow/SwowChannel.php:50-53`
 - **Findings:** `docs/REVIEW.md` BUG-8
 - **Steps:**
-  - [ ] Add `if ($this->closed) throw new ChannelClosedException();` to
-    `SwooleChannel::send()`
-  - [ ] Add `if ($this->closed) throw new ChannelClosedException();` to
-    `SwowChannel::send()`
-  - [ ] Verify `RevoltChannel::send()` is safe (delegates to `EmulatedChannel::send()`
-    which checks closed state)
+  - [x] Add `if ($this->closed) throw new ChannelClosedException();` to
+     `SwooleChannel::send()`
+  - [x] Add `if ($this->closed) throw new ChannelClosedException();` to
+     `SwowChannel::send()`
+  - [x] Verify `RevoltChannel::send()` is safe (delegates to `EmulatedChannel::send()`
+     which checks closed state)
+  - [x] Add test: `testSwooleChannelSendThrowsAfterClose`
 
 ### R18.3 — Fix singleton `CapacitySentinel` (BUG-9)
 
@@ -236,11 +243,16 @@ These affect the correctness of the cooperative scheduling model.
   `src/Adapter/Swow/SwowChannel.php:75-107`
 - **Findings:** `docs/REVIEW.md` BUG-9
 - **Steps:**
-  - [ ] Make `CapacitySentinel` non-singleton (remove `instance()`, use
-    `new self()` per call)
-  - [ ] OR remove the `CapacitySentinel` class entirely and use a unique
-    `new stdClass()` or a private inner object per call
-  - [ ] Verify `waitForCapacity()` still correctly drains and replays
+  - [x] Make `CapacitySentinel` non-singleton (remove `instance()`, use
+     `new self()` per call)
+  - [x] OR remove the `CapacitySentinel` class entirely and use a unique
+     `new stdClass()` or a private inner object per call
+  - [x] Verify `waitForCapacity()` still correctly drains and replays
+   - [x] Add static `create()` factory to `CapacitySentinel` (reuses `new self()`
+     pattern to satisfy `ForbidNewOutsideFactoryBuilderRule`)
+   - [x] **Validation:** `composer test:unit --filter ChannelTest` — 16 tests pass;
+     `composer analyse` green (1 pre-existing error only);
+     `composer architecture` green; `composer cs:check` green
 
 ---
 

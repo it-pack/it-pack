@@ -11,18 +11,16 @@ use Swoole\Coroutine\Channel;
 /**
  * Internal sentinel object used by {@see SwooleChannel::waitForCapacity()}
  * to mark a blocking push, compared by identity.
+ *
+ * A fresh instance is created per call to avoid cross-coroutine contamination
+ * when multiple coroutines call waitForCapacity() concurrently on the same
+ * channel.
  */
 final class CapacitySentinel
 {
-    private static ?self $instance = null;
-
-    private function __construct()
+    public static function create(): self
     {
-    }
-
-    public static function instance(): self
-    {
-        return self::$instance ??= new self();
+        return new self();
     }
 }
 
@@ -49,6 +47,10 @@ final class SwooleChannel implements TaskChannelInterface
 
     public function send(mixed $value): void
     {
+        if ($this->closed) {
+            throw new ChannelClosedException();
+        }
+
         $this->channel->push($value);
     }
 
@@ -82,7 +84,7 @@ final class SwooleChannel implements TaskChannelInterface
             return;
         }
 
-        $sentinel = CapacitySentinel::instance();
+        $sentinel = CapacitySentinel::create();
         $this->channel->push($sentinel);
 
         $drained = [];
