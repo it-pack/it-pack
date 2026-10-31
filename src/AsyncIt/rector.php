@@ -15,7 +15,7 @@ try {
         ->withPaths([
             __DIR__ . '/src',
             __DIR__ . '/tests',
-            __DIR__ . '/tests',
+            __DIR__ . '/examples',
         ])
         ->withSkipPath(
             __DIR__ . '/tests/_output',
