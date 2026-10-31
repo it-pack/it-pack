@@ -1,6 +1,6 @@
 # AsyncIt Refactoring Plan
 
-> **Status:** Active (Phase R16 complete — 2026-10-31). Addresses findings in
+> **Status:** Active (Phase R16 complete — 2026-10-31; Phase R17 complete — 2026-10-31). Addresses findings in
 > `docs/REVIEW.md` (review section) and `docs/REVIEW.md` (bug review section).
 > R0–R15 are historical (Phase 0-pre, complete per `docs/TODOS.md`); R16+ are the
 > current backlog derived from the defect analysis.
@@ -8,6 +8,10 @@
 > **Completed:** R16.1–R16.4 (2026-10-31): `composer analyse` green (1 pre-existing
 > error in `BulkheadFullException` unrelated to R16), `composer architecture` green
 > (0 violations), `composer test:unit` green (205 tests, 347 assertions).
+>
+> **Completed:** R17.1–R17.2 (2026-10-31): `composer analyse` green (1 pre-existing
+> error in `BulkheadFullException`), `composer architecture` green (0 violations),
+> `composer test:unit` green (208 tests, 353 assertions).
 >
 > **Purpose:** Translate every finding in `docs/REVIEW.md` into a concrete,
 > check-off-able refactoring or bug-fix task with an assigned phase, file,
@@ -171,23 +175,30 @@ These affect the correctness of the cooperative scheduling model.
   re-enqueue without adding BUG-6's ready-queue enqueue would deadlock
   join-based tasks.
 - **Steps:**
-  - [ ] Remove the blanket re-enqueue loop (lines 256-258)
-  - [ ] Add `$this->ready[] = $awaiterRecord;` in `resumeAwaiters()` (after
+  - [x] Remove the blanket re-enqueue loop (lines 256-258)
+  - [x] Add `$this->ready[] = $awaiterRecord;` in `resumeAwaiters()` (after
     setting `pendingResumeValues`)
-  - [ ] Verify timer-based wakeups still work via `drainExpiredTimers()` (lines
+  - [x] Verify timer-based wakeups still work via `drainExpiredTimers()` (lines
     546-562) which correctly adds to `$this->ready`
-  - [ ] Add test: `FiberTaskSchedulerTest::testTaskResumesOnlyWhenDependencyCompletes`
-  - [ ] Add test: `FiberTaskSchedulerTest::testTimerDoesNotPrematurelyResumeTask`
+  - [x] Add test: `FiberTaskSchedulerTest::testTaskResumesOnlyWhenDependencyCompletes`
+  - [x] Add test: `FiberTaskSchedulerTest::testTimerDoesNotPrematurelyResumeTask`
+  - [x] Fix `testRunUntilForceCancelsOnDeadlineExpiry` to use `runUntil(0)` (deadline
+    already expired) instead of `runUntil(1000)` which relied on blanket re-enqueue
+  - [x] Fix `testRunsTaskToCompletionWithSuspendResume` to use `awaitDelay()` instead
+    of raw `Fiber::suspend()` (no wakeup mechanism without blanket re-enqueue)
+  - [x] Add `awaitDelay()` method to `AsyncRuntime` (delegating to scheduler) and fix
+    `testReturnsValueAcrossFiberSuspendResume` in `AsyncRuntimeTest`
+- **Validation:** `composer test:unit` — 208 tests, 353 assertions pass
 
 ### R17.2 — Clean up timers on task completion (BUG-10)
 
 - **File:** `src/Application/Scheduler/FiberTaskScheduler.php`
 - **Findings:** `docs/REVIEW.md` BUG-10
 - **Steps:**
-  - [ ] In `complete()`, remove timer entries for the completed task's record
-    from `$this->timers`
-  - [ ] Alternative: in `releaseHandles()`, also clear timers
-  - [ ] Add test: `FiberTaskSchedulerTest::testTimerClearedOnTaskCompletion`
+  - [x] In `complete()`, remove timer entries for the completed task's record
+    from `$this->timers` via new `clearTimers()` helper
+  - [x] Add test: `FiberTaskSchedulerTest::testTimerClearedOnTaskCompletion`
+- **Validation:** `composer test:unit` — 208 tests, 353 assertions pass
 
 ---
 

@@ -500,7 +500,8 @@ root cause.
   - Timer tasks: enqueued by `drainExpiredTimers()` (already correct)
   - Join tasks: enqueued by `resumeAwaiters()` (currently missing — see BUG-6)
   - Poll tasks: enqueued when the handle becomes ready
-  Remove the blanket `foreach` re-enqueue.
+   Remove the blanket `foreach` re-enqueue.
+  - **Status:** ✅ FIXED (R17.1)
 
 #### BUG-6: `resumeAwaiters()` doesn't add awaiters to `$this->ready`
 
@@ -515,7 +516,14 @@ root cause.
   the blanket re-enqueue), awaiters would never be resumed and the scheduler
   would deadlock.
 - **Fix:** Add `$this->ready[] = $awaiterRecord;` inside the `foreach` loop
-  in `resumeAwaiters()`.
+   in `resumeAwaiters()`.
+  - **Status:** ✅ FIXED (R17.1)
+  - Added `$this->ready[] = $awaiterRecord;` in `resumeAwaiters()`, so join
+    awaiters are woken immediately when the awaited task completes (not on the
+    next loop iteration).
+  - **Validation:** `composer test:unit` — 208 tests, 353 assertions pass
+  - **Evidence:** `testTaskResumesOnlyWhenDependencyCompletes` verifies parent
+    receives `'child-done'` (not null) from `await()`.
 
 #### BUG-7: `EmulatedChannel::send()` capacity check ignores consumed slots
 
@@ -593,7 +601,13 @@ root cause.
   prevents re-stepping, the stale timer entries consume memory and could
   cause subtle ordering bugs if the timer deadline is far in the future.
 - **Fix:** Filter out timers for completed tasks in `complete()`, or clear
-  timers in `releaseHandles()`.
+   timers in `releaseHandles()`.
+  - **Status:** ✅ FIXED (R17.2)
+  - Added `clearTimers(TaskRecord $record)` method called from `complete()`
+    that filters out timer entries referencing the completed record.
+  - **Validation:** `composer test:unit` — 208 tests, 353 assertions pass
+  - **Evidence:** `testTimerClearedOnTaskCompletion` verifies cancelled task's
+    timer is cleaned up and the task is not resumed by the abandoned timer
 
 ### Medium-Priority Bugs
 

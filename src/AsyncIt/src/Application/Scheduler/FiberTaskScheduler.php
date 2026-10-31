@@ -252,10 +252,6 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
                 $this->poller->await($this->computeTimeout($deadlineNanoseconds));
 
                 $this->drainExpiredTimers();
-
-                foreach ($this->records as $record) {
-                    $this->ready[] = $record;
-                }
             }
         }
     }
@@ -517,6 +513,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
 
         $task->complete($status);
         $this->releaseHandles($record);
+        $this->clearTimers($record);
         $record->markDone();
     }
 
@@ -540,6 +537,7 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         foreach ($awaiters as $awaiterRecord) {
             $awaiterId = $awaiterRecord->task()->id()->value;
             $this->pendingResumeValues[$awaiterId] = $result;
+            $this->ready[] = $awaiterRecord;
         }
     }
 
@@ -559,6 +557,23 @@ final class FiberTaskScheduler implements EngineSchedulerInterface
         }
 
         $this->timers = $remaining;
+    }
+
+    /**
+     * Removes any timer entries referencing the given record from
+     * {@see $timers}. Called from {@see complete()} to ensure that tasks
+     * which completed (successfully, failed, or cancelled) before their
+     * delay timer expired do not leave stale entries that could re-queue
+     * an already-terminal record on a future {@see drainExpiredTimers()} tick.
+     */
+    private function clearTimers(TaskRecord $record): void
+    {
+        $this->timers = array_values(
+            array_filter(
+                $this->timers,
+                static fn (array $entry): bool => $entry['record'] !== $record,
+            ),
+        );
     }
 
     private function computeTimeout(int $deadlineNanos): int

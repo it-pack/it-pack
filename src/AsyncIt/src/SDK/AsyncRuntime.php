@@ -18,6 +18,7 @@ use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use LogicException;
@@ -117,6 +118,15 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         }
 
         return $this->scheduler->await($task);
+    }
+
+    public function awaitDelay(DurationInterface $duration): void
+    {
+        if (!$this->scheduler instanceof EngineSchedulerInterface) {
+            throw new LogicException('awaitDelay() must be called within a running execution.');
+        }
+
+        $this->scheduler->awaitDelay($duration);
     }
 
     public function capability(): EngineCapability

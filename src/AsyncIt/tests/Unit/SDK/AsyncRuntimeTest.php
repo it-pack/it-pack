@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK;
 
-use Fiber;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\RunIt\Conformance\Verifier\ExecutionEngineVerifier;
+use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -42,10 +42,12 @@ final class AsyncRuntimeTest extends TestCase
 
     public function testReturnsValueAcrossFiberSuspendResume(): void
     {
-        $value = $this->runtime()->run(
+        $runtime = $this->runtime();
+
+        $value = $runtime->run(
             new ReferenceExecutionScope('e'),
-            static function (): int {
-                Fiber::suspend();
+            static function () use ($runtime): int {
+                $runtime->awaitDelay(Duration::ofNanoseconds(1));
 
                 return 7;
             },

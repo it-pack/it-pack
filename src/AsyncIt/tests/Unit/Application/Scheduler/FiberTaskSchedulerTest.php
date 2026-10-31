@@ -46,9 +46,9 @@ final class FiberTaskSchedulerTest extends TestCase
         $log = [];
         $task = $this->task();
 
-        $scheduler->submit($task, static function () use (&$log): void {
+        $scheduler->submit($task, static function () use (&$log, $scheduler): void {
             $log[] = 'a';
-            Fiber::suspend();
+            $scheduler->awaitDelay(Duration::ofNanoseconds(1));
             $log[] = 'b';
         });
 
@@ -146,13 +146,14 @@ final class FiberTaskSchedulerTest extends TestCase
         $clock = new DeterministicMonotonicClock();
         $scheduler = $this->schedulerWithClock($clock);
 
-        $scheduler->spawn(static function (): void {
+        $task = $scheduler->spawn(static function (): void {
             Fiber::suspend();
         });
 
-        $scheduler->runUntil(1000);
+        $scheduler->runUntil(0);
 
         self::assertSame(0, $clock->monotonicNanoseconds());
+        self::assertSame(TaskStatus::Cancelled, $task->status());
     }
 
     public function testRunUntilCompletesTasksBeforeDeadline(): void
@@ -165,6 +166,65 @@ final class FiberTaskSchedulerTest extends TestCase
         $scheduler->runUntil(PHP_INT_MAX);
 
         self::assertSame(0, $clock->monotonicNanoseconds());
+    }
+
+    public function testTaskResumesOnlyWhenDependencyCompletes(): void
+    {
+        $scheduler = $this->scheduler();
+        $childResult = '';
+
+        $child = $scheduler->spawn(static function () use ($scheduler): string {
+            $scheduler->awaitDelay(Duration::ofMilliseconds(10));
+
+            return 'child-done';
+        });
+
+        $scheduler->spawn(static function () use ($scheduler, $child, &$childResult): void {
+            $childResult = $scheduler->await($child);
+        });
+
+        $scheduler->run();
+
+        self::assertSame('child-done', $childResult, 'Parent must receive actual child result, not null');
+    }
+
+    public function testTimerDoesNotPrematurelyResumeTask(): void
+    {
+        $clock = new SystemMonotonicClock();
+        $scheduler = $this->schedulerWithClock($clock);
+
+        $resumed = false;
+
+        $task = $scheduler->spawn(static function () use ($scheduler, &$resumed): void {
+            $scheduler->awaitDelay(Duration::ofMilliseconds(100));
+            $resumed = true;
+        });
+
+        $deadline = $clock->monotonicNanoseconds() + Duration::ofMilliseconds(5)->nanoseconds();
+        $scheduler->runUntil($deadline);
+
+        self::assertFalse($resumed, 'Task must not resume before timer expires');
+        self::assertSame(TaskStatus::Cancelled, $task->status());
+    }
+
+    public function testTimerClearedOnTaskCompletion(): void
+    {
+        $clock = new DeterministicMonotonicClock();
+        $scheduler = $this->schedulerWithClock($clock);
+
+        $resumed = false;
+
+        $task = $scheduler->spawn(static function () use ($scheduler, &$resumed): void {
+            $scheduler->awaitDelay(Duration::ofMilliseconds(1));
+            $resumed = true;
+        });
+
+        $task->cancellationScope()->cancel(CancellationReason::ParentCancelled);
+
+        $scheduler->runUntil(PHP_INT_MAX);
+
+        self::assertSame(TaskStatus::Cancelled, $task->status());
+        self::assertFalse($resumed, 'Cancelled task must not be resumed by its abandoned timer');
     }
 
     public function testExternallyCancelledTaskBeforeRunningIsCompletedAsCancelled(): void
