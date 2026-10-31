@@ -73,4 +73,25 @@ final class EmulatedChannelTest extends TestCase
         $this->expectException(ChannelFullException::class);
         $channel->send(3);
     }
+
+    public function testWaitForCapacityReturnsImmediatelyWhenFull(): void
+    {
+        $channel = new EmulatedChannel(1);
+        $channel->send('first');
+
+        // EmulatedChannel has no event-loop integration, so waitForCapacity
+        // returns immediately even when the bounded buffer is full.
+        $elapsed = microtime(true);
+        $channel->waitForCapacity();
+        self::assertLessThan(0.1, microtime(true) - $elapsed);
+    }
+
+    public function testWaitForCapacityThrowsWhenClosed(): void
+    {
+        $channel = new EmulatedChannel(1);
+        $channel->close();
+
+        $this->expectException(ChannelClosedException::class);
+        $channel->waitForCapacity();
+    }
 }

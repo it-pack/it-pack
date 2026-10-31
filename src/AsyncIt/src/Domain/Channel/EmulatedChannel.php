@@ -88,6 +88,17 @@ final class EmulatedChannel implements TaskChannelInterface
         return true;
     }
 
+    /**
+     * Returns immediately. For bounded emulated channels, a full buffer means
+     * no capacity is available; the caller should handle {@see ChannelFullException}
+     * from {@see send()} for backpressure rather than relying on this method to block.
+     *
+     * The emulated channel has no event-loop integration, so it cannot suspend
+     * the calling task — native backends (Swoole/Swow) provide true blocking
+     * semantics under the same contract.
+     *
+     * @throws ChannelClosedException when closed
+     */
     public function waitForCapacity(): void
     {
         if ($this->closed) {
