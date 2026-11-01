@@ -98,7 +98,7 @@ Each rule lists its enforcement mechanism and the first milestone it is required
 - Monotonic `hrtime()` only on hot paths; no wall-clock, no eager serialization, no reflection in steady state. **(M2)**
 - Bounded queues/channels/payloads; capability-selected policy over runtime probing. **(M2)**
 - Small focused interfaces (ISP); domain depends on abstractions (DIP); adapters substitutable (LSP); behavior extended via new ports, not modification (OCP); one responsibility per class (SRP).
-- Shared guards/mappers in traits to avoid duplication (DRY); no speculative extension points without a concrete consumer. **(M1+)**
+- Shared guards/mappers in traits to avoid duplication (DRY); 
 
 ---
 
@@ -397,12 +397,12 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - [x] **H.3.1** — `SchedulerHealthInterface` (Contract, internal): `isHealthy(): bool`, `pendingTaskCount(): int`, `activeHandleCount(): int`, `uptime(): Duration`, `recentErrors(int $n): list<Throwable>`.
 - [x] **H.3.2** — `GracefulShutdown` (Application): on signal or explicit call, triggers root scope cancellation (cascading V.1), drains reactor within `gracefulShutdownDeadline` via `scheduler->runUntil(deadlineNanos)`, force-cancelling stuck tasks with `CancellationReason::DeadlineExceeded` and releasing remaining handles (Assertion C).
 - [x] **H.3.3** — `FiberTaskScheduler::health(): SchedulerHealthInterface` accessor; `AsyncRuntime::health()` delegates when a scheduler is active.
-- [ ] **H.3.4** — Add `Adapter/Kubernetes/` probe handler (skipped — no concrete consumer).
+- [ ] **H.3.4** — Add `Adapter/Kubernetes/` probe handler.
 - [x] **H.3.5** — Conformance: Assertion F (`GracefulShutdownVerifier`).
 - [x] **H.7.1** — `SchedulerConfiguration` (Domain, `readonly`): `maxConcurrency`, `defaultTimeout`, `schedulingPolicy`, `backpressurePolicy`, `telemetrySamplingRate`, `gracefulShutdownDeadline`, `debug`.
 - [x] **H.7.2** — `SchedulerConfiguration::withChanges(array $diffs): self`.
-- [ ] **H.7.3** — `PolicyEngine` (skipped — no concrete consumer per AGENTS.md).
-- [ ] **H.8.1–H.8.3** — `SchedulerIntrospectionInterface`, deadlock detector, debug gating (deferred — no concrete consumer).
+- [ ] **H.7.3** — `PolicyEngine`.
+- [ ] **H.8.1–H.8.3** — `SchedulerIntrospectionInterface`, deadlock detector, debug gating .
 
 **Gates:** `SchedulerConfigurationTest`, `GracefulShutdownVerifierTest`, `TraceParentageVerifierTest` with ≥95% coverage; conformance Assertion F passes; `composer quality` green.
 
@@ -439,7 +439,7 @@ Before the next-gen feature work begins, the open refactoring backlog in `docs/R
 - [x] **A.7.2** — `CanaryScheduler` (Application): wraps a base scheduler; compares latency/error metrics between canary and baseline; auto-rolls-back on threshold breach.
 - [x] **A.7.3** — Hot config swap: `SchedulerConfiguration::withChanges()` produces a new snapshot atomically; `MiddlewareScheduler::setConfiguration()` swaps it at a safe point.
 
-**Gates:** Each sub-feature has dedicated unit tests (≥90% coverage for new code; 100% for critical branching in V.7/A.4/A.7); `composer quality` green; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; no speculative abstraction without a concrete consumer (AGENTS.md); new adapters placed in `Adapter/` and do not leak runtime types into `Contract/`/`Domain/`.
+**Gates:** Each sub-feature has dedicated unit tests (≥90% coverage for new code; 100% for critical branching in V.7/A.4/A.7); `composer quality` green; `@see` references added to `async-it.ttl`/`async-it-taxonomy.ttl`; do not leak runtime types into `Contract/`/`Domain/`.
 
 ---
 
@@ -653,4 +653,4 @@ The roadmap converts the brainstorm and implementation plan into constraint-bear
 - **Scale-out** (Phase 11): dynamic capability descriptors, persistent task queue (H.9), scheduler federation (H.10), middleware pipeline (H.11), schema registry (H.12), canary deployments (H.13) (M18–M20).
 - **IO & combinators** (Phase 12, complete): `awaitReadable`/`awaitWritable` (V.9), `race`/`all`/`any`/`join`/`select` (V.10).
 - **Typed results & streams** (Phase 13, complete): `TaskResult<T, E>` (V.11), `TaskStream` / async generators (V.12).
-Each phase adds conformance assertions (A.2–A.3 group isolation, C.2 timer cleanup, E trace parentage, F graceful shutdown) to `src/Conformance/Verifier/`, extending the `AsyncRuntimeVerifier` suite. New capability kinds are added to the relevant task only when a concrete consumer exists (AGENTS.md: "Do not add a public extension point until there is a concrete consumer or adapter use case").
+Each phase adds conformance assertions (A.2–A.3 group isolation, C.2 timer cleanup, E trace parentage, F graceful shutdown) to `src/Conformance/Verifier/`, extending the `AsyncRuntimeVerifier` suite. 
