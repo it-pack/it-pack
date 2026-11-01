@@ -411,8 +411,6 @@ Public APIs must be:
 - Public APIs coupled to one runtime adapter.
 - Proprietary promises or schedulers that bypass the contract.
 
-Do not add a public extension point until there is a concrete consumer or adapter use case.
-
 ---
 
 ## Naming
