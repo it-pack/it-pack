@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Adapter\Swow;
 
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
+use ItPack\AsyncIt\Contract\Exception\ChannelException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use Swow\Coroutine\Channel;
 
