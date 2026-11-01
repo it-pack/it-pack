@@ -91,7 +91,7 @@ final class SchedulerIntegrationTest extends TestCase
     {
         $scheduler = $this->scheduler();
 
-        $stream = fopen('php://temp', 'r+');
+        $stream = fopen('php://temp', 'rb+');
         self::assertNotFalse($stream);
 
         $handle = $scheduler->registerStream($stream);

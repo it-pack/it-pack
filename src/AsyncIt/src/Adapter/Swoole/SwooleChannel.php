@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
+use ItPack\AsyncIt\Domain\Channel\ChannelBehaviorTrait;
 use Swoole\Coroutine\Channel;
 
 /**
@@ -16,6 +17,10 @@ use Swoole\Coroutine\Channel;
  * The underlying channel is injected (built in a Factory) so this adapter
  * performs no direct construction of runtime types.
  *
+ * Closed-state tracking, `close()`, and `waitForCapacity()` are shared via
+ * {@see ChannelBehaviorTrait}; only `send()`/`trySend()`/`receive()` remain
+ * adapter-specific (Swoole's `push()` does not fail, Swow's can).
+ *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swoole
  * @api
@@ -23,7 +28,7 @@ use Swoole\Coroutine\Channel;
  */
 final class SwooleChannel implements TaskChannelInterface
 {
-    private bool $closed = false;
+    use ChannelBehaviorTrait;
 
     public function __construct(private readonly Channel $channel)
     {
@@ -56,46 +61,5 @@ final class SwooleChannel implements TaskChannelInterface
         $this->channel->push($value);
 
         return true;
-    }
-
-    public function waitForCapacity(): void
-    {
-        if ($this->closed) {
-            throw new ChannelClosedException();
-        }
-
-        if (!$this->channel->isFull()) {
-            return;
-        }
-
-        $sentinel = CapacitySentinel::create();
-        $this->channel->push($sentinel);
-
-        $drained = [];
-        while (!$this->channel->isEmpty()) {
-            $item = $this->channel->pop();
-            if ($item === $sentinel) {
-                break;
-            }
-
-            $drained[] = $item;
-        }
-
-        foreach ($drained as $item) {
-            $this->channel->push($item);
-        }
-    }
-
-    public function isClosed(): bool
-    {
-        return $this->closed;
-    }
-
-    public function close(): void
-    {
-        if (!$this->closed) {
-            $this->closed = true;
-            $this->channel->close();
-        }
     }
 }

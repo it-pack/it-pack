@@ -6,6 +6,16 @@ namespace Tests\Unit\Application\Federation;
 
 use InvalidArgumentException;
 use ItPack\AsyncIt\Application\Federation\CanaryScheduler;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
+use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
+use ItPack\AsyncIt\Contract\Port\CapabilityKind;
+use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
+use ItPack\AsyncIt\Contract\RetryPolicyInterface;
+use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
+use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\RunIt\Contract\Domain\DurationInterface;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -221,5 +231,294 @@ final class CanarySchedulerTest extends TestCase
 
         self::assertTrue($a->equals($b));
         self::assertFalse($a->equals($c));
+    }
+
+    public function testSpawnDelegatesToBaseline(): void
+    {
+        $baseline = new FakeScheduler('baseline');
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+
+        $task = $scheduler->spawn(fn (): null => null);
+
+        self::assertSame(['baseline.spawn'], $baseline->calls());
+        self::assertSame([], $canary->calls());
+        self::assertSame('spawned', (string) $task->id());
+    }
+
+    public function testAwaitDelegatesToBaseline(): void
+    {
+        $baseline = new FakeScheduler('baseline');
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+        $task = new FakeTask('t1');
+
+        $result = $scheduler->await($task);
+
+        self::assertSame('awaited', $result);
+        self::assertSame(['baseline.await'], $baseline->calls());
+        self::assertSame([], $canary->calls());
+    }
+
+    public function testRetryDelegatesToBaseline(): void
+    {
+        $baseline = new FakeScheduler('baseline');
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+
+        $result = $scheduler->retry(fn (): string => 'ok', new class () implements RetryPolicyInterface {
+            public int $maxAttempts = 1;
+
+            public function isRetryable(string $exceptionClass): bool
+            {
+                return true;
+            }
+
+            public function delayForAttempt(int $attempt): DurationInterface
+            {
+                return new FakeDuration(0);
+            }
+        });
+
+        self::assertSame('ok', $result);
+        self::assertSame(['baseline.retry'], $baseline->calls());
+        self::assertSame([], $canary->calls());
+    }
+
+    public function testHealthDelegatesToBaseline(): void
+    {
+        $baseline = new FakeScheduler('baseline');
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+
+        $health = $scheduler->health();
+
+        self::assertTrue($health->isHealthy());
+        self::assertSame(['baseline.health'], $baseline->calls());
+        self::assertSame([], $canary->calls());
+    }
+
+    public function testSwapCapabilitiesCallsBothSchedulers(): void
+    {
+        $baseline = new FakeScheduler('baseline');
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+
+        $descriptor = new class () implements CapabilityDescriptorInterface {
+            public function statusFor(CapabilityKind $kind): CapabilityStatus
+            {
+                return CapabilityStatus::Supported;
+            }
+
+            public function version(): int
+            {
+                return 1;
+            }
+        };
+
+        $scheduler->swapCapabilities($descriptor);
+
+        self::assertSame(['baseline.swapCapabilities', 'canary.swapCapabilities'], array_merge($baseline->calls(), $canary->calls()));
+    }
+
+    public function testResultTypedPrefersBaseline(): void
+    {
+        $baseline = new FakeScheduler('baseline');
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+        $task = new FakeTask('t1');
+
+        $result = $scheduler->resultTyped($task);
+
+        self::assertSame('result', $result->value());
+        self::assertSame(['baseline.resultTyped'], $baseline->calls());
+        self::assertSame([], $canary->calls());
+    }
+
+    public function testResultTypedFallsBackToCanary(): void
+    {
+        $baseline = new class () implements EngineSchedulerInterface {
+            public function submit(TaskInterface $task, callable $operation): void
+            {
+            }
+
+            public function run(): void
+            {
+            }
+
+            public function result(TaskInterface $task): mixed
+            {
+                return null;
+            }
+
+            public function dispatch(TaskInterface $task, callable $operation): mixed
+            {
+                return null;
+            }
+
+            public function spawn(callable $operation, ?TaskIdInterface $id = null): TaskInterface
+            {
+                return new FakeTask('x');
+            }
+
+            public function await(TaskInterface $task): mixed
+            {
+                return null;
+            }
+
+            public function currentTask(): ?TaskInterface
+            {
+                return null;
+            }
+
+            public function awaitDelay(DurationInterface $duration): void
+            {
+            }
+
+            public function retry(callable $operation, RetryPolicyInterface $policy): mixed
+            {
+                return null;
+            }
+
+            public function health(): SchedulerHealthInterface
+            {
+                return new FakeHealth();
+            }
+
+            public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
+            {
+            }
+        };
+        $canary = new FakeScheduler('canary');
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+        $task = new FakeTask('t1');
+
+        $result = $scheduler->resultTyped($task);
+
+        self::assertSame('result', $result->value());
+        self::assertSame(['canary.resultTyped'], $canary->calls());
+    }
+
+    public function testResultTypedThrowsWhenNeitherSupports(): void
+    {
+        $baseline = new class () implements EngineSchedulerInterface {
+            public function submit(TaskInterface $task, callable $operation): void
+            {
+            }
+
+            public function run(): void
+            {
+            }
+
+            public function result(TaskInterface $task): mixed
+            {
+                return null;
+            }
+
+            public function dispatch(TaskInterface $task, callable $operation): mixed
+            {
+                return null;
+            }
+
+            public function spawn(callable $operation, ?TaskIdInterface $id = null): TaskInterface
+            {
+                return new FakeTask('x');
+            }
+
+            public function await(TaskInterface $task): mixed
+            {
+                return null;
+            }
+
+            public function currentTask(): ?TaskInterface
+            {
+                return null;
+            }
+
+            public function awaitDelay(DurationInterface $duration): void
+            {
+            }
+
+            public function retry(callable $operation, RetryPolicyInterface $policy): mixed
+            {
+                return null;
+            }
+
+            public function health(): SchedulerHealthInterface
+            {
+                return new FakeHealth();
+            }
+
+            public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
+            {
+            }
+        };
+        $canary = new class () implements EngineSchedulerInterface {
+            public function submit(TaskInterface $task, callable $operation): void
+            {
+            }
+
+            public function run(): void
+            {
+            }
+
+            public function result(TaskInterface $task): mixed
+            {
+                return null;
+            }
+
+            public function dispatch(TaskInterface $task, callable $operation): mixed
+            {
+                return null;
+            }
+
+            public function spawn(callable $operation, ?TaskIdInterface $id = null): TaskInterface
+            {
+                return new FakeTask('x');
+            }
+
+            public function await(TaskInterface $task): mixed
+            {
+                return null;
+            }
+
+            public function currentTask(): ?TaskInterface
+            {
+                return null;
+            }
+
+            public function awaitDelay(DurationInterface $duration): void
+            {
+            }
+
+            public function retry(callable $operation, RetryPolicyInterface $policy): mixed
+            {
+                return null;
+            }
+
+            public function health(): SchedulerHealthInterface
+            {
+                return new FakeHealth();
+            }
+
+            public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
+            {
+            }
+        };
+
+        $scheduler = new CanaryScheduler($baseline, $canary, canaryWeight: 0.5, errorMargin: 0.1, latencyFactor: 1.5, minCalls: 1);
+        $task = new FakeTask('t1');
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('Neither baseline nor canary scheduler supports resultTyped().');
+
+        $scheduler->resultTyped($task);
     }
 }
