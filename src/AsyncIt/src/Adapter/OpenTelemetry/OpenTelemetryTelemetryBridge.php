@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Adapter\OpenTelemetry;
 
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\Behavior\Lazy;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Trace\SpanInterface;
@@ -38,13 +39,13 @@ use Throwable;
  */
 final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
 {
+    use Lazy;
+
     private const string DEFAULT_AWAIT_POINT = 'unknown';
 
     private const string DEFAULT_STATUS = 'succeeded';
 
     private const string DEFAULT_TASK_KIND = 'default';
-
-    private bool $initialized = false;
 
     /**
      * @var array<string, SpanInterface> Active spans keyed by task id, ended on terminal transition.
@@ -58,7 +59,9 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
 
     public function record(string $event, array $context = []): void
     {
-        $this->materialize();
+        $this->materialize(function (): void {
+            $this->tracerProvider ??= Globals::tracerProvider();
+        });
 
         $tracer = $this->tracerProvider?->getTracer('it-pack/async-it');
 
@@ -88,17 +91,6 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
     public function events(): array
     {
         return [];
-    }
-
-    private function materialize(): void
-    {
-        if ($this->initialized) {
-            return;
-        }
-
-        $this->tracerProvider ??= Globals::tracerProvider();
-
-        $this->initialized = true;
     }
 
     /**

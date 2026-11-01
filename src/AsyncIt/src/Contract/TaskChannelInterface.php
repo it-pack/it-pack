@@ -29,7 +29,7 @@ interface TaskChannelInterface
      * @throws ChannelClosedException when closed
      * @throws ChannelFullException when bounded and full
      */
-    public function send(mixed $value): void;
+    public function send(mixed $value): bool;
 
     /**
      * Receives the next value, or signals emptiness for the emulated backend.

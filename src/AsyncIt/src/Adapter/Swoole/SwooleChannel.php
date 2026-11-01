@@ -32,29 +32,4 @@ final class SwooleChannel implements TaskChannelInterface
     public function __construct(private readonly Channel $channel)
     {
     }
-
-    public function send(mixed $value): void
-    {
-        $this->requireOpen();
-
-        $this->channel->push($value);
-    }
-
-    public function receive(): mixed
-    {
-        return $this->channel->pop();
-    }
-
-    public function trySend(mixed $value): bool
-    {
-        $this->requireOpen();
-
-        if ($this->channel->isFull()) {
-            return false;
-        }
-
-        $this->channel->push($value);
-
-        return true;
-    }
 }

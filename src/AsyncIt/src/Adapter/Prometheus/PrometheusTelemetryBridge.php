@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Adapter\Prometheus;
 
 use Closure;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\Behavior\Lazy;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 
 /**
@@ -37,6 +38,8 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  */
 final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
 {
+    use Lazy;
+
     private const string DEFAULT_STATUS = 'succeeded';
 
     private const string METRIC_TASKS_RUNNABLE = 'asyncit_tasks_runnable';
@@ -53,8 +56,6 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
 
     private const string METRIC_SCHEDULE_TO_DISPATCH_SECONDS = 'asyncit_schedule_to_dispatch_seconds';
 
-    private bool $initialized = false;
-
     /**
      * @var array<string, object>|null Lazily-created prometheus instruments.
      */
@@ -70,7 +71,34 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
 
     public function record(string $event, array $context = []): void
     {
-        $this->materialize();
+        $this->materialize(function (): void {
+            $this->initialized = true;
+
+            if (!class_exists('Promphp\\Prometheus\\RegistryInterface')) {
+                $this->instruments = null;
+
+                return;
+            }
+
+            $factory = $this->registryFactory
+                ?? static function (): object {
+                    $class = 'Promphp\\Prometheus\\InMemory\\InMemoryRegistry';
+
+                    /** @var object $registry */
+                    $registry = new $class();
+
+                    return $registry;
+                };
+
+            $registry = $factory();
+
+            /** @var object $adapter */
+            $adapter = method_exists($registry, 'getAdapter')
+                ? $registry->getAdapter()
+                : $registry;
+
+            $this->instruments = $this->buildInstruments($adapter);
+        });
 
         if ($this->instruments === null) {
             return;
@@ -102,40 +130,6 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
     public function events(): array
     {
         return [];
-    }
-
-    private function materialize(): void
-    {
-        if ($this->initialized) {
-            return;
-        }
-
-        $this->initialized = true;
-
-        if (!class_exists('Promphp\\Prometheus\\RegistryInterface')) {
-            $this->instruments = null;
-
-            return;
-        }
-
-        $factory = $this->registryFactory
-            ?? static function (): object {
-                $class = 'Promphp\\Prometheus\\InMemory\\InMemoryRegistry';
-
-                /** @var object $registry */
-                $registry = new $class();
-
-                return $registry;
-            };
-
-        $registry = $factory();
-
-        /** @var object $adapter */
-        $adapter = method_exists($registry, 'getAdapter')
-            ? $registry->getAdapter()
-            : $registry;
-
-        $this->instruments = $this->buildInstruments($adapter);
     }
 
     /**

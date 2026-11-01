@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain\Channel;
 
 use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
+use ItPack\AsyncIt\Contract\Exception\ChannelException;
 
 /**
  * Shared channel lifecycle: closed-state tracking, `close()`, and the
@@ -22,6 +23,35 @@ use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 trait ChannelBehaviorTrait
 {
     private bool $closed = false;
+
+    public function send(mixed $value): bool
+    {
+        $this->requireOpen();
+
+        if (!$this->channel->push($value)) {
+            throw new ChannelException(
+                'Could not send value to channel.',
+            );
+        }
+
+        return true;
+    }
+
+    public function trySend(mixed $value): bool
+    {
+        $this->requireOpen();
+
+        if ($this->channel->isFull()) {
+            return false;
+        }
+
+        return $this->channel->push($value);
+    }
+
+    public function receive(): mixed
+    {
+        return $this->channel->pop();
+    }
 
     public function isClosed(): bool
     {
@@ -81,7 +111,9 @@ trait ChannelBehaviorTrait
     protected function requireOpen(): void
     {
         if ($this->closed) {
-            throw new ChannelClosedException();
+            throw new ChannelClosedException(
+                'Channel is closed.',
+            );
         }
     }
 }
