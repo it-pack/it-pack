@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Domain;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\Behavior\TaskBehavior;
 use ItPack\AsyncIt\Domain\Exception\ConflictingCompletionException;
@@ -34,7 +35,7 @@ final class Task implements TaskInterface
     use TaskBehavior;
 
     public function __construct(
-        TaskId $id,
+        TaskIdInterface $id,
         ExecutionIdInterface $executionId,
         CancellationScopeInterface $cancellationScope,
         TaskStatus $status = TaskStatus::Created,
