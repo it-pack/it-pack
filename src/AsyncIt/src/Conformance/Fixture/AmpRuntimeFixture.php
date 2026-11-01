@@ -16,6 +16,8 @@ final class AmpRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
     use RuntimeFixtureTrait;
 
+    public const string PORT_NAME = 'AsyncRuntime/Amp';
+
     public function __construct()
     {
         $this->initRuntimeFixture(new AmpPollerBridge(), new MemoryContextStorage(), new AmpPollerBridge());
@@ -23,6 +25,6 @@ final class AmpRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function portName(): string
     {
-        return 'AsyncRuntime/Amp';
+        return self::PORT_NAME;
     }
 }

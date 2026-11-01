@@ -16,6 +16,8 @@ final class ReactPhpRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
     use RuntimeFixtureTrait;
 
+    public const string PORT_NAME = 'AsyncRuntime/ReactPhp';
+
     public function __construct(object $loop)
     {
         $this->initRuntimeFixture(
@@ -27,6 +29,6 @@ final class ReactPhpRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function portName(): string
     {
-        return 'AsyncRuntime/ReactPhp';
+        return self::PORT_NAME;
     }
 }

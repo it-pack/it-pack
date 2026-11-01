@@ -10,10 +10,8 @@ use ItPack\AsyncIt\Contract\Port\DeadLetterQueueInterface;
 use ItPack\AsyncIt\Contract\Port\RemoteSchedulerPortInterface;
 use ItPack\AsyncIt\Contract\PromiseInterface;
 use ItPack\AsyncIt\Contract\RemoteTaskInterface;
-use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Domain\Federation\CancellationToken;
 use ItPack\AsyncIt\Domain\RemoteTask;
-use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 
@@ -81,7 +79,7 @@ final readonly class FederatedScheduler
         $token = CancellationToken::fromCancellationScope($scope, $scopeId);
 
         $taskWithToken = new RemoteTask(
-            $this->toTaskId($task->id()),
+            $task->id(),
             $task->operation(),
             $task->payload() + [
                 'cancellation_token_scope_id' => $token->scopeId(),
@@ -105,14 +103,5 @@ final readonly class FederatedScheduler
         }
 
         return $promise;
-    }
-
-    private function toTaskId(TaskIdInterface $id): TaskId
-    {
-        if ($id instanceof TaskId) {
-            return $id;
-        }
-
-        return new TaskId((string) $id);
     }
 }

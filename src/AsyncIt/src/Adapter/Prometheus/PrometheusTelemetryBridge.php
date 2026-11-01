@@ -37,6 +37,8 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  */
 final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
 {
+    private const string DEFAULT_STATUS = 'succeeded';
+
     private bool $initialized = false;
 
     /**
@@ -177,7 +179,7 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
     {
         $this->recordGauge('asyncit_tasks_runnable', -1);
 
-        $status = $context['status'] ?? 'succeeded';
+        $status = $context['status'] ?? self::DEFAULT_STATUS;
 
         /** @phpstan-ignore-next-line */
         $this->instruments['asyncit_tasks_completed_total']->incBy(1, [$status]);

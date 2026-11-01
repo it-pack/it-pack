@@ -45,6 +45,8 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
 
     public const string DEDUPE_KEY = self::PREFIX . 'dedup';
 
+    public const int MAX_KEY_LENGTH = 255;
+
     private const int LIST_PAGE_SIZE = 100;
 
     public function __construct(
@@ -229,7 +231,7 @@ final readonly class RedisTaskQueue implements PersistentTaskQueueInterface
             throw new InvalidArgumentException('Idempotency key must not be empty.');
         }
 
-        if (strlen($key) > 255) {
+        if (strlen($key) > self::MAX_KEY_LENGTH) {
             throw new InvalidArgumentException('Idempotency key must not exceed 255 characters.');
         }
 

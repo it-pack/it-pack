@@ -22,6 +22,8 @@ use Random\RandomException;
  */
 final readonly class RetryPolicy implements RetryPolicyInterface
 {
+    public const int DEFAULT_MAX_ATTEMPTS = 3;
+
     public int $maxAttempts;
 
     public DurationInterface $baseDelay;
@@ -48,7 +50,7 @@ final readonly class RetryPolicy implements RetryPolicyInterface
         ?JitterStrategy $jitter = null,
         ?array $retryable = null,
     ) {
-        $this->maxAttempts = $maxAttempts ?? 3;
+        $this->maxAttempts = $maxAttempts ?? self::DEFAULT_MAX_ATTEMPTS;
         $this->baseDelay = $baseDelay ?? Duration::ofNanoseconds(1_000_000_000);
         $this->maxDelay = $maxDelay ?? Duration::ofNanoseconds(30_000_000_000);
         $this->strategy = $strategy ?? RetryStrategy::Exponential;

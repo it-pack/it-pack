@@ -30,28 +30,6 @@ final class SwoolePoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    /**
-     * @var array<string, mixed> id => stream
-     */
-    private array $handles = [];
-
-    /**
-     * @var array<string, true> ids registered with the Swoole reactor
-     */
-    private array $swooleRegistered = [];
-
-    /**
-     * @var list<mixed> streams that became readable during the last await() call
-     */
-    private array $readyReadStreams = [];
-
-    /**
-     * @var list<mixed> streams that became writable during the last await() call
-     */
-    private array $readyWriteStreams = [];
-
-    private int $counter = 0;
-
     public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'swoole-' . ++$this->counter;
@@ -66,42 +44,16 @@ final class SwoolePoller implements PollerPortInterface
     {
         $id = $handle->id;
 
-        if (isset($this->swooleRegistered[$id])) {
+        if (isset($this->registered[$id])) {
             $stream = $this->handles[$id] ?? null;
             if (is_resource($stream)) {
                 @Event::del($stream);
             }
 
-            unset($this->swooleRegistered[$id]);
+            unset($this->registered[$id]);
         }
 
         unset($this->handles[$id]);
-    }
-
-    public function await(int $timeoutNanoseconds): void
-    {
-        $readiness = $this->probeReadiness($this->handles, $timeoutNanoseconds);
-        $this->readyReadStreams = $readiness['read'];
-        $this->readyWriteStreams = $readiness['write'];
-    }
-
-    public function readyHandles(): array
-    {
-        $ready = $this->matchReadyHandles(
-            $this->handles,
-            $this->readyReadStreams,
-            $this->readyWriteStreams,
-        );
-
-        $this->readyReadStreams = [];
-        $this->readyWriteStreams = [];
-
-        return $ready;
-    }
-
-    public function activeHandleCount(): int
-    {
-        return count($this->handles);
     }
 
     private function registerWithReactor(string $id, mixed $stream): void
@@ -117,7 +69,7 @@ final class SwoolePoller implements PollerPortInterface
         $registered = @Event::add($stream, read_callback: null, events: SWOOLE_EVENT_READ);
 
         if ($registered === true) {
-            $this->swooleRegistered[$id] = true;
+            $this->registered[$id] = true;
         }
     }
 }

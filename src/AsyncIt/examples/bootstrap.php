@@ -110,6 +110,8 @@ function makeReferenceRuntime(): array
 
     $idGenerator = new RandomIdentifierGenerator();
 
+    $taskIdFactory = new TaskIdFactory($idGenerator);
+
     $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
 
     $channel = new EmulatedChannel();
@@ -119,6 +121,7 @@ function makeReferenceRuntime(): array
         $taskGroupFactory,
         $combinatorFactory,
         new TaskStreamFactory(),
+        $taskIdFactory,
         $idGenerator,
         $capability,
         $channel,

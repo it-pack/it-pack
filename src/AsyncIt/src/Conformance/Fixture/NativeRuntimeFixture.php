@@ -16,6 +16,8 @@ final class NativeRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
     use RuntimeFixtureTrait;
 
+    public const string PORT_NAME = 'AsyncRuntime/Native';
+
     public function __construct()
     {
         $nativeClass = 'Io\\Poll';
@@ -27,6 +29,6 @@ final class NativeRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function portName(): string
     {
-        return 'AsyncRuntime/Native';
+        return self::PORT_NAME;
     }
 }

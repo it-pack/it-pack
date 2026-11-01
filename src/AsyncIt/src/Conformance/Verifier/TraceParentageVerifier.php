@@ -36,6 +36,16 @@ final class TraceParentageVerifier implements VerifierInterface
 {
     public const string ASSERTION = 'E';
 
+    private const string EVENT_SPAWNED = 'task.spawned';
+
+    private const string EVENT_COMPLETED = 'task.completed';
+
+    private const string EVENT_SUSPENDED = 'task.suspended';
+
+    private const string EVENT_RESUMED = 'task.resumed';
+
+    private const int MIN_EVENTS = 2;
+
     public function port(): string
     {
         return SchedulerInterface::class;
@@ -81,29 +91,29 @@ final class TraceParentageVerifier implements VerifierInterface
 
         $spawnEvents = array_filter(
             $events,
-            static fn (array $e): bool => $e['event'] === 'task.spawned',
+            static fn (array $e): bool => $e['event'] === self::EVENT_SPAWNED,
         );
         $completedEvents = array_filter(
             $events,
-            static fn (array $e): bool => $e['event'] === 'task.completed',
+            static fn (array $e): bool => $e['event'] === self::EVENT_COMPLETED,
         );
         $suspendedEvents = array_filter(
             $events,
-            static fn (array $e): bool => $e['event'] === 'task.suspended',
+            static fn (array $e): bool => $e['event'] === self::EVENT_SUSPENDED,
         );
         $resumedEvents = array_filter(
             $events,
-            static fn (array $e): bool => $e['event'] === 'task.resumed',
+            static fn (array $e): bool => $e['event'] === self::EVENT_RESUMED,
         );
 
-        if (count($spawnEvents) < 2) {
+        if (count($spawnEvents) < self::MIN_EVENTS) {
             $result = $result->add(new ConformanceViolation(
                 ViolationVocabulary::TELEMETRY_SPAN_BROKEN_PARENTAGE,
                 'Expected at least 2 spawn events (parent + child), got ' . count($spawnEvents) . '.',
             ));
         }
 
-        if (count($completedEvents) < 2) {
+        if (count($completedEvents) < self::MIN_EVENTS) {
             $result = $result->add(new ConformanceViolation(
                 ViolationVocabulary::TELEMETRY_SPAN_BROKEN_PARENTAGE,
                 'Expected at least 2 completion events, got ' . count($completedEvents) . '.',

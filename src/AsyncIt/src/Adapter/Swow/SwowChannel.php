@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Swow;
 
-use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\Exception\ChannelException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
@@ -37,7 +36,7 @@ final class SwowChannel implements TaskChannelInterface
             throw new ChannelClosedException();
         }
 
-        if(!$this->channel->push($value)) {
+        if (!$this->channel->push($value)) {
             throw new ChannelException(
                 'Could not send value to channel.',
             );

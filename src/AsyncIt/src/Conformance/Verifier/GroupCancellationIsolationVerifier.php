@@ -33,6 +33,10 @@ final class GroupCancellationIsolationVerifier implements VerifierInterface
 {
     public const string ASSERTION = 'A.2';
 
+    private const string RESULT_A = 'a-done';
+
+    private const string RESULT_B = 'b-done';
+
     public function port(): string
     {
         return SchedulerInterface::class;
@@ -63,7 +67,7 @@ final class GroupCancellationIsolationVerifier implements VerifierInterface
                 $task = $scheduler->currentTask();
                 $observed['childA_task'] = $task?->id()->value;
 
-                return 'a-done';
+                return self::RESULT_A;
             });
 
             $valueA = $scheduler->await($childA);
@@ -74,7 +78,7 @@ final class GroupCancellationIsolationVerifier implements VerifierInterface
                 $task = $scheduler->currentTask();
                 $observed['childB_task'] = $task?->id()->value;
 
-                return 'b-done';
+                return self::RESULT_B;
             });
 
             $valueB = $scheduler->await($childB);
@@ -93,7 +97,7 @@ final class GroupCancellationIsolationVerifier implements VerifierInterface
             ));
         }
 
-        if ($observed['resultA'] !== 'a-done' || $observed['resultB'] !== 'b-done') {
+        if ($observed['resultA'] !== self::RESULT_A || $observed['resultB'] !== self::RESULT_B) {
             return $result->add(new ConformanceViolation(
                 ViolationVocabulary::CONTEXT_BLEED,
                 'GroupCancellationIsolationVerifier: result cross-contamination — child returned wrong value.',

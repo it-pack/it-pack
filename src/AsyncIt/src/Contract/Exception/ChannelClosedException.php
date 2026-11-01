@@ -12,6 +12,6 @@ use RuntimeException;
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  */
-final class ChannelClosedException extends ChannelException
+final class ChannelClosedException extends RuntimeException implements AsyncItExceptionInterface
 {
 }

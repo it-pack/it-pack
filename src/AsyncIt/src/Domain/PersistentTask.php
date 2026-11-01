@@ -28,7 +28,7 @@ final readonly class PersistentTask implements PersistentTaskInterface
      * @param array<string, mixed> $payload
      */
     public function __construct(
-        public TaskId $id,
+        public TaskIdInterface $id,
         public string $operation,
         public array $payload = [],
         public ?DurationInterface $deadline = null,

@@ -8,6 +8,7 @@ use Generator;
 use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskIdFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskStreamFactory;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
@@ -256,6 +257,67 @@ final class AsyncRuntimeTest extends TestCase
         });
     }
 
+    public function testRaceReturnsFirstCompletedResult(): void
+    {
+        $runtime = $this->runtime();
+
+        $value = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static fn (): mixed => $runtime->race([
+                static fn (): int => 1,
+                static fn (): int => 2,
+            ]),
+        );
+
+        self::assertSame(1, $value);
+    }
+
+    public function testAllReturnsAllResultsInSpawnOrder(): void
+    {
+        $runtime = $this->runtime();
+
+        $results = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static fn (): array => $runtime->all([
+                static fn (): int => 10,
+                static fn (): int => 20,
+                static fn (): int => 30,
+            ]),
+        );
+
+        self::assertSame([10, 20, 30], $results);
+    }
+
+    public function testAnyReturnsFirstSucceededResult(): void
+    {
+        $runtime = $this->runtime();
+
+        $value = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static fn (): mixed => $runtime->any([
+                static fn (): int => 99,
+                static fn (): int => 1,
+            ]),
+        );
+
+        self::assertSame(99, $value);
+    }
+
+    public function testSelectReturnsWinningTaskAndResult(): void
+    {
+        $runtime = $this->runtime();
+
+        $outcome = $runtime->run(
+            new ReferenceExecutionScope('e'),
+            static fn (): array => $runtime->select([
+                static fn (): int => 7,
+            ]),
+        );
+
+        self::assertSame(7, $outcome['result']);
+        self::assertNotNull($outcome['task']);
+    }
+
     public function testOnCapabilitiesChangedSwapsDescriptorWhenSchedulerActive(): void
     {
         $runtime = $this->runtime();
@@ -296,6 +358,7 @@ final class AsyncRuntimeTest extends TestCase
         $taskGroupFactory = $this->createMock(TaskGroupFactoryInterface::class);
         $combinatorFactory = $this->createMock(CombinatorFactoryInterface::class);
         $taskStreamFactory = new TaskStreamFactory();
+        $taskIdFactory = $this->createMock(TaskIdFactoryInterface::class);
 
         $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
 
@@ -304,6 +367,7 @@ final class AsyncRuntimeTest extends TestCase
             $taskGroupFactory,
             $combinatorFactory,
             $taskStreamFactory,
+            $taskIdFactory,
             $idGenerator,
             $capability,
             $channel,
