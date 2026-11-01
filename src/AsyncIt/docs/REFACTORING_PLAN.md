@@ -201,12 +201,20 @@ Addresses REVIEW §9 (H4): below-95% coverage, empty Integration/Concurrency sui
 
 Addresses REVIEW §3 / M6 (phpbench configured, no benchmarks written).
 
-- [ ] **P10.1** Add phpbench benchmarks for task spawn/completion.
-- [ ] **P10.2** Add benchmarks for Fiber suspension/resumption.
-- [ ] **P10.3** Add benchmarks for poll-handle registration/teardown.
-- [ ] **P10.4** Run benchmarks; document baseline measurements in `docs/` (do not claim improvement without measurement).
+- [x] **P10.1** Add phpbench benchmarks for task spawn/completion. → `benchmarks/RuntimeBenchmarks.php::benchRunSimpleOperation`
+- [x] **P10.2** Add benchmarks for Fiber suspension/resumption. → `benchmarks/RuntimeBenchmarks.php::benchRunWithAwaitDelay`
+- [x] **P10.3** Add benchmarks for poll-handle registration/teardown. → `benchmarks/PollerBenchmarks.php::benchRegisterRelease`
+- [x] **P10.4** Run benchmarks; document baseline measurements in `docs/` (do not claim improvement without measurement). → Baselines below; baseline doc at `docs/BENCHMARKS.md`.
 
-**Exit criteria:** Benchmarks exist and run; baselines documented.
+### P10 baseline measurements (PHP 8.5.12, opcache/xdebug off)
+
+| Benchmark | Subject | Mode | Revs | Iterations | Mem peak | RStDev |
+|---|---|---|---|---|---|---|
+| `RuntimeBenchmarks::benchRunSimpleOperation` | task spawn + completion | 105.118μs | 1000 | 5 | 10.621mb | ±1.84% |
+| `RuntimeBenchmarks::benchRunWithAwaitDelay` | Fiber suspend/resume (`awaitDelay`) | 129.281μs | 1000 | 5 | 10.929mb | ±4.43% |
+| `PollerBenchmarks::benchRegisterRelease` | poll-handle register/release | 0.654μs | 10000 | 5 | 8.432mb | ±1.54% |
+
+**Exit criteria:** Benchmarks exist and run; baselines documented. No improvement claimed without measurement.
 
 ---
 

@@ -307,6 +307,7 @@ final class AsyncRuntimeTest extends TestCase
     {
         $runtime = $this->runtime();
 
+        /** @var array{task: TaskInterface|null, result: mixed} $outcome */
         $outcome = $runtime->run(
             new ReferenceExecutionScope('e'),
             static fn (): array => $runtime->select([
