@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Application\Factory\TaskIdFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
@@ -71,7 +72,9 @@ final class FiberTaskSchedulerFailureTest extends TestCase
         return new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
-            new TaskFactory(new RandomIdentifierGenerator()),
+            new TaskFactory(
+                new TaskIdFactory(new RandomIdentifierGenerator()),
+            ),
             new CancellationScopeFactory(),
             new SystemMonotonicClock(),
             $executionId,
@@ -87,7 +90,9 @@ final class FiberTaskSchedulerFailureTest extends TestCase
     {
         $cancellation = new CancellationScopeFactory()->create();
 
-        return new TaskFactory(new RandomIdentifierGenerator())->create(
+        return new TaskFactory(
+            new TaskIdFactory(new RandomIdentifierGenerator()),
+        )->create(
             ExecutionId::fromString('test-exec'),
             $cancellation,
         );

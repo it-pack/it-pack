@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\ReferenceExecutionScopeFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerLifecycleArtifactFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
+use ItPack\AsyncIt\Application\Factory\TaskIdFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
@@ -134,7 +135,9 @@ trait RuntimeFixtureTrait
         $this->scheduler = new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
-            new TaskFactory(new RandomIdentifierGenerator()),
+            new TaskFactory(
+                new TaskIdFactory(new RandomIdentifierGenerator()),
+            ),
             new CascadingCancellationScopeFactory($this->rootScope),
             $this->clock,
             $executionId,

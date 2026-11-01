@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ItPack\AsyncIt\Application\Factory\TaskIdFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Context\MemoryContextStorage;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
@@ -72,7 +73,7 @@ function makeReferenceRuntime(): array
         new FiberFactory(),
         new TaskRecordFactory(),
         new TaskFactory(
-            new RandomIdentifierGenerator(),
+            new TaskIdFactory(new RandomIdentifierGenerator()),
         ),
         new CancellationScopeFactory(),
         $clock,
@@ -92,7 +93,7 @@ function makeReferenceRuntime(): array
         new FiberFactory(),
         new TaskRecordFactory(),
         new TaskFactory(
-            new RandomIdentifierGenerator(),
+            new TaskIdFactory(new RandomIdentifierGenerator()),
         ),
         new CancellationScopeFactory(),
         $clock,

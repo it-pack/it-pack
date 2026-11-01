@@ -10,7 +10,6 @@ use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\Task;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
-use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 
 /**
  * Builds a {@see Task} with a generated {@see TaskId} and the supplied owning
@@ -21,8 +20,9 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
  */
 final readonly class TaskFactory implements TaskFactoryInterface
 {
-    public function __construct(private IdentifierGeneratorInterface $idGenerator)
-    {
+    public function __construct(
+        private TaskIdFactoryInterface $taskIdFactory,
+    ) {
     }
 
     public function create(
@@ -30,9 +30,7 @@ final readonly class TaskFactory implements TaskFactoryInterface
         CancellationScopeInterface $scope
     ): TaskInterface {
         return $this->createWithId(
-            new TaskId(
-                $this->idGenerator->generate()
-            ),
+            $this->taskIdFactory->create(),
             $executionId,
             $scope
         );
