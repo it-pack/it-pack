@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Poller;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * Reference poller backed by `stream_select()`.
@@ -25,16 +23,18 @@ final class SelectPoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    public function register(mixed $stream): StreamPollHandleInterface
+    protected function getHandleIdPrefix(): string
     {
-        $id = 'select-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        return new StreamPollHandle($id);
+        return 'select-';
     }
 
-    public function release(StreamPollHandleInterface $handle): void
+    protected function registerWithReactor(string $id, mixed $stream): void
     {
-        unset($this->handles[$handle->id]);
+        // No reactor: select-based poller has no reactor registration.
+    }
+
+    protected function releaseFromReactor(mixed $callbackId): void
+    {
+        // No reactor: nothing to release.
     }
 }

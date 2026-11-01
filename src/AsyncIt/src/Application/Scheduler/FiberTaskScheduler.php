@@ -66,6 +66,7 @@ use Throwable;
 final class FiberTaskScheduler implements
     EngineSchedulerInterface,
     ResultTypedSchedulerInterface,
+    SchedulerIntrospectionInterface,
     AwaitableIOInterface,
     DeadlineSchedulerInterface
 {

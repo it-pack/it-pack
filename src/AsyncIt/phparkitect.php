@@ -113,10 +113,19 @@ return static function (Config $config): void {
                 public function evaluate(ClassDescription $theClass, Violations $violations, string $because): void
                 {
                     foreach ($theClass->getDependencies() as $dependency) {
+                        $fqcn = $dependency->getFQCN()->toString();
+
+                        // Exception classes are part of the public contract API
+                        // (documented via @throws) and are intentionally
+                        // referenced by interfaces.
+                        if (str_starts_with($fqcn, 'ItPack\\AsyncIt\\Contract\\Exception\\')) {
+                            continue;
+                        }
+
                         if(
-                            interface_exists($dependency->getFQCN()->toString())
-                            || !class_exists($dependency->getFQCN()->toString())
-                            || enum_exists($dependency->getFQCN()->toString())
+                            interface_exists($fqcn)
+                            || !class_exists($fqcn)
+                            || enum_exists($fqcn)
                         ) {
                             continue;
                         }

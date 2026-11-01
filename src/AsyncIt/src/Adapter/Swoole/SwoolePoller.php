@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 use Swoole\Event;
 
 /**
@@ -30,33 +28,12 @@ final class SwoolePoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    public function register(mixed $stream): StreamPollHandleInterface
+    protected function getHandleIdPrefix(): string
     {
-        $id = 'swoole-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        $this->registerWithReactor($id, $stream);
-
-        return new StreamPollHandle($id);
+        return 'swoole-';
     }
 
-    public function release(StreamPollHandleInterface $handle): void
-    {
-        $id = $handle->id;
-
-        if (isset($this->registered[$id])) {
-            $stream = $this->handles[$id] ?? null;
-            if (is_resource($stream)) {
-                @Event::del($stream);
-            }
-
-            unset($this->registered[$id]);
-        }
-
-        unset($this->handles[$id]);
-    }
-
-    private function registerWithReactor(string $id, mixed $stream): void
+    protected function registerWithReactor(string $id, mixed $stream): void
     {
         if (!is_resource($stream) || !class_exists(Event::class)) {
             return;
@@ -69,7 +46,18 @@ final class SwoolePoller implements PollerPortInterface
         $registered = @Event::add($stream, read_callback: null, events: SWOOLE_EVENT_READ);
 
         if ($registered === true) {
-            $this->registered[$id] = true;
+            $this->registered[$id] = $stream;
         }
+    }
+
+    protected function releaseFromReactor(mixed $callbackId): void
+    {
+        $stream = $callbackId;
+
+        if (!is_resource($stream)) {
+            return;
+        }
+
+        Event::del($stream);
     }
 }

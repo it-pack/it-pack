@@ -6,6 +6,8 @@ namespace Tests\Unit\Conformance\Contract;
 
 use ItPack\AsyncIt\Conformance\Contract\PortFixtureInterface;
 use ItPack\AsyncIt\Conformance\Contract\VerifierInterface;
+use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
+use ItPack\AsyncIt\Conformance\Result\ConformanceResult;
 use ItPack\AsyncIt\Contract\SchedulerInterface;
 use PHPUnit\Framework\TestCase;
 
@@ -31,6 +33,11 @@ final class ContractInterfacesTest extends TestCase
             public function port(): string
             {
                 return SchedulerInterface::class;
+            }
+
+            public function verify(AsyncRuntimeFixtureInterface $fixture): ConformanceResult
+            {
+                return new ConformanceResult(SchedulerInterface::class);
             }
         });
     }

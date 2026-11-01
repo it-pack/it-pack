@@ -32,7 +32,7 @@ use Throwable;
  * @see https://w3id.org/itpack/asyncit#Scheduler
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface
+final class CanaryScheduler implements CanarySchedulerInterface
 {
     public const float MAX_PROBABILITY = 1.0;
 

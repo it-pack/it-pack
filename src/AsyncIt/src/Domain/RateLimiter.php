@@ -19,7 +19,7 @@ use ItPack\RunIt\Domain\Shared\Duration;
  *
  * @see https://w3id.org/itpack/asyncit#RateLimiter
  */
-final class RateLimiter
+final class RateLimiter implements RateLimiterInterface
 {
     private int $tokens;
 

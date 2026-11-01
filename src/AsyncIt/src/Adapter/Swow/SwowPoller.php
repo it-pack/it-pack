@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swow;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 use Swow\Event;
 use Throwable;
 
@@ -30,37 +28,12 @@ final class SwowPoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    public function register(mixed $stream): StreamPollHandleInterface
+    protected function getHandleIdPrefix(): string
     {
-        $id = 'swow-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        $this->registerWithReactor($id, $stream);
-
-        return new StreamPollHandle($id);
+        return 'swow-';
     }
 
-    public function release(StreamPollHandleInterface $handle): void
-    {
-        $id = $handle->id;
-
-        if (isset($this->registered[$id])) {
-            $stream = $this->handles[$id] ?? null;
-            if (is_resource($stream)) {
-                try {
-                    Event::del($stream);
-                } catch (Throwable) {
-                    // Reactor may not be running; bookkeeping is the source of truth.
-                }
-            }
-
-            unset($this->registered[$id]);
-        }
-
-        unset($this->handles[$id]);
-    }
-
-    private function registerWithReactor(string $id, mixed $stream): void
+    protected function registerWithReactor(string $id, mixed $stream): void
     {
         if (!is_resource($stream) || !class_exists('Swow\\Event')) {
             return;
@@ -73,7 +46,22 @@ final class SwowPoller implements PollerPortInterface
         $registered = @Event::add($stream, null, null, Event::TYPE_READ);
 
         if ($registered === true) {
-            $this->registered[$id] = true;
+            $this->registered[$id] = $stream;
+        }
+    }
+
+    protected function releaseFromReactor(mixed $callbackId): void
+    {
+        $stream = $callbackId;
+
+        if (!is_resource($stream)) {
+            return;
+        }
+
+        try {
+            Event::del($stream);
+        } catch (Throwable) {
+            // Reactor may not be running; bookkeeping is the source of truth.
         }
     }
 }

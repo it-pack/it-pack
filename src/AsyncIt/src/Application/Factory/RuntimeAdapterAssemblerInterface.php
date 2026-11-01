@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Assembles the adapter-backed primitives (poller, context storage, channel)
@@ -19,5 +19,5 @@ use ItPack\AsyncIt\Domain\CapabilityDescriptor;
  */
 interface RuntimeAdapterAssemblerInterface
 {
-    public function assemble(RuntimeAdapterKind $kind, CapabilityDescriptor $descriptor): RuntimeAssembly;
+    public function assemble(RuntimeAdapterKind $kind, CapabilityDescriptorInterface $descriptor): RuntimeAssemblyInterface;
 }

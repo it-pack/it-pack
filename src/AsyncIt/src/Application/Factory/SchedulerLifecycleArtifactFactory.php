@@ -20,7 +20,7 @@ use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
  *
  * @see https://w3id.org/itpack/asyncit#Task
  */
-final readonly class SchedulerLifecycleArtifactFactory
+final readonly class SchedulerLifecycleArtifactFactory implements SchedulerLifecycleArtifactFactoryInterface
 {
     public function __construct(
         private SequenceAllocatorInterface $sequenceAllocator,

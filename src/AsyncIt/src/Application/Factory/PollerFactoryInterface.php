@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Creates the poller backend (Io\Poll, SelectPoller, …) selected by capability
@@ -17,5 +17,5 @@ use ItPack\AsyncIt\Domain\CapabilityDescriptor;
   */
 interface PollerFactoryInterface
 {
-    public function create(CapabilityDescriptor $descriptor): PollerPortInterface;
+    public function create(CapabilityDescriptorInterface $descriptor): PollerPortInterface;
 }

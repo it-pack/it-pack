@@ -6,7 +6,6 @@ namespace ItPack\AsyncIt\Application\Poller;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\PollerVocabulary;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
 use ItPack\AsyncIt\Domain\StreamPollHandle;
 
@@ -33,36 +32,8 @@ final class NativePoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    /**
-     * @var array<string, true> ids registered with the native poll
-     */
-    private array $nativeRegistered = [];
-
     public function __construct(private readonly object $poll)
     {
-    }
-
-    public function register(mixed $stream): StreamPollHandleInterface
-    {
-        $id = 'native-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        $this->registerWithPoll($id, $stream);
-
-        return new StreamPollHandle($id);
-    }
-
-    public function release(StreamPollHandleInterface $handle): void
-    {
-        $id = $handle->id;
-
-        if (isset($this->nativeRegistered[$id])) {
-            $stream = $this->handles[$id] ?? null;
-            $this->unregisterWithPoll($stream);
-            unset($this->nativeRegistered[$id]);
-        }
-
-        unset($this->handles[$id]);
     }
 
     public function await(int $timeoutNanoseconds): void
@@ -99,6 +70,29 @@ final class NativePoller implements PollerPortInterface
         return $ready;
     }
 
+    protected function getHandleIdPrefix(): string
+    {
+        return 'native-';
+    }
+
+    protected function registerWithReactor(string $id, mixed $stream): void
+    {
+        $this->registerWithPoll($id, $stream);
+    }
+
+    protected function releaseFromReactor(mixed $callbackId): void
+    {
+        $stream = $callbackId;
+
+        if (!is_resource($stream) || !method_exists($this->poll, 'unregister')) {
+            return;
+        }
+
+        /** @var callable $unregister */
+        $unregister = [$this->poll, 'unregister'];
+        ($unregister)($stream);
+    }
+
     private function registerWithPoll(string $id, mixed $stream): void
     {
         if (!is_resource($stream) || !method_exists($this->poll, 'register')) {
@@ -111,18 +105,7 @@ final class NativePoller implements PollerPortInterface
         $registered = ($register)($stream, PollerVocabulary::READABLE);
 
         if ($registered === true) {
-            $this->nativeRegistered[$id] = true;
+            $this->registered[$id] = $stream;
         }
-    }
-
-    private function unregisterWithPoll(mixed $stream): void
-    {
-        if (!is_resource($stream) || !method_exists($this->poll, 'unregister')) {
-            return;
-        }
-
-        /** @var callable $unregister */
-        $unregister = [$this->poll, 'unregister'];
-        ($unregister)($stream);
     }
 }

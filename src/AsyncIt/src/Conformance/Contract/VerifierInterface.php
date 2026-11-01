@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Conformance\Contract;
 
+use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
+
 /**
  * Common surface for a port conformance verifier.
  *
@@ -21,4 +23,10 @@ interface VerifierInterface
      * Returns the fully-qualified port interface this verifier targets.
      */
     public function port(): string;
+
+    /**
+     * Runs the conformance check against the supplied fixture and returns the
+     * collected result.
+     */
+    public function verify(AsyncRuntimeFixtureInterface $fixture): ConformanceResultInterface;
 }

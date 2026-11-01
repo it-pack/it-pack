@@ -16,9 +16,10 @@ use ValueError;
  * Provides a stateless, portable {@see stream_select()} readiness probe plus
  * the handle registry state (`$handles`, `$counter`) and the identical
  * `await()`/`readyHandles()` lifecycle used by every poller whose readiness
- * reduces to a stream-select check (SelectPoller plus the Swoole, Swow and
- * Revolt reactor adapters). Each consumer supplies its own reactor-specific
- * `register()`/`release()`.
+ * reduces to a stream-select check. Each consumer supplies its own
+ * reactor-specific prefix and `register()`/`release()` hooks via the abstract
+ * methods below; the shared `register()`/`release()` handle ID generation,
+ * handle storage, reactor registration/release, and handle cleanup.
  *
  * @see https://w3id.org/itpack/asyncit#Poller
  * @see https://w3id.org/itpack/asyncit#StreamPollHandle
@@ -32,7 +33,8 @@ trait StreamSelectPollerTrait
 
     /**
      * @var array<string, mixed> ids registered with the reactor (value is
-     *                             reactor-specific, e.g. a callback id)
+     *                             reactor-specific, e.g. a callback id or the
+     *                             stream itself)
      */
     private array $registered = [];
 
@@ -47,6 +49,30 @@ trait StreamSelectPollerTrait
     private array $readyWriteStreams = [];
 
     private int $counter = 0;
+
+    public function register(mixed $stream): StreamPollHandleInterface
+    {
+        $id = $this->getHandleIdPrefix() . ++$this->counter;
+        $this->handles[$id] = $stream;
+        $this->registerWithReactor($id, $stream);
+
+        return new StreamPollHandle($id);
+    }
+
+    public function release(StreamPollHandleInterface $handle): void
+    {
+        $id = $handle->id;
+
+        if (isset($this->registered[$id])) {
+            try {
+                $this->releaseFromReactor($this->registered[$id]);
+            } finally {
+                unset($this->registered[$id]);
+            }
+        }
+
+        unset($this->handles[$id]);
+    }
 
     public function await(int $timeoutNanoseconds): void
     {
@@ -73,6 +99,24 @@ trait StreamSelectPollerTrait
     {
         return count($this->handles);
     }
+
+    /**
+     * Per-adapter handle id prefix, e.g. `'select-'`, `'native-'`, `'revolt-'`.
+     */
+    abstract protected function getHandleIdPrefix(): string;
+
+    /**
+     * Registers the stream with the runtime reactor, if supported. Stores any
+     * reactor-specific bookkeeping value in {@see $registered} keyed by $id so
+     * {@see releaseFromReactor()} can remove it later.
+     */
+    abstract protected function registerWithReactor(string $id, mixed $stream): void;
+
+    /**
+     * Releases the reactor watcher identified by the value previously stored
+     * in {@see $registered} for $id.
+     */
+    abstract protected function releaseFromReactor(mixed $callbackId): void;
 
     /**
      * Blocks until at least one handle is ready for reading or writing, or the
@@ -113,10 +157,15 @@ trait StreamSelectPollerTrait
         $except = [];
 
         try {
-            @stream_select($read, $write, $except, $seconds, $microseconds);
+            $readyCount = @stream_select($read, $write, $except, $seconds, $microseconds);
         } catch (ValueError) {
-            // No selectable descriptors (e.g. in-memory test streams); the
-            // scheduler re-probes on the next tick.
+            // Invalid stream_select arguments; treat as no readiness.
+            return ['read' => [], 'write' => []];
+        }
+
+        if ($readyCount === false) {
+            // stream_select failed (e.g. invalid descriptor); treat as no
+            // readiness so the scheduler re-probes on the next tick.
             return ['read' => [], 'write' => []];
         }
 

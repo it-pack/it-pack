@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
+use ItPack\AsyncIt\Contract\CombinatorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
-use ItPack\AsyncIt\Domain\AllGroup;
-use ItPack\AsyncIt\Domain\AnyGroup;
-use ItPack\AsyncIt\Domain\RaceGroup;
-use ItPack\AsyncIt\Domain\SelectGroup;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 /**
@@ -24,23 +21,23 @@ interface CombinatorFactoryInterface
         TaskIdInterface $id,
         EngineSchedulerInterface $scheduler,
         ExecutionIdInterface $executionId,
-    ): RaceGroup;
+    ): CombinatorInterface;
 
     public function createAll(
         TaskIdInterface $id,
         EngineSchedulerInterface $scheduler,
         ExecutionIdInterface $executionId,
-    ): AllGroup;
+    ): CombinatorInterface;
 
     public function createAny(
         TaskIdInterface $id,
         EngineSchedulerInterface $scheduler,
         ExecutionIdInterface $executionId,
-    ): AnyGroup;
+    ): CombinatorInterface;
 
     public function createSelect(
         TaskIdInterface $id,
         EngineSchedulerInterface $scheduler,
         ExecutionIdInterface $executionId,
-    ): SelectGroup;
+    ): CombinatorInterface;
 }

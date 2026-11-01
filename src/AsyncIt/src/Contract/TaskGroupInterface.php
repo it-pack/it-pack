@@ -63,6 +63,11 @@ interface TaskGroupInterface extends TaskInterface
     public function failure(): ?Throwable;
 
     /**
+     * Marks the group as failed with the given throwable.
+     */
+    public function fail(Throwable $throwable): void;
+
+    /**
      * The backpressure policy applied when maxConcurrency is exceeded.
      *
      * @see https://w3id.org/itpack/asyncit-taxonomy#backpressure-block

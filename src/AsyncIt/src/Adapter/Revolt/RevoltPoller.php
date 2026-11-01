@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Revolt;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 use Revolt\EventLoop;
 use Throwable;
 
@@ -31,29 +29,12 @@ final class RevoltPoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    public function register(mixed $stream): StreamPollHandleInterface
+    protected function getHandleIdPrefix(): string
     {
-        $id = 'revolt-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        $this->registerWithReactor($id, $stream);
-
-        return new StreamPollHandle($id);
+        return 'revolt-';
     }
 
-    public function release(StreamPollHandleInterface $handle): void
-    {
-        $id = $handle->id;
-
-        if (isset($this->registered[$id])) {
-            $this->releaseFromReactor($this->registered[$id]);
-            unset($this->registered[$id]);
-        }
-
-        unset($this->handles[$id]);
-    }
-
-    private function registerWithReactor(string $id, mixed $stream): void
+    protected function registerWithReactor(string $id, mixed $stream): void
     {
         if (!is_resource($stream) || !class_exists(EventLoop::class)) {
             return;
@@ -62,14 +43,14 @@ final class RevoltPoller implements PollerPortInterface
         // Revolt's loop only accepts real descriptors; for non-selectable
         // resources (e.g. php://memory) registration returns null/false, which
         // we ignore — readiness is still probed via stream_select in await().
-        $callbackId = @EventLoop::onReadable($stream, static fn (): null => null);
+        $callbackId = EventLoop::onReadable($stream, static fn (): null => null);
 
         if ($callbackId !== '') {
             $this->registered[$id] = $callbackId;
         }
     }
 
-    private function releaseFromReactor(mixed $callbackId): void
+    protected function releaseFromReactor(mixed $callbackId): void
     {
         if (!is_string($callbackId)) {
             return;

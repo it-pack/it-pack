@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Selects and builds the runtime discovery assembly from a negotiated
@@ -18,5 +18,5 @@ use ItPack\AsyncIt\Domain\CapabilityDescriptor;
   */
 interface RuntimeDiscoveryFactoryInterface
 {
-    public function create(CapabilityDescriptor $descriptor): RuntimeDiscoveryInterface;
+    public function create(CapabilityDescriptorInterface $descriptor): RuntimeDiscoveryInterface;
 }

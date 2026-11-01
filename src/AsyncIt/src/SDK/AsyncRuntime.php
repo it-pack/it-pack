@@ -11,16 +11,16 @@ use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskIdFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskStreamFactoryInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
-use ItPack\AsyncIt\Contract\CapabilityObserverInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Contract\TaskStreamInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
-use ItPack\RunIt\Contract\Application\EngineCapability;
+use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
@@ -47,7 +47,7 @@ use LogicException;
  * @see https://w3id.org/itpack/runit#Execution
  * @api
  */
-final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserverInterface
+final class AsyncRuntime implements AsyncRuntimeInterface
 {
     private ?EngineSchedulerInterface $scheduler = null;
 
@@ -58,7 +58,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         private readonly TaskStreamFactoryInterface $taskStreamFactory,
         private readonly TaskIdFactoryInterface $taskIdFactory,
         private readonly IdentifierGeneratorInterface $idGenerator,
-        private readonly EngineCapability $capability,
+        private readonly EngineCapabilityInterface $capability,
         private readonly TaskChannelInterface $channel,
         private readonly TelemetryBridgeInterface $telemetry,
     ) {
@@ -103,7 +103,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
      *
      * @see https://w3id.org/itpack/asyncit#Task
      */
-    public function spawn(callable $operation, ?TaskId $id = null): TaskInterface
+    public function spawn(callable $operation, TaskIdInterface|null $id = null): TaskInterface
     {
         if (!$this->scheduler instanceof EngineSchedulerInterface) {
             throw new LogicException('spawn() must be called within a running execution.');
@@ -268,7 +268,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         return $this->taskStreamFactory->create($this->scheduler, $generator());
     }
 
-    public function capability(): EngineCapability
+    public function capability(): EngineCapabilityInterface
     {
         return $this->capability;
     }

@@ -17,7 +17,7 @@ use Stringable;
  * @see https://w3id.org/itpack/asyncit#ConformanceViolation
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class ConformanceViolation implements Stringable
+final readonly class ConformanceViolation implements Stringable, ConformanceViolationInterface
 {
     public function __construct(
         public string $id,

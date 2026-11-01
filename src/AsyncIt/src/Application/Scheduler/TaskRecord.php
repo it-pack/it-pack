@@ -16,7 +16,7 @@ use ItPack\AsyncIt\Contract\TaskInterface;
   * @api
 
   */
-final class TaskRecord
+final class TaskRecord implements TaskRecordInterface
 {
     /**
      * @param list<StreamPollHandleInterface> $handles

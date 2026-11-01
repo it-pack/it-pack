@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 
 /**
  * Per-runtime factory contract: each adapter package supplies an implementation
@@ -17,5 +17,5 @@ interface RuntimeAssemblyFactoryInterface
     /**
      * Builds a {@see RuntimeAssembly} for the runtime this factory owns.
      */
-    public function create(CapabilityDescriptor $descriptor): RuntimeAssembly;
+    public function create(CapabilityDescriptorInterface $descriptor): RuntimeAssemblyInterface;
 }

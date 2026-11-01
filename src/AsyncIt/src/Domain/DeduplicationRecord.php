@@ -26,7 +26,7 @@ use ItPack\AsyncIt\Contract\ValueObjectInterface;
  * @see https://w3id.org/itpack/asyncit#hasDeduplicationKey
  * @see https://w3id.org/itpack/runit#executionId
  */
-final readonly class DeduplicationRecord implements ValueObjectInterface
+final readonly class DeduplicationRecord implements ValueObjectInterface, DeduplicationRecordInterface
 {
     public function __construct(
         public string $idempotencyKey,

@@ -24,7 +24,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * @see https://w3id.org/itpack/asyncit#CancellationScope
  * @see \ItPack\AsyncIt\Contract\Port\CancellationReason::SystemShutdown
  */
-final class GracefulShutdown
+final class GracefulShutdown implements GracefulShutdownInterface
 {
     private bool $initiated = false;
 

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Interop\Amp;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * Amp interop {@see PollerPortInterface} bridge.
@@ -33,31 +31,25 @@ final class AmpPollerBridge implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    /**
-     * @var array<string, string> amp watcher ids keyed by handle id
-     */
-    private array $ampIds = [];
-
-    public function register(mixed $stream): StreamPollHandleInterface
+    protected function getHandleIdPrefix(): string
     {
-        $id = 'amp-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        $this->registerWithLoop($id, $stream);
-
-        return new StreamPollHandle($id);
+        return 'amp-';
     }
 
-    public function release(StreamPollHandleInterface $handle): void
+    protected function registerWithReactor(string $id, mixed $stream): void
     {
-        $id = $handle->id;
+        $this->registerWithLoop($id, $stream);
+    }
 
-        if (isset($this->ampIds[$id])) {
-            $this->cancelOnLoop($this->ampIds[$id]);
-            unset($this->ampIds[$id]);
+    protected function releaseFromReactor(mixed $callbackId): void
+    {
+        $watcherId = $callbackId;
+
+        if (!is_string($watcherId)) {
+            return;
         }
 
-        unset($this->handles[$id]);
+        $this->cancelOnLoop($watcherId);
     }
 
     private function registerWithLoop(string $id, mixed $stream): void
@@ -73,7 +65,7 @@ final class AmpPollerBridge implements PollerPortInterface
         $watcherId = ($onReadable)($stream, static fn (): null => null);
 
         if (is_string($watcherId) && $watcherId !== '') {
-            $this->ampIds[$id] = $watcherId;
+            $this->registered[$id] = $watcherId;
         }
     }
 

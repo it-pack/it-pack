@@ -8,7 +8,7 @@ use Fiber;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltChannel;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltPoller;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
@@ -26,7 +26,7 @@ final readonly class RevoltAssemblyFactory implements RuntimeAssemblyFactoryInte
     ) {
     }
 
-    public function create(CapabilityDescriptor $descriptor): RuntimeAssembly
+    public function create(CapabilityDescriptorInterface $descriptor): RuntimeAssemblyInterface
     {
         /** @var WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiberMap */
         $perFiberMap = new WeakMap();

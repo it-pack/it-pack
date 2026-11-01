@@ -32,7 +32,8 @@ final readonly class SchedulerLifecycleArtifact implements
     ExecutionArtifactInterface,
     ExecutionOwnedInterface,
     SequencedInterface,
-    TimestampedInterface
+    TimestampedInterface,
+    SchedulerLifecycleArtifactInterface
 {
     public function __construct(
         public TaskIdInterface $taskId,
@@ -43,6 +44,26 @@ final readonly class SchedulerLifecycleArtifact implements
         public ?ArtifactSequenceInterface $sequence = null,
         public ?InstantInterface $timestamp = null,
     ) {
+    }
+
+    public function taskId(): TaskIdInterface
+    {
+        return $this->taskId;
+    }
+
+    public function kind(): string
+    {
+        return $this->kind;
+    }
+
+    public function status(): TaskStatus
+    {
+        return $this->status;
+    }
+
+    public function duration(): ?DurationInterface
+    {
+        return $this->duration;
     }
 
     public function executionId(): ExecutionIdInterface

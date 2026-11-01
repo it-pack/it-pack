@@ -9,4 +9,9 @@ use ItPack\AsyncIt\Contract\TaskIdInterface;
 interface TaskIdFactoryInterface
 {
     public function create(): TaskIdInterface;
+
+    /**
+     * Creates a task id from a caller-supplied string.
+     */
+    public function createWithId(string $id): TaskIdInterface;
 }
