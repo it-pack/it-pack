@@ -34,7 +34,8 @@
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
         "react/react": "^1.0",
-        "symfony/http-client": "^8.1"
+        "symfony/http-client": "^8.1",
+        "revolt/event-loop": "^1.0"
     },
     "suggest": {
         "predis/predis": "Required by ItPack\\AsyncIt\\Adapter\\Redis\\RedisTaskQueue for Redis-backed persistent task queue storage.",

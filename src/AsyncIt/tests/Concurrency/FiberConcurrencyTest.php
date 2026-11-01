@@ -8,6 +8,7 @@ use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * Fiber/coroutine isolation and persistent-worker reuse tests.
@@ -90,5 +91,21 @@ final class FiberConcurrencyTest extends TestCase
         );
 
         self::assertSame(7, $value);
+    }
+
+    public function testTaskFailurePropagatesOriginalException(): void
+    {
+        $runtime = AsyncRuntime::discover();
+        $original = new RuntimeException('boom');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('boom');
+
+        $runtime->run(
+            new ReferenceExecutionScope('failure'),
+            static function () use ($original): never {
+                throw $original;
+            },
+        );
     }
 }

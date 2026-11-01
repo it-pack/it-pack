@@ -81,12 +81,12 @@ final readonly class FederatedScheduler
         $taskWithToken = new RemoteTask(
             $task->id(),
             $task->operation(),
-            $task->payload() + [
+            [
                 'cancellation_token_scope_id' => $token->scopeId(),
                 'cancellation_token_reason' => $token->reason(),
                 'cancellation_token_cancelled' => $token->isCancelled(),
                 'cancellation_token_bound_to' => $task->correlationId(),
-            ],
+            ] + $task->payload(),
             $task->deadline(),
             $task->priority(),
             $task->correlationId(),

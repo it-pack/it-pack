@@ -68,6 +68,26 @@ final class MemoryContextStorageTest extends TestCase
         $storage->detach(new ContextToken(1));
     }
 
+    public function testReAttachRestoresOwnScopeAfterDetachOfOtherScope(): void
+    {
+        $storage = new MemoryContextStorage();
+        $scopeA = $this->createScope();
+        $scopeB = $this->createScope();
+
+        $tokenA = $storage->attach($scopeA);
+        $storage->detach($tokenA);
+        self::assertNull($storage->current(), 'detaching the only scope leaves no ambient context');
+
+        $tokenB = $storage->attach($scopeB);
+        $storage->detach($tokenB);
+        self::assertNull($storage->current(), 'detaching scope B leaves no ambient context');
+
+        $tokenA2 = $storage->attach($scopeA);
+        self::assertSame($scopeA, $storage->current(), 're-attaching scope A restores A, not B');
+        $storage->detach($tokenA2);
+        self::assertNull($storage->current());
+    }
+
     private function createScope(): ExecutionScopeInterface
     {
         return $this->createMock(ExecutionScopeInterface::class);
