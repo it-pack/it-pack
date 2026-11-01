@@ -128,53 +128,53 @@
 **Status:** Complete. All 87 violations resolved (0 remaining). Interfaces created for: `AsyncRuntimeInterface`, `TaskRecordInterface`, `ConformanceResultInterface`, `ConformanceViolationInterface`, `CanarySchedulerInterface`, `RateLimiterInterface`, `SchedulerConfigurationInterface`, `CircuitBreakerInterface`, `DeduplicationRecordInterface`, `CancellationTokenInterface`, `FiberScopeSlotInterface`, `SchedulerLifecycleArtifactInterface`, `RuntimeAssemblyInterface`, `ArtifactNormalizerInterface`, `DeterministicMonotonicClockInterface`, `SchedulerIntrospectionInterface`, `FederatedSchedulerInterface`, `GracefulShutdownInterface`, `SchedulerLifecycleArtifactFactoryInterface`. `VerifierInterface` extended with `verify()`. `TelemetryBridgeInterface` extended with `events()`. `RuntimeDiscoveryInterface` extended with `notifyChanged()`. `TaskGroupInterface` extended with `fail()`. `PersistentTaskInterface` extended with `isDeadlineExceeded()`. phparkitect rule updated to exempt `Contract\Exception` and `Conformance\Result` namespaces (intentional API documentation dependencies).
 
 ### 3.1 — `SDK\AsyncRuntime` (12 violations: methods not backed by interfaces)
-- [ ] Create `AsyncRuntimeInterface` in `src/SDK/` backing all public methods: `channel()`, `telemetry()`, `run()`, `spawn()`, `await()`, `awaitDelay()`, `race()`, `all()`, `any()`, `select()`, `join()`, `stream()`, `capability()`, `health()`, `onCapabilitiesChanged()`, `discover()`
-- [ ] Have `AsyncRuntime` implement `AsyncRuntimeInterface`
-- [ ] Verify `composer architecture` violations for this class resolved
+- [x] Create `AsyncRuntimeInterface` in `src/SDK/` backing all public methods: `channel()`, `telemetry()`, `run()`, `spawn()`, `await()`, `awaitDelay()`, `race()`, `all()`, `any()`, `select()`, `join()`, `stream()`, `capability()`, `health()`, `onCapabilitiesChanged()`, `discover()`
+- [x] Have `AsyncRuntime` implement `AsyncRuntimeInterface`
+- [x] Verify `composer architecture` violations for this class resolved
 
 ### 3.2 — `Application\Scheduler\TaskRecord` (7 violations)
-- [ ] Create `TaskRecordInterface` in `src/Contract/` or `src/Application/Scheduler/`
-- [ ] Back all non-`__` methods: `task()`, `fiber()`, `handles()`, `addHandle()`, `clearHandles()`, `markDone()`, `isDone()`
-- [ ] Have `TaskRecord` implement `TaskRecordInterface`
-- [ ] Verify `composer architecture` violations for this class resolved
+- [x] Create `TaskRecordInterface` in `src/Contract/` or `src/Application/Scheduler/`
+- [x] Back all non-`__` methods: `task()`, `fiber()`, `handles()`, `addHandle()`, `clearHandles()`, `markDone()`, `isDone()`
+- [x] Have `TaskRecord` implement `TaskRecordInterface`
+- [x] Verify `composer architecture` violations for this class resolved
 
 ### 3.3 — `Conformance\Result\ConformanceResult` (5 violations)
-- [ ] Create `ConformanceResultInterface` in `src/Conformance/Contract/`
-- [ ] Back all non-`__` methods
-- [ ] Have `ConformanceResult` implement `ConformanceResultInterface`
-- [ ] Verify `composer architecture` violations resolved
+- [x] Create `ConformanceResultInterface` in `src/Conformance/Contract/`
+- [x] Back all non-`__` methods
+- [x] Have `ConformanceResult` implement `ConformanceResultInterface`
+- [x] Verify `composer architecture` violations resolved
 
 ### 3.4 — `Contract\TaskChannelInterface` (5 violations)
-- [ ] Review interface methods vs. what implementations expose
-- [ ] Either add missing methods to interface or create sub-interfaces
-- [ ] Verify `composer architecture` violations resolved
+- [x] Review interface methods vs. what implementations expose
+- [x] Either add missing methods to interface or create sub-interfaces
+- [x] Verify `composer architecture` violations resolved
 
 ### 3.5 — `Application\Federation\CanaryScheduler` (4 violations)
-- [ ] Create `CanarySchedulerInterface` in `src/Application/Federation/`
-- [ ] Back all non-`__` methods
-- [ ] Have `CanaryScheduler` implement `CanarySchedulerInterface`
-- [ ] Verify `composer architecture` violations resolved
+- [x] Create `CanarySchedulerInterface` in `src/Application/Federation/`
+- [x] Back all non-`__` methods
+- [x] Have `CanaryScheduler` implement `CanarySchedulerInterface`
+- [x] Verify `composer architecture` violations resolved
 
 ### 3.6 — `Application\Scheduler\FiberTaskScheduler` (4 violations)
-- [ ] Review which public methods lack interface backing
-- [ ] Add missing methods to existing interfaces (`EngineSchedulerInterface`, `ResultTypedSchedulerInterface`, `AwaitableIOInterface`, `DeadlineSchedulerInterface`) or create a focused sub-interface
-- [ ] Verify `composer architecture` violations resolved
+- [x] Review which public methods lack interface backing
+- [x] Add missing methods to existing interfaces (`EngineSchedulerInterface`, `ResultTypedSchedulerInterface`, `AwaitableIOInterface`, `DeadlineSchedulerInterface`) or create a focused sub-interface
+- [x] Verify `composer architecture` violations resolved
 
 ### 3.7 — `SDK\Factory\RuntimeAssemblerInterface` (depends on class `AsyncRuntime`)
-- [ ] Change dependency from `AsyncRuntime` (concrete class) to `AsyncRuntimeInterface` (interface)
-- [ ] Verify `composer architecture` violations resolved
+- [x] Change dependency from `AsyncRuntime` (concrete class) to `AsyncRuntimeInterface` (interface)
+- [x] Verify `composer architecture` violations resolved
 
 ### 3.8 — Domain classes with unbacked methods
-- [ ] `Domain\PersistentTask`: create interface or document intentional exemption
-- [ ] `Domain\RateLimiter`: create `RateLimiterInterface` backing `consume`, `tryConsume`, `waitForPermit`
-- [ ] `Domain\SchedulerConfiguration`: create `SchedulerConfigurationInterface` backing `enableDebug`, `withChanges`
-- [ ] `Domain\TaskGroup`: create `TaskGroupInterface` backing `fail`
-- [ ] Verify `composer architecture` violations resolved
+- [x] `Domain\PersistentTask`: create interface or document intentional exemption
+- [x] `Domain\RateLimiter`: create `RateLimiterInterface` backing `consume`, `tryConsume`, `waitForPermit`
+- [x] `Domain\SchedulerConfiguration`: create `SchedulerConfigurationInterface` backing `enableDebug`, `withChanges`
+- [x] `Domain\TaskGroup`: create `TaskGroupInterface` backing `fail`
+- [x] Verify `composer architecture` violations resolved
 
 ### 3.9 — Remaining 42-class violation sweep
-- [ ] Run `vendor/bin/phparkitect check` and enumerate remaining violations
-- [ ] Fix each by adding interface backing or adjusting interface dependencies
-- [ ] Target: 0 violations from `composer architecture`
+- [x] Run `vendor/bin/phparkitect check` and enumerate remaining violations
+- [x] Fix each by adding interface backing or adjusting interface dependencies
+- [x] Target: 0 violations from `composer architecture`
 
 ---
 
@@ -284,31 +284,49 @@
 
 ---
 
-## Phase 6 — Performance & Benchmarks (Medium Priority)
+## Phase 6 — Performance & Benchmarks (Medium Priority) — COMPLETE
 
 **Goal:** Add benchmarks and optimize hot-path operations.
 
+**Status:** Complete. Five phpbench benchmarks added, `runUntil()` ready-queue and `computeNearestTimerDeadline()` optimized, benchmark execution wired into `composer quality`, and baseline metrics documented below.
+
 ### 6.1 — Add phpbench benchmarks
-- [ ] Create `benchmarks/TaskSpawnBench.php` — benchmark task spawn throughput
-- [ ] Create `benchmarks/TaskCompletionBench.php` — benchmark task completion
-- [ ] Create `benchmarks/FiberSuspendResumeBench.php` — benchmark Fiber suspension/resumption
-- [ ] Create `benchmarks/PollerHandleBench.php` — benchmark poll-handle registration/teardown
-- [ ] Create `benchmarks/SchedulerQueueBench.php` — benchmark scheduler queue throughput
-- [ ] Verify `vendor/bin/phpbench run` executes without errors
+- [x] Create `benchmarks/TaskSpawnBench.php` — benchmark task spawn throughput
+- [x] Create `benchmarks/TaskCompletionBench.php` — benchmark task completion
+- [x] Create `benchmarks/FiberSuspendResumeBench.php` — benchmark Fiber suspension/resumption
+- [x] Create `benchmarks/PollerHandleBench.php` — benchmark poll-handle registration/teardown
+- [x] Create `benchmarks/SchedulerQueueBench.php` — benchmark scheduler queue throughput
+- [x] Verify `vendor/bin/phpbench run` executes without errors (12 subjects, 0 failures, 0 errors)
 
 ### 6.2 — Optimize `runUntil()` hot path
-- [ ] Replace `array_shift($this->ready)` with a more efficient queue (SplQueue or array with pointer)
-- [ ] Benchmark before/after to quantify improvement
-- [ ] Verify tests pass
+- [x] Replace `array_shift($this->ready)` with an array + head-pointer queue (avoids `new` per `ForbidNewOutsideFactoryBuilderRule`; O(1) amortized shift with periodic compaction)
+- [x] Benchmark before/after — results within noise variance (environment lacks opcache; see baseline metrics below)
+- [x] Verify tests pass (513 Unit, 602 total)
 
 ### 6.3 — Optimize `computeNearestTimerDeadline()`
-- [ ] Replace O(n) iteration with a sorted structure or min-heap
-- [ ] Benchmark before/after
-- [ ] Verify tests pass
+- [x] Replace O(n) timer scan with a deadline-sorted array (`nearestDeadline()` O(1), `drainExpired()` O(k) for k expired, `scheduleTimer()` O(n) binary insert) — no `new` construction
+- [x] Benchmark before/after — results within noise variance (see baseline metrics below)
+- [x] Verify tests pass (513 Unit, 602 total)
 
 ### 6.4 — Performance regression gate
-- [ ] Add benchmark execution to CI or `composer quality` script
-- [ ] Document baseline metrics
+- [x] Added `benchmark` composer script (`vendor/bin/phpbench run benchmarks/`) and `@benchmark` to the `composer quality` chain
+- [x] Document baseline metrics below
+
+### Baseline metrics (phpbench, PHP 8.5.12, no opcache/xdebug)
+
+| Benchmark               | Subject                      | Mode    | Revs  |
+|-------------------------|------------------------------|---------|-------|
+| TaskSpawnBench          | benchSpawnSingleTask         | ~103μs  | 1000  |
+| TaskSpawnBench          | benchSpawnBatch100           | ~6.8ms  | 100   |
+| TaskCompletionBench     | benchCompleteSingleTask      | ~103μs  | 1000  |
+| TaskCompletionBench     | benchCompleteBatch100        | ~6.8ms  | 100   |
+| FiberSuspendResumeBench | benchSuspendResumeOnce       | ~143μs  | 1000  |
+| FiberSuspendResumeBench | benchSuspendResumeTenTimes   | ~335μs  | 500   |
+| PollerHandleBench       | benchRegisterRelease         | ~0.80μs | 10000 |
+| PollerHandleBench       | benchRegisterReleaseBatch100 | ~76μs   | 1000  |
+| SchedulerQueueBench     | benchReadyQueueBatch100      | ~6.9ms  | 100   |
+
+Measurements are first baselines; variance is high (±5–45%) due to no opcache in the dev environment. Re-run `composer benchmark` to detect regressions against these numbers.
 
 ---
 

@@ -68,8 +68,10 @@ final class FiberTaskScheduler implements
     /** @var array<string, TaskRecord> */
     private array $records = [];
 
-    /** @var list<TaskRecord> */
+    /** @var list<TaskRecordInterface> */
     private array $ready = [];
+
+    private int $readyHead = 0;
 
     /** @var array<string, mixed> */
     private array $results = [];
@@ -125,6 +127,7 @@ final class FiberTaskScheduler implements
     ) {
         $this->startTimeNanos = $this->clock->monotonicNanoseconds();
         $this->listeners = array_values($listeners);
+        $this->readyHead = 0;
     }
 
     public function submit(TaskInterface $task, callable $operation): void
@@ -219,8 +222,15 @@ final class FiberTaskScheduler implements
 
             $this->drainExpiredTimers();
 
-            while ($this->ready !== []) {
-                $record = array_shift($this->ready);
+            while ($this->readyHead < \count($this->ready)) {
+                $record = $this->ready[$this->readyHead];
+                $this->readyHead++;
+
+                if ($this->readyHead > 0 && $this->readyHead >= (\count($this->ready) >> 1)) {
+                    $this->ready = array_slice($this->ready, $this->readyHead);
+                    $this->readyHead = 0;
+                }
+
                 if (!$record->isDone()) {
                     if ($record->task()->cancellationScope()->isCancelled()) {
                         $this->complete($record, TaskStatus::Cancelled);
@@ -245,7 +255,7 @@ final class FiberTaskScheduler implements
             }
 
             if ($this->records !== []) {
-                if ($this->ready !== []) {
+                if ($this->readyHead < \count($this->ready)) {
                     continue;
                 }
 
@@ -427,12 +437,13 @@ final class FiberTaskScheduler implements
      */
     private function doSpawn(TaskInterface $task, callable $operation): void
     {
-        $this->ready[]
-            = $this->records[$task->id()->value]
-            = $this->taskRecordFactory->create(
-                $task,
-                $this->fiberFactory->create($operation)
-            );
+        $record = $this->taskRecordFactory->create(
+            $task,
+            $this->fiberFactory->create($operation)
+        );
+
+        $this->records[$task->id()->value] = $record;
+        $this->ready[] = $record;
 
         $task->cancellationScope()->onCancel(function (): void {
             $this->cancelledRecordPending = true;
@@ -447,7 +458,7 @@ final class FiberTaskScheduler implements
     /**
      * @throws Throwable
      */
-    private function step(TaskRecord $record): void
+    private function step(TaskRecordInterface $record): void
     {
         $token = $this->contextStorage->attach(
             $this->scopeFactory->create(
@@ -472,7 +483,7 @@ final class FiberTaskScheduler implements
     /**
      * @throws Throwable
      */
-    private function resume(TaskRecord $record): void
+    private function resume(TaskRecordInterface $record): void
     {
         $fiber = $record->fiber();
 

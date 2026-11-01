@@ -34,8 +34,8 @@
         "psr/http-server-middleware": "^1.0",
         "psr/log": "^3.0",
         "react/react": "^1.0",
-        "symfony/http-client": "^8.1",
-        "revolt/event-loop": "^1.0"
+        "revolt/event-loop": "^1.0",
+        "symfony/http-client": "^8.1"
     },
     "suggest": {
         "predis/predis": "Required by ItPack\\AsyncIt\\Adapter\\Redis\\RedisTaskQueue for Redis-backed persistent task queue storage.",
@@ -57,9 +57,9 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "ItPack\\AsyncIt\\Benchmarks\\": "benchmarks/",
             "Tests\\": "tests/",
-            "Tools\\PhpStan\\AsyncItRules\\": "tools/phpstan/asyncit-rules/src/",
-            "ItPack\\AsyncIt\\Benchmarks\\": "benchmarks/"
+            "Tools\\PhpStan\\AsyncItRules\\": "tools/phpstan/asyncit-rules/src/"
         }
     },
     "config": {
@@ -77,6 +77,7 @@
         "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
         "architecture": "vendor/bin/phparkitect check",
         "assumptions": "vendor/bin/phpa src/",
+        "benchmark": "vendor/bin/phpbench run benchmarks/",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
         "lint:length": "php tools/lint/line-length.php",
@@ -92,6 +93,7 @@
             "@lint:length",
             "@lint:types",
             "@test",
+            "@benchmark",
             "@security:audit"
         ],
         "rector": "vendor/bin/rector",
@@ -108,8 +110,8 @@
         ],
         "test:concurrency": "vendor/bin/codecept run Concurrency",
         "test:conformance": "vendor/bin/codecept run Conformance",
-        "test:integration": "vendor/bin/codecept run Integration",
         "test:functional": "vendor/bin/codecept run Functional",
+        "test:integration": "vendor/bin/codecept run Integration",
         "test:unit": "vendor/bin/codecept run Unit"
     }
 }

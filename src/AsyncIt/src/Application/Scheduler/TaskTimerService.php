@@ -11,9 +11,10 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
  * Owns the scheduler's monotonic timer bookkeeping.
  *
  * Extracted from {@see \ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler}
- * during the Phase 4 SRP split. The service owns the `$timers` array and the
- * clock; the scheduler calls it to schedule, expire, and clear timers, then
- * applies the returned expired records to its own ready queue.
+ * during the Phase 4 SRP split. Timers are kept in a deadline-sorted array so
+ * {@see nearestDeadline()} is O(1) and {@see drainExpired()} is O(k) for k
+ * expired timers. No `new` construction is used, keeping the service free of
+ * direct instantiation outside factories.
  *
  * @see https://w3id.org/itpack/asyncit#Timer
  * @see https://w3id.org/itpack/asyncit#Scheduler
@@ -22,7 +23,9 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 final class TaskTimerService implements TaskTimerServiceInterface
 {
     /**
-     * @var list<array{deadline: int, record: TaskRecordInterface, type: string|null, taskId: string|null}>
+     * @var list<array{deadline: int, record: TaskRecordInterface, type: string|null, taskId: string}>
+     *
+     * Sorted by `deadline` ascending.
      */
     private array $timers = [];
 
@@ -31,55 +34,68 @@ final class TaskTimerService implements TaskTimerServiceInterface
     ) {
     }
 
-    public function scheduleTimer(TaskRecordInterface $record, DurationInterface $duration, ?string $taskId = null, ?string $type = null): void
-    {
+    public function scheduleTimer(
+        TaskRecordInterface $record,
+        DurationInterface $duration,
+        ?string $taskId = null,
+        ?string $type = null,
+    ): void {
         $now = $this->clock->monotonicNanoseconds();
         $deadline = $now + $duration->nanoseconds();
+        $taskId ??= $record->task()->id()->value;
 
-        $this->timers[] = [
+        $entry = [
             'deadline' => $deadline,
             'record' => $record,
             'type' => $type,
-            'taskId' => $taskId ?? $record->task()->id()->value,
+            'taskId' => $taskId,
         ];
+
+        $count = \count($this->timers);
+        $lo = 0;
+        $hi = $count;
+
+        while ($lo < $hi) {
+            $mid = (int) (($lo + $hi) / 2);
+
+            if ($this->timers[$mid]['deadline'] > $deadline) {
+                $hi = $mid;
+                continue;
+            }
+
+            $lo = $mid + 1;
+        }
+
+        array_splice($this->timers, $lo, 0, [$entry]);
     }
 
     /**
      * Returns every timer whose deadline has elapsed, then drops them from the
      * internal list.
      *
-     * @return list<array{record: TaskRecordInterface, type: string|null, taskId: string|null}>
+     * @return list<array{record: TaskRecordInterface, type: string|null, taskId: string}>
      */
     public function drainExpired(int $now): array
     {
         $expired = [];
-        $remaining = [];
+        $count = \count($this->timers);
+        $i = 0;
 
-        foreach ($this->timers as $entry) {
-            if ($entry['deadline'] <= $now) {
-                $expired[] = $entry;
-                continue;
-            }
-
-            $remaining[] = $entry;
+        while ($i < $count && $this->timers[$i]['deadline'] <= $now) {
+            $expired[] = $this->timers[$i];
+            $i++;
         }
 
-        $this->timers = $remaining;
+        if ($i > 0) {
+            array_splice($this->timers, 0, $i);
+        }
 
         return $expired;
     }
 
     public function nearestDeadline(): int
     {
-        $nearest = PHP_INT_MAX;
-
-        foreach ($this->timers as $entry) {
-            if ($entry['deadline'] < $nearest) {
-                $nearest = $entry['deadline'];
-            }
-        }
-
-        return $nearest;
+        return $this->timers[0]['deadline'] ?? PHP_INT_MAX;
     }
 
     public function clearForRecord(TaskRecordInterface $record): void
