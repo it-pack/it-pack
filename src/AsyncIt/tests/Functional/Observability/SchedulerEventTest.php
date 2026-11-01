@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Functional\Observability;
 
-use Error;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\SchedulerEventType;

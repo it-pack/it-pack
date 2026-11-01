@@ -9,22 +9,6 @@ use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use Swow\Coroutine\Channel;
 
 /**
- * Internal sentinel object used by {@see SwowChannel::waitForCapacity()}
- * to mark a blocking push, compared by identity.
- *
- * A fresh instance is created per call to avoid cross-coroutine contamination
- * when multiple coroutines call waitForCapacity() concurrently on the same
- * channel.
- */
-final class CapacitySentinel
-{
-    public static function create(): self
-    {
-        return new self();
-    }
-}
-
-/**
  * Native {@see TaskChannelInterface} over `Swow\Coroutine\Channel`.
  *
  * Selected only when the negotiated {@see \ItPack\AsyncIt\Contract\Port\CapabilityKind::NativeChannels}
@@ -34,9 +18,9 @@ final class CapacitySentinel
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swow
-  * @api
-
-  */
+ * @api
+ *
+ */
 final class SwowChannel implements TaskChannelInterface
 {
     private bool $closed = false;

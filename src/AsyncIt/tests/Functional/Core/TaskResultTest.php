@@ -6,7 +6,6 @@ namespace Tests\Functional\Core;
 
 use InvalidArgumentException;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\AsyncIt\Domain\TaskResult;
 use ItPack\RunIt\Domain\Shared\Duration;
