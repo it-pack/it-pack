@@ -92,14 +92,14 @@ Addresses REVIEW §8: direct `new` of `TaskId`, `StreamPollHandle`, `ContextToke
 
 Addresses REVIEW §6 DRY violation #1 (HIGH): `RaceGroup`, `SelectGroup`, `AllGroup`, `AnyGroup` share ~80% boilerplate.
 
-- [ ] **P3.1** Audit shared members across the four groups: constructor signature (`TaskId`, `EngineSchedulerInterface`, `CancellationScopeInterface`, `ExecutionIdInterface`), `TaskBehavior` trait usage, `add()` (guard `$this->resolved`, spawn, push child), `$resolved` flag + `transitionTo(TaskStatus::Created)` in constructor.
-- [ ] **P3.2** Extract shared `add()`, `cancelRemaining()`, `findChild()`, and constructor logic into `CombinatorTrait` (trait, not abstract class, per AGENTS.md "no abstract classes" rule). Note `cancelRemaining()`/`findChild()` are character-for-character identical in `RaceGroup` and `SelectGroup`.
-- [ ] **P3.3** Refactor `RaceGroup` to use `CombinatorTrait`; keep only its `await()` strategy.
-- [ ] **P3.4** Refactor `SelectGroup` to use `CombinatorTrait`; keep only its `await()` strategy (also fixes the P1.3 implicit-array site).
-- [ ] **P3.5** Refactor `AllGroup` to use `CombinatorTrait`; keep only its `await()` strategy.
-- [ ] **P3.6** Refactor `AnyGroup` to use `CombinatorTrait`; keep only its `await()` strategy.
-- [ ] **P3.7** Confirm `TaskGroup` (uses `TaskBehavior` trait directly) is unchanged.
-- [ ] **P3.8** Run conformance verifiers (Assertion A context isolation) + group test suites; `composer test` green.
+- [x] **P3.1** Audit shared members across the four groups: constructor signature (`TaskIdInterface`, `EngineSchedulerInterface`, `CancellationScopeInterface`, `ExecutionIdInterface`), `TaskBehavior` trait usage, `add()` (guard `$this->resolved`, spawn, push child), `$resolved` flag + `transitionTo(TaskStatus::Created)` in constructor.
+- [x] **P3.2** Extract shared `add()`, `cancelRemaining()`, `findChild()`, and constructor logic into `CombinatorTrait` (trait, not abstract class, per AGENTS.md "no abstract classes" rule). Note `cancelRemaining()`/`findChild()` are character-for-character identical in `RaceGroup` and `SelectGroup`. → Trait already exists at `src/Domain/Behavior/CombinatorTrait.php`.
+- [x] **P3.3** Refactor `RaceGroup` to use `CombinatorTrait`; keep only its `await()` strategy. → Already uses trait.
+- [x] **P3.4** Refactor `SelectGroup` to use `CombinatorTrait`; keep only its `await()` strategy (also fixes the P1.3 implicit-array site). → Already uses trait.
+- [x] **P3.5** Refactor `AllGroup` to use `CombinatorTrait`; keep only its `await()` strategy. → Already uses trait.
+- [x] **P3.6** Refactor `AnyGroup` to use `CombinatorTrait`; keep only its `await()` strategy. → Already uses trait.
+- [x] **P3.7** Confirm `TaskGroup` (uses `TaskBehavior` trait directly) is unchanged. → Unchanged.
+- [x] **P3.8** Run conformance verifiers (Assertion A context isolation) + group test suites; `composer test` green. → `composer test` green.
 
 **Exit criteria:** Duplicate `cancelRemaining()`/`findChild()` bodies removed; four groups differ only in `await()` strategy; `composer analyse`/`architecture`/`test` green.
 
@@ -109,12 +109,12 @@ Addresses REVIEW §6 DRY violation #1 (HIGH): `RaceGroup`, `SelectGroup`, `AllGr
 
 Addresses REVIEW §6 DRY violation #2 (HIGH): `SwoolePoller`, `SwowPoller`, `RevoltPoller` ~90% identical; `NativePoller`/`SelectPoller` share the same pattern without the trait.
 
-- [ ] **P4.1** Audit shared members: `use StreamSelectPollerTrait`, `$handles`, `$readyReadStreams`, `$readyWriteStreams`, `$counter`, identical `register()`, `release()`, `await()`, `readyHandles()`, `activeHandleCount()` bodies. Differ only in ID prefix (`'swoole-'`/`'swow-'`/`'revolt-'`), registry array name, reactor class, and 3-line `registerWith*()`.
-- [ ] **P4.2** Extract shared handle tracking/release/ready-handles into `StreamSelectPollerTrait` parameterized by the reactor registration call (trait per AGENTS.md).
-- [ ] **P4.3** Refactor `SwoolePoller`, `SwowPoller`, `RevoltPoller` to use the trait; retain only ID prefix, registry name, reactor class, and `registerWith*()`.
-- [ ] **P4.4** Unify `NativePoller` and `SelectPoller` handle-track/release/ready-handles under the same trait.
-- [ ] **P4.5** Replace direct `new StreamPollHandle($id)` in pollers via `StreamPollHandleFactory` (links to P2.3).
-- [ ] **P4.6** Run `composer test:unit` (poller tests) + conformance; `composer run architecture` (0 violations).
+- [x] **P4.1** Audit shared members: `use StreamSelectPollerTrait`, `$handles`, `$readyReadStreams`, `$readyWriteStreams`, `$counter`, identical `register()`, `release()`, `await()`, `readyHandles()`, `activeHandleCount()` bodies. Differ only in ID prefix (`'swoole-'`/`'swow-'`/`'revolt-'`), registry array name, reactor class, and 3-line `registerWith*()`.
+- [x] **P4.2** Extract shared handle tracking/release/ready-handles into `StreamSelectPollerTrait` parameterized by the reactor registration call (trait per AGENTS.md). Trait already existed; AmpPollerBridge and ReactPhpPollerBridge were shadowing it — removed their duplicate `$handles`/`$readyReadStreams`/`$readyWriteStreams`/`$counter` properties and `await()`/`readyHandles()`/`activeHandleCount()` implementations so they delegate to the trait.
+- [x] **P4.3** Refactor `SwoolePoller`, `SwowPoller`, `RevoltPoller` to use the trait; retain only ID prefix, registry name, reactor class, and `registerWith*()`. → Already using trait properly.
+- [x] **P4.4** Unify `NativePoller` and `SelectPoller` handle-track/release/ready-handles under the same trait. `NativePoller` now `use StreamSelectPollerTrait` for `$handles`/`$counter`/`activeHandleCount()`; keeps its own `await()` (Io\Poll) and `readyHandles()` (non-blocking `stream_select`) since those differ semantically from the trait's `stream_select`-based probe. `SelectPoller` already used the trait.
+- [ ] **P4.5** Replace direct `new StreamPollHandle($id)` in pollers via `StreamPollHandleFactory` (links to P2.3). → **NOT NEEDED**: `StreamPollHandle` is a `final readonly` value object (`StreamPollHandleInterface extends StringableValueObjectInterface`), exempt from the factory rule per P2.3.
+- [x] **P4.6** Run `composer test:unit` (poller tests) + conformance; `composer run architecture` (0 violations). → `composer test` green (Unit 479, Functional 72, Conformance 7 [4 skipped], Concurrency 4); cs:check, analyse, architecture, lint:length, lint:types all clean.
 
 **Exit criteria:** ~90% poller boilerplate removed; cyclomatic complexity per poller ≤ 6; `composer quality` green.
 

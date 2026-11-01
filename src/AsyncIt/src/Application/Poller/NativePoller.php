@@ -7,6 +7,7 @@ namespace ItPack\AsyncIt\Application\Poller;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\PollerVocabulary;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
+use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
 use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
@@ -30,17 +31,12 @@ use ItPack\AsyncIt\Domain\StreamPollHandle;
  */
 final class NativePoller implements PollerPortInterface
 {
-    /**
-     * @var array<string, mixed> id => stream
-     */
-    private array $handles = [];
+    use StreamSelectPollerTrait;
 
     /**
      * @var array<string, true> ids registered with the native poll
      */
     private array $nativeRegistered = [];
-
-    private int $counter = 0;
 
     public function __construct(private readonly object $poll)
     {
@@ -101,11 +97,6 @@ final class NativePoller implements PollerPortInterface
         }
 
         return $ready;
-    }
-
-    public function activeHandleCount(): int
-    {
-        return count($this->handles);
     }
 
     private function registerWithPoll(string $id, mixed $stream): void
