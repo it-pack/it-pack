@@ -5,14 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Federation;
 
 use ItPack\AsyncIt\Application\Federation\TraceContextInjector;
-use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\Port\CancellationReason;
-use ItPack\AsyncIt\Contract\Port\TaskStatus;
-use ItPack\AsyncIt\Contract\TaskIdInterface;
-use ItPack\AsyncIt\Contract\TaskInterface;
-use ItPack\AsyncIt\Domain\TaskId;
-use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
-use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use PHPUnit\Framework\TestCase;
 use WeakMap;
@@ -69,88 +61,4 @@ final class TraceContextInjectorTest extends TestCase
 
         self::assertSame(['generate', 'generate'], $callLog->entries);
     }
-}
-
-final readonly class TraceContextFakeTask implements TaskInterface
-{
-    public function __construct(private string $id)
-    {
-    }
-
-    public function id(): TaskIdInterface
-    {
-        return new TaskId($this->id);
-    }
-
-    public function executionId(): ExecutionIdInterface
-    {
-        return new TraceContextFakeExecutionId();
-    }
-
-    public function cancellationScope(): CancellationScopeInterface
-    {
-        return new TraceContextFakeCancellationScope();
-    }
-
-    public function status(): TaskStatus
-    {
-        return TaskStatus::Created;
-    }
-
-    public function transitionTo(TaskStatus $next): void
-    {
-    }
-
-    public function complete(TaskStatus $outcome): void
-    {
-    }
-}
-
-final class TraceContextFakeExecutionId implements ExecutionIdInterface
-{
-    public function __toString(): string
-    {
-        return 'e1';
-    }
-
-    public function toString(): string
-    {
-        return 'e1';
-    }
-
-    public function equals(StringIdentifierInterface $other): bool
-    {
-        return $other instanceof self && $other->toString() === $this->toString();
-    }
-}
-
-final class TraceContextFakeCancellationScope implements CancellationScopeInterface
-{
-    public function isCancelled(): bool
-    {
-        return false;
-    }
-
-    public function cancel(?CancellationReason $reason = null): void
-    {
-    }
-
-    public function reason(): ?CancellationReason
-    {
-        return null;
-    }
-
-    public function throwIfCancelled(): void
-    {
-    }
-
-    public function onCancel(callable $callback): void
-    {
-    }
-}
-
-final class CallLog
-{
-    /** @var array<string> */
-    public array $entries = [];
 }

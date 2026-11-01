@@ -4,25 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Swow;
 
+use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use Swow\Coroutine\Channel;
-
-/**
- * Internal sentinel object used by {@see SwowChannel::waitForCapacity()}
- * to mark a blocking push, compared by identity.
- *
- * A fresh instance is created per call to avoid cross-coroutine contamination
- * when multiple coroutines call waitForCapacity() concurrently on the same
- * channel.
- */
-final class CapacitySentinel
-{
-    public static function create(): self
-    {
-        return new self();
-    }
-}
 
 /**
  * Native {@see TaskChannelInterface} over `Swow\Coroutine\Channel`.
@@ -34,9 +19,9 @@ final class CapacitySentinel
  *
  * @see https://w3id.org/itpack/asyncit#TaskChannel
  * @see https://w3id.org/itpack/asyncit/taxonomy#runtime-adapter-swow
-  * @api
-
-  */
+ * @api
+ *
+ */
 final class SwowChannel implements TaskChannelInterface
 {
     private bool $closed = false;
@@ -51,7 +36,11 @@ final class SwowChannel implements TaskChannelInterface
             throw new ChannelClosedException();
         }
 
-        $this->channel->push($value);
+        if(!$this->channel->push($value)) {
+            throw new ChannelException(
+                'Could not send value to channel.',
+            );
+        }
     }
 
     public function receive(): mixed
@@ -69,9 +58,7 @@ final class SwowChannel implements TaskChannelInterface
             return false;
         }
 
-        $this->channel->push($value);
-
-        return true;
+        return $this->channel->push($value);
     }
 
     public function waitForCapacity(): void

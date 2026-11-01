@@ -9,17 +9,12 @@ use ItPack\AsyncIt\Application\Factory\DeadLetterAwarePromiseFactory;
 use ItPack\AsyncIt\Application\Federation\DeadLetterQueue;
 use ItPack\AsyncIt\Application\Federation\FederatedScheduler;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
-use ItPack\AsyncIt\Contract\Port\CancellationReason;
-use ItPack\AsyncIt\Contract\Port\RemoteSchedulerPortInterface;
 use ItPack\AsyncIt\Contract\PromiseInterface;
-use ItPack\AsyncIt\Contract\RemoteTaskInterface;
 use ItPack\AsyncIt\Domain\RemoteTask;
 use ItPack\AsyncIt\Domain\TaskId;
-use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
-use RuntimeException;
 
 /**
  * @covers \ItPack\AsyncIt\Application\Federation\FederatedScheduler
@@ -204,7 +199,7 @@ final class FederatedSchedulerTest extends TestCase
         $scheduler = new FederatedScheduler($port, $idGenerator, $scopeFactory, $deadLetterQueue, $promiseFactory);
         $task = new RemoteTask(id: new TaskId('remote-4'), operation: 'App\Job\DoneJob');
 
-        $promise =         $scheduler->submit($task);
+        $promise = $scheduler->submit($task);
 
         self::assertNotNull($port->lastTask);
         self::assertTrue($promise->isDone());
@@ -293,6 +288,7 @@ final class FederatedSchedulerTest extends TestCase
                 return new NotCancelledScope();
             }
         };
+
         $deadLetterQueue = new DeadLetterQueue();
         $promiseFactory = new DeadLetterAwarePromiseFactory();
 
@@ -324,6 +320,7 @@ final class FederatedSchedulerTest extends TestCase
                 return new NotCancelledScope();
             }
         };
+
         $deadLetterQueue = new DeadLetterQueue();
         $promiseFactory = new DeadLetterAwarePromiseFactory();
 
@@ -338,94 +335,5 @@ final class FederatedSchedulerTest extends TestCase
 
         self::assertNotNull($port->lastTask);
         self::assertSame('explicit-corr-123', $port->lastTask->correlationId());
-    }
-}
-
-final class FakeRemoteSchedulerPort implements RemoteSchedulerPortInterface
-{
-    public RemoteTaskInterface|null $lastTask = null;
-
-    public function execute(RemoteTaskInterface $task): PromiseInterface
-    {
-        $this->lastTask = $task;
-
-        return new ResolvedPromise('remote-result');
-    }
-}
-
-final class PendingRemoteSchedulerPort implements RemoteSchedulerPortInterface
-{
-    public function execute(RemoteTaskInterface $task): PromiseInterface
-    {
-        return new PendingPromise();
-    }
-}
-
-final readonly class NotCancelledScope implements CancellationScopeInterface
-{
-    public function isCancelled(): bool
-    {
-        return false;
-    }
-
-    public function cancel(?CancellationReason $reason = null): void
-    {
-    }
-
-    public function reason(): ?CancellationReason
-    {
-        return null;
-    }
-
-    public function throwIfCancelled(): void
-    {
-    }
-
-    public function onCancel(callable $callback): void
-    {
-    }
-}
-
-final readonly class ResolvedPromise implements PromiseInterface
-{
-    public function __construct(
-        private mixed $value,
-    ) {
-    }
-
-    public function isDone(): bool
-    {
-        return true;
-    }
-
-    public function wait(?DurationInterface $timeout = null): bool
-    {
-        return true;
-    }
-
-    public function get(): mixed
-    {
-        return $this->value;
-    }
-}
-
-final readonly class PendingPromise implements PromiseInterface
-{
-    public function isDone(): bool
-    {
-        return false;
-    }
-
-    public function wait(?DurationInterface $timeout = null): bool
-    {
-        return false;
-    }
-
-    /**
-     * @throws RuntimeException Always — the result never resolves.
-     */
-    public function get(): mixed
-    {
-        throw new RuntimeException('Promise never resolved.');
     }
 }

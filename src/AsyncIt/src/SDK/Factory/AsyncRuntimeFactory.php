@@ -15,6 +15,7 @@ use ItPack\AsyncIt\Application\Factory\RuntimeDiscoveryFactory;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactory;
+use ItPack\AsyncIt\Application\Factory\TaskIdFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Factory\TaskStreamFactory;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
@@ -74,7 +75,9 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
         $channel = $assembly->channel;
         $telemetry = $factory->buildTelemetry();
         $idGenerator = new RandomIdentifierGenerator();
-        $taskFactory = new TaskFactory($idGenerator);
+        $taskFactory = new TaskFactory(
+            new TaskIdFactory($idGenerator),
+        );
         $fiberFactory = new FiberFactory();
         $cancellationScopeFactory = new CancellationScopeFactory();
         $taskGroupFactory = new TaskGroupFactory($cancellationScopeFactory);
