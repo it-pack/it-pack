@@ -17,6 +17,8 @@ final class SwowRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
     use RuntimeFixtureTrait;
 
+    public const string PORT_NAME = 'AsyncRuntime/Swow';
+
     public function __construct()
     {
         $this->initRuntimeFixture(
@@ -28,6 +30,6 @@ final class SwowRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function portName(): string
     {
-        return 'AsyncRuntime/Swow';
+        return self::PORT_NAME;
     }
 }

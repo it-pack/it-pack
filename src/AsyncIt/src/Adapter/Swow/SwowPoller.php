@@ -30,28 +30,6 @@ final class SwowPoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    /**
-     * @var array<string, mixed> id => stream
-     */
-    private array $handles = [];
-
-    /**
-     * @var array<string, true> ids registered with the Swow reactor
-     */
-    private array $swowRegistered = [];
-
-    /**
-     * @var list<mixed> streams that became readable during the last await() call
-     */
-    private array $readyReadStreams = [];
-
-    /**
-     * @var list<mixed> streams that became writable during the last await() call
-     */
-    private array $readyWriteStreams = [];
-
-    private int $counter = 0;
-
     public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'swow-' . ++$this->counter;
@@ -66,7 +44,7 @@ final class SwowPoller implements PollerPortInterface
     {
         $id = $handle->id;
 
-        if (isset($this->swowRegistered[$id])) {
+        if (isset($this->registered[$id])) {
             $stream = $this->handles[$id] ?? null;
             if (is_resource($stream)) {
                 try {
@@ -76,36 +54,10 @@ final class SwowPoller implements PollerPortInterface
                 }
             }
 
-            unset($this->swowRegistered[$id]);
+            unset($this->registered[$id]);
         }
 
         unset($this->handles[$id]);
-    }
-
-    public function await(int $timeoutNanoseconds): void
-    {
-        $readiness = $this->probeReadiness($this->handles, $timeoutNanoseconds);
-        $this->readyReadStreams = $readiness['read'];
-        $this->readyWriteStreams = $readiness['write'];
-    }
-
-    public function readyHandles(): array
-    {
-        $ready = $this->matchReadyHandles(
-            $this->handles,
-            $this->readyReadStreams,
-            $this->readyWriteStreams,
-        );
-
-        $this->readyReadStreams = [];
-        $this->readyWriteStreams = [];
-
-        return $ready;
-    }
-
-    public function activeHandleCount(): int
-    {
-        return count($this->handles);
     }
 
     private function registerWithReactor(string $id, mixed $stream): void
@@ -121,7 +73,7 @@ final class SwowPoller implements PollerPortInterface
         $registered = @Event::add($stream, null, null, Event::TYPE_READ);
 
         if ($registered === true) {
-            $this->swowRegistered[$id] = true;
+            $this->registered[$id] = true;
         }
     }
 }

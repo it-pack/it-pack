@@ -104,11 +104,14 @@ final class FunctionalTestHelper
         $capability = new EngineCapability(supportsFibers: true, supportsCoroutines: true, concurrent: true);
         $channel = new EmulatedChannel();
 
+        $taskIdFactory = new TaskIdFactory($idGenerator);
+
         $runtime = new AsyncRuntime(
             $schedulerFactory,
             $taskGroupFactory,
             $combinatorFactory,
             new TaskStreamFactory(),
+            $taskIdFactory,
             $idGenerator,
             $capability,
             $channel,

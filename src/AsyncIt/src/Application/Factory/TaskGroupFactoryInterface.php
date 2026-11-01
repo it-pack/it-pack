@@ -6,7 +6,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\TaskGroupInterface;
-use ItPack\AsyncIt\Domain\TaskId;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 /**
@@ -20,7 +20,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 interface TaskGroupFactoryInterface
 {
     public function create(
-        TaskId $id,
+        TaskIdInterface $id,
         ExecutionIdInterface $executionId,
         EngineSchedulerInterface $scheduler,
     ): TaskGroupInterface;

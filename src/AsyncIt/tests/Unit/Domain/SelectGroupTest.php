@@ -87,6 +87,45 @@ final class SelectGroupTest extends TestCase
         self::assertSame(['task' => null, 'result' => null], $outcome);
     }
 
+    public function testAwaitUsesAwaitAnyWhenSchedulerSupportsIt(): void
+    {
+        $child = $this->makeTask(TaskStatus::Created);
+
+        $scheduler = new AwaitAnySchedulerStub(
+            spawnResult: $child,
+            awaitAnyResult: $child->id()->value,
+            resultValue: 'awaited result',
+        );
+
+        $group = $this->buildGroup($scheduler);
+        $group->add(static fn (): string => 'first');
+        $group->add(static fn (): string => 'second');
+
+        $outcome = $group->await();
+
+        self::assertSame($child, $outcome['task']);
+        self::assertSame('awaited result', $outcome['result']);
+        self::assertSame(TaskStatus::Succeeded, $group->status());
+    }
+
+    public function testAwaitFallsBackToSequentialAwaitWhenNoAwaitAny(): void
+    {
+        $child = $this->makeTask(TaskStatus::Created);
+
+        $scheduler = $this->createMock(EngineSchedulerInterface::class);
+        $scheduler->method('spawn')->willReturn($child);
+        $scheduler->method('await')->willReturn('sequential result');
+
+        $group = $this->buildGroup($scheduler);
+        $group->add(static fn (): string => 'first');
+
+        $outcome = $group->await();
+
+        self::assertSame($child, $outcome['task']);
+        self::assertSame('sequential result', $outcome['result']);
+        self::assertSame(TaskStatus::Succeeded, $group->status());
+    }
+
     private function buildGroup(EngineSchedulerInterface $scheduler): SelectGroup
     {
         return new SelectGroup(

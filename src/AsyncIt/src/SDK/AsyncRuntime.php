@@ -8,6 +8,7 @@ use Generator;
 use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskIdFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskStreamFactoryInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\CapabilityObserverInterface;
@@ -55,6 +56,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         private readonly TaskGroupFactoryInterface $taskGroupFactory,
         private readonly CombinatorFactoryInterface $combinatorFactory,
         private readonly TaskStreamFactoryInterface $taskStreamFactory,
+        private readonly TaskIdFactoryInterface $taskIdFactory,
         private readonly IdentifierGeneratorInterface $idGenerator,
         private readonly EngineCapability $capability,
         private readonly TaskChannelInterface $channel,
@@ -147,7 +149,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         $scheduler = $this->activeScheduler();
 
         $group = $this->combinatorFactory->createRace(
-            new TaskId($this->idGenerator->generate()),
+            $this->taskIdFactory->create(),
             $scheduler,
             ExecutionId::fromString($this->idGenerator->generate()),
         );
@@ -171,7 +173,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         $scheduler = $this->activeScheduler();
 
         $group = $this->combinatorFactory->createAll(
-            new TaskId($this->idGenerator->generate()),
+            $this->taskIdFactory->create(),
             $scheduler,
             ExecutionId::fromString($this->idGenerator->generate()),
         );
@@ -195,7 +197,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         $scheduler = $this->activeScheduler();
 
         $group = $this->combinatorFactory->createAny(
-            new TaskId($this->idGenerator->generate()),
+            $this->taskIdFactory->create(),
             $scheduler,
             ExecutionId::fromString($this->idGenerator->generate()),
         );
@@ -220,7 +222,7 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         $scheduler = $this->activeScheduler();
 
         $group = $this->combinatorFactory->createSelect(
-            new TaskId($this->idGenerator->generate()),
+            $this->taskIdFactory->create(),
             $scheduler,
             ExecutionId::fromString($this->idGenerator->generate()),
         );

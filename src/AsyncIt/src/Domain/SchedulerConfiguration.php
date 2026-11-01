@@ -28,6 +28,8 @@ final readonly class SchedulerConfiguration
 
     public const float DEFAULT_TELEMETRY_SAMPLING_RATE = 1.0;
 
+    public const float MAX_CANARY_WEIGHT = 1.0;
+
     /**
      * @param float $telemetrySamplingRate 0.0 (none) to 1.0 (all)
      * @param float|null $canaryWeight 0.0 (none) to 1.0 (all) fraction of tasks routed to canary
@@ -50,13 +52,13 @@ final readonly class SchedulerConfiguration
             );
         }
 
-        if ($telemetrySamplingRate < 0.0 || $telemetrySamplingRate > 1.0) {
+        if ($telemetrySamplingRate < 0.0 || $telemetrySamplingRate > self::DEFAULT_TELEMETRY_SAMPLING_RATE) {
             throw new DomainException(
                 'telemetrySamplingRate must be between 0.0 and 1.0, got ' . $telemetrySamplingRate . '.',
             );
         }
 
-        if ($canaryWeight !== null && ($canaryWeight < 0.0 || $canaryWeight > 1.0)) {
+        if ($canaryWeight !== null && ($canaryWeight < 0.0 || $canaryWeight > self::MAX_CANARY_WEIGHT)) {
             throw new DomainException(
                 'canaryWeight must be between 0.0 and 1.0, got ' . $canaryWeight . '.',
             );

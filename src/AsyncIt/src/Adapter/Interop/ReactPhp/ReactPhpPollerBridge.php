@@ -35,26 +35,9 @@ final class ReactPhpPollerBridge implements PollerPortInterface
     use StreamSelectPollerTrait;
 
     /**
-     * @var array<string, mixed> id => stream
-     */
-    private array $handles = [];
-
-    /**
      * @var array<string, true> ids registered with the ReactPHP loop
      */
     private array $reactRegistered = [];
-
-    /**
-     * @var list<mixed> streams that became readable during the last await() call
-     */
-    private array $readyReadStreams = [];
-
-    /**
-     * @var list<mixed> streams that became writable during the last await() call
-     */
-    private array $readyWriteStreams = [];
-
-    private int $counter = 0;
 
     public function __construct(private readonly object $loop)
     {
@@ -80,32 +63,6 @@ final class ReactPhpPollerBridge implements PollerPortInterface
         }
 
         unset($this->handles[$id]);
-    }
-
-    public function await(int $timeoutNanoseconds): void
-    {
-        $readiness = $this->probeReadiness($this->handles, $timeoutNanoseconds);
-        $this->readyReadStreams = $readiness['read'];
-        $this->readyWriteStreams = $readiness['write'];
-    }
-
-    public function readyHandles(): array
-    {
-        $ready = $this->matchReadyHandles(
-            $this->handles,
-            $this->readyReadStreams,
-            $this->readyWriteStreams,
-        );
-
-        $this->readyReadStreams = [];
-        $this->readyWriteStreams = [];
-
-        return $ready;
-    }
-
-    public function activeHandleCount(): int
-    {
-        return count($this->handles);
     }
 
     private function registerWithLoop(string $id, mixed $stream): void

@@ -34,6 +34,10 @@ use Throwable;
  */
 final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface
 {
+    public const float MAX_PROBABILITY = 1.0;
+
+    public const float MIN_LATENCY_FACTOR = 1.0;
+
     /**
      * @var array{
      *   calls: int,
@@ -204,7 +208,8 @@ final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSche
     }
 
     /**
-     * @return array{baseline: array{calls:int, errors:int, totalLatencyNanos:int}, canary: array{calls:int, errors:int, totalLatencyNanos:int}}
+     * @return array{baseline: array{calls:int, errors:int, totalLatencyNanos:int},
+     *           canary: array{calls:int, errors:int, totalLatencyNanos:int}}
      */
     public function metrics(): array
     {
@@ -279,7 +284,7 @@ final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSche
 
     private function validateCanaryWeight(float $weight): void
     {
-        if ($weight < 0.0 || $weight > 1.0) {
+        if ($weight < 0.0 || $weight > self::MAX_PROBABILITY) {
             throw new InvalidArgumentException(
                 'canaryWeight must be between 0.0 and 1.0, ' . $weight . ' given.',
             );
@@ -288,7 +293,7 @@ final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSche
 
     private function validateErrorMargin(float $margin): void
     {
-        if ($margin < 0.0 || $margin > 1.0) {
+        if ($margin < 0.0 || $margin > self::MAX_PROBABILITY) {
             throw new InvalidArgumentException(
                 'errorMargin must be between 0.0 and 1.0, ' . $margin . ' given.',
             );
@@ -297,7 +302,7 @@ final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSche
 
     private function validateLatencyFactor(float $factor): void
     {
-        if ($factor < 1.0) {
+        if ($factor < self::MIN_LATENCY_FACTOR) {
             throw new InvalidArgumentException(
                 'latencyFactor must be >= 1.0, ' . $factor . ' given.',
             );

@@ -89,4 +89,28 @@ final class RemoteTaskTest extends TestCase
 
         self::assertSame('remote-6', (string) $task);
     }
+
+    public function testSerializeRoundTripPreservesAllFields(): void
+    {
+        $task = new RemoteTask(
+            id: new TaskId('remote-serial-1'),
+            operation: 'App\Job\SendEmail',
+            payload: ['to' => 'user@example.com'],
+            deadline: Duration::ofSeconds(300),
+            priority: 5,
+            correlationId: 'corr-abc',
+        );
+
+        /** @var RemoteTask $restored */
+        $restored = unserialize(serialize($task));
+
+        self::assertSame($task->id()->value, $restored->id()->value);
+        self::assertSame($task->operation(), $restored->operation());
+        self::assertSame($task->payload(), $restored->payload());
+        $deadline = $restored->deadline();
+        self::assertNotNull($deadline);
+        self::assertTrue(Duration::ofSeconds(300)->equals($deadline));
+        self::assertSame($task->priority(), $restored->priority());
+        self::assertSame($task->correlationId(), $restored->correlationId());
+    }
 }

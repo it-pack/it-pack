@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain;
 
+use InvalidArgumentException;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Domain\TaskResult;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
@@ -67,6 +68,22 @@ final class TaskResultTest extends TestCase
         self::assertFalse($result->isSuccess());
         self::assertTrue($result->isFailure());
         self::assertSame(TaskStatus::TimedOut, $result->status());
+    }
+
+    public function testFailureRequiresTerminalStatus(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Failure results require a terminal status.');
+
+        TaskResult::failure(new RuntimeException('boom'), TaskStatus::Created, Duration::ofNanoseconds(0));
+    }
+
+    public function testSuccessRequiresSucceededStatus(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Success results require TaskStatus::Succeeded.');
+
+        TaskResult::success('value', TaskStatus::Running, Duration::ofNanoseconds(0));
     }
 
     public function testImmutable(): void

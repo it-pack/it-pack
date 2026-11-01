@@ -46,6 +46,8 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 
 final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
+    public const string PORT_NAME = 'AsyncRuntime';
+
     private SelectPoller $verifierPoller;
 
     private MemoryContextStorage $storage;
@@ -94,7 +96,7 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
 
     public function portName(): string
     {
-        return 'AsyncRuntime';
+        return self::PORT_NAME;
     }
 
     public function scheduler(): SchedulerInterface

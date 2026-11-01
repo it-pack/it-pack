@@ -63,7 +63,11 @@ use Throwable;
   * @api
 
   */
-final class FiberTaskScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface, AwaitableIOInterface, DeadlineSchedulerInterface
+final class FiberTaskScheduler implements
+    EngineSchedulerInterface,
+    ResultTypedSchedulerInterface,
+    AwaitableIOInterface,
+    DeadlineSchedulerInterface
 {
     /**
      * Maximum number of terminal task outcomes retained in {@see $taskResults}.
@@ -100,7 +104,8 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, ResultTypedS
      * deadline floats to the front so {@see drainExpiredTimers()} and
      * {@see computeTimeout()} are O(1) when no timers are pending.
      *
-     * @var list<array{deadline: int, record: TaskRecord} | array{deadline: int, record: TaskRecord, type: 'io', taskId: string}>
+     * @var list<array{deadline: int, record: TaskRecord}
+     *      | array{deadline: int, record: TaskRecord, type: 'io', taskId: string}>
      */
     private array $timers = [];
 
@@ -542,8 +547,11 @@ final class FiberTaskScheduler implements EngineSchedulerInterface, ResultTypedS
      * with true when the poller signals readiness or false when the deadline
      * timer fires. The handle is released on terminal transition.
      */
-    private function awaitIo(StreamPollHandleInterface $handle, AwaitPoint $point, DurationInterface|null $timeout): bool
-    {
+    private function awaitIo(
+        StreamPollHandleInterface $handle,
+        AwaitPoint $point,
+        DurationInterface|null $timeout,
+    ): bool {
         $task = $this->currentTask;
 
         if (!$task instanceof TaskInterface) {

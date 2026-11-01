@@ -31,6 +31,8 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
 {
     use CoroutineContextStorageTrait;
 
+    private const int COROUTINE_UNAVAILABLE = -1;
+
     /**
      * @var array<int, FiberScopeSlot>
      */
@@ -61,13 +63,13 @@ final class SwowCoroutineContextStorage implements ContextStorageInterface
     private function coroutineId(): int
     {
         if (!class_exists('Swow\\Coroutine')) {
-            return -1;
+            return self::COROUTINE_UNAVAILABLE;
         }
 
         try {
             $id = Coroutine::getCid();
         } catch (Throwable) {
-            return -1;
+            return self::COROUTINE_UNAVAILABLE;
         }
 
         return is_int($id) ? $id : -1;

@@ -20,6 +20,8 @@ final class RevoltRuntimeFixture implements AsyncRuntimeFixtureInterface
 {
     use RuntimeFixtureTrait;
 
+    public const string PORT_NAME = 'AsyncRuntime/Revolt';
+
     public function __construct()
     {
         /** @var WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber */
@@ -34,6 +36,6 @@ final class RevoltRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function portName(): string
     {
-        return 'AsyncRuntime/Revolt';
+        return self::PORT_NAME;
     }
 }

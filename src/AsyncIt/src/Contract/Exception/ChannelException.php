@@ -7,7 +7,6 @@ namespace ItPack\AsyncIt\Contract\Exception;
 use ItPack\AsyncIt\Contract\AsyncItExceptionInterface;
 use RuntimeException;
 
-class ChannelException extends RuntimeException implements AsyncItExceptionInterface
+final class ChannelException extends RuntimeException implements AsyncItExceptionInterface
 {
 }
-

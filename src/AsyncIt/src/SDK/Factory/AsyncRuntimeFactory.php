@@ -75,9 +75,8 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
         $channel = $assembly->channel;
         $telemetry = $factory->buildTelemetry();
         $idGenerator = new RandomIdentifierGenerator();
-        $taskFactory = new TaskFactory(
-            new TaskIdFactory($idGenerator),
-        );
+        $taskIdFactory = new TaskIdFactory($idGenerator);
+        $taskFactory = new TaskFactory($taskIdFactory);
         $fiberFactory = new FiberFactory();
         $cancellationScopeFactory = new CancellationScopeFactory();
         $taskGroupFactory = new TaskGroupFactory($cancellationScopeFactory);
@@ -119,6 +118,7 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
             $taskGroupFactory,
             $combinatorFactory,
             $taskStreamFactory,
+            $taskIdFactory,
             $idGenerator,
             $capability,
             $channel,

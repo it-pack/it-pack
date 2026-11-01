@@ -31,34 +31,12 @@ final class RevoltPoller implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    /**
-     * @var array<string, mixed> id => stream
-     */
-    private array $handles = [];
-
-    /**
-     * @var array<string, string> ids registered with the Revolt loop
-     */
-    private array $revoltIds = [];
-
-    /**
-     * @var list<mixed> streams that became readable during the last await() call
-     */
-    private array $readyReadStreams = [];
-
-    /**
-     * @var list<mixed> streams that became writable during the last await() call
-     */
-    private array $readyWriteStreams = [];
-
-    private int $counter = 0;
-
     public function register(mixed $stream): StreamPollHandleInterface
     {
         $id = 'revolt-' . ++$this->counter;
         $this->handles[$id] = $stream;
 
-        $this->registerWithLoop($id, $stream);
+        $this->registerWithReactor($id, $stream);
 
         return new StreamPollHandle($id);
     }
@@ -67,46 +45,15 @@ final class RevoltPoller implements PollerPortInterface
     {
         $id = $handle->id;
 
-        if (isset($this->revoltIds[$id])) {
-            try {
-                EventLoop::cancel($this->revoltIds[$id]);
-            } catch (Throwable) {
-                // Loop may not be running; bookkeeping below is the source of truth.
-            }
-
-            unset($this->revoltIds[$id]);
+        if (isset($this->registered[$id])) {
+            $this->releaseFromReactor($this->registered[$id]);
+            unset($this->registered[$id]);
         }
 
         unset($this->handles[$id]);
     }
 
-    public function await(int $timeoutNanoseconds): void
-    {
-        $readiness = $this->probeReadiness($this->handles, $timeoutNanoseconds);
-        $this->readyReadStreams = $readiness['read'];
-        $this->readyWriteStreams = $readiness['write'];
-    }
-
-    public function readyHandles(): array
-    {
-        $ready = $this->matchReadyHandles(
-            $this->handles,
-            $this->readyReadStreams,
-            $this->readyWriteStreams,
-        );
-
-        $this->readyReadStreams = [];
-        $this->readyWriteStreams = [];
-
-        return $ready;
-    }
-
-    public function activeHandleCount(): int
-    {
-        return count($this->handles);
-    }
-
-    private function registerWithLoop(string $id, mixed $stream): void
+    private function registerWithReactor(string $id, mixed $stream): void
     {
         if (!is_resource($stream) || !class_exists(EventLoop::class)) {
             return;
@@ -118,7 +65,20 @@ final class RevoltPoller implements PollerPortInterface
         $callbackId = @EventLoop::onReadable($stream, static fn (): null => null);
 
         if ($callbackId !== '') {
-            $this->revoltIds[$id] = $callbackId;
+            $this->registered[$id] = $callbackId;
+        }
+    }
+
+    private function releaseFromReactor(mixed $callbackId): void
+    {
+        if (!is_string($callbackId)) {
+            return;
+        }
+
+        try {
+            EventLoop::cancel($callbackId);
+        } catch (Throwable) {
+            // Loop may not be running; bookkeeping below is the source of truth.
         }
     }
 }

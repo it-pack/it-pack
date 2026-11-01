@@ -38,6 +38,12 @@ use Throwable;
  */
 final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
 {
+    private const string DEFAULT_AWAIT_POINT = 'unknown';
+
+    private const string DEFAULT_STATUS = 'succeeded';
+
+    private const string DEFAULT_TASK_KIND = 'default';
+
     private bool $initialized = false;
 
     /**
@@ -104,7 +110,7 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
 
         $span = $tracer->spanBuilder('task.' . $status)
             ->setAttribute('itpack.asyncit.task.id', $taskId)
-            ->setAttribute('itpack.asyncit.task.kind', $context['taskKind'] ?? 'default')
+            ->setAttribute('itpack.asyncit.task.kind', $context['taskKind'] ?? self::DEFAULT_TASK_KIND)
             ->setAttribute('itpack.asyncit.execution.id', $context['executionId'] ?? '')
             ->startSpan()
         ;
@@ -123,7 +129,7 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
     {
         $span = $this->spans[$taskId] ?? null;
         $span?->addEvent('itpack.asyncit.task.suspended', [
-            'awaitPoint' => $context['awaitPoint'] ?? 'unknown',
+            'awaitPoint' => $context['awaitPoint'] ?? self::DEFAULT_AWAIT_POINT,
         ]);
     }
 
@@ -134,7 +140,7 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
     {
         $span = $this->spans[$taskId] ?? null;
         $span?->addEvent('itpack.asyncit.task.resumed', [
-            'awaitPoint' => $context['awaitPoint'] ?? 'unknown',
+            'awaitPoint' => $context['awaitPoint'] ?? self::DEFAULT_AWAIT_POINT,
         ]);
     }
 
@@ -148,7 +154,7 @@ final class OpenTelemetryTelemetryBridge implements TelemetryBridgeInterface
             return;
         }
 
-        $status = $context['status'] ?? 'succeeded';
+        $status = $context['status'] ?? self::DEFAULT_STATUS;
 
         if ($status === TaskStatus::Failed->value || $status === TaskStatus::TimedOut->value) {
             $throwable = $context['throwable'] ?? null;

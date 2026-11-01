@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Factory;
 
+use ItPack\AsyncIt\Adapter\OpenTelemetry\OpenTelemetryTelemetryBridge;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
@@ -76,5 +77,18 @@ final class AsyncRuntimeFactoryTest extends TestCase
         $runtime = AsyncRuntimeFactory::create();
 
         self::assertInstanceOf(LazyTelemetryBridge::class, $runtime->telemetry());
+    }
+
+    public function testCreateWithOtelEndpointUsesOpenTelemetryBridge(): void
+    {
+        putenv('OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318');
+
+        try {
+            $runtime = AsyncRuntimeFactory::create();
+
+            self::assertInstanceOf(OpenTelemetryTelemetryBridge::class, $runtime->telemetry());
+        } finally {
+            putenv('OTEL_EXPORTER_OTLP_ENDPOINT');
+        }
     }
 }

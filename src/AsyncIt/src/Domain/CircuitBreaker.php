@@ -24,6 +24,8 @@ use Throwable;
  */
 final class CircuitBreaker
 {
+    public const int DEFAULT_FAILURE_THRESHOLD = 5;
+
     public readonly int $failureThreshold;
 
     public readonly DurationInterface $failureTimeout;
@@ -42,7 +44,7 @@ final class CircuitBreaker
         ?DurationInterface $failureTimeout = null,
         ?DurationInterface $cooldown = null,
     ) {
-        $this->failureThreshold = $failureThreshold ?? 5;
+        $this->failureThreshold = $failureThreshold ?? self::DEFAULT_FAILURE_THRESHOLD;
         $this->failureTimeout = $failureTimeout ?? Duration::ofNanoseconds(60_000_000_000);
         $this->cooldown = $cooldown ?? Duration::ofNanoseconds(10_000_000_000);
     }

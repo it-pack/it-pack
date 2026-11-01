@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Contract\Port\BackpressurePolicy;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
 use ItPack\AsyncIt\Contract\TaskGroupInterface;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Domain\Behavior\TaskBehavior;
 use ItPack\AsyncIt\Domain\Exception\BackpressureExceededException;
@@ -44,7 +45,7 @@ final class TaskGroup implements TaskGroupInterface
     private int $runningCount = 0;
 
     public function __construct(
-        TaskId $id,
+        TaskIdInterface $id,
         ExecutionIdInterface $executionId,
         CancellationScopeInterface $cancellationScope,
         private readonly EngineSchedulerInterface $scheduler,
