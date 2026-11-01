@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Adapter\Swow;
 
-use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 use ItPack\AsyncIt\Contract\Exception\ChannelException;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Domain\Channel\ChannelBehaviorTrait;
@@ -37,9 +36,7 @@ final class SwowChannel implements TaskChannelInterface
 
     public function send(mixed $value): void
     {
-        if ($this->closed) {
-            throw new ChannelClosedException();
-        }
+        $this->requireOpen();
 
         if (!$this->channel->push($value)) {
             throw new ChannelException(
@@ -55,9 +52,7 @@ final class SwowChannel implements TaskChannelInterface
 
     public function trySend(mixed $value): bool
     {
-        if ($this->closed) {
-            throw new ChannelClosedException();
-        }
+        $this->requireOpen();
 
         if ($this->channel->isFull()) {
             return false;

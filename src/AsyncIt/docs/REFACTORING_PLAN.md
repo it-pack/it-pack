@@ -110,14 +110,14 @@
 - [ ] Verify tests pass
 
 ### 2.7 — Deduplicate channel closed-state guard
-- [ ] Extract `if ($this->closed) throw new ChannelClosedException();` into `ChannelBehaviorTrait` (shared by `SwooleChannel`, `SwowChannel`)
-- [ ] Verify `RevoltChannel` delegates correctly via `EmulatedChannel` (already done, no change needed)
-- [ ] Verify channel tests pass
+- [x] Extract `if ($this->closed) throw new ChannelClosedException();` into `ChannelBehaviorTrait` (shared by `SwooleChannel`, `SwowChannel`) via a protected `requireOpen()` guard; `waitForCapacity()`, `SwooleChannel::send()`/`trySend()`, and `SwowChannel::send()`/`trySend()` all delegate to it; unused `ChannelClosedException` imports removed from both adapters
+- [x] Verify `RevoltChannel` delegates correctly via `EmulatedChannel` (already done, no change needed)
+- [x] Verify channel tests pass (Unit suite green)
 
 ### 2.8 — Deduplicate `AsyncRuntime` combinator factory methods
-- [ ] Extract shared pattern from `race()`, `all()`, `any()`, `select()` into a private helper `createCombinator(array $operations, callable $factory): mixed`
-- [ ] Keep `join()` delegating to `all()`
-- [ ] Verify tests pass
+- [x] Extract shared pattern from `race()`, `all()`, `any()`, `select()` into a private helper `createCombinator(array $operations, callable $factory): mixed` on `AsyncRuntime`
+- [x] Keep `join()` delegating to `all()` (unchanged)
+- [x] Verify tests pass (AsyncRuntimeTest Race/All/Any/Select green; Unit suite green)
 
 ---
 

@@ -48,9 +48,7 @@ trait ChannelBehaviorTrait
      */
     public function waitForCapacity(): void
     {
-        if ($this->closed) {
-            throw new ChannelClosedException();
-        }
+        $this->requireOpen();
 
         if (!$this->channel->isFull()) {
             return;
@@ -71,6 +69,19 @@ trait ChannelBehaviorTrait
 
         foreach ($drained as $item) {
             $this->channel->push($item);
+        }
+    }
+
+    /**
+     * Throws {@see ChannelClosedException} when the channel is closed.
+     *
+     * Declares the closed-state guard once so {@see send()}, {@see trySend()},
+     * and {@see waitForCapacity()} do not repeat it per adapter.
+     */
+    protected function requireOpen(): void
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException();
         }
     }
 }

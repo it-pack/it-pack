@@ -11,6 +11,7 @@ use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskIdFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskStreamFactoryInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
+use ItPack\AsyncIt\Contract\CombinatorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
@@ -24,6 +25,7 @@ use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use LogicException;
@@ -146,19 +148,15 @@ final class AsyncRuntime implements AsyncRuntimeInterface
      */
     public function race(array $operations): mixed
     {
-        $scheduler = $this->activeScheduler();
-
-        $group = $this->combinatorFactory->createRace(
-            $this->taskIdFactory->create(),
-            $scheduler,
-            ExecutionId::fromString($this->idGenerator->generate()),
+        return $this->createCombinator(
+            $operations,
+            fn (
+                TaskIdInterface $id,
+                EngineSchedulerInterface $scheduler,
+                ExecutionIdInterface $executionId
+            ): CombinatorInterface =>
+                $this->combinatorFactory->createRace($id, $scheduler, $executionId),
         );
-
-        foreach ($operations as $operation) {
-            $group->add($operation);
-        }
-
-        return $group->await();
     }
 
     /**
@@ -170,19 +168,15 @@ final class AsyncRuntime implements AsyncRuntimeInterface
      */
     public function all(array $operations): array
     {
-        $scheduler = $this->activeScheduler();
-
-        $group = $this->combinatorFactory->createAll(
-            $this->taskIdFactory->create(),
-            $scheduler,
-            ExecutionId::fromString($this->idGenerator->generate()),
+        return $this->createCombinator(
+            $operations,
+            fn (
+                TaskIdInterface $id,
+                EngineSchedulerInterface $scheduler,
+                ExecutionIdInterface $executionId
+            ): CombinatorInterface =>
+                $this->combinatorFactory->createAll($id, $scheduler, $executionId),
         );
-
-        foreach ($operations as $operation) {
-            $group->add($operation);
-        }
-
-        return $group->await();
     }
 
     /**
@@ -194,19 +188,15 @@ final class AsyncRuntime implements AsyncRuntimeInterface
      */
     public function any(array $operations): mixed
     {
-        $scheduler = $this->activeScheduler();
-
-        $group = $this->combinatorFactory->createAny(
-            $this->taskIdFactory->create(),
-            $scheduler,
-            ExecutionId::fromString($this->idGenerator->generate()),
+        return $this->createCombinator(
+            $operations,
+            fn (
+                TaskIdInterface $id,
+                EngineSchedulerInterface $scheduler,
+                ExecutionIdInterface $executionId
+            ): CombinatorInterface =>
+                $this->combinatorFactory->createAny($id, $scheduler, $executionId),
         );
-
-        foreach ($operations as $operation) {
-            $group->add($operation);
-        }
-
-        return $group->await();
     }
 
     /**
@@ -219,19 +209,15 @@ final class AsyncRuntime implements AsyncRuntimeInterface
      */
     public function select(array $operations): array
     {
-        $scheduler = $this->activeScheduler();
-
-        $group = $this->combinatorFactory->createSelect(
-            $this->taskIdFactory->create(),
-            $scheduler,
-            ExecutionId::fromString($this->idGenerator->generate()),
+        return $this->createCombinator(
+            $operations,
+            fn (
+                TaskIdInterface $id,
+                EngineSchedulerInterface $scheduler,
+                ExecutionIdInterface $executionId
+            ): CombinatorInterface =>
+                $this->combinatorFactory->createSelect($id, $scheduler, $executionId),
         );
-
-        foreach ($operations as $operation) {
-            $group->add($operation);
-        }
-
-        return $group->await();
     }
 
     /**
@@ -298,6 +284,34 @@ final class AsyncRuntime implements AsyncRuntimeInterface
     public static function discover(): self
     {
         return AsyncRuntimeFactory::create();
+    }
+
+    /**
+     * Builds a structured-concurrency combinator from a shared factory recipe.
+     *
+     * Encodes the identical `race()`/`all()`/`any()`/`select()` prologue: resolve
+     * the active scheduler, allocate a child task id and execution id, build the
+     * group, add every operation, and await the group result. Only the factory
+     * method (createRace/createAll/createAny/createSelect) differs per strategy.
+     *
+     * @param list<callable> $operations
+     * @param callable(TaskIdInterface, EngineSchedulerInterface, ExecutionIdInterface): CombinatorInterface $factory
+     */
+    private function createCombinator(array $operations, callable $factory): mixed
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $factory(
+            $this->taskIdFactory->create(),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
     }
 
     private function activeScheduler(): EngineSchedulerInterface
