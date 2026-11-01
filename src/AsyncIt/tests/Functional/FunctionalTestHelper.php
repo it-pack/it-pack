@@ -20,6 +20,11 @@ use ItPack\AsyncIt\Application\Factory\TaskStreamFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Domain\Channel\EmulatedChannel;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
@@ -43,6 +48,18 @@ final class FunctionalTestHelper
     public static function makeScheduler(
         ?MonotonicClockInterface $clock = null,
     ): FiberTaskScheduler {
+        $clock ??= new DeterministicMonotonicClock();
+        $executionId = ExecutionId::fromString('functional-exec');
+        $sequenceAllocator = new InMemorySequenceAllocator();
+        $poller = new SelectPoller();
+
+        $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+        $timerService = new TaskTimerService($clock);
+        $ioAwaitService = new TaskIoAwaitService($poller, $timerService);
+        $lifecyclePublisher = new TaskLifecyclePublisher(new NullArtifactPublisher(), $lifecycleFactory, $clock);
+        $cancellationService = new TaskCancellationService();
+        $healthService = new TaskHealthService($poller, $clock);
+
         return new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
@@ -50,16 +67,16 @@ final class FunctionalTestHelper
                 new TaskIdFactory(new RandomIdentifierGenerator()),
             ),
             new CancellationScopeFactory(),
-            $clock ?? new DeterministicMonotonicClock(),
-            ExecutionId::fromString('functional-exec'),
-            new SelectPoller(),
+            $clock,
+            $executionId,
+            $poller,
             new MemoryContextStorage(),
             new ReferenceExecutionScopeFactory(),
-            new NullArtifactPublisher(),
-            new SchedulerLifecycleArtifactFactory(
-                new InMemorySequenceAllocator(),
-                ExecutionId::fromString('functional-exec')
-            ),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            $cancellationService,
+            $healthService,
         );
     }
 

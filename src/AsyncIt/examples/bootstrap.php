@@ -13,6 +13,11 @@ use ItPack\AsyncIt\Domain\CancellationScope;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Application\Factory\FiberFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Factory\TaskFactory;
@@ -69,6 +74,11 @@ function makeReferenceRuntime(): array
     $executionId = ExecutionId::fromString('example-exec');
     $sequenceAllocator = new InMemorySequenceAllocator();
 
+    $timerService = new TaskTimerService($clock);
+    $ioAwaitService = new TaskIoAwaitService($verifierPoller, $timerService);
+    $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+    $lifecyclePublisher = new TaskLifecyclePublisher($publisher, $lifecycleFactory, $clock);
+
     $scheduler = new FiberTaskScheduler(
         new FiberFactory(),
         new TaskRecordFactory(),
@@ -80,14 +90,14 @@ function makeReferenceRuntime(): array
         $executionId,
         $verifierPoller,
         $storage,
-        new ReferenceExecutionScopeFactory(),
-        $publisher,
-        new SchedulerLifecycleArtifactFactory(
-            $sequenceAllocator,
-            $executionId,
-        ),
-        new TelemetryBridgeEventListener($telemetry),
-    );
+            new ReferenceExecutionScopeFactory(),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            new TaskCancellationService(),
+            new TaskHealthService($verifierPoller, $clock),
+            new TelemetryBridgeEventListener($telemetry),
+        );
 
     $schedulerFactory = new SchedulerFactory(
         new FiberFactory(),

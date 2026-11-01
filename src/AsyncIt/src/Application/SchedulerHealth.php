@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application;
 
-use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
+use ItPack\AsyncIt\Application\Scheduler\TaskRecordInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
@@ -23,7 +23,7 @@ use Throwable;
 final readonly class SchedulerHealth implements SchedulerHealthInterface
 {
     /**
-     * @param list<TaskRecord> $records
+     * @param list<TaskRecordInterface> $records
      * @param list<Throwable> $recentErrors
      */
     public function __construct(
@@ -36,7 +36,7 @@ final readonly class SchedulerHealth implements SchedulerHealthInterface
     }
 
     /**
-     * @param list<TaskRecord> $records
+     * @param list<TaskRecordInterface> $records
      * @param list<Throwable> $recentErrors
      */
     public static function capture(

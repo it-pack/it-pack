@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
@@ -46,6 +51,13 @@ final readonly class SchedulerFactory implements SchedulerFactoryInterface
     public function create(ExecutionScopeInterface $scope, ExecutionIdInterface $executionId): EngineSchedulerInterface
     {
         $sequenceAllocator = new InMemorySequenceAllocator();
+        $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+
+        $timerService = new TaskTimerService($this->clock);
+        $ioAwaitService = new TaskIoAwaitService($this->poller, $timerService);
+        $lifecyclePublisher = new TaskLifecyclePublisher($this->publisher, $lifecycleFactory, $this->clock);
+        $cancellationService = new TaskCancellationService();
+        $healthService = new TaskHealthService($this->poller, $this->clock);
 
         return new FiberTaskScheduler(
             $this->fiberFactory,
@@ -57,8 +69,11 @@ final readonly class SchedulerFactory implements SchedulerFactoryInterface
             $this->poller,
             $this->contextStorage,
             $this->createExecutionScopeFactory($scope),
-            $this->publisher,
-            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            $cancellationService,
+            $healthService,
         );
     }
 

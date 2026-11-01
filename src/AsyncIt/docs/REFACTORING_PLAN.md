@@ -15,7 +15,7 @@
 - Public before protected/private within each section.
 - `@see` vocabulary alignment on every public contract/enum/value object.
 - Keep changes small and reviewable; do not alter scheduling semantics.
-- PHPStan at max level, phparkitect architecture rules, PHP-CS-Fixer clean.
+- PHPStan at max level, phparkitect architecture rules, Rector clean, PHP-CS-Fixer clean.
 
 ---
 
@@ -24,7 +24,7 @@
 - [x] Raise Unit suite coverage from ~79% to ≥95%
 - [x] Deduplicate poller adapters (~240 lines) via shared `register()`/`release()` trait
 - [x] Fix 87 phparkitect violations across 42 classes
-- [ ] Split `FiberTaskScheduler` (976 lines) into SRP-respecting services
+- [x] Split `FiberTaskScheduler` (976 lines → ~330 lines) into SRP-respecting services
 - [x] Enforce "new class instances only in factories/builders"
 - [ ] Add benchmarks for hot-path operations
 - [ ] Extract magic literals to constants/enums in interfaces
@@ -178,52 +178,51 @@
 
 ---
 
-## Phase 4 — `FiberTaskScheduler` SRP Split (High Priority)
+## Phase 4 — `FiberTaskScheduler` SRP Split (High Priority) — COMPLETE
 
 **Goal:** Split `FiberTaskScheduler.php` (976 lines) into SRP-respecting services.
 
 ### 4.1 — Identify responsibilities
-- [ ] Document current responsibilities: reactor loop (`runUntil`), scheduling/queue, timer management, IO await handling, cancellation handling, lifecycle publication, health reporting
-- [ ] Define boundaries for extracted services
+- [x] Document current responsibilities: reactor loop (`runUntil`), scheduling/queue, timer management, IO await handling, cancellation handling, lifecycle publication, health reporting
+- [x] Define boundaries for extracted services
 
 ### 4.2 — Extract `TaskTimerService`
-- [ ] Move `$timers` array, `drainExpiredTimers()`, `computeTimeout()`, `computeNearestTimerDeadline()`, `clearTimers()` into new `Application\Scheduler\TaskTimerService`
-- [ ] Inject `MonotonicClockInterface`
-- [ ] Expose `scheduleTimer(TaskRecord, DurationInterface, ?string $taskId, string $type = null)`, `drainExpired()`, `nearestDeadline()`, `clearForRecord(TaskRecord)`
-- [ ] Update `FiberTaskScheduler` to delegate to `TaskTimerService`
+- [x] Move `$timers` array, `drainExpiredTimers()`, `computeTimeout()`, `computeNearestTimerDeadline()`, `clearTimers()` into new `Application\Scheduler\TaskTimerService`
+- [x] Inject `MonotonicClockInterface`
+- [x] Expose `scheduleTimer(TaskRecordInterface, DurationInterface, ?string $taskId, ?string $type)`, `drainExpired()`, `nearestDeadline()`, `clearForRecord(TaskRecordInterface)`
+- [x] Update `FiberTaskScheduler` to delegate to `TaskTimerService`
 
 ### 4.3 — Extract `TaskIoAwaitService`
-- [ ] Move `$ioAwaiters`, `$ioTaskHandles`, `awaitIo()`, `drainReadyHandles()`, `releaseHandles()` into new `Application\Scheduler\TaskIoAwaitService`
-- [ ] Inject `PollerPortInterface`
-- [ ] Expose `registerAwait(TaskRecord, StreamPollHandleInterface, AwaitPoint, DurationInterface|null)`, `drainReady()`, `releaseForRecord(TaskRecord)`
-- [ ] Update `FiberTaskScheduler` to delegate to `TaskIoAwaitService`
+- [x] Move `$ioAwaiters`, `$ioTaskHandles`, `awaitIo()`, `drainReadyHandles()`, `releaseHandles()` into new `Application\Scheduler\TaskIoAwaitService`
+- [x] Inject `PollerPortInterface`, `TaskTimerServiceInterface`
+- [x] Expose `registerAwait(TaskRecordInterface, StreamPollHandleInterface, AwaitPoint, DurationInterface|null)`, `drainReady()`, `releaseForRecord(TaskRecordInterface)`, `clearIoAwaitForTask(string)`
+- [x] Update `FiberTaskScheduler` to delegate to `TaskIoAwaitService`
 
 ### 4.4 — Extract `TaskLifecyclePublisher`
-- [ ] Move `publishLifecycle()` and related artifact creation into new `Application\Scheduler\TaskLifecyclePublisher`
-- [ ] Inject `ArtifactPublisherInterface`, `SchedulerLifecycleArtifactFactory`, `MonotonicClockInterface`
-- [ ] Expose `publishSpawned(TaskInterface)`, `publishResumed(TaskInterface, int $startTime)`, `publishCompleted(TaskInterface, TaskStatus, ?int $startTime, ?Throwable)`, `publishFailure(TaskInterface, Throwable)`
-- [ ] Update `FiberTaskScheduler` to delegate to `TaskLifecyclePublisher`
+- [x] Move `publishLifecycle()` and related artifact creation into new `Application\Scheduler\TaskLifecyclePublisher`
+- [x] Inject `ArtifactPublisherInterface`, `SchedulerLifecycleArtifactFactory`, `MonotonicClockInterface`
+- [x] Expose `publishSpawned(TaskInterface)`, `publishResumed(TaskInterface, ?int $startTimeNanos)`, `publishCompleted(TaskInterface, TaskStatus, ?int $startTimeNanos, ?Throwable)`, `publishFailure(TaskInterface, Throwable)`
+- [x] Update `FiberTaskScheduler` to delegate to `TaskLifecyclePublisher`
 
 ### 4.5 — Extract `TaskCancellationService`
-- [ ] Move `forceCancelRemaining()`, `drainCancelledRecords()`, cancellation scope management into new `Application\Scheduler\TaskCancellationService`
-- [ ] Inject `CancellationScopeFactoryInterface`
-- [ ] Expose `cancelRemaining(array $records, int $deadlineNanos)`, `drainCancelled(array $records)`
-- [ ] Update `FiberTaskScheduler` to delegate to `TaskCancellationService`
+- [x] Move `forceCancelRemaining()`, `drainCancelledRecords()`, cancellation scope management into new `Application\Scheduler\TaskCancellationService`
+- [x] Expose `cancelRemaining(array $records, int $deadlineNanoseconds)`, `drainCancelled(array $records)`
+- [x] Update `FiberTaskScheduler` to delegate to `TaskCancellationService`
 
 ### 4.6 — Extract `TaskHealthService`
-- [ ] Move `health()` logic into new `Application\Scheduler\TaskHealthService`
-- [ ] Inject `PollerPortInterface`, `MonotonicClockInterface`
-- [ ] Expose `capture(array $records, int $startTimeNanos, array $errors): SchedulerHealthInterface`
-- [ ] Update `FiberTaskScheduler` to delegate to `TaskHealthService`
+- [x] Move `health()` logic into new `Application\Scheduler\TaskHealthService`
+- [x] Inject `PollerPortInterface`, `MonotonicClockInterface`
+- [x] Expose `capture(array $records, int $startTimeNanos, array $errors): SchedulerHealthInterface`
+- [x] Update `FiberTaskScheduler` to delegate to `TaskHealthService`
 
 ### 4.7 — Slim `FiberTaskScheduler`
-- [ ] Remove extracted responsibilities; keep reactor loop (`runUntil`), queue management (`$ready`, `$records`), `step()`/`resume()`/`complete()` orchestration, `await()`/`awaitDelay()`, `submit()`/`spawn()`/`dispatch()`
-- [ ] Target: <400 lines
-- [ ] Verify all existing tests pass unchanged
+- [x] Remove extracted responsibilities; keep reactor loop (`runUntil`), queue management (`$ready`, `$records`), `step()`/`resume()`/`complete()` orchestration, `await()`/`awaitDelay()`, `submit()`/`spawn()`/`dispatch()`
+- [x] Target: <400 lines (~330 lines achieved)
+- [x] Verify all existing tests pass unchanged
 
 ### 4.8 — Verify architecture
-- [ ] Run `vendor/bin/phparkitect check` — confirm no new violations from extracted services
-- [ ] Run `vendor/bin/phpstan analyse` — confirm 0 errors
+- [x] Run `vendor/bin/phparkitect check` — confirm no new violations from extracted services
+- [x] Run `vendor/bin/phpstan analyse` — confirm 0 new errors (pre-existing errors unchanged)
 
 ---
 
@@ -447,3 +446,5 @@ The following items from `docs/REVIEW.md` could not be fully resolved and are no
 3. **Coverage measurement environment**: Coverage was measured using pcov per-suite due to Codeception Acceptance suite coverage collection failure. The 95% threshold applies to the Unit suite based on available data; confirm with maintainers whether Integration/Functional/Conformance suites also count.
 
 4. **Benchmark baseline**: No existing benchmark data exists. Phase 6 establishes baselines but cannot compare against prior measurements.
+
+5. **Duplicated scheduler assembly drift risk (review finding #4)**: The identical 6-service assembly (`TaskTimerService`, `TaskIoAwaitService`, `TaskLifecyclePublisher`, `TaskCancellationService`, `TaskHealthService` + `SchedulerLifecycleArtifactFactory`) is copy-pasted across 9 scheduler construction sites (`SchedulerFactory`, `ReferenceRuntimeFixture`, `RuntimeFixtureTrait`, `FunctionalTestHelper`, `SchedulerIntegrationTest`, `FiberTaskSchedulerFailureTest`, `FiberTaskSchedulerTest`, `TaskStreamTest`, `examples/bootstrap.php`). Deferred: the sites have materially differing configurations (verifier vs. real poller, telemetry listeners, deterministic vs. system clocks, `NullArtifactPublisher` vs. real publisher), so centralizing cleanly is a larger design refactor that risks touching differently-configured test fixtures. Track as drift risk — if `FiberTaskScheduler`'s constructor changes, all 9 sites must be updated consistently.
