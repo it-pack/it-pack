@@ -317,9 +317,9 @@
 **Goal:** Replace hardcoded strings with constants/enums in interfaces.
 
 ### 7.1 — Prometheus metric names
-- [ ] Extract `asyncit_tasks_runnable`, `asyncit_poll_wait_seconds`, `asyncit_tasks_completed_total`, `asyncit_task_duration_seconds`, `asyncit_schedule_to_dispatch_seconds`, `asyncit_handles_active`, `asyncit_timers_active` into constants
-- [ ] Place in `Adapter/Prometheus/PrometheusTelemetryBridge` constants or a vocabulary interface
-- [ ] Verify tests pass
+- [x] Extract `asyncit_tasks_runnable`, `asyncit_poll_wait_seconds`, `asyncit_tasks_completed_total`, `asyncit_task_duration_seconds`, `asyncit_schedule_to_dispatch_seconds`, `asyncit_handles_active`, `asyncit_timers_active` into `private const string` metrics on `PrometheusTelemetryBridge`
+- [x] Replace all hardcoded metric-name string literals in `record()`, `buildInstruments()`, and `onTaskCompleted()` with the constants
+- [x] Verify `php-cs-fixer` clean, `phpstan` 0 errors in the file, Unit suite still passes (513 tests)
 
 ### 7.2 — Redis key prefixes
 - [ ] Extract `asyncit:task:` prefix into constant in `Adapter/Redis/RedisTaskQueue`
