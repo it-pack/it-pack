@@ -208,7 +208,8 @@ final class CanaryScheduler implements EngineSchedulerInterface, ResultTypedSche
     }
 
     /**
-     * @return array{baseline: array{calls:int, errors:int, totalLatencyNanos:int}, canary: array{calls:int, errors:int, totalLatencyNanos:int}}
+     * @return array{baseline: array{calls:int, errors:int, totalLatencyNanos:int},
+     *           canary: array{calls:int, errors:int, totalLatencyNanos:int}}
      */
     public function metrics(): array
     {

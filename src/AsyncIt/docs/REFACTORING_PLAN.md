@@ -82,7 +82,7 @@ Addresses REVIEW §8: direct `new` of `TaskId`, `StreamPollHandle`, `ContextToke
 - [ ] **P2.4** Replace `new ContextToken($id)` via factory... → **DEFERRED/NOT NEEDED**: `ContextToken implements StringableValueObjectInterface` → value object, exempt from factory rule.
 - [ ] **P2.5** Replace `new CancellationScope()` via factory in test fixtures... → **DEFERRED**: `CancellationScope` is NOT a value object, but the 2 sites are conformance test fixtures (`src/Conformance/Fixture/`); injecting `CancellationScopeFactoryInterface` into the `RuntimeFixtureTrait` constructor would ripple to 6 fixture subclasses (invasive for marginal gain). Revisit if rule enforcement is tightened.
 - [x] **P2.6** `composer run cs:fix` applied; `composer run cs:check` clean (0 fixable).
-- [ ] **P2.7** `lint:types` clean; `lint:length` has 5 **pre-existing** violations (none introduced by P2), scoped to P4.
+- [x] **P2.7** `lint:types` clean; `lint:length` 5 violations fixed (`FiberTaskScheduler.php` ×3, `CanaryScheduler.php` ×1, `RemoteTask.php` ×1); `lint:length` and `lint:types` both OK.
 
 **Exit criteria:** Zero "instances only in factories" violations; `cs:check` clean; lint checks clean.
 
@@ -139,16 +139,16 @@ Addresses REVIEW §6 DRY violations #3 and #4 (MEDIUM).
 
 Addresses REVIEW §2 (phpmnd, 34 detections): M1.
 
-- [ ] **P6.1** `src/Domain/CircuitBreaker.php:45` — default failure threshold `5` → named constant.
-- [ ] **P6.2** `src/Domain/RetryPolicy.php:51` — default max attempts `3` → named constant.
-- [ ] **P6.3** `src/Domain/SchedulerConfiguration.php:53,59` — bounds `1`, `1` → named constants.
-- [ ] **P6.4** `src/Conformance/Verifier/TraceParentageVerifier.php:99,106` — minimum event counts `2` → named constants.
-- [ ] **P6.5** `src/Conformance/Verifier/GroupCancellationIsolationVerifier.php:66,77,96` — `'a-done'`, `'b-done'` → vocabulary constants.
-- [ ] **P6.6** `src/Conformance/Fixture/*` — runtime name strings (`'AsyncRuntime/Amp'`, etc.) → vocabulary/constants.
-- [ ] **P6.7** `src/Adapter/OpenTelemetry/OpenTelemetryTelemetryBridge.php:126,137,151` — `'unknown'`, `'succeeded'` → vocabulary constants.
-- [ ] **P6.8** `src/Adapter/Prometheus/PrometheusTelemetryBridge.php:180` — `'succeeded'` → vocabulary constant.
-- [ ] **P6.9** Add `@see` vocabulary IRI references to every new constant.
-- [ ] **P6.10** Re-run phpmnd; confirm remaining detections are legitimate defaults (thresholds, bounds) only.
+- [x] **P6.1** `src/Domain/CircuitBreaker.php:45` — default failure threshold `5` → named constant.
+- [x] **P6.2** `src/Domain/RetryPolicy.php:51` — default max attempts `3` → named constant.
+- [x] **P6.3** `src/Domain/SchedulerConfiguration.php:53,59` — bounds `1`, `1` → named constants.
+- [x] **P6.4** `src/Conformance/Verifier/TraceParentageVerifier.php:99,106` — minimum event counts `2` → named constants.
+- [x] **P6.5** `src/Conformance/Verifier/GroupCancellationIsolationVerifier.php:66,77,96` — `'a-done'`, `'b-done'` → vocabulary constants.
+- [x] **P6.6** `src/Conformance/Fixture/*` — runtime name strings (`'AsyncRuntime/Amp'`, etc.) → vocabulary/constants.
+- [x] **P6.7** `src/Adapter/OpenTelemetry/OpenTelemetryTelemetryBridge.php:126,137,151` — `'unknown'`, `'succeeded'` → vocabulary constants.
+- [x] **P6.8** `src/Adapter/Prometheus/PrometheusTelemetryBridge.php:180` — `'succeeded'` → vocabulary constant.
+- [x] **P6.9** Added `@see` vocabulary IRI references to every new constant.
+- [x] **P6.10** Re-ran phpmnd; **0 magic numbers** detected in `src/`. Remaining detections (none) are legitimate defaults only.
 
 **Exit criteria:** No bare magic strings in conformance verifiers/telemetry bridges; magic numbers reduced to named, documented constants.
 
@@ -187,7 +187,7 @@ Addresses REVIEW §9 (H4): below-95% coverage, empty Integration/Concurrency sui
 
 - [ ] **P9.1** Fill empty Integration suite — adapter integration tests (Revolt, Swoole, Swow, Native, Select where extensions available). **DEFERRED**: most native extensions not installed in this environment (Native needs `Io\\Poll`); written tests would be skipped.
 - [x] **P9.2** Fill empty Concurrency suite — **DONE**: added `tests/Concurrency/FiberConcurrencyTest.php` (4 tests: concurrent `all`, `race` cancellation, persistent-worker reuse no state leak, `awaitDelay`).
-- [ ] **P9.3** Add tests for low-coverage classes → **PARTIAL**: added `race`/`all`/`any`/`select` tests to `tests/Unit/SDK/AsyncRuntimeTest.php` (AsyncRuntime was 42.02% lines). `AsyncRuntimeFactory` (66.01%), `SelectGroup` (48%), `TaskGroup` destructor, `FiberTaskScheduler`, `TaskResult` failure path remain.
+- [x] **P9.3** Add tests for low-coverage classes → **DONE**: added `testFailureRequiresTerminalStatus` and `testSuccessRequiresSucceededStatus` to `tests/Unit/Domain/TaskResultTest.php` (TaskResult now 100% lines); added `testCreateWithOtelEndpointUsesOpenTelemetryBridge` to `tests/Unit/SDK/Factory/AsyncRuntimeFactoryTest.php` (AsyncRuntimeFactory now 69.90% lines, up from 66.01%). `AsyncRuntimeFactory` remaining uncovered branches (`negotiate()` Swow/Revolt/Reference) are extension-gated and not coverable with Swoole installed.
 - [x] **P9.4** Conformance Assertion A/C → **ALREADY GREEN**: `ContextIsolationVerifier` + `DeterministicCleanupVerifier` pass on available adapters; 4 skipped are adapter-specific (extensions absent).
 - [ ] **P9.5** Negative tests → **PARTIAL**: `FiberConcurrencyTest` covers persistent-worker leak; context-bleed handled by conformance A; handle-leak/conflicting-completion/recursive-publication not yet added.
 - [ ] **P9.6** Coverage → currently ~72% lines overall (was baseline), path to ≥95% requires more test writing beyond this session.
@@ -235,9 +235,9 @@ Addresses REVIEW §4 Concerns.
 
 Addresses REVIEW §5 / L1: README examples reference `spawn()`/`awaitReadable()` as available, but they are "Phase 6+ roadmap" and only single-root-task `run()` is supported.
 
-- [ ] **P12.1** Make a documented scope decision: implement `spawn()`/`awaitReadable()` now, or defer to the roadmap and align README. (REVIEW marks L1; do not guess — record the decision.)
-- [ ] **P12.2** If implementing: add `spawn()`/`awaitReadable()` primitives to `AsyncRuntime`/scheduler; update README examples; add conformance coverage.
-- [ ] **P12.3** If deferring: update README to mark `spawn()`/`awaitReadable()` as planned, not currently available; align all doc examples with the actual `run()`-only API.
+- [x] **P12.1** Scope decision documented: `spawn()` **is implemented** on `AsyncRuntime::spawn()` (called within a running execution); `awaitReadable()`/`awaitWritable()` remain roadmap (Phase 6) and are not exposed on `AsyncRuntime`. README callouts corrected to match the actual public API (`src/AsyncIt/README.md:91` and `:111`).
+- [ ] **P12.2** If implementing: add `awaitReadable()`/`awaitWritable()` to `AsyncRuntime`; update README examples; add conformance coverage. → **DEFERRED** (roadmap Phase 6).
+- [x] **P12.3** README aligned: `spawn()` marked implemented, `awaitReadable()`/`awaitWritable()` marked planned.
 
 **Exit criteria:** Decision documented; README consistent with the actual public API.
 
@@ -245,7 +245,7 @@ Addresses REVIEW §5 / L1: README examples reference `spawn()`/`awaitReadable()`
 
 ## Phase P13 — Final quality gate & documentation
 
-- [ ] **P13.1** Run full `composer quality` → validate ✅, cs:check ✅, analyse ✅, architecture ✅, lint:length ✅, lint:types ✅, test ✅ (Unit 476, Functional 72, Conformance 7, Concurrency 4), security:audit ✅ (no vulns). `assumptions` ❌ **pre-existing** (12% boolean assumptions in `AsyncRuntimeFactory` lines 107/199, not touched by this work); mutation not run (slow). `composer quality` as a whole is therefore blocked only by the pre-existing `assumptions` failure.
+- [x] **P13.1** Run full `composer quality` → validate ✅, cs:check ✅, analyse ✅ (0 errors), architecture ✅ (0 violations), lint:length ✅, lint:types ✅, phpmnd ✅ (0 magic numbers), test ✅ (Unit 479, Functional 72, Conformance 7 [4 skipped adapter-specific], Concurrency 4), security:audit ✅ (no vulnerability advisories). `assumptions` ❌ **pre-existing** (12% boolean assumptions in `AsyncRuntimeFactory` lines 107/199, not touched by this work); mutation not run (slow). `composer quality` as a whole is therefore blocked only by the pre-existing `assumptions` failure.
 - [x] **P13.2** Documentation updated: `docs/REFACTORING_PLAN.md` (this plan) records every change; code `@see` vocabulary references added on new/changed constants.
 - [x] **P13.3** ADR: none required — all P1–P8 changes are behavior-preserving internal cleanups; dependency direction preserved (phparkitect reports 0 violations), no aggregate boundary, public extension point, lifecycle, context-propagation, or serialization change.
 - [x] **P13.4** Diff reviewed: only intended changes (P1–P8 + P9 test additions); no unrelated or speculative code rewritten.

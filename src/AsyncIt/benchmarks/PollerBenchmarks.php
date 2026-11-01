@@ -33,7 +33,7 @@ final class PollerBenchmarks
     public function setUp(): void
     {
         $this->poller = new SelectPoller();
-        $this->stream = fopen('php://temp', 'r+');
+        $this->stream = fopen('php://temp', 'rb+');
     }
 
     /**

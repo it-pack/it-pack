@@ -88,7 +88,13 @@ $result = $runtime->run($scope, static function (): string {
 echo $result; // Hello from AsyncIt
 ```
 
-> The `spawn()` and `awaitReadable()` primitives shown in earlier drafts are part of the **next-generation roadmap** (Phase 6+ in `docs/ROADMAP.md`) and are not yet implemented. They will be added with conformance-gated semantics once the multi-task model lands. See `docs/FEATURE_BACKLOG.md` for details.
+> The `spawn()` primitive is implemented on `AsyncRuntime::spawn()` and may be
+> called from within a running execution to spawn a child task bound to the
+> current execution scope. The `awaitReadable()`/`awaitWritable()` primitives
+> are declared on `AwaitableIOInterface` but are not yet exposed on
+> `AsyncRuntime`; they are part of the next-generation roadmap (Phase 6+ in
+> `docs/ROADMAP.md`) and will be added with conformance-gated semantics once
+> the multi-task IO model lands. See `docs/FEATURE_BACKLOG.md` for details.
 
 ---
 
@@ -108,7 +114,9 @@ echo $result; // Hello from AsyncIt
 - **`ItPack\AsyncIt\Contract\CancellationScopeInterface`** — Observed cooperative cancellation boundary.
 - **`ItPack\AsyncIt\Contract\TelemetryBridgeInterface`** — Telemetry integration port.
 
-> The `spawn()` and `awaitReadable()` primitives are planned for Phase 6 (M11–M12). See `docs/ROADMAP.md` for sequencing.
+> The `spawn()` primitive is implemented on `AsyncRuntime::spawn()` (within a
+> running execution). `awaitReadable()`/`awaitWritable()` are planned for
+> Phase 6 (M11–M12). See `docs/ROADMAP.md` for sequencing.
 
 ---
 

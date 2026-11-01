@@ -29,6 +29,9 @@ use Stringable;
  */
 final readonly class RemoteTask implements RemoteTaskInterface, Stringable
 {
+    private const string OPERATION_PATTERN = '/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*'
+        . '(\\\\[a-zA-Z0-9_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)*$/';
+
     public string $correlationId;
 
     /**
@@ -46,7 +49,7 @@ final readonly class RemoteTask implements RemoteTaskInterface, Stringable
             throw new InvalidArgumentException('RemoteTask operation must not be empty.');
         }
 
-        if (preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*(\\\\[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)*$/', $operation) !== 1) {
+        if (preg_match(self::OPERATION_PATTERN, $operation) !== 1) {
             throw new InvalidArgumentException('RemoteTask operation must be a valid fully-qualified class name.');
         }
 
