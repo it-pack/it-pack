@@ -81,9 +81,12 @@ Before making architectural changes, read the smallest relevant set of:
 4. Public contracts under `src/Contract/` and ports under `src/Contract/Port/`.
 5. The conformance harness under `src/Conformance/` (`AsyncRuntimeVerifier`).
 6. Tests covering the affected behavior.
-7. `composer.json`.
-8. `deptrac.yaml`.
-9. `phpstan.neon` / `phpstan-bleeding-edge.neon`.
+7. `codeception.yml`
+8. `composer.json`.
+9. `phparkitect.php`.
+10. `phpstan.neon` / `phpstan-bleeding-edge.neon`.
+11. `.php-cs-fixer.php`
+12. `rector.php`
 
 If a listed file does not exist, do not invent its contents. Use the available sources and mention the missing artifact when it blocks the task.
 
@@ -195,7 +198,7 @@ Adapters may translate runtime concepts (coroutine suspension, poller readiness)
 
 Keep mapping logic inside the relevant adapter. Do not add vendor-specific fields to core domain objects solely to satisfy a runtime.
 
-DepTrac rules are architectural requirements, not optional style guidance.
+Phparkitect rules are architectural requirements, not optional style guidance.
 
 ---
 
@@ -298,7 +301,7 @@ A runtime or adapter exception must not replace the original business exception.
 
 ## PHP Standards
 
-Target PHP `>= 8.4`.
+Target PHP `>= 8.5`.
 
 Every PHP file must begin with:
 
@@ -311,6 +314,7 @@ declare(strict_types=1);
 ### Classes and contracts
 
 - Every concrete class must be `final`.
+- Every final class ust be fully backed by interfaces.
 - Use `readonly` whenever controlled mutation is unnecessary.
 - Every concrete class must implement an appropriate interface.
 - Exceptions must implement the relevant AsyncIt exception marker interface.
@@ -318,7 +322,8 @@ declare(strict_types=1);
 - Keep interfaces small and focused.
 - Do not create interfaces solely to duplicate another interface without semantic value.
 - Traits must harmonize with interfaces and remain focused.
-- Avoid stateful traits and hidden dependencies.
+- Traits must be used for code deduplication and composition.
+- Avoid hidden dependencies.
 
 ### Types
 
@@ -329,9 +334,9 @@ declare(strict_types=1);
 - Use dedicated value objects for identifiers, names, units, capability keys, and validated concepts.
 - Use `null` for optional values.
 - Use property hooks for value objects and back them with respective contracts.
-- Prefer extensible validated strings over closed enums for user-defined names and kinds.
+- Prefer extensible validated strings in interfaces over closed enums for user-defined names and kinds.
 - Use enums for genuinely closed internal state sets (e.g., task lifecycle states, capability statuses).
-- Ensure interfaces only depend on interfaces/traits and no concrete classes.
+- Ensure interfaces only depend on interfaces/enums and no concrete classes.
 - Use `never` for exceptions that should never be thrown.
 - Use `object` for untyped objects.
 - Use `array` for untyped arrays.
@@ -414,16 +419,16 @@ Do not add a public extension point until there is a concrete consumer or adapte
 
 Use domain terminology consistently:
 
-| Use | Avoid as a synonym |
-|---|---|
-| Task | Span, coroutine, job |
-| Scheduler | Event loop, reactor |
-| Awaiting | Wait, sleep |
-| Poller | Event loop, multiplexer |
-| Cancellation | Kill, abort |
-| Suspension | Pause, stop |
+| Use               | Avoid as a synonym          |
+|-------------------|-----------------------------|
+| Task              | Span, coroutine, job        |
+| Scheduler         | Event loop, reactor         |
+| Awaiting          | Wait, sleep                 |
+| Poller            | Event loop, multiplexer     |
+| Cancellation      | Kill, abort                 |
+| Suspension        | Pause, stop                 |
 | Execution (RunIt) | Trace, transaction, request |
-| Context (RunIt) | Baggage, metadata bag |
+| Context (RunIt)   | Baggage, metadata bag       |
 
 Adapter documentation may explain runtime mappings, but core APIs must retain AsyncIt vocabulary.
 
@@ -458,7 +463,7 @@ AsyncIt maintains its own RDF vocabulary, distinct from the execution-semantics 
 
 - `vocab/async-it.ttl` — the **AsyncIt Scheduling Ontology** (OWL). The canonical source for AsyncIt-owned scheduling concepts: `Task`, `Scheduler`, `Awaitable`, `CancellationScope`, `Timer`, `TaskChannel`, `Poller`, `StreamPollHandle`, `RuntimeAdapter`, `CapabilityDescriptor`/`Capability`/`CapabilityStatus`, `ConformanceResult`/`ConformanceViolation`/`ViolationSeverity`, and their properties. Closed sets are modelled as controlled individuals (`TaskStatus`, `CapabilityStatus`, `ViolationSeverity`, `CapabilityKind`).
 - `vocab/async-it-taxonomy.ttl` — the **AsyncIt Scheduling Taxonomy** (SKOS). Extensible concept schemes for kinds and keys: `TaskKinds`, `CapabilityKeys`, `OccurrenceTypes`, `RuntimeAdapterKinds`, `PollerKinds`.
-- `vocab/run-it.ttl` (and `run-it-taxonomy.ttl`) — the **RunIt Execution Ontology/Taxonomy** that AsyncIt *consumes*. AsyncIt does not own terms like `Execution`, `Context`, `Occurrence`, `Measurement`, `Observation`, `Snapshot`; it maps scheduler events into them.
+- `../Runit/vocab/run-it.ttl` (and `run-it-taxonomy.ttl`) — the **RunIt Execution Ontology/Taxonomy** that AsyncIt *consumes*. AsyncIt does not own terms like `Execution`, `Context`, `Occurrence`, `Measurement`, `Observation`, `Snapshot`; it maps scheduler events into them.
 
 During implementation, every public scheduling contract, enum, value object, serialized field, standard name, kind, capability key, or occurrence type **must** carry a PHPDoc `@see` to the matching vocabulary resource:
 
@@ -685,12 +690,16 @@ Inspect `composer.json` before running commands. Use repository-defined scripts 
 Expected tools include:
 
 - PHPStan.
-- DepTrac.
+- Phparkitect.
 - PHP-CS-Fixer.
+- Rector.
+- PHPStan.
+- PHPStan-Strict-Rules.
 - Infection.
 - Composer validation and audit.
 - Backward compatibility checks.
 - Unit and integration test runners.
+- Scripts in tools/.
 
 Typical checks may include:
 
@@ -699,6 +708,7 @@ composer validate
 composer test
 composer analyse
 composer architecture
+composer refactor
 composer coding-style
 composer mutation
 composer benchmark
@@ -715,7 +725,7 @@ Do not assume these scripts exist. Verify them first.
 - Do not suppress an error without a specific documented reason.
 - Prefer correcting types and design over adding broad ignores.
 
-### DepTrac
+### Phparkitect
 
 - Do not add skips to hide an architectural violation.
 - Correct the dependency direction.
