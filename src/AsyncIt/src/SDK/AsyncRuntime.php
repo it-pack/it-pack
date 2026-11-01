@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\SDK;
 
+use Generator;
+use ItPack\AsyncIt\Application\Factory\CombinatorFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\SchedulerFactoryInterface;
 use ItPack\AsyncIt\Application\Factory\TaskGroupFactoryInterface;
+use ItPack\AsyncIt\Application\Factory\TaskStreamFactoryInterface;
 use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\CapabilityObserverInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskChannelInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskStreamInterface;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
 use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
@@ -49,6 +53,8 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
     public function __construct(
         private readonly SchedulerFactoryInterface $schedulerFactory,
         private readonly TaskGroupFactoryInterface $taskGroupFactory,
+        private readonly CombinatorFactoryInterface $combinatorFactory,
+        private readonly TaskStreamFactoryInterface $taskStreamFactory,
         private readonly IdentifierGeneratorInterface $idGenerator,
         private readonly EngineCapability $capability,
         private readonly TaskChannelInterface $channel,
@@ -129,6 +135,137 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
         $this->scheduler->awaitDelay($duration);
     }
 
+    /**
+     * Runs all operations concurrently and returns the result of the first to
+     * complete. Cancels remaining operations.
+     *
+     * @param list<callable> $operations
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-race
+     */
+    public function race(array $operations): mixed
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createRace(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and returns all results in spawn order.
+     *
+     * @param list<callable> $operations
+     * @return list<mixed>
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-all
+     */
+    public function all(array $operations): array
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createAll(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and returns the result of the first to
+     * succeed. Ignores failures of other children; throws if all fail.
+     *
+     * @param list<callable> $operations
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-any
+     */
+    public function any(array $operations): mixed
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createAny(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and returns the winning task and its
+     * result.
+     *
+     * @param list<callable> $operations
+     * @return array{task: TaskInterface|null, result: mixed}
+     * @see https://w3id.org/itpack/asyncit-taxonomy#await-point-select
+     */
+    public function select(array $operations): array
+    {
+        $scheduler = $this->activeScheduler();
+
+        $group = $this->combinatorFactory->createSelect(
+            new TaskId($this->idGenerator->generate()),
+            $scheduler,
+            ExecutionId::fromString($this->idGenerator->generate()),
+        );
+
+        foreach ($operations as $operation) {
+            $group->add($operation);
+        }
+
+        return $group->await();
+    }
+
+    /**
+     * Runs all operations concurrently and waits for all to complete.
+     *
+     * @param list<callable> $operations
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-group-strategy-all
+     */
+    public function join(array $operations): void
+    {
+        $this->all($operations);
+    }
+
+    /**
+     * Lazily streams tasks from a generator, one at a time.
+     *
+     * Each callable yielded by the generator is spawned as a task on the
+     * active scheduler and awaited to completion before the next item is
+     * pulled. Backpressure is applied naturally: `next()` on the returned
+     * stream blocks until the current task reaches a terminal state.
+     *
+     * Must be called from within a running execution (inside an operation
+     * passed to {@see run()}).
+     *
+     * @param callable(): Generator $generator
+     * @see https://w3id.org/itpack/asyncit-taxonomy#task-kind-stream
+     */
+    public function stream(callable $generator): TaskStreamInterface
+    {
+        if (!$this->scheduler instanceof EngineSchedulerInterface) {
+            throw new LogicException('stream() must be called within a running execution.');
+        }
+
+        return $this->taskStreamFactory->create($this->scheduler, $generator());
+    }
+
     public function capability(): EngineCapability
     {
         return $this->capability;
@@ -159,5 +296,14 @@ final class AsyncRuntime implements ExecutionEngineInterface, CapabilityObserver
     public static function discover(): self
     {
         return AsyncRuntimeFactory::create();
+    }
+
+    private function activeScheduler(): EngineSchedulerInterface
+    {
+        if (!$this->scheduler instanceof EngineSchedulerInterface) {
+            throw new LogicException('scheduler combinator must be called within a running execution.');
+        }
+
+        return $this->scheduler;
     }
 }

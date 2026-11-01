@@ -11,14 +11,18 @@ use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\EngineSchedulerInterface;
 use ItPack\AsyncIt\Contract\Port\CancellationReason;
 use ItPack\AsyncIt\Contract\Port\TaskStatus;
+use ItPack\AsyncIt\Contract\ResultTypedSchedulerInterface;
 use ItPack\AsyncIt\Contract\RetryPolicyInterface;
 use ItPack\AsyncIt\Contract\SchedulerHealthInterface;
 use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
+use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\AsyncIt\Domain\TaskId;
+use ItPack\AsyncIt\Domain\TaskResult;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Domain\Shared\Duration;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Throwable;
@@ -238,7 +242,7 @@ final class CanarySchedulerTest extends TestCase
     }
 }
 
-final class FakeScheduler implements EngineSchedulerInterface
+final class FakeScheduler implements EngineSchedulerInterface, ResultTypedSchedulerInterface
 {
     /** @var list<string> */
     private array $calls = [];
@@ -326,6 +330,13 @@ final class FakeScheduler implements EngineSchedulerInterface
     public function swapCapabilities(CapabilityDescriptorInterface $descriptor): void
     {
         $this->calls[] = $this->label . '.swapCapabilities';
+    }
+
+    public function resultTyped(TaskInterface $task): TaskResultInterface
+    {
+        $this->calls[] = $this->label . '.resultTyped';
+
+        return TaskResult::success('result', TaskStatus::Succeeded, Duration::ofNanoseconds(0));
     }
 }
 

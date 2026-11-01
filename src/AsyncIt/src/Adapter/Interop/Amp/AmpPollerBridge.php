@@ -43,6 +43,16 @@ final class AmpPollerBridge implements PollerPortInterface
      */
     private array $ampIds = [];
 
+    /**
+     * @var list<mixed> streams that became readable during the last await() call
+     */
+    private array $readyReadStreams = [];
+
+    /**
+     * @var list<mixed> streams that became writable during the last await() call
+     */
+    private array $readyWriteStreams = [];
+
     private int $counter = 0;
 
     public function register(mixed $stream): StreamPollHandleInterface
@@ -69,7 +79,23 @@ final class AmpPollerBridge implements PollerPortInterface
 
     public function await(int $timeoutNanoseconds): void
     {
-        $this->probeReadiness($this->handles, $timeoutNanoseconds);
+        $readiness = $this->probeReadiness($this->handles, $timeoutNanoseconds);
+        $this->readyReadStreams = $readiness['read'];
+        $this->readyWriteStreams = $readiness['write'];
+    }
+
+    public function readyHandles(): array
+    {
+        $ready = $this->matchReadyHandles(
+            $this->handles,
+            $this->readyReadStreams,
+            $this->readyWriteStreams,
+        );
+
+        $this->readyReadStreams = [];
+        $this->readyWriteStreams = [];
+
+        return $ready;
     }
 
     public function activeHandleCount(): int

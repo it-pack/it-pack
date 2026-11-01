@@ -82,6 +82,27 @@ final class NativePoller implements PollerPortInterface
         ($poll)($milliseconds);
     }
 
+    public function readyHandles(): array
+    {
+        $ready = [];
+
+        foreach ($this->handles as $id => $stream) {
+            if (!is_resource($stream)) {
+                continue;
+            }
+
+            $read = [$stream];
+            $write = [$stream];
+            $except = [];
+
+            if (@stream_select($read, $write, $except, 0, 0) > 0) {
+                $ready[] = new StreamPollHandle($id);
+            }
+        }
+
+        return $ready;
+    }
+
     public function activeHandleCount(): int
     {
         return count($this->handles);

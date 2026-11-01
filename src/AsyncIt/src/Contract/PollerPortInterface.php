@@ -48,4 +48,19 @@ interface PollerPortInterface
      * @see https://w3id.org/itpack/asyncit#StreamPollHandle
      */
     public function activeHandleCount(): int;
+
+    /**
+     * Returns handles that became ready since the last {@see await()} call.
+     *
+     * Called by the scheduler after {@see await()} returns to identify which
+     * registered streams are ready for IO operations. Implementations should
+     * track readiness during {@see await()} and return the corresponding
+     * {@see StreamPollHandleInterface} instances. The list is cleared on each
+     * call.
+     *
+     * @return list<StreamPollHandleInterface>
+     *
+     * @see https://w3id.org/itpack/asyncit#StreamPollHandle
+     */
+    public function readyHandles(): array;
 }
