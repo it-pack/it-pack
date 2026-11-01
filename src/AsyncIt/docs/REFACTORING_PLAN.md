@@ -27,7 +27,7 @@
 - [x] Split `FiberTaskScheduler` (976 lines → ~330 lines) into SRP-respecting services
 - [x] Enforce "new class instances only in factories/builders"
 - [ ] Add benchmarks for hot-path operations
-- [ ] Extract magic literals to constants/enums in interfaces
+- [x] Extract magic literals to constants/enums in interfaces
 - [ ] Add `WeakReference`/`Lazy` usage where appropriate
 - [ ] Add negative security tests (context-bleed, handle-leak)
 - [ ] Add `CONTRIBUTING.md` and `CHANGELOG.md`
@@ -330,7 +330,7 @@ Measurements are first baselines; variance is high (±5–45%) due to no opcache
 
 ---
 
-## Phase 7 — Magic Literal Extraction (Medium Priority)
+## Phase 7 — Magic Literal Extraction (Medium Priority) — COMPLETE
 
 **Goal:** Replace hardcoded strings with constants/enums in interfaces.
 
@@ -340,18 +340,33 @@ Measurements are first baselines; variance is high (±5–45%) due to no opcache
 - [x] Verify `php-cs-fixer` clean, `phpstan` 0 errors in the file, Unit suite still passes (513 tests)
 
 ### 7.2 — Redis key prefixes
-- [ ] Extract `asyncit:task:` prefix into constant in `Adapter/Redis/RedisTaskQueue`
-- [ ] Verify tests pass
+- [x] Extract `asyncit:task:` prefix into constant in `Adapter/Redis/RedisTaskQueue`
+- [x] Verify tests pass
 
 ### 7.3 — Error messages
-- [ ] Extract repeated error messages into constants near their usage
-- [ ] Focus on messages repeated across files (e.g., "must be called within a running task", "Current task is not tracked by this scheduler")
-- [ ] Verify tests pass
+- [x] Extract repeated error messages into constants near their usage
+- [x] Focus on messages repeated across files (e.g., "must be called within a running task", "Current task is not tracked by this scheduler")
+- [x] Verify tests pass
+
+**Status:** Complete. `FiberTaskScheduler` now backs the repeated messages with class constants
+`MUST_BE_CALLED_WITHIN_RUNNING_TASK`, `NOT_TRACKED_BY_THIS_SCHEDULER`, and
+`CANNOT_AWAIT_TASK_NOT_OWNED`, replacing the hardcoded literals across `await()`,
+`awaitDelay()`, `awaitAny()`, `awaitIo()`, and `resultTyped()`-adjacent guards. The unique
+`resultTyped()` message (`Task %s is not tracked by this scheduler or has not reached a terminal
+state.`) is intentionally left as a single-use literal. Unit suite: 513 tests / 1110 assertions
+pass; full suite 602 tests green; phpstan/cs-fixer/phparkitect introduce no new violations.
 
 ### 7.4 — Metric name security
-- [ ] Verify no user-controlled values flow into metric names
-- [ ] Add validation/sanitization if any user input reaches metric names
-- [ ] Verify tests pass
+- [x] Verify no user-controlled values flow into metric names
+- [x] Add validation/sanitization if any user input reaches metric names
+- [x] Verify tests pass
+
+**Status:** Complete. Verified `PrometheusTelemetryBridge`: all metric names are `private const string`
+(METRIC_TASKS_RUNNABLE, METRIC_HANDLES_ACTIVE, METRIC_TIMERS_ACTIVE, METRIC_TASKS_COMPLETED_TOTAL,
+METRIC_TASK_DURATION_SECONDS, METRIC_POLL_WAIT_SECONDS, METRIC_SCHEDULE_TO_DISPATCH_SECONDS); the
+`record()` match key is never used as a metric name; the only label value (`status`) is drawn from the
+closed `TaskStatus` taxonomy with a closed-enum-name fallback (TelemetryBridgeEventListener:54-60). No
+user-controlled value reaches a metric name. No sanitization needed.
 
 ---
 

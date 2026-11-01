@@ -65,6 +65,12 @@ final class FiberTaskScheduler implements
 {
     private const int MAX_TASK_RESULTS = 1000;
 
+    private const string MUST_BE_CALLED_WITHIN_RUNNING_TASK = ' must be called within a running task.';
+
+    private const string NOT_TRACKED_BY_THIS_SCHEDULER = 'Current task is not tracked by this scheduler.';
+
+    private const string CANNOT_AWAIT_TASK_NOT_OWNED = 'Cannot await a task this scheduler does not own.';
+
     /** @var array<string, TaskRecord> */
     private array $records = [];
 
@@ -127,7 +133,6 @@ final class FiberTaskScheduler implements
     ) {
         $this->startTimeNanos = $this->clock->monotonicNanoseconds();
         $this->listeners = array_values($listeners);
-        $this->readyHead = 0;
     }
 
     public function submit(TaskInterface $task, callable $operation): void
@@ -155,13 +160,13 @@ final class FiberTaskScheduler implements
         $current = $this->currentTask;
 
         if (!$current instanceof TaskInterface) {
-            throw new LogicException('await() must be called within a running task.');
+            throw new LogicException('await()' . self::MUST_BE_CALLED_WITHIN_RUNNING_TASK);
         }
 
         $currentRecord = $this->records[$current->id()->value] ?? null;
 
         if ($currentRecord === null) {
-            throw new LogicException('Current task is not tracked by this scheduler.');
+            throw new LogicException(self::NOT_TRACKED_BY_THIS_SCHEDULER);
         }
 
         $taskId = $task->id()->value;
@@ -171,7 +176,7 @@ final class FiberTaskScheduler implements
         }
 
         if (!isset($this->records[$taskId])) {
-            throw new LogicException('Cannot await a task this scheduler does not own.');
+            throw new LogicException(self::CANNOT_AWAIT_TASK_NOT_OWNED);
         }
 
         $this->awaiters[$taskId][] = $currentRecord;
@@ -333,13 +338,13 @@ final class FiberTaskScheduler implements
         $task = $this->currentTask;
 
         if (!$task instanceof TaskInterface) {
-            throw new LogicException('awaitDelay() must be called within a running task.');
+            throw new LogicException('awaitDelay()' . self::MUST_BE_CALLED_WITHIN_RUNNING_TASK);
         }
 
         $record = $this->records[$task->id()->value] ?? null;
 
         if ($record === null) {
-            throw new LogicException('Current task is not tracked by this scheduler.');
+            throw new LogicException(self::NOT_TRACKED_BY_THIS_SCHEDULER);
         }
 
         $this->timerService->scheduleTimer($record, $duration);
@@ -374,13 +379,13 @@ final class FiberTaskScheduler implements
         $current = $this->currentTask;
 
         if (!$current instanceof TaskInterface) {
-            throw new LogicException('awaitAny() must be called within a running task.');
+            throw new LogicException('awaitAny()' . self::MUST_BE_CALLED_WITHIN_RUNNING_TASK);
         }
 
         $record = $this->records[$current->id()->value] ?? null;
 
         if ($record === null) {
-            throw new LogicException('Current task is not tracked by this scheduler.');
+            throw new LogicException(self::NOT_TRACKED_BY_THIS_SCHEDULER);
         }
 
         foreach ($tasks as $task) {
@@ -391,7 +396,7 @@ final class FiberTaskScheduler implements
             }
 
             if (!isset($this->records[$taskId])) {
-                throw new LogicException('Cannot await a task this scheduler does not own.');
+                throw new LogicException(self::CANNOT_AWAIT_TASK_NOT_OWNED);
             }
 
             $this->anyAwaiters[$taskId][] = $record;
@@ -672,14 +677,14 @@ final class FiberTaskScheduler implements
         $task = $this->currentTask;
 
         if (!$task instanceof TaskInterface) {
-            throw new LogicException(sprintf('%s() must be called within a running task.', $point->name));
+            throw new LogicException(sprintf('%s()%s', $point->name, self::MUST_BE_CALLED_WITHIN_RUNNING_TASK));
         }
 
         $taskId = $task->id()->value;
         $record = $this->records[$taskId] ?? null;
 
         if ($record === null) {
-            throw new LogicException('Current task is not tracked by this scheduler.');
+            throw new LogicException(self::NOT_TRACKED_BY_THIS_SCHEDULER);
         }
 
         $this->ioAwaitService->registerAwait($record, $handle, $point, $timeout);
