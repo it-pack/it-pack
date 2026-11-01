@@ -100,12 +100,14 @@
         "test": [
             "@test:unit",
             "@test:integration",
+            "@test:functional",
             "@test:conformance",
             "@test:concurrency"
         ],
         "test:concurrency": "vendor/bin/codecept run Concurrency",
         "test:conformance": "vendor/bin/codecept run Conformance",
         "test:integration": "vendor/bin/codecept run Integration",
+        "test:functional": "vendor/bin/codecept run Functional",
         "test:unit": "vendor/bin/codecept run Unit"
     }
 }
