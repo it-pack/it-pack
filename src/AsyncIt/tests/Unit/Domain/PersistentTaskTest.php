@@ -102,4 +102,26 @@ final class PersistentTaskTest extends TestCase
 
         self::assertTrue($task->isDeadlineExceeded());
     }
+
+    public function testSerializeRoundTripPreservesAllFields(): void
+    {
+        $task = new PersistentTask(
+            id: new TaskId('persist-serial-1'),
+            operation: 'App\Job\SendEmail',
+            payload: ['to' => 'user@example.com'],
+            deadline: Duration::ofSeconds(300),
+            status: TaskStatus::Created,
+        );
+
+        /** @var PersistentTask $restored */
+        $restored = unserialize(serialize($task));
+
+        self::assertSame($task->id()->value, $restored->id()->value);
+        self::assertSame($task->operation(), $restored->operation());
+        self::assertSame($task->payload(), $restored->payload());
+        $deadline = $restored->deadline();
+        self::assertNotNull($deadline);
+        self::assertTrue(Duration::ofSeconds(300)->equals($deadline));
+        self::assertSame($task->status(), $restored->status());
+    }
 }

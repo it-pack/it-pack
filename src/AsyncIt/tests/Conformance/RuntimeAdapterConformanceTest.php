@@ -80,7 +80,7 @@ final class RuntimeAdapterConformanceTest extends TestCase
     public function testReactPhpInteropConforms(): void
     {
         // @phpstan-ignore-next-line function.impossibleType (ReactPHP is an optional dependency)
-        if (!class_exists(LoopInterface::class)) {
+        if (!interface_exists(LoopInterface::class)) {
             self::markTestSkipped('ReactPHP not available.');
         }
 

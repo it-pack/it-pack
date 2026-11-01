@@ -140,7 +140,7 @@ Addresses REVIEW §6 DRY violations #3 and #4 (MEDIUM).
 - [ ] **P5.2** Extract shared channel body → **DEFERRED** (same reason as P5.1).
 - [x] **P5.3** `RemoteTask`/`PersistentTask` audit → `PersistentTask::__construct(public TaskIdInterface $id)` aligned with `RemoteTask` (P2 changed `RemoteTask` to `TaskIdInterface`). `PersistentTaskInterface::id()` already returns `TaskIdInterface`. Differ meaningfully (`RemoteTask`: `priority`+`correlationId`+`Stringable`+FQN validation; `PersistentTask`: `TaskStatus $status`), so a shared base would erase real distinctions — deferred.
 - [ ] **P5.4** Extract common fields → **DEFERRED** (same reason as P5.3).
-- [ ] **P5.5** Verify serialization round-trip and `@see` vocabulary alignment → deferred with P5.3/P5.4.
+- [ ] **P5.5** Verify serialization round-trip and `@see` vocabulary alignment → **DONE**: default PHP serialization round-trips correctly for the `readonly` `RemoteTask`/`PersistentTask` value objects (verified `TaskId` + `Duration` + `TaskStatus` all survive serialize/unserialize). Round-trip tests added to `tests/Unit/Domain/RemoteTaskTest.php::testSerializeRoundTripPreservesAllFields` and `tests/Unit/Domain/PersistentTaskTest.php::testSerializeRoundTripPreservesAllFields`. Explicit `__serialize`/`__deserialize` were considered but omitted — PHPStan level max flags `__deserialize` as a dead method (only invoked by PHP's unserializer), and default serialization already preserves all fields. Class-level `@see` vocabulary IRIs (`#RemoteTask`, `#PersistentTask`) already present.
 - [x] **P5.6** Run channel + value-object tests → `composer test` green (Unit 472, Functional 72, Conformance 7).
 
 **Exit criteria:** Channel adapters deduplicated; `RemoteTask`/`PersistentTask` share common representation; tests pass.
@@ -197,12 +197,12 @@ Addresses REVIEW §3 Concerns (scheduler O(n)/O(n²) hot paths).
 
 Addresses REVIEW §9 (H4): below-95% coverage, empty Integration/Concurrency suites, incomplete conformance.
 
-- [ ] **P9.1** Fill empty Integration suite — adapter integration tests (Revolt, Swoole, Swow, Native, Select where extensions available). **DEFERRED**: most native extensions not installed in this environment (Native needs `Io\\Poll`); written tests would be skipped.
+- [x] **P9.1** Fill empty Integration suite — adapter integration tests (Revolt, Swoole, Swow, Native, Select where extensions available). **DONE**: added `tests/Integration/SchedulerIntegrationTest.php` (5 tests: task completion with result, `awaitDelay` resume, concurrent tasks, poller `registerStream` valid handle, cancellation scope cancel+`throwIfCancelled`). Wires `FiberTaskScheduler` + `SelectPoller` (reference, extension-free) + `MemoryContextStorage` + `CancellationScope` without a full runtime adapter. Extension-gated adapters (Swow/Revolt/Native/Amp) remain skipped where extensions are absent.
 - [x] **P9.2** Fill empty Concurrency suite — **DONE**: added `tests/Concurrency/FiberConcurrencyTest.php` (4 tests: concurrent `all`, `race` cancellation, persistent-worker reuse no state leak, `awaitDelay`).
 - [x] **P9.3** Add tests for low-coverage classes → **DONE**: added `testFailureRequiresTerminalStatus` and `testSuccessRequiresSucceededStatus` to `tests/Unit/Domain/TaskResultTest.php` (TaskResult now 100% lines); added `testCreateWithOtelEndpointUsesOpenTelemetryBridge` to `tests/Unit/SDK/Factory/AsyncRuntimeFactoryTest.php` (AsyncRuntimeFactory now 69.90% lines, up from 66.01%). `AsyncRuntimeFactory` remaining uncovered branches (`negotiate()` Swow/Revolt/Reference) are extension-gated and not coverable with Swoole installed.
 - [x] **P9.4** Conformance Assertion A/C → **ALREADY GREEN**: `ContextIsolationVerifier` + `DeterministicCleanupVerifier` pass on available adapters; 4 skipped are adapter-specific (extensions absent).
 - [x] **P9.5** Negative tests → **DONE**: added `testReAttachRestoresOwnScopeAfterDetachOfOtherScope` to `tests/Unit/Application/Context/MemoryContextStorageTest.php` (context-bleed / conformance Assertion A unit-level check); added `testTaskFailurePropagatesOriginalException` to `tests/Concurrency/FiberConcurrencyTest.php` (original business exception preserved on task failure). Handle-leak covered by conformance Assertion C + existing poller tests; conflicting-completion covered by existing `TaskTest::testTerminalToDifferentTerminalThrowsConflict`; recursive-publication deferred (recursion-guarded publisher is Phase 3).
-- [x] **P9.6** Coverage → **77.88% lines** (was ~72% baseline). Gains from SelectGroup awaitAny/fallback tests (+10 tests), MemoryContextStorage re-attach test (+1 test), FiberConcurrency original-exception test (+1 test). Remaining gaps are environment-limited: AmpPollerBridge (`Amp\Loop` class absent — `registerWithLoop`/`cancelOnLoop` branches are dead code guarded by `class_exists`), PollerFactory native branch (PHP 8.6 `Io\Poll` absent), OpenTelemetryTelemetryBridge (global `Context` state). Path to ≥95% requires test doubles for these or test scaffolding beyond this session.
+- [ ] **P9.6** Coverage → **77.83% lines** (Unit suite; was 77.88% baseline). Integration suite now non-empty (5 tests) and adds scheduler/poller/cancellation/context coverage. Serialization round-trip tests added for `RemoteTask`/`PersistentTask`. Remaining gaps are environment-limited: `AmpPollerBridge` (`Amp\Loop` absent — dead branches guarded by `class_exists`), `OpenTelemetryTelemetryBridge` (global `Context` state / OTLP endpoint), `PollerFactory` native branch (PHP 8.6 `Io\Poll` absent), `AsyncRuntimeFactory` Swow/Revolt/Reference `negotiate()` branches (extensions absent). 
 - [x] **P9.7** Mutation → **RUN** (2026-11-01): `composer run mutation` completed (8m 20s, 3 threads, PCOV). 1496 mutations: 960 killed, 472 escaped, 13 errors, 51 timeouts. Mutation Code Coverage 100%, Covered Code MSI 68%. All 472 escaped mutants + 51 timeouts + 13 errors are in environment-gated adapter/interop code (`AmpPollerBridge`, `ReactPhpPollerBridge` — dead branches guarded by `class_exists('Amp\Loop')`/`LoopInterface`, extensions absent; `RedisTaskQueue` — no Redis connection). None are in the P1–P8 touched components. Not actionable without installing `Amp\Loop`/`React\EventLoop`/Redis; consistent with P9.6 coverage gaps and the "Missing information" section.
 
 **Exit criteria:** Coverage ≥95%; Integration + Concurrency suites non-empty; conformance A/B/C green; mutation clean in touched components.
@@ -220,11 +220,11 @@ Addresses REVIEW §3 / M6 (phpbench configured, no benchmarks written).
 
 ### P10 baseline measurements (PHP 8.5.12, opcache/xdebug off)
 
-| Benchmark | Subject | Mode | Revs | Iterations | Mem peak | RStDev |
-|---|---|---|---|---|---|---|
-| `RuntimeBenchmarks::benchRunSimpleOperation` | task spawn + completion | 105.118μs | 1000 | 5 | 10.621mb | ±1.84% |
-| `RuntimeBenchmarks::benchRunWithAwaitDelay` | Fiber suspend/resume (`awaitDelay`) | 129.281μs | 1000 | 5 | 10.929mb | ±4.43% |
-| `PollerBenchmarks::benchRegisterRelease` | poll-handle register/release | 0.654μs | 10000 | 5 | 8.432mb | ±1.54% |
+| Benchmark                                    | Subject                             | Mode      | Revs  | Iterations | Mem peak | RStDev |
+|----------------------------------------------|-------------------------------------|-----------|-------|------------|----------|--------|
+| `RuntimeBenchmarks::benchRunSimpleOperation` | task spawn + completion             | 105.118μs | 1000  | 5          | 10.621mb | ±1.84% |
+| `RuntimeBenchmarks::benchRunWithAwaitDelay`  | Fiber suspend/resume (`awaitDelay`) | 129.281μs | 1000  | 5          | 10.929mb | ±4.43% |
+| `PollerBenchmarks::benchRegisterRelease`     | poll-handle register/release        | 0.654μs   | 10000 | 5          | 8.432mb  | ±1.54% |
 
 **Exit criteria:** Benchmarks exist and run; baselines documented. No improvement claimed without measurement.
 
@@ -316,5 +316,5 @@ Resolved during this work (previously listed as unknown):
 - `docs/EXECUTION.md` EXISTS — confirmed present; it is a current source of truth.
 
 Newly identified during this work:
-- `Amp\Loop` class is absent from the installed `amphp/amp` package; `AmpPollerBridge::registerWithLoop()`/`cancelOnLoop()` reference `Amp\Loop::onReadable`/`Amp\Loop::cancel` but are guarded by `class_exists('Amp\\Loop')` so they are dead code in this environment. Coverage cannot reach those branches without `Amp\Loop`. Either install the Amp event-loop package providing `Amp\Loop`, or remove the dead branches.
-- `React\EventLoop\LoopInterface` is not found via `class_exists()` (returns false; `React\EventLoop\Loop` exists). `RuntimeAdapterConformanceTest::testReactPhpInteropConforms` skips because it checks `class_exists(LoopInterface::class)`. Use `interface_exists()` or check `React\EventLoop\Loop` instead if React conformance should run.
+- `Amp\Loop` class is absent from the installed `amphp/amp` package; `AmpPollerBridge::registerWithLoop()`/`cancelOnLoop()` reference `Amp\Loop::onReadable`/`Amp\Loop::cancel` but are guarded by `class_exists('Amp\\Loop')` so they are dead code in this environment. The guards are intentional (no hard dependency on Amp), so the branches were left in place; coverage cannot reach them without `Amp\Loop`. Documented as an acceptable environment-gated gap.
+- `React\EventLoop\LoopInterface` was checked with `class_exists()` which returns false for interfaces even when ReactPHP is installed, causing `RuntimeAdapterConformanceTest::testReactPhpInteropConforms` to skip. Fixed by switching to `interface_exists(LoopInterface::class)` (`tests/Conformance/RuntimeAdapterConformanceTest.php:83`); React conformance now runs and passes.

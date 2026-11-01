@@ -18,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  * All `EngineSchedulerInterface` methods not exercised by SelectGroup::await()
  * are no-ops returning defaults.
  */
-final class AwaitAnySchedulerStub implements EngineSchedulerInterface
+final readonly class AwaitAnySchedulerStub implements EngineSchedulerInterface
 {
     public function __construct(
         private TaskInterface $spawnResult,
