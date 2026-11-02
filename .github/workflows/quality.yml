@@ -87,5 +87,5 @@ jobs:
       - name: Build Codeception actors
         run: vendor/bin/codecept build
 
-      - name: Run quality suite
-        run: composer quality
+      - name: Run test suites
+        run: composer test
