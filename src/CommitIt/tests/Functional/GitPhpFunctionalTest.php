@@ -198,7 +198,7 @@ final class GitPhpFunctionalTest extends Unit
 
             file_put_contents($clone1 . DIRECTORY_SEPARATOR . 'f.txt', 'x');
             $repo1->stage('f.txt');
-            $repo1->commit(CommitMessage::fromString('c1'));
+            $repo1->commit(CommitMessage::fromString('c'));
 
             $branch = $repo1->listBranches()[0];
             $repo1->push(RemoteName::from('origin'), $branch);
@@ -206,7 +206,7 @@ final class GitPhpFunctionalTest extends Unit
             $repo2->pull(RemoteName::from('origin'), $branch);
             $last = $repo2->getLastCommit();
             self::assertNotNull($last);
-            self::assertSame('c1', $last->subject);
+            self::assertSame('c', $last->subject);
 
             $repo2->fetch(RemoteName::from('origin'));
         } finally {
