@@ -13,8 +13,8 @@ use ItPack\AsyncIt\Contract\Port\CancellationReason;
  * during the Phase 4 SRP split. Identifies cancelled records and force-cancels
  * remaining records on deadline expiry.
  *
- * @see https://w3id.org/asyncit#CancellationScope
- * @see https://w3id.org/asyncit#Scheduler
+ * @see https://w3id.org/itpack/asyncit#CancellationScope
+ * @see https://w3id.org/itpack/asyncit#Scheduler
  * @api
  */
 final class TaskCancellationService implements TaskCancellationServiceInterface

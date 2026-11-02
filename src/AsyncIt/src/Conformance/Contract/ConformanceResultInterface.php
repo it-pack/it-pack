@@ -15,7 +15,7 @@ use ItPack\AsyncIt\Conformance\Result\ConformanceViolationInterface;
  * Backs {@see ConformanceResult} so results remain mockable and the conformance
  * harness stays interface-driven.
  *
- * @implements IteratorAggregate<int, ConformanceViolationInterface>
+ * @extends IteratorAggregate<int, ConformanceViolationInterface>
  *
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution

@@ -71,7 +71,7 @@ final class FiberTaskScheduler implements
 
     private const string CANNOT_AWAIT_TASK_NOT_OWNED = 'Cannot await a task this scheduler does not own.';
 
-    /** @var array<string, TaskRecord> */
+    /** @var array<string, TaskRecordInterface> */
     private array $records = [];
 
     /** @var list<TaskRecordInterface> */
@@ -85,7 +85,7 @@ final class FiberTaskScheduler implements
     /** @var array<string, TaskResultInterface> */
     private array $taskResults = [];
 
-    /** @var array<string, list<TaskRecord>> */
+    /** @var array<string, list<TaskRecordInterface>> */
     private array $awaiters = [];
 
     /** @var array<string, mixed> */
@@ -94,7 +94,7 @@ final class FiberTaskScheduler implements
     /** @var array<string, int> Monotonic start time per task, used for duration measurements. */
     private array $taskStartTimes = [];
 
-    /** @var array<string, list<TaskRecord>> */
+    /** @var array<string, list<TaskRecordInterface>> */
     private array $anyAwaiters = [];
 
     /** @var array<string, string> */
@@ -303,18 +303,15 @@ final class FiberTaskScheduler implements
         return $this->taskResults[$taskId];
     }
 
-    /**
-     * @return list<TaskRecord>
-     */
     public function taskRecords(): array
     {
-        return array_values($this->records);
+        return $this->records;
     }
 
     public function health(): SchedulerHealthInterface
     {
         return $this->healthService->capture(
-            $this->taskRecords(),
+            array_values($this->records),
             $this->startTimeNanos,
             $this->errors,
         );

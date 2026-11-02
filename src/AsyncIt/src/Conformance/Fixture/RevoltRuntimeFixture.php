@@ -8,7 +8,7 @@ use Fiber;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltPoller;
 use ItPack\AsyncIt\Application\Factory\FiberScopeSlotFactory;
-use ItPack\AsyncIt\Domain\FiberScopeSlot;
+use ItPack\AsyncIt\Domain\FiberScopeSlotInterface;
 use WeakMap;
 
 /**
@@ -24,7 +24,7 @@ final class RevoltRuntimeFixture implements AsyncRuntimeFixtureInterface
 
     public function __construct()
     {
-        /** @var WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber */
+        /** @var WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlotInterface> $perFiber */
         $perFiber = new WeakMap();
 
         $this->initRuntimeFixture(

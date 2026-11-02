@@ -32,8 +32,10 @@ final readonly class RuntimeAdapterAssembler implements RuntimeAdapterAssemblerI
         $this->slotFactory = $slotFactory ?? new FiberScopeSlotFactory();
     }
 
-    public function assemble(RuntimeAdapterKind $kind, CapabilityDescriptorInterface $descriptor): RuntimeAssembly
-    {
+    public function assemble(
+        RuntimeAdapterKind $kind,
+        CapabilityDescriptorInterface $descriptor,
+    ): RuntimeAssemblyInterface {
         $factory = $this->factories[$kind->value]
             ?? $this->defaultFactory($kind);
 

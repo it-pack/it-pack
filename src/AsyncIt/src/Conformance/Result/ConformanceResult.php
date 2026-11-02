@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Conformance\Result;
 
-use IteratorAggregate;
 use ItPack\AsyncIt\Conformance\Contract\ConformanceResultInterface;
 use Traversable;
 
@@ -16,8 +15,6 @@ use Traversable;
  * framework-agnostic: it holds only data plus a few query helpers, so any test
  * runner (Codeception Unit, PHPUnit, Pest, or a custom command) can inspect it
  * and translate it into that runner's assertion or reporting model.
- *
- * @implements IteratorAggregate<int, ConformanceViolation>
  *
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
@@ -40,7 +37,11 @@ final readonly class ConformanceResult implements ConformanceResultInterface
 
     public function isConformant(): bool
     {
-        return array_all($this->violations, fn (ConformanceViolationInterface $violation): bool => !$violation->isError());
+        return array_all(
+            $this->violations,
+            static fn (ConformanceViolationInterface $violation): bool =>
+            !$violation->isError(),
+        );
     }
 
     /**
@@ -61,7 +62,7 @@ final readonly class ConformanceResult implements ConformanceResultInterface
     {
         return array_values(array_filter(
             $this->violations,
-            static fn (ConformanceViolationInterface $violation): bool => $violation->severity === ViolationSeverity::Warning,
+            static fn (ConformanceViolationInterface $violation): bool => !$violation->isError(),
         ));
     }
 

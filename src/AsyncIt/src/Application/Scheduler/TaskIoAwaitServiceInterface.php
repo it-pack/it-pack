@@ -18,7 +18,12 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  */
 interface TaskIoAwaitServiceInterface
 {
-    public function registerAwait(TaskRecordInterface $record, StreamPollHandleInterface $handle, AwaitPoint $point, DurationInterface|null $timeout = null): void;
+    public function registerAwait(
+        TaskRecordInterface $record,
+        StreamPollHandleInterface $handle,
+        AwaitPoint $point,
+        DurationInterface|null $timeout = null,
+    ): void;
 
     public function clearIoAwaitForTask(string $taskId): void;
 

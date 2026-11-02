@@ -15,7 +15,12 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  */
 interface TaskTimerServiceInterface
 {
-    public function scheduleTimer(TaskRecordInterface $record, DurationInterface $duration, ?string $taskId = null, ?string $type = null): void;
+    public function scheduleTimer(
+        TaskRecordInterface $record,
+        DurationInterface $duration,
+        ?string $taskId = null,
+        ?string $type = null,
+    ): void;
 
     /**
      * @return list<array{record: TaskRecordInterface, type: string|null, taskId: string|null}>

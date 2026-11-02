@@ -14,9 +14,8 @@ use WeakReference;
  * it registered, and its terminal state.
  *
  * @see https://w3id.org/itpack/asyncit#Task
-  * @api
-
-  */
+ * @api
+ */
 final class TaskRecord implements TaskRecordInterface
 {
     /**

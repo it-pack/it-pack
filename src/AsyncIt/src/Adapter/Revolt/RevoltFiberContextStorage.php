@@ -6,8 +6,8 @@ namespace ItPack\AsyncIt\Adapter\Revolt;
 
 use Fiber;
 use ItPack\AsyncIt\Domain\CoroutineContextStorageTrait;
-use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
+use ItPack\AsyncIt\Domain\FiberScopeSlotInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use WeakMap;
 
@@ -32,7 +32,7 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
     use CoroutineContextStorageTrait;
 
     /**
-     * @param WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlot> $perFiber
+     * @param WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlotInterface> $perFiber
      */
     public function __construct(private WeakMap $perFiber, private readonly FiberScopeSlotFactoryInterface $slotFactory)
     {
@@ -43,7 +43,7 @@ final class RevoltFiberContextStorage implements ContextStorageInterface
         return $this->slotFactory;
     }
 
-    protected function slot(): FiberScopeSlot
+    protected function slot(): FiberScopeSlotInterface
     {
         /** @var Fiber<mixed, mixed, mixed, mixed>|null $fiber */
         $fiber = Fiber::getCurrent();

@@ -19,5 +19,8 @@ use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
  */
 interface RuntimeAdapterAssemblerInterface
 {
-    public function assemble(RuntimeAdapterKind $kind, CapabilityDescriptorInterface $descriptor): RuntimeAssemblyInterface;
+    public function assemble(
+        RuntimeAdapterKind $kind,
+        CapabilityDescriptorInterface $descriptor,
+    ): RuntimeAssemblyInterface;
 }

@@ -70,9 +70,9 @@ final class AsyncRuntimeFactory implements RuntimeAssemblerInterface
 
         $assembler ??= new RuntimeAdapterAssembler();
         $assembly = $assembler->assemble($kind, $descriptor);
-        $poller = $assembly->poller;
-        $storage = $assembly->storage;
-        $channel = $assembly->channel;
+        $poller = $assembly->poller();
+        $storage = $assembly->storage();
+        $channel = $assembly->channel();
         $telemetry = $factory->buildTelemetry();
         $idGenerator = new RandomIdentifierGenerator();
         $taskIdFactory = new TaskIdFactory($idGenerator);

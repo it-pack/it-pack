@@ -21,7 +21,12 @@ interface TaskLifecyclePublisherInterface
 
     public function publishResumed(TaskInterface $task, ?int $startTimeNanos = null): void;
 
-    public function publishCompleted(TaskInterface $task, TaskStatus $status, ?int $startTimeNanos = null, ?Throwable $throwable = null): void;
+    public function publishCompleted(
+        TaskInterface $task,
+        TaskStatus $status,
+        ?int $startTimeNanos = null,
+        ?Throwable $throwable = null,
+    ): void;
 
     public function publishFailure(TaskInterface $task, Throwable $throwable): void;
 }
