@@ -28,7 +28,6 @@ use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\AsyncIt\Contract\TaskResultInterface;
 use ItPack\AsyncIt\Domain\SchedulerEvent;
-use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\AsyncIt\Domain\TaskResult;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -143,7 +142,7 @@ final class FiberTaskScheduler implements
     public function spawn(callable $operation, TaskIdInterface|null $id = null): TaskInterface
     {
         $scope = $this->cancellationScopeFactory->create();
-        $task = $id instanceof TaskId
+        $task = $id !== null
             ? $this->taskFactory->createWithId($id, $this->executionId, $scope)
             : $this->taskFactory->create($this->executionId, $scope);
 
