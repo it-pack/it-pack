@@ -13,4 +13,8 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  */
 final class FakeContextToken implements ContextTokenInterface
 {
+    public function id(): int
+    {
+        return 0;
+    }
 }

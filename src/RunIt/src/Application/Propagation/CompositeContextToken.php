@@ -23,4 +23,9 @@ final readonly class CompositeContextToken implements ContextTokenInterface
         public ContextTokenInterface   $inner,
     ) {
     }
+
+    public function id(): int
+    {
+        return $this->inner->id();
+    }
 }
