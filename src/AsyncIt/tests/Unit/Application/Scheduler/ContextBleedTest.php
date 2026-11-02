@@ -52,30 +52,36 @@ final class ContextBleedTest extends TestCase
         $storage = new MemoryContextStorage();
         $scheduler = $this->scheduler($storage);
         $observed = [];
-        $taskIds = [];
 
-        $scheduler->spawn(function () use ($scheduler, $storage, &$observed, &$taskIds): void {
+        $scheduler->spawn(function () use ($scheduler, $storage, &$observed): void {
             $current = $scheduler->currentTask();
-            $taskIds['a'] = $current instanceof TaskInterface ? $current->id()->value : 'none';
-            $observed['a_first'] = $this->currentDiscriminant($storage);
+            $currentId = $current instanceof TaskInterface ? $current->id()->value : 'none';
+            $observed['a_first'] = ['taskId' => $currentId, 'discriminant' => $this->currentDiscriminant($storage)];
             $scheduler->awaitDelay(Duration::ofMilliseconds(5));
-            $observed['a_after_resume'] = $this->currentDiscriminant($storage);
+            $observed['a_after_resume'] = ['taskId' => $currentId, 'discriminant' => $this->currentDiscriminant($storage)];
         });
 
-        $scheduler->spawn(function () use ($storage, &$observed): void {
-            $observed['b_while_a_suspended'] = $this->currentDiscriminant($storage);
+        $scheduler->spawn(function () use ($scheduler, $storage, &$observed): void {
+            $current = $scheduler->currentTask();
+            $currentId = $current instanceof TaskInterface ? $current->id()->value : 'none';
+            $observed['b_while_a_suspended'] = ['taskId' => $currentId, 'discriminant' => $this->currentDiscriminant($storage)];
         });
 
-        $scheduler->spawn(function () use ($storage, &$observed): void {
-            $observed['c_while_a_suspended'] = $this->currentDiscriminant($storage);
+        $scheduler->spawn(function () use ($scheduler, $storage, &$observed): void {
+            $current = $scheduler->currentTask();
+            $currentId = $current instanceof TaskInterface ? $current->id()->value : 'none';
+            $observed['c_while_a_suspended'] = ['taskId' => $currentId, 'discriminant' => $this->currentDiscriminant($storage)];
         });
 
         $scheduler->run();
 
-        self::assertSame($taskIds['a'], $observed['a_first'], 'Task A must observe its own context first.');
-        self::assertSame($taskIds['a'], $observed['a_after_resume'], 'Task A must observe its own context after resume.');
-        self::assertNotSame($taskIds['a'], $observed['b_while_a_suspended'], 'Task B must not observe Task A context.');
-        self::assertNotSame($taskIds['a'], $observed['c_while_a_suspended'], 'Task C must not observe Task A context.');
+        foreach ($observed as $label => $obs) {
+            self::assertSame(
+                $obs['taskId'],
+                $obs['discriminant'],
+                sprintf('Context bleed: observation "%s" was produced by task %s but observed discriminant %s.', $label, $obs['taskId'], $obs['discriminant']),
+            );
+        }
     }
 
     public function testNoContextBleedAcrossMultipleSuspendResumeCycles(): void
@@ -83,28 +89,33 @@ final class ContextBleedTest extends TestCase
         $storage = new MemoryContextStorage();
         $scheduler = $this->scheduler($storage);
         $observed = [];
-        $known = [];
 
-        $scheduler->spawn(function () use ($scheduler, $storage, &$observed, &$known): void {
-            $known[] = $scheduler->currentTask()?->id()->value ?? 'none';
+        $scheduler->spawn(function () use ($scheduler, $storage, &$observed): void {
             for ($i = 0; $i < 3; $i++) {
-                $observed[] = $this->currentDiscriminant($storage);
+                $current = $scheduler->currentTask();
+                $currentId = $current instanceof TaskInterface ? $current->id()->value : 'none';
+                $observed[] = ['taskId' => $currentId, 'discriminant' => $this->currentDiscriminant($storage)];
                 $scheduler->awaitDelay(Duration::ofMilliseconds(5));
             }
         });
 
-        $scheduler->spawn(function () use ($scheduler, $storage, &$observed, &$known): void {
-            $known[] = $scheduler->currentTask()?->id()->value ?? 'none';
+        $scheduler->spawn(function () use ($scheduler, $storage, &$observed): void {
             for ($i = 0; $i < 3; $i++) {
-                $observed[] = $this->currentDiscriminant($storage);
+                $current = $scheduler->currentTask();
+                $currentId = $current instanceof TaskInterface ? $current->id()->value : 'none';
+                $observed[] = ['taskId' => $currentId, 'discriminant' => $this->currentDiscriminant($storage)];
                 $scheduler->awaitDelay(Duration::ofMilliseconds(5));
             }
         });
 
         $scheduler->run();
 
-        foreach ($observed as $observation) {
-            self::assertContains($observation, $known, 'Context bleed: a task observed a foreign context discriminant.');
+        foreach ($observed as $index => $obs) {
+            self::assertSame(
+                $obs['taskId'],
+                $obs['discriminant'],
+                sprintf('Context bleed: observation #%d was produced by task %s but observed discriminant %s.', $index, $obs['taskId'], $obs['discriminant']),
+            );
         }
     }
 
