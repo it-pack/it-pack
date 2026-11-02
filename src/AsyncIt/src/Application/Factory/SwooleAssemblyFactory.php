@@ -7,7 +7,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleChannel;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwoolePoller;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use Swoole\Coroutine\Channel;
 
@@ -26,7 +26,7 @@ final readonly class SwooleAssemblyFactory implements RuntimeAssemblyFactoryInte
     ) {
     }
 
-    public function create(CapabilityDescriptor $descriptor): RuntimeAssembly
+    public function create(CapabilityDescriptorInterface $descriptor): RuntimeAssemblyInterface
     {
         return new RuntimeAssembly(
             new SwoolePoller(),

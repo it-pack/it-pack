@@ -15,6 +15,11 @@ use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Contract\TaskInterface;
 use ItPack\RunIt\Adapter\Common\InMemorySequenceAllocator;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
@@ -68,6 +73,15 @@ final class FiberTaskSchedulerFailureTest extends TestCase
     {
         $executionId = ExecutionId::fromString('exec-1');
         $sequenceAllocator = new InMemorySequenceAllocator();
+        $poller = new SelectPoller();
+        $clock = new SystemMonotonicClock();
+
+        $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+        $timerService = new TaskTimerService($clock);
+        $ioAwaitService = new TaskIoAwaitService($poller, $timerService);
+        $lifecyclePublisher = new TaskLifecyclePublisher(new NullArtifactPublisher(), $lifecycleFactory, $clock);
+        $cancellationService = new TaskCancellationService();
+        $healthService = new TaskHealthService($poller, $clock);
 
         return new FiberTaskScheduler(
             new FiberFactory(),
@@ -76,13 +90,16 @@ final class FiberTaskSchedulerFailureTest extends TestCase
                 new TaskIdFactory(new RandomIdentifierGenerator()),
             ),
             new CancellationScopeFactory(),
-            new SystemMonotonicClock(),
+            $clock,
             $executionId,
-            new SelectPoller(),
+            $poller,
             new MemoryContextStorage(),
             new ReferenceExecutionScopeFactory(),
-            new NullArtifactPublisher(),
-            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            $cancellationService,
+            $healthService,
         );
     }
 

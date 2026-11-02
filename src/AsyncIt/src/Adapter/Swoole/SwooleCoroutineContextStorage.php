@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Swoole;
 
 use ItPack\AsyncIt\Domain\CoroutineContextStorageTrait;
-use ItPack\AsyncIt\Domain\FiberScopeSlot;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
+use ItPack\AsyncIt\Domain\FiberScopeSlotInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use Swoole\Coroutine;
 use Throwable;
@@ -34,7 +34,7 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
     private const int COROUTINE_UNAVAILABLE = -1;
 
     /**
-     * @var array<int, FiberScopeSlot>
+     * @var array<int, FiberScopeSlotInterface>
      */
     private array $perCoroutine = [];
 
@@ -47,7 +47,7 @@ final class SwooleCoroutineContextStorage implements ContextStorageInterface
         return $this->slotFactory;
     }
 
-    protected function slot(): FiberScopeSlot
+    protected function slot(): FiberScopeSlotInterface
     {
         $cid = $this->coroutineId();
 

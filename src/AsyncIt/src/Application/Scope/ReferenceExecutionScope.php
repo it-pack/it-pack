@@ -5,14 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Scope;
 
 use BadMethodCallException;
-use ItPack\RunIt\Contract\Application\ActivityRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
-use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
-use ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface;
-use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 
 /**
  * Lightweight RunIt execution scope used by the reference runtime.
@@ -33,37 +26,37 @@ final readonly class ReferenceExecutionScope implements ExecutionScopeInterface
     {
     }
 
-    public function execution(): ExecutionInterface
+    public function execution(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }
 
-    public function context(): ExecutionContextInterface
+    public function context(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }
 
-    public function activities(): ActivityRunnerInterface
+    public function activities(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }
 
-    public function measurements(): MeasurementRecorderInterface
+    public function measurements(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }
 
-    public function observations(): ObservationRecorderInterface
+    public function observations(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }
 
-    public function occurrences(): OccurrenceRecorderInterface
+    public function occurrences(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }
 
-    public function snapshots(): SnapshotRecorderInterface
+    public function snapshots(): never
     {
         throw new BadMethodCallException('ReferenceExecutionScope is a scheduling stand-in.');
     }

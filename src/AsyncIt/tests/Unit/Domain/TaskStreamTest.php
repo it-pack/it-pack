@@ -17,6 +17,11 @@ use ItPack\AsyncIt\Application\Factory\TaskIdFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
 use ItPack\AsyncIt\Domain\CapabilityDescriptor;
@@ -164,6 +169,16 @@ final class TaskStreamTest extends TestCase
     {
         $executionId = ExecutionId::fromString('exec-stream-1');
         $sequenceAllocator = new InMemorySequenceAllocator();
+        $poller = new PollerFactory()->create(new CapabilityDescriptor([
+            CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
+        ]));
+
+        $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+        $timerService = new TaskTimerService($clock);
+        $ioAwaitService = new TaskIoAwaitService($poller, $timerService);
+        $lifecyclePublisher = new TaskLifecyclePublisher(new NullArtifactPublisher(), $lifecycleFactory, $clock);
+        $cancellationService = new TaskCancellationService();
+        $healthService = new TaskHealthService($poller, $clock);
 
         return new FiberTaskScheduler(
             new FiberFactory(),
@@ -174,13 +189,14 @@ final class TaskStreamTest extends TestCase
             new CancellationScopeFactory(),
             $clock,
             $executionId,
-            new PollerFactory()->create(new CapabilityDescriptor([
-                CapabilityKind::EdgeTriggeredPolling->value => CapabilityStatus::Emulated,
-            ])),
+            $poller,
             new MemoryContextStorage(),
             new ReferenceExecutionScopeFactory(),
-            new NullArtifactPublisher(),
-            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            $cancellationService,
+            $healthService,
         );
     }
 }

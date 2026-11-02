@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Conformance\Result;
 
-use Countable;
-use IteratorAggregate;
+use ItPack\AsyncIt\Conformance\Contract\ConformanceResultInterface;
 use Traversable;
 
 /**
@@ -17,15 +16,13 @@ use Traversable;
  * runner (Codeception Unit, PHPUnit, Pest, or a custom command) can inspect it
  * and translate it into that runner's assertion or reporting model.
  *
- * @implements IteratorAggregate<int, ConformanceViolation>
- *
  * @see https://w3id.org/itpack/asyncit#ConformanceResult
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class ConformanceResult implements IteratorAggregate, Countable
+final readonly class ConformanceResult implements ConformanceResultInterface
 {
     /**
-     * @param ConformanceViolation[] $violations
+     * @param ConformanceViolationInterface[] $violations
      */
     public function __construct(
         public string $port,
@@ -33,35 +30,39 @@ final readonly class ConformanceResult implements IteratorAggregate, Countable
     ) {
     }
 
-    public function add(ConformanceViolation $violation): self
+    public function add(ConformanceViolationInterface $violation): self
     {
         return new self($this->port, [...$this->violations, $violation]);
     }
 
     public function isConformant(): bool
     {
-        return array_all($this->violations, fn (ConformanceViolation $violation): bool => !$violation->isError());
+        return array_all(
+            $this->violations,
+            static fn (ConformanceViolationInterface $violation): bool =>
+            !$violation->isError(),
+        );
     }
 
     /**
-     * @return ConformanceViolation[]
+     * @return ConformanceViolationInterface[]
      */
     public function errors(): array
     {
         return array_values(array_filter(
             $this->violations,
-            static fn (ConformanceViolation $violation): bool => $violation->isError(),
+            static fn (ConformanceViolationInterface $violation): bool => $violation->isError(),
         ));
     }
 
     /**
-     * @return ConformanceViolation[]
+     * @return ConformanceViolationInterface[]
      */
     public function warnings(): array
     {
         return array_values(array_filter(
             $this->violations,
-            static fn (ConformanceViolation $violation): bool => $violation->severity === ViolationSeverity::Warning,
+            static fn (ConformanceViolationInterface $violation): bool => !$violation->isError(),
         ));
     }
 

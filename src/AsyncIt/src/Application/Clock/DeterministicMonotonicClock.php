@@ -21,7 +21,7 @@ use ItPack\RunIt\Domain\Shared\Duration;
   * @api
 
   */
-final class DeterministicMonotonicClock implements MonotonicClockInterface
+final class DeterministicMonotonicClock implements MonotonicClockInterface, DeterministicMonotonicClockInterface
 {
     private int $nanoseconds = 0;
 

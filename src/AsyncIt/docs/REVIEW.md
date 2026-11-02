@@ -1,115 +1,95 @@
-# AsyncIt — In-Depth Review
+# AsyncIt In-Depth Review
 
-**Scope:** `src/AsyncIt/` (the AsyncIt package, scheduling/progression tier of ItPack)
-**Date:** 2026-11-01
+**Package:** `it-pack/async-it`  
+**Path:** `src/AsyncIt/`  
+**PHP:** 8.5.12  
+**Review date:** 2026-11-01  
 **Reviewer:** Kilo
 
 ---
 
 ## Executive Summary
 
-AsyncIt is a well-architected, capability-oriented scheduling engine with clean hexagonal layering, strong contract discipline, and excellent tooling (phpstan level max, phparkitect, lint rules). It implements the scheduling slot of RunIt's `ExecutionEngineInterface` with Fiber-safe context propagation, observed cooperative cancellation, and a capability-negotiation model.
-
-**Overall assessment: Architecturally sound; significant deduplication opportunities; below-target test coverage; several violations of the project's own "instances only in factories" rule.**
+AsyncIt is a well-structured, capability-oriented scheduling engine with clean hexagonal architecture, strong test coverage of core domain logic, and good modern PHP feature usage. However, it falls short of the **95% coverage requirement** (~79% on the Unit suite), has **87 phparkitect violations** indicating architectural drift, contains **significant duplicate code** across the three reactor poller adapters (Revolt/Swoole/Swow), and violates the **"new class instances only in factories"** rule across many non-factory files. Security foundations are strong (context isolation, handle release), but magic literals and unverified performance claims need attention.
 
 ---
 
-## Checklist (What Will Be Reviewed)
+## Checklist (What Was Reviewed)
 
-1. **Features & architecture** — tiered stack, hexagonal layering, ports/adapters, capability negotiation, Fiber-safe context, cancellation semantics.
-2. **Maintenance & maintainability** — static analysis, architecture lint, code organization, abstraction quality.
-3. **Performance** — bounded buffers, monotonic clocks, lazy bridges, channel compaction, handle cleanup.
-4. **Security** — context isolation, handle leakage, debug surface, no secrets.
-5. **Developer experience (DX)** — README, naming, vocabulary interfaces, conformance verifiers, factory/builder ergonomics.
-6. **SOLID & DRY** — interface-backed DI, no abstract classes, low complexity, no magic literals, deduplication.
-7. **Modern PHP features** — Fibers, readonly, property hooks, enums, weak refs, lazy objects.
-8. **Testing & coverage** — suite count, coverage %, leakage, gaps.
-9. **Compliance with project code-quality rules** — else/elseif, Yoda style, imports, one-type-per-file, line length, instance-in-factories rule, declaration ordering.
+1. Features and overall architecture — hexagonal ports/adapters, layering, dependency direction
+2. Maintenance and maintainability — documentation, ADRs, code organization, architectural drift
+3. Performance — monotonic clocks, bounded buffers, hot-path considerations, benchmarks
+4. Security — context isolation, handle leaks, deny-by-default, negative tests
+5. Developer experience — documentation, code style, static analysis, test runner
+6. SOLID and DRY principles — interfaces, composition, traits, duplication
+7. Hexagonal architecture and ports/adapters — port contracts, adapter implementations, boundary enforcement
+8. Factories and builders — factory usage, instantiation rules, dependency injection
+9. Duplicate code — repeated logic, literals, abstractions
+10. Modern PHP features — fibers, weak maps/refs, lazy objects, property hooks, traits, readonly
 
 ---
 
-## 1. Features & Overall Architecture
+## 1. Features and Overall Architecture
 
 ### Strengths
 
-**Tiered semantic stack (Tier 4 = Scheduling).** AsyncIt correctly positions itself between RunIt (execution semantics) and the engine/poll layer (Tier 5). It consumes RunIt's `ExecutionEngineInterface`, `ContextStorageInterface`, and artifact publication port without redefining execution semantics. This is documented clearly in `README.md` and `docs/EXECUTION.md`.
+- **Clear five-tier semantic stack** (Spindle → AExO → RunIt → AsyncIt → Engine/OS) documented in `README.md`.
+- **Strict separation of concerns**: Polling ≠ Scheduling ≠ Execution Semantics, enforced in `AGENTS.md` and `docs/EXECUTION.md`.
+- **Capability-first design**: `CapabilityDescriptor` negotiates runtime features at the process boundary instead of `extension_loaded()` checks.
+- **Fiber-safe context propagation**: Detach-on-suspend / re-attach-on-resume via `finally` guard (conformance Assertion A).
+- **Observed cooperative cancellation**: Closed task lifecycle (`CREATED → RUNNING → terminal`), `ConflictingCompletionException` on conflicting transitions, handle release on terminal transition (Assertion C).
+- **Monotonic clock** (`hrtime()`) for all durations — no wall-clock skew.
 
-**Hexagonal (ports & adapters) layering.** The directory structure enforces layers:
-- `Contract/` — ports (interfaces only)
-- `Domain/` — task lifecycle, cancellation, channels, rate limiting, circuit breaker
-- `Application/` — scheduler, factories, pollers, health, federation
-- `SDK/` — `AsyncRuntime` entry point, telemetry bridges
-- `Adapter/` — Revolt, Swoole, Swow, ReactPHP, Amp, Redis, Prometheus, OpenTelemetry
-- `Conformance/` — `AsyncRuntimeVerifier` and per-assertion verifiers
+### Architecture Layers (per `phparkitect.php`)
 
-`phparkitect` passes with **0 violations**, confirming dependency direction is correct (Adapter → Domain/Port/Common, never Adapter → Application).
+| Layer | May Depend On |
+|-------|--------------|
+| Common | — |
+| Domain | Common, Port |
+| Port | Common, Domain |
+| Application | Common, Domain, Port, Adapter |
+| SDK | Common, Domain, Port, Adapter, Application |
+| Adapter | Common, Domain, Port |
+| Conformance | Common, Domain, Port, Application, SDK, Adapter |
 
-**Capability-first architecture.** Instead of `extension_loaded('swoole')`, AsyncIt queries functional capabilities (`CapabilityDescriptor`) once at the process boundary. Each capability is rated `Supported` / `Emulated` / `Adapter-Only` / `Unavailable`. This is the single source of truth for scheduling policy selection.
+Contract (excl. Port) is enforced separately via a custom rule forbidding dependencies on Domain/Application/SDK/Adapter/Conformance.
 
-**Fiber-safe context propagation.** On suspension, the RunIt context is detached from the ambient Fiber scope; on resumption it is re-attached under `finally`. This is enforced in `FiberTaskScheduler::step()` via `ContextStorageInterface::attach()` / `detach()`, satisfying conformance Assertion A (context isolation).
+### Assessment
 
-**Observed cooperative cancellation.** Cancellation is an observed state change, never preemptive. `CancellationScope::throwIfCancelled()` is called at cooperation points. Terminal transitions are validated (`TaskStatus` enum matrix); conflicting transitions throw `ConflictingCompletionException`. Poll handles are released on terminal transition (Assertion C).
-
-**Structured concurrency.** `TaskGroup`, `RaceGroup`, `AllGroup`, `AnyGroup`, `SelectGroup` implement `CombinatorInterface` / `TaskGroupInterface`. `TaskGroup::__destruct()` cancels pending children, preventing leaked tasks.
-
-**Factories everywhere.** Construction is centralized in `Application/Factory/` (`SchedulerFactory`, `TaskFactory`, `TaskRecordFactory`, `TaskIdFactory`, `PollerFactory`, `CombinatorFactory`, `TaskGroupFactory`, `CancellationScopeFactory`, etc.). Every factory is `readonly` and injected.
-
-**Vocabulary interfaces.** Constants live in interfaces (`TaskStatusVocabulary`, `PollerVocabulary`, `CancellationReasonVocabulary`, `CapabilityVocabulary`, `CircuitStateVocabulary`, `RuntimeAdapterVocabulary`, `ViolationVocabulary`), not as magic literals.
-
-**PHPDoc `@see` to vocabulary IRIs.** Every public contract/enum/value object carries `@see https://w3id.org/itpack/asyncit#*` references to the OWL ontology in `vocab/async-it.ttl` and SKOS taxonomy in `vocab/async-it-taxonomy.ttl`.
-
-### Gaps
-
-- `spawn()` / `awaitReadable()` primitives are documented as "Phase 6+ roadmap" but are referenced in README examples. The current `AsyncRuntime::run()` only supports a single root task; multi-task spawning from user code is via `spawn()`/`await()` on the active scheduler only.
-- No persistent task queue implementation in core (Redis adapter exists in `Adapter/Redis/` but `PersistentTaskQueueInterface` is contract-only).
+The architecture is sound and well-documented. The phparkitect rules correctly encode the intended dependency direction. However, **87 violations** (see §3) indicate the codebase has drifted from its own architectural contract in several places.
 
 ---
 
-## 2. Maintenance & Maintainability
+## 2. Maintenance and Maintainability
 
-### Static Analysis
+### Strengths
 
-| Tool | Result |
-|---|---|
-| PHPStan (level: max) | **3 errors** (see below) |
-| phparkitect | **0 violations** |
-| php-cs-fixer | **5 fixable files** (mostly unused imports / whitespace) |
-| line-length lint (120 chars) | Passes |
-| single-type-per-file lint | Passes |
-| phpmnd (magic numbers/strings) | **34 detections** |
+- **Comprehensive documentation**: `AGENTS.md` (894 lines), `README.md`, `docs/EXECUTION.md`, `docs/FEATURE_BACKLOG.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/ROADMAP.md`, `docs/TODOS.md`, 10 background docs including 2 ADRs.
+- **No abstract classes** — confirmed via scan. Only a comment reference to a removed `AbstractRuntimeFixture` in `RuntimeFixtureTrait.php`.
+- **Traits used for deduplication**: `TaskBehavior`, `CombinatorTrait`, `ChannelBehaviorTrait`, `StreamSelectPollerTrait`, `CoroutineContextStorageTrait`.
+- **Code style passes**: PHP-CS-Fixer reports 0 files needing fixes.
+- **PHPStan passes**: 0 errors at configured level.
+- **Clear file organization**: `src/Contract/`, `src/Contract/Port/`, `src/Domain/`, `src/Application/`, `src/SDK/`, `src/Adapter/`, `src/Conformance/`.
 
-### PHPStan Errors (level max)
+### Concerns
 
-1. `src/Application/Factory/TaskIdFactoryInterface.php:13` — `createWithId()` is declared but never called. Dead interface method.
-2. `src/Contract/Exception/ChannelException.php:10` — Concrete class not declared `final` (violates "every concrete class must be `final`").
-3. `src/Domain/SelectGroup.php:111` — Implicit array creation (`$result` variable used without prior initialization).
+- **87 phparkitect violations** across 42 classes. The most significant:
+  - `SDK\AsyncRuntime` — 12 violations (methods not backed by interfaces: `all`, `any`, `await`, `channel`, `health`, `join`, `race`, `select`, `spawn`, `stream`, `telemetry`, `awaitDelay`)
+  - `Conformance\Result\ConformanceResult` — 5 violations
+  - `Contract\TaskChannelInterface` — 5 violations
+  - `Application\Scheduler\TaskRecord` — 7 violations
+  - `Application\Federation\CanaryScheduler` — 4 violations
+  - `Application\Scheduler\FiberTaskScheduler` — 4 violations
+  - `SDK\Factory\RuntimeAssemblerInterface` — depends on class `AsyncRuntime` (interface depending on class)
+  - `Domain\PersistentTask`, `Domain\RateLimiter`, `Domain\SchedulerConfiguration`, `Domain\TaskGroup` — methods not backed by interfaces
 
-### Magic Numbers / Strings (phpmnd, 34 total)
+- **`FiberTaskScheduler.php` is 976 lines** — a clear complexity outlier. It handles scheduling, timing, IO await, cancellation, lifecycle publication, and health reporting. This violates the single-responsibility principle and makes the file hard to maintain.
+- **Magic literals** scattered throughout (see §9).
+- **No CHANGELOG or version pinning guidance** in `REVIEW.md` context.
 
-Significant detections:
-- `Domain/CircuitBreaker.php:45` — `5` (default failure threshold)
-- `Domain/RetryPolicy.php:51` — `3` (default max attempts)
-- `Domain/SchedulerConfiguration.php:53,59` — `1`, `1` (bounds for sampling rate / canary weight)
-- `Conformance/Verifier/TraceParentageVerifier.php:99,106` — `2` (minimum event counts)
-- `Conformance/Verifier/GroupCancellationIsolationVerifier.php:66,77,96` — `'a-done'`, `'b-done'` (magic strings)
-- `Conformance/Fixture/*` — `'AsyncRuntime/Amp'`, etc. (runtime name strings)
-- `Adapter/OpenTelemetry/OpenTelemetryTelemetryBridge.php:126,137,151` — `'unknown'`, `'succeeded'`
-- `Adapter/Prometheus/PrometheusTelemetryBridge.php:180` — `'succeeded'`
+### Maintenance Grade: B
 
-Most magic numbers are legitimate defaults (thresholds, bounds) but should be named constants per project rules. Magic strings in conformance verifiers and telemetry bridges should be vocabulary constants.
-
-### Code Organization
-
-- **129 classes, 68 interfaces, 461 methods** (phpmetrics).
-- Average cyclomatic complexity: **4.84 per class** (well under the complexity > 10 threshold).
-- Average methods per class: 3.57 (small, focused classes).
-- No abstract classes in `src/` (the only abstract reference is a comment about a removed `AbstractRuntimeFixture`). Good adherence to "no abstract classes; prefer traits and composition."
-
-### Traits Used Appropriately
-
-- `TaskBehavior` — shared lifecycle state + transition matrix (used by `Task`, `TaskGroup`, `RaceGroup`, `SelectGroup`, `AllGroup`, `AnyGroup`).
-- `CoroutineContextStorageTrait` — shared LIFO context attach/detach protocol (used by Revolt and Swoole context storages).
-- `StreamSelectPollerTrait` — shared `stream_select()` readiness probe (used by all 5 pollers).
+Good documentation and clean style, but architectural drift (87 violations) and one oversized class create maintenance risk.
 
 ---
 
@@ -117,22 +97,24 @@ Most magic numbers are legitimate defaults (thresholds, bounds) but should be na
 
 ### Strengths
 
-- **Bounded task-results buffer:** `FiberTaskScheduler::MAX_TASK_RESULTS = 1000` with FIFO eviction (`array_shift`).
-- **Channel compaction:** `EmulatedChannel::receive()` reindexes when head passes half the queue, bounding memory growth.
-- **Monotonic clocks:** All durations use `hrtime()` / `MonotonicClockInterface`, never wall-clock. `SchedulerConfiguration` validates `gracefulShutdownDeadline > 0`.
-- **Lazy telemetry:** `LazyTelemetryBridge` defers recorder construction to first `record()` call via `Closure` factory.
-- **O(1) timer nearest-deadline:** `computeNearestTimerDeadline()` is O(n) but timers are typically few; acceptable.
+- **Monotonic clock** (`hrtime()`) via `MonotonicClockInterface` — no wall-clock skew for duration measurements.
+- **Bounded task results buffer**: `MAX_TASK_RESULTS = 1000` with FIFO eviction in `FiberTaskScheduler::complete()`.
+- **Bounded channel queue**: `EmulatedChannel` compacts when head exceeds half the queue length.
+- **WeakMap usage** in `MemoryContextStorage` and `RevoltAssemblyFactory` for non-owning Fiber-to-context associations.
+- **Lazy objects**: `LazyTelemetryBridge` defers recorder construction until first use.
+- **Average CCN**: 4.71 (low complexity).
+- **Average WMC**: 7.05 per class.
 
 ### Concerns
 
-- `FiberTaskScheduler::drainExpiredTimers()` iterates all timers every tick — O(n) per reactor iteration. With many concurrent timers this becomes a hot-path scalability issue.
-- `FiberTaskScheduler::clearTimers()` uses `array_filter` + `array_values` on every completion — O(n) copy.
-- `FiberTaskScheduler::runUntil()` calls `computeTimeout()` which calls `computeNearestTimerDeadline()` — O(n) scan on every poll iteration.
-- `EmulatedChannel::send()` / `trySend()` compute `$size = count($this->queue) - $this->head` — O(1) but repeated.
+- **`FiberTaskScheduler::runUntil()`** is the reactor hot path (976 lines). It runs `array_shift()` on `$ready` (O(n) per shift) and rebuilds `$timers` via `array_filter()` on every terminal transition. No benchmarks exist to quantify impact.
+- **No benchmarks run**: `phpbench.json` exists but no benchmark data was collected. The AGENTS.md requires benchmarks for hot-path changes (spawn, completion, suspension/resumption, poll-handle registration/teardown).
+- **`computeNearestTimerDeadline()`** iterates all timers on each tick — O(n) where n = pending timers.
+- **No performance regression testing** in CI.
 
-### PHP Version
+### Performance Grade: B
 
-`composer.json` requires `"php": "^8.5"` plus `symfony/polyfill-php86`. The codebase targets PHP 8.5+ but references PHP 8.6 `Io\Poll` via polyfill. Lazy objects (PHP 8.4+) and property hooks (PHP 8.4+) are available but underutilized (see §6).
+Solid fundamentals (monotonic clock, bounded buffers, WeakMap), but missing benchmarks and hot-path optimization data. The reactor's O(n) operations on the hot path need measurement.
 
 ---
 
@@ -140,17 +122,24 @@ Most magic numbers are legitimate defaults (thresholds, bounds) but should be na
 
 ### Strengths
 
-- **Context isolation:** Conformance Assertion A verifies zero context bleed across suspension/resumption. Context is detached under `finally` in `FiberTaskScheduler::step()`.
-- **Handle cleanup:** Conformance Assertion C verifies every `StreamPollHandle` and timer is released on terminal transition. `forceCancelRemaining()` ensures handles are released even on deadline expiry.
-- **Debug surface opt-in:** `SchedulerConfiguration::enableDebug()` is explicit; debug is `false` by default. Docblock notes "Security: debug surface is absent unless explicitly enabled."
-- **No secrets in code:** No hardcoded keys, tokens, or credentials found.
-- **Input validation:** `TaskId` rejects empty strings; `RemoteTask` validates FQCN format; `SchedulerConfiguration` validates concurrency bounds (1–10,000) and sampling rate (0–1).
-- **Fail-safe publication:** Publisher failures go through a recursion-safe health path (documented in AGENTS.md publication policy).
+- **Context isolation**: `contextStorage->attach()` / `detach()` around every Fiber resume/suspend in `step()` (Assertion A).
+- **Handle release**: Every registered poll handle released on terminal transition in `complete()` → `releaseHandles()` + `clearTimers()` (Assertion C).
+- **Deny-by-default**: Context classification and redaction delegated to RunIt context model.
+- **No global mutable scheduling state**: Confirmed via scan — no `static` request-specific state in scheduling services.
+- **Handle leak detection**: `StreamPollHandleLeakException` exists; conformance Assertion C tests for leaks.
+- **No secrets exported**: AsyncIt respects RunIt's classification model.
+- **Exceptions preserve original throwable**: `FiberTaskScheduler::resume()` rethrows the exact `Throwable`, not a wrapper.
 
 ### Concerns
 
-- `FederatedScheduler::submit()` embeds cancellation token data into the task payload under scalar keys. The payload is `array<string, mixed>` and crosses the federation boundary — potential serialization/tampering surface. The remote side must validate.
-- `RedisTaskQueue` uses regex key validation (`/^[A-Za-z0-9._:-]+$/`) — good, but Redis command injection via `pipeline()` dynamic calls is possible if caller-controlled keys reach it.
+- **`FiberTaskScheduler::publishLifecycle()`** publishes `SchedulerFailureArtifact($throwable->getMessage())` — only the message, not the full exception. Stack trace context is lost for failure artifacts.
+- **Negative security tests**: AGENTS.md requires "context-bleed" and "handle-leak" negative tests. Conformance verifiers exist (`ContextIsolationVerifier`, `DeterministicCleanupVerifier`, `GracefulShutdownVerifier`) but only 7 conformance tests with 3 skipped — coverage is thin.
+- **Magic strings used as metric names** (e.g., `asyncit_tasks_runnable`, `asyncit_poll_wait_seconds` in Prometheus bridge) — AGENTS.md warns against user-controlled values as metric names. These are hardcoded, not user-controlled, but still magic literals.
+- **`awaitIo()`** stores handles in `$ioAwaiters` and `$ioTaskHandles` — these maps are cleaned up in `releaseHandles()` but the cleanup relies on `complete()` being called; if a task is abandoned without `complete()`, handles could leak.
+
+### Security Grade: B+
+
+Strong foundational security (context isolation, handle release, no global state), but thin negative-test coverage and potential handle leak edge cases.
 
 ---
 
@@ -158,239 +147,338 @@ Most magic numbers are legitimate defaults (thresholds, bounds) but should be na
 
 ### Strengths
 
-- **README** is excellent: conceptual model, tier stack, architectural pillars, usage example, public API reference, roadmap, PSR posture.
-- **Clear, domain-aligned naming:** `Task`, `Scheduler`, `Awaiting`, `Poller`, `Cancellation`, `CapabilityDescriptor`, `StreamPollHandle`, `RuntimeDiscovery` — no vague `Manager`/`Helper`/`Utility` names.
-- **Factory/builder ergonomics:** All construction goes through injected factories. `AsyncRuntime::discover()` is a clean static entry point.
-- **Conformance verifiers:** `AsyncRuntimeVerifier` composes 6 verifiers (context isolation, deterministic cleanup, group cancellation, timer cleanup, trace parentage, graceful shutdown). Adapters cannot ship without passing.
-- **Vocabulary interfaces:** Constants are named and documented, not magic literals.
-- **QA scripts:** `composer quality` runs validate → assumptions → cs:check → analyse → architecture → lint → test → security:audit.
+- **PHP-CS-Fixer**: 0 violations, clean and consistent style.
+- **PHPStan**: 0 errors at max level.
+- **Clear entry point**: `AsyncRuntime::discover()` factory method.
+- **Good README**: Usage example, API reference, architectural pillars.
+- **Well-organized tests**: 153 test files across Unit, Integration, Functional, Conformance, Concurrency suites.
+- **Clear error messages**: Most exceptions include descriptive messages with context.
 
 ### Concerns
 
-- **`AsyncRuntime::run()` creates `TaskId` directly** (5× `new TaskId(...)`), violating the "instances only in factories" rule. Consumers cannot substitute a custom `TaskId` implementation.
-- **Integration and Concurrency test suites are empty** (0 tests each). The `codecept run` configuration lists them but they contain no test files.
-- **Roadmap features (`spawn`, `awaitReadable`) are referenced but not implemented** — README examples reference them as available.
+- **No `REVIEW.md` existed** before this review — the project lacks a consolidated review document.
+- **Test coverage tooling is fragile**: Running `codecept run --coverage` fails on the Acceptance suite (serialized coverage file missing). Coverage must be collected per-suite.
+- **Some adapters have very low test coverage** (OpenTelemetry bridge at 2%, Amp bridge at 47%, Revolt/Swoole/Swow pollers at 33-62%).
+- **No contributor guide or `CONTRIBUTING.md`**.
+
+### DX Grade: B+
+
+Clean tooling and clear APIs, but fragmented coverage collection and low adapter test coverage hinder contributor confidence.
 
 ---
 
-## 6. SOLID & DRY Principles
+## 6. SOLID and DRY Principles
 
 ### SOLID Assessment
 
-| Principle | Status | Notes |
-|---|---|---|
-| Single Responsibility | Pass | Classes are small and focused (avg 3.57 methods/class) |
-| Open/Closed | Pass | Interfaces at boundaries; new adapters added without modifying core |
-| Liskov Substitution | Pass | All concrete classes implement interfaces; adapters are substitutable |
-| Interface Segregation | Pass | Small focused interfaces (`PollerPortInterface`, `TaskChannelInterface`, etc.) |
-| Dependency Inversion | Pass | Factories injected; domain depends only on contracts |
+| Principle | Status | Evidence |
+|-----------|--------|----------|
+| Single Responsibility | Partial | `FiberTaskScheduler` (976 lines) does scheduling, timing, IO, cancellation, publication, health |
+| Open/Closed | Good | Ports allow new adapters without modifying core |
+| Liskov Substitution | Good | All adapters implement `PollerPortInterface`, `TaskChannelInterface`, etc. |
+| Interface Segregation | Partial | 87 phparkitect violations show interfaces not fully backing implementations |
+| Dependency Inversion | Good | Factories injected, not constructed directly in most services |
 
-### DRY Violations (Duplicate Code)
+### DRY Assessment
 
-**1. Combinator groups — near-identical boilerplate (HIGH)**
+**Good DRY**:
+- `StreamSelectPollerTrait` shared by SelectPoller, NativePoller, RevoltPoller, SwoolePoller, SwowPoller for readiness probing.
+- `CombinatorTrait` shared by RaceGroup, SelectGroup, AllGroup, AnyGroup for constructor/add/cancelRemaining/findChild.
+- `ChannelBehaviorTrait` shared by SwooleChannel and SwowChannel for closed-state tracking.
+- `TaskBehavior` used by Task for lifecycle state machine.
+- `CoroutineContextStorageTrait` shared by RevoltFiberContextStorage and SwooleCoroutineContextStorage.
 
-`RaceGroup`, `SelectGroup`, `AllGroup`, `AnyGroup` all share:
-- Same constructor signature (`TaskId`, `EngineSchedulerInterface`, `CancellationScopeInterface`, `ExecutionIdInterface`)
-- Same `TaskBehavior` trait usage
-- Same `add()` method (guard `$this->resolved`, spawn, push child)
-- Same `$resolved` flag + `transitionTo(TaskStatus::Created)` in constructor
+**Violations**:
+- **"New class instances must only be created in factories or builders"** — violated extensively outside factories:
+  - `FiberTaskScheduler.php`: `new LogicException` (11×), `new RuntimeException`, `new SchedulerFailureArtifact`
+  - `MemoryContextStorage.php`: `new ContextToken`
+  - `ReferenceExecutionScope.php`: `new BadMethodCallException` (7×)
+  - Domain classes: `new InvalidArgumentException`, `new DomainException`, `new RateLimitExceededException`, etc.
+  - Conformance verifiers: `new ConformanceResult`, `new ConformanceViolation` (many)
+  - Federation classes: `new LogicException`, `new InvalidArgumentException`, `new BackpressureExceededException`
+- **"Every concrete service class must be backed by an interface"** — 87 phparkitect violations show many final classes lack full interface backing.
+- **No `else`/`elseif`**: Confirmed — zero occurrences. Good.
+- **No Yoda-style conditions**: Confirmed — no `constant == variable` patterns.
+- **No magic numbers as bare literals in most cases**: Constants used for `MAX_TASK_RESULTS`, `DEFAULT_FAILURE_THRESHOLD`, `NANOSECONDS_PER_SECOND`, etc.
 
-`RaceGroup::cancelRemaining()` (lines 117–124) and `SelectGroup::cancelRemaining()` (lines 122–129) are **character-for-character identical**. `RaceGroup::findChild()` (lines 126–135) and `SelectGroup::findChild()` (lines 131–140) are **identical**.
+### SOLID/DRY Grade: B-
 
-**2. Poller adapters — ~90% structural duplication (HIGH)**
-
-`SwoolePoller`, `SwowPoller`, `RevoltPoller` share:
-- `use StreamSelectPollerTrait`
-- Same `$handles`, `$readyReadStreams`, `$readyWriteStreams`, `$counter` properties
-- Identical `register()`, `release()`, `await()`, `readyHandles()`, `activeHandleCount()` bodies
-- Differ only in: ID prefix (`'swoole-'`/`'swow-'`/`'revolt-'`), registry array name, reactor class, and `registerWith*()` body (3 lines each)
-
-`NativePoller` and `SelectPoller` also share the same handle-track/release/ready-handles pattern without using the trait.
-
-**3. Channel adapters — ~80% duplication (MEDIUM)**
-
-`SwooleChannel` and `SwowChannel` share `send()`, `receive()`, `trySend()`, `waitForCapacity()`, `isClosed()`, `close()` bodies. Differ only in: push return-value handling, sentinel creation (`CapacitySentinel::create()` used in both).
-
-**4. Value objects — near-identical (MEDIUM)**
-
-`RemoteTask` and `PersistentTask` are both `readonly` classes with `TaskId $id`, `string $operation`, `array $payload`, `?DurationInterface $deadline`, nearly identical constructors and accessors. Differ only in: `RemoteTask` has `priority` + `correlationId` + `Stringable`; `PersistentTask` has `TaskStatus $status`.
-
-**5. `new StreamPollHandle($id)` in pollers (MEDIUM)**
-
-7 poller/bridge files each directly instantiate `StreamPollHandle` instead of delegating to a factory.
-
-### Complexity Outliers
-
-No method exceeds cyclomatic complexity 10. `FiberTaskScheduler` is the largest class (968 lines, ~30 methods) but its methods are individually focused. `phpmetrics` reports no class as a clear complexity outlier.
+Good use of traits and interfaces at boundaries, but the "new only in factories" rule is widely violated and `FiberTaskScheduler` violates SRP.
 
 ---
 
-## 7. Modern PHP Features
+## 7. Hexagonal Architecture — Ports and Adapters
+
+### Ports (defined in `src/Contract/Port/`)
+
+| Port | Interface |
+|------|-----------|
+| Polling | `PollerPortInterface` |
+| Context storage | `ContextStorageInterface` (RunIt) |
+| Publication | `ArtifactPublisherInterface` (RunIt) |
+| Clock | `MonotonicClockInterface` (RunIt) |
+| Cancellation reason | `CancellationReason` (enum) |
+| Task status | `TaskStatus` (enum) |
+| Capability status/kind | `CapabilityStatus`, `CapabilityKind` (enums) |
+| Scheduler event type | `SchedulerEventType` (enum) |
+| Circuit state | `CircuitState` (enum) |
+| Retry/jitter strategy | `RetryStrategy`, `JitterStrategy` (enums) |
+| Backpressure | `BackpressurePolicy` (enum) |
+| Scheduling policy | `SchedulingPolicy` (enum) |
+| Stream poll handle | `StreamPollHandleInterface` |
+
+### Adapters
+
+| Adapter Type | Implementations |
+|-------------|-----------------|
+| Poller | `SelectPoller`, `NativePoller`, `RevoltPoller`, `SwoolePoller`, `SwowPoller` |
+| Channel | `EmulatedChannel`, `SwooleChannel`, `SwowChannel`, `RevoltChannel` |
+| Context storage | `MemoryContextStorage`, `RevoltFiberContextStorage`, `SwooleCoroutineContextStorage`, `SwowCoroutineContextStorage` |
+| Telemetry | `OpenTelemetryTelemetryBridge`, `PrometheusTelemetryBridge`, `ArrayTelemetryRecorder`, `LazyTelemetryBridge` |
+| Publisher | `NullArtifactPublisher`, `FailSafeArtifactPublisher`, `InMemoryArtifactPublisher` |
+| Interop | `AmpPollerBridge`, `ReactPhpPollerBridge` |
+
+### Assessment
+
+The ports/adapters pattern is correctly implemented. Each adapter implements a port contract without leaking runtime-specific types into domain/application layers. The `RuntimeAdapterAssembler` cleanly dispatches to per-runtime factory classes.
+
+**Concern**: `RuntimeAdapterAssembler::defaultFactory()` directly instantiates `SwooleAssemblyFactory`, `SwowAssemblyFactory`, `RevoltAssemblyFactory`, `ReferenceAssemblyFactory` — these are concrete classes instantiated outside a factory, violating the "new only in factories" rule.
+
+### Hexagonal Architecture Grade: B+
+
+Correct port/adapter separation with clean dependency direction, but the assembler factory violates the instantiation rule.
+
+---
+
+## 8. Factories and Builders
+
+### Factories Present
+
+| Factory | Interface | Purpose |
+|---------|-----------|---------|
+| `TaskFactory` | `TaskFactoryInterface` | Create tasks |
+| `TaskRecordFactory` | `TaskRecordFactoryInterface` | Create task records |
+| `TaskIdFactory` | `TaskIdFactoryInterface` | Create task IDs |
+| `PollerFactory` | `PollerFactoryInterface` | Create pollers |
+| `FiberFactory` | `FiberFactoryInterface` | Create fibers |
+| `SchedulerFactory` | `SchedulerFactoryInterface` | Create schedulers |
+| `TaskGroupFactory` | `TaskGroupFactoryInterface` | Create task groups |
+| `TaskStreamFactory` | `TaskStreamFactoryInterface` | Create task streams |
+| `CancellationScopeFactory` | `CancellationScopeFactoryInterface` | Create cancellation scopes |
+| `CascadingCancellationScopeFactory` | — | Create cascading scopes |
+| `CombinatorFactory` | `CombinatorFactoryInterface` | Create combinators (race/all/any/select) |
+| `ExecutionScopeFactory` | `ExecutionScopeFactoryInterface` | Create execution scopes |
+| `PerRunExecutionScopeFactory` | — | Per-run scope factory |
+| `ReferenceExecutionScopeFactory` | — | Reference scope factory |
+| `DeadLetterAwarePromiseFactory` | `DeadLetterAwarePromiseFactoryInterface` | Create DLQ promises |
+| `SchedulerLifecycleArtifactFactory` | — | Create lifecycle artifacts |
+| `ReferenceAssemblyFactory` | — | Reference adapter assembly |
+| `RuntimeDiscoveryFactory` | `RuntimeDiscoveryFactoryInterface` | Runtime discovery |
+| `RuntimeAdapterAssembler` | `RuntimeAdapterAssemblerInterface` | Adapter assembly facade |
+| `FiberScopeSlotFactory` | `FiberScopeSlotFactoryInterface` | Create fiber scope slots |
+
+### Assessment
+
+The factory pattern is well-established. Most application services receive factories via constructor injection. However:
+
+**Violations of "new only in factories"**:
+- `RuntimeAdapterAssembler::defaultFactory()` instantiates concrete assembly factories directly.
+- `AsyncRuntimeFactory` instantiates many concrete classes directly (this is the composition root, which is acceptable).
+- Domain and application classes instantiate exceptions and value objects directly (`new LogicException`, `new InvalidArgumentException`, `new ContextToken`).
+
+### Factories Grade: B
+
+Strong factory infrastructure, but the rule is not consistently applied to exceptions/value objects and the assembler's default factory.
+
+---
+
+## 9. Duplicate Code
+
+### Critical Duplication: Poller Adapters
+
+The four reactor pollers (`RevoltPoller`, `SwoolePoller`, `SwowPoller`, `NativePoller`) plus `SelectPoller` share nearly identical `register()`/`release()` logic via `StreamSelectPollerTrait`, but each duplicates:
+
+```php
+// RevoltPoller::register()
+$id = 'revolt-' . ++$this->counter;
+$this->handles[$id] = $stream;
+$this->registerWithReactor($id, $stream);
+return new StreamPollHandle($id);
+
+// SwoolePoller::register()
+$id = 'swoole-' . ++$this->counter;
+// ... identical except prefix
+
+// SwowPoller::register()
+$id = 'swow-' . ++$this->counter;
+// ... identical except prefix
+
+// NativePoller::register()
+$id = 'native-' . ++$this->counter;
+// ... identical except prefix
+```
+
+The `release()` methods are also near-identical, differing only in reactor-specific cleanup calls (`EventLoop::cancel`, `Event::del`, `method_exists($this->poll, 'unregister')`).
+
+**Estimated duplication**: ~60 lines × 4 adapters = ~240 lines of near-identical code.
+
+**Recommendation**: Extract a `ReactorPollerTrait` or base class that handles ID generation, handle registration, and release bookkeeping, leaving only the reactor-specific `registerWithReactor()`/`releaseFromReactor()` abstract methods. The `StreamSelectPollerTrait` already provides `await()`/`readyHandles()` — it should also provide `register()`/`release()` with abstract reactor hooks.
+
+### Other Duplication
+
+- **Channel adapters** (`SwooleChannel`, `SwowChannel`, `RevoltChannel`): Each repeats the `if ($this->closed) throw new ChannelClosedException();` guard in `send()`/`trySend()`. Partially mitigated by `ChannelBehaviorTrait` for Swoole/Swow, but `RevoltChannel` delegates to `EmulatedChannel` instead, so the guard is duplicated there.
+- **Magic literals**: Many hardcoded strings (Redis key prefixes `asyncit:task:`, Prometheus metric names, error messages) repeated across files without constant extraction.
+- **Factory methods in `AsyncRuntime`**: `race()`, `all()`, `any()`, `select()`, `join()` each repeat the pattern of creating a combinator, adding operations, and calling `await()`.
+
+### Duplicate Code Grade: C
+
+Significant duplication across poller adapters that should be deduplicated via a shared trait or abstract base.
+
+---
+
+## 10. Modern PHP Feature Usage
 
 | Feature | Usage | Assessment |
-|---|---|---|
-| Fibers | Extensive (`Fiber::suspend()`, `Fiber::start()`, `Fiber::resume()`) | Good — used through `FiberFactoryInterface` |
-| Readonly classes | ~30 classes (`readonly class`, `final readonly class`) | Excellent — TaskResult, SchedulerConfiguration, CapabilityDescriptor, etc. |
-| Property hooks | `TaskId::$value` getter hook | Good — used where it adds clarity |
-| Enums (closed sets) | `TaskStatus`, `CapabilityKind`, `CapabilityStatus`, `CircuitState`, `AwaitPoint`, `SchedulerEventType`, `SchedulingPolicy`, `BackpressurePolicy`, `RetryStrategy`, `JitterStrategy`, `RuntimeAdapterKind` | Excellent — all closed sets are enums backed by vocabulary constants |
-| Lazy objects | Not used | **Missed opportunity** — `LazyTelemetryBridge` uses a `Closure` factory instead of PHP 8.4 `ReflectionFactory::createLazy()` |
-| WeakMap / WeakReference | Not used | **Missed opportunity** — no `WeakMap` for per-task metadata; `FiberScopeSlotTrait` uses a `$fallback` property that could be a weak reference |
-| Traits | `TaskBehavior`, `CoroutineContextStorageTrait`, `StreamSelectPollerTrait` | Good — used for shared behavior without inheritance |
-| Readonly properties | Extensive (`public readonly`) | Excellent |
-| Match expressions | `TaskStatus::allowedNext()`, `RetryPolicy::delayForAttempt()` | Good |
-| Constructor promotion | Extensive | Good |
+|---------|-------|------------|
+| Fibers | Used in `FiberTaskScheduler`, `PollerPortInterface`, `TaskStreamInterface`, `FiberFactory` | Good — via adapters, not domain |
+| WeakMap | `MemoryContextStorage`, `RevoltAssemblyFactory` | Good — non-owning Fiber→context associations |
+| WeakReference | None found | Not used where potentially useful (e.g., per-task metadata) |
+| Lazy objects | `LazyTelemetryBridge` (defers recorder) | Good — but only one usage |
+| Property hooks | `TaskId::$value`, `TaskBehavior::$status` | Good — validation and computed properties |
+| Virtual properties | None found | Not used |
+| Readonly classes | `CapabilityDescriptor`, `TaskRecord`, `AsyncRuntime`, most factories | Good — extensive use |
+| Readonly properties | `TaskBehavior::$id`, `$executionId`, `$cancellationScope` | Good |
+| Enums | `TaskStatus`, `CapabilityStatus`, `CapabilityKind`, `AwaitPoint`, `CancellationReason`, `CircuitState`, `SchedulerEventType`, `RuntimeAdapterKind`, `SchedulingPolicy`, `BackpressurePolicy`, `RetryStrategy`, `JitterStrategy`, `ViolationSeverity` | Good — closed sets modeled as enums |
+| Match expressions | `TaskStatus::isTerminal()`, `RuntimeAdapterAssembler::defaultFactory()`, `CircuitBreaker` state checks | Good |
+| Traits | `TaskBehavior`, `CombinatorTrait`, `ChannelBehaviorTrait`, `StreamSelectPollerTrait`, `CoroutineContextStorageTrait` | Good — used for deduplication |
+| `never` return type | Not found | Not used |
+| `readonly class` | Extensive use across Domain, Application, SDK | Good |
+
+### Assessment
+
+Modern PHP features are used appropriately where they add clarity:
+- **Property hooks** on `TaskId` and `TaskBehavior` provide validation without boilerplate getters/setters.
+- **Readonly classes** are the default for value objects and factories.
+- **Enums** model all closed sets (task status, capability status, circuit state, etc.).
+- **WeakMap** used correctly for non-owning Fiber context associations.
+
+**Missing/underused**:
+- **`WeakReference`**: Could be used for per-task metadata that shouldn't prevent GC.
+- **`Lazy` objects**: Only `LazyTelemetryBridge` uses lazy initialization. Other expensive adapters could benefit.
+- **Virtual properties**: Not used — could be useful for computed projections.
+- **`never` return type**: Not used for methods that should never throw.
+
+### Modern PHP Grade: B+
+
+Good adoption of enums, readonly, property hooks, WeakMap, and Fibers. Underuse of WeakReference, Lazy objects, and virtual properties.
 
 ---
 
-## 8. Code-Quality Rule Compliance
+## 11. Testing and Coverage
 
-| Rule | Status | Details |
-|---|---|---|
-| Concrete DI classes backed by interface | Mostly pass | `ChannelException` not `final`; some concrete classes lack interfaces |
-| No abstract classes | Pass | No `abstract class` in `src/` |
-| Cyclomatic complexity > 10 | Pass | No method exceeds 10 |
-| No `else` / `elseif` | Pass | None found |
-| No Yoda-style conditions | Pass | None found |
-| Imports at top of file | Pass | All files have proper import blocks |
-| Instances only in factories/builders | **Fail** | Multiple violations (see below) |
-| Declaration ordering (traits→constants→props→constructors→factories→methods→static) | Mostly pass | Files follow this pattern |
-| Public before protected/private | Pass | Consistent |
-| One type per file | Pass | Enforced by lint tool |
-| Max 120 chars per line | Pass | Enforced by lint tool |
-
-### "Instances Only in Factories" Violations
-
-`new TaskId(...)` is called directly in non-factory code:
-- `src/SDK/AsyncRuntime.php:81,150,174,198,223` — 5× direct `new TaskId()` in SDK entry point (should inject `TaskIdFactoryInterface`)
-- `src/Application/Federation/FederatedScheduler.php:116` — `new TaskId((string) $id)` (should inject factory)
-
-`new StreamPollHandle($id)` is called directly in adapters (not factories):
-- `NativePoller.php:56,99`, `SelectPoller.php:50`, `SwoolePoller.php:62`, `SwowPoller.php:62`, `RevoltPoller.php:63`, `ReactPhpPollerBridge.php:70`, `AmpPollerBridge.php:65`, `StreamSelectPollerTrait.php:102`
-
-`new ContextToken($id)` directly:
-- `MemoryContextStorage.php:57`, `CoroutineContextStorageTrait.php:51`
-
-`new CancellationScope()` directly in test fixtures:
-- `ReferenceRuntimeFixture.php:72`, `RuntimeFixtureTrait.php:130`
-
----
-
-## 9. Testing & Coverage
-
-### Suite Summary
+### Test Results
 
 | Suite | Tests | Assertions | Status |
-|---|---|---|---|
-| Unit | 472 | 1,014 | ✅ All pass |
-| Functional | 72 | 152 | ✅ All pass |
-| Conformance | 7 | 3 (4 skipped) | ⚠️ Incomplete/skipped |
-| Integration | 0 | 0 | ❌ Empty |
-| Concurrency | 0 | 0 | ❌ Empty |
+|-------|-------|------------|--------|
+| Unit | 492 | 1,067 | OK |
+| Integration | 5 | 14 | OK |
+| Functional | 72 | 152 | OK |
+| Conformance | 7 | 4 | OK (3 skipped) |
+| Concurrency | 5 | 10 | OK |
+| **Total** | **581** | **1,247** | **All pass** |
 
-### Coverage Gaps (below 95% target)
+### Coverage
 
-Critical low-coverage classes:
+| Metric | Value | Requirement |
+|--------|-------|-------------|
+| Unit suite lines | 78.93% (1862/2359) | 95% |
+| Unit suite methods | 74.51% (386/518) | 95% |
+
+**Coverage is below the 95% requirement.**
+
+### Per-Class Coverage (Low Coverage Classes)
 
 | Class | Lines | Methods | Issue |
-|---|---|---|---|
-| `AsyncRuntime` | 42.02% | 66.66% | Core SDK entry point — 29/69 lines covered |
-| `AsyncRuntimeFactory` | 66.01% | 33.33% | Factory for runtime assembly |
-| `SelectGroup` | 48.00% | 40.00% | Combinator — half uncovered |
-| `RaceGroup` | 73.46% | 60.00% | Combinator — ~1/4 uncovered |
-| `TaskGroup` | 85.71% (functional) | 72.72% | Structured concurrency — destructor path untested |
-| `TaskResult` | 84.61% | 88.88% | Terminal outcome — failure path gaps |
-| `FiberTaskScheduler` | — | — | Reactor core — not listed in coverage (needs verification) |
+|-------|-------|---------|-------|
+| `OpenTelemetryTelemetryBridge` | 2% | 11% | Almost untested |
+| `AmpPollerBridge` | 47.6% | 25% | Low coverage |
+| `RevoltPoller` | 62.5% | 33% | Low coverage |
+| `SwoolePoller` | 62.5% | 33% | Low coverage |
+| `SwowPoller` | 62.5% | 33% | Low coverage |
+| `AsyncRuntimeFactory` | 69.9% | 66.7% | Factory not fully covered |
+| `PollerFactory` | 57.1% | 50% | Factory not fully covered |
 
-**Estimated overall coverage: ~85–90%, below the 95% requirement.**
+### Coverage Isolation
 
-### Coverage Leakage
+Codeception config (`codeception.yml`) includes `src/*` and excludes `tests/*` and `vendor/*`. Coverage is collected per-suite, so tests do not leak coverage into other suites' code. However, the Acceptance suite fails to produce coverage data (missing serialized file).
 
-No evidence of cross-test leakage (each test class targets its own class). However, `AsyncRuntime` is covered across multiple suites (unit, functional, conformance) which inflates its apparent coverage when viewed per-suite.
+### Testing Grade: C+
 
-### Missing Test Categories
-
-- No integration tests (suite is empty)
-- No concurrency tests (suite is empty)
-- No performance benchmarks executed (phpbench config exists but no benchmarks written)
-- No mutation testing results available (infection configured but not run in this review)
+All 581 tests pass, but coverage is ~79% — well below the 95% requirement. Key adapters and factories are under-tested.
 
 ---
 
-## 10. Detailed Findings & Recommendations
+## Summary Table
 
-### HIGH PRIORITY
-
-**H1. Deduplicate combinator groups.** `RaceGroup`, `SelectGroup`, `AllGroup`, `AnyGroup` share ~80% boilerplate. Extract an abstract base or a shared trait (`CombinatorTrait`) with the common `add()`, `cancelRemaining()`, `findChild()`, and constructor logic. The four classes differ only in their `await()` strategy.
-
-**H2. Deduplicate poller adapters.** `SwoolePoller`, `SwowPoller`, `RevoltPoller` are ~90% identical. Extract the shared handle tracking, release, and ready-handles logic into a base class or trait parameterized by the reactor registration call. The only runtime-specific code is the 3-line `registerWith*()` method.
-
-**H3. Enforce "instances only in factories."** `AsyncRuntime` creates `TaskId` directly (5×). Inject `TaskIdFactoryInterface`. Pollers create `StreamPollHandle` directly — inject a `StreamPollHandleFactory` or move instantiation to `PollerFactory`.
-
-**H4. Raise test coverage to 95%.** Focus on: `AsyncRuntime`, `AsyncRuntimeFactory`, `SelectGroup`, `RaceGroup`, `TaskGroup` destructor path, `FiberTaskScheduler`, and fill the empty Integration/Concurrency suites.
-
-### MEDIUM PRIORITY
-
-**M1. Replace magic numbers/strings with constants.** `CircuitBreaker::failureThreshold` default `5`, `RetryPolicy::maxAttempts` default `3`, conformance verifier strings `'a-done'`/`'b-done'`, telebridge `'succeeded'`/`'unknown'` → vocabulary constants.
-
-**M2. Use lazy objects for `LazyTelemetryBridge`.** Replace the `Closure` factory with PHP 8.4 `ReflectionFactory::createLazy()` for true lazy initialization without the closure wrapper.
-
-**M3. Add `WeakMap`/`WeakReference`.** Consider `WeakMap` for per-task metadata in the scheduler to avoid retaining references to completed tasks.
-
-**M4. Fix PHPStan errors.** Remove dead `createWithId()` from `TaskIdFactoryInterface`, mark `ChannelException` as `final`, fix implicit array in `SelectGroup`.
-
-**M5. Fix php-cs-fixer issues.** 5 files have fixable style violations (unused imports, missing spaces).
-
-**M6. Add benchmarks.** phpbench is configured; add benchmarks for task spawn/completion, suspension/resumption, and poll-handle registration/teardown.
-
-### LOW PRIORITY
-
-**L1. Implement roadmap `spawn()` / `awaitReadable()` primitives** referenced in README.
-
-**L2. Document the `ChannelException` non-final exception** (or make it final).
-
-**L3. Consider extracting `RemoteTask`/`PersistentTask` common fields** into a shared base trait or value object.
+| Area | Grade | Key Issues |
+|------|-------|-----------|
+| Features & Architecture | B | Sound architecture, 87 phparkitect violations |
+| Maintenance & Maintainability | B | Good docs, but `FiberTaskScheduler` at 976 lines |
+| Performance | B | No benchmarks, O(n) ops on hot path |
+| Security | B+ | Strong context isolation, thin negative tests |
+| DX | B+ | Clean tooling, fragmented coverage collection |
+| SOLID/DRY | B- | "new only in factories" violated, SRP violation in scheduler |
+| Hexagonal/Ports-Adapters | B+ | Correct pattern, assembler violates instantiation rule |
+| Factories/Builders | B | Strong infra, inconsistent rule application |
+| Duplicate Code | C | Poller adapters duplicated (~240 lines) |
+| Modern PHP | B+ | Good enum/readonly/hooks/WeakMap, missing WeakReference/Lazy |
+| Testing & Coverage | C+ | 79% coverage vs 95% required, adapters under-tested |
 
 ---
 
-## 11. Appendices
+## Recommendations (Priority Order)
 
-### A. Files Reviewed (Source)
+### High Priority
 
-Domain: `Task`, `TaskId`, `TaskResult`, `TaskGroup`, `RaceGroup`, `SelectGroup`, `AllGroup`, `AnyGroup`, `TaskStream`, `PersistentTask`, `RemoteTask`, `CancellationScope`, `SchedulerConfiguration`, `SchedulerEvent`, `CircuitBreaker`, `RateLimiter`, `Bulkhead`, `RetryPolicy`, `CapabilityDescriptor`, `StreamPollHandle`, `DeduplicationRecord`, `TelemetrySchemaRegistry`, `FiberScopeSlot`, `FiberScopeSlotFactoryInterface`, `CoroutineContextStorageTrait`, `EmulatedChannel`, `TaskBehavior`.
+1. **Raise coverage to 95%**: Add tests for `OpenTelemetryTelemetryBridge`, `RevoltPoller`, `SwoolePoller`, `SwowPoller`, `AsyncRuntimeFactory`, `PollerFactory`. Fix the Acceptance suite coverage collection issue.
 
-Application: `FiberTaskScheduler`, `TaskRecord`, `SchedulerHealth`, `NativePoller`, `SelectPoller`, `PollerFactory`, `SchedulerFactory`, `TaskFactory`, `TaskRecordFactory`, `TaskIdFactory`, `CombinatorFactory`, `TaskGroupFactory`, `CancellationScopeFactory`, `PerRunExecutionScopeFactory`, `ReferenceAssemblyFactory`, `RuntimeAdapterAssembler`, `FederatedScheduler`, `ContextAttacher`, `DeadLetterQueue`, `BackpressureGate`, `CanaryScheduler`, `MiddlewareScheduler`, `ResourceQuotaChecker`, `TraceContextInjector`, `DeadLetterAwarePromise`, `GracefulShutdown`, `ArtifactNormalizer`, `ArtifactVocabulary`, `SchedulerFailureArtifact`, `SchedulerLifecycleArtifact`, `DeterministicMonotonicClock`, `MemoryContextStorage`, `ReferenceRuntimeDiscovery`.
+2. **Deduplicate poller adapters**: Extract `register()`/`release()` from `StreamSelectPollerTrait` into a shared base/trait with abstract reactor hooks. Eliminates ~240 lines of duplication across Revolt/Swoole/Swow/Native/Select pollers.
 
-SDK: `AsyncRuntime`, `AsyncRuntimeFactory`, `RuntimeAssemblerInterface`, `ArrayTelemetryRecorder`, `LazyTelemetryBridge`, `TelemetryBridgeEventListener`, `TelemetryRecorderInterface`.
+3. **Fix phparkitect violations (87)**: Either back methods with interfaces, move interfaces to depend only on interfaces, or update the architecture rules. `SDK\AsyncRuntime` (12 violations) and `Application\Scheduler\TaskRecord` (7 violations) are the worst offenders.
 
-Adapter: `SwoolePoller`, `SwowPoller`, `RevoltPoller`, `NativePoller`, `SelectPoller`, `SwooleChannel`, `SwowChannel`, `RevoltChannel`, `RedisTaskQueue`, `OpenTelemetryTelemetryBridge`, `PrometheusTelemetryBridge`, `AmpPollerBridge`, `ReactPhpPollerBridge`.
+4. **Split `FiberTaskScheduler` (976 lines)**: Extract timer management, IO await handling, and lifecycle publication into separate services to restore SRP.
 
-Conformance: `AsyncRuntimeVerifier`, `ContextIsolationVerifier`, `DeterministicCleanupVerifier`, `GroupCancellationIsolationVerifier`, `TimerCleanupVerifier`, `TraceParentageVerifier`, `GracefulShutdownVerifier`, all fixtures.
+5. **Enforce "new only in factories"**: Move `new LogicException`, `new InvalidArgumentException`, `new ContextToken`, etc. out of non-factory classes, or explicitly document exceptions/value objects as exempt.
 
-Contract: All interfaces (`SchedulerInterface`, `TaskInterface`, `PollerPortInterface`, `TaskChannelInterface`, `TaskResultInterface`, `CancellationScopeInterface`, `RuntimeDiscoveryInterface`, `TelemetryBridgeInterface`, `EngineSchedulerInterface`, etc.), port enums/vocabularies, exception contracts.
+### Medium Priority
 
-### B. Vocabulary Files
+6. **Add benchmarks**: Run `phpbench` for task spawn, completion, suspension/resumption, and poll-handle registration/teardown.
 
-- `vocab/async-it.ttl` — AsyncIt Scheduling Ontology (OWL)
-- `vocab/async-it-taxonomy.ttl` — AsyncIt Scheduling Taxonomy (SKOS)
+7. **Extract magic literals**: Replace hardcoded strings (Redis prefixes, Prometheus metric names, error messages) with constants/enums in interfaces per the AGENTS.md rule ("vocabularies live in interfaces").
 
-### C. QA Commands Available
+8. **Add `WeakReference` and `Lazy` usage**: Where object-lifetime independence or deferred initialization would help.
 
-```
-composer validate --strict
-composer run assumptions      # php-a assumption analysis
-composer run cs:check         # php-cs-fixer dry-run
-composer run analyse          # phpstan (level max)
-composer run architecture     # phparkitect
-composer run lint:length      # 120-char line limit
-composer run lint:types       # single-type-per-file
-composer run test             # all suites
-composer run mutation         # infection
-composer run security:audit   # composer audit
-composer run quality          # full pipeline
-```
+9. **Add negative security tests**: Context-bleed and handle-leak tests per AGENTS.md requirements.
+
+### Low Priority
+
+10. Add `CONTRIBUTING.md` and `CHANGELOG.md`.
+11. Consider `never` return type for methods that should never throw.
 
 ---
 
-## Conclusion
+## Assumptions
 
-AsyncIt is a well-designed scheduling engine with correct architectural layering, strong contract discipline, and good modern PHP usage. Its main weaknesses are **significant duplicate code** across combinator groups, poller adapters, and channel adapters; **below-95% test coverage** with empty integration/concurrency suites; and **violations of the "instances only in factories" rule** in the SDK and adapters. Addressing the deduplication and factory-rule violations would substantially improve maintainability without changing behavior.
+- The phparkitect rules in `phparkitect.php` accurately reflect the intended architecture (they were authored by the project maintainers).
+- The 95% coverage requirement applies to the Unit suite (the only suite with meaningful coverage data).
+- Exceptions and value objects (`LogicException`, `InvalidArgumentException`, `ContextToken`) are intended to be exempt from the "new only in factories" rule, but this is not explicitly documented.
+- Coverage was measured using pcov; the Codeception coverage XML had structural issues with the Acceptance suite, so per-suite coverage was used instead.
+
+---
+
+## Unverified Assumptions / Risks
+
+- **Performance claims** about the reactor hot path are unverified — no benchmarks exist.
+- **Security negative tests** (context-bleed, handle-leak) are thin — only 7 conformance tests with 3 skipped.
+- **The "new only in factories" rule's scope** regarding exceptions/value objects is not explicitly defined in AGENTS.md.
+- **phparkitect violations** may be intentional architectural decisions rather than drift — this requires maintainer confirmation.

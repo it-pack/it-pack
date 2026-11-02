@@ -38,7 +38,7 @@ final class EmulatedChannel implements TaskChannelInterface
     {
     }
 
-    public function send(mixed $value): void
+    public function send(mixed $value): bool
     {
         if ($this->closed) {
             throw new ChannelClosedException();
@@ -50,6 +50,8 @@ final class EmulatedChannel implements TaskChannelInterface
         }
 
         $this->queue[] = $value;
+
+        return true;
     }
 
     public function receive(): mixed

@@ -7,7 +7,7 @@ namespace ItPack\AsyncIt\Application\Factory;
 use ItPack\AsyncIt\Adapter\Swow\SwowChannel;
 use ItPack\AsyncIt\Adapter\Swow\SwowCoroutineContextStorage;
 use ItPack\AsyncIt\Adapter\Swow\SwowPoller;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 use Swow\Coroutine\Channel;
 
@@ -23,7 +23,7 @@ final readonly class SwowAssemblyFactory implements RuntimeAssemblyFactoryInterf
     ) {
     }
 
-    public function create(CapabilityDescriptor $descriptor): RuntimeAssembly
+    public function create(CapabilityDescriptorInterface $descriptor): RuntimeAssemblyInterface
     {
         return new RuntimeAssembly(
             new SwowPoller(),

@@ -33,4 +33,17 @@ final class PollerFactoryTest extends TestCase
         // PHP 8.5.12 in this environment — Io\Poll is PHP 8.6 only
         self::assertFalse(PollerFactory::nativePollAvailable());
     }
+
+    public function testSelectPollerChosenForEveryCapabilityStatus(): void
+    {
+        $factory = new PollerFactory();
+
+        foreach ([CapabilityStatus::Supported, CapabilityStatus::Emulated, CapabilityStatus::Unavailable] as $status) {
+            $descriptor = new CapabilityDescriptor([
+                CapabilityKind::EdgeTriggeredPolling->value => $status,
+            ]);
+
+            self::assertInstanceOf(SelectPoller::class, $factory->create($descriptor));
+        }
+    }
 }

@@ -25,4 +25,13 @@ interface RuntimeDiscoveryInterface
      * Implementations that do not support observation are a no-op.
      */
     public function observe(CapabilityObserverInterface $observer): void;
+
+    /**
+     * Notifies the registered observer of a capability change.
+     *
+     * Real runtime adapters call this when capabilities evolve (e.g., native
+     * channels become unavailable). The reference implementation exposes it
+     * for testing; in normal operation no notification is emitted.
+     */
+    public function notifyChanged(CapabilityDescriptorInterface $descriptor): void;
 }

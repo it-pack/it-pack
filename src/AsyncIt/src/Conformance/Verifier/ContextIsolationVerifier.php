@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Conformance\Verifier;
 
+use ItPack\AsyncIt\Conformance\Contract\ConformanceResultInterface;
 use ItPack\AsyncIt\Conformance\Contract\VerifierInterface;
 use ItPack\AsyncIt\Conformance\Fixture\AsyncRuntimeFixtureInterface;
 use ItPack\AsyncIt\Conformance\Result\ConformanceResult;
@@ -37,7 +38,7 @@ final class ContextIsolationVerifier implements VerifierInterface
         return SchedulerInterface::class;
     }
 
-    public function verify(AsyncRuntimeFixtureInterface $fixture): ConformanceResult
+    public function verify(AsyncRuntimeFixtureInterface $fixture): ConformanceResultInterface
     {
         $result = new ConformanceResult($this->port());
 

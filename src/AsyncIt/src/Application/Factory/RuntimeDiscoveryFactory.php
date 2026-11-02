@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Discovery\ReferenceRuntimeDiscovery;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\RuntimeDiscoveryInterface;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Selects the reference runtime assembly from a negotiated
@@ -20,7 +20,7 @@ use ItPack\AsyncIt\Domain\CapabilityDescriptor;
  */
 final class RuntimeDiscoveryFactory implements RuntimeDiscoveryFactoryInterface
 {
-    public function create(CapabilityDescriptor $descriptor): RuntimeDiscoveryInterface
+    public function create(CapabilityDescriptorInterface $descriptor): RuntimeDiscoveryInterface
     {
         return new ReferenceRuntimeDiscovery($descriptor);
     }

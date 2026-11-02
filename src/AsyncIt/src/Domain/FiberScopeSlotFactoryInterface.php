@@ -16,5 +16,5 @@ namespace ItPack\AsyncIt\Domain;
  */
 interface FiberScopeSlotFactoryInterface
 {
-    public function create(): FiberScopeSlot;
+    public function create(): FiberScopeSlotInterface;
 }

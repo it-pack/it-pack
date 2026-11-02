@@ -38,7 +38,7 @@ use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
  * @see https://w3id.org/itpack/runit#Execution
  * @api
  */
-final readonly class FederatedScheduler
+final readonly class FederatedScheduler implements FederatedSchedulerInterface
 {
     public function __construct(
         private RemoteSchedulerPortInterface $port,

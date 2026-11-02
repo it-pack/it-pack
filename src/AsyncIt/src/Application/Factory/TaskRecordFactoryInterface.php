@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use Fiber;
-use ItPack\AsyncIt\Application\Scheduler\TaskRecord;
+use ItPack\AsyncIt\Application\Scheduler\TaskRecordInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
 
 /**
@@ -21,5 +21,5 @@ interface TaskRecordFactoryInterface
     /**
      * @param Fiber<mixed, mixed, mixed, mixed> $fiber
      */
-    public function create(TaskInterface $task, Fiber $fiber): TaskRecord;
+    public function create(TaskInterface $task, Fiber $fiber): TaskRecordInterface;
 }

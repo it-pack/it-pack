@@ -20,7 +20,7 @@ use ItPack\AsyncIt\Contract\TelemetrySchemaRegistryInterface;
  * through unchanged when no schema exists, allowing telemetry publication to
  * degrade gracefully instead of breaking entirely.
  */
-final readonly class ArtifactNormalizer
+final readonly class ArtifactNormalizer implements ArtifactNormalizerInterface
 {
     public function __construct(
         private TelemetrySchemaRegistryInterface $registry,

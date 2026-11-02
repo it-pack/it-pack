@@ -27,7 +27,7 @@ use LogicException;
  */
 trait CoroutineContextStorageTrait
 {
-    private ?FiberScopeSlot $fallback = null;
+    private ?FiberScopeSlotInterface $fallback = null;
 
     private int $counter = 0;
 
@@ -35,13 +35,17 @@ trait CoroutineContextStorageTrait
     {
         $slot = $this->slot();
 
-        if ($slot->stack === []) {
+        $stack = $slot->getStack();
+
+        if ($stack === []) {
             return null;
         }
 
-        $top = array_last($slot->stack);
+        $top = array_last($stack);
 
-        return $slot->scopes[$top] ?? null;
+        $scopes = $slot->getScopes();
+
+        return $scopes[$top] ?? null;
     }
 
     public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
@@ -50,8 +54,13 @@ trait CoroutineContextStorageTrait
         $id = ++$this->counter;
         $token = new ContextToken($id);
 
-        $slot->stack[] = $id;
-        $slot->scopes[$id] = $scope;
+        $stack = $slot->getStack();
+        $stack[] = $id;
+        $slot->setStack($stack);
+
+        $scopes = $slot->getScopes();
+        $scopes[$id] = $scope;
+        $slot->setScopes($scopes);
 
         return $token;
     }
@@ -60,16 +69,23 @@ trait CoroutineContextStorageTrait
     {
         $slot = $this->slot();
 
-        if ($slot->stack === []) {
+        $stack = $slot->getStack();
+
+        if ($stack === []) {
             throw new LogicException('Cannot detach: no context is currently attached.');
         }
 
-        $top = array_last($slot->stack);
+        $top = array_last($stack);
         if ($top !== $token->id()) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }
 
-        unset($slot->stack[array_key_last($slot->stack)], $slot->scopes[$token->id()]);
+        unset($stack[array_key_last($stack)]);
+        $slot->setStack($stack);
+
+        $scopes = $slot->getScopes();
+        unset($scopes[$token->id()]);
+        $slot->setScopes($scopes);
     }
 
     abstract protected function slotFactory(): FiberScopeSlotFactoryInterface;
@@ -78,9 +94,9 @@ trait CoroutineContextStorageTrait
      * Returns the mutable scope slot for the current coroutine/fiber,
      * or the process-level fallback when none is active.
      */
-    abstract protected function slot(): FiberScopeSlot;
+    abstract protected function slot(): FiberScopeSlotInterface;
 
-    protected function fallback(): FiberScopeSlot
+    protected function fallback(): FiberScopeSlotInterface
     {
         $this->fallback ??= $this->slotFactory()->create();
 

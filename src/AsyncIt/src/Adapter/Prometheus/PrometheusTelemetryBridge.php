@@ -6,6 +6,7 @@ namespace ItPack\AsyncIt\Adapter\Prometheus;
 
 use Closure;
 use ItPack\AsyncIt\Contract\TelemetryBridgeInterface;
+use ItPack\AsyncIt\Domain\Behavior\Lazy;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 
 /**
@@ -37,9 +38,23 @@ use ItPack\RunIt\Contract\Domain\DurationInterface;
  */
 final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
 {
+    use Lazy;
+
     private const string DEFAULT_STATUS = 'succeeded';
 
-    private bool $initialized = false;
+    private const string METRIC_TASKS_RUNNABLE = 'asyncit_tasks_runnable';
+
+    private const string METRIC_HANDLES_ACTIVE = 'asyncit_handles_active';
+
+    private const string METRIC_TIMERS_ACTIVE = 'asyncit_timers_active';
+
+    private const string METRIC_TASKS_COMPLETED_TOTAL = 'asyncit_tasks_completed_total';
+
+    private const string METRIC_TASK_DURATION_SECONDS = 'asyncit_task_duration_seconds';
+
+    private const string METRIC_POLL_WAIT_SECONDS = 'asyncit_poll_wait_seconds';
+
+    private const string METRIC_SCHEDULE_TO_DISPATCH_SECONDS = 'asyncit_schedule_to_dispatch_seconds';
 
     /**
      * @var array<string, object>|null Lazily-created prometheus instruments.
@@ -56,21 +71,48 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
 
     public function record(string $event, array $context = []): void
     {
-        $this->materialize();
+        $this->materialize(function (): void {
+            $this->initialized = true;
+
+            if (!class_exists('Promphp\\Prometheus\\RegistryInterface')) {
+                $this->instruments = null;
+
+                return;
+            }
+
+            $factory = $this->registryFactory
+                ?? static function (): object {
+                    $class = 'Promphp\\Prometheus\\InMemory\\InMemoryRegistry';
+
+                    /** @var object $registry */
+                    $registry = new $class();
+
+                    return $registry;
+                };
+
+            $registry = $factory();
+
+            /** @var object $adapter */
+            $adapter = method_exists($registry, 'getAdapter')
+                ? $registry->getAdapter()
+                : $registry;
+
+            $this->instruments = $this->buildInstruments($adapter);
+        });
 
         if ($this->instruments === null) {
             return;
         }
 
         match ($event) {
-            'task.spawned' => $this->recordGauge('asyncit_tasks_runnable', 1),
+            'task.spawned' => $this->recordGauge(self::METRIC_TASKS_RUNNABLE, 1),
             'task.completed' => $this->onTaskCompleted($context),
             'poll.wait' => $this->recordHistogram(
-                'asyncit_poll_wait_seconds',
+                self::METRIC_POLL_WAIT_SECONDS,
                 is_numeric($context['duration'] ?? 0) ? (float) ($context['duration'] ?? 0) : 0.0,
             ),
             'schedule.dispatch' => $this->recordHistogram(
-                'asyncit_schedule_to_dispatch_seconds',
+                self::METRIC_SCHEDULE_TO_DISPATCH_SECONDS,
                 is_numeric($context['duration'] ?? 0) ? (float) ($context['duration'] ?? 0) : 0.0,
             ),
             default => null,
@@ -90,82 +132,48 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
         return [];
     }
 
-    private function materialize(): void
-    {
-        if ($this->initialized) {
-            return;
-        }
-
-        $this->initialized = true;
-
-        if (!class_exists('Promphp\\Prometheus\\RegistryInterface')) {
-            $this->instruments = null;
-
-            return;
-        }
-
-        $factory = $this->registryFactory
-            ?? static function (): object {
-                $class = 'Promphp\\Prometheus\\InMemory\\InMemoryRegistry';
-
-                /** @var object $registry */
-                $registry = new $class();
-
-                return $registry;
-            };
-
-        $registry = $factory();
-
-        /** @var object $adapter */
-        $adapter = method_exists($registry, 'getAdapter')
-            ? $registry->getAdapter()
-            : $registry;
-
-        $this->instruments = $this->buildInstruments($adapter);
-    }
-
     /**
      * @phpstan-ignore-next-line
      */
     private function buildInstruments(object $adapter): array
     {
         return [
-            'asyncit_tasks_runnable' => $adapter->registerGauge(
+            self::METRIC_TASKS_RUNNABLE => $adapter->registerGauge(
                 '',
-                'asyncit_tasks_runnable',
+                self::METRIC_TASKS_RUNNABLE,
                 'Currently runnable tasks',
             ),
-            'asyncit_handles_active' => $adapter->registerGauge(
+            self::METRIC_HANDLES_ACTIVE => $adapter->registerGauge(
                 '',
-                'asyncit_handles_active',
+                self::METRIC_HANDLES_ACTIVE,
                 'Currently registered poll handles',
             ),
-            'asyncit_timers_active' => $adapter->registerGauge(
+            self::METRIC_TIMERS_ACTIVE => $adapter->registerGauge(
                 '',
-                'asyncit_timers_active',
+                self::METRIC_TIMERS_ACTIVE,
                 'Currently active timers',
             ),
-            'asyncit_tasks_completed_total' => $adapter->registerCounter(
+            self::METRIC_TASKS_COMPLETED_TOTAL => $adapter->registerCounter(
                 '',
-                'asyncit_tasks_completed_total',
+                self::METRIC_TASKS_COMPLETED_TOTAL,
                 'Tasks completed by status',
                 ['status'],
             ),
-            'asyncit_task_duration_seconds' => $adapter->registerHistogram(
+            self::METRIC_TASK_DURATION_SECONDS => $adapter->registerHistogram(
                 '',
-                'asyncit_task_duration_seconds',
+                self::METRIC_TASK_DURATION_SECONDS,
                 'Task duration in seconds',
                 [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5, 10],
             ),
-            'asyncit_poll_wait_seconds' => $adapter->registerHistogram(
+            self::METRIC_POLL_WAIT_SECONDS => $adapter->registerHistogram(
                 '',
-                'asyncit_poll_wait_seconds',
+                self::METRIC_POLL_WAIT_SECONDS,
                 'Reactor poll wait time in seconds',
                 [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1],
             ),
-            'asyncit_schedule_to_dispatch_seconds' => $adapter->registerHistogram(
+            self::METRIC_SCHEDULE_TO_DISPATCH_SECONDS => $adapter->registerHistogram(
                 '',
-                'asyncit_schedule_to_dispatch_seconds',
+                self::METRIC_SCHEDULE_TO_DISPATCH_SECONDS,
                 'Time from task spawn to first dispatch in seconds',
                 [0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 5],
             ),
@@ -177,12 +185,12 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
      */
     private function onTaskCompleted(array $context): void
     {
-        $this->recordGauge('asyncit_tasks_runnable', -1);
+        $this->recordGauge(self::METRIC_TASKS_RUNNABLE, -1);
 
         $status = $context['status'] ?? self::DEFAULT_STATUS;
 
         /** @phpstan-ignore-next-line */
-        $this->instruments['asyncit_tasks_completed_total']->incBy(1, [$status]);
+        $this->instruments[self::METRIC_TASKS_COMPLETED_TOTAL]->incBy(1, [$status]);
 
         $duration = $context['duration'] ?? null;
         $seconds = $duration instanceof DurationInterface
@@ -190,7 +198,7 @@ final class PrometheusTelemetryBridge implements TelemetryBridgeInterface
             : 0.0;
 
         /** @phpstan-ignore-next-line */
-        $this->instruments['asyncit_task_duration_seconds']->observe($seconds);
+        $this->instruments[self::METRIC_TASK_DURATION_SECONDS]->observe($seconds);
     }
 
     private function recordGauge(string $name, int $delta): void

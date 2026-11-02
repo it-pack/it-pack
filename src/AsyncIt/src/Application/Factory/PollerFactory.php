@@ -6,10 +6,10 @@ namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Application\Poller\NativePoller;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\CapabilityKind;
 use ItPack\AsyncIt\Contract\Port\CapabilityStatus;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 
 /**
  * Builds the poller backend selected by capability and PHP version.
@@ -23,7 +23,7 @@ use ItPack\AsyncIt\Domain\CapabilityDescriptor;
  */
 final class PollerFactory implements PollerFactoryInterface
 {
-    public function create(CapabilityDescriptor $descriptor): PollerPortInterface
+    public function create(CapabilityDescriptorInterface $descriptor): PollerPortInterface
     {
         if (self::nativePollAvailable()
             && $descriptor->statusFor(CapabilityKind::EdgeTriggeredPolling) === CapabilityStatus::Supported) {

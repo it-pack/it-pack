@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\AsyncIt\Application\Factory;
 
+use ItPack\AsyncIt\Contract\CapabilityDescriptorInterface;
 use ItPack\AsyncIt\Contract\Port\RuntimeAdapterKind;
-use ItPack\AsyncIt\Domain\CapabilityDescriptor;
 use ItPack\AsyncIt\Domain\FiberScopeSlotFactoryInterface;
 
 /**
@@ -32,8 +32,10 @@ final readonly class RuntimeAdapterAssembler implements RuntimeAdapterAssemblerI
         $this->slotFactory = $slotFactory ?? new FiberScopeSlotFactory();
     }
 
-    public function assemble(RuntimeAdapterKind $kind, CapabilityDescriptor $descriptor): RuntimeAssembly
-    {
+    public function assemble(
+        RuntimeAdapterKind $kind,
+        CapabilityDescriptorInterface $descriptor,
+    ): RuntimeAssemblyInterface {
         $factory = $this->factories[$kind->value]
             ?? $this->defaultFactory($kind);
 

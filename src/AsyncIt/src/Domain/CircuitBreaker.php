@@ -22,7 +22,7 @@ use Throwable;
  * @see https://w3id.org/itpack/asyncit#CircuitBreaker
  * @see https://w3id.org/itpack/asyncit#CircuitState
  */
-final class CircuitBreaker
+final class CircuitBreaker implements CircuitBreakerInterface
 {
     public const int DEFAULT_FAILURE_THRESHOLD = 5;
 

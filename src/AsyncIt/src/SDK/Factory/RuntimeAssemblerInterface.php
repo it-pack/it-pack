@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\SDK\Factory;
 
 use ItPack\AsyncIt\Application\Factory\RuntimeAdapterAssemblerInterface;
-use ItPack\AsyncIt\SDK\AsyncRuntime;
+use ItPack\AsyncIt\SDK\AsyncRuntimeInterface;
 
 /**
  * Contract for the reference-runtime composition root.
@@ -17,5 +17,5 @@ interface RuntimeAssemblerInterface
 {
     public static function create(
         ?RuntimeAdapterAssemblerInterface $assembler = null,
-    ): AsyncRuntime;
+    ): AsyncRuntimeInterface;
 }

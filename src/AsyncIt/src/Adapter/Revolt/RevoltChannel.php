@@ -25,9 +25,9 @@ final readonly class RevoltChannel implements TaskChannelInterface
     {
     }
 
-    public function send(mixed $value): void
+    public function send(mixed $value): bool
     {
-        $this->channel->send($value);
+        return $this->channel->send($value);
     }
 
     public function receive(): mixed

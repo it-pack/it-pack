@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Application\Factory;
 
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
+use ItPack\AsyncIt\Contract\TaskIdInterface;
 use ItPack\AsyncIt\Contract\TaskInterface;
-use ItPack\AsyncIt\Domain\Task;
-use ItPack\AsyncIt\Domain\TaskId;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 
 /**
@@ -26,7 +25,7 @@ interface TaskFactoryInterface
      * Creates a task with a caller-supplied id (used by `EngineSchedulerInterface::spawn()`).
      */
     public function createWithId(
-        TaskId $id,
+        TaskIdInterface $id,
         ExecutionIdInterface $executionId,
         CancellationScopeInterface $scope,
     ): TaskInterface;

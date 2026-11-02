@@ -29,4 +29,12 @@ interface TelemetryBridgeInterface
      * Whether the underlying recorder has been materialised yet.
      */
     public function isInitialized(): bool;
+
+    /**
+     * Returns recorded events so far. Implementations that defer materialisation
+     * return an empty list until the first {@see record()} call.
+     *
+     * @return list<array{event: string, context: array<string, mixed>}>
+     */
+    public function events(): array;
 }

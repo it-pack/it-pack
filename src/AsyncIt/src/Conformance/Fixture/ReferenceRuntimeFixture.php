@@ -16,6 +16,11 @@ use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Poller\SelectPoller;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
@@ -76,6 +81,13 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
         $executionId = ExecutionId::fromString('ref-exec');
         $sequenceAllocator = new InMemorySequenceAllocator();
 
+        $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+        $timerService = new TaskTimerService($this->clock);
+        $ioAwaitService = new TaskIoAwaitService($this->verifierPoller, $timerService);
+        $lifecyclePublisher = new TaskLifecyclePublisher($this->publisher, $lifecycleFactory, $this->clock);
+        $cancellationService = new TaskCancellationService();
+        $healthService = new TaskHealthService($this->verifierPoller, $this->clock);
+
         $this->scheduler = new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
@@ -88,8 +100,11 @@ final readonly class ReferenceRuntimeFixture implements AsyncRuntimeFixtureInter
             $this->verifierPoller,
             $this->storage,
             new ReferenceExecutionScopeFactory(),
-            $this->publisher,
-            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            $cancellationService,
+            $healthService,
             new TelemetryBridgeEventListener($this->telemetry),
         );
     }

@@ -28,6 +28,20 @@ trait TaskBehavior
         }
     }
 
+    /** @phpstan-ignore-next-line shipmonk.deadProperty.neverRead — virtual property read via property hook */
+    public bool $isTerminal {
+        get {
+            return $this->status->isTerminal();
+        }
+    }
+
+    /** @phpstan-ignore-next-line shipmonk.deadProperty.neverRead — virtual property read via property hook */
+    public bool $isRunning {
+        get {
+            return $this->status === TaskStatus::Running;
+        }
+    }
+
     private TaskStatus $_status = TaskStatus::Created;
 
     public function id(): TaskIdInterface

@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Adapter\Interop\ReactPhp;
 
 use ItPack\AsyncIt\Contract\PollerPortInterface;
-use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * ReactPHP interop {@see PollerPortInterface} bridge.
@@ -34,35 +32,31 @@ final class ReactPhpPollerBridge implements PollerPortInterface
 {
     use StreamSelectPollerTrait;
 
-    /**
-     * @var array<string, true> ids registered with the ReactPHP loop
-     */
-    private array $reactRegistered = [];
-
     public function __construct(private readonly object $loop)
     {
     }
 
-    public function register(mixed $stream): StreamPollHandleInterface
+    protected function getHandleIdPrefix(): string
     {
-        $id = 'react-' . ++$this->counter;
-        $this->handles[$id] = $stream;
-
-        $this->registerWithLoop($id, $stream);
-
-        return new StreamPollHandle($id);
+        return 'react-';
     }
 
-    public function release(StreamPollHandleInterface $handle): void
+    protected function registerWithReactor(string $id, mixed $stream): void
     {
-        $id = $handle->id;
+        $this->registerWithLoop($id, $stream);
+    }
 
-        if (isset($this->reactRegistered[$id])) {
-            $this->removeFromLoop($id);
-            unset($this->reactRegistered[$id]);
+    protected function releaseFromReactor(mixed $callbackId): void
+    {
+        $stream = $callbackId;
+
+        if (!is_resource($stream) || !method_exists($this->loop, 'removeReadStream')) {
+            return;
         }
 
-        unset($this->handles[$id]);
+        /** @var callable $remove */
+        $remove = [$this->loop, 'removeReadStream'];
+        ($remove)($stream);
     }
 
     private function registerWithLoop(string $id, mixed $stream): void
@@ -75,19 +69,6 @@ final class ReactPhpPollerBridge implements PollerPortInterface
         $add = [$this->loop, 'addReadStream'];
         ($add)($stream, static fn (): null => null);
 
-        $this->reactRegistered[$id] = true;
-    }
-
-    private function removeFromLoop(string $id): void
-    {
-        $stream = $this->handles[$id] ?? null;
-
-        if (!is_resource($stream) || !method_exists($this->loop, 'removeReadStream')) {
-            return;
-        }
-
-        /** @var callable $remove */
-        $remove = [$this->loop, 'removeReadStream'];
-        ($remove)($stream);
+        $this->registered[$id] = $stream;
     }
 }

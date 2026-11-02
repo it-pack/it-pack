@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\AsyncIt\Domain\Channel;
 
 use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
+use ItPack\AsyncIt\Contract\Exception\ChannelException;
 
 /**
  * Shared channel lifecycle: closed-state tracking, `close()`, and the
@@ -22,6 +23,35 @@ use ItPack\AsyncIt\Contract\Exception\ChannelClosedException;
 trait ChannelBehaviorTrait
 {
     private bool $closed = false;
+
+    public function send(mixed $value): bool
+    {
+        $this->requireOpen();
+
+        if (!$this->channel->push($value)) {
+            throw new ChannelException(
+                'Could not send value to channel.',
+            );
+        }
+
+        return true;
+    }
+
+    public function trySend(mixed $value): bool
+    {
+        $this->requireOpen();
+
+        if ($this->channel->isFull()) {
+            return false;
+        }
+
+        return $this->channel->push($value);
+    }
+
+    public function receive(): mixed
+    {
+        return $this->channel->pop();
+    }
 
     public function isClosed(): bool
     {
@@ -48,9 +78,7 @@ trait ChannelBehaviorTrait
      */
     public function waitForCapacity(): void
     {
-        if ($this->closed) {
-            throw new ChannelClosedException();
-        }
+        $this->requireOpen();
 
         if (!$this->channel->isFull()) {
             return;
@@ -71,6 +99,21 @@ trait ChannelBehaviorTrait
 
         foreach ($drained as $item) {
             $this->channel->push($item);
+        }
+    }
+
+    /**
+     * Throws {@see ChannelClosedException} when the channel is closed.
+     *
+     * Declares the closed-state guard once so {@see send()}, {@see trySend()},
+     * and {@see waitForCapacity()} do not repeat it per adapter.
+     */
+    protected function requireOpen(): void
+    {
+        if ($this->closed) {
+            throw new ChannelClosedException(
+                'Channel is closed.',
+            );
         }
     }
 }

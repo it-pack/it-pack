@@ -14,6 +14,11 @@ use ItPack\AsyncIt\Application\Factory\TaskIdFactory;
 use ItPack\AsyncIt\Application\Factory\TaskRecordFactory;
 use ItPack\AsyncIt\Application\Publisher\NullArtifactPublisher;
 use ItPack\AsyncIt\Application\Scheduler\FiberTaskScheduler;
+use ItPack\AsyncIt\Application\Scheduler\TaskCancellationService;
+use ItPack\AsyncIt\Application\Scheduler\TaskHealthService;
+use ItPack\AsyncIt\Application\Scheduler\TaskIoAwaitService;
+use ItPack\AsyncIt\Application\Scheduler\TaskLifecyclePublisher;
+use ItPack\AsyncIt\Application\Scheduler\TaskTimerService;
 use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\Contract\CancellationScopeInterface;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
@@ -132,6 +137,13 @@ trait RuntimeFixtureTrait
         $sequenceAllocator = new InMemorySequenceAllocator();
         $executionId = ExecutionId::fromString('ref-exec');
 
+        $lifecycleFactory = new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId);
+        $timerService = new TaskTimerService($this->clock);
+        $ioAwaitService = new TaskIoAwaitService($schedulerPoller, $timerService);
+        $lifecyclePublisher = new TaskLifecyclePublisher($this->publisher, $lifecycleFactory, $this->clock);
+        $cancellationService = new TaskCancellationService();
+        $healthService = new TaskHealthService($schedulerPoller, $this->clock);
+
         $this->scheduler = new FiberTaskScheduler(
             new FiberFactory(),
             new TaskRecordFactory(),
@@ -144,8 +156,11 @@ trait RuntimeFixtureTrait
             $schedulerPoller,
             $storage,
             new ReferenceExecutionScopeFactory(),
-            $this->publisher,
-            new SchedulerLifecycleArtifactFactory($sequenceAllocator, $executionId),
+            $timerService,
+            $ioAwaitService,
+            $lifecyclePublisher,
+            $cancellationService,
+            $healthService,
             new TelemetryBridgeEventListener($this->telemetry),
         );
     }

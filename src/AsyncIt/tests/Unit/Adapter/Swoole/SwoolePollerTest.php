@@ -44,4 +44,21 @@ final class SwoolePollerTest extends TestCase
 
         self::assertSame(0, $poller->activeHandleCount());
     }
+
+    public function testReadyHandlesReturnsReadyStreams(): void
+    {
+        $poller = new SwoolePoller();
+        $readable = fopen('php://memory', 'rb+');
+        $writable = fopen('php://memory', 'rb+');
+
+        $poller->register($readable);
+        $poller->register($writable);
+
+        $poller->await(0);
+
+        $ready = $poller->readyHandles();
+
+        self::assertIsArray($ready);
+        self::assertSame(2, $poller->activeHandleCount());
+    }
 }

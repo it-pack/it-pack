@@ -23,7 +23,7 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
   * @api
 
   */
-final class FiberScopeSlot
+final class FiberScopeSlot implements FiberScopeSlotInterface
 {
     /**
      * @var array<int, int>
@@ -34,4 +34,24 @@ final class FiberScopeSlot
      * @var array<int, ExecutionScopeInterface>
      */
     public array $scopes = [];
+
+    public function getStack(): array
+    {
+        return $this->stack;
+    }
+
+    public function setStack(array $stack): void
+    {
+        $this->stack = $stack;
+    }
+
+    public function getScopes(): array
+    {
+        return $this->scopes;
+    }
+
+    public function setScopes(array $scopes): void
+    {
+        $this->scopes = $scopes;
+    }
 }

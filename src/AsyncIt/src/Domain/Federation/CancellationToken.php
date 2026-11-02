@@ -20,7 +20,7 @@ use Stringable;
  * @see https://w3id.org/itpack/asyncit#CancellationScope
  * @see https://w3id.org/itpack/asyncit#hasCancellationReason
  */
-final readonly class CancellationToken implements ValueObjectInterface, Stringable
+final readonly class CancellationToken implements ValueObjectInterface, Stringable, CancellationTokenInterface
 {
     public function __construct(
         public string $scopeId,

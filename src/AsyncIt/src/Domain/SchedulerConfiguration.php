@@ -20,7 +20,7 @@ use ItPack\RunIt\Domain\Shared\Duration;
  *
  * @see https://w3id.org/itpack/asyncit#SchedulerConfiguration
  */
-final readonly class SchedulerConfiguration
+final readonly class SchedulerConfiguration implements SchedulerConfigurationInterface
 {
     public const int MAX_CONCURRENCY_DEFAULT = 256;
 

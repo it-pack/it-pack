@@ -44,4 +44,9 @@ interface PersistentTaskInterface extends ValueObjectInterface
      * Returns the task's current lifecycle status.
      */
     public function status(): TaskStatus;
+
+    /**
+     * Whether the task's monotonic deadline has been exceeded.
+     */
+    public function isDeadlineExceeded(): bool;
 }

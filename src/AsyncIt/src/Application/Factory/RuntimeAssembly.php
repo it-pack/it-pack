@@ -16,12 +16,27 @@ use ItPack\RunIt\Contract\Port\ContextStorageInterface;
  * @see https://w3id.org/itpack/asyncit#Poller
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class RuntimeAssembly
+final readonly class RuntimeAssembly implements RuntimeAssemblyInterface
 {
     public function __construct(
         public PollerPortInterface $poller,
         public ContextStorageInterface $storage,
         public TaskChannelInterface $channel,
     ) {
+    }
+
+    public function poller(): PollerPortInterface
+    {
+        return $this->poller;
+    }
+
+    public function storage(): ContextStorageInterface
+    {
+        return $this->storage;
+    }
+
+    public function channel(): TaskChannelInterface
+    {
+        return $this->channel;
     }
 }

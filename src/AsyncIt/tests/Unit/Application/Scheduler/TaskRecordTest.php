@@ -63,6 +63,49 @@ final class TaskRecordTest extends TestCase
         self::assertTrue($record->isDone());
     }
 
+    public function testSetAndGetMetadata(): void
+    {
+        $record = $this->createRecord();
+        $value = new class () {};
+
+        $record->setMetadata('key', $value);
+
+        self::assertTrue($record->hasMetadata('key'));
+        self::assertSame($value, $record->getMetadata('key'));
+    }
+
+    public function testGetMissingMetadataReturnsNull(): void
+    {
+        $record = $this->createRecord();
+
+        self::assertNull($record->getMetadata('missing'));
+        self::assertFalse($record->hasMetadata('missing'));
+    }
+
+    public function testRemoveMetadata(): void
+    {
+        $record = $this->createRecord();
+        $value = new class () {};
+
+        $record->setMetadata('key', $value);
+        $record->removeMetadata('key');
+
+        self::assertFalse($record->hasMetadata('key'));
+        self::assertNull($record->getMetadata('key'));
+    }
+
+    public function testMarkDoneClearsMetadata(): void
+    {
+        $record = $this->createRecord();
+        $value = new class () {};
+
+        $record->setMetadata('key', $value);
+        $record->markDone();
+
+        self::assertFalse($record->hasMetadata('key'));
+        self::assertNull($record->getMetadata('key'));
+    }
+
     private function createRecord(): TaskRecord
     {
         return new TaskRecord(
