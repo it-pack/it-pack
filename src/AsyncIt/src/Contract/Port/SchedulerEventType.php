@@ -12,6 +12,7 @@ namespace ItPack\AsyncIt\Contract\Port;
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-resumed
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-suspended
  * @see https://w3id.org/itpack/asyncit-taxonomy#occ-task-completed
+ * @see https://w3id.org/itpack/asyncit-taxonomy#occ-cancellation-observed
  */
 enum SchedulerEventType: string
 {
@@ -22,4 +23,6 @@ enum SchedulerEventType: string
     case Resumed = 'task.resumed';
 
     case Completed = 'task.completed';
+
+    case CancellationObserved = 'task.cancelled';
 }
