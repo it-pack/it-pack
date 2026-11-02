@@ -42,7 +42,7 @@ final class GitPhpFunctionalTest extends Unit
 
             file_put_contents($repo . DIRECTORY_SEPARATOR . 'a.txt', 'hello');
             $repository->stage('a.txt');
-            $id = $repository->commit(CommitMessage::fromParts('Add a.txt'));
+            $id = $repository->commit(CommitMessage::fromString('Add a.txt'));
 
             self::assertMatchesRegularExpression('/^[0-9a-f]{40}$/', $id->__toString());
 
@@ -65,7 +65,7 @@ final class GitPhpFunctionalTest extends Unit
 
             file_put_contents($repo . DIRECTORY_SEPARATOR . 'a.txt', 'v1');
             $repository->stage('a.txt');
-            $repository->commit(CommitMessage::fromParts('seed'));
+            $repository->commit(CommitMessage::fromString('seed'));
 
             self::assertFalse($repository->hasChanges());
 
@@ -73,7 +73,7 @@ final class GitPhpFunctionalTest extends Unit
             self::assertTrue($repository->hasChanges());
 
             $repository->stage('a.txt');
-            $repository->commit(CommitMessage::fromParts('modify'));
+            $repository->commit(CommitMessage::fromString('modify'));
             self::assertFalse($repository->hasChanges());
         } finally {
             GitRepoFactory::tearDown($repo);
@@ -90,7 +90,7 @@ final class GitPhpFunctionalTest extends Unit
 
             file_put_contents($repo . DIRECTORY_SEPARATOR . 'a.txt', 'v1');
             $repository->stage('a.txt');
-            $repository->commit(CommitMessage::fromParts('seed'));
+            $repository->commit(CommitMessage::fromString('seed'));
 
             $repository->createBranch(BranchName::from('feature'));
             $repository->checkoutBranch(BranchName::from('feature'));
@@ -120,7 +120,7 @@ final class GitPhpFunctionalTest extends Unit
 
             file_put_contents($repo . DIRECTORY_SEPARATOR . 'a.txt', 'v1');
             $repository->stage('a.txt');
-            $repository->commit(CommitMessage::fromParts('seed'));
+            $repository->commit(CommitMessage::fromString('seed'));
 
             $repository->createTag(TagName::from('v1.0'));
             $tags = array_map(static fn (TagName $t): string => $t->__toString(), $repository->listTags());
@@ -198,7 +198,7 @@ final class GitPhpFunctionalTest extends Unit
 
             file_put_contents($clone1 . DIRECTORY_SEPARATOR . 'f.txt', 'x');
             $repo1->stage('f.txt');
-            $repo1->commit(CommitMessage::fromParts('C1'));
+            $repo1->commit(CommitMessage::fromString('c1'));
 
             $branch = $repo1->listBranches()[0];
             $repo1->push(RemoteName::from('origin'), $branch);
@@ -206,7 +206,7 @@ final class GitPhpFunctionalTest extends Unit
             $repo2->pull(RemoteName::from('origin'), $branch);
             $last = $repo2->getLastCommit();
             self::assertNotNull($last);
-            self::assertSame('C1', $last->subject);
+            self::assertSame('c1', $last->subject);
 
             $repo2->fetch(RemoteName::from('origin'));
         } finally {
