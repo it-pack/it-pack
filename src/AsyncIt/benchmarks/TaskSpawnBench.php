@@ -47,7 +47,11 @@ final class TaskSpawnBench
     {
         $this->runtime->run(
             new ReferenceExecutionScope('bench'),
-            static fn (): int => 42,
+            function (): int {
+                $task = $this->runtime->spawn(static fn (): int => 42);
+
+                return $this->runtime->await($task);
+            },
         );
     }
 
