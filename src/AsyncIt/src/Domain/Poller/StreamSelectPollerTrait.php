@@ -70,6 +70,7 @@ trait StreamSelectPollerTrait
         } finally {
             unset($this->registered[$id], $this->handles[$id]);
         }
+    }
 
     public function await(int $timeoutNanoseconds): void
     {
