@@ -59,7 +59,7 @@ jobs:
           - RunIt
           - RunItThirdPartySamples
     env:
-      extensions: ast, grpc, opentelemetry, protobuf, yaml swoole
+      extensions: ast, grpc, opentelemetry, protobuf, yaml swoole, inotify
       # ext-grpc threads outlive grpc_shutdown(), so PHP 8.5 on ubuntu-26.04
       # segfaults at exit when grpc.so is unloaded. Skip the unload until
       # https://github.com/grpc/grpc/issues/42242 is fixed.
