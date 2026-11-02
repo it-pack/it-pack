@@ -8,6 +8,7 @@ use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\AwaitPoint;
 use ItPack\AsyncIt\Contract\Port\StreamPollHandleInterface;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
+use Throwable;
 
 /**
  * Owns IO-await state: which tasks are waiting on which poll handles.
@@ -107,13 +108,25 @@ final class TaskIoAwaitService implements TaskIoAwaitServiceInterface
     {
         $taskId = $record->task()->id()->value;
 
+        /** @var list<Throwable> $releaseErrors */
+        $releaseErrors = [];
+
         foreach ($record->handles() as $handle) {
-            $this->poller->release($handle);
+            try {
+                $this->poller->release($handle);
+            } catch (Throwable $e) {
+                $releaseErrors[] = $e;
+            }
+
             unset($this->ioAwaiters[$handle->id]);
         }
 
         unset($this->ioTaskHandles[$taskId]);
 
         $record->clearHandles();
+
+        if ($releaseErrors !== []) {
+            throw $releaseErrors[0];
+        }
     }
 }
