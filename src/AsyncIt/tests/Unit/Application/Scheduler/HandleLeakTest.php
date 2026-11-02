@@ -72,12 +72,19 @@ final class HandleLeakTest extends TestCase
         $pair = stream_socket_pair(\STREAM_PF_UNIX, \STREAM_SOCK_STREAM, \STREAM_IPPROTO_IP);
         self::assertNotFalse($pair);
 
-        $task = $scheduler->spawn(function () use ($scheduler, $pair): void {
+        $target = $scheduler->spawn(function () use ($scheduler, $pair): void {
             $handle = $scheduler->registerStream($pair[0]);
             $scheduler->awaitReadable($handle);
         });
 
-        $task->cancellationScope()->cancel();
+        // A sibling task cancels the target after it has registered and
+        // suspended its IO handle, proving cleanup of an externally cancelled
+        // task that is already awaiting IO (not just one cancelled before it runs).
+        $scheduler->spawn(function () use ($scheduler, $target): void {
+            $scheduler->awaitDelay(Duration::ofMilliseconds(5));
+            $target->cancellationScope()->cancel();
+        });
+
         $scheduler->run();
 
         self::assertSame(0, $poller->activeHandleCount(), 'Poll handle leaked after external cancellation.');
@@ -99,8 +106,12 @@ final class HandleLeakTest extends TestCase
             $scheduler->awaitReadable($handle);
         });
 
-        // Force-cancel via deadline expiry (abandoned task termination).
-        $scheduler->runUntil(0);
+        // A future deadline lets the task register and suspend its handle before
+        // force-cancellation reclaims it. runUntil(0) expired before the Fiber
+        // ever ran, so no handle was ever registered.
+        $clock = new SystemMonotonicClock();
+        $deadlineNanos = $clock->monotonicNanoseconds() + Duration::ofSeconds(5)->nanoseconds();
+        $scheduler->runUntil($deadlineNanos);
 
         self::assertSame(0, $poller->activeHandleCount(), 'Poll handle leaked on abandoned task termination.');
 
