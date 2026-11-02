@@ -8,7 +8,6 @@ use ItPack\ConfigureIt\Adapter\ConfigurationLoaders;
 use ItPack\ConfigureIt\Adapter\FileReader;
 use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
-use ItPack\ConfigureIt\Core\ConfigurationBuilder;
 use ItPack\ConfigureItPsr11\ConfigureItContainerFactory;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\NotFoundExceptionInterface;
@@ -17,7 +16,7 @@ final class ConfigureItContainerTest extends TestCase
 {
     private function resolve(): ConfigurationSnapshotInterface
     {
-        return new ConfigurationBuilder()
+        return \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource(__DIR__ . '/Support'))
             ->addLoaders(ConfigurationLoaders::default())
@@ -62,7 +61,7 @@ final class ConfigureItContainerTest extends TestCase
 
     public function testFactoryBuildsFromBuilder(): void
     {
-        $builder = new ConfigurationBuilder()
+        $builder = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
             ->addSource(new FileSource(__DIR__ . '/Support'))
             ->addLoaders(ConfigurationLoaders::default());

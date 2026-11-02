@@ -10,7 +10,8 @@ use Nette\Schema\Elements\AnyOf;
 use Nette\Schema\Elements\Structure;
 use Nette\Schema\Elements\Type;
 use Nette\Schema\Schema;
-use ReflectionProperty;
+use ReflectionClass;
+use ReflectionException;
 
 /**
  * Reflects a `Nette\Schema\Expect` definition into a {@see SchemaNode} tree.
@@ -296,10 +297,20 @@ final class SchemaIntrospector
 
     private function readPrivate(object $object, string $property): mixed
     {
-        // Private properties are readable via reflection without setAccessible()
-        // since PHP 8.1; the call is a deprecated no-op on PHP 8.5+.
-        $reflection = new ReflectionProperty($object, $property);
+        $reflection = new ReflectionClass($object);
+        do {
+            try {
+                $prop = $reflection->getProperty($property);
+                $prop->setAccessible(true);
 
-        return $reflection->getValue($object);
+                return $prop->getValue($object);
+            } catch (ReflectionException) {
+                // property not declared on this class; keep walking up the hierarchy
+            }
+        } while ($reflection = $reflection->getParentClass());
+
+        throw new ReflectionException(
+            'Property ' . $property . ' does not exist on ' . $object::class,
+        );
     }
 }

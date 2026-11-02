@@ -6,6 +6,7 @@ namespace ItPack\ConfigureItSymfony\Tests;
 
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Wiring\Configurations;
 use ItPack\ConfigureItSymfony\ConfigureItExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;

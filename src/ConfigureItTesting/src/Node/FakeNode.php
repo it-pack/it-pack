@@ -8,6 +8,7 @@ use ItPack\ConfigureIt\Contract\ValueObject\ProvenanceInterface;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 
 /**
  * Factory for {@see ConfigurationNode} instances with sensible test defaults.
@@ -51,7 +52,7 @@ final class FakeNode
         mixed $value,
         string $source = 'vault',
         int $priority = 0,
-        string $sourceKind = 'vault',
+        SourceKind $sourceKind = SourceKind::Vault,
     ): ConfigurationNode {
         $provenance = (new Provenance(
             resourceUri: $source,
@@ -70,7 +71,7 @@ final class FakeNode
         string $source,
         int $priority,
         string $overriddenSource,
-        string $sourceKind = 'programmatic',
+        SourceKind $sourceKind = SourceKind::Programmatic,
     ): ConfigurationNode {
         $provenance = new Provenance(
             resourceUri: $source,
@@ -90,7 +91,7 @@ final class FakeNode
         mixed $value,
         string $source,
         int $priority,
-        string $sourceKind = 'programmatic',
+        SourceKind $sourceKind = SourceKind::Programmatic,
         string $adapter = 'fake',
         Format $format = Format::PHP,
     ): ConfigurationNode {

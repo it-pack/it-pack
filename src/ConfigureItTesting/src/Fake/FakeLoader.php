@@ -34,6 +34,11 @@ final class FakeLoader implements ConfigurationLoaderInterface
         $this->formats = [] === $formats ? Format::cases() : $formats;
     }
 
+    public function name(): string
+    {
+        return 'fake-loader';
+    }
+
     public function supports(Format $format): bool
     {
         return in_array($format, $this->formats, true);
