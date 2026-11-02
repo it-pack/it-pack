@@ -325,6 +325,22 @@ declare(strict_types=1);
 - Traits must be used for code deduplication and composition.
 - Avoid hidden dependencies.
 
+#### Service instantiation ("new only in factories")
+
+Service construction (`new <Service...>`) is restricted to factories/builders under
+`src/Application/Factory/` and `src/SDK/Factory/` (composition root). The following are
+**intentional exemptions** and may be instantiated directly where they occur:
+
+- `throw new <Exception...>()` — standard PHP exception instantiation in a `throw`
+  statement, not service construction.
+- Value objects (e.g. `new ContextToken($id)`) and result/violation objects (e.g.
+  `new ConformanceResult(...)`, `new ConformanceViolation(...)`) — short-lived data
+  carriers with no collaborators.
+
+Do not introduce exception factories, value-object factories, or speculative abstractions to
+work around this rule. If a new class holds collaborators or coordinates behavior, construct it
+through a factory/builder instead.
+
 ### Types
 
 - Use native parameter, property, and return types.

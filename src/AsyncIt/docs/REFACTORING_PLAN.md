@@ -437,26 +437,35 @@ user-controlled value reaches a metric name. No sanitization needed.
 
 ---
 
-## Phase 10 — DX & Documentation (Low Priority)
+## Phase 10 — DX & Documentation (Low Priority) — COMPLETE
 
 **Goal:** Improve developer experience and documentation.
 
-### 10.1 — Add `CONTRIBUTING.md`
-- [ ] Document contribution workflow, coding standards, testing requirements
-- [ ] Include `composer quality` gate instructions
-- [ ] Include architecture decision process (ADR template)
+**Status:** Complete. All four sub-tasks done:
 
-### 10.2 — Add `CHANGELOG.md`
-- [ ] Document changes per release following conventional commit format
-- [ ] Seed with current version history
+### 10.1 — Add `CONTRIBUTING.md` — COMPLETE
+- Documented contribution workflow, coding standards, testing requirements
+- Included `composer quality` gate instructions (all 10 lanes)
+- Included architecture decision process (ADR template, naming, when required)
 
-### 10.3 — Fix Acceptance suite coverage tooling
-- [ ] Resolve missing serialized coverage file issue
-- [ ] Verify `codecept run --coverage` works for all suites
+### 10.2 — Add `CHANGELOG.md` — COMPLETE
+- Documented changes per release following Keep a Changelog + Semantic Versioning
+- Seeded `[Unreleased]` (Phase 10 work) and `[1.0.0]` (Phases 1–9 refactoring-plan history)
 
-### 10.4 — Document "new only in factories" rule scope
-- [ ] Clarify whether exceptions/value objects are exempt
-- [ ] Update AGENTS.md with the clarification
+### 10.3 — Fix Acceptance suite coverage tooling — COMPLETE
+- Removed the empty, non-functional Acceptance (PhpBrowser) suite
+  (`tests/Acceptance.suite.yml` + `tests/Acceptance/`) that targeted a non-existent
+  `http://localhost/myapp` and broke `codecept run --coverage` via a missing
+  `codecoverage.serialized` file in `LocalServer.php`
+- Verified `vendor/bin/codecept run --coverage` runs all remaining suites
+  (Unit, Integration, Functional, Conformance, Concurrency): 612 tests, 1315 assertions,
+  3 env-limited skips, coverage collected
+
+### 10.4 — Document "new only in factories" rule scope — COMPLETE
+- Clarified in `AGENTS.md` (§Service instantiation) that exception instantiation in
+  `throw` statements and value-object/result-object construction (`ContextToken`,
+  `ConformanceResult`, `ConformanceViolation`) are intentional exemptions; only service
+  construction must go through factories/builders
 
 ---
 
