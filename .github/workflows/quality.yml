@@ -75,14 +75,17 @@ jobs:
           coverage: pcov
           tools: composer
 
+      - name: list
+        run: ls
+
       - name: Validate composer.json
-        run: cd src/${{ matrix.pkg }} && composer validate --strict
+        run: composer validate --strict
 
       - name: Install dependencies
-        run: cd src/${{ matrix.pkg }} && composer install --no-interaction --prefer-dist --no-progress
+        run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Build Codeception actors
-        run: cd src/${{ matrix.pkg }} && vendor/bin/codecept build
+        run: vendor/bin/codecept build
 
       - name: Run quality suite
-        run: cd src/${{ matrix.pkg }} && composer quality
+        run: composer quality
