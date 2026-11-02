@@ -87,5 +87,10 @@ jobs:
       - name: Build Codeception actors
         run: vendor/bin/codecept build
 
+      - name: Set up Git identity for functional tests
+        run: |
+          git config --global user.email "test@example.com"
+          git config --global user.name "CI Test Runner"
+
       - name: Run test suites
         run: composer test
