@@ -76,13 +76,13 @@ jobs:
           tools: composer
 
       - name: Validate composer.json
-        run: composer validate --strict
+        run: cd src/${{ matrix.pkg }} && composer validate --strict
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: cd src/${{ matrix.pkg }} && composer install --no-interaction --prefer-dist --no-progress
 
       - name: Build Codeception actors
-        run: vendor/bin/codecept build
+        run: cd src/${{ matrix.pkg }} && vendor/bin/codecept build
 
       - name: Run quality suite
-        run: composer quality
+        run: cd src/${{ matrix.pkg }} && composer quality
