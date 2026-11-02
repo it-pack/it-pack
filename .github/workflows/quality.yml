@@ -33,7 +33,7 @@ jobs:
           - '8.5'
         composer_args: ['']
         include:
-          - php-version: '8.6'
+          - php: '8.6'
             experimental: true
             composer_args: "--ignore-platform-reqs"
         pkg:
