@@ -6,6 +6,7 @@ namespace ItPack\ConfigureItExplorer\Query;
 
 use ItPack\ConfigureIt\Contract\ConfigurationGraphInterface;
 use ItPack\ConfigureIt\Core\ConfigurationDiffer;
+use ItPack\ConfigureIt\Core\RedactingRenderer;
 
 /**
  * The graph query API (Epic E9.2 — T9.2.2).
@@ -22,7 +23,7 @@ final class GraphQuery
 {
     public function __construct(
         private QueryParser $parser = new QueryParser(),
-        private ConfigurationDiffer $differ = new ConfigurationDiffer(),
+        private ConfigurationDiffer $differ = new ConfigurationDiffer(new RedactingRenderer()),
     ) {
     }
 

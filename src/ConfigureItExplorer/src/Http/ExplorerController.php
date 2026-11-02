@@ -35,7 +35,7 @@ final class ExplorerController
         private GraphProviderInterface $graphs,
         private ConfigurationInspector $inspector = new ConfigurationInspector(),
         private GraphVisualizer $visualizer = new GraphVisualizer(),
-        private ConfigurationDiffer $differ = new ConfigurationDiffer(),
+        private ConfigurationDiffer $differ = new ConfigurationDiffer(new RedactingRenderer()),
         private GraphQuery $query = new GraphQuery(),
         private HtmlRenderer $html = new HtmlRenderer(),
         private RedactingRenderer $renderer = new RedactingRenderer(),

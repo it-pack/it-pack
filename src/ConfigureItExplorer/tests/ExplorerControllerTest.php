@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 use ItPack\ConfigureItExplorer\Graph\FromFileGraphProvider;
 use ItPack\ConfigureItExplorer\Graph\GraphProviderInterface;
 use ItPack\ConfigureItExplorer\Http\ExplorerController;
@@ -50,7 +51,7 @@ final class ExplorerControllerTest extends TestCase
                 'local.json',
                 100,
                 [],
-                new Provenance('local.json', Format::JSON, 'JsonLoader', 100, 'file', overridden: true, overriddenSource: 'base.json'),
+                new Provenance('local.json', Format::JSON, 'JsonLoader', 100, SourceKind::File, overridden: true, overriddenSource: 'base.json'),
             ),
             new ConfigurationNode(
                 'db.port',
@@ -58,7 +59,7 @@ final class ExplorerControllerTest extends TestCase
                 'base.json',
                 10,
                 [],
-                new Provenance('base.json', Format::JSON, 'JsonLoader', 10, 'file'),
+                new Provenance('base.json', Format::JSON, 'JsonLoader', 10, SourceKind::File),
             ),
         ]);
     }
@@ -163,10 +164,10 @@ final class ExplorerControllerTest extends TestCase
     public function testDiff(): void
     {
         $base = new ConfigurationGraph([
-            new ConfigurationNode('db.port', 5432, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, 'file')),
+            new ConfigurationNode('db.port', 5432, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, SourceKind::File)),
         ]);
         $other = new ConfigurationGraph([
-            new ConfigurationNode('db.port', 6432, 'other.json', 1, [], new Provenance('other.json', Format::JSON, 'JsonLoader', 1, 'file')),
+            new ConfigurationNode('db.port', 6432, 'other.json', 1, [], new Provenance('other.json', Format::JSON, 'JsonLoader', 1, SourceKind::File)),
         ]);
 
         $response = $this->controller(['base.json' => $base, 'other.json' => $other])
