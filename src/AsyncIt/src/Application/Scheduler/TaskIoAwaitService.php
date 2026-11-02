@@ -97,6 +97,7 @@ final class TaskIoAwaitService implements TaskIoAwaitServiceInterface
 
             unset($this->ioAwaiters[$handleId]);
             unset($this->ioTaskHandles[$taskId]);
+            $this->timerService->clearForRecord($record);
 
             $ready[] = $record;
         }

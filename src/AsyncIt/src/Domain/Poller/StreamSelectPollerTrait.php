@@ -63,16 +63,13 @@ trait StreamSelectPollerTrait
     {
         $id = $handle->id;
 
-        if (isset($this->registered[$id])) {
-            try {
+        try {
+            if (isset($this->registered[$id])) {
                 $this->releaseFromReactor($this->registered[$id]);
-            } finally {
-                unset($this->registered[$id]);
             }
+        } finally {
+            unset($this->registered[$id], $this->handles[$id]);
         }
-
-        unset($this->handles[$id]);
-    }
 
     public function await(int $timeoutNanoseconds): void
     {

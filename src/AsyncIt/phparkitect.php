@@ -247,10 +247,9 @@ return static function (Config $config): void {
 
                     $interfaceMethods = array_unique(
                         array_merge(
+                            [],
                             ...array_map(
                                 static fn (string $interface) => get_class_methods($interface),
-                                array_map(
-                                    static fn(FullyQualifiedClassName $fqcn) => $fqcn->toString(),
                                     $theClass->getInterfaces()
                                 )
                             )
