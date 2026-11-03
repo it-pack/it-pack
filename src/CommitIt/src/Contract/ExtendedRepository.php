@@ -6,5 +6,4 @@ namespace ItPack\CommitIt\Contract;
 
 interface ExtendedRepository extends Repository
 {
-
 }

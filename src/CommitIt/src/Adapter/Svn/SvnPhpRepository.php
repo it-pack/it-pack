@@ -9,7 +9,9 @@ use DateTimeInterface;
 use DOMDocument;
 use DOMElement;
 use ItPack\CommitIt\Adapter\Svn\Exception\SvnAdapterException;
+use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
 use ItPack\CommitIt\Contract\Exception\VcsOperationException;
+use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\ProcessRunner;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\WorkingTree;
@@ -26,6 +28,7 @@ use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
 use ItPack\CommitIt\Domain\Value\TagType;
+use ValueError;
 
 /**
  * Subversion implementation of the vendor-neutral {@see Repository} contract.
@@ -49,8 +52,10 @@ use ItPack\CommitIt\Domain\Value\TagType;
  *
  * @api
  */
-final class SvnPhpRepository implements Repository
+final class SvnPhpRepository implements ExtendedRepository
 {
+    use ExtendedCommitBehavior;
+
     private const string SVN_DATE_FORMAT = 'Y-m-d\TH:i:s.u';
 
     private ?SvnPhpWorkingTree $workingTree = null;
@@ -437,8 +442,12 @@ final class SvnPhpRepository implements Repository
 
         $dateNode = $doc->getElementsByTagName('date')->item(0);
         $dateStr = $dateNode !== null ? $dateNode->textContent : '';
-        $parsedDate = DateTimeImmutable::createFromFormat(self::SVN_DATE_FORMAT, $dateStr);
-        $authorDate = $parsedDate !== false ? $parsedDate : ($dateStr !== '' ? new DateTimeImmutable($dateStr) : new DateTimeImmutable());
+        try {
+            $parsedDate = DateTimeImmutable::createFromFormat(self::SVN_DATE_FORMAT, $dateStr) ?: null;
+        } catch (ValueError) {
+        }
+
+        $authorDate = $parsedDate ?: new DateTimeImmutable($dateStr);
 
         $msgNode = $doc->getElementsByTagName('msg')->item(0);
         $message = $msgNode !== null ? $msgNode->textContent : '';
