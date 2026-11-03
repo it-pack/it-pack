@@ -31,11 +31,9 @@ jobs:
       matrix:
         php:
           - '8.5'
-        composer_args: ['']
-        include:
+            composer_args: ['']
           - php: '8.6'
             experimental: true
-            composer_args: "--ignore-platform-reqs"
         pkg:
           - AsyncIt
           - CommandIt
