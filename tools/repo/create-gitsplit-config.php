@@ -23,7 +23,6 @@ $base = __DIR__;
 $root = __DIR__.'/../..';
 $src = $root.'/src';
 $gitsplitFile = $root.'/.gitsplit.yml';
-$gitsplitTempFile = $base.'/.gitsplit.yml ';
 
 $org = 'it-pack';
 $orgUrl = 'https://${GH_TOKEN}@github.com/it-pack/';
@@ -51,15 +50,13 @@ foreach ($iterator as $file) {
 
     $splits[] = [
         'prefix' => 'src/'.$packageName,
-        'target' => $orgUrl.'/'.$repoName,
+        'target' => $orgUrl.$repoName,
     ];
 
 }
 
 $template['splits'] = $splits;
 
-yaml_emit_file($gitsplitTempFile, $template);
+yaml_emit_file($gitsplitFile, $template);
 
-echo file_get_contents($gitsplitTempFile);
-
-copy($gitsplitTempFile, $gitsplitFile);
+echo file_get_contents($gitsplitFile);
