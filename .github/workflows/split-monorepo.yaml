@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        run: git clone https://github.com/it-pack/it-pack /home/runner/work/org/project && cd /home/runner/work/org/project && git checkout $GITHUB_SHA
+        run: git clone https://github.com/it-pack/it-pack /home/runner/work/it-pack/it-pack && cd /home/runner/work/it-pack/it-pack
       - name: dir
         run: pwd
       - name: list
