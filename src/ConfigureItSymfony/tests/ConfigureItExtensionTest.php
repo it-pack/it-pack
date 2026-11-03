@@ -6,7 +6,6 @@ namespace ItPack\ConfigureItSymfony\Tests;
 
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
-use ItPack\ConfigureIt\Wiring\Configurations;
 use ItPack\ConfigureItSymfony\ConfigureItExtension;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\FileLocator;
@@ -30,7 +29,7 @@ final class ConfigureItExtensionTest extends TestCase
     public function testExposesResolvedSnapshot(): void
     {
         $container = $this->boot([
-            'sources' => [__DIR__ . '/Support'],
+            'sources' => [__DIR__ . '/Support/config'],
             'environment' => 'production',
         ]);
 
@@ -46,7 +45,7 @@ final class ConfigureItExtensionTest extends TestCase
 
     public function testExposesConfiguredBuilder(): void
     {
-        $container = $this->boot(['sources' => [__DIR__ . '/Support']]);
+        $container = $this->boot(['sources' => [__DIR__ . '/Support/config']]);
 
         self::assertTrue($container->has(ConfigurationBuilder::class));
         self::assertInstanceOf(ConfigurationBuilder::class, $container->get(ConfigurationBuilder::class));
@@ -56,7 +55,7 @@ final class ConfigureItExtensionTest extends TestCase
     {
         $yaml = sprintf(
             "configure_it:\n  sources:\n    - '%s'\n  environment: production\n",
-            __DIR__ . '/Support',
+            __DIR__ . '/Support/config',
         );
 
         $file = tempnam(sys_get_temp_dir(), 'cfg-it-') . '.yaml';

@@ -18,7 +18,7 @@ final class ConfigureItContainerTest extends TestCase
     {
         return \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
-            ->addSource(new FileSource(__DIR__ . '/Support'))
+            ->addSource(new FileSource(__DIR__ . '/Support/config'))
             ->addLoaders(ConfigurationLoaders::default())
             ->build()
             ->resolve();
@@ -63,7 +63,7 @@ final class ConfigureItContainerTest extends TestCase
     {
         $builder = \ItPack\ConfigureIt\Wiring\Configurations::builder()
             ->addReader(new FileReader())
-            ->addSource(new FileSource(__DIR__ . '/Support'))
+            ->addSource(new FileSource(__DIR__ . '/Support/config'))
             ->addLoaders(ConfigurationLoaders::default());
 
         $container = ConfigureItContainerFactory::fromBuilder($builder);

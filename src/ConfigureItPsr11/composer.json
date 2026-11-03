@@ -25,9 +25,7 @@
         }
     },
     "autoload-dev": {
-        "psr-4": {
-            "ItPack\\ConfigureItPsr11\\Tests\\": "tests/"
-        }
+        "psr-4": {}
     },
     "config": {
         "allow-plugins": {

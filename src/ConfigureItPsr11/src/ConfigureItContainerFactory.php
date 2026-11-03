@@ -6,7 +6,6 @@ namespace ItPack\ConfigureItPsr11;
 
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
-use ItPack\ConfigureIt\Wiring\Configurations;
 use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
 
 /**
@@ -37,10 +36,5 @@ final class ConfigureItContainerFactory
         }
 
         return new ConfigureItContainer($builder->build()->resolve(), $entryId);
-    }
-
-    public static function wiredBuilder(): ConfigurationBuilder
-    {
-        return Configurations::builder();
     }
 }

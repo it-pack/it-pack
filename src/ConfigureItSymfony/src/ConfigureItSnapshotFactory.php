@@ -10,6 +10,7 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Cache\FileSystemCache;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
 use ItPack\ConfigureIt\Wiring\Configurations;
 
@@ -57,7 +58,7 @@ final class ConfigureItSnapshotFactory
         }
 
         if ($config['cache'] !== null) {
-            $builder->withCache(new FileSystemCache($config['cache']));
+            $builder->withCache(new FileSystemCache($config['cache'], new ConfigurationSnapshotFactory()));
         }
 
         return $builder;
