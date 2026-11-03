@@ -24,6 +24,12 @@ final class SwooleRuntimeDetectorTest extends Unit
 
     public function testDetectsCoroutineContext(): void
     {
+        if(function_exists('Swoole\Coroutine\run')){
+            $this->markTestSkipped(
+                'Swoole\Coroutine\run does not exist'
+            );
+        }
+
         $detector = new SwooleRuntimeDetector();
         $inside = null;
 

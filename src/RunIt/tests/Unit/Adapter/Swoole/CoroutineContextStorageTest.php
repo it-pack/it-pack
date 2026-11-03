@@ -82,6 +82,12 @@ final class CoroutineContextStorageTest extends Unit
 
     public function testSequentialCoroutinesStayIsolated(): void
     {
+        if(function_exists('Swoole\Coroutine\run')){
+            $this->markTestSkipped(
+                'Swoole\Coroutine\run does not exist'
+            );
+        }
+
         $kit = new RunItTestKit(storage: new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
         $ids = [];
 
