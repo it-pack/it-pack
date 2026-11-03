@@ -57,7 +57,7 @@ jobs:
           - HashItAsync
           - LazeIt
           - RunIt
-          - RunItThirdPartySamples
+          - RunItThirdPartySample
     env:
       extensions: ast, grpc, opentelemetry, protobuf, yaml swoole, inotify
       # ext-grpc threads outlive grpc_shutdown(), so PHP 8.5 on ubuntu-26.04
