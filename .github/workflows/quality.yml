@@ -32,7 +32,7 @@ jobs:
         php:
           - '8.5'
             composer_args: ['']
-          - php: '8.6'
+          - '8.6'
             experimental: true
         pkg:
           - AsyncIt
