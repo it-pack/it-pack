@@ -31,7 +31,6 @@ jobs:
       fail-fast: false
       matrix:
         php-version: ['8.5', '8.6']
-        composer_args: ['']
         pkg:
           - AsyncIt
           - CommandIt
@@ -55,9 +54,14 @@ jobs:
           - RunIt
           - RunItThirdPartySample
         include:
-          - php-version: '8.6'
-            experimental: true
-            composer_args: "--ignore-platform-reqs"
+          - composer_args: ""
+            php-version: '8.5'
+          - experimental: false
+            php-version: '8.5'          
+          - composer_args: "--ignore-platform-reqs"
+            php-version: '8.6'
+          - experimental: true
+            php-version: '8.6'
     env:
       extensions: ast, grpc, opentelemetry, protobuf, yaml swoole, inotify
       # ext-grpc threads outlive grpc_shutdown(), so PHP 8.5 on ubuntu-26.04
