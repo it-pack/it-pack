@@ -2,12 +2,9 @@ name: Quality
 
 on:
   push:
-    paths:
-      - 'src/**'
-      - 'tools/qa/**'
-      - '.github/workflows/quality.yml'
-      - 'composer.json'
-      - 'Makefile'
+    branches: 
+      - 'main'
+      - 'release'
   pull_request:
     paths:
       - 'src/**'
