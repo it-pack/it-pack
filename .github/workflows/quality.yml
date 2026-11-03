@@ -31,9 +31,7 @@ jobs:
       matrix:
         php:
           - '8.5'
-            composer_args: ['']
           - '8.6'
-            experimental: true
         pkg:
           - AsyncIt
           - CommandIt
