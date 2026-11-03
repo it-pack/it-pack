@@ -22,7 +22,7 @@ function repoFromComposer(string $composerFile): string
 $base = __DIR__;
 $root = __DIR__.'/../..';
 $src = $root.'/src';
-$gitsplitFile = $root.'/.gitsplit.yml ';
+$gitsplitFile = $root.'/.gitsplit.yml';
 $gitsplitTempFile = $base.'/.gitsplit.yml ';
 
 $org = 'it-pack';
