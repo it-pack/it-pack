@@ -27,7 +27,6 @@ namespace ItPack\CommitIt\Contract;
  *
  * @api
  */
-interface Repository extends CommitPort, BranchPort, TagPort, RemotePort
+interface Repository extends CommitPort, BranchPort, TagPort, RemotePort, WorkingTreePort
 {
-    public function getWorkingTree(): WorkingTree;
 }

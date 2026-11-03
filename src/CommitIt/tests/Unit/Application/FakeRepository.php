@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application;
 
+use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
+use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Option\BranchQuery;
@@ -23,8 +25,10 @@ use ItPack\CommitIt\Domain\Value\TagName;
  * Minimal {@see Repository} test double. Records every call and can be told to
  * throw on a named operation so the decorator's failure path is exercised.
  */
-final class FakeRepository implements Repository
+final class FakeRepository implements ExtendedRepository
 {
+    use ExtendedCommitBehavior;
+
     /** @var list<string> */
     public array $calls = [];
 

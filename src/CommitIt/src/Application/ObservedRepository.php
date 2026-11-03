@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Application;
 
+use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
+use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\RepositoryObserver;
 use ItPack\CommitIt\Contract\RepositoryOperation;
@@ -36,8 +38,9 @@ use Throwable;
  *
  * @api
  */
-final readonly class ObservedRepository implements Repository
+final readonly class ObservedRepository implements ExtendedRepository
 {
+    use ExtendedCommitBehavior;
     use ObserverDispatch;
 
     public function __construct(

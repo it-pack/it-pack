@@ -10,7 +10,9 @@ use CzProject\GitPhp\GitRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeInterface;
+use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
 use ItPack\CommitIt\Contract\Exception\VcsOperationException;
+use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\PathSanitizer;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\SecretScanner;
@@ -39,8 +41,10 @@ use ItPack\CommitIt\Domain\Value\TagType;
  * @api
  */
 // Intentionally NOT `readonly`: the lazy `$workingTree` memo at line 34 is mutated after construction.
-final class GitPhpRepository implements Repository
+final class GitPhpRepository implements ExtendedRepository
 {
+    use ExtendedCommitBehavior;
+
     private const string FETCH_REF = '(fetch)';
 
     private ?GitPhpWorkingTree $workingTree = null;
@@ -263,11 +267,7 @@ final class GitPhpRepository implements Repository
 
     private function matchesBranchQuery(string $branchName, ?string $pattern, bool $isRemote): bool
     {
-        if ($pattern !== null && !fnmatch($pattern, $branchName) && !fnmatch($pattern, basename($branchName))) {
-            return false;
-        }
-
-        return true;
+        return !($pattern !== null && !fnmatch($pattern, $branchName) && !fnmatch($pattern, basename($branchName)));
     }
 
     public function createTag(TagName $name, ?CommitId $target = null): void
@@ -535,4 +535,5 @@ final class GitPhpRepository implements Repository
             $commit->getCommitterDate(),
         );
     }
+
 }
