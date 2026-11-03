@@ -15,6 +15,7 @@ use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\ProcessRunner;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\WorkingTree;
+use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 use ItPack\CommitIt\Domain\Option\BranchQuery;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
 use ItPack\CommitIt\Domain\Option\TagCleanupOptions;
@@ -23,11 +24,13 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
 use ItPack\CommitIt\Domain\Value\TagType;
+use Stringable;
 use ValueError;
 
 /**
@@ -405,6 +408,36 @@ final class SvnPhpRepository implements ExtendedRepository
     public function execute(string $command, array $args = []): string
     {
         throw new SvnAdapterException('Generic command passthrough is not supported by the SVN adapter.');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getAll(ConfigScope $scope = ConfigScope::Local): array
+    {
+        throw new VcsOperationException('Configuration management is not supported by the SVN adapter.');
+    }
+
+    public function get(string|Stringable $key, ConfigScope $scope = ConfigScope::Local): ?string
+    {
+        throw new VcsOperationException('Configuration management is not supported by the SVN adapter.');
+    }
+
+    public function set(
+        string|Stringable $key,
+        string|Stringable $value,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        throw new VcsOperationException('Configuration management is not supported by the SVN adapter.');
+    }
+
+    public function unset(
+        string|Stringable $key,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        throw new VcsOperationException('Configuration management is not supported by the SVN adapter.');
     }
 
     private function branchUrl(BranchName $name): string

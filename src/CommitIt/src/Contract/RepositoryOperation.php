@@ -47,4 +47,8 @@ enum RepositoryOperation: string
     case SearchBranches = 'searchBranches';
     case GetTagInfo = 'getTagInfo';
     case CleanupTags = 'cleanupTags';
+    case ConfigGetAll = 'configGetAll';
+    case ConfigGet = 'configGet';
+    case ConfigSet = 'configSet';
+    case ConfigUnset = 'configUnset';
 }

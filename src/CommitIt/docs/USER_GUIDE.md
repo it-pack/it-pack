@@ -21,6 +21,7 @@
    - [Tags](#54-tags)
    - [Remotes and sync](#55-remotes-and-sync)
    - [Working trees (git worktrees)](#56-working-trees-git-worktrees)
+   - [Configuration management](#57-configuration-management)
 6. [Instrumentation with RepositoryObserver](#6-instrumentation-with-repositoryobserver)
 7. [Error handling and the exception taxonomy](#7-error-handling-and-the-exception-taxonomy)
 8. [The `execute()` escape hatch](#8-the-execute-escape-hatch)
@@ -306,6 +307,64 @@ $tree->remove(RepositoryPath::from('/path/to/wt'));
 directory*. Attempting to place a worktree outside that scope throws
 `InvalidArgumentException` before git is invoked. This is a deliberate security
 boundary (AGENTS.md: a worktree path must never escape the repository scope).
+
+### 5.7 Configuration management
+
+Git configuration (e.g. `user.name`, `user.email`, `core.autocrlf`) is managed
+through the `ConfigPort` interface, which is part of the `Repository` contract.
+Every repository handle supports `get()`, `getAll()`, `set()`, and `unset()`,
+scoped to any of git's config levels.
+
+```php
+use ItPack\CommitIt\Domain\Value\ConfigScope;
+
+// Read a single value (null when not set).
+$email = $repo->get('user.email', ConfigScope::Local);
+
+// Read all values for a scope.
+/** @var array<string, string> $config */
+$config = $repo->getAll(ConfigScope::Local);
+
+// Write a value.
+$repo->set('user.name', 'Ada Lovelace', ConfigScope::Local);
+$repo->set('user.email', 'ada@example.com', ConfigScope::Local);
+
+// Remove a value.
+$repo->unset('user.name', ConfigScope::Local);
+
+// File-scoped config requires an explicit path.
+$repo->set('user.name', 'Ada', ConfigScope::File, '/path/to/config');
+```
+
+Configuration can also be applied at init or clone time via the options
+builders:
+
+```php
+use ItPack\CommitIt\Domain\Option\InitOptions;
+use ItPack\CommitIt\Domain\Option\CloneOptions;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
+
+// Apply config when initializing a repository.
+$repo = $factory->init(
+    RepositoryPath::from('/path/to/repo'),
+    InitOptions::default()->withConfig(
+        ['user.name' => 'Ada', 'user.email' => 'ada@example.com'],
+        ConfigScope::Local,
+    ),
+);
+
+// Apply config when cloning.
+$repo = $factory->cloneRepository(
+    'https://example.com/repo.git',
+    RepositoryPath::from('/path/to/repo'),
+    CloneOptions::default()->withConfig(
+        ['user.name' => 'Ada'],
+        ConfigScope::Local,
+    ),
+);
+```
+
+Supported scopes: `system`, `global`, `local` (default), `worktree`, `file`.
 
 ---
 

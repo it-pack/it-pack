@@ -7,6 +7,7 @@ namespace ItPack\CommitIt\Behavior\Adapter;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use Throwable;
 
 trait ExtendedCommitBehavior
 {
@@ -16,6 +17,9 @@ trait ExtendedCommitBehavior
 
     abstract public function commit(CommitMessage $message, ?CommitOptions $options = null): CommitId;
 
+    /**
+     * @throws Throwable
+     */
     public function stageAndCommit(string $file, CommitMessage $message, ?CommitOptions $options = null): CommitId
     {
         $this->stage($file);
@@ -23,6 +27,9 @@ trait ExtendedCommitBehavior
         return $this->commit($message, $options);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function stageAllAndCommit(CommitMessage $message, ?CommitOptions $options = null): CommitId
     {
         $this->stageAll();

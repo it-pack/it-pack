@@ -12,6 +12,7 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\TagName;
 
@@ -345,5 +346,170 @@ final class GitPhpRepositoryTest extends Unit
         $this->assertCommandRan(
             ['commit', null, ['--author' => 'Jane <jane@example.com>', '--date' => $date, '--allow-empty', '--amend', '-m' => 'Subject']],
         );
+    }
+
+    public function testConfigGetAllReturnsKeyValuePairs(): void
+    {
+        $repository = $this->buildRepository(function (MemoryRunner $runner): void {
+            $runner->setResult(
+                ['config', '--list', '--local'],
+                [],
+                "user.name=Alice\nuser.email=alice@example.com\ncore.autocrlf=true",
+            );
+        });
+
+        $config = $repository->getAll(ConfigScope::Local);
+
+        self::assertSame([
+            'user.name' => 'Alice',
+            'user.email' => 'alice@example.com',
+            'core.autocrlf' => 'true',
+        ], $config);
+        $this->assertCommandRan(['config', '--list', '--local']);
+    }
+
+    public function testConfigGetAllEmptyWhenNoConfig(): void
+    {
+        $repository = $this->buildRepository(function (MemoryRunner $runner): void {
+            $runner->setResult(['config', '--list', '--local'], [], '');
+        });
+
+        self::assertSame([], $repository->getAll(ConfigScope::Local));
+    }
+
+    public function testConfigGetReturnsValue(): void
+    {
+        $repository = $this->buildRepository(function (MemoryRunner $runner): void {
+            $runner->setResult(['config', '--get', '--local', 'user.name'], [], 'Alice');
+        });
+
+        self::assertSame('Alice', $repository->get('user.name', ConfigScope::Local));
+        $this->assertCommandRan(['config', '--get', '--local', 'user.name']);
+    }
+
+    public function testConfigGetReturnsNullWhenNotSet(): void
+    {
+        $repository = $this->buildRepository(function (MemoryRunner $runner): void {
+            $runner->setResult(['config', '--get', '--local', 'user.name'], [], '');
+        });
+
+        self::assertNull($repository->get('user.name', ConfigScope::Local));
+    }
+
+    public function testConfigSetDispatchesCommand(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['config', '--local', 'user.name', 'Alice'], [], ''));
+
+        $repository->set('user.name', 'Alice', ConfigScope::Local);
+
+        $this->assertCommandRan(['config', '--local', 'user.name', 'Alice']);
+    }
+
+    public function testConfigSetWithGlobalScope(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['config', '--global', 'user.email', 'a@b.com'], [], ''));
+
+        $repository->set('user.email', 'a@b.com', ConfigScope::Global);
+
+        $this->assertCommandRan(['config', '--global', 'user.email', 'a@b.com']);
+    }
+
+    public function testConfigSetWithFileScopeRequiresPath(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->set('user.name', 'Alice', ConfigScope::File);
+    }
+
+    public function testConfigSetRejectsKeyStartingWithDash(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->set('--help', 'value', ConfigScope::Local);
+    }
+
+    public function testConfigSetRejectsInvalidKeyFormat(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->set('invalid key', 'value', ConfigScope::Local);
+    }
+
+    public function testConfigGetRejectsKeyStartingWithDash(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->get('--help', ConfigScope::Local);
+    }
+
+    public function testConfigUnsetRejectsInvalidKeyFormat(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->unset('invalid key', ConfigScope::Local);
+    }
+
+    public function testConfigSetWithFileScopeUsesFileFlag(): void
+    {
+        $filePath = $this->repoDir . '/config';
+        $repository = $this->buildRepository(function (MemoryRunner $runner) use ($filePath): void {
+            $runner->setResult(['config', '--file=' . $filePath, 'user.name', 'Alice'], [], '');
+        });
+
+        $repository->set('user.name', 'Alice', ConfigScope::File, $filePath);
+
+        $this->assertCommandRan(['config', '--file=' . $filePath, 'user.name', 'Alice']);
+    }
+
+    public function testConfigUnsetDispatchesCommand(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => $runner->setResult(['config', '--unset', '--local', 'user.name'], [], ''));
+
+        $repository->unset('user.name', ConfigScope::Local);
+
+        $this->assertCommandRan(['config', '--unset', '--local', 'user.name']);
+    }
+
+    public function testConfigUnsetWithFileScopeRequiresPath(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $repository->unset('user.name', ConfigScope::File);
+    }
+
+    public function testConfigUnsetWithFileScopeUsesFileFlag(): void
+    {
+        $filePath = $this->repoDir . '/config';
+        $repository = $this->buildRepository(function (MemoryRunner $runner) use ($filePath): void {
+            $runner->setResult(['config', '--unset', '--file=' . $filePath, 'user.name'], [], '');
+        });
+
+        $repository->unset('user.name', ConfigScope::File, $filePath);
+
+        $this->assertCommandRan(['config', '--unset', '--file=' . $filePath, 'user.name']);
+    }
+
+    public function testConfigSetWithFileScopeRejectsPathOutsideRepo(): void
+    {
+        $repository = $this->buildRepository(static fn (MemoryRunner $runner) => null);
+
+        $this->expectException(\ItPack\CommitIt\Domain\Exception\PathScopeViolationException::class);
+        $repository->set('user.name', 'Alice', ConfigScope::File, '/etc/passwd');
+    }
+
+    public function testConfigFailureIsMapped(): void
+    {
+        $repository = $this->buildRepository(function (MemoryRunner $runner): void {
+            $runner->setResult(['config', '--local', 'user.name', 'Alice'], [], '', 'fatal: not in a config file', 1);
+        });
+
+        $this->expectException(\ItPack\CommitIt\Domain\Exception\VcsOperationException::class);
+        $repository->set('user.name', 'Alice', ConfigScope::Local);
     }
 }

@@ -4,6 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\CommitIt\Contract;
 
-interface ExtendedRepository extends Repository
+interface ExtendedRepository extends Repository, ExtendedCommitPort
 {
 }

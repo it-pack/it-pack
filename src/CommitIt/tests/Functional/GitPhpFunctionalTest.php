@@ -6,14 +6,20 @@ namespace Tests\Functional;
 
 use Codeception\Test\Unit;
 use ItPack\CommitIt\Adapter\Git\GitPhpRepositoryFactory;
+use ItPack\CommitIt\Contract\Exception\VcsOperationException;
 use ItPack\CommitIt\Contract\Repository;
+use ItPack\CommitIt\Domain\Exception\WorktreeAccessDeniedException;
+use ItPack\CommitIt\Domain\Option\CloneOptions;
+use ItPack\CommitIt\Domain\Option\InitOptions;
 use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\SparsePattern;
 use ItPack\CommitIt\Domain\Value\TagName;
 use Tests\Support\Helper\GitRepoFactory;
+use Throwable;
 
 /**
  * Functional coverage of the git adapter against real temporary repositories.
@@ -50,7 +56,9 @@ final class GitPhpFunctionalTest extends Unit
             self::assertNotNull($last);
             self::assertSame('Add a.txt', $last->subject);
             self::assertSame($id->__toString(), $last->id->__toString());
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -75,7 +83,9 @@ final class GitPhpFunctionalTest extends Unit
             $repository->stage('a.txt');
             $repository->commit(CommitMessage::fromString('modify'));
             self::assertFalse($repository->hasChanges());
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -105,7 +115,9 @@ final class GitPhpFunctionalTest extends Unit
             $after = array_map(static fn (BranchName $b): string => $b->__toString(), $repository->listBranches());
             self::assertNotContains('feature', $after);
             self::assertContains('main', $after);
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -129,7 +141,9 @@ final class GitPhpFunctionalTest extends Unit
             $repository->deleteTag(TagName::from('v1.0'));
             $after = array_map(static fn (TagName $t): string => $t->__toString(), $repository->listTags());
             self::assertNotContains('v1.0', $after);
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -149,7 +163,9 @@ final class GitPhpFunctionalTest extends Unit
 
             $repository->removeRemote(RemoteName::from('origin'));
             self::assertArrayNotHasKey('origin', $repository->listRemotes());
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -177,7 +193,9 @@ final class GitPhpFunctionalTest extends Unit
 
             $after = $repository->getWorkingTree()->listWorktrees();
             self::assertCount(1, $after);
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo, $worktree);
         }
     }
@@ -196,6 +214,10 @@ final class GitPhpFunctionalTest extends Unit
             $repo1 = $this->open($clone1);
             $repo2 = $this->open($clone2);
 
+            // set config to avoid fatal errors in CI etc.
+            $repo1->set('user.name', 'Alice');
+            $repo1->set('user.email', 'alice@example.com');
+
             file_put_contents($clone1 . DIRECTORY_SEPARATOR . 'f.txt', 'x');
             $repo1->stage('f.txt');
             $repo1->commit(CommitMessage::fromString('c'));
@@ -209,7 +231,9 @@ final class GitPhpFunctionalTest extends Unit
             self::assertSame('c', $last->subject);
 
             $repo2->fetch(RemoteName::from('origin'));
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($bare, $clone1, $clone2);
         }
     }
@@ -248,7 +272,9 @@ final class GitPhpFunctionalTest extends Unit
 
             $after = $workingTree->getSparsePatterns();
             self::assertSame([], $after);
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -261,7 +287,7 @@ final class GitPhpFunctionalTest extends Unit
             GitRepoFactory::initWorkingRepo($repo, 'main');
             $repository = $this->open($repo);
 
-            $this->expectException(\ItPack\CommitIt\Domain\Exception\WorktreeAccessDeniedException::class);
+            $this->expectException(WorktreeAccessDeniedException::class);
             $repository->getWorkingTree()->add(
                 RepositoryPath::from('/etc'),
                 BranchName::from('escape'),
@@ -290,8 +316,119 @@ final class GitPhpFunctionalTest extends Unit
 
             $after = $repository->getWorkingTree()->listWorktrees();
             self::assertCount(1, $after);
-        } finally {
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
             GitRepoFactory::tearDown($repo, $worktree);
+        }
+    }
+
+    public function testConfigSetAndGetOnExistingRepository(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-config-fn');
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            $repository = $this->open($repo);
+
+            $repository->set('user.name', 'Alice');
+            $repository->set('user.email', 'alice@example.com');
+
+            self::assertSame('Alice', $repository->get('user.name'));
+            self::assertSame('alice@example.com', $repository->get('user.email'));
+
+            $all = $repository->getAll(ConfigScope::Local);
+            self::assertArrayHasKey('user.name', $all);
+            self::assertArrayHasKey('user.email', $all);
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
+            GitRepoFactory::tearDown($repo);
+        }
+    }
+
+    public function testConfigUnsetRemovesValue(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-config-fn');
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            $repository = $this->open($repo);
+
+            $repository->set('user.name', 'Alice');
+            self::assertSame('Alice', $repository->get('user.name'));
+
+            $repository->unset('user.name');
+            self::assertNull($repository->get('user.name'));
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
+            GitRepoFactory::tearDown($repo);
+        }
+    }
+
+    public function testConfigGetReturnsNullForMissingKey(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-config-fn');
+
+        try {
+            GitRepoFactory::initWorkingRepo($repo, 'main');
+            $repository = $this->open($repo);
+
+            self::assertNull($repository->get('nonexistent.key'));
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        }  finally {
+            GitRepoFactory::tearDown($repo);
+        }
+    }
+
+    public function testInitAppliesConfig(): void
+    {
+        $repo = GitRepoFactory::createTempDir('commitit-config-init');
+
+        try {
+            $factory = new GitPhpRepositoryFactory();
+            $repository = $factory->init(
+                RepositoryPath::from($repo),
+                InitOptions::default()->withConfig(
+                    ['user.name' => 'InitUser', 'user.email' => 'init@example.com'],
+                    ConfigScope::Local,
+                ),
+            );
+
+            self::assertSame('InitUser', $repository->get('user.name'));
+            self::assertSame('init@example.com', $repository->get('user.email'));
+        } catch (VcsOperationException $exception) {
+            $this->fail($exception->getMessage());
+        } finally {
+            GitRepoFactory::tearDown($repo);
+        }
+    }
+
+    public function testCloneAppliesConfig(): void
+    {
+        $source = GitRepoFactory::createTempDir('commitit-config-source');
+        $target = GitRepoFactory::createTempDir('commitit-config-target');
+
+        try {
+            GitRepoFactory::initWorkingRepo($source, 'main');
+            GitRepoFactory::seedFile($source, 'a.txt', 'hello');
+
+            $repository = new GitPhpRepositoryFactory()->cloneRepository(
+                $source,
+                RepositoryPath::from($target),
+                CloneOptions::default()->withConfig(
+                    ['user.name' => 'CloneUser'],
+                    ConfigScope::Local,
+                ),
+            );
+
+            self::assertSame('CloneUser', $repository->get('user.name'));
+        } catch (Throwable $exception) {
+            $this->fail($exception->getMessage());
+        } finally {
+            GitRepoFactory::tearDown($source, $target);
         }
     }
 }
