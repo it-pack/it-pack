@@ -1,0 +1,9 @@
+{
+    "cache_url": "\/cache\/gitsplit",
+    "project_url": "https:\/\/github.com\/it-pack\/it-pack",
+    "splits": [],
+    "origins": [
+        "^main$",
+        "^split$"
+    ]
+}
