@@ -9,7 +9,8 @@ use ItPack\ConfigureIt\Codegen\Model\Property;
 use Nette\Schema\Elements\Structure;
 use Nette\Schema\Elements\Type;
 use Nette\Schema\Schema as NetteSchema;
-use ReflectionProperty;
+use ReflectionClass;
+use ReflectionException;
 
 /**
  * Walks a Nette Schema definition and produces the set of DTO models to generate.
@@ -223,9 +224,20 @@ final class SchemaModelBuilder
      */
     private function readPrivate(object $object, string $property): mixed
     {
-        $reflection = new ReflectionProperty($object, $property);
-        $reflection->setAccessible(true);
+        $reflection = new ReflectionClass($object);
+        do {
+            try {
+                $prop = $reflection->getProperty($property);
+                $prop->setAccessible(true);
 
-        return $reflection->getValue($object);
+                return $prop->getValue($object);
+            } catch (ReflectionException) {
+                // property not declared on this class; keep walking up the hierarchy
+            }
+        } while ($reflection = $reflection->getParentClass());
+
+        throw new ReflectionException(
+            'Property ' . $property . ' does not exist on ' . $object::class,
+        );
     }
 }

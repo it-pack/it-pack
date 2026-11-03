@@ -6,6 +6,7 @@ namespace ItPack\ConfigureItTesting\Tests;
 
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 use ItPack\ConfigureItTesting\Assertions\ConfigurationAssertions;
 use ItPack\ConfigureItTesting\Fake\InMemoryGraph;
 use ItPack\ConfigureItTesting\Node\FakeNode;
@@ -23,14 +24,14 @@ final class ConfigurationAssertionsTest extends TestCase
             format: Format::PHP,
             adapter: 'fake',
             priority: 0,
-            sourceKind: 'programmatic',
+            sourceKind: SourceKind::Programmatic,
         ))->withProcessor('merge')->withProcessor('freeze');
 
         $graph = new InMemoryGraph();
         $graph->put(FakeNode::create('app.name', 'it', 'base', 0));
-        $graph->put(FakeNode::override('app.debug', false, 'local', 20, 'base.json', 'local'));
+        $graph->put(FakeNode::override('app.debug', false, 'local', 20, 'base.json', SourceKind::File));
         $graph->put(FakeNode::sensitive('db.password', 'secret', 'vault', 0));
-        $graph->put(FakeNode::from('cache.ttl', 60, 'redis.php', 5, 'file', 'yaml-loader', Format::YAML));
+        $graph->put(FakeNode::from('cache.ttl', 60, 'redis.php', 5, SourceKind::File, 'yaml-loader', Format::YAML));
         $graph->put(FakeNode::withProvenance('email', 'x@y.z', $emailProvenance));
 
         return $graph;

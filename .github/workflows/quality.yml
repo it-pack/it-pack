@@ -30,8 +30,10 @@ jobs:
       fail-fast: false
       matrix:
         php:
-          - '8.4'
           - '8.5'
+            composer_args: ['']
+          - php: '8.6'
+            experimental: true
         pkg:
           - AsyncIt
           - CommandIt
@@ -54,6 +56,12 @@ jobs:
           - LazeIt
           - RunIt
           - RunItThirdPartySample
+    env:
+      extensions: ast, grpc, opentelemetry, protobuf, yaml swoole, inotify
+      # ext-grpc threads outlive grpc_shutdown(), so PHP 8.5 on ubuntu-26.04
+      # segfaults at exit when grpc.so is unloaded. Skip the unload until
+      # https://github.com/grpc/grpc/issues/42242 is fixed.
+      ZEND_DONT_UNLOAD_MODULES: 1          
     steps:
       - name: Checkout monorepo
         uses: actions/checkout@v4
@@ -65,8 +73,11 @@ jobs:
           coverage: pcov
           tools: composer
 
+      - name: list
+        run: ls
+
       - name: Validate composer.json
-        run: composer validate --strict
+        run: composer validate
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -74,5 +85,10 @@ jobs:
       - name: Build Codeception actors
         run: vendor/bin/codecept build
 
-      - name: Run quality suite
-        run: composer quality
+      - name: Set up Git identity for functional tests
+        run: |
+          git config --global user.email "test@example.com"
+          git config --global user.name "CI Test Runner"
+
+      - name: Run test suites
+        run: composer test

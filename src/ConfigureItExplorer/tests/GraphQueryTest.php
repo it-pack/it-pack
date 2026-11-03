@@ -9,6 +9,7 @@ use ItPack\ConfigureIt\Core\ConfigurationGraph;
 use ItPack\ConfigureIt\Core\ConfigurationNode;
 use ItPack\ConfigureIt\ValueObject\Format;
 use ItPack\ConfigureIt\ValueObject\Provenance;
+use ItPack\ConfigureIt\ValueObject\SourceKind;
 use ItPack\ConfigureItExplorer\Query\GraphQuery;
 use PHPUnit\Framework\TestCase;
 
@@ -29,7 +30,7 @@ final class GraphQueryTest extends TestCase
                 'local.json',
                 100,
                 [],
-                new Provenance('local.json', Format::JSON, 'JsonLoader', 100, 'file', overridden: true, overriddenSource: 'base.json'),
+                new Provenance('local.json', Format::JSON, 'JsonLoader', 100, SourceKind::File, overridden: true, overriddenSource: 'base.json'),
             ),
             new ConfigurationNode(
                 'db.port',
@@ -37,7 +38,7 @@ final class GraphQueryTest extends TestCase
                 'base.json',
                 10,
                 [],
-                new Provenance('base.json', Format::JSON, 'JsonLoader', 10, 'file'),
+                new Provenance('base.json', Format::JSON, 'JsonLoader', 10, SourceKind::File),
             ),
             new ConfigurationNode(
                 'secret.token',
@@ -45,7 +46,7 @@ final class GraphQueryTest extends TestCase
                 'vault://token',
                 200,
                 [],
-                new Provenance('vault://token', Format::ENV, 'VaultLoader', 200, 'vault', sensitive: true),
+                new Provenance('vault://token', Format::ENV, 'VaultLoader', 200, SourceKind::Vault, sensitive: true),
             ),
             new ConfigurationNode(
                 'cache.ttl',
@@ -53,7 +54,7 @@ final class GraphQueryTest extends TestCase
                 'local.json',
                 100,
                 [],
-                new Provenance('local.json', Format::JSON, 'JsonLoader', 100, 'file', processorTrail: ['EnvProcessor'], layerId: 'override'),
+                new Provenance('local.json', Format::JSON, 'JsonLoader', 100, SourceKind::File, processorTrail: ['EnvProcessor'], layerId: 'override'),
             ),
         ]);
     }
@@ -106,13 +107,13 @@ final class GraphQueryTest extends TestCase
     public function testChangesBetweenGraphs(): void
     {
         $base = new ConfigurationGraph([
-            new ConfigurationNode('a', 1, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, 'file')),
-            new ConfigurationNode('b', 2, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, 'file')),
+            new ConfigurationNode('a', 1, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, SourceKind::File)),
+            new ConfigurationNode('b', 2, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, SourceKind::File)),
         ]);
 
         $other = new ConfigurationGraph([
-            new ConfigurationNode('a', 1, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, 'file')),
-            new ConfigurationNode('c', 3, 'other.json', 1, [], new Provenance('other.json', Format::JSON, 'JsonLoader', 1, 'file')),
+            new ConfigurationNode('a', 1, 'base.json', 1, [], new Provenance('base.json', Format::JSON, 'JsonLoader', 1, SourceKind::File)),
+            new ConfigurationNode('c', 3, 'other.json', 1, [], new Provenance('other.json', Format::JSON, 'JsonLoader', 1, SourceKind::File)),
         ]);
 
         self::assertSame(['b', 'c'], (new GraphQuery())->changes($base, $other));

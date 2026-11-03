@@ -22,4 +22,9 @@ final readonly class FiberContextToken implements ContextTokenInterface
         public ExecutionScopeInterface $scope,
     ) {
     }
+
+    public function id(): int
+    {
+        return spl_object_id($this->anchor);
+    }
 }

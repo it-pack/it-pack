@@ -6,6 +6,7 @@ namespace ItPack\ConfigureItPsr11;
 
 use ItPack\ConfigureIt\Contract\ConfigurationSnapshotInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Wiring\DefaultConfigurationWiring;
 
 /**
  * Ergonomic factories for {@see ConfigureItContainer}.
@@ -30,6 +31,10 @@ final class ConfigureItContainerFactory
         ConfigurationBuilder $builder,
         string $entryId = ConfigurationSnapshotInterface::class,
     ): ConfigureItContainer {
+        if (! $builder->hasWiring()) {
+            $builder = $builder->withWiring(new DefaultConfigurationWiring());
+        }
+
         return new ConfigureItContainer($builder->build()->resolve(), $entryId);
     }
 }

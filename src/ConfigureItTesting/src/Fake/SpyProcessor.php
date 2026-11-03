@@ -16,6 +16,11 @@ final class SpyProcessor implements ConfigurationProcessorInterface
     /** @var list<ConfigurationGraphInterface> */
     private array $seen = [];
 
+    public function name(): string
+    {
+        return 'spy-processor';
+    }
+
     public function process(ConfigurationGraphInterface $graph): ConfigurationGraphInterface
     {
         $this->seen[] = $graph;

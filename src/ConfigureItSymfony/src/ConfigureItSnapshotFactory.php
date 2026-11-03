@@ -10,7 +10,9 @@ use ItPack\ConfigureIt\Adapter\FileSource;
 use ItPack\ConfigureIt\Cache\FileSystemCache;
 use ItPack\ConfigureIt\Contract\ConfigurationSchemaInterface;
 use ItPack\ConfigureIt\Core\ConfigurationBuilder;
+use ItPack\ConfigureIt\Core\ConfigurationSnapshotFactory;
 use ItPack\ConfigureIt\Execution\ExecutionContext;
+use ItPack\ConfigureIt\Wiring\Configurations;
 
 /**
  * Builds ConfigureIt objects from the processed bundle configuration.
@@ -36,7 +38,7 @@ final class ConfigureItSnapshotFactory
      */
     public static function builder(array $config): ConfigurationBuilder
     {
-        $builder = new ConfigurationBuilder();
+        $builder = Configurations::builder();
         $builder->addReader(new FileReader());
 
         foreach ($config['sources'] as $source) {
@@ -56,7 +58,7 @@ final class ConfigureItSnapshotFactory
         }
 
         if ($config['cache'] !== null) {
-            $builder->withCache(new FileSystemCache($config['cache']));
+            $builder->withCache(new FileSystemCache($config['cache'], new ConfigurationSnapshotFactory()));
         }
 
         return $builder;

@@ -21,6 +21,11 @@ final readonly class ScopeToken implements ContextTokenInterface
     ) {
     }
 
+    public function id(): int
+    {
+        return spl_object_id($this->scope);
+    }
+
     public function scope(): ExecutionScopeInterface
     {
         return $this->scope;

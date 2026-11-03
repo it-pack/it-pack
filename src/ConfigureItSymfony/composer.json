@@ -27,9 +27,7 @@
         }
     },
     "autoload-dev": {
-        "psr-4": {
-            "ItPack\\ConfigureItSymfony\\Tests\\": "tests/"
-        }
+        "psr-4": {}
     },
     "config": {
         "allow-plugins": {

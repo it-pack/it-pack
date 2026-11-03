@@ -176,6 +176,27 @@ final class ConfigurationBuilder implements ConfigurationBuilderInterface
     }
 
     /**
+     * Attach a wiring to this builder, returning a new builder instance.
+     *
+     * Required before {@see self::build()} can produce a resolver; use
+     * {@see \ItPack\ConfigureIt\Wiring\Configurations::builder()} for the
+     * common case, or this method when wiring must be applied to an existing
+     * builder instance.
+     */
+    public function withWiring(ConfigurationWiringInterface $wiring): self
+    {
+        return new self(
+            factory: $this->factory,
+            wiring: $wiring,
+        );
+    }
+
+    public function hasWiring(): bool
+    {
+        return $this->wiring !== null;
+    }
+
+    /**
      * Opt in to transparent decryption of `enc:`/`sops:`-annotated resources.
      *
      * When a decrypter is set, the reader chain is wrapped in a
