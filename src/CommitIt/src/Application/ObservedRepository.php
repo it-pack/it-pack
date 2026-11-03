@@ -18,10 +18,12 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
+use Stringable;
 use Throwable;
 
 /**
@@ -382,6 +384,67 @@ final readonly class ObservedRepository implements ExtendedRepository
             RepositoryOperation::Execute->value,
             fn (): string => $this->inner->execute($command, $args),
             ['command' => $command],
+        );
+    }
+
+    /**
+     * @return array<string, string>
+     * @throws \Throwable
+     */
+    public function getAll(ConfigScope $scope = ConfigScope::Local): array
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::ConfigGetAll->value,
+            fn (): array => $this->inner->getAll($scope),
+            ['scope' => $scope->value],
+        );
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function get(string|Stringable $key, ConfigScope $scope = ConfigScope::Local): ?string
+    {
+        return $this->dispatchRun(
+            $this->observer,
+            RepositoryOperation::ConfigGet->value,
+            fn (): ?string => $this->inner->get($key, $scope),
+            ['key' => $key, 'scope' => $scope->value],
+        );
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function set(
+        string|Stringable $key,
+        string $value,
+        ConfigScope $scope =
+        ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::ConfigSet->value,
+            fn () => $this->inner->set($key, $value, $scope, $file),
+            ['key' => $key, 'scope' => $scope->value, 'file' => $file],
+        );
+    }
+
+    /**
+     * @throws \Throwable
+     */
+    public function unset(
+        string|Stringable $key,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->dispatchRunVoid(
+            $this->observer,
+            RepositoryOperation::ConfigUnset->value,
+            fn () => $this->inner->unset($key, $scope, $file),
+            ['key' => $key, 'scope' => $scope->value, 'file' => $file],
         );
     }
 }

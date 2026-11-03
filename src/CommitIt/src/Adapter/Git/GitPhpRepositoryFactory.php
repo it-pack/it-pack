@@ -11,8 +11,10 @@ use CzProject\GitPhp\Runners\CliRunner;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\RepositoryFactory;
 use ItPack\CommitIt\Domain\Exception\RepositoryNotFoundException;
+use ItPack\CommitIt\Domain\Exception\VcsOperationException;
 use ItPack\CommitIt\Domain\Option\CloneOptions;
 use ItPack\CommitIt\Domain\Option\InitOptions;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 
 /**
@@ -75,7 +77,16 @@ final readonly class GitPhpRepositoryFactory implements RepositoryFactory
             throw GitExceptionMap::map($e, 'Failed to init repository at ' . $path->toString());
         }
 
-        return new GitPhpRepository($repository);
+        $gitPhpRepository = new GitPhpRepository($repository);
+
+        try {
+            $this->applyConfig($gitPhpRepository, $options->config);
+        } catch (\Throwable $e) {
+            $this->removeDirectory($path->toString());
+            throw $e;
+        }
+
+        return $gitPhpRepository;
     }
 
     public function cloneRepository(string $url, RepositoryPath $path, ?CloneOptions $options = null): Repository
@@ -102,6 +113,64 @@ final readonly class GitPhpRepositoryFactory implements RepositoryFactory
             throw GitExceptionMap::map($e, 'Failed to clone repository into ' . $path->toString());
         }
 
-        return new GitPhpRepository($repository);
+        $gitPhpRepository = new GitPhpRepository($repository);
+
+        try {
+            $this->applyConfig($gitPhpRepository, $options->config);
+        } catch (\Throwable $e) {
+            $this->removeDirectory($path->toString());
+            throw $e;
+        }
+
+        return $gitPhpRepository;
+    }
+
+    /**
+     * @param array<int|string, array<string, string>> $config keyed by ConfigScope->value string
+     */
+    private function applyConfig(GitPhpRepository $repository, array $config): void
+    {
+        foreach ($config as $scopeKey => $keyValues) {
+            $scope = ConfigScope::from((string) $scopeKey);
+
+            if ($scope === ConfigScope::File) {
+                throw new VcsOperationException(
+                    'ConfigScope::File is not supported through RepositoryFactory; use Repository::set() directly with an explicit file path.',
+                );
+            }
+
+            foreach ($keyValues as $key => $value) {
+                $repository->set($key, $value, $scope);
+            }
+        }
+    }
+
+    private function removeDirectory(string $path): void
+    {
+        if (!is_dir($path)) {
+            return;
+        }
+
+        $items = scandir($path);
+
+        if ($items === false) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $full = $path . DIRECTORY_SEPARATOR . $item;
+
+            if (is_dir($full)) {
+                $this->removeDirectory($full);
+            } else {
+                unlink($full);
+            }
+        }
+
+        rmdir($path);
     }
 }

@@ -16,10 +16,12 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
+use Stringable;
 
 /**
  * Minimal {@see Repository} test double. Records every call and can be told to
@@ -248,6 +250,44 @@ final class FakeRepository implements ExtendedRepository
         $this->maybeThrow('execute');
 
         return '';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getAll(ConfigScope $scope = ConfigScope::Local): array
+    {
+        $this->calls[] = 'getAll';
+        $this->maybeThrow('getAll');
+
+        return [];
+    }
+
+    public function get(string|Stringable $key, ConfigScope $scope = ConfigScope::Local): ?string
+    {
+        $this->calls[] = 'get';
+        $this->maybeThrow('get');
+
+        return null;
+    }
+
+    public function set(
+        string|Stringable $key,
+        string|Stringable $value,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->calls[] = 'set';
+        $this->maybeThrow('set');
+    }
+
+    public function unset(
+        string|Stringable $key,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->calls[] = 'unset';
+        $this->maybeThrow('unset');
     }
 
     public static function fakeCommit(CommitId $id): Commit
