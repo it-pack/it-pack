@@ -10,7 +10,6 @@ use DOMDocument;
 use DOMElement;
 use ItPack\CommitIt\Adapter\Svn\Exception\SvnAdapterException;
 use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
-use ItPack\CommitIt\Contract\Exception\VcsOperationException;
 use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\ProcessRunner;
 use ItPack\CommitIt\Contract\Repository;
