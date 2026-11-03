@@ -82,7 +82,7 @@ final class CoroutineContextStorageTest extends Unit
 
     public function testSequentialCoroutinesStayIsolated(): void
     {
-        if(function_exists('Swoole\Coroutine\run')){
+        if(!function_exists('Swoole\Coroutine\run')){
             $this->markTestSkipped(
                 'Swoole\Coroutine\run does not exist'
             );
