@@ -292,9 +292,7 @@ final class GitPhpFunctionalTest extends Unit
                 RepositoryPath::from('/etc'),
                 BranchName::from('escape'),
             );
-        } catch (Throwable $exception) {
-            $this->fail($exception->getMessage());
-        }  finally {
+        } finally {
             GitRepoFactory::tearDown($repo);
         }
     }
@@ -336,8 +334,8 @@ final class GitPhpFunctionalTest extends Unit
             $repository->set('user.name', 'Alice');
             $repository->set('user.email', 'alice@example.com');
 
-            self::assertSame('Alice', $repository->get('user.name', ConfigScope::Local));
-            self::assertSame('alice@example.com', $repository->get('user.email', ConfigScope::Local));
+            self::assertSame('Alice', $repository->get('user.name'));
+            self::assertSame('alice@example.com', $repository->get('user.email'));
 
             $all = $repository->getAll(ConfigScope::Local);
             self::assertArrayHasKey('user.name', $all);
