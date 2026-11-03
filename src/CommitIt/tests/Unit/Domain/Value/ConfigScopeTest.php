@@ -6,6 +6,7 @@ namespace Tests\Unit\Domain\Value;
 
 use Codeception\Test\Unit;
 use ItPack\CommitIt\Domain\Value\ConfigScope;
+use ValueError;
 
 /**
  * @covers \ItPack\CommitIt\Domain\Value\ConfigScope
@@ -32,7 +33,7 @@ final class ConfigScopeTest extends Unit
 
     public function testFromRejectsInvalidScope(): void
     {
-        $this->expectException(\ValueError::class);
+        $this->expectException(ValueError::class);
 
         ConfigScope::from('invalid');
     }

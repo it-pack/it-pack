@@ -419,7 +419,7 @@ final readonly class ObservedRepository implements ExtendedRepository
      */
     public function set(
         string|Stringable $key,
-        string $value,
+        string|Stringable $value,
         ConfigScope $scope =
         ConfigScope::Local,
         string|Stringable|null $file = null
