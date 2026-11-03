@@ -31,7 +31,9 @@ jobs:
       matrix:
         php:
           - '8.5'
+            composer_args: ['']
           - '8.6'
+            composer_args: "--ignore-platform-reqs"
         pkg:
           - AsyncIt
           - CommandIt
@@ -78,7 +80,7 @@ jobs:
         run: composer validate
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer install --no-interaction --prefer-dist --no-progress  ${{ matrix.composer_args }}
 
       - name: Build Codeception actors
         run: vendor/bin/codecept build
