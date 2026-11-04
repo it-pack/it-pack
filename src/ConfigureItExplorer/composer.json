@@ -12,7 +12,7 @@
     ],
     "require": {
         "php": "^8.5",
-        "it-pack/configure-it": "*@dev"
+        "it-pack/configure-it": "*^1.1"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",
@@ -54,15 +54,6 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../ConfigureIt",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
     "config": {
         "allow-plugins": {
             "infection/extension-installer": true,
