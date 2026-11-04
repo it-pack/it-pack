@@ -14,7 +14,7 @@
     ],
     "require": {
         "php": "^8.4",
-        "it-pack/run-it": "*@dev"
+        "it-pack/run-it": "*^1.1"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",
@@ -68,11 +68,5 @@
             "@security:audit"
         ],
         "architecture": "vendor/bin/phparkitect check"
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../RunIt"
-        }
-    ]
+    }
 }
