@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": "^8.5",
-        "it-pack/run-it": "@dev",
+        "it-pack/run-it": "^1.1",
         "symfony/polyfill-io-poll": "^1.43",
         "symfony/polyfill-php86": "^1.43"
     },
@@ -41,15 +41,6 @@
         "predis/predis": "Required by ItPack\\AsyncIt\\Adapter\\Redis\\RedisTaskQueue for Redis-backed persistent task queue storage.",
         "prom/phprometheus": "Required by ItPack\\AsyncIt\\Adapter\\Prometheus\\PrometheusTelemetryBridge for Prometheus metrics export."
     },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../RunIt",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
     "autoload": {
         "psr-4": {
             "ItPack\\AsyncIt\\": "src/"
