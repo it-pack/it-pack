@@ -19,4 +19,9 @@ final readonly class CoroutineContextToken implements ContextTokenInterface
         public ExecutionScopeInterface $scope,
     ) {
     }
+
+    public function id(): int
+    {
+        return $this->coroutineId;
+    }
 }

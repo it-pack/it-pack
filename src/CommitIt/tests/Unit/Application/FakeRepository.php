@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application;
 
+use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
+use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\WorkingTree;
 use ItPack\CommitIt\Domain\Option\BranchQuery;
@@ -14,17 +16,21 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
+use Stringable;
 
 /**
  * Minimal {@see Repository} test double. Records every call and can be told to
  * throw on a named operation so the decorator's failure path is exercised.
  */
-final class FakeRepository implements Repository
+final class FakeRepository implements ExtendedRepository
 {
+    use ExtendedCommitBehavior;
+
     /** @var list<string> */
     public array $calls = [];
 
@@ -244,6 +250,44 @@ final class FakeRepository implements Repository
         $this->maybeThrow('execute');
 
         return '';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getAll(ConfigScope $scope = ConfigScope::Local): array
+    {
+        $this->calls[] = 'getAll';
+        $this->maybeThrow('getAll');
+
+        return [];
+    }
+
+    public function get(string|Stringable $key, ConfigScope $scope = ConfigScope::Local): ?string
+    {
+        $this->calls[] = 'get';
+        $this->maybeThrow('get');
+
+        return null;
+    }
+
+    public function set(
+        string|Stringable $key,
+        string|Stringable $value,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->calls[] = 'set';
+        $this->maybeThrow('set');
+    }
+
+    public function unset(
+        string|Stringable $key,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->calls[] = 'unset';
+        $this->maybeThrow('unset');
     }
 
     public static function fakeCommit(CommitId $id): Commit

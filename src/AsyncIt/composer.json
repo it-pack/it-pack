@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": "^8.5",
-        "it-pack/run-it": "dev-main",
+        "it-pack/run-it": "@dev",
         "symfony/polyfill-io-poll": "^1.43",
         "symfony/polyfill-php86": "^1.43"
     },

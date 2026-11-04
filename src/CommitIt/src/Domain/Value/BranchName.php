@@ -15,7 +15,7 @@ use ItPack\CommitIt\Domain\Validation\RefNameValidator;
  */
 final readonly class BranchName
 {
-    private function __construct(public readonly string $name)
+    private function __construct(public string $name)
     {
     }
 

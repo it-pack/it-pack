@@ -1,0 +1,30 @@
+name: gitsplit
+on:
+  push:
+    branches:
+      - main
+      - split
+  release:
+    types: [published]
+  create:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gitsplit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        run: git clone https://github.com/it-pack/it-pack /home/runner/work/it-pack/it-pack && cd /home/runner/work/it-pack/it-pack
+      - name: dir
+        run: pwd
+      - name: list
+        run: ls -lisa
+      - name: Split repositories
+        uses: docker://jderusse/gitsplit:latest
+        with:
+          args: gitsplit
+        env:
+          GH_TOKEN: ${{ secrets.GITSPLIT_TOKEN }}

@@ -10,7 +10,9 @@ use CzProject\GitPhp\GitRepository;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use DateTimeInterface;
+use ItPack\CommitIt\Behavior\Adapter\ExtendedCommitBehavior;
 use ItPack\CommitIt\Contract\Exception\VcsOperationException;
+use ItPack\CommitIt\Contract\ExtendedRepository;
 use ItPack\CommitIt\Contract\PathSanitizer;
 use ItPack\CommitIt\Contract\Repository;
 use ItPack\CommitIt\Contract\SecretScanner;
@@ -25,11 +27,13 @@ use ItPack\CommitIt\Domain\Value\BranchName;
 use ItPack\CommitIt\Domain\Value\Commit;
 use ItPack\CommitIt\Domain\Value\CommitId;
 use ItPack\CommitIt\Domain\Value\CommitMessage;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 use ItPack\CommitIt\Domain\Value\RemoteName;
 use ItPack\CommitIt\Domain\Value\RepositoryPath;
 use ItPack\CommitIt\Domain\Value\TagInfo;
 use ItPack\CommitIt\Domain\Value\TagName;
 use ItPack\CommitIt\Domain\Value\TagType;
+use Stringable;
 
 /**
  * Git implementation of the vendor-neutral {@see Repository} contract, backed by
@@ -39,8 +43,10 @@ use ItPack\CommitIt\Domain\Value\TagType;
  * @api
  */
 // Intentionally NOT `readonly`: the lazy `$workingTree` memo at line 34 is mutated after construction.
-final class GitPhpRepository implements Repository
+final class GitPhpRepository implements ExtendedRepository
 {
+    use ExtendedCommitBehavior;
+
     private const string FETCH_REF = '(fetch)';
 
     private ?GitPhpWorkingTree $workingTree = null;
@@ -263,11 +269,7 @@ final class GitPhpRepository implements Repository
 
     private function matchesBranchQuery(string $branchName, ?string $pattern, bool $isRemote): bool
     {
-        if ($pattern !== null && !fnmatch($pattern, $branchName) && !fnmatch($pattern, basename($branchName))) {
-            return false;
-        }
-
-        return true;
+        return !($pattern !== null && !fnmatch($pattern, $branchName) && !fnmatch($pattern, basename($branchName)));
     }
 
     public function createTag(TagName $name, ?CommitId $target = null): void
@@ -511,6 +513,120 @@ final class GitPhpRepository implements Repository
         return $this->run(fn (): string => implode("\n", $this->repository->execute($command, ...$args)));
     }
 
+    public function getAll(ConfigScope $scope = ConfigScope::Local): array
+    {
+        return $this->run(function () use ($scope): array {
+            $args = array_merge(['config', '--list'], $this->configScopeArgs($scope));
+
+            $lines = $this->repository->execute(...$args);
+
+            $config = [];
+            foreach ($lines as $line) {
+                if ($line === '') {
+                    continue;
+                }
+                $pos = strpos($line, '=');
+                if ($pos === false) {
+                    continue;
+                }
+                $config[substr($line, 0, $pos)] = substr($line, $pos + 1);
+            }
+
+            return $config;
+        });
+    }
+
+    public function get(string|Stringable $key, ConfigScope $scope = ConfigScope::Local): ?string
+    {
+        $this->validateConfigKey($key);
+
+        return $this->run(function () use ($key, $scope): ?string {
+            try {
+                $args = array_merge(['config', '--get'], $this->configScopeArgs($scope), [$key]);
+
+                $lines = $this->repository->execute(...$args);
+            } catch (GitException) {
+                return null;
+            }
+
+            return $lines === [] ? null : $lines[0];
+        });
+    }
+
+    public function set(
+        string|Stringable $key,
+        string|Stringable $value,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->validateConfigKey($key);
+        $this->validateConfigFile($scope, $file);
+
+        $this->run(function () use ($key, $value, $scope, $file): void {
+            $args = array_merge(['config'], $this->configScopeArgs($scope, $file), [$key, $value]);
+
+            $this->repository->execute(...$args);
+        });
+    }
+
+    public function unset(
+        string|Stringable $key,
+        ConfigScope $scope = ConfigScope::Local,
+        string|Stringable|null $file = null
+    ): void {
+        $this->validateConfigKey($key);
+        $this->validateConfigFile($scope, $file);
+
+        $this->run(function () use ($key, $scope, $file): void {
+            $args = array_merge(['config', '--unset'], $this->configScopeArgs($scope, $file), [$key]);
+
+            $this->repository->execute(...$args);
+        });
+    }
+
+    private function validateConfigKey(string|Stringable $key): void
+    {
+        if ($key === '' || str_starts_with($key, '-')) {
+            throw new \InvalidArgumentException(sprintf('Invalid config key "%s": must not be empty or start with "-".', $key));
+        }
+
+        if (preg_match('/^[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+$/', $key) !== 1) {
+            throw new \InvalidArgumentException(sprintf('Invalid config key "%s": must be in dot-notation format (e.g. "user.name").', $key));
+        }
+    }
+
+    private function validateConfigFile(ConfigScope $scope, ?string $file): void
+    {
+        if ($scope !== ConfigScope::File) {
+            return;
+        }
+
+        if ($file === null) {
+            throw new \InvalidArgumentException('File path is required for ConfigScope::File.');
+        }
+
+        $this->pathSanitizer->sanitize($file, $this->repository->getRepositoryPath());
+    }
+
+    /**
+     * Returns the git CLI arguments for a config scope.
+     *
+     * Git uses `--system`, `--global`, `--local`, `--worktree`, `--file=<path>`
+     * rather than a generic `--scope=<name>` flag.
+     *
+     * @return list<string>
+     */
+    private function configScopeArgs(ConfigScope $scope, ?string $file = null): array
+    {
+        return match ($scope) {
+            ConfigScope::System => ['--system'],
+            ConfigScope::Global => ['--global'],
+            ConfigScope::Local => ['--local'],
+            ConfigScope::Worktree => ['--worktree'],
+            ConfigScope::File => ['--file=' . $file],
+        };
+    }
+
     /**
      * @template T
      * @param callable(): T $operation
@@ -535,4 +651,5 @@ final class GitPhpRepository implements Repository
             $commit->getCommitterDate(),
         );
     }
+
 }

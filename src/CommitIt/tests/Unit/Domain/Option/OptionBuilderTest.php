@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\CommitIt\Domain\Option\CloneOptions;
 use ItPack\CommitIt\Domain\Option\CommitOptions;
 use ItPack\CommitIt\Domain\Option\InitOptions;
+use ItPack\CommitIt\Domain\Value\ConfigScope;
 
 /**
  * @covers \ItPack\CommitIt\Domain\Option\InitOptions
@@ -79,5 +80,72 @@ final class OptionBuilderTest extends Unit
         self::assertTrue($options->allowEmpty);
         self::assertFalse($options->amend);
         self::assertNull($options->authorName);
+    }
+
+    public function testInitOptionsWithConfig(): void
+    {
+        $base = InitOptions::default();
+
+        self::assertSame([], $base->config);
+
+        $withConfig = $base->withConfig(
+            ['user.name' => 'Alice', 'user.email' => 'alice@example.com'],
+            ConfigScope::Local,
+        );
+
+        self::assertSame(
+            ['user.name' => 'Alice', 'user.email' => 'alice@example.com'],
+            $withConfig->config['local'],
+        );
+        self::assertSame([], $base->config, 'original must stay unchanged');
+    }
+
+    public function testInitOptionsWithConfigGlobalScope(): void
+    {
+        $options = InitOptions::default()->withConfig(
+            ['core.editor' => 'vim'],
+            ConfigScope::Global,
+        );
+
+        self::assertSame(['core.editor' => 'vim'], $options->config['global']);
+    }
+
+    public function testInitOptionsMultipleScopes(): void
+    {
+        $options = InitOptions::default()
+            ->withConfig(['user.name' => 'Alice'], ConfigScope::Local)
+            ->withConfig(['core.editor' => 'vim'], ConfigScope::Global)
+        ;
+
+        self::assertSame(['user.name' => 'Alice'], $options->config['local']);
+        self::assertSame(['core.editor' => 'vim'], $options->config['global']);
+    }
+
+    public function testCloneOptionsWithConfig(): void
+    {
+        $base = CloneOptions::default();
+
+        self::assertSame([], $base->config);
+
+        $withConfig = $base->withConfig(
+            ['user.name' => 'Bob'],
+            ConfigScope::Local,
+        );
+
+        self::assertSame(['user.name' => 'Bob'], $withConfig->config['local']);
+        self::assertSame([], $base->config, 'original must stay unchanged');
+    }
+
+    public function testCloneOptionsConfigWithOtherOptions(): void
+    {
+        $options = CloneOptions::default()
+            ->withBranch('main')
+            ->withDepth(1)
+            ->withConfig(['user.email' => 'bob@example.com'], ConfigScope::Local)
+        ;
+
+        self::assertSame('main', $options->branch);
+        self::assertSame(1, $options->depth);
+        self::assertSame(['user.email' => 'bob@example.com'], $options->config['local']);
     }
 }

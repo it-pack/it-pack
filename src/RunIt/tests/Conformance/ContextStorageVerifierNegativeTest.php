@@ -84,7 +84,12 @@ final class ContextStorageVerifierNegativeTest extends Unit
 
                 $this->stack[] = $scope;
 
-                return new class () implements ContextTokenInterface {};
+                return new class () implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
+                };
             }
 
             public function detach(ContextTokenInterface $token): void
@@ -121,7 +126,12 @@ final class ContextStorageVerifierNegativeTest extends Unit
             {
                 $this->stack[] = $scope;
 
-                return new class () implements ContextTokenInterface {};
+                return new class () implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
+                };
             }
 
             public function detach(ContextTokenInterface $token): void
@@ -154,7 +164,12 @@ final class ContextStorageVerifierNegativeTest extends Unit
             {
                 $this->stack[] = $scope;
 
-                return new class () implements ContextTokenInterface {};
+                return new class () implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
+                };
             }
 
             public function detach(ContextTokenInterface $token): void
@@ -183,7 +198,12 @@ final class ContextStorageVerifierNegativeTest extends Unit
             {
                 $this->stack[] = $scope;
 
-                return new class () implements ContextTokenInterface {};
+                return new class () implements ContextTokenInterface {
+                    public function id(): int
+                    {
+                        return 0;
+                    }
+                };
             }
 
             public function detach(ContextTokenInterface $token): void

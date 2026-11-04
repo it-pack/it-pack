@@ -19,11 +19,13 @@ namespace Tests\Support;
  *
  * @SuppressWarnings(PHPMD)
 */
-class UnitTester extends \Codeception\Actor
-{
-    use _generated\UnitTesterActions;
+if (!class_exists(UnitTester::class)) {
+    class UnitTester extends \Codeception\Actor
+    {
+        use _generated\UnitTesterActions;
 
-    /**
-     * Define custom actions here
-     */
+        /**
+         * Define custom actions here
+         */
+    }
 }
