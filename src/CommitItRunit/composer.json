@@ -14,8 +14,8 @@
     ],
     "require": {
         "php": "^8.5",
-        "it-pack/commit-it": "*@dev",
-        "it-pack/run-it": "*@dev"
+        "it-pack/commit-it": "*^1.1",
+        "it-pack/run-it": "*^1.1"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",
