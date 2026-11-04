@@ -6,7 +6,7 @@
     "require": {
         "php": "^8.5",
         "psr/container": "^2.0",
-        "it-pack/configure-it": "*@dev"
+        "it-pack/configure-it": "^1.1v"
     },
     "require-dev": {
         "codeception/codeception": "^5.0",
@@ -53,11 +53,5 @@
             "@security:audit"
         ],
         "architecture": "vendor/bin/phparkitect check"
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../ConfigureIt"
-        }
-    ]
+    }
 }
