@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection ForgottenDebugOutputInspection */
 
 declare(strict_types=1);
 
@@ -32,16 +32,21 @@ final readonly class FallbackErrorLogReporter
 
     private const string LINE_PREFIX = '[runit] publication health fallback: ';
 
-    private readonly Closure $logTo;
+    private const string MESSAGE_TEMPLATE = '%s handler fault [%s] %s while reporting [%s] %s%s';
+
+    private const string ARTIFACT_TEMPLATE = 'artifact=%s';
+
+    /** @var int @see https://www.php.net/manual/en/function.error-log.php */
+    private const int DEFAULT_LOG_TYPE = 0;
+
+    private Closure $logTo;
 
     /**
      * @param Closure(string): void|null $logTo injectable destination; defaults to the PHP error log
      */
     public function __construct(?Closure $logTo = null)
     {
-        $this->logTo = $logTo ?? static function (string $line): void {
-            error_log($line);
-        };
+        $this->logTo = $logTo ?? self::systemLog(...);
     }
 
     /**
@@ -50,19 +55,42 @@ final readonly class FallbackErrorLogReporter
      */
     public function report(Throwable $primary, Throwable $handlerFault, ?string $artifactId = null): void
     {
-        ($this->logTo)(sprintf(
-            '%s handler fault [%s] %s while reporting [%s] %s%s',
-            self::LINE_PREFIX,
-            $handlerFault::class,
-            $this->segment($handlerFault->getMessage()),
-            $primary::class,
-            $this->segment($primary->getMessage()),
-            $artifactId === null ? '' : ' artifact=' . $this->segment($artifactId),
-        ));
+        ($this->logTo)(
+            sprintf(
+                self::MESSAGE_TEMPLATE,
+                self::LINE_PREFIX,
+                $handlerFault::class,
+                $this->segment(
+                    $handlerFault->getMessage()
+                ),
+                $primary::class,
+                $this->segment(
+                    $primary->getMessage()
+                ),
+                $artifactId === null
+                    ? ''
+                    : sprintf(
+                        self::ARTIFACT_TEMPLATE,
+                        $this->segment($artifactId)
+                    ),
+            )
+        );
     }
 
     private function segment(string $message): string
     {
         return substr($message, 0, self::MAX_SEGMENT_BYTES);
+    }
+
+    /**
+     * Sends the error message to the defined error handling routines
+     * @see https://www.php.net/manual/en/function.error-log.php
+     */
+    private static function systemLog(string $message): void
+    {
+        error_log(
+            $message,
+            self::DEFAULT_LOG_TYPE,
+        );
     }
 }
