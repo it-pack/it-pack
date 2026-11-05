@@ -21,6 +21,8 @@ use ItPack\RunIt\SDK\Decorator\ExecutedCallable;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactory;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactoryInterface;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableInterface;
+use ItPack\RunIt\SDK\Execution\MetadataExecutionDefinitionFactory;
+use ItPack\RunIt\SDK\Execution\MetadataExecutionDefinitionFactoryInterface;
 use Throwable;
 
 /**
@@ -36,20 +38,17 @@ use Throwable;
  */
 final readonly class DefaultRunIt implements RunItInterface
 {
-    private ExecutedAsMetadataReaderInterface $attributeReader;
     private ExecutedCallableFactoryInterface $executedCallableFactory;
-    private ExecutionDefinitionFactoryInterface $executionDefinitionFactory;
 
     public function __construct(
         private ExecutionRunnerInterface   $runner,
         private CurrentExecutionInterface  $currentExecution,
-        ?ExecutedAsMetadataReaderInterface $attributeReader = null,
+        private ExecutedAsMetadataReaderInterface $attributeReader = new DefaultExecutedAsMetadataReader(),
         ?ExecutedCallableFactoryInterface $executedCallableFactory = null,
-        ?ExecutionDefinitionFactoryInterface $executionDefinitionFactory = null,
+        private MetadataExecutionDefinitionFactoryInterface $metadataExecutionDefinitionFactory
+            = new MetadataExecutionDefinitionFactory(),
     ) {
-        $this->attributeReader = $attributeReader ?? new DefaultExecutedAsMetadataReader();
         $this->executedCallableFactory = $executedCallableFactory ?? new ExecutedCallableFactory($runner);
-        $this->executionDefinitionFactory = $executionDefinitionFactory ?? new ExecutionDefinitionFactory();
     }
 
     /**
@@ -88,10 +87,7 @@ final readonly class DefaultRunIt implements RunItInterface
 
     private function definitionFromMetadata(ExecutedAs $metadata): ExecutionDefinitionInterface
     {
-        return $this->executionDefinitionFactory->create(
-            ExecutionName::fromString($metadata->name),
-            ExecutionKind::fromString($metadata->kind),
-        );
+        return $this->metadataExecutionDefinitionFactory->create($metadata);
     }
 
     private function resolveDefinition(
