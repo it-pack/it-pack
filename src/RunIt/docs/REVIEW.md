@@ -145,14 +145,39 @@ The generated class report does not identify each offending method, so the requi
 | `composer architecture` | Passed, 395 analyzed classes; subject to rule-scope limitation above. |
 | `composer lint:length` | Passed, with configured exclusions above. |
 | `composer api:check` | Failed: one public interface compatibility break. |
-| `composer analyse` | Failed: 137 PHPStan errors. |
-| `composer cs:check` | Failed: two test files. |
+| `composer analyse` | Failed: 138 PHPStan errors after correcting two additional errors in Phase 0 test support. A complete before/after attribution of the remaining errors has not been established. |
+| `composer cs:check` | Passed after fixing two test files (missing space after `if` in Swoole tests). |
 | `composer audit` | After the dependency update: no security vulnerability advisories; one abandoned package, `doctrine/annotations`. |
 | `composer why doctrine/annotations --tree` | Development dependency via `just-bases/php-qa-base` and `phpbench/phpbench`. |
-| `composer audit --no-dev` | Earlier review run: no security vulnerability advisories found; not rerun after the dependency update. |
-| `composer test -- --no-colors` | Passed; the final concurrency suite reported 4 tests and 81 assertions. |
-| `composer coverage` | Passed as a command; 813 tests, 5,677 assertions, 88.18% unit statement coverage. |
+| `composer audit --no-dev` | No security vulnerability advisories found. |
+| `composer test -- --no-colors` | Passed: Unit 815 tests / 5,682 assertions; Integration 3 / 7; Conformance 52 / 111; Concurrency 5 / 119. |
+| Unit-only coverage, isolated output | Passed; 88.14% statement coverage (3,554/4,032 lines). Command and report location below. |
+| `composer benchmark` | Passed: 10 subjects, 0 failures; workload and limitations below. |
 | `vendor/bin/phpmetrics ... src` | Completed; class and method maxima above. |
 | `vendor/bin/phpa src -f xml -o /tmp/kilo/runit-phpa.xml` | Completed; heuristic output above. |
 
-The unit coverage command selects Unit (`composer.json:90`), whereas the ordinary test command invokes suites separately (`composer.json:77-87`). This is evidence for suite selection, not proof that individual tests avoid all indirect coverage attribution. PCOV did not provide branch coverage. PHP 8.4, mutation testing, benchmarks, exhaustive per-test coverage isolation, and full dependency exploitability analysis were not run. No application code or API baseline was changed as part of this review.
+The unit coverage command selects Unit (`composer.json:90`), whereas the ordinary test command invokes suites separately (`composer.json:77-87`). This is evidence for suite selection, not proof that individual tests avoid all indirect coverage attribution. PCOV did not provide branch coverage. PHP 8.4, mutation testing, exhaustive per-test coverage isolation, and full dependency exploitability analysis were not run. No application code or API baseline was changed as part of this review.
+
+## Phase 0 baseline refresh
+
+- Source revision: `b777c0a4425de7d10db87c82e995913b46dda2b9`, with pre-existing uncommitted documentation and test changes; this is not a clean-revision measurement. The full worktree is required to reproduce it.
+- Environment: Linux x86_64 under WSL2, PHP 8.5.12 CLI, Composer 2.9.7, PCOV 1.0.12, PHPBench 1.7.0. Swoole and PCOV extensions were loaded; OpenSwoole was not. PHP 8.4 was not tested.
+- Dependency state: `composer.lock` SHA-256 `d8451513a9c96f2a143508a66b0a2cf53e95a9de9a5b06a42c8c04ee53eafe23`; `composer validate --strict` passed. Audit found no security advisories and one abandoned development dependency, `doctrine/annotations`.
+- `composer api:check` exited 1 for the existing `ContextTokenInterface::id()` compatibility break. `composer analyse` exited 1 with 140 errors before the two Phase 0 typing corrections and 138 afterwards. Architecture, line length, coding style, and the full test command exited 0.
+- Coverage: `vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html --no-colors --override 'paths: {output: /tmp/kilo/runit-phase0-20261105}'` exited 0. XML is at `/tmp/kilo/runit-phase0-20261105/coverage.xml`, SHA-256 `da6b853014e315c6c1d750a4cce3403dcdd6b3215e54d0a6a5377cd3728b31ec`; it reports 395 files, 3,554/4,032 covered statements and zero recorded conditionals. This temporary report is not durable. The existing `tests/_output/coverage.xml` was not overwritten. Integration, Conformance and Concurrency results were not merged.
+- Benchmark: one PHPBench run in a virtualized environment, 2 warmups, 5 iterations and 100 revolutions. Mode estimates: execution lifecycle 80.90 µs ±4.42%; redaction 2.96 µs ±9.92%; bounded publication 2.74 µs ±3.90%; `benchBuffering` 31.12 µs ±2.04%. The last subject publishes 200 artifacts into `InMemoryArtifactPublisher`; it is **not** a `BufferedArtifactPublisher` drain or close benchmark. No raw iteration export was retained, and these results are not a controlled performance comparison.
+- `RedactingPublisherTest::testCurrentRedactionLeavesNestedThrowableSecretsExposed` is a passing characterization of a security defect, not an approval of that behavior. Replace it with negative assertions when the redaction policy is decided and fixed. The current characterization covers an observation, not all failed execution and adapter paths.
+
+## Phase 0 additions (2026-11-05)
+
+The following fixtures and tests were added under Phase 0 ("Baseline and safety net") of `REFACTORING_PLAN.md`, placed in the appropriate non-Unit suites:
+
+| File | Purpose | Suite |
+|---|---|---|
+| `tests/Support/Fixture/SensitiveExceptionChain.php` | Nested throwable descriptions with classified values (API key, DB password, session token) at three depths, for asserting redaction of nested causes and traces. | Unit (fixture) |
+| `tests/Support/Fixture/DeterministicArtifactByteEstimator.php` | Deterministic `ArtifactByteEstimatorInterface` using explicit per-ID sizes and a default, for byte-limit admission tests without JSON-length dependency. | Unit (fixture) |
+| `tests/Concurrency/InterleavedFiberContextIsolationTest.php` | Interleaved fibers suspend while holding ambient scopes; each fiber must observe only its own scope on resume. | Concurrency |
+
+CS fixes (no behavior change):
+- `tests/Unit/Adapter/Swoole/SwooleRuntimeDetectorTest.php:27` — added missing space after `if`.
+- `tests/Unit/Adapter/Swoole/CoroutineContextStorageTest.php:85` — added missing space after `if`.

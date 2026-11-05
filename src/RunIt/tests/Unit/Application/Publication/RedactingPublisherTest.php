@@ -25,6 +25,7 @@ use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
+use Tests\Support\Fixture\SensitiveExceptionChain;
 
 /**
  * @group application
@@ -98,6 +99,24 @@ final class RedactingPublisherTest extends Unit
 
         self::assertSame('[redacted]', $throwableData['message']);
         self::assertSame('token=abc123', $originalThrowable['message']);
+    }
+
+    public function testCurrentRedactionLeavesNestedThrowableSecretsExposed(): void
+    {
+        $original = Observation::error(
+            ObservationId::fromString('obs-nested'),
+            ExecutionId::fromString('exec-1'),
+            'failed',
+            null,
+            null,
+            null,
+            SensitiveExceptionChain::classifiedChain(),
+        );
+
+        $encoded = json_encode($this->publish($original)->normalize(), JSON_THROW_ON_ERROR);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringContainsString($secret, $encoded);
+        }
     }
 
     public function testOccurrenceDataIsMaskedRecursively(): void

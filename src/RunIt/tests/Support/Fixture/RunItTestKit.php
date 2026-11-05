@@ -42,6 +42,8 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 
 /**
  * Assembles a fully wired DefaultExecutionRunner for application-level tests.
@@ -192,7 +194,8 @@ final class RunItTestKit
     }
 
     /**
-     * @return list<ExecutionArtifactInterfacee>
+     * @return list<ExecutionArtifactInterface>
+    >
      */
     public function artifacts(): array
     {
@@ -204,7 +207,7 @@ final class RunItTestKit
     }
 
     /**
-     * @return list<SnapshotInterfacee>
+     * @return list<SnapshotInterface>
      */
     public function storedSnapshots(): array
     {

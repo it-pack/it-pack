@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Planning; no implementation is authorized by this document alone.
+**Status:** Implementation in progress (Phase 0 incomplete; dependent phases pending).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -26,16 +26,40 @@
 
 ## Phase 0: Baseline and safety net
 
-**Depends on:** none. **Outcome:** reproducible current state and isolated regression targets.
+**Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
 
-- [ ] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
-- [ ] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Inspect scripts in `composer.json` before changing commands.
-- [ ] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
-- [ ] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
-- [ ] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
-- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
+- [x] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
+- [x] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Inspect scripts in `composer.json` before changing commands.
+- [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
+- [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
+- [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
+- [x] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
+
+**Phase 0 results (recorded in `docs/REVIEW.md` verification record):**
+
+| Check                        | Result                                                                                   |
+|------------------------------|------------------------------------------------------------------------------------------|
+| `composer validate --strict` | Passed                                                                                   |
+| `composer architecture`      | Passed, 395 analyzed classes                                                             |
+| `composer lint:length`       | Passed                                                                                   |
+| `composer api:check`         | Failed: 1 BC break (`ContextTokenInterface::id()`)                                       |
+| `composer cs:check`          | Passed after fixing 2 test files                                                         |
+| `composer analyse`           | Failed: 138 PHPStan errors; attribution of every remaining diagnostic is not established |
+| `composer audit`             | No advisories; 1 abandoned package (`doctrine/annotations`)                              |
+| Full test suite              | Passed: 875 tests, 5,919 assertions across four suites                                   |
+| Coverage                     | 88.14% unit statement coverage (3,554/4,032 lines)                                       |
+| Benchmarks                   | 10 subjects, 0 failures                                                                  |
+
+**Phase 0 additions:**
+- `tests/Support/Fixture/SensitiveExceptionChain.php` — nested throwable chain with classified values (API key, DB password, session token) at three depths.
+- `tests/Support/Fixture/DeterministicArtifactByteEstimator.php` — deterministic byte estimator for buffer admission tests.
+- `tests/Concurrency/InterleavedFiberContextIsolationTest.php` — interleaved fiber isolation test.
+- CS fixes: two missing-space-after-`if` fixes in Swoole unit tests.
+- A passing characterization test reproduces nested throwable secret exposure; it must become a negative security regression after the policy and fix are agreed.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
+
+**Outstanding:** `composer api:check` reproduces the compatibility break and the observation characterization reproduces nested redaction leakage, but the full third-party token scenario, failed-execution/adapter redaction paths, and other high-priority regressions remain to be reproduced. Exact expected masking and compatibility fixes require the decisions above. Complete the baseline evidence and exit criterion before marking this phase complete. The existing benchmark does not measure buffered publisher drain/close; obtain a representative baseline before changing that path. See the baseline refresh in `REVIEW.md` for the environment, report location and limitations.
 
 ## Phase 1: Compatibility and context ownership
 
