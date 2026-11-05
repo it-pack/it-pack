@@ -16,7 +16,10 @@ use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 use ItPack\RunIt\SDK\Attribute\ExecutedAsMetadataReaderInterface;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallable;
+use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactory;
+use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactoryInterface;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableInterface;
+use Throwable;
 
 /**
  * Default {@see RunItInterface} facade.
@@ -29,18 +32,24 @@ use ItPack\RunIt\SDK\Decorator\ExecutedCallableInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class DefaultRunIt implements RunItInterface
+final readonly class DefaultRunIt implements RunItInterface
 {
-    private readonly ExecutedAsMetadataReaderInterface $attributeReader;
+    private ExecutedAsMetadataReaderInterface $attributeReader;
+    private ExecutedCallableFactoryInterface $executedCallableFactory;
 
     public function __construct(
-        private readonly ExecutionRunnerInterface $runner,
-        private readonly CurrentExecutionInterface $currentExecution,
+        private ExecutionRunnerInterface   $runner,
+        private CurrentExecutionInterface  $currentExecution,
         ?ExecutedAsMetadataReaderInterface $attributeReader = null,
+        ?ExecutedCallableFactoryInterface $executedCallableFactory = null,
     ) {
         $this->attributeReader = $attributeReader ?? new DefaultExecutedAsMetadataReader();
+        $this->executedCallableFactory = $executedCallableFactory ?? new ExecutedCallableFactory($runner);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
     {
         return $this->runner->run($definition, $operation);
@@ -60,28 +69,16 @@ final class DefaultRunIt implements RunItInterface
         callable $operation,
         ExecutionDefinitionInterface|callable|null $definition = null
     ): ExecutedCallableInterface {
-        $static = null;
-        $factory = null;
-
-        if ($definition !== null) {
-            if ($definition instanceof ExecutionDefinitionInterface) {
-                $static = $definition;
-            }
-
-            if (!$definition instanceof ExecutionDefinitionInterface) {
-                $factory = Closure::fromCallable($definition);
-            }
-        }
-
-        if ($definition === null) {
-            $metadata = $this->attributeReader->read($operation);
-
-            if ($metadata instanceof ExecutedAs) {
-                $static = $this->definitionFromMetadata($metadata);
-            }
-        }
-
-        return new ExecutedCallable($this->runner, $operation, $static, $factory);
+        return $this->executedCallableFactory->build(
+            $operation,
+            $this->resolveDefinition(
+                $operation,
+                $definition,
+            ),
+            $this->resolveFactory(
+                $definition,
+            )
+        );
     }
 
     private function definitionFromMetadata(ExecutedAs $metadata): ExecutionDefinitionInterface
@@ -90,5 +87,34 @@ final class DefaultRunIt implements RunItInterface
             ExecutionName::fromString($metadata->name),
             ExecutionKind::fromString($metadata->kind),
         );
+    }
+
+    private function resolveDefinition(
+        callable $operation,
+        ExecutionDefinitionInterface|callable|null $definition = null,
+
+    ): ?ExecutionDefinitionInterface {
+        if ($definition instanceof ExecutionDefinitionInterface) {
+            return $definition;
+        }
+
+        if ($definition === null) {
+            $metadata = $this->attributeReader->read($operation);
+
+            if ($metadata instanceof ExecutedAs) {
+                return $this->definitionFromMetadata($metadata);
+            }
+        }
+
+        return $definition;
+    }
+
+    private function resolveFactory(
+        ExecutionDefinitionInterface|callable|null $definition,
+
+    ): ?Closure {
+         return is_callable($definition)
+             ? $definition(...)
+             : null;
     }
 }
