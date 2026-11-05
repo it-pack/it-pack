@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Attribute;
 
 use Closure;
+use LogicException;
+use ReflectionClass;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
@@ -33,47 +35,56 @@ use WeakMap;
  */
 final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderInterface
 {
+    /**
+     * Also called Paamayim Nekudotayim - @see https://www.php.net/manual/en/language.oop5.paamayim-nekudotayim.php
+     */
+    private const string DOUBLE_COLON = '::';
+
     /** @var WeakMap<object, ?ExecutedAs> */
     private WeakMap $objectCache;
 
     /** @var array<string, ?ExecutedAs> */
     private array $literalCache = [];
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly CallableReflectionResolverInterface $reflectionResolver = new CallableReflectionResolver,
+    ){
         $this->objectCache = new WeakMap();
     }
 
     public function read(callable|Closure $operation): ?ExecutedAs
     {
-        if (is_object($operation)) {
-            return $this->readObjectKeyed($operation);
-        }
-
-        $key = $this->literalKey($operation);
-
-        if (array_key_exists($key, $this->literalCache)) {
-            return $this->literalCache[$key];
-        }
-
-        $metadata = $this->resolveFromReflection($this->reflectLiteral($operation));
-
-        $this->literalCache[$key] = $metadata;
-
-        return $metadata;
+        return match (true) {
+            is_object($operation) => $this->readObjectKeyed($operation),
+            is_string($operation) || is_array($operation) => $this->readLiteralKeyed($operation),
+            default => null,
+        };
     }
 
-    private function readObjectKeyed(object $operation): ?ExecutedAs
+    private function readObjectKeyed(callable|Closure $operation): ?ExecutedAs
     {
-        if ($this->objectCache->offsetExists($operation)) {
-            return $this->objectCache->offsetGet($operation);
-        }
+        return $this->objectCache->offsetExists($operation)
+            ? $this->objectCache[$operation]
+            : $this->objectCache[$operation] = $this->resolveFromReflection(
+                $this->reflectObject(
+                    $this->reflectionResolver->resolve(
+                        $operation
+                    )
+                )
+            );
+    }
 
-        $metadata = $this->resolveFromReflection($this->reflectObject($operation));
+    private function readLiteralKeyed(callable|Closure $operation): ?ExecutedAs
+    {
+        $key = $this->literalKey($operation);
 
-        $this->objectCache->offsetSet($operation, $metadata);
-
-        return $metadata;
+        return array_key_exists($key, $this->literalCache)
+            ? $this->literalCache[$key]
+            : $this->literalCache[$key] = $this->resolveFromReflection(
+                $this->reflectionResolver->resolve(
+                    $operation
+                )
+            );
     }
 
     private function resolveFromReflection(?ReflectionFunctionAbstract $reflection): ?ExecutedAs
@@ -100,7 +111,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
         if (is_array($operation)) {
             $class = is_object($operation[0]) ? $operation[0]::class : $operation[0];
 
-            return $class . '::' . $operation[1];
+            return $class . self::DOUBLE_COLON . $operation[1];
         }
 
         if (is_string($operation)) {
@@ -113,7 +124,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
     private function calledMethodName(ReflectionFunction $reflection): string
     {
         $name = $reflection->getName();
-        $position = strrpos($name, '::');
+        $position = strrpos($name, self::DOUBLE_COLON);
 
         return $position === false ? $name : substr($name, $position + 2);
     }
@@ -125,11 +136,13 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
                 $reflection = new ReflectionFunction($operation);
                 $called = $reflection->getClosureCalledClass();
 
-                if ($called !== null) {
-                    return new ReflectionMethod($called->getName(), $this->calledMethodName($reflection));
-                }
+                return $called instanceof ReflectionClass
+                    ? $reflection
+                    : new ReflectionMethod(
+                        $called->getName(),
+                        $this->calledMethodName($reflection)
+                    );
 
-                return $reflection;
             }
 
             return new ReflectionMethod($operation, '__invoke');
@@ -137,26 +150,4 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
             return null;
         }
     }
-
-    private function reflectLiteral(callable $operation): ?ReflectionFunctionAbstract
-    {
-        try {
-            if (is_array($operation)) {
-                return new ReflectionMethod($operation[0], $operation[1]);
-            }
-
-            if (is_string($operation)) {
-                if (str_contains($operation, '::') && class_exists(explode('::', $operation, 2)[0])) {
-                    return new ReflectionMethod($operation);
-                }
-
-                return new ReflectionFunction($operation);
-            }
-
-            throw new \LogicException('Object callables are resolved through the WeakMap cache.');
-        } catch (ReflectionException) {
-            return null;
-        }
-    }
-
 }
