@@ -17,12 +17,22 @@ use Attribute;
  * @see https://w3id.org/itpack/runit#Execution
  */
 #[Attribute(Attribute::TARGET_FUNCTION | Attribute::TARGET_METHOD | Attribute::TARGET_CLASS)]
-final readonly class ExecutedAs
+final  class ExecutedAs implements ExecutedAsInterface
 {
-    public const string DEFAULT_KIND = 'operation';
+    public string $name{
+        get {
+            return $this->_name;
+        }
+    }
+
+    public string $kind{
+        get {
+            return $this->_kind;
+        }
+    }
 
     public function __construct(
-        public string $name,
-        public string $kind = self::DEFAULT_KIND,
+        private readonly string $_name,
+        private readonly ?string $_kind = self::DEFAULT_KIND,
     ) {}
 }
