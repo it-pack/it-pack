@@ -17,11 +17,12 @@ use Attribute;
  * @see https://w3id.org/itpack/runit#Execution
  */
 #[Attribute(Attribute::TARGET_FUNCTION | Attribute::TARGET_METHOD | Attribute::TARGET_CLASS)]
-final class ExecutedAs
+final readonly class ExecutedAs
 {
+    public const string DEFAULT_KIND = 'operation';
+
     public function __construct(
-        public readonly string $name,
-        public readonly string $kind = 'operation',
-    ) {
-    }
+        public string $name,
+        public string $kind = self::DEFAULT_KIND,
+    ) {}
 }
