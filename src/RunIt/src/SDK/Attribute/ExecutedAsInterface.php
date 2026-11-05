@@ -10,7 +10,7 @@ interface ExecutedAsInterface
     public string $name {
         get;
     }
-    public string $kind = self::DEFAULT_KIND {
+    public string $kind {
         get;
     }
 }
