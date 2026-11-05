@@ -8,8 +8,10 @@ use Closure;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionDefinitionFactoryInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinitionFactory;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
@@ -36,15 +38,18 @@ final readonly class DefaultRunIt implements RunItInterface
 {
     private ExecutedAsMetadataReaderInterface $attributeReader;
     private ExecutedCallableFactoryInterface $executedCallableFactory;
+    private ExecutionDefinitionFactoryInterface $executionDefinitionFactory;
 
     public function __construct(
         private ExecutionRunnerInterface   $runner,
         private CurrentExecutionInterface  $currentExecution,
         ?ExecutedAsMetadataReaderInterface $attributeReader = null,
         ?ExecutedCallableFactoryInterface $executedCallableFactory = null,
+        ?ExecutionDefinitionFactoryInterface $executionDefinitionFactory = null,
     ) {
         $this->attributeReader = $attributeReader ?? new DefaultExecutedAsMetadataReader();
         $this->executedCallableFactory = $executedCallableFactory ?? new ExecutedCallableFactory($runner);
+        $this->executionDefinitionFactory = $executionDefinitionFactory ?? new ExecutionDefinitionFactory();
     }
 
     /**
@@ -83,7 +88,7 @@ final readonly class DefaultRunIt implements RunItInterface
 
     private function definitionFromMetadata(ExecutedAs $metadata): ExecutionDefinitionInterface
     {
-        return ExecutionDefinition::create(
+        return $this->executionDefinitionFactory->create(
             ExecutionName::fromString($metadata->name),
             ExecutionKind::fromString($metadata->kind),
         );
