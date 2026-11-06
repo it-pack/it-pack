@@ -76,6 +76,33 @@ meaningful for future comparisons on the same host, not absolute claims.
 | `benchBuffering` | 44.10 µs | ±64.3% |
 | `benchOtelNullProviderRecord` | ≈0.29 µs | at noise floor (see T3.5 verdict below) |
 
+### Buffer drain and close baseline (2026-11-06)
+
+At revision `72c32f63c88c44913bc88c5b42e4673c36737174`, a focused harness
+filled a fresh `BufferedArtifactPublisher` outside the timed region, then timed
+either repeated 256-item flushes or a single close. Close used either a full
+budget or a 256-item budget, dropping the remainder. It checked delivery, drop,
+queue and byte totals. Results are milliseconds per operation, median and full
+range over nine samples after two warmups with rotating case order:
+
+| Items | Flush | Full-budget close | Close with budget 256 |
+| ---: | ---: | ---: | ---: |
+| 256 | 0.234 (0.215–0.241) | 0.216 (0.210–0.283) | 0.229 (0.209–0.355) |
+| 1,024 | 1.708 (1.665–1.929) | 1.731 (1.648–1.968) | 1.444 (1.412–8.665) |
+| 4,096 | 19.543 (18.997–22.411) | 19.550 (18.989–20.749) | 18.594 (17.577–19.877) |
+| 16,384 | 292.483 (282.612–440.644) | 286.980 (281.001–306.188) | 280.919 (276.619–344.994) |
+
+PHP 8.5.12 CLI NTS, CLI OPcache/JIT disabled, unlimited memory, WSL2 x86-64,
+four virtual CPUs, Intel Core i7-9700. The 1,024-item case uses the default
+maximum count and batch size with automatic flushing disabled; larger queues
+and the limited shutdown budget are stress configurations. The reused info
+observation, default estimator, system clock and counting sink exclude actual
+sink I/O, serialization, overflow, priority, expiration, concurrency and memory
+profiling. Larger queues show superlinear growth, but the measurement does not
+isolate its cause or establish production latency. The temporary harness and
+samples are `/tmp/kilo/runit-buffer-baseline.php` and
+`/tmp/kilo/runit-buffer-baseline-results.txt`; neither is tracked.
+
 Phase 2 (T2.4) replaced the bounded publisher's per-publish
 `strlen(json_encode(...))` sizing — which encoded every occurrence/snapshot
 payload just to measure it — with the native

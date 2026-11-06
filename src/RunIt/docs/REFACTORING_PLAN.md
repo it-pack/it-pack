@@ -72,7 +72,44 @@ verification. The unchecked design details below must still be resolved where ap
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
 
-**Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. The recorded Unit coverage XML and PhpMetrics/PHP Assumptions reports under `/tmp/kilo` are no longer present. Re-establish and preserve the evidence, record exact command exit codes and remaining diagnostic attribution, and obtain a buffered-publisher drain/close benchmark with workloads and variance. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+**Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+
+**Partial refreshed baseline (2026-11-06):** At revision
+`72c32f63c88c44913bc88c5b42e4673c36737174`, the initial worktree was clean.
+The subsequent test and coverage runs include the new, uncommitted
+`SamplingTest.php` characterization tests. PHP was 8.5.12 CLI NTS with PCOV,
+Swoole and Fiber available; OpenSwoole and Swow were not loaded. The package's
+ignored lockfile supplied the installed dependencies; no update was run.
+
+| Check | Exit | Result |
+| --- | ---: | --- |
+| `composer validate --strict` | 0 | Valid manifest. |
+| `composer api:check` | 1 | Ten additive entries, zero detected breaks; baseline not changed. |
+| `composer analyse` | 1 | 147 diagnostics; full baseline attribution remains open. |
+| `composer refactor:dry` | 2 | Existing callable-array fixture would be converted. |
+| `composer cs:check` | 0 | No formatting changes. |
+| `composer architecture` | 0 | No violations in 404 analyzed classes. |
+| `composer lint:length` | 1 | 26 violations outside the new sampling test. |
+| `composer test` | 0 | Unit 846/5,803; Integration 3/7; Conformance 52/111; Concurrency 7/145 (tests/assertions). |
+| `composer coverage` | 0 | Unit only: 3,605/4,087 lines (88.20%); 846 tests. |
+| `composer audit` | 0 | No vulnerability advisories; abandoned `doctrine/annotations`. |
+
+An additional Unit-only run produced `/tmp/kilo/runit-unit-coverage.xml` with
+the same 3,605/4,087 statement totals. PCOV does not provide branch coverage;
+aggregate results do not prove per-test attribution. PhpMetrics 2.11.0 and PHP
+Assumptions 0.9.1 completed using the commands in `REVIEW.md`, generating
+`/tmp/kilo/runit-phpmetrics.{json,csv}`,
+`/tmp/kilo/runit-phpmetrics-summary.json`, and `/tmp/kilo/runit-phpa.xml`.
+They report 236 classes and 75 assumptions respectively; assumptions are not
+verified defects. `/tmp/kilo` is temporary and the reports are not tracked.
+The focused buffer drain/close measurement is recorded in `benchmarks.md`;
+other hot paths, failure cases, and Phase 0 exit criteria remain open.
+
+The standalone negative reproduction
+`php /tmp/kilo/runit-execution-redaction-repro.php "$PWD"` exits 1 on this tree:
+a failed execution published through the default redactor retains sensitive
+markers and traces. It checks class/code preservation and source immutability
+without printing the markers; the temporary script is not part of the test suite.
 
 The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. On 2026-11-06, `composer api:check` exited 1 on the current dirty tree for nine additive symbols and reported zero backward-compatibility breaks; this does not authorize a further baseline update. The current observation-level nested-redaction test passes, but failed-execution and adapter export paths, sampler input, byte admission, default failure reporting, concurrency risk, and complete token-ownership scenarios still require individual reproduction or documented reasons they cannot yet be reproduced. Phase 0 is not complete.
 
@@ -149,6 +186,14 @@ compatibility or complete the Phase 0 baseline.
 On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
+
+The newer sampling tests exercise the real factory with a spy sampler and sink,
+including null decorators, rejected and accepted inputs, and changed versus
+unchanged observations. They characterize the current pre-redaction exposure,
+not the approved target. A severity-policy check demonstrates why simply moving
+the generic redacted wrapper ahead of sampling changes the decision. The focused
+suite passed on PHP 8.5.12 and 8.4.27 (13 tests, 42 assertions); error override,
+execution-kind composition, and the redaction-first target remain open.
 
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
