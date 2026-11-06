@@ -27,7 +27,7 @@ return RectorConfig::configure()
         SetList::CODE_QUALITY,
         SetList::CODING_STYLE,
         SetList::DEAD_CODE,
-        SetList::NAMED_ARGS,
+        //SetList::NAMED_ARGS,
         SetList::PRIVATIZATION,
         SetList::TYPE_DECLARATION,
     ])
