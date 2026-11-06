@@ -9,6 +9,8 @@ use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\Fixture\SDK\AttributedService;
+use Tests\Support\Fixture\SDK\SampleService;
 
 #[CoversClass(DefaultExecutedAsMetadataReader::class)]
 #[CoversClass(ExecutedAs::class)]
@@ -41,7 +43,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
 
     public function testAttributeMetadataIsResolvedFromFreeFunction(): void
     {
-        $metadata = $this->reader->read('Tests\Unit\SDK\Attribute\sample_free_function');
+        $metadata = $this->reader->read('Tests\Support\Fixture\SDK\sample_free_function');
 
         self::assertNotNull($metadata);
         self::assertSame('free.fn', $metadata->name);
@@ -50,7 +52,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
 
     public function testAttributeMetadataIsResolvedFromClosureBoundToMethod(): void
     {
-        $metadata = $this->reader->read(Closure::fromCallable([new SampleService(), 'run']));
+        $metadata = $this->reader->read((new SampleService())->run(...));
 
         self::assertNotNull($metadata);
         self::assertSame('service.run', $metadata->name);
@@ -154,39 +156,9 @@ final class ExecutedAsMetadataReaderTest extends TestCase
         $reader = new DefaultExecutedAsMetadataReader();
         SampleService::statically();
 
-        $metadata = $reader->read('Tests\Unit\SDK\Attribute\SampleService::statically');
+        $metadata = $reader->read('Tests\Support\Fixture\SDK\SampleService::statically');
 
         self::assertNotNull($metadata);
         self::assertSame('service.static', $metadata->name);
     }
-}
-
-#[ExecutedAs('service.class', 'batch')]
-final class AttributedService
-{
-    public function handle(): void
-    {
-    }
-}
-
-final class SampleService
-{
-    #[ExecutedAs('service.run', 'operation')]
-    public function run(): void
-    {
-    }
-
-    #[ExecutedAs('service.static', 'task')]
-    public static function statically(): void
-    {
-    }
-
-    public function plain(): void
-    {
-    }
-}
-
-#[ExecutedAs('free.fn', 'task')]
-function sample_free_function(): void
-{
 }
