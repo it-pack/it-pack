@@ -1,8 +1,8 @@
 {
     "name": "it-pack/run-it-third-party-sample",
     "description": "Third-party reference adapter for RunIt \u2014 proves a consumer that depends on it-pack/run-it purely as a vendor can implement the ArtifactPublisherInterface and ContextStorageInterface ports and pass the shipped conformance suites.",
-    "type": "library",
     "license": "MIT",
+    "type": "library",
     "keywords": [
         "run-it",
         "third-party",
@@ -12,6 +12,12 @@
         "it-pack",
         "itpack"
     ],
+    "authors": [
+        {
+            "name": "tidal",
+            "email": "timomichna@yahoo.de"
+        }
+    ],
     "require": {
         "php": "^8.4",
         "it-pack/run-it": "*@dev"
@@ -19,12 +25,22 @@
     "require-dev": {
         "codeception/codeception": "^5.0",
         "codeception/module-asserts": "^3.3",
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
         "infection/codeception-adapter": "^0.4",
-        "phparkitect/phparkitect": "^1.2"
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
+        "nyholm/psr7": "^1.8",
+        "phparkitect/phparkitect": "^1.2",
+        "symfony/http-client": "^8.1"
     },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../RunIt"
+        }
+    ],
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "ItPack\\RunItThirdPartySample\\": "src/"
@@ -35,30 +51,22 @@
             "ItPack\\RunItThirdPartySample\\Tests\\": "tests/"
         }
     },
-    "authors": [
-        {
-            "name": "tidal",
-            "email": "timomichna@yahoo.de"
-        }
-    ],
-    "minimum-stability": "stable",
-    "prefer-stable": true,
     "config": {
         "allow-plugins": {
-            "infection/extension-installer": true,
-            "phpstan/extension-installer": true,
             "dantleech/what-changed": true,
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true,
             "tbachert/spi": false
         }
     },
     "scripts": {
-        "test": "vendor/bin/codecept run",
-        "test:unit": "vendor/bin/codecept run Unit",
+        "analyse": "vendor/bin/phpstan analyse",
+        "architecture": "vendor/bin/phparkitect check",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --min-msi=80 --no-interaction",
-        "security:audit": "@composer audit",
         "quality": [
             "@cs:check",
             "@analyse",
@@ -67,12 +75,8 @@
             "@mutation",
             "@security:audit"
         ],
-        "architecture": "vendor/bin/phparkitect check"
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../RunIt"
-        }
-    ]
+        "security:audit": "@composer audit",
+        "test": "vendor/bin/codecept run",
+        "test:unit": "vendor/bin/codecept run Unit"
+    }
 }
