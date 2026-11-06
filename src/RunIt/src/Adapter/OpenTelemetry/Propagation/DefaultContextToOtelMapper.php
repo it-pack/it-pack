@@ -53,7 +53,7 @@ final class DefaultContextToOtelMapper implements ContextToOtelMapperInterface
         $baggage = $this->toBaggage($context);
         $otelContext = Context::getCurrent()->withContextValue($baggage);
 
-        $propagator->inject($carrier, context: $otelContext);
+        $propagator->inject($carrier, null, $otelContext);
 
         /** @var array<string, mixed> $carrier */
         return $carrier;

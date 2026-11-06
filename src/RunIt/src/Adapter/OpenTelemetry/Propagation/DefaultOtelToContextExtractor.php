@@ -31,7 +31,7 @@ final class DefaultOtelToContextExtractor implements OtelToContextExtractorInter
 {
     public function extractContext(array $carrier, TextMapPropagatorInterface $propagator): ContextInterface
     {
-        return $propagator->extract($carrier, context: Context::getCurrent());
+        return $propagator->extract($carrier, null, Context::getCurrent());
     }
 
     public function toRunItContext(ContextInterface $otelContext): ExecutionContextInterface
