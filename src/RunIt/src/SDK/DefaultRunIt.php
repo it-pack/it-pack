@@ -84,7 +84,9 @@ final readonly class DefaultRunIt implements RunItInterface
      * Wrap a callable so every invocation runs inside a RunIt execution.
      *
      * The definition may be static, derived from an {@see ExecutedAs} attribute, or produced
-     * per invocation by a callable factory. A null definition is resolved lazily on first use.
+     * per invocation by a callable factory. When the definition is null, the attribute is read
+     * and its definition is built during wrapping. If no attribute is found, the default callable
+     * throws MissingExecutionDefinitionException when invoked.
      */
     public function wrap(
         callable $operation,
