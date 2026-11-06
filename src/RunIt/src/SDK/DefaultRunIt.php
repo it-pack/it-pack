@@ -55,6 +55,8 @@ final readonly class DefaultRunIt implements RunItInterface
     }
 
     /**
+     * Start an execution for the given definition and run the operation inside it.
+     *
      * @throws Throwable
      */
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
@@ -62,16 +64,30 @@ final readonly class DefaultRunIt implements RunItInterface
         return $this->runner->run($definition, $operation);
     }
 
+    /**
+     * Returns the current execution scope, or null when no execution is active.
+     */
     public function currentExecution(): ?ExecutionScopeInterface
     {
         return $this->currentExecution->get();
     }
 
+    /**
+     * Returns the execution runner backing this facade.
+     */
     public function executionRunner(): ExecutionRunnerInterface
     {
         return $this->runner;
     }
 
+    /**
+     * Wrap a callable so every invocation runs inside a RunIt execution.
+     *
+     * The definition may be static, derived from an {@see ExecutedAs} attribute, or produced
+     * per invocation by a callable factory. When the definition is null, the attribute is read
+     * and its definition is built during wrapping. If no attribute is found, the default callable
+     * throws MissingExecutionDefinitionException when invoked.
+     */
     public function wrap(
         callable $operation,
         ExecutionDefinitionInterface|callable|null $definition = null
@@ -88,11 +104,17 @@ final readonly class DefaultRunIt implements RunItInterface
         );
     }
 
+    /**
+     * Build an execution definition from resolved metadata.
+     */
     private function definitionFromMetadata(ExecutedAs $metadata): ExecutionDefinitionInterface
     {
         return $this->metadataExecutionDefinitionFactory->create($metadata);
     }
 
+    /**
+     * Resolve a static definition from an attribute, or null when none applies.
+     */
     private function resolveDefinition(
         callable $operation,
         ExecutionDefinitionInterface|callable|null $definition = null,
@@ -113,6 +135,11 @@ final readonly class DefaultRunIt implements RunItInterface
         return null;
     }
 
+    /**
+     * Wrap a callable definition into a per-invocation factory closure, or null when static.
+     *
+     * The returned closure receives the invocation argument array as its single argument.
+     */
     private function resolveFactory(
         ExecutionDefinitionInterface|callable|null $definition,
 
