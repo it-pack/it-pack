@@ -18,6 +18,9 @@ return RectorConfig::configure()
     ->withSkipPath(
         __DIR__ . '/tests/Support/_generated',
     )
+    ->withSkipPath(
+        __DIR__ . '/tests/Support/Fixture',
+    )
     ->withPhpSets(php85: true)
     ->withSets([
         LevelSetList::UP_TO_PHP_85,
