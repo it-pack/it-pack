@@ -119,6 +119,37 @@ Historically AsyncIt's focused memory storage, Swoole storage and context-isolat
 
 **Depends on:** Phase 0 and the redaction/routing decisions; preparatory mapping and regression tests may proceed while the tracked Phase 0/1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
 
+**Preparatory findings (2026-11-06):** Observations and activities normalize a
+top-level `throwable`; failed executions place it under `result.throwable`.
+Throwable projections contain `class`, `message`, `code`, `previous`, and `trace`.
+Observation `message` is separate from its throwable. Occurrence `data` and
+snapshot `payload` are key-masked only when keys are configured. The default
+redactor currently handles only the top-level throwable, masks rather than omits
+string traces, and has no explicit recursion bound of its own. Unknown keys and
+non-array values pass through. Changed artifacts become generic projections,
+which do not retain the original typed sampling or adapter interfaces.
+`PublisherStackFactory` currently calls sampling before redaction. Simply
+reversing it would cause type-dependent sampling and OpenTelemetry dispatch to
+misclassify or drop changed artifacts. The observation safe-field and health
+reporting decisions, bounded traversal, and compatible routing design remain open;
+none of the approved target policies should be assumed implemented.
+
+Focused tests now cover nested observation throwable masking, preservation of
+class and code, original immutability, explicit opt-out, and PSR logger export
+with configured masking. Failed execution protection, trace omission, and
+composed OpenTelemetry export remain unverified or known not to meet the target.
+At revision `4ed686910a41005d2df3b2bd9d430181f4cf6240` on PHP 8.5.12, the
+Unit suite passed (839 tests, 5747 assertions); `composer api:check` reported no
+breaks but exited nonzero for ten existing additions. Phase 0 remains incomplete.
+The subsequent `composer quality` stopped at Rector's existing callable-fixture
+suggestion; `composer cs:check` passed, `composer analyse` reported 147 errors,
+and `composer lint:length` reported 26 violations. Both focused redaction test
+files also passed on PHP 8.4.27; this does not establish full PHP 8.4
+compatibility or complete the Phase 0 baseline.
+On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
+and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
+establish per-test attribution or the planned isolation guarantee.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.

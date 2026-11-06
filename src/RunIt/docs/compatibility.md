@@ -106,13 +106,13 @@ enforced structurally by the aggregate:
 
 ### Refactoring plan Phase 1 (2026-08-24) changes
 
-- **Deny-by-default redaction:** `RunItBuilder::build()` now installs a default
+- **Default redactor:** `RunItBuilder::build()` now installs a default
   redactor unless `withRedactor()` was explicitly called — including the
-  explicit opt-out `withRedactor(null)`. Out of the box, throwable messages are
-  masked before sampling or export; occurrence/snapshot payload masking is
-  key-driven via a custom redactor. This changes default export content
-  (throwable messages are `[redacted]`); opt out explicitly if you relied on
-  raw messages.
+  explicit opt-out `withRedactor(null)`. Matching top-level throwable messages
+  are masked on export, but failed execution `result.throwable` is not currently
+  covered, and configured sampling runs before redaction. Occurrence/snapshot
+  payload masking is key-driven via a custom redactor. See `SECURITY.md` for
+  current limitations before relying on this behavior.
 - `BridgeConfig`/`BridgeConfigBuilder` gained
   `occurrenceLogAttributeAllowList` / `withOccurrenceLogAttributeAllowList()`:
   an optional allow-list restricting which occurrence extension attributes are

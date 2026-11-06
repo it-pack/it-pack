@@ -115,6 +115,50 @@ final class RedactingPublisherTest extends Unit
         }
     }
 
+    public function testObservationThrowableMaskingPreservesMetadataAtEveryDepth(): void
+    {
+        $original = Observation::error(
+            ObservationId::fromString('obs-metadata'),
+            ExecutionId::fromString('exec-1'),
+            'failed',
+            throwableDescription: SensitiveExceptionChain::classifiedChain(),
+        );
+        $before = $original->normalize();
+        $published = $this->publish($original)->normalize();
+        $throwable = $published['throwable'];
+
+        foreach ([['RuntimeException', 2], ['PDOException', 1], ['RuntimeException', 0]] as [$class, $code]) {
+            self::assertIsArray($throwable);
+            self::assertSame($class, $throwable['class']);
+            self::assertSame($code, $throwable['code']);
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertSame('[redacted]', $throwable['trace']);
+            $throwable = $throwable['previous'];
+        }
+
+        self::assertNull($throwable);
+        self::assertSame($before, $original->normalize());
+    }
+
+    public function testThrowableMaskingCanBeExplicitlyDisabled(): void
+    {
+        $original = Observation::error(
+            ObservationId::fromString('obs-opt-out'),
+            ExecutionId::fromString('exec-1'),
+            'failed',
+            throwableDescription: SensitiveExceptionChain::classifiedChain(),
+        );
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(redactThrowableMessages: false)),
+            $sink,
+        );
+        $publisher->publish($original);
+
+        self::assertSame($original, $sink->published()[0]);
+        self::assertSame($original->normalize()['throwable'], $sink->published()[0]->normalize()['throwable']);
+    }
+
     public function testOccurrenceDataIsMaskedRecursively(): void
     {
         $original = Occurrence::create(
