@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Attribute;
 
 use Closure;
-use ReflectionClass;
 use ReflectionException;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
@@ -19,39 +18,33 @@ class CallableReflectionResolver implements CallableReflectionResolverInterface
     private const string DOUBLE_COLON = '::';
     private const string INVOKE_METHOD = '__invoke';
 
-    public function resolve(callable|Closure $callable): ?ReflectionFunctionAbstract
+    public function resolve(callable $callable): ?ReflectionFunctionAbstract
     {
-        return is_object($callable)
-            ? self::resolveObject($callable)
-            : self::resolveLiteral($callable);
+        return match (true) {
+            is_object($callable) => self::resolveObject($callable),
+            is_array($callable),
+            is_string($callable) => self::resolveLiteral($callable),
+            default => self::resolveFunction($callable),
+        };
     }
 
-    private static function resolveObject(object $callable): ?ReflectionFunctionAbstract
+    private static function resolveObject(callable $callable): ?ReflectionFunctionAbstract
     {
         return $callable instanceof Closure
-            ? self::resolveClosure($callable)
+            ? self::resolveFunction($callable)
             : self::resolveInvokable($callable);
     }
 
-    private static function resolveClosure(Closure $callable): ?ReflectionFunctionAbstract
+    private static function resolveFunction(callable $callable): ?ReflectionFunctionAbstract
     {
         try {
-            $reflection = new ReflectionFunction($callable);
-            $called = $reflection->getClosureCalledClass();
-
-            return $called instanceof ReflectionClass
-                ? $reflection
-                : new ReflectionMethod(
-                    $called->getName(),
-                    self::calledMethodName($reflection)
-                );
-
-        } catch (ReflectionException) {
+            return new ReflectionFunction($callable);
+        } catch (ReflectionException $e) {
             return null;
         }
     }
 
-    private static function resolveInvokable(object $callable): ?ReflectionFunctionAbstract
+    private static function resolveInvokable(callable $callable): ?ReflectionFunctionAbstract
     {
         return method_exists($callable, self::INVOKE_METHOD)
             ? new ReflectionMethod($callable, self::INVOKE_METHOD)
@@ -78,13 +71,5 @@ class CallableReflectionResolver implements CallableReflectionResolverInterface
     {
         return str_contains($callable, self::DOUBLE_COLON)
             && method_exists(...explode(self::DOUBLE_COLON, $callable, 2));
-    }
-
-    private static function calledMethodName(ReflectionFunction $reflection): string
-    {
-        $name = $reflection->getName();
-        $position = strrpos($name, self::DOUBLE_COLON);
-
-        return $position === false ? $name : substr($name, $position + 2);
     }
 }

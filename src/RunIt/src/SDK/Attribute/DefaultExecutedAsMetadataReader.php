@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Attribute;
 
 use Closure;
-use LogicException;
-use ReflectionClass;
-use ReflectionException;
-use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use WeakMap;
@@ -63,15 +59,19 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
 
     private function readObjectKeyed(callable|Closure $operation): ?ExecutedAs
     {
-        return $this->objectCache->offsetExists($operation)
-            ? $this->objectCache[$operation]
-            : $this->objectCache[$operation] = $this->resolveFromReflection(
-                $this->reflectObject(
-                    $this->reflectionResolver->resolve(
-                        $operation
-                    )
-                )
-            );
+        if($this->objectCache->offsetExists($operation)) {
+            return $this->objectCache->offsetGet($operation);
+        }
+
+        $reflection = $this->reflectionResolver->resolve(
+            $operation
+        );
+
+        return $reflection instanceof ReflectionFunctionAbstract
+            ? $this->objectCache[$operation] = $this->resolveFromReflection(
+                $reflection
+            )
+            : $this->objectCache[$operation] = null;
     }
 
     private function readLiteralKeyed(callable|Closure $operation): ?ExecutedAs
@@ -106,48 +106,12 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
         return $attributes[0]->newInstance();
     }
 
-    private function literalKey(callable $operation): string
+    private function literalKey(array|string $operation): string
     {
-        if (is_array($operation)) {
-            $class = is_object($operation[0]) ? $operation[0]::class : $operation[0];
-
-            return $class . self::DOUBLE_COLON . $operation[1];
-        }
-
         if (is_string($operation)) {
             return $operation;
         }
 
-        throw new \LogicException('Object callables are resolved through the WeakMap cache.');
-    }
-
-    private function calledMethodName(ReflectionFunction $reflection): string
-    {
-        $name = $reflection->getName();
-        $position = strrpos($name, self::DOUBLE_COLON);
-
-        return $position === false ? $name : substr($name, $position + 2);
-    }
-
-    private function reflectObject(object $operation): ?ReflectionFunctionAbstract
-    {
-        try {
-            if ($operation instanceof Closure) {
-                $reflection = new ReflectionFunction($operation);
-                $called = $reflection->getClosureCalledClass();
-
-                return $called instanceof ReflectionClass
-                    ? $reflection
-                    : new ReflectionMethod(
-                        $called->getName(),
-                        $this->calledMethodName($reflection)
-                    );
-
-            }
-
-            return new ReflectionMethod($operation, '__invoke');
-        } catch (ReflectionException) {
-            return null;
-        }
+        return (is_object($operation[0]) ? $operation[0]::class : $operation[0]) . self::DOUBLE_COLON . $operation[1];
     }
 }
