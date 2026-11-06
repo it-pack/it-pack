@@ -30,6 +30,39 @@ use Tests\Support\Fixture\RunItTestKit;
  */
 final class InterleavedFiberContextIsolationTest extends Unit
 {
+    public function testSynchronousDefaultSharesAmbientScopeAcrossFibers(): void
+    {
+        $kit = new RunItTestKit();
+        $definition = ExecutionDefinition::create(
+            ExecutionName::fromString('interleaved.default'),
+            ExecutionKind::fromString('task'),
+        );
+        $firstScope = null;
+        $first = new Fiber(static function () use ($kit, $definition, &$firstScope): void {
+            $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use (&$firstScope): void {
+                $firstScope = $scope;
+                Fiber::suspend();
+            });
+        });
+        $first->start();
+        self::assertSame($firstScope, $kit->storage->current());
+
+        $second = new Fiber(static function () use ($kit, $definition, &$firstScope): void {
+            self::assertSame($firstScope, $kit->storage->current());
+            $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use (&$firstScope): void {
+                self::assertInstanceOf(ExecutionScopeInterface::class, $firstScope);
+                self::assertSame(
+                    $firstScope->execution()->id()->toString(),
+                    $scope->execution()->definition()->parentExecutionId()?->toString(),
+                );
+            });
+        });
+        $second->start();
+        self::assertSame($firstScope, $kit->storage->current());
+        $first->resume();
+        self::assertNull($kit->storage->current());
+    }
+
     public function testInterleavedFibersNeverShareAmbientScope(): void
     {
         $runtime = RunItBuilder::create()
@@ -121,9 +154,14 @@ final class InterleavedFiberContextIsolationTest extends Unit
                     $kit->runner->run($definition, static function (ExecutionScopeInterface $inner) use (
                         $kit,
                         $failure,
+                        $outer,
                         &$ids,
                     ): void {
                         $ids[] = $inner->execution()->id()->toString();
+                        self::assertSame(
+                            $outer->execution()->id()->toString(),
+                            $inner->execution()->definition()->parentExecutionId()?->toString(),
+                        );
                         self::assertSame($inner, $kit->storage->current());
                         Fiber::suspend();
                         self::assertSame($inner, $kit->storage->current());

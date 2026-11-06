@@ -84,16 +84,24 @@ final class ForbidNewOutsideFactoryBuilderRule extends AbstractSrcRule implement
         $constructed = $class instanceof Node\Name ? $class->toString() : 'anonymous';
 
         $type = $scope->getType($node);
-        foreach ($type->getObjectClassNames() as $className) {
+        $classNames = $type->getObjectClassNames();
+        $allInternal = $classNames !== [];
+        foreach ($classNames as $className) {
             if (!$this->reflectionProvider->hasClass($className)) {
+                $allInternal = false;
                 continue;
             }
 
             $reflection = $this->reflectionProvider->getClass($className);
+            $allInternal = $allInternal && $reflection->isBuiltin();
             if ($reflection->implementsInterface(ValueObjectInterface::class)
                 || $reflection->implementsInterface(\Throwable::class)) {
                 return [];
             }
+        }
+
+        if ($allInternal) {
+            return [];
         }
 
         return [RuleErrorBuilder::message(sprintf(

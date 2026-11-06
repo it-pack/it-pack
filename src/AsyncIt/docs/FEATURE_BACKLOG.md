@@ -259,6 +259,6 @@ Each new feature adds conformance assertions to `AsyncRuntimeVerifier` (`src/Con
 - `AsyncRuntimeVerifier` green across reference runtime **and** every adapter (A/B/C + new assertions per phase).
 - `AsyncRuntime` passes RunIt's `ExecutionEngineVerifier`.
 - Coverage ≥95% line/method, ≥90% class; Infection clean.
-- Every concrete class `final`, interface-backed, one type per file; no abstract classes; no `else`/Yoda/magic literals; vocabularies in interfaces; factories/builder-only instantiation via DI.
+- Every concrete class `final`, interface-backed, one type per file; no abstract classes; no `else`/Yoda/magic literals; vocabularies in interfaces; factory/builder construction via DI with the documented exemptions, including PHP internal classes.
 - `examples/conformance/third-party-adapter.php` runs unmodified for each shipped adapter.
 - Docs (`README.md`, `AGENTS.md`, this backlog, roadmap) reflect the built reality; public contracts carry `@see` references to `async-it#*` / `async-it-taxonomy#*` (AsyncIt-owned) and `run-it#*` / `run-it-taxonomy#*` (consumed).

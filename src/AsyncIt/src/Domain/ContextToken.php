@@ -12,8 +12,8 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
  *
  * Replaces the per-runtime Swoole/Swow/Revolt token variants and the
  * inconsistent `MemoryContextToken` with a single `readonly` value object.
- * Equality is by id; the storage uses it to enforce last-in-first-out
- * detachment of the correct scope.
+ * The id is stable but is not proof of ownership; storages require the
+ * original token object for last-in-first-out detachment.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */

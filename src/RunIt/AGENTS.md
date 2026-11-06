@@ -117,6 +117,10 @@ the definition of domain semantics. Keep optional integrations optional.
 ## Tests And Quality
 
 Inspect `composer.json` first: it is the source of truth for available scripts.
+Agents may run `composer update` in RunIt to test against current dependency
+versions allowed by its constraints. The package's `composer.lock` is ignored;
+do not commit it or change constraints merely to make an update pass. Preserve
+pre-existing changes and report dependency-resolution and subsequent test failures.
 Examples below run from `src/RunIt/` with package dependencies installed:
 
 ```bash

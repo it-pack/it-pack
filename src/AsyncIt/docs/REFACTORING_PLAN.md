@@ -9,7 +9,7 @@
 
 ## Convention (follow AGENTS.md)
 
-- `final` + `readonly` where possible; factories/builders for instantiation; ports/interfaces at boundaries.
+- `final` + `readonly` where possible; factories/builders for service instantiation with documented exemptions; ports/interfaces at boundaries.
 - No `else`/`elseif`, no Yoda-style conditions, no magic literals, one type per file, ≤120 chars/line.
 - Declaration order: traits → constants → properties/hooks → constructors → factory methods → non-static → static.
 - Public before protected/private within each section.
@@ -229,6 +229,10 @@
 ## Phase 5 — "New Only in Factories" Enforcement (High Priority) — COMPLETE (with exemptions)
 
 **Goal:** Move `new` instantiation out of non-factory classes or document exemptions.
+
+**Current scope:** PHP internal classes, including extension-provided classes,
+may be constructed directly. Userland project and third-party classes remain
+subject to the rule and its existing exemptions. The status below is historical.
 
 **Status:** Complete with documented exemptions. Verified via grep: no `new` service instantiation outside `src/Application/Factory/` and `src/SDK/Factory/`. Remaining `new` calls are:
 - `throw new LogicException/RuntimeException/BadMethodCallException/...` — standard PHP exception instantiation in throw statements, not service construction (no factory needed per AGENTS.md "no speculative abstractions")

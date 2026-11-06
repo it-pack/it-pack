@@ -88,6 +88,12 @@ Before making architectural changes, read the smallest relevant set of:
 11. `.php-cs-fixer.php`
 12. `rector.php`
 
+Agents may run `composer update` in AsyncIt to resolve current dependencies
+within the package's declared constraints and obtain an up-to-date quality
+picture. The package's `composer.lock` is ignored; do not commit it. Preserve
+pre-existing changes, do not change constraints merely to make an update pass,
+and report dependency-resolution or subsequent test failures.
+
 If a listed file does not exist, do not invent its contents. Use the available sources and mention the missing artifact when it blocks the task.
 
 Public contracts, accepted ADRs, and tested behavior take precedence over incidental implementation details.
@@ -336,6 +342,9 @@ Service construction (`new <Service...>`) is restricted to factories/builders un
 - Value objects (e.g. `new ContextToken($id)`) and result/violation objects (e.g.
   `new ConformanceResult(...)`, `new ConformanceViolation(...)`) — short-lived data
   carriers with no collaborators.
+- PHP internal classes, including extension-provided internal classes (e.g.
+  `new WeakMap()`). Userland project and third-party classes are not exempt
+  merely because they are vendor-provided or use a global namespace.
 
 Do not introduce exception factories, value-object factories, or speculative abstractions to
 work around this rule. If a new class holds collaborators or coordinates behavior, construct it

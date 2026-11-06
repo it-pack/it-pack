@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
+use WeakMap;
 
 /**
  * Runtime-aware selector over synchronous, Fiber, and coroutine storage.
@@ -20,14 +21,24 @@ use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class CompositeContextStorage implements ContextStorageInterface
+final class CompositeContextStorage implements ContextStorageInterface
 {
+    /** @var WeakMap<CompositeContextToken, true> */
+    private WeakMap $issued;
+
     public function __construct(
-        private ContextStorageInterface         $synchronous,
-        private ContextStorageInterface         $fiber,
-        private ContextStorageInterface         $coroutine,
-        private RuntimeContextDetectorInterface $detector,
+        private readonly ContextStorageInterface         $synchronous,
+        private readonly ContextStorageInterface         $fiber,
+        private readonly ContextStorageInterface         $coroutine,
+        private readonly RuntimeContextDetectorInterface $detector,
     ) {
+        $this->issued = new WeakMap();
+    }
+
+    /** Keep token ownership local while sharing the configured storages. */
+    public function __clone(): void
+    {
+        $this->issued = new WeakMap();
     }
 
     public function current(): ?ExecutionScopeInterface
@@ -39,16 +50,20 @@ final readonly class CompositeContextStorage implements ContextStorageInterface
     {
         $storage = $this->active();
 
-        return new CompositeContextToken($storage, $storage->attach($scope));
+        $token = new CompositeContextToken($storage, $storage->attach($scope));
+        $this->issued[$token] = true;
+
+        return $token;
     }
 
     public function detach(ContextTokenInterface $token): void
     {
-        if (!$token instanceof CompositeContextToken) {
+        if (!$token instanceof CompositeContextToken || !isset($this->issued[$token])) {
             throw InvalidContextTokenException::mismatched();
         }
 
         $token->owner->detach($token->inner);
+        unset($this->issued[$token]);
     }
 
     private function active(): ContextStorageInterface
