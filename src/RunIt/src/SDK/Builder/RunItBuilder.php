@@ -56,6 +56,10 @@ use ItPack\RunIt\SDK\RunItInterface;
  * publication/snapshot-store failure handlers can be registered so internal faults stay
  * observable. Required ports are validated at {@see self::build()}.
  *
+ * The default context storage is a synchronous stack, not an isolation boundary
+ * for interleaved Fibers or coroutines. Configure runtime-appropriate storage
+ * with {@see self::withContextStorage()} when executions may overlap.
+ *
  * Every `with*` method returns a new builder via copy-on-write (`clone` + assign), so configuration
  * can be shared and extended without mutation.
  *

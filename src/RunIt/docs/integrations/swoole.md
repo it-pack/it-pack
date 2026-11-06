@@ -32,6 +32,11 @@ use ItPack\RunIt\Adapter\Swoole\SwooleCoroutineIdProvider;
 $storage = new CoroutineContextStorage(new SwooleCoroutineIdProvider());
 ```
 
+Pass `$storage` to `RunItBuilder::create()->withContextStorage($storage)` together with the
+required ports before building the runtime. The builder's default `StackContextStorage` is
+for synchronous nesting only: it does not isolate interleaved coroutines in a persistent worker,
+and the builder does not automatically select coroutine-aware storage.
+
 Combine it with Fiber and synchronous storage through `CompositeContextStorage` (see
 `docs/integrations/fibers.md`) for a single runtime-aware storage.
 

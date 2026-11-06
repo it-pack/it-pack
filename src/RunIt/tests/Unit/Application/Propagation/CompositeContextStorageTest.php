@@ -63,6 +63,7 @@ final class CompositeContextStorageTest extends Unit
         $token = $composite->attach($scope);
 
         self::assertInstanceOf(CompositeContextToken::class, $token);
+        self::assertSame(0, $token->id(), 'The composite exposes its custom inner token identity.');
         self::assertSame($scope, $sync->current());
 
         $composite->detach($token);

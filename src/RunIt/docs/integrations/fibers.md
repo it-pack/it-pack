@@ -5,6 +5,11 @@ RunIt execution context is ambient: the active `ExecutionScopeInterface` is reso
 synchronous call stack. When work runs inside PHP Fibers, each Fiber needs its own isolated
 scope so concurrent Fibers never share — or leak — context.
 
+The builder does not automatically detect interleaved execution or select Fiber storage.
+Sharing its default stack across suspended Fibers can expose another Fiber's active execution
+or cause out-of-order detach. Configure Fiber-aware storage explicitly, including in persistent
+workers that process overlapping requests. A Fiber execution engine alone does not select storage.
+
 The `ItPack\RunIt\Adapter\Fiber` adapter provides Fiber-aware storage and an optional Fiber
 execution engine.
 
@@ -72,13 +77,16 @@ $storage = new CompositeContextStorage(
 ```
 
 > The SDK builder intentionally does not construct these adapters (the SDK layer may not depend
-> on adapters). Wire the instance through `withContextStorage($storage)`.
+> on adapters). Wire the instance through `RunItBuilder::create()->withContextStorage($storage)`
+> along with the required ports before calling `build()`.
 
 ## Fiber execution engine
 
 By default operations run synchronously (`SynchronousExecutionEngine`). A `FiberExecutionEngine`
-runs the operation on its own Fiber call stack, so it may suspend and resume without affecting
-the caller. The runner still owns lifecycle, identity, and artifacts.
+runs the operation on its own Fiber call stack. It starts and resumes the Fiber itself; it is not
+a general-purpose scheduler for operations that suspend. The runner attaches its scope before
+invoking the engine, so Fiber-local ambient lookup inside the engine-created Fiber does not
+automatically inherit the caller's scope. Use the explicit scope passed to the operation.
 
 ```php
 use ItPack\RunIt\Adapter\Fiber\FiberExecutionEngine;
@@ -96,5 +104,5 @@ $runIt = RunItBuilder::create()
   ends, even on an exception, so the Fiber's stack is cleared.
 - Completed Fibers are released by the `WeakMap` once no strong reference remains, so long-running
   workloads do not accumulate context.
-- Never store request or execution context in process-global mutable state; RunIt bindings are
-  always per-Fiber/per-coroutine/per-call-stack.
+- Never store request or execution context in process-global mutable state. Choose the storage
+  appropriate to the runtime; the default shared stack is not Fiber- or coroutine-local.

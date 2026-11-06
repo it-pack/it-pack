@@ -34,7 +34,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
-final readonly class Activity implements ActivityInterface
+final readonly class Activity   implements ActivityInterface
 {
     use SequencedBehavior;
 
