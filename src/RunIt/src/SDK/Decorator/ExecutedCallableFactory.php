@@ -10,16 +10,16 @@ use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 
 final readonly class ExecutedCallableFactory implements ExecutedCallableFactoryInterface
 {
-
     public function __construct(
         private ExecutionRunnerInterface $runner,
-    ) {}
+    ) {
+    }
 
     public function build(
         callable                      $operation,
         ?ExecutionDefinitionInterface $definition,
         ?Closure                      $definitionFactory = null,
-    ) :ExecutedCallableInterface {
+    ): ExecutedCallableInterface {
         return new ExecutedCallable(
             $this->runner,
             $operation,

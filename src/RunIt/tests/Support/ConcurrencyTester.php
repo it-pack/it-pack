@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use Codeception\Actor;
+use Tests\Support\_generated\ConcurrencyTesterActions;
 
 /**
  * Inherited Methods
@@ -23,7 +24,7 @@ use Codeception\Actor;
 */
 class ConcurrencyTester extends Actor
 {
-    use _generated\ConcurrencyTesterActions;
+    use ConcurrencyTesterActions;
 
     /**
      * Define custom actions here

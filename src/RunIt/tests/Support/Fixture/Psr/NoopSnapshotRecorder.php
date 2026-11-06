@@ -14,9 +14,9 @@ use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 
-final class NoopSnapshotRecorder implements SnapshotRecorderInterface
+final readonly class NoopSnapshotRecorder implements SnapshotRecorderInterface
 {
-    public function __construct(private readonly ExecutionIdInterface $executionId)
+    public function __construct(private ExecutionIdInterface $executionId)
     {
     }
 
@@ -34,9 +34,7 @@ final class NoopSnapshotRecorder implements SnapshotRecorderInterface
             $schemaVersion,
             $payload,
             new DeterministicHashCalculator(),
-            null,
-            null,
-            $classification,
+            classification: $classification,
         );
     }
 }

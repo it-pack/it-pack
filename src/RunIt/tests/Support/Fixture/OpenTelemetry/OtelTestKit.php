@@ -38,7 +38,7 @@ final class OtelTestKit
 
     public MeterProviderInterface $meterProvider;
 
-    private ExportingReader $metricReader;
+    private readonly ExportingReader $metricReader;
 
     public function __construct()
     {
@@ -82,7 +82,7 @@ final class OtelTestKit
     {
         $this->metricReader->collect();
         /** @var Metric[] $metrics */
-        $metrics = $this->metricExporter->collect(true);
+        $metrics = $this->metricExporter->collect(reset: true);
 
         return $metrics;
     }
@@ -105,11 +105,11 @@ final class OtelTestKit
     {
         $this->metricReader->collect();
 
-        return $this->metricExporter->collect(true);
+        return $this->metricExporter->collect(reset: true);
     }
 
     /**
-     * @return \ArrayObject<int, ReadableLogRecordd>
+     * @return ArrayObject<int, ReadableLogRecordd>
      */
     public function logs(): ArrayObject
     {

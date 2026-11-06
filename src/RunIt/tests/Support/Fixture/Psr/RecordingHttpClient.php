@@ -32,7 +32,7 @@ final class RecordingHttpClient implements ClientInterface
      */
     public function lastHeaders(): array
     {
-        if ($this->lastRequest === null) {
+        if (!$this->lastRequest instanceof RequestInterface) {
             return [];
         }
 

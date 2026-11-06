@@ -17,12 +17,12 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
  * Test double for {@see ExecutionScopeInterface} with no-op recorders and a
  * configurable observations recorder for assertions.
  */
-final class FakeExecutionScope implements ExecutionScopeInterface
+final readonly class FakeExecutionScope implements ExecutionScopeInterface
 {
     public function __construct(
-        private readonly ExecutionInterface $execution,
-        private readonly ExecutionContextInterface $context,
-        private readonly ObservationRecorderInterface $observations,
+        private ExecutionInterface $execution,
+        private ExecutionContextInterface $context,
+        private ObservationRecorderInterface $observations,
     ) {
     }
 

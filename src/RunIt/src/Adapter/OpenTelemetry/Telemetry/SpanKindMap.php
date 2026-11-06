@@ -20,7 +20,6 @@ use OpenTelemetry\API\Trace\SpanKind;
 final class SpanKindMap implements SpanKindMapInterface
 {
     /**
-     * @param string $kind
      * @return int<0,4>
      */
     public function toSpanKind(string $kind): int

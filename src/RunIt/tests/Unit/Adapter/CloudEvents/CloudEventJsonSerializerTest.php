@@ -33,8 +33,7 @@ final class CloudEventJsonSerializerTest extends Unit
             'subject-1',
             '2026-08-20T14:05:47Z',
             'application/json',
-            null,
-            ['executionid' => 'exec-1', 'tenantflag' => 'acme'],
+            extensions: ['executionid' => 'exec-1', 'tenantflag' => 'acme'],
         );
     }
 

@@ -23,6 +23,6 @@ final class SynchronousExecutionEngine implements ExecutionEngineInterface
 
     public function capability(): EngineCapabilityInterface
     {
-        return new EngineCapability(false, false, false);
+        return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: false);
     }
 }

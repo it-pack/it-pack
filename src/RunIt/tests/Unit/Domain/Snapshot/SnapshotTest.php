@@ -33,10 +33,8 @@ final class SnapshotTest extends Unit
             1,
             ['status' => 'running', 'count' => 3],
             $this->calculator(),
-            null,
-            null,
-            SnapshotClassification::Checkpoint,
-            Instant::of(1000),
+            classification: SnapshotClassification::Checkpoint,
+            createdAt: Instant::of(1000),
         );
 
         self::assertFalse($snapshot->classification()->isTerminal());
@@ -53,10 +51,8 @@ final class SnapshotTest extends Unit
                 1,
                 ['status' => 'running', 'count' => 3],
                 $this->calculator(),
-                null,
-                null,
-                SnapshotClassification::Checkpoint,
-                Instant::of(2000),
+                classification: SnapshotClassification::Checkpoint,
+                createdAt: Instant::of(2000),
             )->contentHash(),
         );
     }
@@ -70,10 +66,8 @@ final class SnapshotTest extends Unit
             1,
             ['status' => 'succeeded'],
             $this->calculator(),
-            null,
-            null,
-            SnapshotClassification::Terminal,
-            Instant::of(1000),
+            classification: SnapshotClassification::Terminal,
+            createdAt: Instant::of(1000),
         );
 
         self::assertTrue($snapshot->classification()->isTerminal());
@@ -88,8 +82,7 @@ final class SnapshotTest extends Unit
             1,
             ['step' => 2],
             $this->calculator(),
-            null,
-            SnapshotId::fromString('snap-1'),
+            predecessorId: SnapshotId::fromString('snap-1'),
         );
 
         self::assertSame('snap-1', $snapshot->predecessorId()?->toString());
@@ -120,10 +113,8 @@ final class SnapshotTest extends Unit
             1,
             ['count' => 3],
             $this->calculator(),
-            null,
-            null,
-            SnapshotClassification::Checkpoint,
-            Instant::of(1000),
+            classification: SnapshotClassification::Checkpoint,
+            createdAt: Instant::of(1000),
         );
 
         $normalized = $snapshot->normalize();

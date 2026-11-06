@@ -8,10 +8,12 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
+use OpenTelemetry\API\Trace\SpanContextInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
@@ -32,7 +34,7 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
     public function map(ExecutionInterface $execution): void
     {
-        if (($span = $this->startSpan($execution)) === null) {
+        if (!($span = $this->startSpan($execution)) instanceof SpanInterface) {
             return;
         }
 
@@ -46,7 +48,7 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         ];
 
         $parentId = $definition->parentExecutionId();
-        if ($parentId !== null) {
+        if ($parentId instanceof ExecutionIdInterface) {
             $attributes[AttributeKeys::EXECUTION_PARENT_ID] = $parentId->toString();
         }
 
@@ -56,7 +58,7 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         $span->setStatus($status['code'], $status['description']);
 
         $throwable = $execution->result()?->throwableDescription();
-        if ($execution->status()->label() === 'failed' && $throwable !== null) {
+        if ($execution->status()->label() === 'failed' && $throwable instanceof ThrowableDescriptionInterface) {
             $this->recordThrowable($span, $throwable);
         }
 
@@ -73,13 +75,13 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         }
 
         $parentId = $execution->definition()->parentExecutionId();
-        if ($parentId === null) {
+        if (!$parentId instanceof ExecutionIdInterface) {
             return null;
         }
 
         $parentSpan = $this->store->executionContext($parentId->toString());
 
-        return $parentSpan === null ? null : Context::getRoot()->withContextValue(Span::wrap($parentSpan));
+        return $parentSpan instanceof SpanContextInterface ? Context::getRoot()->withContextValue(Span::wrap($parentSpan)) : null;
     }
 
     private function recordThrowable(SpanInterface $span, ThrowableDescriptionInterface $throwable): void

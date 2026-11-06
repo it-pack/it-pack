@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+
 /**
  * RunIt — occurrences.
  *
@@ -31,11 +33,12 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $runtime->run(
     ExecutionDefinition::create(ExecutionName::fromString('order.place'), ExecutionKind::fromString('operation')),
-    static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope): void {
+    static function (ExecutionScopeInterface $scope): void {
         $scope->occurrences()->record(
             OccurrenceType::fromString('order.placed.v1'),
             'order',

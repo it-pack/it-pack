@@ -14,9 +14,9 @@ namespace ItPack\RunIt\Contract\Application;
 final readonly class EngineCapability implements EngineCapabilityInterface
 {
     public function __construct(
-        public readonly bool $supportsFibers,
-        public readonly bool $supportsCoroutines,
-        public readonly bool $concurrent,
+        public bool $supportsFibers,
+        public bool $supportsCoroutines,
+        public bool $concurrent,
     ) {
     }
 }

@@ -80,7 +80,7 @@ final class ExecutionAwareLoggerTest extends Unit
     public function testPassesThroughWhenNoExecutionIsActive(): void
     {
         $logger = new InMemoryLogger();
-        $decorator = new ExecutionAwareLogger($logger, new FakeCurrentExecution(null));
+        $decorator = new ExecutionAwareLogger($logger, new FakeCurrentExecution());
 
         $decorator->info('standalone', ['k' => 'v']);
 

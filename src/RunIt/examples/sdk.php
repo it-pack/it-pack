@@ -30,13 +30,12 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $result = $runtime->run(
     ExecutionDefinition::create(ExecutionName::fromString('checkout.process'), ExecutionKind::fromString('operation')),
-    static function (): array {
-        return ['status' => 'ok'];
-    },
+    static fn (): array => ['status' => 'ok'],
 );
 
 echo json_encode($result, JSON_PRETTY_PRINT) . PHP_EOL;

@@ -56,9 +56,9 @@ final readonly class Execution implements ExecutionInterface
             $definition,
             ExecutionStatus::Created,
             $startedAt,
-            null,
-            null,
-            $sequence ?? ArtifactSequence::initial()
+            endedAt: null,
+            result: null,
+            sequence: $sequence ?? ArtifactSequence::initial()
         );
     }
 
@@ -87,9 +87,9 @@ final readonly class Execution implements ExecutionInterface
             $this->definition,
             ExecutionStatus::Running,
             $this->startedAt,
-            null,
-            null,
-            $this->sequence
+            endedAt: null,
+            result: null,
+            sequence: $this->sequence
         );
     }
 
@@ -179,10 +179,10 @@ final readonly class Execution implements ExecutionInterface
             ),
             ArtifactField::SEQUENCE => $this->sequence->value(),
             ArtifactField::CONTEXT => $this->definition->context()->toArray(DefaultContextRedactionPolicy::default()),
-            ArtifactField::RESULT => $this->result === null ? null : [
+            ArtifactField::RESULT => $this->result instanceof ExecutionResultInterface ? [
                 ArtifactField::STATUS => $this->result->status()->label(),
                 ArtifactField::THROWABLE => $this->result->throwableDescription()?->toArray(),
-            ],
+            ] : null,
         ];
     }
 }

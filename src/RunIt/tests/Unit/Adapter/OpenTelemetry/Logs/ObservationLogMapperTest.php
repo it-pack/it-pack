@@ -32,7 +32,7 @@ final class ObservationLogMapperTest extends Unit
 
     public function testMapsObservationToLogRecordWithCorrelation(): void
     {
-        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), false);
+        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), mapToSpanEvents: false);
         $observation = RunItArtifactFactory::observation(
             'obs-1',
             'exec-1',
@@ -56,27 +56,23 @@ final class ObservationLogMapperTest extends Unit
 
     public function testMapsSeverityToOtelScale(): void
     {
-        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), false);
+        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), mapToSpanEvents: false);
         $mapper->map(RunItArtifactFactory::observation('obs-2', 'exec-1', 'critical', 'boom'));
         $mapper->map(RunItArtifactFactory::observation('obs-3', 'exec-1', 'debug', 'trace'));
 
-        $records = $this->kit->logs();
+        $this->kit->logs();
         self::assertSame(Severity::FATAL->value, $this->kit->log(0)->getSeverityNumber());
         self::assertSame(Severity::DEBUG->value, $this->kit->log(1)->getSeverityNumber());
     }
 
     public function testMapsThrowableUnderExceptionAttributes(): void
     {
-        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), false);
+        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), mapToSpanEvents: false);
         $observation = Observation::error(
             ObservationId::fromString('obs-4'),
             ExecutionId::fromString('exec-1'),
             'failed to write',
-            null,
-            null,
-            null,
-            ThrowableDescription::create('TypeError', 'bad type', 0, null, "stack\nhere"),
-            null,
+            throwableDescription: ThrowableDescription::create('TypeError', 'bad type', 0, previous: null, trace: "stack\nhere"),
         );
 
         $mapper->map($observation);
@@ -98,7 +94,7 @@ final class ObservationLogMapperTest extends Unit
         $scope = $span->activate();
 
         try {
-            $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), true);
+            $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap(), mapToSpanEvents: true);
             $mapper->map(RunItArtifactFactory::observation('obs-5', 'exec-1', 'info', 'hello'));
         } finally {
             $scope->detach();
@@ -115,7 +111,7 @@ final class ObservationLogMapperTest extends Unit
 
     public function testMissingLoggerProviderEmitsNothing(): void
     {
-        $mapper = new DefaultObservationLogMapper(null, new SeverityMap(), false);
+        $mapper = new DefaultObservationLogMapper(loggerProvider: null, severityMap: new SeverityMap(), mapToSpanEvents: false);
         $mapper->map(RunItArtifactFactory::observation('obs-6', 'exec-1', 'info', 'hello'));
 
         self::assertCount(0, $this->kit->logs());

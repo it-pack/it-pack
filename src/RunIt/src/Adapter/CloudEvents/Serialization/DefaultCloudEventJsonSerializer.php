@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSerializerInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
 use ItPack\RunIt\Contract\Exception\InvalidCloudEventException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use JsonException;
 
 /**
  * Structured JSON serializer for CloudEvents.
@@ -22,7 +23,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  *
  * @see https://cloudevents.io/
  */
-final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInterface
+final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerializerInterface
 {
     public const string CONTENT_TYPE = 'application/cloudevents+json';
 
@@ -39,13 +40,13 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
     ];
 
     public function __construct(
-        private readonly CloudEventMappingPolicy $policy = new CloudEventMappingPolicy(),
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private CloudEventMappingPolicy $policy = new CloudEventMappingPolicy(),
+        private SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 
     /**
-     * @throws \JsonException
+     * @throws JsonException
      */
     public function serialize(CloudEvent $event): string
     {
@@ -72,8 +73,8 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
         try {
             /** @var positive-int $depth */
             $depth = $this->limits->maxSerializationDepth;
-            $decoded = json_decode($payload, true, $depth, JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
+            $decoded = json_decode($payload, associative: true, depth: $depth, flags: JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
             throw InvalidCloudEventException::malformedJson();
         }
 
@@ -92,11 +93,10 @@ final class DefaultCloudEventJsonSerializer implements CloudEventSerializerInter
 
         $extensions = [];
         foreach ($fields as $key => $value) {
-            if (in_array($key, self::STANDARD_FIELDS, true)) {
+            if (in_array($key, self::STANDARD_FIELDS, strict: true)) {
                 continue;
             }
 
-            /** @var mixed $value */
             $extensions[$key] = $value;
         }
 

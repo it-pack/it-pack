@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\Swoole;
 
 use Fiber;
 use ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface;
+use Swoole\Coroutine;
 
 /**
  * Detects Swoole/OpenSwoole coroutine context and Fiber context.
@@ -16,8 +17,8 @@ final class SwooleRuntimeDetector implements RuntimeContextDetectorInterface
 {
     public function inCoroutine(): bool
     {
-        if (class_exists(\Swoole\Coroutine::class)) {
-            return \Swoole\Coroutine::getCid() >= 0;
+        if (class_exists(Coroutine::class)) {
+            return Coroutine::getCid() >= 0;
         }
 
         if (class_exists(\OpenSwoole\Coroutine::class)) {
@@ -29,6 +30,6 @@ final class SwooleRuntimeDetector implements RuntimeContextDetectorInterface
 
     public function inFiber(): bool
     {
-        return Fiber::getCurrent() !== null;
+        return Fiber::getCurrent() instanceof Fiber;
     }
 }

@@ -55,31 +55,16 @@ final class ExecutionScope implements ExecutionScopeInterface
      */
     private array $openActivities = [];
 
-    private MeasurementRecorderInterface $measurementRecorder;
-    private ObservationRecorderInterface $observationRecorder;
-    private OccurrenceRecorderInterface $occurrenceRecorder;
-    private SnapshotRecorderInterface $snapshotRecorder;
-    private ActivityRunnerInterface $activityRunner;
+    private readonly MeasurementRecorderInterface $measurementRecorder;
 
-    /**
-     * @param ExecutionInterface $execution
-     * @param ExecutionIdInterface $executionId
-     * @param ExecutionContextInterface $context
-     * @param SequenceAllocatorInterface $sequenceAllocator
-     * @param MonotonicClockInterface $clock
-     * @param ArtifactPublisherInterface $publisher
-     * @param SerializerInterface $serializer
-     * @param ThrowableMapperInterface $throwableMapper
-     * @param StringIdentifierFactoryInterface $observationIdFactory
-     * @param StringIdentifierFactoryInterface $occurrenceIdFactory
-     * @param StringIdentifierFactoryInterface $snapshotIdFactory
-     * @param StringIdentifierFactoryInterface $activityIdFactory
-     * @param HashCalculatorInterface $hashCalculator
-     * @param SnapshotStoreInterface|null $snapshotStore
-     * @param Closure|null $onSnapshotStoreFailure
-     * @param SecurityLimits $limits
-     * @param Closure|null $currentActivityId
-     */
+    private readonly ObservationRecorderInterface $observationRecorder;
+
+    private readonly OccurrenceRecorderInterface $occurrenceRecorder;
+
+    private readonly SnapshotRecorderInterface $snapshotRecorder;
+
+    private readonly ActivityRunnerInterface $activityRunner;
+
     public function __construct(
         private readonly ExecutionInterface $execution,
         ExecutionIdInterface $executionId,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+use RuntimeException;
 
 /**
  * Thrown when the buffer overflows under the `Fail` overflow strategy.
@@ -15,6 +16,6 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class BufferOverflowException extends \RuntimeException implements RunItExceptionInterface
+final class BufferOverflowException extends RuntimeException implements RunItExceptionInterface
 {
 }

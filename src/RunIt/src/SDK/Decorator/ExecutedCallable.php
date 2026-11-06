@@ -26,16 +26,13 @@ final readonly class ExecutedCallable implements ExecutedCallableInterface
 {
     private Closure $operation;
 
-    private ?Closure $definitionFactory;
-
     public function __construct(
         private ExecutionRunnerInterface      $runner,
         callable                              $operation,
         private ?ExecutionDefinitionInterface $definition,
-        ?Closure                              $definitionFactory = null,
+        private ?Closure                              $definitionFactory = null,
     ) {
         $this->operation = $operation(...);
-        $this->definitionFactory = $definitionFactory;
     }
 
     /**
@@ -43,7 +40,7 @@ final readonly class ExecutedCallable implements ExecutedCallableInterface
      */
     public function __invoke(mixed ...$args): mixed
     {
-        $definition = $this->definitionFactory !== null
+        $definition = $this->definitionFactory instanceof Closure
             ? ($this->definitionFactory)($args) :
             $this->definition;
 

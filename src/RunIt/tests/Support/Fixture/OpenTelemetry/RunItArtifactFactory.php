@@ -72,7 +72,7 @@ final class RunItArtifactFactory
             'failed' => $execution->complete(
                 ExecutionFailure::of(
                     ExecutionStatus::Failed,
-                    ThrowableDescription::create('RuntimeException', 'execution failed', 0, null, null),
+                    ThrowableDescription::create('RuntimeException', 'execution failed', 0, previous: null, trace: null),
                 ),
                 Instant::of(2_000),
             ),
@@ -102,14 +102,14 @@ final class RunItArtifactFactory
         );
 
         return match ($status) {
-            'succeeded' => $activity->complete(ActivityStatus::Succeeded, null, Instant::of(1_200)),
+            'succeeded' => $activity->complete(ActivityStatus::Succeeded, throwableDescription: null, endedAt: Instant::of(1_200)),
             'failed' => $activity->complete(
                 ActivityStatus::Failed,
-                ThrowableDescription::create('RuntimeException', 'activity failed', 0, null, null),
+                ThrowableDescription::create('RuntimeException', 'activity failed', 0, previous: null, trace: null),
                 Instant::of(1_200),
             ),
-            'cancelled' => $activity->complete(ActivityStatus::Cancelled, null, Instant::of(1_200)),
-            'timed_out' => $activity->complete(ActivityStatus::TimedOut, null, Instant::of(1_200)),
+            'cancelled' => $activity->complete(ActivityStatus::Cancelled, throwableDescription: null, endedAt: Instant::of(1_200)),
+            'timed_out' => $activity->complete(ActivityStatus::TimedOut, throwableDescription: null, endedAt: Instant::of(1_200)),
             default => $activity,
         };
     }
@@ -127,11 +127,9 @@ final class RunItArtifactFactory
             MeasurementName::fromString($name),
             ExecutionId::fromString($executionId),
             $value,
-            null,
-            Instant::of(1_500),
-            null,
-            AttributeCollection::fromArray($attributes),
-            MeasurementUnit::Count,
+            instant: Instant::of(1_500),
+            attributes: AttributeCollection::fromArray($attributes),
+            unit: MeasurementUnit::Count,
         );
     }
 
@@ -155,90 +153,72 @@ final class RunItArtifactFactory
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'info' => Observation::info(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'notice' => Observation::notice(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'warning' => Observation::warning(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'error' => Observation::error(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'critical' => Observation::critical(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'alert' => Observation::alert(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             'emergency' => Observation::emergency(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
             default => Observation::debug(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
                 $message,
                 $activityIdValue,
-                null,
-                $attributesCollection,
-                null,
-                Instant::of(1_800)
+                attributes: $attributesCollection,
+                instant: Instant::of(1_800)
             ),
         };
     }
@@ -282,9 +262,8 @@ final class RunItArtifactFactory
             $payload,
             new DeterministicHashCalculator(),
             $activityId !== null ? ActivityId::fromString($activityId) : null,
-            null,
-            SnapshotClassification::Checkpoint,
-            Instant::of(1_700),
+            classification: SnapshotClassification::Checkpoint,
+            createdAt: Instant::of(1_700),
         );
     }
 
@@ -293,8 +272,7 @@ final class RunItArtifactFactory
         $context = ExecutionContext::empty();
         $context = $context->with(ContextEntry::public(ContextKey::fromString('tenant.id'), 'acme'));
         $context = $context->with(ContextEntry::secret(ContextKey::fromString('secret.token'), 's3cr3t'));
-        $context = $context->with(ContextEntry::public(ContextKey::fromString('correlation.id'), 'corr-123'));
 
-        return $context;
+        return $context->with(ContextEntry::public(ContextKey::fromString('correlation.id'), 'corr-123'));
     }
 }

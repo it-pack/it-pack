@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry;
 
+use OpenTelemetry\API\Logs\LoggerProviderInterface;
+use OpenTelemetry\API\Metrics\MeterProviderInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
+
 /**
  * Detects which OpenTelemetry signals the bridge can emit for a configuration.
  *
@@ -26,9 +30,9 @@ final readonly class BridgeCapability
     public static function detect(BridgeConfig $config): self
     {
         return new self(
-            $config->tracerProvider !== null,
-            $config->meterProvider !== null,
-            $config->loggerProvider !== null,
+            $config->tracerProvider instanceof TracerProviderInterface,
+            $config->meterProvider instanceof MeterProviderInterface,
+            $config->loggerProvider instanceof LoggerProviderInterface,
         );
     }
 

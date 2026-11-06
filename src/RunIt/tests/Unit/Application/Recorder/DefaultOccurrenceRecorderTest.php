@@ -48,7 +48,7 @@ final class DefaultOccurrenceRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->occurrences()->record(
                     OccurrenceType::fromString('itpack.thing.done.v1'),
                     'app',
@@ -73,7 +73,7 @@ final class DefaultOccurrenceRecorderTest extends Unit
 
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) use ($extensions) {
+            function ($scope) use ($extensions): null {
                 $scope->occurrences()->record(
                     OccurrenceType::fromString('itpack.thing.done.v1'),
                     'app',
@@ -96,13 +96,13 @@ final class DefaultOccurrenceRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->activities()->run(
                     ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
-                    function ($activityScope) {
+                    function ($activityScope): null {
                         $activityScope->occurrences()->record(
                             OccurrenceType::fromString('itpack.thing.done.v1'),
                             'app',

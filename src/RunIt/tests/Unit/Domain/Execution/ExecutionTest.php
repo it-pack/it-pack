@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Execution;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
 use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Domain\Context\ContextEntry;
@@ -24,10 +25,10 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use PHPUnit\Framework\Attributes\CoversClass;
 
-#[CoversClass(Execution::class)]
-#[CoversClass(ExecutionStatus::class)]
-#[CoversClass(ExecutionSuccess::class)]
-#[CoversClass(ExecutionFailure::class)]
+#[CoversClass(className: Execution::class)]
+#[CoversClass(className: ExecutionStatus::class)]
+#[CoversClass(className: ExecutionSuccess::class)]
+#[CoversClass(className: ExecutionFailure::class)]
 final class ExecutionTest extends Unit
 {
     public function testTerminalStatusesAreReported(): void
@@ -52,7 +53,7 @@ final class ExecutionTest extends Unit
     {
         $failure = ExecutionFailure::of(
             ExecutionStatus::Failed,
-            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
         );
 
         self::assertSame(ExecutionStatus::Failed, $failure->status());
@@ -64,9 +65,8 @@ final class ExecutionTest extends Unit
         return ExecutionDefinition::create(
             ExecutionName::fromString('import'),
             ExecutionKind::fromString('batch'),
-            null,
-            [],
-            ExecutionContext::empty()->with(
+            linkedExecutionIds: [],
+            context: ExecutionContext::empty()->with(
                 ContextEntry::public(
                     ContextKey::fromString('tenant.id'),
                     'acme',
@@ -114,15 +114,15 @@ final class ExecutionTest extends Unit
             $terminal->complete(
                 ExecutionFailure::of(
                     ExecutionStatus::Failed,
-                    ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+                    ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
                 ),
                 Instant::of(3000),
             );
             self::fail('completing a terminal execution must be rejected by the aggregate itself');
-        } catch (ConflictingCompletionException $exception) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
-            self::assertStringContainsString('succeeded', $exception->getMessage());
-            self::assertStringContainsString('failed', $exception->getMessage());
+        } catch (ConflictingCompletionException $conflictingCompletionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $conflictingCompletionException);
+            self::assertStringContainsString('succeeded', $conflictingCompletionException->getMessage());
+            self::assertStringContainsString('failed', $conflictingCompletionException->getMessage());
         }
     }
 
@@ -144,9 +144,9 @@ final class ExecutionTest extends Unit
         try {
             $created->complete(ExecutionSuccess::create(), Instant::of(2000));
             self::fail('skipping the running state must be rejected');
-        } catch (InvalidLifecycleTransitionException $exception) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
-            self::assertStringContainsString('"created" to "succeeded"', $exception->getMessage());
+        } catch (InvalidLifecycleTransitionException $invalidLifecycleTransitionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $invalidLifecycleTransitionException);
+            self::assertStringContainsString('"created" to "succeeded"', $invalidLifecycleTransitionException->getMessage());
         }
     }
 
@@ -199,7 +199,7 @@ final class ExecutionTest extends Unit
 
         ExecutionFailure::of(
             ExecutionStatus::Running,
-            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
         );
     }
 
@@ -243,7 +243,7 @@ final class ExecutionTest extends Unit
 
         self::assertSame('parent-1', $execution->definition()->parentExecutionId()?->toString());
         self::assertSame(['linked-1'], array_map(
-            static fn ($id) => $id->toString(),
+            static fn (ExecutionIdInterface $id): string => $id->toString(),
             $execution->definition()->linkedExecutionIds()
         ));
     }

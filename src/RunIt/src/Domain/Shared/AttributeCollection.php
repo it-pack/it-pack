@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Shared;
 
+use ArrayIterator;
+use IteratorAggregate;
 use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
+use Traversable;
 
 /**
  * An immutable, bounded collection of structured attributes.
@@ -23,30 +26,20 @@ use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
  *
  * @api
  *
- * @implements \IteratorAggregate<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+ * @implements IteratorAggregate<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final readonly class AttributeCollection implements AttributeCollectionInterface, \IteratorAggregate
+final readonly class AttributeCollection implements AttributeCollectionInterface, IteratorAggregate
 {
-    /**
-     * @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
-     */
-    private array $attributes;
-
-    private SecurityLimits $limits;
-
     /**
      * @param array<string, mixed> $attributes
      */
     private function __construct(
-        array $attributes,
-        SecurityLimits $limits = new SecurityLimits(),
+        private array $attributes,
+        private SecurityLimits $limits = new SecurityLimits(),
     ) {
-        /** @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes */
-        $this->attributes = $attributes;
-        $this->limits = $limits;
-        new AttributeValidator($limits)->assertValidAttributes($attributes);
+        new AttributeValidator($this->limits)->assertValidAttributes($this->attributes);
     }
 
     /**
@@ -115,11 +108,11 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
     }
 
     /**
-     * @return \Traversable<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return Traversable<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
      */
-    public function getIterator(): \Traversable
+    public function getIterator(): Traversable
     {
-        return new \ArrayIterator($this->toArray());
+        return new ArrayIterator($this->toArray());
     }
 
     /**

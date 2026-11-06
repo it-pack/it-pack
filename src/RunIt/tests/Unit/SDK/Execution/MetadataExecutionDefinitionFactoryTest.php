@@ -9,7 +9,7 @@ use ItPack\RunIt\SDK\Execution\MetadataExecutionDefinitionFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(MetadataExecutionDefinitionFactory::class)]
+#[CoversClass(className: MetadataExecutionDefinitionFactory::class)]
 final class MetadataExecutionDefinitionFactoryTest extends TestCase
 {
     public function testCreateUsesMetadataNameAndDefaultKind(): void

@@ -16,7 +16,7 @@ return RectorConfig::configure()
         __DIR__ . '/examples',
     ])
     ->withSkipPath(
-        __DIR__ . '/tests/_support/_generated',
+        __DIR__ . '/tests/Support/_generated',
     )
     ->withPhpSets(php85: true)
     ->withSets([

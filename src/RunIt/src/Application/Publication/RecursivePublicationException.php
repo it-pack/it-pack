@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+use RuntimeException;
 
 /**
  * Thrown when an artifact is published while publication is already active.
@@ -16,7 +17,7 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class RecursivePublicationException extends \RuntimeException implements RunItExceptionInterface
+final class RecursivePublicationException extends RuntimeException implements RunItExceptionInterface
 {
     public static function forNestedPublish(): self
     {

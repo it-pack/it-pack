@@ -11,6 +11,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use Throwable;
 
 /**
  * Artifact publisher that applies a failure policy when the inner publisher throws.
@@ -58,7 +59,7 @@ final class FailSafeArtifactPublisher implements
         try {
             try {
                 $this->inner->publish($artifact);
-            } catch (\Throwable $publicationError) {
+            } catch (Throwable $publicationError) {
                 // Report before the policy runs: a fail-closed policy rethrows,
                 // and without this ordering its faults would be invisible to
                 // the health channel (Phase 1, T1.2).

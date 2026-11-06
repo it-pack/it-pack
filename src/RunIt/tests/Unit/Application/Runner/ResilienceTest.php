@@ -76,11 +76,11 @@ final class ResilienceTest extends Unit
         $caught = null;
 
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'original business exception must be rethrown, not the publisher failure');
@@ -90,10 +90,10 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            storage: new ThrowingDetachContextStorage(),
             onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
+            storage: new ThrowingDetachContextStorage(),
         );
 
         $result = $kit->runner->run($this->definition(), static fn (): int => 7);
@@ -110,11 +110,11 @@ final class ResilienceTest extends Unit
         $caught = null;
 
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'original business exception must survive a detach failure');
@@ -227,7 +227,7 @@ final class ResilienceTest extends Unit
     public function testThrowingHealthCallbackPreservesResult(): void
     {
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (Throwable $failure): void {
+            onPublicationFailure: static function (Throwable $failure): never {
                 throw new RuntimeException('handler is broken');
             },
         );
@@ -243,7 +243,7 @@ final class ResilienceTest extends Unit
         // handler: the operation must still run and return its result.
         $kit = new RunItTestKit(
             publisher: new ThrowingArtifactPublisher(),
-            onPublicationFailure: static function (Throwable $failure): void {
+            onPublicationFailure: static function (Throwable $failure): never {
                 throw new RuntimeException('handler is broken');
             },
         );
@@ -256,7 +256,7 @@ final class ResilienceTest extends Unit
     public function testThrowingHealthCallbackDuringFailurePathPreservesOriginalThrowable(): void
     {
         $kit = new RunItTestKit(
-            onPublicationFailure: static function (Throwable $failure): void {
+            onPublicationFailure: static function (Throwable $failure): never {
                 throw new RuntimeException('handler is broken');
             },
         );
@@ -265,11 +265,11 @@ final class ResilienceTest extends Unit
         $caught = null;
 
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'original business exception must survive a throwing health callback');
@@ -289,8 +289,8 @@ final class ResilienceTest extends Unit
 
         try {
             $kit->runner->run($this->definition(), static fn (): int => 1);
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame(
@@ -305,18 +305,18 @@ final class ResilienceTest extends Unit
     {
         $failures = [];
         $kit = new RunItTestKit(
-            storage: new ThrowingAttachContextStorage(),
             onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
                 $failures[] = $failure;
             },
+            storage: new ThrowingAttachContextStorage(),
         );
 
         $caught = null;
 
         try {
             $kit->runner->run($this->definition(), static fn (): int => 1);
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame('context attach is broken', $caught?->getMessage());
@@ -337,11 +337,11 @@ final class ResilienceTest extends Unit
         $caught = null;
 
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'original business exception must survive a throwing completion policy');
@@ -363,11 +363,11 @@ final class ResilienceTest extends Unit
         $caught = null;
 
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'original business exception must survive a failing lifecycle transition');
@@ -388,11 +388,11 @@ final class ResilienceTest extends Unit
         $caught = null;
 
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'original business exception must survive a throwing throwable mapper');

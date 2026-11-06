@@ -34,6 +34,6 @@ final readonly class OccurrenceTypeFilter implements ArtifactFilterInterface
             return false;
         }
 
-        return in_array($artifact->type()->toString(), $this->types, true);
+        return in_array($artifact->type()->toString(), $this->types, strict: true);
     }
 }

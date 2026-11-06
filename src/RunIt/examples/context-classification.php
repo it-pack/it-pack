@@ -22,7 +22,8 @@ $context = ExecutionContext::empty()
     ->with(ContextEntry::public(ContextKey::fromString('environment'), 'prod'))
     ->with(ContextEntry::internal(ContextKey::fromString('trace.id'), 'abc123'))
     ->with(ContextEntry::restricted(ContextKey::fromString('customer.dob'), '1990-01-01'))
-    ->with(ContextEntry::secret(ContextKey::fromString('api.token'), 's3cr3t'));
+    ->with(ContextEntry::secret(ContextKey::fromString('api.token'), 's3cr3t'))
+;
 
 echo 'context entries (classification drives default edge behavior):' . PHP_EOL;
 foreach ($context->toArray() as $entry) {

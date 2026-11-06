@@ -54,17 +54,20 @@ $tracerProvider = new TracerProvider(new SimpleSpanProcessor($spanExporter));
 $metricReader = new ExportingReader($metricExporter);
 $meterProvider = new MeterProviderBuilder()
     ->addReader($metricReader)
-    ->build();
+    ->build()
+;
 $loggerProvider = new LoggerProviderBuilder()
     ->addLogRecordProcessor(new SimpleLogRecordProcessor($logExporter))
-    ->build();
+    ->build()
+;
 
 $config = new BridgeConfigBuilder()
     ->withTracerProvider($tracerProvider)
     ->withMeterProvider($meterProvider)
     ->withLoggerProvider($loggerProvider)
     ->withMetricAttributeAllowList(['region'])
-    ->build();
+    ->build()
+;
 
 $otelPublisher = TelemetryPublisher::fromConfig($config);
 
@@ -74,16 +77,15 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $result = $runtime->run(
     ExecutionDefinition::create(
         ExecutionName::fromString('checkout.process'),
         ExecutionKind::fromString('operation'),
     ),
-    static function (): array {
-        return ['status' => 'ok'];
-    },
+    static fn (): array => ['status' => 'ok'],
 );
 
 // Publish a representative set of RunIt artifacts through the OpenTelemetry bridge.
@@ -96,8 +98,8 @@ try {
         ),
         Instant::now(),
     ));
-} catch (Throwable $e) {
-    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
+} catch (Throwable $throwable) {
+    error_log('[opentelemetry-example] export fault: ' . $throwable->getMessage());
 }
 
 try {
@@ -105,13 +107,10 @@ try {
         MeasurementName::fromString('items.processed'),
         ExecutionId::fromString('exec-1'),
         3,
-        null,
-        null,
-        null,
-        AttributeCollection::fromArray(['region' => 'eu']),
+        attributes: AttributeCollection::fromArray(['region' => 'eu']),
     ));
-} catch (Throwable $e) {
-    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
+} catch (Throwable $throwable) {
+    error_log('[opentelemetry-example] export fault: ' . $throwable->getMessage());
 }
 
 try {
@@ -120,8 +119,8 @@ try {
         ExecutionId::fromString('exec-1'),
         'checkout completed',
     ));
-} catch (Throwable $e) {
-    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
+} catch (Throwable $throwable) {
+    error_log('[opentelemetry-example] export fault: ' . $throwable->getMessage());
 }
 
 try {
@@ -132,19 +131,20 @@ try {
         'it-pack/example',
         Instant::now(),
     ));
-} catch (Throwable $e) {
-    error_log('[opentelemetry-example] export fault: ' . $e->getMessage());
+} catch (Throwable $throwable) {
+    error_log('[opentelemetry-example] export fault: ' . $throwable->getMessage());
 }
 
 try {
     echo 'Execution result: ' . json_encode($result, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT) . PHP_EOL;
-} catch (JsonException $e) {
-    error_log('[opentelemetry-example] result encoding failed: ' . $e->getMessage());
+} catch (JsonException $jsonException) {
+    error_log('[opentelemetry-example] result encoding failed: ' . $jsonException->getMessage());
 }
+
 echo 'Exported spans: ' . count($spanExporter->getSpans()) . PHP_EOL;
 echo 'Exported logs: ' . $logExporter->getStorage()->count() . PHP_EOL;
 
 $metricReader->collect();
-foreach ($metricExporter->collect(true) as $metric) {
+foreach ($metricExporter->collect(reset: true) as $metric) {
     echo 'Exported metric: ' . $metric->name . PHP_EOL;
 }

@@ -17,9 +17,6 @@ trait TerminalStatusBehavior
 {
     public function isTerminal(): bool
     {
-        return $this === self::Succeeded
-            || $this === self::Failed
-            || $this === self::Cancelled
-            || $this === self::TimedOut;
+        return in_array($this, [self::Succeeded, self::Failed, self::Cancelled, self::TimedOut], strict: true);
     }
 }

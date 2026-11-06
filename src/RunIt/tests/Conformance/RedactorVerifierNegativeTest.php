@@ -83,8 +83,8 @@ final class RedactorVerifierNegativeTest extends Unit
     {
         $replacement = $this->fixture->occurrence();
 
-        $redactor = new class ($replacement) implements RedactorInterface {
-            public function __construct(private readonly ExecutionArtifactInterface $replacement)
+        $redactor = new readonly class ($replacement) implements RedactorInterface {
+            public function __construct(private ExecutionArtifactInterface $replacement)
             {
             }
 

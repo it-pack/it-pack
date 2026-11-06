@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use Throwable;
 
 /**
  * Artifact publisher that fans an artifact out to multiple inner publishers.
@@ -44,14 +45,12 @@ final readonly class CompositeArtifactPublisher implements
         foreach ($this->publishers as $publisher) {
             try {
                 $publisher->publish($artifact);
-            } catch (\Throwable $failure) {
-                if ($firstFailure === null) {
-                    $firstFailure = $failure;
-                }
+            } catch (Throwable $failure) {
+                $firstFailure ??= $failure;
             }
         }
 
-        if ($firstFailure instanceof \Throwable) {
+        if ($firstFailure instanceof Throwable) {
             throw $firstFailure;
         }
     }

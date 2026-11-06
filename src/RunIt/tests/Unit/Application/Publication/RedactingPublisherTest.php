@@ -60,9 +60,7 @@ final class RedactingPublisherTest extends Unit
             ObservationId::fromString('obs'),
             ExecutionId::fromString('exec-1'),
             'login',
-            null,
-            null,
-            AttributeCollection::fromArray(['user' => 'alice', 'password' => 'hunter2']),
+            attributes: AttributeCollection::fromArray(['user' => 'alice', 'password' => 'hunter2']),
         );
 
         /** @var array<string, mixed> $redacted */
@@ -84,10 +82,7 @@ final class RedactingPublisherTest extends Unit
             ObservationId::fromString('obs'),
             ExecutionId::fromString('exec-1'),
             'failed',
-            null,
-            null,
-            null,
-            $throwable,
+            throwableDescription: $throwable,
         );
 
         /** @var array<string, mixed> $redacted */
@@ -107,10 +102,7 @@ final class RedactingPublisherTest extends Unit
             ObservationId::fromString('obs-nested'),
             ExecutionId::fromString('exec-1'),
             'failed',
-            null,
-            null,
-            null,
-            SensitiveExceptionChain::classifiedChain(),
+            throwableDescription: SensitiveExceptionChain::classifiedChain(),
         );
 
         $encoded = json_encode($this->publish($original)->normalize(), JSON_THROW_ON_ERROR);
@@ -180,9 +172,7 @@ final class RedactingPublisherTest extends Unit
             ObservationId::fromString('obs'),
             ExecutionId::fromString('exec-1'),
             'm',
-            null,
-            null,
-            AttributeCollection::fromArray(['a' => 'b']),
+            attributes: AttributeCollection::fromArray(['a' => 'b']),
         );
         $obsNormalized = $observation->normalize();
         self::assertArrayHasKey(ArtifactField::ID, $obsNormalized);
@@ -220,9 +210,7 @@ final class RedactingPublisherTest extends Unit
             ObservationId::fromString('obs'),
             ExecutionId::fromString('exec-1'),
             'hello',
-            null,
-            null,
-            AttributeCollection::fromArray(['user' => 'alice']),
+            attributes: AttributeCollection::fromArray(['user' => 'alice']),
         );
 
         $sink = new InMemoryArtifactPublisher();

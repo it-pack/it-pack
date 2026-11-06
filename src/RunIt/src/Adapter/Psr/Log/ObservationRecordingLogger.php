@@ -48,8 +48,6 @@ final class ObservationRecordingLogger extends AbstractLogger implements LoggerI
     }
 
     /**
-     * @param mixed $level
-     * @param string|Stringable $message
      * @param array<array-key, mixed> $context
      * @throws RunItExceptionInterface
      */
@@ -89,7 +87,7 @@ final class ObservationRecordingLogger extends AbstractLogger implements LoggerI
         $attributes = [];
 
         foreach ($context as $key => $value) {
-            if (in_array($key, $this->reservedContextKeys, true)) {
+            if (in_array($key, $this->reservedContextKeys, strict: true)) {
                 continue;
             }
 
@@ -107,12 +105,7 @@ final class ObservationRecordingLogger extends AbstractLogger implements LoggerI
         if (is_object($value) || is_resource($value)) {
             return false;
         }
-
-        if (is_array($value) && array_any($value, static fn ($item) => is_object($item) || is_resource($item))) {
-            return false;
-        }
-
-        return true;
+        return !is_array($value) || !array_any($value, static fn ($item): bool => is_object($item) || is_resource($item));
     }
 
     private function levelToString(mixed $level): string

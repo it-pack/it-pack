@@ -55,6 +55,7 @@ final class MeasurementInstrumentMapperTest extends Unit
         $mapper = new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, new InstrumentCache(64), []);
 
         $mapper->record(RunItArtifactFactory::counter('exec-1', 'items', 5));
+
         $metric = $this->kit->metric('items');
 
         self::assertNotNull($metric);
@@ -65,6 +66,7 @@ final class MeasurementInstrumentMapperTest extends Unit
             $point = $candidate;
             break;
         }
+
         self::assertNotNull($point);
         self::assertSame(5, $point->value);
     }
@@ -76,11 +78,8 @@ final class MeasurementInstrumentMapperTest extends Unit
             MeasurementName::fromString('cpu'),
             ExecutionId::fromString('exec-1'),
             0.42,
-            null,
-            Instant::of(1_500),
-            null,
-            null,
-            MeasurementUnit::Percent
+            instant: Instant::of(1_500),
+            unit: MeasurementUnit::Percent
         );
 
         $mapper->record($gauge);
@@ -94,6 +93,7 @@ final class MeasurementInstrumentMapperTest extends Unit
             $point = $candidate;
             break;
         }
+
         self::assertNotNull($point);
         self::assertSame(0.42, $point->value);
     }
@@ -118,6 +118,7 @@ final class MeasurementInstrumentMapperTest extends Unit
             $point = $candidate;
             break;
         }
+
         self::assertNotNull($point);
         self::assertSame(12.5, $point->sum);
     }
@@ -133,10 +134,8 @@ final class MeasurementInstrumentMapperTest extends Unit
             MeasurementName::fromString('requests'),
             ExecutionId::fromString('exec-1'),
             3,
-            null,
-            Instant::of(1_500),
-            null,
-            AttributeCollection::fromArray(['region' => 'eu', 'tenant.id' => 'acme']),
+            instant: Instant::of(1_500),
+            attributes: AttributeCollection::fromArray(['region' => 'eu', 'tenant.id' => 'acme']),
         );
 
         $mapper->record($measurement);
@@ -155,10 +154,8 @@ final class MeasurementInstrumentMapperTest extends Unit
             MeasurementName::fromString('requests'),
             ExecutionId::fromString('exec-1'),
             3,
-            null,
-            Instant::of(1_500),
-            null,
-            AttributeCollection::fromArray(['tenant.id' => 'acme']),
+            instant: Instant::of(1_500),
+            attributes: AttributeCollection::fromArray(['tenant.id' => 'acme']),
         );
 
         $mapper->record($measurement);
@@ -184,7 +181,7 @@ final class MeasurementInstrumentMapperTest extends Unit
 
     public function testMissingMeterProviderRecordsNothing(): void
     {
-        $mapper = new DefaultMeasurementInstrumentMapper(null, new InstrumentCache(64), []);
+        $mapper = new DefaultMeasurementInstrumentMapper(meterProvider: null, cache: new InstrumentCache(64), metricAttributeAllowList: []);
         $mapper->record(Measurement::counter(
             MeasurementName::fromString('items'),
             ExecutionId::fromString('exec-1'),

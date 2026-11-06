@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+
 /**
  * RunIt — in-memory runtime.
  *
@@ -31,12 +34,13 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $runtime->run(
     ExecutionDefinition::create(ExecutionName::fromString('checkout.process'), ExecutionKind::fromString('operation')),
-    static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope): void {
-        $scope->observations()->record('payment accepted', \ItPack\RunIt\Domain\Observation\ObservationSeverity::Info);
+    static function (ExecutionScopeInterface $scope): void {
+        $scope->observations()->record('payment accepted', ObservationSeverity::Info);
     },
 );
 

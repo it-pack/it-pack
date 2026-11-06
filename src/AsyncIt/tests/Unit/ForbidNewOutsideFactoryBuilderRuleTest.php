@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit;
 
+use ItPack\AsyncIt\Application\Factory\FiberFactory;
+use Nyholm\Psr7\Request;
+use ItPack\AsyncIt\RuleFixture\UserlandInternal;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
@@ -17,10 +20,10 @@ final class ForbidNewOutsideFactoryBuilderRuleTest extends RuleTestCase
         $message = 'Direct construction of %s outside a Factory/Builder namespace is forbidden; use an injected factory (AsyncIt M1).';
 
         $this->analyse([__DIR__ . '/../Support/Data/ForbidNewOutsideFactoryBuilder.php'], [
-            [sprintf($message, 'ItPack\\AsyncIt\\Application\\Factory\\FiberFactory'), 16],
-            [sprintf($message, 'Nyholm\\Psr7\\Request'), 17],
+            [sprintf($message, FiberFactory::class), 16],
+            [sprintf($message, Request::class), 17],
             [sprintf($message, 'ItPack\\AsyncIt\\RuleFixture\\MissingClass'), 18],
-            [sprintf($message, 'ItPack\\AsyncIt\\RuleFixture\\UserlandInternal'), 19],
+            [sprintf($message, UserlandInternal::class), 19],
         ]);
     }
 
@@ -28,7 +31,7 @@ final class ForbidNewOutsideFactoryBuilderRuleTest extends RuleTestCase
     {
         return new ForbidNewOutsideFactoryBuilderRule(
             self::getContainer()->getByType(ReflectionProvider::class),
-            srcRoot: dirname(__DIR__) . '/Support/Data',
+            srcRoot: __DIR__ . '/../Support/Data',
         );
     }
 }

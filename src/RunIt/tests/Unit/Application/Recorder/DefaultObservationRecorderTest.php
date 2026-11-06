@@ -48,7 +48,7 @@ final class DefaultObservationRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->observations()->record('plain message', ObservationSeverity::Warning);
 
                 return null;
@@ -66,13 +66,13 @@ final class DefaultObservationRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->activities()->run(
                     ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
-                    function ($activityScope) {
+                    function ($activityScope): null {
                         $activityScope->observations()->record('in activity', ObservationSeverity::Info);
 
                         return null;
@@ -94,7 +94,7 @@ final class DefaultObservationRecorderTest extends Unit
 
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) use ($error) {
+            function ($scope) use ($error): null {
                 $scope->observations()->record('failed step', ObservationSeverity::Error, null, $error, 'step.failed');
 
                 return null;

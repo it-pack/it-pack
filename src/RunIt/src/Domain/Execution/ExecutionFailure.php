@@ -25,8 +25,8 @@ use ItPack\RunIt\Domain\Exception\InvalidLifecycleTransitionException;
 final readonly class ExecutionFailure implements ExecutionResultInterface
 {
     private function __construct(
-        private readonly ExecutionStatusInterface $status,
-        private readonly ThrowableDescriptionInterface $description,
+        private ExecutionStatusInterface $status,
+        private ThrowableDescriptionInterface $description,
     ) {
     }
 

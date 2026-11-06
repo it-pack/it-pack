@@ -11,9 +11,9 @@ use ItPack\RunIt\Domain\Exception\NoActiveExecutionException;
 /**
  * Test double for {@see CurrentExecutionInterface} returning a configured scope.
  */
-final class FakeCurrentExecution implements CurrentExecutionInterface
+final readonly class FakeCurrentExecution implements CurrentExecutionInterface
 {
-    public function __construct(private readonly ?ExecutionScopeInterface $scope = null)
+    public function __construct(private ?ExecutionScopeInterface $scope = null)
     {
     }
 
@@ -24,7 +24,7 @@ final class FakeCurrentExecution implements CurrentExecutionInterface
 
     public function require(): ExecutionScopeInterface
     {
-        if ($this->scope === null) {
+        if (!$this->scope instanceof ExecutionScopeInterface) {
             throw NoActiveExecutionException::instance();
         }
 

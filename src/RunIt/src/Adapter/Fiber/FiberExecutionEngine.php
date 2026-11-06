@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use Throwable;
 
 /**
  * Runs the operation inside a dedicated Fiber.
@@ -22,7 +23,7 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 final class FiberExecutionEngine implements ExecutionEngineInterface
 {
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function run(ExecutionScopeInterface $scope, callable $operation): mixed
     {
@@ -38,6 +39,6 @@ final class FiberExecutionEngine implements ExecutionEngineInterface
 
     public function capability(): EngineCapabilityInterface
     {
-        return new EngineCapability(true, false, false);
+        return new EngineCapability(supportsFibers: true, supportsCoroutines: false, concurrent: false);
     }
 }

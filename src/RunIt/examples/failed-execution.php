@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\Domain\Execution\Execution;
+
 /**
  * RunIt — failed execution.
  *
@@ -32,7 +34,8 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 try {
     $runtime->run(
@@ -41,12 +44,12 @@ try {
             throw new RuntimeException('payment gateway unavailable');
         },
     );
-} catch (Throwable $e) {
-    echo 'original exception preserved: ' . $e->getMessage() . PHP_EOL;
+} catch (Throwable $throwable) {
+    echo 'original exception preserved: ' . $throwable->getMessage() . PHP_EOL;
 }
 
 foreach ($publisher->published() as $artifact) {
-    if ($artifact instanceof \ItPack\RunIt\Domain\Execution\Execution) {
+    if ($artifact instanceof Execution) {
         echo 'recorded execution status: ' . $artifact->normalize()['status'] . PHP_EOL;
     }
 }

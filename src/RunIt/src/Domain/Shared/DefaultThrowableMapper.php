@@ -34,7 +34,9 @@ use Throwable;
 final readonly class DefaultThrowableMapper implements ThrowableMapperInterface
 {
     public const int DEFAULT_MAX_MESSAGE_LENGTH = 1024;
+
     public const int DEFAULT_MAX_TRACE_LENGTH = 8192;
+
     public const int DEFAULT_MAX_CAUSE_DEPTH = 5;
 
     /**
@@ -44,10 +46,10 @@ final readonly class DefaultThrowableMapper implements ThrowableMapperInterface
      * @param int  $maxCauseDepth maximum number of captured previous-cause levels
      */
     public function __construct(
-        private readonly bool $includeTrace = false,
-        private readonly int $maxMessageLength = self::DEFAULT_MAX_MESSAGE_LENGTH,
-        private readonly int $maxTraceLength = self::DEFAULT_MAX_TRACE_LENGTH,
-        private readonly int $maxCauseDepth = self::DEFAULT_MAX_CAUSE_DEPTH,
+        private bool $includeTrace = false,
+        private int $maxMessageLength = self::DEFAULT_MAX_MESSAGE_LENGTH,
+        private int $maxTraceLength = self::DEFAULT_MAX_TRACE_LENGTH,
+        private int $maxCauseDepth = self::DEFAULT_MAX_CAUSE_DEPTH,
     ) {
     }
 

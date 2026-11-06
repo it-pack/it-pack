@@ -42,7 +42,7 @@ final class ObservationRecordingLoggerTest extends Unit
         $logger->info('i');
         $logger->debug('d');
 
-        $names = array_map(static fn ($r) => $r['severity']?->label(), $recorder->recorded());
+        $names = array_map(static fn (array $r) => $r['severity']?->label(), $recorder->recorded());
         self::assertSame(
             [
                 ObservationSeverity::Emergency->label(),

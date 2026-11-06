@@ -142,7 +142,7 @@ final class FiberTaskScheduler implements
     public function spawn(callable $operation, TaskIdInterface|null $id = null): TaskInterface
     {
         $scope = $this->cancellationScopeFactory->create();
-        $task = $id !== null
+        $task = $id instanceof TaskIdInterface
             ? $this->taskFactory->createWithId($id, $this->executionId, $scope)
             : $this->taskFactory->create($this->executionId, $scope);
 

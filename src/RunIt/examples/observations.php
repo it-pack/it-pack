@@ -32,7 +32,8 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $runtime->run(
     ExecutionDefinition::create(
@@ -51,11 +52,11 @@ $runtime->run(
 
         try {
             throw new RuntimeException('gateway timeout');
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             $scope->observations()->record(
                 'payment failed',
                 ObservationSeverity::Error,
-                throwable: $e
+                throwable: $throwable
             );
         }
     },

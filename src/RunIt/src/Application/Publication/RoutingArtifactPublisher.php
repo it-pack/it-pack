@@ -26,7 +26,6 @@ final readonly class RoutingArtifactPublisher implements
 {
     /**
      * @param list<PublicationRoute>          $routes
-     * @param ?ArtifactPublisherInterface     $fallback
      */
     public function __construct(
         private array                       $routes,

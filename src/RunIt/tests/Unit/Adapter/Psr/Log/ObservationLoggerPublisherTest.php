@@ -27,10 +27,9 @@ final class ObservationLoggerPublisherTest extends Unit
             ObservationId::fromString('o-1'),
             ExecutionId::fromString('exec-1'),
             'request failed',
-            null,
-            'NETWORK',
-            AttributeCollection::fromArray(['attempt' => 3]),
-            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            diagnosticCode: 'NETWORK',
+            attributes: AttributeCollection::fromArray(['attempt' => 3]),
+            throwableDescription: ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
         );
 
         $publisher->publish($observation);
@@ -79,9 +78,7 @@ final class ObservationLoggerPublisherTest extends Unit
                 ObservationId::fromString('o-9'),
                 ExecutionId::fromString('exec-9'),
                 'secret action',
-                null,
-                null,
-                AttributeCollection::fromArray(['password' => 'hunter2']),
+                attributes: AttributeCollection::fromArray(['password' => 'hunter2']),
             ),
         );
 

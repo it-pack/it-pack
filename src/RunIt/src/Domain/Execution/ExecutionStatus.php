@@ -73,6 +73,6 @@ enum ExecutionStatus: string implements ExecutionStatusInterface
         }
 
         return isset(self::ALLOWED_TRANSITIONS[$this->value])
-            && in_array($to->label(), self::ALLOWED_TRANSITIONS[$this->value], true);
+            && in_array($to->label(), self::ALLOWED_TRANSITIONS[$this->value], strict: true);
     }
 }

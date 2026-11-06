@@ -14,8 +14,9 @@ use ItPack\RunIt\SDK\Attribute\ExecutedAsInterface;
 final readonly class MetadataExecutionDefinitionFactory implements MetadataExecutionDefinitionFactoryInterface
 {
     public function __construct(
-        private ExecutionDefinitionFactoryInterface $executionDefinitionFactory = new ExecutionDefinitionFactory
-    ){}
+        private ExecutionDefinitionFactoryInterface $executionDefinitionFactory = new ExecutionDefinitionFactory()
+    ) {
+    }
 
     public function create(ExecutedAsInterface $executedAs): ExecutionDefinitionInterface
     {

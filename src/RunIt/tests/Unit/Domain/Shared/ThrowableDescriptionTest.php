@@ -12,7 +12,7 @@ final class ThrowableDescriptionTest extends Unit
 {
     public function testCreateExposesCapturedPrimitiveValues(): void
     {
-        $previous = ThrowableDescription::create('Inner\\Failure', 'boom', 7, null, null);
+        $previous = ThrowableDescription::create('Inner\\Failure', 'boom', 7, previous: null, trace: null);
 
         $description = ThrowableDescription::create(
             'Outer\\Failure',
@@ -34,7 +34,7 @@ final class ThrowableDescriptionTest extends Unit
 
     public function testAbsentPreviousAndTraceAreNull(): void
     {
-        $description = ThrowableDescription::create('RuntimeException', 'x', 0, null, null);
+        $description = ThrowableDescription::create('RuntimeException', 'x', 0, previous: null, trace: null);
 
         self::assertNull($description->previous());
         self::assertNull($description->trace());
@@ -42,7 +42,7 @@ final class ThrowableDescriptionTest extends Unit
 
     public function testToArrayIsDeterministicAndRecursivelyPrimitive(): void
     {
-        $previous = ThrowableDescription::create('Inner', 'i', 1, null, null);
+        $previous = ThrowableDescription::create('Inner', 'i', 1, previous: null, trace: null);
         $description = ThrowableDescription::create('Outer', 'o', 2, $previous, 'trace');
 
         $expected = [

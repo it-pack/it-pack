@@ -13,9 +13,9 @@ use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Shared\Instant;
 
-final class NoopOccurrenceRecorder implements OccurrenceRecorderInterface
+final readonly class NoopOccurrenceRecorder implements OccurrenceRecorderInterface
 {
-    public function __construct(private readonly ExecutionIdInterface $executionId)
+    public function __construct(private ExecutionIdInterface $executionId)
     {
     }
 

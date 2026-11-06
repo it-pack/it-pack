@@ -61,7 +61,7 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
     ): ObservationInterface {
         $severity ??= ObservationSeverity::Info;
         $id = $this->observationIdFactory->build();
-        $description = $throwable === null ? null : $this->throwableMapper->describe($throwable);
+        $description = $throwable instanceof Throwable ? $this->throwableMapper->describe($throwable) : null;
         $observation = $this->instantiate(
             $severity,
             $id,

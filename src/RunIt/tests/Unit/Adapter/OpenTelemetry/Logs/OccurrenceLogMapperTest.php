@@ -47,8 +47,8 @@ final class OccurrenceLogMapperTest extends Unit
             $mapper = new DefaultOccurrenceLogMapper(
                 $this->kit->loggerProvider,
                 SnapshotPayloadPolicy::HashOnly,
-                true,
-                true
+                mapOccurrencesToLogs: true,
+                mapOccurrencesToSpanEvents: true
             );
             $mapper->mapOccurrence(RunItArtifactFactory::occurrence('occ-1', 'exec-1', 'execution.started.v1'));
         } finally {
@@ -76,8 +76,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            false,
-            false
+            mapOccurrencesToLogs: false,
+            mapOccurrencesToSpanEvents: false
         );
         $mapper->mapOccurrence(RunItArtifactFactory::occurrence('occ-2', 'exec-1', 'execution.started.v1'));
 
@@ -89,8 +89,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            true,
-            false
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false
         );
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['key' => str_repeat('x', 1024)]));
 
@@ -103,7 +103,7 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testSnapshotPayloadExportIsOptIn(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::Full, true, false);
+        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::Full, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-2', 'exec-1', ['key' => 'value']));
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -113,7 +113,7 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testSnapshotNonePolicyExportsNoHash(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::None, true, false);
+        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::None, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-3', 'exec-1', ['key' => 'value']));
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -123,7 +123,7 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testMissingLoggerProviderEmitsNothing(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper(null, SnapshotPayloadPolicy::HashOnly, true, false);
+        $mapper = new DefaultOccurrenceLogMapper(loggerProvider: null, snapshotPayloadPolicy: SnapshotPayloadPolicy::HashOnly, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
         $mapper->mapOccurrence(RunItArtifactFactory::occurrence('occ-3', 'exec-1', 'execution.started.v1'));
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-4', 'exec-1', ['key' => 'value']));
 
@@ -138,19 +138,15 @@ final class OccurrenceLogMapperTest extends Unit
             OccurrenceType::fromString('execution.started.v1'),
             'it-pack/test',
             Instant::of(1_600),
-            null,
-            null,
-            null,
-            null,
-            MediaTypes::APPLICATION_JSON,
-            AttributeCollection::fromArray(['tenantflag' => 'on', 'otherflag' => 'off']),
+            contentType: MediaTypes::APPLICATION_JSON,
+            extensionAttributes: AttributeCollection::fromArray(['tenantflag' => 'on', 'otherflag' => 'off']),
         );
 
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            true,
-            false
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false
         );
         $mapper->mapOccurrence($occurrence);
 
@@ -167,20 +163,16 @@ final class OccurrenceLogMapperTest extends Unit
             OccurrenceType::fromString('execution.started.v1'),
             'it-pack/test',
             Instant::of(1_600),
-            null,
-            null,
-            null,
-            null,
-            MediaTypes::APPLICATION_JSON,
-            AttributeCollection::fromArray(['tenantflag' => 'on', 'cardinality_heavy' => 'x']),
+            contentType: MediaTypes::APPLICATION_JSON,
+            extensionAttributes: AttributeCollection::fromArray(['tenantflag' => 'on', 'cardinality_heavy' => 'x']),
         );
 
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            true,
-            false,
-            ['tenantflag'],
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+            occurrenceLogAttributeAllowList: ['tenantflag'],
         );
         $mapper->mapOccurrence($occurrence);
 
@@ -198,12 +190,10 @@ final class OccurrenceLogMapperTest extends Unit
             OccurrenceType::fromString('execution.started.v1'),
             'it-pack/test',
             Instant::of(1_600),
-            null,
-            ActivityId::fromString('act-7'),
-            'user-42',
-            null,
-            MediaTypes::APPLICATION_JSON,
-            AttributeCollection::fromArray(['tenantflag' => 'on']),
+            activityId: ActivityId::fromString('act-7'),
+            subject: 'user-42',
+            contentType: MediaTypes::APPLICATION_JSON,
+            extensionAttributes: AttributeCollection::fromArray(['tenantflag' => 'on']),
         );
 
         $spanExporter = new InMemoryExporter();
@@ -218,8 +208,8 @@ final class OccurrenceLogMapperTest extends Unit
             $mapper = new DefaultOccurrenceLogMapper(
                 $this->kit->loggerProvider,
                 SnapshotPayloadPolicy::HashOnly,
-                true,
-                true
+                mapOccurrencesToLogs: true,
+                mapOccurrencesToSpanEvents: true
             );
             $mapper->mapOccurrence($occurrence);
         } finally {
@@ -250,8 +240,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            true,
-            false
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false
         );
         $mapper->mapRedactedOccurrence([]);
 
@@ -277,8 +267,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            true,
-            false
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false
         );
         $mapper->mapRedactedOccurrence($normalized);
 
@@ -295,8 +285,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper = new DefaultOccurrenceLogMapper(
             $this->kit->loggerProvider,
             SnapshotPayloadPolicy::HashOnly,
-            true,
-            false
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false
         );
         $mapper->mapRedactedSnapshot(['classification' => 'terminal', 'content_hash' => 'sha-256:abc']);
 
@@ -312,7 +302,7 @@ final class OccurrenceLogMapperTest extends Unit
     {
         $snapshot = RunItArtifactFactory::snapshot('snap-act', 'exec-1', ['key' => 'value']);
 
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::None, true, false);
+        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::None, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
         $mapper->mapSnapshot($snapshot);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();

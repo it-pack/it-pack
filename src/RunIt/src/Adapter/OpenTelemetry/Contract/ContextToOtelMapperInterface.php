@@ -25,7 +25,6 @@ interface ContextToOtelMapperInterface
 
     /**
      * @param array<string, mixed>           $carrier
-     * @param TextMapPropagatorInterface     $propagator
      * @return array<string, mixed> the mutated carrier
      */
     public function injectIntoCarrier(

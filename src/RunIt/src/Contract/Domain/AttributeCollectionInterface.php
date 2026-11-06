@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use Countable;
+
 /**
  * Contract for an immutable, bounded collection of structured attributes.
  *
@@ -20,7 +22,7 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-interface AttributeCollectionInterface extends \Countable
+interface AttributeCollectionInterface extends Countable
 {
     /**
      * Returns the value stored under the key, or null when the key is absent.
@@ -42,8 +44,6 @@ interface AttributeCollectionInterface extends \Countable
     /**
      * Returns a new collection with the key set to the value, leaving this one
      * unchanged. Setting an existing key replaces its value.
-     *
-     * @param mixed $value
      */
     public function with(string $key, mixed $value): self;
 

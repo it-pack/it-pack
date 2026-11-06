@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\Swoole;
 
 use ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface;
+use Swoole\Coroutine;
 
 /**
  * Reads the coroutine id from Swoole or OpenSwoole.
@@ -19,8 +20,8 @@ final class SwooleCoroutineIdProvider implements CoroutineIdProviderInterface
 {
     public function currentCoroutineId(): int
     {
-        if (class_exists(\Swoole\Coroutine::class)) {
-            $cid = \Swoole\Coroutine::getCid();
+        if (class_exists(Coroutine::class)) {
+            $cid = Coroutine::getCid();
 
             return is_int($cid) ? $cid : -1;
         }

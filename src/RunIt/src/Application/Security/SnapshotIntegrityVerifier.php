@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Security;
 
 use ItPack\RunIt\Contract\Application\Security\SnapshotIntegrityVerifierInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 
 /**
@@ -26,10 +27,10 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
  *
  * @see https://w3id.org/itpack/runit#Snapshot
  */
-final class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterface
+final readonly class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterface
 {
     public function __construct(
-        private readonly HashCalculatorInterface $hashCalculator,
+        private HashCalculatorInterface $hashCalculator,
     ) {
     }
 
@@ -56,15 +57,15 @@ final class SnapshotIntegrityVerifier implements SnapshotIntegrityVerifierInterf
     {
         $predecessorId = $snapshot->predecessorId();
 
-        if ($predecessorId === null) {
-            if ($predecessor !== null) {
+        if (!$predecessorId instanceof SnapshotIdInterface) {
+            if ($predecessor instanceof SnapshotInterface) {
                 throw SnapshotIntegrityException::unexpectedPredecessor($snapshot->id()->toString());
             }
 
             return;
         }
 
-        if ($predecessor === null) {
+        if (!$predecessor instanceof SnapshotInterface) {
             throw SnapshotIntegrityException::missingPredecessor(
                 $snapshot->id()->toString(),
                 $predecessorId->toString()

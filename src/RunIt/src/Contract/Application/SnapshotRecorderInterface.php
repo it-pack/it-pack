@@ -21,9 +21,6 @@ use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
  */
 interface SnapshotRecorderInterface
 {
-    /**
-     * @param mixed $payload
-     */
     public function record(
         SnapshotTypeInterface $type,
         mixed $payload,

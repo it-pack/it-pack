@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Domain;
 
+use Countable;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 
 /**
@@ -18,7 +19,7 @@ use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
  *
  * @see https://w3id.org/itpack/runit#ExecutionContext
  */
-interface ExecutionContextInterface extends \Countable
+interface ExecutionContextInterface extends Countable
 {
     /**
      * Returns whether an entry exists for the key.

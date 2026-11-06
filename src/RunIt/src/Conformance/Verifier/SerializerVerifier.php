@@ -35,12 +35,13 @@ final class SerializerVerifier implements VerifierInterface
 
         try {
             $contentType = $serializer->contentType();
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('contentType.throws', sprintf(
                 'contentType() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
+
         if ($contentType === '') {
             $result = $result->add(new ConformanceViolation(
                 'contentType.empty',
@@ -70,11 +71,11 @@ final class SerializerVerifier implements VerifierInterface
         try {
             $first = $serializer->normalize($data);
             $second = $serializer->normalize($data);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation(sprintf('normalize.%s.throws', $label), sprintf(
                 'normalize() threw for %s: %s',
                 $label,
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 
@@ -94,16 +95,12 @@ final class SerializerVerifier implements VerifierInterface
 
         return $result;
     }
+
     private function isRecursivelyPrimitive(mixed $value): bool
     {
         if (is_object($value) || is_resource($value)) {
             return false;
         }
-
-        if (is_array($value) && array_any($value, fn ($item) => !$this->isRecursivelyPrimitive($item))) {
-            return false;
-        }
-
-        return true;
+        return !is_array($value) || !array_any($value, fn ($item): bool => !$this->isRecursivelyPrimitive($item));
     }
 }

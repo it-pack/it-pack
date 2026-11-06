@@ -53,7 +53,7 @@ final class SynchronousExecutionEngineTest extends Unit
 
         $this->expectException(RuntimeException::class);
 
-        $engine->run($this->scope(), static function (): void {
+        $engine->run($this->scope(), static function (): never {
             throw new RuntimeException('boom');
         });
     }

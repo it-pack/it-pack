@@ -29,7 +29,7 @@ final readonly class RatioSamplePolicy implements SamplingPolicyInterface
         private float $ratio,
         ?Closure      $source = null,
     ) {
-        $this->source = $source ?? static fn (): float => \lcg_value();
+        $this->source = $source ?? \lcg_value(...);
     }
 
     public function sample(ExecutionArtifactInterface $artifact): bool

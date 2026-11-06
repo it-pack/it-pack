@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Throwable;
 
 /**
  * Failure policy that swallows the publication error.
@@ -17,7 +18,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
  */
 final class FailOpenPolicy implements PublicationFailurePolicyInterface
 {
-    public function handle(\Throwable $error, ExecutionArtifactInterface $artifact): void
+    public function handle(Throwable $error, ExecutionArtifactInterface $artifact): void
     {
     }
 }

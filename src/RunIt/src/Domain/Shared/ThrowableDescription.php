@@ -25,11 +25,11 @@ use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 final readonly class ThrowableDescription implements ThrowableDescriptionInterface
 {
     private function __construct(
-        private readonly string $class,
-        private readonly string $message,
-        private readonly int $code,
-        private readonly ?ThrowableDescriptionInterface $previous,
-        private readonly ?string $trace,
+        private string $class,
+        private string $message,
+        private int $code,
+        private ?ThrowableDescriptionInterface $previous,
+        private ?string $trace,
     ) {
     }
 

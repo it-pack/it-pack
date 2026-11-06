@@ -96,8 +96,8 @@ final readonly class CloudEvent
 
                 $normalizedExtensions[$key] = $value;
             }
-        } catch (InvalidContextValueException $e) {
-            throw new InvalidCloudEventException($e->getMessage(), 0, $e);
+        } catch (InvalidContextValueException $invalidContextValueException) {
+            throw new InvalidCloudEventException($invalidContextValueException->getMessage(), 0, $invalidContextValueException);
         }
 
         return new self(
@@ -165,7 +165,6 @@ final readonly class CloudEvent
         }
 
         foreach ($this->extensions as $key => $value) {
-            /** @var mixed $value */
             $event[$key] = $value;
         }
 

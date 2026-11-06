@@ -98,10 +98,12 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     private const string UNKNOWN_IDENTITY = 'unknown';
 
     /**
-     * @param Closure(\Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
+     * @param Closure(Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
      */
     private FailSafeArtifactPublisher $safePublisher;
+
     private ExecutionEngineInterface  $engine;
+
     public function __construct(
         private CurrentExecutionInterface              $currentExecution,
         private ContextStorageInterface                $contextStorage,
@@ -132,7 +134,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         ?ExecutionEngineInterface                     $engine = null,
         private SecurityLimits                         $limits = new SecurityLimits(),
     ) {
-        $health = $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure);
+        $health = $this->onPublicationFailure instanceof Closure ? new CallbackHealthReporter($this->onPublicationFailure) : null;
         $bounded = new BoundedArtifactPublisher(
             $this->limits,
             $this->publisher,
@@ -166,8 +168,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         ExecutionDefinitionInterface $definition,
         callable $operation
     ): mixed {
-        if ($current === null) {
-            return $this->runExecution(NestedExecutionMode::ChildExecution, null, $definition, $operation);
+        if (!$current instanceof ExecutionScopeInterface) {
+            return $this->runExecution(NestedExecutionMode::ChildExecution, current: null, definition: $definition, operation: $operation);
         }
 
         $activityDefinition = ActivityDefinition::create(
@@ -189,10 +191,10 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         // the caller — but they are always reported first, so no execution can
         // fail to materialize silently (Phase 0, T0.2).
         try {
-            $parentId = ($mode === NestedExecutionMode::ChildExecution && $current !== null)
+            $parentId = ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
                 ? $current->execution()->id()
                 : null;
-            $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current !== null)
+            $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface)
                 ? [$current->execution()->id()]
                 : [];
 
@@ -231,18 +233,18 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             );
 
             $token = $this->contextStorage->attach($scope);
-        } catch (Throwable $setupFault) {
-            $this->reportFailure($setupFault);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
 
-            throw $setupFault;
+            throw $throwable;
         }
 
         // The startup publish is protected separately: an unexpected fault there
         // is reported and the business operation still runs (Phase 0, T0.1).
         try {
             $this->safePublish($execution);
-        } catch (Throwable $failure) {
-            $this->reportFailure($failure);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
         }
 
         try {
@@ -264,14 +266,14 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     {
         try {
             $this->completionPolicy->resolveOpenActivities($scope, $scope->openActivities());
-        } catch (Throwable $failure) {
-            $this->reportFailure($failure);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
         }
 
         try {
             $completed = $this->coordinator->transition($execution, ExecutionSuccess::create(), $this->now());
-        } catch (Throwable $failure) {
-            $this->reportFailure($failure);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
 
             return;
         }
@@ -293,9 +295,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             $scope->observations()->record(
                 self::FAILURE_MESSAGE_PREFIX . $description->message(),
                 ObservationSeverity::Error,
-                null,
-                $throwable,
-                self::FAILURE_DIAGNOSTIC_CODE,
+                throwable: $throwable,
+                diagnosticCode: self::FAILURE_DIAGNOSTIC_CODE,
             );
         } catch (Throwable $failure) {
             $this->reportFailure($failure);
@@ -326,8 +327,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             $throwable::class,
             $throwable->getMessage(),
             $throwable->getCode(),
-            null,
-            null,
+            previous: null,
+            trace: null,
         );
     }
 
@@ -340,8 +341,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     {
         try {
             $snapshot = $this->snapshotFactory->terminal($completed);
-        } catch (Throwable $failure) {
-            $this->reportFailure($failure);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
 
             return;
         }
@@ -349,8 +350,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         try {
             $this->safePublish($completed);
             $this->safePublish($snapshot);
-        } catch (Throwable $failure) {
-            $this->reportFailure($failure);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
         }
     }
 
@@ -362,8 +363,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     {
         try {
             $this->contextStorage->detach($token);
-        } catch (Throwable $failure) {
-            $this->reportFailure($failure);
+        } catch (Throwable $throwable) {
+            $this->reportFailure($throwable);
         }
     }
 
@@ -375,17 +376,17 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
         try {
             ($this->onPublicationFailure)($failure);
-        } catch (Throwable $handlerFault) {
+        } catch (Throwable $throwable) {
             // A throwing health callback must never replace the business
             // outcome: both faults land in the last-resort fallback sink.
             $artifactId = null;
 
-            if ($artifact !== null) {
+            if ($artifact instanceof ExecutionArtifactInterface) {
                 $id = $artifact->normalize()[ArtifactField::ID] ?? null;
                 $artifactId = is_string($id) ? $id : null;
             }
 
-            new FallbackErrorLogReporter()->report($failure, $handlerFault, $artifactId);
+            new FallbackErrorLogReporter()->report($failure, $throwable, $artifactId);
         }
     }
 

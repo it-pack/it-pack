@@ -40,6 +40,7 @@ use RuntimeException;
 final class PublicationPipelineTest extends Unit
 {
     private MonotonicClockInterface $clock;
+
     private ArtifactByteEstimatorInterface $estimator;
 
     protected function setUp(): void
@@ -47,15 +48,14 @@ final class PublicationPipelineTest extends Unit
         $this->clock = new SystemMonotonicClock();
         $this->estimator = new DefaultArtifactByteEstimator();
     }
+
     private function observation(): ExecutionArtifactInterface
     {
         return Observation::info(
             ObservationId::fromString('obs'),
             ExecutionId::fromString('exec-1'),
             'login',
-            null,
-            null,
-            AttributeCollection::fromArray(['user' => 'alice', 'password' => 'hunter2']),
+            attributes: AttributeCollection::fromArray(['user' => 'alice', 'password' => 'hunter2']),
         );
     }
 
@@ -127,7 +127,7 @@ final class PublicationPipelineTest extends Unit
 
     public function testPipelineFailClosedPropagates(): void
     {
-        $sink = new CallbackArtifactPublisher(static function (): void {
+        $sink = new CallbackArtifactPublisher(static function (): never {
             throw new RuntimeException('transport down');
         });
         $pipeline = new PublicationPipeline(
@@ -140,8 +140,8 @@ final class PublicationPipelineTest extends Unit
         $thrown = null;
         try {
             $pipeline->publish($this->observation());
-        } catch (RuntimeException $error) {
-            $thrown = $error;
+        } catch (RuntimeException $runtimeException) {
+            $thrown = $runtimeException;
         }
 
         self::assertNotNull($thrown);

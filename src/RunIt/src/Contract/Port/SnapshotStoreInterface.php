@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Port;
 
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use Throwable;
 
 /**
  * Port that durably persists a snapshot.
@@ -27,7 +28,7 @@ interface SnapshotStoreInterface
      * Implementations must be safe to call repeatedly and must not retain the
      * snapshot, only its normalized projection if needed.
      *
-     * @throws \Throwable implementations may throw; callers decide the failure policy
+     * @throws Throwable implementations may throw; callers decide the failure policy
      */
     public function store(SnapshotInterface $snapshot): void;
 }

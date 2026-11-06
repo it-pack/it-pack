@@ -19,7 +19,7 @@ use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
  */
 final readonly class ExecutionSuccess implements ExecutionResultInterface
 {
-    private function __construct(private readonly ExecutionStatusInterface $status)
+    private function __construct(private ExecutionStatusInterface $status)
     {
     }
 

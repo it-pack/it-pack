@@ -52,9 +52,7 @@ final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterfac
             ExecutionSnapshot::SCHEMA_VERSION,
             $execution->normalize(),
             $this->hashCalculator,
-            null,
-            null,
-            SnapshotClassification::Terminal,
+            classification: SnapshotClassification::Terminal,
         );
     }
 }

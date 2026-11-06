@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Application\Publication;
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Throwable;
 
 /**
  * Failure policy that collects the error and continues.
@@ -20,14 +21,14 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 final readonly class CollectAndContinuePolicy implements PublicationFailurePolicyInterface
 {
     /**
-     * @param Closure(\Throwable, ExecutionArtifactInterface): void $collector
+     * @param Closure(Throwable, ExecutionArtifactInterface): void $collector
      */
     public function __construct(
         private Closure $collector,
     ) {
     }
 
-    public function handle(\Throwable $error, ExecutionArtifactInterface $artifact): void
+    public function handle(Throwable $error, ExecutionArtifactInterface $artifact): void
     {
         ($this->collector)($error, $artifact);
     }

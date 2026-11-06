@@ -39,12 +39,11 @@ final class CloudEventToOccurrenceMapperTest extends Unit
             'subject-1',
             $time,
             'application/json',
-            null,
-            $extensions + [
+            extensions: $extensions + [
                 CloudEventExtensionKey::ExecutionId->value => 'exec-1',
                 'tenantflag' => 'acme',
             ],
-            '1.0',
+            specVersion: '1.0',
         );
     }
 

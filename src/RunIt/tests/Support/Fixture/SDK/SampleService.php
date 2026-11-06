@@ -8,12 +8,12 @@ use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 
 class SampleService
 {
-    #[ExecutedAs('service.run', 'operation')]
+    #[ExecutedAs(name: 'service.run', kind: 'operation')]
     public function run(): void
     {
     }
 
-    #[ExecutedAs('service.static', 'task')]
+    #[ExecutedAs(name: 'service.static', kind: 'task')]
     public static function statically(): void
     {
     }

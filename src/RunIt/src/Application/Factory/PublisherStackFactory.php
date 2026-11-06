@@ -30,11 +30,11 @@ final class PublisherStackFactory implements PublisherStackFactoryInterface
     ): ArtifactPublisherInterface {
         $composed = $base;
 
-        if ($redactor !== null) {
+        if ($redactor instanceof RedactorInterface) {
             $composed = new RedactingArtifactPublisher($redactor, $composed);
         }
 
-        if ($samplingPolicy !== null) {
+        if ($samplingPolicy instanceof SamplingPolicyInterface) {
             $composed = new SamplingArtifactPublisher($samplingPolicy, $composed);
         }
 

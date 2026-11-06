@@ -76,7 +76,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         try {
             $result = $operation(new ActivityScope($this->scope, $activity));
 
-            $completed = $this->complete($activity, ActivityStatus::Succeeded, null, $startedAtMonotonic);
+            $completed = $this->complete($activity, ActivityStatus::Succeeded, description: null, startedAtMonotonic: $startedAtMonotonic);
             $this->publisher->publish($completed);
 
             return $result;

@@ -106,7 +106,7 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
     private function maskKeys(array $data, array $keys): array
     {
         $masked = false;
-        $keySet = array_fill_keys($keys, true);
+        $keySet = array_fill_keys($keys, value: true);
 
         foreach ($data as $key => $value) {
             if (isset($keySet[$key])) {
@@ -119,7 +119,6 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
     }
 
     /**
-     * @param  mixed       $data
      * @param  list<string> $keys
      * @return array{0: mixed, 1: bool}
      */
@@ -130,7 +129,7 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
         }
 
         $masked = false;
-        $keySet = array_fill_keys($keys, true);
+        $keySet = array_fill_keys($keys, value: true);
 
         foreach ($data as $key => $value) {
             if (isset($keySet[$key])) {

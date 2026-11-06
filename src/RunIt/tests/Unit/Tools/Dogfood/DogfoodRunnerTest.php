@@ -175,12 +175,12 @@ final class DogfoodRunnerTest extends Unit
     }
 }
 
-final class FakeProcessRunner implements ProcessRunnerInterface
+final readonly class FakeProcessRunner implements ProcessRunnerInterface
 {
     /**
      * @param array<string, int> $exitCodes
      */
-    public function __construct(private readonly array $exitCodes = [])
+    public function __construct(private array $exitCodes = [])
     {
     }
 

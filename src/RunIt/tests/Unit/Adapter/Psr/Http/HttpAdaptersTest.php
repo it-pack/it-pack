@@ -111,7 +111,7 @@ final class HttpAdaptersTest extends Unit
         $client = new Psr18CorrelationClientDecorator(
             $recorded,
             new DefaultHeaderPropagator(),
-            new FakeCurrentExecution(null),
+            new FakeCurrentExecution(),
         );
 
         $client->sendRequest(new Request('GET', 'https://api.example/'));
@@ -183,7 +183,7 @@ final class HttpAdaptersTest extends Unit
         $this->expectException(RuntimeException::class);
 
         try {
-            $middleware->process(new ServerRequest('GET', '/fail'), $this->handler(200, true));
+            $middleware->process(new ServerRequest('GET', '/fail'), $this->handler(200, throw: true));
         } finally {
             $recorded = $runner->lastObservations()?->recorded() ?? [];
             self::assertSame('http.request.failed', $recorded[0]['message'] ?? null);
@@ -232,7 +232,7 @@ final class HttpAdaptersTest extends Unit
 
     private function handler(int $status, bool $throw = false): RequestHandlerInterface
     {
-        return new class ($status, $throw) implements RequestHandlerInterface {
+        return new readonly class ($status, $throw) implements RequestHandlerInterface {
             public function __construct(private int $status, private bool $throw)
             {
             }

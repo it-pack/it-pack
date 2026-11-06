@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Conformance\Result;
 
+use Stringable;
+
 /**
  * A single conformance finding produced by a verifier.
  *
@@ -14,7 +16,7 @@ namespace ItPack\RunIt\Conformance\Result;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class ConformanceViolation
+final readonly class ConformanceViolation implements Stringable
 {
     public function __construct(
         public string $id,

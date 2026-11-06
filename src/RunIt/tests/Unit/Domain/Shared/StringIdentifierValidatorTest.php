@@ -64,9 +64,9 @@ final class StringIdentifierValidatorTest extends Unit
     {
         try {
             new StringIdentifierValidator()->validate($value);
-        } catch (InvalidIdentifierException $exception) {
+        } catch (InvalidIdentifierException $invalidIdentifierException) {
             self::fail(
-                sprintf('Value %s was rejected: %s', bin2hex($value), $exception->getMessage()),
+                sprintf('Value %s was rejected: %s', bin2hex($value), $invalidIdentifierException->getMessage()),
             );
         }
 
@@ -100,11 +100,11 @@ final class StringIdentifierValidatorTest extends Unit
             new StringIdentifierValidator()->validate($value);
 
             self::fail('The value should have been rejected.');
-        } catch (InvalidIdentifierException $exception) {
-            self::assertNotSame('', $exception->getMessage());
+        } catch (InvalidIdentifierException $invalidIdentifierException) {
+            self::assertNotSame('', $invalidIdentifierException->getMessage());
 
             if ($value !== '') {
-                self::assertStringNotContainsString($value, $exception->getMessage());
+                self::assertStringNotContainsString($value, $invalidIdentifierException->getMessage());
             }
         }
     }

@@ -22,7 +22,9 @@ use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 final readonly class Duration implements DurationInterface
 {
     public const int NANOS_PER_SECOND = 1_000_000_000;
+
     public const int NANOS_PER_MILLISECOND = 1_000_000;
+
     public const int NANOS_PER_MICROSECOND = 1_000;
 
     private function __construct(private int $nanoseconds)

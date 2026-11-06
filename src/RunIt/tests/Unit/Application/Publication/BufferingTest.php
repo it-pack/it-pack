@@ -30,6 +30,7 @@ use Throwable;
 final class BufferingTest extends Unit
 {
     private MonotonicClockInterface $clock;
+
     private ArtifactByteEstimatorInterface $estimator;
 
     protected function setUp(): void
@@ -37,6 +38,7 @@ final class BufferingTest extends Unit
         $this->clock = new SystemMonotonicClock();
         $this->estimator = new DefaultArtifactByteEstimator();
     }
+
     private function artifact(string $severity = 'info', string $id = 'obs'): ExecutionArtifactInterface
     {
         $executionId = ExecutionId::fromString('exec-1');
@@ -181,11 +183,12 @@ final class BufferingTest extends Unit
         );
 
         $buffer->publish($this->artifact('info', 'a'));
+
         $thrown = null;
         try {
             $buffer->publish($this->artifact('info', 'b'));
-        } catch (BufferOverflowException $error) {
-            $thrown = $error;
+        } catch (BufferOverflowException $bufferOverflowException) {
+            $thrown = $bufferOverflowException;
         }
 
         self::assertNotNull($thrown);
@@ -201,9 +204,7 @@ final class BufferingTest extends Unit
             new InMemoryArtifactPublisher(),
             $this->clock,
             $this->estimator,
-            null,
-            null,
-            static function (int $microseconds) use (&$sleeps): void {
+            sleep: static function (int $microseconds) use (&$sleeps): void {
                 $sleeps[] = $microseconds;
             },
         );
@@ -264,11 +265,11 @@ final class BufferingTest extends Unit
 
     public function testCloseReportsRemainderDropsThroughHealth(): void
     {
-        /** @var list<array{0: \Throwable, 1: ExecutionArtifactInterface}> $reported */
+        /** @var list<array{0: Throwable, 1: ExecutionArtifactInterface}> $reported */
         $reported = [];
         $health = new class ($reported) implements InternalHealthReporterInterface {
             /**
-             * @param list<array{0: \Throwable, 1: ExecutionArtifactInterface}> $sink
+             * @param list<array{0: Throwable, 1: ExecutionArtifactInterface}> $sink
              */
             public function __construct(private array &$sink)
             {
@@ -399,9 +400,8 @@ final class BufferingTest extends Unit
 
     public function testDrainDropsItemsOlderThanMaxAgeAndReportsThem(): void
     {
-        $drops = [];
         $health = new class () implements InternalHealthReporterInterface {
-            /** @var list<\Throwable> */
+            /** @var list<Throwable> */
             public array $reported = [];
 
             public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
@@ -423,6 +423,7 @@ final class BufferingTest extends Unit
         $buffer = new BufferedArtifactPublisher($config, $sink, $clock, $this->estimator, $health);
 
         $buffer->publish($this->artifact('info', 'obs-stale'));
+
         $clock->advanceSeconds(61);
         $buffer->flush();
 

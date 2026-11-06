@@ -46,19 +46,19 @@ readonly class Snapshot implements SnapshotInterface
     use SequencedBehavior;
 
     protected function __construct(
-        private readonly SnapshotIdInterface $id,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly ?ActivityIdInterface $activityId,
-        private readonly SnapshotTypeInterface $type,
-        private readonly SnapshotClassificationInterface $classification,
-        private readonly int $schemaVersion,
-        private readonly InstantInterface $createdAt,
-        private readonly mixed $payload,
-        private readonly string $contentType,
-        private readonly string $contentHash,
-        private readonly ?SnapshotIdInterface $predecessorId,
-        private readonly AttributeCollectionInterface $attributes,
-        private readonly ArtifactSequenceInterface $sequence,
+        private SnapshotIdInterface $id,
+        private ExecutionIdInterface $executionId,
+        private ?ActivityIdInterface $activityId,
+        private SnapshotTypeInterface $type,
+        private SnapshotClassificationInterface $classification,
+        private int $schemaVersion,
+        private InstantInterface $createdAt,
+        private mixed $payload,
+        private string $contentType,
+        private string $contentHash,
+        private ?SnapshotIdInterface $predecessorId,
+        private AttributeCollectionInterface $attributes,
+        private ArtifactSequenceInterface $sequence,
     ) {
     }
 
@@ -100,9 +100,6 @@ readonly class Snapshot implements SnapshotInterface
         );
     }
 
-    /**
-     * @param mixed $payload
-     */
     protected static function build(
         SnapshotIdInterface $id,
         ExecutionIdInterface $executionId,

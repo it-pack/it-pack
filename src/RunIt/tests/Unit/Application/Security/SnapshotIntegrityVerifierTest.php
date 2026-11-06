@@ -35,10 +35,8 @@ final class SnapshotIntegrityVerifierTest extends Unit
             1,
             $payload,
             $calculator,
-            null,
-            $predecessorId === null ? null : SnapshotId::fromString($predecessorId),
-            null,
-            $createdAt === null ? null : Instant::of($createdAt),
+            predecessorId: $predecessorId === null ? null : SnapshotId::fromString($predecessorId),
+            createdAt: $createdAt === null ? null : Instant::of($createdAt),
         );
     }
 
@@ -85,7 +83,7 @@ final class SnapshotIntegrityVerifierTest extends Unit
         $this->expectException(SnapshotIntegrityException::class);
         $this->expectExceptionMessageMatches('/missing predecessor/i');
 
-        new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($second, null);
+        new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($second, predecessor: null);
     }
 
     public function testPredecessorMismatchIsRejected(): void
@@ -103,9 +101,9 @@ final class SnapshotIntegrityVerifierTest extends Unit
     public function testPredecessorAfterSnapshotIsRejected(): void
     {
         $calculator = new DeterministicHashCalculator();
-        $first = $this->snapshot('snap-1', ['step' => 1], $calculator, null, 1000);
+        $this->snapshot('snap-1', ['step' => 1], $calculator, createdAt: 1000);
         $second = $this->snapshot('snap-2', ['step' => 2], $calculator, 'snap-1', 1000);
-        $firstLater = $this->snapshot('snap-1', ['step' => 1], $calculator, null, 2000);
+        $firstLater = $this->snapshot('snap-1', ['step' => 1], $calculator, createdAt: 2000);
 
         $this->expectException(SnapshotIntegrityException::class);
         $this->expectExceptionMessageMatches('/older than its predecessor/i');
@@ -128,7 +126,7 @@ final class SnapshotIntegrityVerifierTest extends Unit
     {
         $snapshot = $this->snapshot('snap-root', ['status' => 'ok'], new DeterministicHashCalculator());
 
-        new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($snapshot, null);
+        new SnapshotIntegrityVerifier(new DeterministicHashCalculator())->verifyChain($snapshot, predecessor: null);
 
         self::expectNotToPerformAssertions();
     }

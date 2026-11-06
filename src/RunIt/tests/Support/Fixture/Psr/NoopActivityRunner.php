@@ -22,9 +22,9 @@ use ItPack\RunIt\Domain\Shared\Instant;
 /**
  * Minimal activity runner that runs the operation inside an {@see ActivityScopeInterface}.
  */
-final class NoopActivityRunner implements ActivityRunnerInterface
+final readonly class NoopActivityRunner implements ActivityRunnerInterface
 {
-    public function __construct(private readonly ExecutionScopeInterface $parent)
+    public function __construct(private ExecutionScopeInterface $parent)
     {
     }
 
@@ -37,10 +37,10 @@ final class NoopActivityRunner implements ActivityRunnerInterface
             Instant::now(),
         );
 
-        $scope = new class ($this->parent, $activity) implements ActivityScopeInterface {
+        $scope = new readonly class ($this->parent, $activity) implements ActivityScopeInterface {
             public function __construct(
-                private readonly ExecutionScopeInterface $parent,
-                private readonly ActivityInterface $activity,
+                private ExecutionScopeInterface $parent,
+                private ActivityInterface $activity,
             ) {
             }
 

@@ -7,6 +7,7 @@ namespace Tests\Unit\Application\Runner;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -63,19 +64,17 @@ final class DefaultActivityRunnerTest extends Unit
     {
         $result = $this->kit->runner->run(
             $this->executionDefinition(),
-            function ($scope) {
-                return $scope->activities()->run(
-                    $this->activityDefinition(),
-                    static fn () => 'inner',
-                );
-            },
+            fn ($scope) => $scope->activities()->run(
+                $this->activityDefinition(),
+                static fn (): string => 'inner',
+            ),
         );
 
         self::assertSame('inner', $result);
 
         $activities = array_values(array_filter(
             $this->kit->artifacts(),
-            static fn ($artifact): bool => $artifact instanceof ActivityInterface,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ActivityInterface,
         ));
         // The activity runner publishes both the started and the completed activity.
         self::assertCount(2, $activities);
@@ -91,17 +90,17 @@ final class DefaultActivityRunnerTest extends Unit
         try {
             $this->kit->runner->run(
                 $this->executionDefinition(),
-                function ($scope) use ($thrown) {
+                function ($scope) use ($thrown): void {
                     $scope->activities()->run(
                         $this->activityDefinition(),
-                        static function () use ($thrown): void {
+                        static function () use ($thrown): never {
                             throw $thrown;
                         },
                     );
                 },
             );
-        } catch (RuntimeException $exception) {
-            $caught = $exception;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught);
@@ -115,12 +114,12 @@ final class DefaultActivityRunnerTest extends Unit
     {
         $this->kit->runner->run(
             $this->executionDefinition(),
-            function ($scope) {
+            function ($scope): null {
                 $scope->measurements()->counter('before', 1);
 
                 $scope->activities()->run(
                     $this->activityDefinition(),
-                    function ($activityScope) {
+                    function ($activityScope): string {
                         $activityScope->measurements()->counter('inside', 7);
 
                         return 'inner';
@@ -135,7 +134,7 @@ final class DefaultActivityRunnerTest extends Unit
 
         $measurements = array_values(array_filter(
             $this->kit->artifacts(),
-            static fn ($artifact): bool => $artifact instanceof MeasurementInterface,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface,
         ));
         self::assertCount(3, $measurements);
 

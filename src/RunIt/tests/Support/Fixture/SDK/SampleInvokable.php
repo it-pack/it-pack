@@ -6,5 +6,7 @@ namespace Tests\Support\Fixture\SDK;
 
 class SampleInvokable
 {
-    public function __invoke() {}
+    public function __invoke()
+    {
+    }
 }

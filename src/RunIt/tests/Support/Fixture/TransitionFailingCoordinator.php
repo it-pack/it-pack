@@ -16,9 +16,9 @@ use RuntimeException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class TransitionFailingCoordinator implements ExecutionLifecycleCoordinatorInterface
+final readonly class TransitionFailingCoordinator implements ExecutionLifecycleCoordinatorInterface
 {
-    public function __construct(private readonly ExecutionLifecycleCoordinatorInterface $inner)
+    public function __construct(private ExecutionLifecycleCoordinatorInterface $inner)
     {
     }
 

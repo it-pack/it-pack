@@ -7,11 +7,13 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
+use OpenTelemetry\API\Trace\SpanContextInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
@@ -33,7 +35,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
     public function map(ActivityInterface $activity): void
     {
-        if (($span = $this->startSpan($activity)) === null) {
+        if (!($span = $this->startSpan($activity)) instanceof SpanInterface) {
             return;
         }
 
@@ -48,7 +50,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         ];
 
         $parentActivityId = $definition->parentActivityId();
-        if ($parentActivityId !== null) {
+        if ($parentActivityId instanceof ActivityIdInterface) {
             $attributes[AttributeKeys::ACTIVITY_PARENT_ID] = $parentActivityId->toString();
         }
 
@@ -58,7 +60,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         $span->setStatus($status['code'], $status['description']);
 
         $throwable = $activity->throwableDescription();
-        if ($throwable !== null && $activity->status()->label() === 'failed') {
+        if ($throwable instanceof ThrowableDescriptionInterface && $activity->status()->label() === 'failed') {
             $this->recordThrowable($span, $throwable);
         }
 
@@ -75,16 +77,16 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         }
 
         $parentActivityId = $activity->definition()->parentActivityId();
-        if ($parentActivityId !== null) {
+        if ($parentActivityId instanceof ActivityIdInterface) {
             $parentSpan = $this->store->activityContext($parentActivityId->toString());
-            if ($parentSpan !== null) {
+            if ($parentSpan instanceof SpanContextInterface) {
                 return Context::getRoot()->withContextValue(Span::wrap($parentSpan));
             }
         }
 
         $executionSpan = $this->store->executionContext($activity->executionId()->toString());
 
-        return $executionSpan === null ? null : Context::getRoot()->withContextValue(Span::wrap($executionSpan));
+        return $executionSpan instanceof SpanContextInterface ? Context::getRoot()->withContextValue(Span::wrap($executionSpan)) : null;
     }
 
     private function recordThrowable(SpanInterface $span, ThrowableDescriptionInterface $throwable): void

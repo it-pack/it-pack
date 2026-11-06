@@ -88,11 +88,11 @@ final class DefaultExecutionRunnerTest extends Unit
 
         $caught = null;
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $e) {
-            $caught = $e;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught, 'The original throwable must be rethrown.');
@@ -104,7 +104,7 @@ final class DefaultExecutionRunnerTest extends Unit
         $kit = new RunItTestKit();
 
         try {
-            $kit->runner->run($this->definition(), static function (): void {
+            $kit->runner->run($this->definition(), static function (): never {
                 throw new RuntimeException('kaboom');
             });
         } catch (RuntimeException) {
@@ -142,11 +142,11 @@ final class DefaultExecutionRunnerTest extends Unit
 
         $caught = null;
         try {
-            $kit->runner->run($this->definition(), static function () use ($thrown): void {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
-        } catch (RuntimeException $e) {
-            $caught = $e;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught);

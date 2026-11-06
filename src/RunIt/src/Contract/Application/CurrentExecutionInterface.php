@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Contract\Application;
 
+use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
+
 /**
  * Ambient access to the current execution scope.
  *
@@ -26,7 +28,7 @@ interface CurrentExecutionInterface
     /**
      * Returns the current execution scope, throwing when no execution is active.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\RunItExceptionInterface when no execution is active
+     * @throws RunItExceptionInterface when no execution is active
      */
     public function require(): ExecutionScopeInterface;
 }

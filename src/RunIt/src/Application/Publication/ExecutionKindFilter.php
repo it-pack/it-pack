@@ -33,7 +33,7 @@ final readonly class ExecutionKindFilter implements ArtifactFilterInterface
     {
         $this->predicate = new ExecutionKindPredicate(
             $resolver,
-            static fn (ExecutionKindInterface $kind): bool => in_array($kind->toString(), $allowedKinds, true),
+            static fn (ExecutionKindInterface $kind): bool => in_array($kind->toString(), $allowedKinds, strict: true),
         );
     }
 

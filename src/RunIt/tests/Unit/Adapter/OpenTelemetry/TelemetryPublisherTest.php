@@ -33,8 +33,8 @@ final class TelemetryPublisherTest extends Unit
             ->withTracerProvider($this->kit->tracerProvider)
             ->withMeterProvider($this->kit->meterProvider)
             ->withLoggerProvider($this->kit->loggerProvider)
-            ->withOccurrenceLogging(true)
-            ->withOccurrenceSpanEvents(false)
+            ->withOccurrenceLogging(enabled: true)
+            ->withOccurrenceSpanEvents(enabled: false)
             ->build()
         ;
 
@@ -78,6 +78,7 @@ final class TelemetryPublisherTest extends Unit
                 $found = true;
             }
         }
+
         self::assertTrue($found);
     }
 

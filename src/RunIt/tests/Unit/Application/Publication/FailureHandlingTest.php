@@ -33,7 +33,7 @@ final class FailureHandlingTest extends Unit
 
     private function throwingSink(): CallbackArtifactPublisher
     {
-        return new CallbackArtifactPublisher(static function (): void {
+        return new CallbackArtifactPublisher(static function (): never {
             throw new RuntimeException('transport down');
         });
     }
@@ -45,8 +45,8 @@ final class FailureHandlingTest extends Unit
         $thrown = null;
         try {
             $publisher->publish($this->artifact());
-        } catch (RuntimeException $error) {
-            $thrown = $error;
+        } catch (RuntimeException $runtimeException) {
+            $thrown = $runtimeException;
         }
 
         self::assertNull($thrown);
@@ -59,8 +59,8 @@ final class FailureHandlingTest extends Unit
         $thrown = null;
         try {
             $publisher->publish($this->artifact());
-        } catch (RuntimeException $error) {
-            $thrown = $error;
+        } catch (RuntimeException $runtimeException) {
+            $thrown = $runtimeException;
         }
 
         self::assertNotNull($thrown);
@@ -104,7 +104,7 @@ final class FailureHandlingTest extends Unit
     public function testFallbackFailureCannotRecurse(): void
     {
         $healthReports = [];
-        $failingFallback = new CallbackArtifactPublisher(static function (): void {
+        $failingFallback = new CallbackArtifactPublisher(static function (): never {
             throw new RuntimeException('fallback also down');
         });
 
@@ -119,8 +119,8 @@ final class FailureHandlingTest extends Unit
         $thrown = null;
         try {
             new FailSafeArtifactPublisher($this->throwingSink(), $policy)->publish($this->artifact());
-        } catch (RuntimeException $error) {
-            $thrown = $error;
+        } catch (RuntimeException $runtimeException) {
+            $thrown = $runtimeException;
         }
 
         self::assertNull($thrown, 'A failing fallback must not propagate and must not recurse.');

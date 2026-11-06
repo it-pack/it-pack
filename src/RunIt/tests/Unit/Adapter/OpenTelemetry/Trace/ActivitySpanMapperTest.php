@@ -139,7 +139,7 @@ final class ActivitySpanMapperTest extends Unit
 
     public function testMissingTracerProviderExportsNothing(): void
     {
-        $mapper = new DefaultActivitySpanMapper(null, $this->store, new SpanStatusMap(), new SpanKindMap());
+        $mapper = new DefaultActivitySpanMapper(tracerProvider: null, store: $this->store, statusMap: new SpanStatusMap(), kindMap: new SpanKindMap());
         $activity = RunItArtifactFactory::activity('act-none', 'exec-1', 'parse', 'internal', 'succeeded');
 
         $mapper->map($activity);

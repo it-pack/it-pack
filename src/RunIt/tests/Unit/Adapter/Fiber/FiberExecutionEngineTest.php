@@ -39,12 +39,10 @@ final class FiberExecutionEngineTest extends Unit
 
         $result = $kit->runner->run(
             $this->definition(),
-            static function (ExecutionScopeInterface $scope) use ($engine): mixed {
-                return $engine->run(
-                    $scope,
-                    static fn (ExecutionScopeInterface $s): string => $s === $scope ? 'ok' : 'mismatch'
-                );
-            }
+            static fn (ExecutionScopeInterface $scope): mixed => $engine->run(
+                $scope,
+                static fn (ExecutionScopeInterface $s): string => $s === $scope ? 'ok' : 'mismatch'
+            )
         );
 
         self::assertSame('ok', $result);
@@ -59,7 +57,7 @@ final class FiberExecutionEngineTest extends Unit
         $this->expectExceptionMessage('boom');
 
         $kit->runner->run($this->definition(), static function (ExecutionScopeInterface $scope) use ($engine): void {
-            $engine->run($scope, static function (): void {
+            $engine->run($scope, static function (): never {
                 throw new RuntimeException('boom');
             });
         });

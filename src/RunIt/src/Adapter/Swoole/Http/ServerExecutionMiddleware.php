@@ -25,21 +25,21 @@ use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ServerExecutionMiddleware implements ServerExecutionMiddlewareInterface
+final readonly class ServerExecutionMiddleware implements ServerExecutionMiddlewareInterface
 {
     public function __construct(
-        private readonly ExecutionRunnerInterface $runner,
-        private readonly ExecutionNameInterface $name,
-        private readonly ExecutionKindInterface $kind,
-        private readonly ?RequestContextExtractorInterface $contextExtractor = null,
-        private readonly ?MonotonicClockInterface $clock = null,
+        private ExecutionRunnerInterface $runner,
+        private ExecutionNameInterface $name,
+        private ExecutionKindInterface $kind,
+        private ?RequestContextExtractorInterface $contextExtractor = null,
+        private ?MonotonicClockInterface $clock = null,
     ) {
     }
 
     public function handle(mixed $request, callable $handler): mixed
     {
         $context = $this->contextExtractor?->extract($request) ?? ExecutionContext::empty();
-        $definition = ExecutionDefinition::create($this->name, $this->kind, null, [], $context);
+        $definition = ExecutionDefinition::create($this->name, $this->kind, linkedExecutionIds: [], context: $context);
 
         return $this->runner->run($definition, function (ExecutionScopeInterface $scope) use (
             $request,
@@ -59,17 +59,14 @@ final class ServerExecutionMiddleware implements ServerExecutionMiddlewareInterf
 
     private function recordRequest(ExecutionScopeInterface $scope, ?int $startedAt): void
     {
-        if ($startedAt !== null && $this->clock !== null) {
+        if ($startedAt !== null && $this->clock instanceof MonotonicClockInterface) {
             $elapsed = max(0, $this->clock->nowSeconds() - $startedAt);
             $scope->measurements()->duration('http.request.duration', (float) $elapsed);
         }
 
         $scope->observations()->record(
             'HTTP request handled',
-            null,
-            null,
-            null,
-            'http.request',
+            diagnosticCode: 'http.request',
         );
     }
 }

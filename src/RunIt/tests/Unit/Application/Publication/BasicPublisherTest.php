@@ -85,7 +85,7 @@ final class BasicPublisherTest extends Unit
     public function testCompositeAttemptsAllSinksAndSurfacesFirstFailure(): void
     {
         $good = new InMemoryArtifactPublisher();
-        $bad = new CallbackArtifactPublisher(static function (): void {
+        $bad = new CallbackArtifactPublisher(static function (): never {
             throw new RuntimeException('sink failed');
         });
 
@@ -94,8 +94,8 @@ final class BasicPublisherTest extends Unit
         $thrown = null;
         try {
             $composite->publish($this->artifact());
-        } catch (RuntimeException $error) {
-            $thrown = $error;
+        } catch (RuntimeException $runtimeException) {
+            $thrown = $runtimeException;
         }
 
         self::assertNotNull($thrown);

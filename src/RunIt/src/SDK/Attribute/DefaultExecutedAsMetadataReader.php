@@ -43,8 +43,8 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
     private array $literalCache = [];
 
     public function __construct(
-        private readonly CallableReflectionResolverInterface $reflectionResolver = new CallableReflectionResolver,
-    ){
+        private readonly CallableReflectionResolverInterface $reflectionResolver = new CallableReflectionResolver(),
+    ) {
         $this->objectCache = new WeakMap();
     }
 
@@ -59,7 +59,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
 
     private function readObjectKeyed(callable|Closure $operation): ?ExecutedAs
     {
-        if($this->objectCache->offsetExists($operation)) {
+        if ($this->objectCache->offsetExists($operation)) {
             return $this->objectCache->offsetGet($operation);
         }
 
@@ -89,7 +89,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
 
     private function resolveFromReflection(?ReflectionFunctionAbstract $reflection): ?ExecutedAs
     {
-        if ($reflection === null) {
+        if (!$reflection instanceof ReflectionFunctionAbstract) {
             return null;
         }
 

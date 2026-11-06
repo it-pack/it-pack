@@ -130,7 +130,7 @@ final readonly class ContextEntry implements ContextEntryInterface
 
     public function isExpired(InstantInterface $now): bool
     {
-        return $this->expiresAt !== null
+        return $this->expiresAt instanceof InstantInterface
             && $this->expiresAt->epochSeconds() <= $now->epochSeconds();
     }
 

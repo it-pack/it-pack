@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\SDK\RunItInterface;
+
 /**
  * RunIt SDK — instrumenting a service through composition (no proxy generation).
  *
@@ -47,7 +49,7 @@ final readonly class InstrumentedInvoiceService implements InvoiceService
 {
     public function __construct(
         private InvoiceService $inner,
-        private \ItPack\RunIt\SDK\RunItInterface $runIt,
+        private RunItInterface $runIt,
     ) {
     }
 
@@ -66,7 +68,8 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $service = new InstrumentedInvoiceService(new DefaultInvoiceService(), $runtime);
 

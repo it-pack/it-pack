@@ -61,9 +61,9 @@ final class StringValueValidatorTest extends Unit
     {
         try {
             new StringValueValidator()->validate($value);
-        } catch (InvalidStringValueException $exception) {
+        } catch (InvalidStringValueException $invalidStringValueException) {
             self::fail(
-                sprintf('Value %s was rejected: %s', bin2hex($value), $exception->getMessage()),
+                sprintf('Value %s was rejected: %s', bin2hex($value), $invalidStringValueException->getMessage()),
             );
         }
 
@@ -97,9 +97,9 @@ final class StringValueValidatorTest extends Unit
             new StringValueValidator()->validate($value);
 
             self::fail('The value should have been rejected.');
-        } catch (InvalidStringValueException $exception) {
+        } catch (InvalidStringValueException $invalidStringValueException) {
             if ($value !== '') {
-                self::assertStringNotContainsString($value, $exception->getMessage());
+                self::assertStringNotContainsString($value, $invalidStringValueException->getMessage());
             }
         }
     }

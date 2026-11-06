@@ -25,7 +25,7 @@ final readonly class ConfigurableHashCalculator implements HashCalculatorInterfa
     public function __construct(
         private string $algorithm = DeterministicHashCalculator::ALGORITHM_SHA256,
     ) {
-        if (!in_array($this->algorithm, hash_algos(), true)) {
+        if (!in_array($this->algorithm, hash_algos(), strict: true)) {
             throw new InvalidArgumentException(sprintf('Unsupported hash algorithm "%s".', $this->algorithm));
         }
     }

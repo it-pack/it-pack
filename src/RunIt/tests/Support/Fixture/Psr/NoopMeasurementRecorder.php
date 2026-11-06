@@ -13,9 +13,9 @@ use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 
-final class NoopMeasurementRecorder implements MeasurementRecorderInterface
+final readonly class NoopMeasurementRecorder implements MeasurementRecorderInterface
 {
-    public function __construct(private readonly ExecutionIdInterface $executionId)
+    public function __construct(private ExecutionIdInterface $executionId)
     {
     }
 

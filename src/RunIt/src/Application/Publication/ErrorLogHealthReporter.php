@@ -10,6 +10,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use Throwable;
 
 /**
  * Health reporter that writes failures to the PHP error log.
@@ -23,14 +24,14 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ErrorLogHealthReporter implements InternalHealthReporterInterface
+final readonly class ErrorLogHealthReporter implements InternalHealthReporterInterface
 {
     private const string LOG_PREFIX = '[runit] publication health: ';
 
-    private readonly Closure $logTo;
+    private Closure $logTo;
 
     public function __construct(
-        private readonly ThrowableMapperInterface $throwableMapper = new DefaultThrowableMapper(),
+        private ThrowableMapperInterface $throwableMapper = new DefaultThrowableMapper(),
         ?Closure $logTo = null,
     ) {
         $this->logTo = $logTo ?? static function (string $line): void {
@@ -38,7 +39,7 @@ final class ErrorLogHealthReporter implements InternalHealthReporterInterface
         };
     }
 
-    public function report(\Throwable $error, ExecutionArtifactInterface $artifact): void
+    public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
     {
         $id = $artifact->normalize()[ArtifactField::ID] ?? '';
         $idText = is_string($id) ? $id : '';

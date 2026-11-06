@@ -35,7 +35,8 @@ $runIt = RunItBuilder::create()
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
     ->withContextStorage(new FiberContextStorage())
     ->withExecutionEngine(new FiberExecutionEngine())
-    ->build();
+    ->build()
+;
 
 $definition = static fn (string $name): ExecutionDefinition => ExecutionDefinition::create(
     ExecutionName::fromString($name),

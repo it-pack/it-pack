@@ -39,11 +39,8 @@ $occurrence = Occurrence::create(
     'it-pack/example',
     Instant::of(1_700_000_000),
     ['outcome' => 'ok', 'duration_ms' => 12],
-    null,
-    null,
-    null,
-    'application/json',
-    AttributeCollection::fromArray([
+    contentType: 'application/json',
+    extensionAttributes: AttributeCollection::fromArray([
         'correlation.id' => 'corr-99',
         'tenantflag' => 'acme',
     ]),
@@ -62,7 +59,7 @@ $publisher = CloudEventPublisher::fromConfig(
 
 try {
     $publisher->publish($occurrence);
-} catch (Throwable $e) {
+} catch (Throwable) {
 
 }
 
@@ -72,7 +69,7 @@ foreach ($published as $json) {
 }
 
 // HTTP delivery wiring (no-op client, so the example stays offline):
-$noOpClient = new class implements ClientInterface {
+$noOpClient = new class () implements ClientInterface {
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
         echo "\nWould POST to {$request->getUri()} with body: {$request->getBody()}\n";
@@ -96,6 +93,6 @@ $httpPublisher = CloudEventPublisher::fromConfig(
 
 try {
     $httpPublisher->publish($occurrence);
-} catch (Throwable $e) {
+} catch (Throwable) {
 
 }

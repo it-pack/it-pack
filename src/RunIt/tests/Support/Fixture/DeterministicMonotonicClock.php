@@ -21,13 +21,8 @@ use ItPack\RunIt\Domain\Shared\Duration;
  */
 final class DeterministicMonotonicClock implements MonotonicClockInterface
 {
-    private int $nowSeconds;
-    private int $monotonicNanoseconds;
-
-    public function __construct(int $nowSeconds = 1_700_000_000, int $monotonicNanoseconds = 0)
+    public function __construct(private int $nowSeconds = 1_700_000_000, private int $monotonicNanoseconds = 0)
     {
-        $this->nowSeconds = $nowSeconds;
-        $this->monotonicNanoseconds = $monotonicNanoseconds;
     }
 
     public function setNowSeconds(int $nowSeconds): void

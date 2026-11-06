@@ -37,9 +37,8 @@ final class GuardedPublisherTest extends Unit
         ?CallbackHealthReporter $health
     ): GuardedArtifactPublisher {
         $inner = new GuardedArtifactPublisher($guard, $realSink, $health);
-        $outer = new GuardedArtifactPublisher($guard, $inner);
 
-        return $outer;
+        return new GuardedArtifactPublisher($guard, $inner);
     }
 
     public function testGuardPreventsDirectRecursion(): void
@@ -85,7 +84,7 @@ final class GuardedPublisherTest extends Unit
         $exporter = new CallbackArtifactPublisher(
             static function (ExecutionArtifactInterface $artifact) use (&$recorded, &$guarded): void {
                 $recorded[] = $artifact;
-                if ($guarded !== null) {
+                if ($guarded instanceof GuardedArtifactPublisher) {
                     $guarded->publish(Observation::info(
                         ObservationId::fromString('self'),
                         ExecutionId::fromString('exec-1'),

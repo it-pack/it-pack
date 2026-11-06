@@ -110,17 +110,15 @@ final readonly class RunItPortFixture implements PortFixtureInterface
      */
     public function snapshotPatcher(): Closure
     {
-        return function (SnapshotInterface $snapshot): SnapshotInterface {
-            return Snapshot::create(
-                $snapshot->id(),
-                $snapshot->executionId(),
-                $snapshot->type(),
-                $snapshot->schemaVersion(),
-                ['feature_flags' => ['beta' => false]],
-                new DeterministicHashCalculator(),
-                createdAt: Instant::of($snapshot->timestamp()),
-            );
-        };
+        return fn (SnapshotInterface $snapshot): SnapshotInterface => Snapshot::create(
+            $snapshot->id(),
+            $snapshot->executionId(),
+            $snapshot->type(),
+            $snapshot->schemaVersion(),
+            ['feature_flags' => ['beta' => false]],
+            new DeterministicHashCalculator(),
+            createdAt: Instant::of($snapshot->timestamp()),
+        );
     }
 
     public function stringIdentifierValidator(): StringIdentifierValidatorInterface

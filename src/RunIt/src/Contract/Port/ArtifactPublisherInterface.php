@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Port;
 
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Throwable;
 
 /**
  * Port that emits an artifact produced during execution.
@@ -27,7 +28,7 @@ interface ArtifactPublisherInterface
      * Implementations must be safe to call repeatedly and must not retain the
      * artifact, only its normalized projection if needed.
      *
-     * @throws \Throwable implementations may throw; callers decide the failure policy
+     * @throws Throwable implementations may throw; callers decide the failure policy
      */
     public function publish(ExecutionArtifactInterface $artifact): void;
 }
