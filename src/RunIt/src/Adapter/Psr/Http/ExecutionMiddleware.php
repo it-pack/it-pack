@@ -61,15 +61,15 @@ final readonly class ExecutionMiddleware implements MiddlewareInterface
 
                 try {
                     $inner = $handler->handle($request);
-                } catch (Throwable $error) {
+                } catch (Throwable $throwable) {
                     $scope->observations()->record(
                         'http.request.failed',
                         ObservationSeverity::Error,
-                        AttributeCollection::fromArray(['error' => $error->getMessage()]),
-                        $error,
+                        AttributeCollection::fromArray(['error' => $throwable->getMessage()]),
+                        $throwable,
                     );
 
-                    throw $error;
+                    throw $throwable;
                 }
 
                 $this->recordStatus($scope, $inner->getStatusCode());
@@ -88,7 +88,7 @@ final readonly class ExecutionMiddleware implements MiddlewareInterface
         ExecutionKindInterface $kind,
         ExecutionContextInterface $context,
     ): ExecutionDefinitionInterface {
-        return ExecutionDefinition::create($name, $kind, null, [], $context);
+        return ExecutionDefinition::create($name, $kind, linkedExecutionIds: [], context: $context);
     }
 
     private function recordStatus(ExecutionScopeInterface $scope, int $status): void

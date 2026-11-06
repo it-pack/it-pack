@@ -102,6 +102,7 @@
         "mutation:p0": "vendor/bin/infection --configuration=infection.s1s6.json5 --only-covering-test-cases --no-interaction",
         "quality": [
             "@composer validate --strict",
+            "@refactor:dry",
             "@cs:check",
             "@analyse",
             "@architecture",

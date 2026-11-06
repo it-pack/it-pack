@@ -9,6 +9,7 @@ use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use Throwable;
 
 /**
@@ -36,10 +37,10 @@ final class ContextStorageVerifier implements VerifierInterface
 
         try {
             $token = $storage->attach($scope);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('attach.throws', sprintf(
                 'attach() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 
@@ -53,15 +54,15 @@ final class ContextStorageVerifier implements VerifierInterface
 
         try {
             $secondToken = $storage->attach($scope);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             $secondToken = null;
             $result = $result->add(new ConformanceViolation('attach.throws', sprintf(
                 'attach() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 
-        if ($secondToken !== null) {
+        if ($secondToken instanceof ContextTokenInterface) {
             if ($storage->current() !== $scope) {
                 $result = $result->add(new ConformanceViolation(
                     'current.not-lifo',
@@ -88,14 +89,14 @@ final class ContextStorageVerifier implements VerifierInterface
 
         try {
             $storage->detach($token);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             $result = $result->add(new ConformanceViolation('detach.throws', sprintf(
                 'detach() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 
-        if ($storage->current() !== null) {
+        if ($storage->current() instanceof ExecutionScopeInterface) {
             $result = $result->add(new ConformanceViolation(
                 'detach.incomplete',
                 'current() still returned a scope after detaching the last one'

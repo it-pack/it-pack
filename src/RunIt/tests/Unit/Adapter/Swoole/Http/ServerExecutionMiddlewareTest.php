@@ -26,8 +26,7 @@ final class ServerExecutionMiddlewareTest extends Unit
             $kit->runner,
             ExecutionName::fromString('http.request'),
             ExecutionKind::fromString('http.request'),
-            null,
-            $kit->clock,
+            clock: $kit->clock,
         );
     }
 
@@ -42,7 +41,7 @@ final class ServerExecutionMiddlewareTest extends Unit
             }
         };
 
-        $result = $middleware->handle(new stdClass(), static fn (mixed $request, $scope) => $response);
+        $result = $middleware->handle(new stdClass(), static fn (mixed $request, $scope): object => $response);
 
         self::assertSame($response, $result);
 
@@ -79,7 +78,7 @@ final class ServerExecutionMiddlewareTest extends Unit
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('request failed');
 
-        $middleware->handle(new stdClass(), static function (): void {
+        $middleware->handle(new stdClass(), static function (): never {
             throw new RuntimeException('request failed');
         });
     }

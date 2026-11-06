@@ -7,11 +7,7 @@ namespace ItPack\RunIt\Contract\Domain;
 interface ExecutionDefinitionFactoryInterface
 {
     /**
-     * @param ExecutionNameInterface $name
-     * @param ExecutionKindInterface $kind
-     * @param ?ExecutionIdInterface $parentExecutionId
      * @param list<ExecutionIdInterface> $linkedExecutionIds
-     * @param ?ExecutionContextInterface $context
      */
     public function create(
         ExecutionNameInterface $name,

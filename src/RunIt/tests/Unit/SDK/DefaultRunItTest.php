@@ -24,9 +24,10 @@ use ItPack\RunIt\SDK\Exception\MissingExecutionDefinitionException;
 use ItPack\RunIt\SDK\RunItInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
-#[CoversClass(DefaultRunIt::class)]
-#[CoversClass(RunItBuilder::class)]
+#[CoversClass(className: DefaultRunIt::class)]
+#[CoversClass(className: RunItBuilder::class)]
 final class DefaultRunItTest extends TestCase
 {
     private function runtime(): RunItInterface
@@ -150,9 +151,10 @@ final class DefaultRunItTest extends TestCase
                 {
                     return null;
                 }
+
                 public function require(): ExecutionScopeInterface
                 {
-                    throw new \RuntimeException('no active execution');
+                    throw new RuntimeException('no active execution');
                 }
             },
         );
@@ -167,7 +169,7 @@ final class DefaultRunItTest extends TestCase
     }
 }
 
-#[ExecutedAs('attribute.op', 'operation')]
+#[ExecutedAs(name: 'attribute.op', kind: 'operation')]
 function attributeWrappedOperation(): string
 {
     return 'attribute-result';

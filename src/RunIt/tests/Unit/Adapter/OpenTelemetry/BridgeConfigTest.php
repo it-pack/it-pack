@@ -37,7 +37,7 @@ final class BridgeConfigTest extends Unit
             ->withLoggerProvider($kit->loggerProvider)
             ->withSnapshotPayloadPolicy(SnapshotPayloadPolicy::Full)
             ->withMetricAttributeAllowList(['region'])
-            ->withObservationLogging(false)
+            ->withObservationLogging(enabled: false)
             ->build()
         ;
 
@@ -83,7 +83,7 @@ final class BridgeConfigTest extends Unit
         $propagator = BridgeConfig::default()->propagator;
         $config = new BridgeConfigBuilder()
             ->withPropagator($propagator)
-            ->withObservationSpanEvents(true)
+            ->withObservationSpanEvents(enabled: true)
             ->withMaxInstrumentCacheSize(256)
             ->build()
         ;

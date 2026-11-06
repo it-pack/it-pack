@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Domain\Context;
 
+use ArrayIterator;
 use IteratorAggregate;
 use ItPack\RunIt\Contract\Domain\ContextCollisionPolicy;
 use ItPack\RunIt\Contract\Domain\ContextEntryInterface;
@@ -11,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\ContextRedactionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use Traversable;
 
 /**
  * An immutable, bounded execution context.
@@ -37,16 +39,10 @@ final readonly class ExecutionContext implements ExecutionContextInterface, Iter
     public const int MAX_ENTRIES = SecurityLimits::DEFAULT_MAX_ATTRIBUTE_COUNT;
 
     /**
-     * @var array<string, ContextEntryInterface>
-     */
-    private array $entries;
-
-    /**
      * @param array<string, ContextEntryInterface> $entries
      */
-    private function __construct(array $entries)
+    private function __construct(private array $entries)
     {
-        $this->entries = $entries;
     }
 
     public static function empty(): self
@@ -142,11 +138,11 @@ final readonly class ExecutionContext implements ExecutionContextInterface, Iter
     }
 
     /**
-     * @return \Traversable<string, ContextEntryInterface>
+     * @return Traversable<string, ContextEntryInterface>
      */
-    public function getIterator(): \Traversable
+    public function getIterator(): Traversable
     {
-        return new \ArrayIterator($this->entries);
+        return new ArrayIterator($this->entries);
     }
 
     /**
@@ -164,9 +160,7 @@ final readonly class ExecutionContext implements ExecutionContextInterface, Iter
     {
         $context = $policy instanceof ContextRedactionPolicyInterface ? $policy->redact($this) : $this;
 
-        $out = array_map(static function ($entry) {
-            return $entry->toArray();
-        }, $context->entries());
+        $out = array_map(static fn (ContextEntryInterface $entry): array => $entry->toArray(), $context->entries());
 
         ksort($out);
 

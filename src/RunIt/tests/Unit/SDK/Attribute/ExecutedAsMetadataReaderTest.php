@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\SDK\Attribute;
 
-use Closure;
 use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -12,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 use Tests\Support\Fixture\SDK\AttributedService;
 use Tests\Support\Fixture\SDK\SampleService;
 
-#[CoversClass(DefaultExecutedAsMetadataReader::class)]
-#[CoversClass(ExecutedAs::class)]
+#[CoversClass(className: DefaultExecutedAsMetadataReader::class)]
+#[CoversClass(className: ExecutedAs::class)]
 final class ExecutedAsMetadataReaderTest extends TestCase
 {
     private DefaultExecutedAsMetadataReader $reader;
@@ -23,13 +22,22 @@ final class ExecutedAsMetadataReaderTest extends TestCase
         $this->reader = new DefaultExecutedAsMetadataReader();
     }
 
-    public function testAttributeMetadataIsResolvedFromMethod(): void
+    public function testAttributeMetadataIsResolvedFromInstanceMethod(): void
     {
         $metadata = $this->reader->read([new SampleService(), 'run']);
 
         self::assertNotNull($metadata);
         self::assertSame('service.run', $metadata->name);
         self::assertSame('operation', $metadata->kind);
+    }
+
+    public function testAttributeMetadataIsResolvedFromClassMethod(): void
+    {
+        $metadata = $this->reader->read([SampleService::class, 'statically']);
+
+        self::assertNotNull($metadata);
+        self::assertSame('service.static', $metadata->name);
+        self::assertSame('task', $metadata->kind);
     }
 
     public function testAttributeMetadataIsResolvedFromClass(): void
@@ -52,7 +60,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
 
     public function testAttributeMetadataIsResolvedFromClosureBoundToMethod(): void
     {
-        $metadata = $this->reader->read((new SampleService())->run(...));
+        $metadata = $this->reader->read(new SampleService()->run(...));
 
         self::assertNotNull($metadata);
         self::assertSame('service.run', $metadata->name);
@@ -77,7 +85,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
     {
         $attributed = new SampleService();
 
-        $a = Closure::fromCallable([$attributed, 'run']);
+        $a = $attributed->run(...);
         self::assertNotNull($this->reader->read($a));
 
         unset($a);
@@ -113,7 +121,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
     {
         $reader = new DefaultExecutedAsMetadataReader();
         $invokable = new class () {
-            #[ExecutedAs('cached.invoke', 'task')]
+            #[ExecutedAs(name: 'cached.invoke', kind: 'task')]
             public function __invoke(): void
             {
             }
@@ -139,7 +147,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
     {
         $reader = new DefaultExecutedAsMetadataReader();
         $invokable = new class () {
-            #[ExecutedAs('invokable.run', 'task')]
+            #[ExecutedAs(name: 'invokable.run', kind: 'task')]
             public function __invoke(): void
             {
             }
@@ -156,7 +164,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
         $reader = new DefaultExecutedAsMetadataReader();
         SampleService::statically();
 
-        $metadata = $reader->read('Tests\Support\Fixture\SDK\SampleService::statically');
+        $metadata = $reader->read(SampleService::class . '::statically');
 
         self::assertNotNull($metadata);
         self::assertSame('service.static', $metadata->name);

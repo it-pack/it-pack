@@ -128,8 +128,9 @@ $result = new ArtifactPublisherVerifier()->verify($publisher, $fixture);
 if (!$result->isConformant()) {
     fwrite(STDERR, "Third-party publisher is NOT conformant:\n");
     foreach ($result->violations as $violation) {
-        fwrite(STDERR, (string) $violation . PHP_EOL);
+        fwrite(STDERR, $violation . PHP_EOL);
     }
+
     exit(1);
 }
 

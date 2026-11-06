@@ -75,14 +75,14 @@ final class TenantIsolationTest extends Unit
             $this->definition('first'),
             static function (ExecutionScopeInterface $scope) use (&$first): void {
                 $first = $scope->execution()->id()->toString();
-                $scope->observations()->record('first-observation', null);
+                $scope->observations()->record('first-observation');
             }
         );
         $kit->runner->run(
             $this->definition('second'),
             static function (ExecutionScopeInterface $scope) use (&$second): void {
                 $second = $scope->execution()->id()->toString();
-                $scope->observations()->record('second-observation', null);
+                $scope->observations()->record('second-observation');
             }
         );
 

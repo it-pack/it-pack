@@ -64,7 +64,7 @@ final class CloudEventTest extends Unit
     {
         $this->expectException(InvalidCloudEventException::class);
 
-        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', null, null, null, null, null, [], '');
+        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', extensions: [], specVersion: '');
     }
 
     public function testRejectsEmptyType(): void
@@ -85,7 +85,7 @@ final class CloudEventTest extends Unit
     {
         $this->expectException(InvalidCloudEventException::class);
 
-        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', null, null, null, null, null, [
+        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', extensions: [
             'BadKey' => 'x',
         ]);
     }
@@ -94,7 +94,7 @@ final class CloudEventTest extends Unit
     {
         $this->expectException(InvalidCloudEventException::class);
 
-        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', null, null, 'not-a-time');
+        CloudEvent::create('id-1', '/source', 'com.example.thing.happened.v1', time: 'not-a-time');
     }
 
     public function testRejectsUnsupportedData(): void

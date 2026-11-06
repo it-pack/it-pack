@@ -78,12 +78,10 @@ final class PersistentWorkerReuseTest extends Unit
             $fibers[$index] = new Fiber(static function () use ($runtime, $definition, $index): array {
                 // The ambient scope is only visible *inside* the operation: the
                 // runner restores the prior context before run() returns.
-                $outcome = $runtime->run($definition(), static function () use ($runtime, $index): array {
-                    return [
-                        'result' => $index * 10,
-                        'ambient' => $runtime->currentExecution()?->execution()->id()->toString(),
-                    ];
-                });
+                $outcome = $runtime->run($definition(), static fn (): array => [
+                    'result' => $index * 10,
+                    'ambient' => $runtime->currentExecution()?->execution()->id()->toString(),
+                ]);
 
                 return is_array($outcome) ? $outcome : [];
             });

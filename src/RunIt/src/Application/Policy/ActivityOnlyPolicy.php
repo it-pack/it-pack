@@ -24,7 +24,7 @@ final class ActivityOnlyPolicy implements NestedExecutionPolicyInterface
         ?ExecutionScopeInterface $current,
         ExecutionDefinitionInterface $definition
     ): NestedExecutionMode {
-        if ($current === null) {
+        if (!$current instanceof ExecutionScopeInterface) {
             return NestedExecutionMode::ChildExecution;
         }
 

@@ -32,7 +32,7 @@ final class DefaultTimeoutMapper implements TimeoutMapperInterface
         );
 
         $description = $timeout->throwableDescription()
-            ?? ThrowableDescription::create(Timeout::class, $cause, 0, null, null);
+            ?? ThrowableDescription::create(Timeout::class, $cause, 0, previous: null, trace: null);
 
         return ExecutionFailure::of(ExecutionStatus::TimedOut, $description);
     }

@@ -23,6 +23,7 @@ use Throwable;
 final class IdentifierPropertyTest extends Unit
 {
     private const int SEED = 20_260_809;
+
     private const int SAMPLE_SIZE = 500;
 
     /**

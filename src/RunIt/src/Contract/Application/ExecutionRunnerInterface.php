@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Application;
 
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
+use Throwable;
 
 /**
  * Contract for running one execution from a definition.
@@ -31,7 +32,7 @@ interface ExecutionRunnerInterface
      *
      * @return TResult
      *
-     * @throws \Throwable the exact throwable raised by the operation, after the
+     * @throws Throwable the exact throwable raised by the operation, after the
      *                    failure has been recorded and the context restored
      */
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed;

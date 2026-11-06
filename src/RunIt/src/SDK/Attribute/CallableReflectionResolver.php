@@ -16,58 +16,59 @@ final class CallableReflectionResolver implements CallableReflectionResolverInte
      * Also called Paamayim Nekudotayim - @see https://www.php.net/manual/en/language.oop5.paamayim-nekudotayim.php
      */
     private const string DOUBLE_COLON = '::';
+
     private const string INVOKE_METHOD = '__invoke';
 
     public function resolve(callable $callable): ?ReflectionFunctionAbstract
     {
         return match (true) {
-            is_object($callable) => self::resolveObject($callable),
+            is_object($callable) => $this->resolveObject($callable),
             is_array($callable),
-            is_string($callable) => self::resolveLiteral($callable),
-            default => self::resolveFunction($callable),
+            is_string($callable) => $this->resolveLiteral($callable),
+            default => $this->resolveFunction($callable),
         };
     }
 
-    private static function resolveObject(callable $callable): ?ReflectionFunctionAbstract
+    private function resolveObject(callable $callable): ?ReflectionFunctionAbstract
     {
         return $callable instanceof Closure
-            ? self::resolveFunction($callable)
-            : self::resolveInvokable($callable);
+            ? $this->resolveFunction($callable)
+            : $this->resolveInvokable($callable);
     }
 
-    private static function resolveFunction(callable $callable): ?ReflectionFunctionAbstract
+    private function resolveFunction(callable $callable): ?ReflectionFunctionAbstract
     {
         try {
             return new ReflectionFunction($callable);
-        } catch (ReflectionException $e) {
+        } catch (ReflectionException) {
             return null;
         }
     }
 
-    private static function resolveInvokable(callable $callable): ?ReflectionFunctionAbstract
+    private function resolveInvokable(callable $callable): ?ReflectionFunctionAbstract
     {
         return method_exists($callable, self::INVOKE_METHOD)
             ? new ReflectionMethod($callable, self::INVOKE_METHOD)
             : null;
     }
 
-    private static function resolveLiteral(string|array $callable): ?ReflectionFunctionAbstract
+    private function resolveLiteral(string|array $callable): ?ReflectionFunctionAbstract
     {
         try {
             return is_string($callable)
                 ? match (true) {
-                    self::isMethod($callable) => new ReflectionMethod($callable),
-                    function_exists ($callable) => new ReflectionFunction($callable),
+                    $this->isMethod($callable) => new ReflectionMethod($callable),
+                    function_exists($callable) => new ReflectionFunction($callable),
                     default => null,
                 }
-                : new ReflectionMethod(...$callable);
+            : new ReflectionMethod(...$callable);
 
         } catch (ReflectionException) {
             return null;
         }
     }
 
-    private static function isMethod(callable $callable): bool
+    private function isMethod(callable $callable): bool
     {
         return str_contains($callable, self::DOUBLE_COLON)
             && method_exists(...explode(self::DOUBLE_COLON, $callable, 2));

@@ -8,6 +8,7 @@ use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
 use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Domain\ContextKeyInterface;
 use ItPack\RunIt\Contract\Domain\StringValueInterface;
+use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 
 /**
  * A validated context key.
@@ -33,7 +34,7 @@ final readonly class ContextKey implements ContextKeyInterface
      * `readonly class`; the value is validated and assigned exactly once, on
      * construction. Callers read `$key->value` or `toString()`.
      */
-    public readonly string $value;
+    public string $value;
 
     private function __construct(string $value)
     {
@@ -45,7 +46,7 @@ final readonly class ContextKey implements ContextKeyInterface
     /**
      * Creates a key from an already known string.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\InvalidContextValueException when the
+     * @throws InvalidContextValueException when the
      *                                                                     key is empty, too long, or uses unsupported characters
      */
     public static function fromString(string $value): self

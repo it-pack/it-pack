@@ -41,7 +41,7 @@ final readonly class DefaultMeasurementInstrumentMapper implements MeasurementIn
 
     public function record(MeasurementInterface $measurement): void
     {
-        if ($this->meterProvider === null) {
+        if (!$this->meterProvider instanceof MeterProviderInterface) {
             return;
         }
 
@@ -100,7 +100,6 @@ final readonly class DefaultMeasurementInstrumentMapper implements MeasurementIn
     }
 
     /**
-     * @param int|float                                                                                                        $value
      * @param iterable<non-empty-string, array<int|string, int|float|string|bool|null>|bool|float|int|string|null> $attributes
      */
     private function apply(object $instrument, int|float $value, iterable $attributes): void

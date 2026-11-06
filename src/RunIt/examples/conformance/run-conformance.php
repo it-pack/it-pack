@@ -38,6 +38,7 @@ use ItPack\RunIt\Conformance\Verifier\RedactorVerifier;
 use ItPack\RunIt\Conformance\Verifier\SamplingPolicyVerifier;
 use ItPack\RunIt\Conformance\Verifier\SerializerVerifier;
 use ItPack\RunIt\Conformance\Verifier\SnapshotStoreVerifier;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -45,22 +46,19 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
-use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use Tests\Support\Fixture\RunItTestKit;
 
 $fixture = new RunItPortFixture();
 $kit = new RunItTestKit();
 
-$scope = static function (string $id) use ($kit): ExecutionScopeInterface {
-    return $kit->buildScope(
-        Execution::start(
-            ExecutionId::fromString($id),
-            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            Instant::of(1),
-        ),
-        ExecutionContext::empty(),
-    );
-};
+$scope = (static fn (string $id): ExecutionScopeInterface => $kit->buildScope(
+    Execution::start(
+        ExecutionId::fromString($id),
+        ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+        Instant::of(1),
+    ),
+    ExecutionContext::empty(),
+));
 
 /**
  * @var array<string, ConformanceResult> $results

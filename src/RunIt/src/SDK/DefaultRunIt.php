@@ -8,16 +8,10 @@ use Closure;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionDefinitionFactoryInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
-use ItPack\RunIt\Domain\Execution\ExecutionDefinitionFactory;
-use ItPack\RunIt\Domain\Execution\ExecutionKind;
-use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Attribute\DefaultExecutedAsMetadataReader;
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 use ItPack\RunIt\SDK\Attribute\ExecutedAsMetadataReaderInterface;
-use ItPack\RunIt\SDK\Decorator\ExecutedCallable;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactory;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactoryInterface;
 use ItPack\RunIt\SDK\Decorator\ExecutedCallableInterface;
@@ -40,7 +34,7 @@ final readonly class DefaultRunIt implements RunItInterface
 {
     private ExecutedCallableFactoryInterface $executedCallableFactory;
 
-    private readonly ExecutedAsMetadataReaderInterface $attributeReader;
+    private ExecutedAsMetadataReaderInterface $attributeReader;
 
     public function __construct(
         private ExecutionRunnerInterface   $runner,
@@ -118,7 +112,6 @@ final readonly class DefaultRunIt implements RunItInterface
     private function resolveDefinition(
         callable $operation,
         ExecutionDefinitionInterface|callable|null $definition = null,
-
     ): ?ExecutionDefinitionInterface {
         if ($definition instanceof ExecutionDefinitionInterface) {
             return $definition;
@@ -142,7 +135,6 @@ final readonly class DefaultRunIt implements RunItInterface
      */
     private function resolveFactory(
         ExecutionDefinitionInterface|callable|null $definition,
-
     ): ?Closure {
         return is_callable($definition)
             ? fn (array $args) => $definition($args)

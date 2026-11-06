@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Adapter;
 
+use Swoole\Coroutine;
+use function Swoole\Coroutine\run;
 use Fiber;
 use ItPack\AsyncIt\Adapter\Revolt\RevoltFiberContextStorage;
 use ItPack\AsyncIt\Adapter\Swoole\SwooleCoroutineContextStorage;
@@ -24,15 +26,15 @@ final class ContextStorageOwnershipTest extends TestCase
     /** @return iterable<string, array{callable(): ContextStorageInterface}> */
     public static function storages(): iterable
     {
-        yield 'memory' => [static fn () => new MemoryContextStorage()];
+        yield 'memory' => [static fn (): MemoryContextStorage => new MemoryContextStorage()];
         yield 'revolt' => [static function (): RevoltFiberContextStorage {
             /** @var WeakMap<Fiber<mixed, mixed, mixed, mixed>, FiberScopeSlotInterface> $slots */
             $slots = new WeakMap();
 
             return new RevoltFiberContextStorage($slots, new FiberScopeSlotFactory());
         }];
-        yield 'swoole' => [static fn () => new SwooleCoroutineContextStorage(new FiberScopeSlotFactory())];
-        yield 'swow' => [static fn () => new SwowCoroutineContextStorage(new FiberScopeSlotFactory())];
+        yield 'swoole' => [static fn (): SwooleCoroutineContextStorage => new SwooleCoroutineContextStorage(new FiberScopeSlotFactory())];
+        yield 'swow' => [static fn (): SwowCoroutineContextStorage => new SwowCoroutineContextStorage(new FiberScopeSlotFactory())];
     }
 
     /**
@@ -88,6 +90,7 @@ final class ContextStorageOwnershipTest extends TestCase
         } catch (LogicException) {
             self::assertNotNull($storage->current());
         }
+
         $storage->detach($outer);
         self::assertNull($storage->current());
     }
@@ -108,6 +111,7 @@ final class ContextStorageOwnershipTest extends TestCase
             } catch (LogicException) {
                 self::assertSame($innerScope, $storage->current());
             }
+
             $storage->detach($inner);
             self::assertNull($storage->current());
         });
@@ -119,13 +123,13 @@ final class ContextStorageOwnershipTest extends TestCase
     public function testSwooleRejectsForeignTokenInsideCoroutine(): void
     {
         if (
-            !class_exists(\Swoole\Coroutine::class)
+            !class_exists(Coroutine::class)
             || !function_exists('Swoole\\Coroutine\\run')
         ) {
             self::markTestSkipped('Swoole is not installed.');
         }
 
-        \Swoole\Coroutine\run(function (): void {
+        run(function (): void {
             $storage = new SwooleCoroutineContextStorage(new FiberScopeSlotFactory());
             $other = new SwooleCoroutineContextStorage(new FiberScopeSlotFactory());
             $scope = $this->createMock(ExecutionScopeInterface::class);
@@ -138,6 +142,7 @@ final class ContextStorageOwnershipTest extends TestCase
             } catch (LogicException) {
                 self::assertSame($scope, $storage->current());
             }
+
             $storage->detach($token);
             $other->detach($foreign);
         });

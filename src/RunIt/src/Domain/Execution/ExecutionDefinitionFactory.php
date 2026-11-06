@@ -14,11 +14,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
 final class ExecutionDefinitionFactory implements ExecutionDefinitionFactoryInterface
 {
     /**
-     * @param ExecutionNameInterface $name
-     * @param ExecutionKindInterface $kind
-     * @param ?ExecutionIdInterface $parentExecutionId
      * @param list<ExecutionIdInterface> $linkedExecutionIds
-     * @param ?ExecutionContextInterface $context
      */
     public function create(
         ExecutionNameInterface $name,

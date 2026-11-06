@@ -34,7 +34,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
  *
  * @see https://w3id.org/itpack/runit#Activity
  */
-final readonly class Activity   implements ActivityInterface
+final readonly class Activity implements ActivityInterface
 {
     use SequencedBehavior;
 
@@ -66,11 +66,11 @@ final readonly class Activity   implements ActivityInterface
             $definition,
             ActivityStatus::Running,
             $startedAt,
-            null,
-            null,
-            $attributes ?? AttributeCollection::empty(),
-            null,
-            $sequence ?? ArtifactSequence::initial(),
+            endedAt: null,
+            duration: null,
+            attributes: $attributes ?? AttributeCollection::empty(),
+            throwableDescription: null,
+            sequence: $sequence ?? ArtifactSequence::initial(),
         );
     }
 
@@ -185,7 +185,7 @@ final readonly class Activity   implements ActivityInterface
             ArtifactField::THROWABLE => $this->throwableDescription?->toArray(),
         ];
 
-        if ($this->duration !== null) {
+        if ($this->duration instanceof DurationInterface) {
             $normalized[ArtifactField::DURATION_NS] = $this->duration->nanoseconds();
         }
 

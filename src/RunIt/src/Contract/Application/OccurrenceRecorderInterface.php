@@ -21,16 +21,6 @@ use ItPack\RunIt\Contract\Shared\MediaTypes;
  */
 interface OccurrenceRecorderInterface
 {
-    /**
-     * @param OccurrenceTypeInterface $type
-     * @param string $source
-     * @param mixed $data
-     * @param string|null $subject
-     * @param AttributeCollectionInterface|null $extensionAttributes
-     * @param string|null $dataSchema
-     * @param string $contentType
-     * @return OccurrenceInterface
-     */
     public function record(
         OccurrenceTypeInterface $type,
         string $source,

@@ -97,7 +97,7 @@ final class DefaultThrowableMapperTest extends Unit
             $type = $property->getType();
             if ($type instanceof ReflectionNamedType) {
                 self::assertFalse(
-                    is_a($type->getName(), Throwable::class, true),
+                    is_a($type->getName(), Throwable::class, allow_string: true),
                     'Property ' . $property->getName() . ' must not retain a Throwable.',
                 );
             }

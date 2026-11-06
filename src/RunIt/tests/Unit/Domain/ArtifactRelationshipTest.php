@@ -68,18 +68,13 @@ final class ArtifactRelationshipTest extends Unit
                 MeasurementName::fromString('files.loaded'),
                 $executionId,
                 42,
-                null,
-                $instant,
+                instant: $instant,
             ),
             'observation' => Observation::info(
                 ObservationId::fromString('obs-1'),
                 $executionId,
                 'started',
-                null,
-                null,
-                null,
-                null,
-                $instant,
+                instant: $instant,
             ),
             'occurrence' => Occurrence::create(
                 OccurrenceId::fromString('occ-1'),
@@ -95,10 +90,7 @@ final class ArtifactRelationshipTest extends Unit
                 1,
                 ['status' => 'running'],
                 new DeterministicHashCalculator(),
-                null,
-                null,
-                null,
-                $instant,
+                createdAt: $instant,
             ),
         ];
     }

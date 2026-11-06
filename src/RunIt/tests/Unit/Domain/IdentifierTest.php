@@ -25,6 +25,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 final class IdentifierTest extends Unit
 {
     public const string VALUE = '018f3a1c-6f0e-7c4a-9f2b-0c1d2e3f4a5b';
+
     public const string OTHER_VALUE = '018f3a1c-6f0e-7c4a-9f2b-0c1d2e3f4a5c';
 
     /**

@@ -115,7 +115,7 @@ final class CoroutineContextStorageTest extends Unit
     }
 }
 
-final class FixedCoroutineIdProvider implements CoroutineIdProviderInterface
+final readonly class FixedCoroutineIdProvider implements CoroutineIdProviderInterface
 {
     public function __construct(private int $cid)
     {

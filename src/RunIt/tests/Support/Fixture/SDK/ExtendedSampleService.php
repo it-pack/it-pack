@@ -6,5 +6,4 @@ namespace Tests\Support\Fixture\SDK;
 
 class ExtendedSampleService extends SampleService
 {
-
 }

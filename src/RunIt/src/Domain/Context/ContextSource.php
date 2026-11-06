@@ -8,6 +8,7 @@ use ItPack\RunIt\Behavior\Domain\StringProviderBehavior;
 use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Domain\ContextSourceInterface;
+use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 
 /**
  * An optional context entry source identifier.
@@ -31,7 +32,7 @@ final readonly class ContextSource implements ContextSourceInterface
      * `readonly class`; the value is validated and assigned exactly once, on
      * construction. Callers read `$source->value` or `toString()`.
      */
-    public readonly string $value;
+    public string $value;
 
     private function __construct(string $value)
     {
@@ -43,7 +44,7 @@ final readonly class ContextSource implements ContextSourceInterface
     /**
      * Creates a source from an already known string.
      *
-     * @throws \ItPack\RunIt\Contract\Exception\InvalidStringValueException when the
+     * @throws InvalidStringValueException when the
      *                                                                     value is empty, too long, or uses unsupported characters
      */
     public static function fromString(string $value): self

@@ -61,6 +61,6 @@ enum ActivityStatus: string implements ActivityStatusInterface
         }
 
         return isset(self::ALLOWED_TRANSITIONS[$this->value])
-            && in_array($to->label(), self::ALLOWED_TRANSITIONS[$this->value], true);
+            && in_array($to->label(), self::ALLOWED_TRANSITIONS[$this->value], strict: true);
     }
 }

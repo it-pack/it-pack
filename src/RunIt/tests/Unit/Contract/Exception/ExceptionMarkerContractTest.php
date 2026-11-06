@@ -20,7 +20,7 @@ final class ExceptionMarkerContractTest extends Unit
         $implemented = class_implements($candidate);
 
         return $implemented !== false
-            && in_array(RunItExceptionInterface::class, $implemented, true);
+            && in_array(RunItExceptionInterface::class, $implemented, strict: true);
     }
 
     public function testCategoryMarkersShareTheRootMarker(): void

@@ -23,7 +23,6 @@ interface OtelToContextExtractorInterface
 {
     /**
      * @param array<string, mixed>       $carrier
-     * @param TextMapPropagatorInterface  $propagator
      */
     public function extractContext(array $carrier, TextMapPropagatorInterface $propagator): ContextInterface;
 

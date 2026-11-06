@@ -25,6 +25,7 @@ use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -33,6 +34,7 @@ use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -47,8 +49,7 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
-use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use Throwable;
 
 /**
  * Assembles a fully wired DefaultExecutionRunner for application-level tests.
@@ -63,10 +64,6 @@ final class RunItTestKit
 {
     public ArtifactPublisherInterface $publisher;
 
-    public ?SnapshotStoreInterface $snapshotStore = null;
-
-    private ?Closure $onPublicationFailure = null;
-
     public DeterministicMonotonicClock $clock;
 
     public ContextStorageInterface $storage;
@@ -75,36 +72,36 @@ final class RunItTestKit
 
     public DefaultExecutionRunner $runner;
 
-    private DeterministicHashCalculator $hashCalculator;
+    private readonly DeterministicHashCalculator $hashCalculator;
 
-    private ThrowableMapperInterface $throwableMapper;
+    private readonly ThrowableMapperInterface $throwableMapper;
 
     /** @var StringIdentifierFactoryInterface<ExecutionIdInterface> */
-    private StringIdentifierFactoryInterface $executionIdFactory;
+    private readonly StringIdentifierFactoryInterface $executionIdFactory;
 
     /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
-    private StringIdentifierFactoryInterface $activityIdFactory;
+    private readonly StringIdentifierFactoryInterface $activityIdFactory;
 
     /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
-    private StringIdentifierFactoryInterface $observationIdFactory;
+    private readonly StringIdentifierFactoryInterface $observationIdFactory;
 
     /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
-    private StringIdentifierFactoryInterface $occurrenceIdFactory;
+    private readonly StringIdentifierFactoryInterface $occurrenceIdFactory;
 
     /** @var StringIdentifierFactoryInterface<SnapshotIdInterface> */
-    private StringIdentifierFactoryInterface $snapshotIdFactory;
+    private readonly StringIdentifierFactoryInterface $snapshotIdFactory;
 
     /** @var array<string, SequenceIdentifierGenerator> */
     private array $generators = [];
 
     /**
-     * @param Closure(\Throwable): void|null $onPublicationFailure
+     * @param Closure(Throwable): void|null $onPublicationFailure
      * @param ContextStorageInterface|null $storage overrides the default synchronous stack storage
      */
     public function __construct(
         ?ArtifactPublisherInterface $publisher = null,
-        ?Closure $onPublicationFailure = null,
-        ?SnapshotStoreInterface $snapshotStore = null,
+        private readonly ?Closure $onPublicationFailure = null,
+        public ?SnapshotStoreInterface $snapshotStore = null,
         ?Closure $onSnapshotStoreFailure = null,
         ?ContextStorageInterface $storage = null,
         ?SequenceAllocatorInterface $sequenceAllocator = null,
@@ -115,8 +112,6 @@ final class RunItTestKit
         ?NestedExecutionPolicyInterface $nestedPolicy = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
-        $this->snapshotStore = $snapshotStore;
-        $this->onPublicationFailure = $onPublicationFailure;
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
         $this->storage = $storage ?? new StackContextStorage();
         $this->allocator = $sequenceAllocator ?? new InMemorySequenceAllocator();
@@ -154,11 +149,10 @@ final class RunItTestKit
             $this->snapshotIdFactory,
             $this->hashCalculator,
             $this->throwableMapper,
-            $onPublicationFailure,
-            $snapshotStore,
+            $this->onPublicationFailure,
+            $this->snapshotStore,
             $onSnapshotStoreFailure,
-            null,
-            $limits ?? new SecurityLimits(),
+            limits: $limits ?? new SecurityLimits(),
         );
     }
 
@@ -179,7 +173,7 @@ final class RunItTestKit
             new FailSafeArtifactPublisher(
                 $this->publisher,
                 new FailOpenPolicy(),
-                $this->onPublicationFailure === null ? null : new CallbackHealthReporter($this->onPublicationFailure),
+                $this->onPublicationFailure instanceof Closure ? new CallbackHealthReporter($this->onPublicationFailure) : null,
             ),
             new JsonSnapshotSerializer(),
             $this->throwableMapper,
@@ -188,8 +182,6 @@ final class RunItTestKit
             $this->snapshotIdFactory,
             $this->activityIdFactory,
             $this->hashCalculator,
-            null,
-            null,
         );
     }
 

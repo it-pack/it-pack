@@ -102,8 +102,8 @@ final class RecordingObservationRecorder implements ObservationRecorderInterface
             $throwable::class,
             $throwable->getMessage(),
             (int) $throwable->getCode(),
-            null,
-            null,
+            previous: null,
+            trace: null,
         );
     }
 }

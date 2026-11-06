@@ -6,6 +6,7 @@ namespace Tests\Unit\Application\Scope;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -40,7 +41,7 @@ final class ActivityScopeTest extends Unit
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
-                    function ($activityScope) use (&$seen, $scope) {
+                    function ($activityScope) use (&$seen, $scope): null {
                         $seen['activityName'] = $activityScope->activity()->definition()->name()->toString();
                         $seen['parentScope'] = $activityScope->parentScope();
                         $seen['sameExecution'] = $activityScope->execution() === $scope->execution();
@@ -64,13 +65,13 @@ final class ActivityScopeTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->activities()->run(
                     ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
-                    function ($activityScope) {
+                    function ($activityScope): null {
                         $activityScope->measurements()->counter('inside', 7);
 
                         return null;
@@ -84,7 +85,7 @@ final class ActivityScopeTest extends Unit
         /** @var list<MeasurementInterface> $measurements */
         $measurements = array_values(array_filter(
             $this->kit->artifacts(),
-            static fn ($artifact): bool => $artifact instanceof MeasurementInterface,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof MeasurementInterface,
         ));
 
         self::assertCount(1, $measurements);

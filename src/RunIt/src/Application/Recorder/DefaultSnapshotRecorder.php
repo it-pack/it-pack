@@ -92,9 +92,9 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
     ): SnapshotInterface {
         try {
             $normalized = $this->serializer->normalize($payload);
-        } catch (Throwable $serializerFailure) {
+        } catch (Throwable $throwable) {
             if ($this->onStoreFailure instanceof Closure) {
-                ($this->onStoreFailure)($serializerFailure);
+                ($this->onStoreFailure)($throwable);
             }
 
             return ExecutionSnapshot::create(
@@ -105,12 +105,11 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
                 [],
                 $this->hashCalculator,
                 $this->activityId(),
-                null,
-                $classification,
-                $this->now(),
-                $this->serializer->contentType(),
-                $attributes,
-                $this->sequence(),
+                classification: $classification,
+                createdAt: $this->now(),
+                contentType: $this->serializer->contentType(),
+                attributes: $attributes,
+                sequence: $this->sequence(),
             );
         }
 
@@ -122,12 +121,11 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
             $normalized,
             $this->hashCalculator,
             $this->activityId(),
-            null,
-            $classification,
-            $this->now(),
-            $this->serializer->contentType(),
-            $attributes,
-            $this->sequence(),
+            classification: $classification,
+            createdAt: $this->now(),
+            contentType: $this->serializer->contentType(),
+            attributes: $attributes,
+            sequence: $this->sequence(),
         );
     }
 
@@ -139,9 +137,9 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
 
         try {
             $this->store->store($snapshot);
-        } catch (Throwable $storeError) {
+        } catch (Throwable $throwable) {
             if ($this->onStoreFailure instanceof Closure) {
-                ($this->onStoreFailure)($storeError);
+                ($this->onStoreFailure)($throwable);
             }
         }
     }

@@ -6,7 +6,7 @@ namespace Tests\Support\Fixture\SDK;
 
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 
-#[ExecutedAs('free.fn', 'task')]
+#[ExecutedAs(name: 'free.fn', kind: 'task')]
 function sample_free_function(): void
 {
 }

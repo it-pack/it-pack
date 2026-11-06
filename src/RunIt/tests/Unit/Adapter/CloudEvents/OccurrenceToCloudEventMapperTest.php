@@ -75,10 +75,8 @@ final class OccurrenceToCloudEventMapperTest extends Unit
             Instant::of(2_000),
             ['result' => 'done'],
             ActivityId::fromString('act-2'),
-            null,
-            null,
-            'application/json',
-            AttributeCollection::fromArray([
+            contentType: 'application/json',
+            extensionAttributes: AttributeCollection::fromArray([
                 'correlation.id' => 'corr-9',
                 'tenantflag' => 'acme',
                 'TenantFlag' => 'ignored',

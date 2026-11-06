@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use ItPack\RunIt\Domain\Exception\InvalidContextTokenException;
+use stdClass;
 use WeakMap;
 
 /**
@@ -33,7 +34,7 @@ final class FiberContextStorage implements ContextStorageInterface
     public function __construct()
     {
         $this->stacks = new WeakMap();
-        $this->main = new \stdClass();
+        $this->main = new stdClass();
     }
 
     public function current(): ?ExecutionScopeInterface

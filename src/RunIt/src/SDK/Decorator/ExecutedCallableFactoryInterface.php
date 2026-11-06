@@ -13,5 +13,5 @@ interface ExecutedCallableFactoryInterface
         callable                      $operation,
         ?ExecutionDefinitionInterface $definition,
         ?Closure                      $definitionFactory = null,
-    ) :ExecutedCallableInterface;
+    ): ExecutedCallableInterface;
 }

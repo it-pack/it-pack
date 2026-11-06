@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\CloudEvents\Mapping;
 
+use DateTimeImmutable;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEvent;
 use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterface;
@@ -19,6 +20,7 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\ArtifactSequence;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use Throwable;
 
 /**
  * Default CloudEvent-to-occurrence mapper.
@@ -63,7 +65,7 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
         );
 
         foreach ($event->extensions as $key => $value) {
-            if (in_array($key, $skippedReserved, true)) {
+            if (in_array($key, $skippedReserved, strict: true)) {
                 continue;
             }
 
@@ -102,8 +104,8 @@ final class DefaultCloudEventToOccurrenceMapper implements CloudEventToOccurrenc
         }
 
         try {
-            return Instant::of(new \DateTimeImmutable($time)->getTimestamp());
-        } catch (\Throwable) {
+            return Instant::of(new DateTimeImmutable($time)->getTimestamp());
+        } catch (Throwable) {
             throw InvalidCloudEventException::malformedTime($time);
         }
     }

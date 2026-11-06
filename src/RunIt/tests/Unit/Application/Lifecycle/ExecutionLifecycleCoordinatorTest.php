@@ -59,7 +59,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         $coordinator = new ExecutionLifecycleCoordinator();
         $result = ExecutionFailure::of(
             ExecutionStatus::Failed,
-            ThrowableDescription::create('X', 'boom', 0, null, null)
+            ThrowableDescription::create('X', 'boom', 0, previous: null, trace: null)
         );
         $completed = $coordinator->transition($this->running(), $result, Instant::of(2000));
 
@@ -71,7 +71,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         $coordinator = new ExecutionLifecycleCoordinator();
         $result = ExecutionFailure::of(
             ExecutionStatus::Cancelled,
-            ThrowableDescription::create('X', 'cancelled', 0, null, null)
+            ThrowableDescription::create('X', 'cancelled', 0, previous: null, trace: null)
         );
         $completed = $coordinator->transition($this->running(), $result, Instant::of(2000));
 
@@ -83,7 +83,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         $coordinator = new ExecutionLifecycleCoordinator();
         $result = ExecutionFailure::of(
             ExecutionStatus::TimedOut,
-            ThrowableDescription::create('X', 'timeout', 0, null, null)
+            ThrowableDescription::create('X', 'timeout', 0, previous: null, trace: null)
         );
         $completed = $coordinator->transition($this->running(), $result, Instant::of(2000));
 
@@ -100,7 +100,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         );
         $result = ExecutionFailure::of(
             ExecutionStatus::Cancelled,
-            ThrowableDescription::create('X', 'cancelled', 0, null, null)
+            ThrowableDescription::create('X', 'cancelled', 0, previous: null, trace: null)
         );
         $completed = $coordinator->transition($created, $result, Instant::of(2));
 
@@ -116,7 +116,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         // A terminal execution cannot transition to a different terminal status.
         $coordinator->transition(
             $completed,
-            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, null, null)),
+            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, previous: null, trace: null)),
             Instant::of(3000)
         );
     }
@@ -138,7 +138,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         $this->expectException(ConflictingCompletionException::class);
         $coordinator->transition(
             $succeeded,
-            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, null, null)),
+            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, previous: null, trace: null)),
             Instant::of(3000)
         );
     }
@@ -156,6 +156,7 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
         );
         $coordinator->transition($created, ExecutionSuccess::create(), Instant::of(2));
     }
+
     public function testTransitionMatrix(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();

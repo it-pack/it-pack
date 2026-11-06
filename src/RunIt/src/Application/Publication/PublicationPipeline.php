@@ -32,21 +32,21 @@ use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class PublicationPipeline implements PublicationPipelineInterface
+final readonly class PublicationPipeline implements PublicationPipelineInterface
 {
-    private readonly PublisherStackFactoryInterface $stackFactory;
+    private PublisherStackFactoryInterface $stackFactory;
 
     public function __construct(
-        private readonly ArtifactPublisherInterface $sink,
-        private readonly MonotonicClockInterface $clock,
-        private readonly ArtifactByteEstimatorInterface $byteEstimator,
-        private readonly ?ArtifactFilterInterface $filter = null,
-        private readonly ?RedactorInterface $redactor = null,
-        private readonly ?SamplingPolicyInterface $sampling = null,
-        private readonly ?BufferConfiguration $buffer = null,
-        private readonly ?PublicationFailurePolicyInterface $failurePolicy = null,
-        private readonly ?InternalHealthReporterInterface $health = null,
-        private readonly ?PublicationGuardInterface $guard = null,
+        private ArtifactPublisherInterface $sink,
+        private MonotonicClockInterface $clock,
+        private ArtifactByteEstimatorInterface $byteEstimator,
+        private ?ArtifactFilterInterface $filter = null,
+        private ?RedactorInterface $redactor = null,
+        private ?SamplingPolicyInterface $sampling = null,
+        private ?BufferConfiguration $buffer = null,
+        private ?PublicationFailurePolicyInterface $failurePolicy = null,
+        private ?InternalHealthReporterInterface $health = null,
+        private ?PublicationGuardInterface $guard = null,
         ?PublisherStackFactoryInterface $stackFactory = null,
     ) {
         $this->stackFactory = $stackFactory ?? new PublisherStackFactory();

@@ -13,7 +13,7 @@ use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(ExecutedCallableFactory::class)]
+#[CoversClass(className: ExecutedCallableFactory::class)]
 final class ExecutedCallableFactoryTest extends TestCase
 {
     public function testBuildReturnsWrapperThatInvokesRunnerWithDefinition(): void

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Behavior\Domain;
 
-use ItPack\RunIt\Contract\Domain\StringProviderInterface;
-
 /**
  * Shared projection behavior for any value that exposes a single canonical
  * string.

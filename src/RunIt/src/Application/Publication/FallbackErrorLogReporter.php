@@ -1,4 +1,6 @@
-<?php /** @noinspection ForgottenDebugOutputInspection */
+<?php
+
+/** @noinspection ForgottenDebugOutputInspection */
 
 declare(strict_types=1);
 
@@ -46,7 +48,7 @@ final readonly class FallbackErrorLogReporter
      */
     public function __construct(?Closure $logTo = null)
     {
-        $this->logTo = $logTo ?? self::systemLog(...);
+        $this->logTo = $logTo ?? $this->systemLog(...);
     }
 
     /**
@@ -86,7 +88,7 @@ final readonly class FallbackErrorLogReporter
      * Sends the error message to the defined error handling routines
      * @see https://www.php.net/manual/en/function.error-log.php
      */
-    private static function systemLog(string $message): void
+    private function systemLog(string $message): void
     {
         error_log(
             $message,

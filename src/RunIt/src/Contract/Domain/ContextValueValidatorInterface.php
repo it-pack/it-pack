@@ -31,7 +31,6 @@ interface ContextValueValidatorInterface
     /**
      * Asserts that a value is a supported recursively primitive type within the bounds.
      *
-     * @param mixed $value
      *
      * @throws InvalidContextValueException when the value is not a scalar, null, or a list/map of scalars, or exceeds a bound
      */

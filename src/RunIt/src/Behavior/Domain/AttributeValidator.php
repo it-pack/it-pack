@@ -31,7 +31,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
 final readonly class AttributeValidator implements AttributeValidatorInterface
 {
     public function __construct(
-        private readonly SecurityLimits $limits = new SecurityLimits(),
+        private SecurityLimits $limits = new SecurityLimits(),
     ) {
     }
 

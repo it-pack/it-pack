@@ -25,8 +25,8 @@ final class CancellationTimeoutTest extends Unit
 
     public function testCancellationUsesProvidedDescription(): void
     {
-        $description = ThrowableDescription::create('RunIt\Cancellation', 'cooperative stop', 0, null, null);
-        $cancellation = Cancellation::of('stopped', null, $description);
+        $description = ThrowableDescription::create('RunIt\Cancellation', 'cooperative stop', 0, previous: null, trace: null);
+        $cancellation = Cancellation::of('stopped', description: $description);
 
         self::assertSame($description, $cancellation->throwableDescription());
     }

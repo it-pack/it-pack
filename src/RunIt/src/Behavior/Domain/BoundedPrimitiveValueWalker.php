@@ -29,12 +29,12 @@ final readonly class BoundedPrimitiveValueWalker
      * @param Closure(int $count, int $maximum): RunItExceptionInterface  $oversizedArray raised when a nested array exceeds the entry bound (rule-set dependent)
      */
     public function __construct(
-        private readonly SecurityLimits $limits,
-        private readonly Closure $valueTooLong,
-        private readonly Closure $valueTooDeep,
-        private readonly Closure $unsupportedValue,
-        private readonly Closure $oversizedArray,
-        private readonly bool $rejectOversizedArrays = false,
+        private SecurityLimits $limits,
+        private Closure $valueTooLong,
+        private Closure $valueTooDeep,
+        private Closure $unsupportedValue,
+        private Closure $oversizedArray,
+        private bool $rejectOversizedArrays = false,
     ) {
     }
 

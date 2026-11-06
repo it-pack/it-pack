@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\CloudEvents\CloudEventExtensionKey;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventFactoryInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 
 /**
@@ -25,10 +26,10 @@ use ItPack\RunIt\Contract\Shared\CorrelationKeys;
  * @see https://w3id.org/itpack/runit#Occurrence
  * @see https://cloudevents.io/
  */
-final class DefaultOccurrenceToCloudEventMapper implements OccurrenceToCloudEventMapperInterface
+final readonly class DefaultOccurrenceToCloudEventMapper implements OccurrenceToCloudEventMapperInterface
 {
     public function __construct(
-        private readonly CloudEventFactoryInterface $factory = new DefaultCloudEventFactory(),
+        private CloudEventFactoryInterface $factory = new DefaultCloudEventFactory(),
     ) {
     }
 
@@ -43,7 +44,7 @@ final class DefaultOccurrenceToCloudEventMapper implements OccurrenceToCloudEven
         ];
 
         $activityId = $occurrence->activityId();
-        if ($activityId !== null) {
+        if ($activityId instanceof StringIdentifierInterface) {
             $extensions[CloudEventExtensionKey::ActivityId->value] = $activityId->toString();
         }
 

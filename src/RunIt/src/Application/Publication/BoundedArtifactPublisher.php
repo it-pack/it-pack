@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use Throwable;
 
 /**
  * Artifact publisher that enforces the data-protection bounds before delegating.
@@ -135,16 +136,16 @@ final class BoundedArtifactPublisher implements
 
     private function drop(string $reason, ExecutionArtifactInterface $artifact): void
     {
-        if ($this->onDropped === null) {
+        if (!$this->onDropped instanceof Closure) {
             return;
         }
 
         try {
             ($this->onDropped)($reason, $artifact);
-        } catch (\Throwable $handlerFault) {
+        } catch (Throwable $throwable) {
             // A throwing drop callback must never break publication flow: the
             // drop notice plus the handler fault land in the fallback sink.
-            new FallbackErrorLogReporter()->report(BoundDropException::forReason($reason), $handlerFault);
+            new FallbackErrorLogReporter()->report(BoundDropException::forReason($reason), $throwable);
         }
     }
 }

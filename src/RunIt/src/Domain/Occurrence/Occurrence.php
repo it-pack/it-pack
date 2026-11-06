@@ -37,28 +37,22 @@ final readonly class Occurrence implements OccurrenceInterface
 {
     use SequencedBehavior;
 
-    /**
-     * @param mixed $data
-     */
     private function __construct(
-        private readonly OccurrenceIdInterface $id,
-        private readonly ExecutionIdInterface $executionId,
-        private readonly ?ActivityIdInterface $activityId,
-        private readonly OccurrenceTypeInterface $type,
-        private readonly string $source,
-        private readonly ?string $subject,
-        private readonly InstantInterface $time,
-        private readonly mixed $data,
-        private readonly ?string $dataSchema,
-        private readonly string $contentType,
-        private readonly AttributeCollectionInterface $extensionAttributes,
-        private readonly ArtifactSequenceInterface $sequence,
+        private OccurrenceIdInterface $id,
+        private ExecutionIdInterface $executionId,
+        private ?ActivityIdInterface $activityId,
+        private OccurrenceTypeInterface $type,
+        private string $source,
+        private ?string $subject,
+        private InstantInterface $time,
+        private mixed $data,
+        private ?string $dataSchema,
+        private string $contentType,
+        private AttributeCollectionInterface $extensionAttributes,
+        private ArtifactSequenceInterface $sequence,
     ) {
     }
 
-    /**
-     * @param mixed $data
-     */
     public static function create(
         OccurrenceIdInterface $id,
         ExecutionIdInterface $executionId,

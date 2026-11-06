@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Application\Publication;
 
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Throwable;
 
 /**
  * Contract for a reporter that records internal publication failures.
@@ -23,7 +24,7 @@ interface InternalHealthReporterInterface
     /**
      * Records an internal publication failure.
      *
-     * @param \Throwable $error the failure that occurred inside the pipeline
+     * @param Throwable $error the failure that occurred inside the pipeline
      */
-    public function report(\Throwable $error, ExecutionArtifactInterface $artifact): void;
+    public function report(Throwable $error, ExecutionArtifactInterface $artifact): void;
 }

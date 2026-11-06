@@ -18,7 +18,9 @@ use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 final class SensitiveExceptionChain
 {
     private const string API_KEY = 'sk-live-5f4dcc3b5aa765d61d8327deb882cf99';
+
     private const string DB_PASSWORD = 's3cret-p@ssw0rd';
+
     private const string SESSION_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.sig';
 
     /**
@@ -30,8 +32,8 @@ final class SensitiveExceptionChain
             'RuntimeException',
             'session token leaked: ' . self::SESSION_TOKEN,
             0,
-            null,
-            'trace line 3: ' . self::SESSION_TOKEN,
+            previous: null,
+            trace: 'trace line 3: ' . self::SESSION_TOKEN,
         );
 
         $middle = ThrowableDescription::create(

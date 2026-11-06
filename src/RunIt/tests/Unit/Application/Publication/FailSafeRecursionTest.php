@@ -23,17 +23,17 @@ use Throwable;
  */
 final class FailSafeRecursionTest extends Unit
 {
-    /** @var list<array{0: \Throwable, 1: ExecutionArtifactInterface}> */
+    /** @var list<array{0: Throwable, 1: ExecutionArtifactInterface}> */
     private array $reported = [];
 
     /**
-     * @param list<array{0: \Throwable, 1: ExecutionArtifactInterface}> $sink
+     * @param list<array{0: Throwable, 1: ExecutionArtifactInterface}> $sink
      */
     private function health(array &$sink): InternalHealthReporterInterface
     {
         return new class ($sink) implements InternalHealthReporterInterface {
             /**
-             * @param list<array{0: \Throwable, 1: ExecutionArtifactInterface}> $sink
+             * @param list<array{0: Throwable, 1: ExecutionArtifactInterface}> $sink
              */
             public function __construct(private array &$sink)
             {
@@ -53,8 +53,8 @@ final class FailSafeRecursionTest extends Unit
         // inner stage republishes through the *same* fail-safe publisher.
         $inner = new InMemoryArtifactPublisher();
         $holder = new ReentrantPipelineHolder();
-        $reentrant = new class ($holder) implements ArtifactPublisherInterface {
-            public function __construct(private readonly ReentrantPipelineHolder $holder)
+        $reentrant = new readonly class ($holder) implements ArtifactPublisherInterface {
+            public function __construct(private ReentrantPipelineHolder $holder)
             {
             }
 

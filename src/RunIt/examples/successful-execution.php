@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\Domain\Execution\Execution;
+
 /**
  * RunIt — successful execution.
  *
@@ -31,21 +33,21 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $result = $runtime->run(
     ExecutionDefinition::create(ExecutionName::fromString('order.place'), ExecutionKind::fromString('operation')),
-    static function (): array {
-        return ['order_id' => 42, 'status' => 'paid'];
-    },
+    static fn (): array => ['order_id' => 42, 'status' => 'paid'],
 );
 
 echo 'execution succeeded; result: ' . json_encode($result) . PHP_EOL;
 
 $execution = null;
 foreach ($publisher->published() as $artifact) {
-    if ($artifact instanceof \ItPack\RunIt\Domain\Execution\Execution) {
+    if ($artifact instanceof Execution) {
         $execution = $artifact;
     }
 }
-echo 'recorded execution status: ' . ($execution === null ? 'unknown' : $execution->normalize()['status']) . PHP_EOL;
+
+echo 'recorded execution status: ' . ($execution instanceof Execution ? $execution->normalize()['status'] : 'unknown') . PHP_EOL;

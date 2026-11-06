@@ -156,7 +156,7 @@ final class InterleavedFiberContextIsolationTest extends Unit
                         $failure,
                         $outer,
                         &$ids,
-                    ): void {
+                    ): never {
                         $ids[] = $inner->execution()->id()->toString();
                         self::assertSame(
                             $outer->execution()->id()->toString(),
@@ -168,8 +168,8 @@ final class InterleavedFiberContextIsolationTest extends Unit
                         throw $failure;
                     });
                     self::fail('The nested operation must throw');
-                } catch (RuntimeException $caught) {
-                    self::assertSame($failure, $caught);
+                } catch (RuntimeException $runtimeException) {
+                    self::assertSame($failure, $runtimeException);
                 }
 
                 self::assertSame($outer, $kit->storage->current());

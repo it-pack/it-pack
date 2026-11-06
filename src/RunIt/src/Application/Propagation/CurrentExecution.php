@@ -33,7 +33,7 @@ final readonly class CurrentExecution implements CurrentExecutionInterface
     {
         $scope = $this->storage->current();
 
-        if ($scope === null) {
+        if (!$scope instanceof ExecutionScopeInterface) {
             throw NoActiveExecutionException::instance();
         }
 

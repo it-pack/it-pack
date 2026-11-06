@@ -131,6 +131,7 @@ composer test:conformance
 composer test:concurrency
 composer test
 composer coverage
+composer refactor:dry
 composer cs:check
 composer analyse
 composer architecture
@@ -148,7 +149,13 @@ composer quality
 - Use the relevant Unit tests for focused behavior, Integration for cross-layer
   wiring, Conformance for port behavior, and Concurrency for isolation. Include
   failure paths and extension-specific tests when relevant; report skips.
-- `composer quality` runs validation, style, analysis, architecture, line
+- `composer refactor:dry` checks Rector changes without modifying files;
+  `composer refactor` applies them. Rector scans `src`, `tests`, and `examples`
+  except generated test support. Run Rector before PHP-CS-Fixer, since Rector
+  may change formatting. Inspect automated changes and preserve unrelated work.
+  The current `rector.php` targets PHP 8.5 despite the package's PHP 8.4 minimum;
+  do not assume generated code is PHP 8.4-compatible without verification.
+- `composer quality` runs validation, Rector dry-run, style, analysis, architecture, line
   length, tests, and security audit. It does **not** run coverage, API checks,
   mutation tests, or benchmarks; run those separately when relevant. Other
   available scripts include `composer mutation`, `composer benchmark`, and

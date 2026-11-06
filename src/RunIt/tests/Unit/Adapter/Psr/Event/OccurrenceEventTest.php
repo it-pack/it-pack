@@ -78,7 +78,7 @@ final class OccurrenceEventTest extends Unit
         $dispatcher->addListener(static function (OccurrenceEvent $event): void {
             $event->stopPropagation();
         });
-        $dispatcher->addListener(static function (): void {
+        $dispatcher->addListener(static function (): never {
             throw new LogicException('must not run');
         });
 
@@ -91,7 +91,7 @@ final class OccurrenceEventTest extends Unit
     {
         $dispatcher = new RecordingEventDispatcher();
         $policy = new class () implements PublicationFailurePolicyInterface {
-            /** @var list<\Throwable> */
+            /** @var list<Throwable> */
             private array $errors = [];
 
             public function handle(
@@ -102,7 +102,7 @@ final class OccurrenceEventTest extends Unit
             }
 
             /**
-             * @return list<\Throwable>
+             * @return list<Throwable>
              */
             public function collected(): array
             {
@@ -110,7 +110,7 @@ final class OccurrenceEventTest extends Unit
             }
         };
 
-        $dispatcher->addListener(static function (): void {
+        $dispatcher->addListener(static function (): never {
             throw new RuntimeException('listener failed');
         });
 
@@ -124,7 +124,7 @@ final class OccurrenceEventTest extends Unit
     public function testListenerExceptionRethrowsWithoutPolicy(): void
     {
         $dispatcher = new RecordingEventDispatcher();
-        $dispatcher->addListener(static function (): void {
+        $dispatcher->addListener(static function (): never {
             throw new RuntimeException('listener failed');
         });
 
@@ -144,6 +144,7 @@ final class OccurrenceEventTest extends Unit
 
         $event = new class () {
             public string $action = 'created';
+
             public int $count = 2;
         };
 
@@ -165,8 +166,7 @@ final class OccurrenceEventTest extends Unit
             ExecutionId::fromString('e-bound'),
             new RandomIdentifierGenerator(),
             'psr.event',
-            null,
-            static fn (object $event): array => ['extracted' => true],
+            dataExtractor: static fn (object $event): array => ['extracted' => true],
         );
 
         $occurrence = $mapper->map(new stdClass());
@@ -184,6 +184,7 @@ final class OccurrenceEventTest extends Unit
 
         $event = new class () {
             public string $name = 'kept';
+
             public object $entity;
 
             public function __construct()

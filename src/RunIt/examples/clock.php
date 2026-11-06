@@ -32,7 +32,8 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 
 
@@ -49,9 +50,7 @@ for ($i = 0; $i < $iterations; $i++) {
 
     $runtime->run(
         $definition,
-        static function (): array {
-            return ['status' => 'ok'];
-        },
+        static fn (): array => ['status' => 'ok'],
     );
 
 }

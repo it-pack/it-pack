@@ -102,7 +102,7 @@ final class ValidatorParityTest extends Unit
             $attributeRule(new AttributeValidator());
 
             $this->addToAssertionCount(1);
-        } catch (RunItExceptionInterface $exception) {
+        } catch (RunItExceptionInterface) {
             self::fail("shape '{$label}' must be accepted by both validators");
         }
     }

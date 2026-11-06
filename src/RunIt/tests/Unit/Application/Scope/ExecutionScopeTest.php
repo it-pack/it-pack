@@ -29,7 +29,7 @@ final class ExecutionScopeTest extends Unit
         $kit = new RunItTestKit();
         $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            static function ($scope) {
+            static function ($scope): null {
                 $scope->measurements()->counter('files', 3);
 
                 return null;
@@ -47,12 +47,11 @@ final class ExecutionScopeTest extends Unit
         $kit = new RunItTestKit();
         $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            static function ($scope) {
+            static function ($scope): null {
                 $scope->observations()->record(
                     'cache miss',
                     ObservationSeverity::Warning,
-                    null,
-                    new RuntimeException('no entry')
+                    throwable: new RuntimeException('no entry')
                 );
 
                 return null;
@@ -72,7 +71,7 @@ final class ExecutionScopeTest extends Unit
         $kit = new RunItTestKit();
         $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            static function ($scope) {
+            static function ($scope): null {
                 $scope->occurrences()->record(OccurrenceType::fromString('itpack.thing.done.v1'), 'app');
                 $scope->snapshots()->record(
                     SnapshotType::fromString('itpack.state.v1'),
@@ -102,12 +101,12 @@ final class ExecutionScopeTest extends Unit
         $kit = new RunItTestKit();
         $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->measurements()->counter('before-activity', 1);
 
                 $scope->activities()->run(
                     ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
-                    function ($activityScope) {
+                    function ($activityScope): string {
                         $activityScope->measurements()->counter('inside-activity', 7);
 
                         return 'inner';
@@ -160,18 +159,18 @@ final class ExecutionScopeTest extends Unit
         try {
             $kit->runner->run(
                 ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-                function ($scope) use ($thrown) {
+                function ($scope) use ($thrown): void {
                     $scope->activities()->run(
                         ActivityDefinition::create(ActivityName::fromString('load'), ActivityKind::fromString('io')),
-                        static function () use ($thrown): void {
+                        static function () use ($thrown): never {
                             throw $thrown;
                         },
                     );
 
                 },
             );
-        } catch (RuntimeException $e) {
-            $caught = $e;
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
         }
 
         self::assertSame($thrown, $caught);

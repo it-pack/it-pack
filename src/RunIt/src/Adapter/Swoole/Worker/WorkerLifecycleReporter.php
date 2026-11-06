@@ -77,21 +77,19 @@ final readonly class WorkerLifecycleReporter implements WorkerLifecycleInterface
             );
             $scope->observations()->record(
                 'Worker failed: ' . $throwable->getMessage(),
-                null,
-                null,
-                $throwable,
-                'worker.failure',
+                throwable: $throwable,
+                diagnosticCode: 'worker.failure',
             );
         });
     }
 
     public function reset(): void
     {
-        if ($this->resetHook !== null) {
+        if ($this->resetHook instanceof Closure) {
             ($this->resetHook)();
         }
 
-        if ($this->flushHook !== null) {
+        if ($this->flushHook instanceof Closure) {
             ($this->flushHook)();
         }
     }

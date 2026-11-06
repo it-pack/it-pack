@@ -12,7 +12,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\Fixture\RunItFactories;
 
-#[CoversClass(RunItFactories::class)]
+#[CoversClass(className: RunItFactories::class)]
 final class RunItFactoriesTest extends TestCase
 {
     public function testNullRuntimeBuildsAndRuns(): void

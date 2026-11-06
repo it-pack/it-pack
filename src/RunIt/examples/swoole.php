@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use function Swoole\Coroutine\run;
+
 /**
  * RunIt + Swoole / OpenSwoole — executable example.
  *
@@ -34,7 +36,8 @@ $builder = RunItBuilder::create()
     ->withClock(new SystemMonotonicClock())
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
-    ->withIdentifierGenerator(new RandomIdentifierGenerator());
+    ->withIdentifierGenerator(new RandomIdentifierGenerator())
+;
 
 if (extension_loaded('swoole') || extension_loaded('openswoole')) {
     $builder = $builder->withContextStorage(new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
@@ -45,7 +48,7 @@ $runIt = $builder->build();
 $runner = $runIt->executionRunner();
 
 if (extension_loaded('swoole') || extension_loaded('openswoole')) {
-    \Swoole\Coroutine\run(static function () use ($runIt): void {
+    run(static function () use ($runIt): void {
         $runIt->run(
             ExecutionDefinition::create(ExecutionName::fromString('coroutine.work'), ExecutionKind::fromString('coroutine')),
             static function (ExecutionScopeInterface $scope): void {
@@ -62,18 +65,17 @@ $middleware = new ServerExecutionMiddleware(
     $runner,
     ExecutionName::fromString('http.request'),
     ExecutionKind::fromString('http.request'),
-    null,
-    new SystemMonotonicClock(),
+    clock: new SystemMonotonicClock(),
 );
 
-$response = new class {
+$response = new class () {
     public function getStatusCode(): int
     {
         return 200;
     }
 };
 
-$result = $middleware->handle(new \stdClass(), static fn (mixed $request, ExecutionScopeInterface $scope) => $response);
+$result = $middleware->handle(new stdClass(), static fn (mixed $request, ExecutionScopeInterface $scope): object => $response);
 echo 'middleware returned status: ' . $result->getStatusCode() . PHP_EOL;
 
 // Worker lifecycle events are reported as their own executions.

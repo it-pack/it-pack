@@ -6,7 +6,7 @@ namespace Tests\Support\Fixture\SDK;
 
 use ItPack\RunIt\SDK\Attribute\ExecutedAs;
 
-#[ExecutedAs('service.class', 'batch')]
+#[ExecutedAs(name: 'service.class', kind: 'batch')]
 final class AttributedService
 {
     public function handle(): void

@@ -42,11 +42,10 @@ final class OccurrenceTest extends Unit
             'config-service',
             Instant::of(1000),
             ['path' => '/etc/app.yaml'],
-            null,
-            'tenant-7',
-            'https://schema.example/config.v1.json',
-            'application/json',
-            AttributeCollection::empty()->with('priority', 'high'),
+            subject: 'tenant-7',
+            dataSchema: 'https://schema.example/config.v1.json',
+            contentType: 'application/json',
+            extensionAttributes: AttributeCollection::empty()->with('priority', 'high'),
         );
 
         self::assertSame('itpack.configuration.loaded.v1', $occurrence->type()->toString());

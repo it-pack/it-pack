@@ -48,6 +48,7 @@ final class ContextPropagationTest extends Unit
         foreach ($baggage->getAll() as $key => $entry) {
             $keys[] = $key;
         }
+
         self::assertContains('tenant.id', $keys);
         self::assertContains('correlation.id', $keys);
         self::assertNotContains('secret.token', $keys);
@@ -95,6 +96,7 @@ final class ContextPropagationTest extends Unit
                 $found = true;
             }
         }
+
         self::assertTrue($found, 'remote parent trace id should be recorded');
     }
 

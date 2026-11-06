@@ -43,9 +43,8 @@ final class ExecutionContextRedactionTest extends TestCase
         $definition = ExecutionDefinition::create(
             ExecutionName::fromString('checkout'),
             ExecutionKind::fromString('http.server'),
-            null,
-            [],
-            $this->contextWithSecret(),
+            linkedExecutionIds: [],
+            context: $this->contextWithSecret(),
         );
 
         return Execution::start(
@@ -72,9 +71,8 @@ final class ExecutionContextRedactionTest extends TestCase
         $definition = ExecutionDefinition::create(
             ExecutionName::fromString('checkout'),
             ExecutionKind::fromString('http.server'),
-            null,
-            [],
-            $this->contextWithSecret(),
+            linkedExecutionIds: [],
+            context: $this->contextWithSecret(),
         );
 
         $normalized = $definition->normalize();

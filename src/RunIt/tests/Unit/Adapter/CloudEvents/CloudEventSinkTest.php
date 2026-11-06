@@ -53,8 +53,7 @@ final class CloudEventSinkTest extends Unit
             '/source',
             'com.example.thing.happened.v1',
             ['outcome' => 'ok'],
-            null,
-            '2026-08-20T14:05:47Z',
+            time: '2026-08-20T14:05:47Z',
         );
         $sink->send($event);
 

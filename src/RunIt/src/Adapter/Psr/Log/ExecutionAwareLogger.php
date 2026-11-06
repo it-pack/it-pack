@@ -6,9 +6,11 @@ namespace ItPack\RunIt\Adapter\Psr\Log;
 
 use ItPack\RunIt\Contract\Application\ActivityScopeInterface;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
+use Stringable;
 
 /**
  * Decorates any PSR-3 logger so every log line is enriched with the active
@@ -38,11 +40,11 @@ final class ExecutionAwareLogger extends AbstractLogger implements LoggerInterfa
     ) {
     }
 
-    public function log(mixed $level, string|\Stringable $message, array $context = []): void
+    public function log(mixed $level, string|Stringable $message, array $context = []): void
     {
         $scope = $this->current->get();
 
-        if ($scope === null) {
+        if (!$scope instanceof ExecutionScopeInterface) {
             $this->inner->log($level, $message, $context);
 
             return;

@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Throwable;
 
 /**
  * Publishes RunIt occurrences through a PSR-14 event dispatcher.
@@ -47,14 +48,14 @@ final readonly class OccurrencePublisher implements ArtifactPublisherInterface
 
         try {
             $this->dispatcher->dispatch($event);
-        } catch (\Throwable $error) {
+        } catch (Throwable $throwable) {
             if ($this->failurePolicy instanceof PublicationFailurePolicyInterface) {
-                $this->failurePolicy->handle($error, $artifact);
+                $this->failurePolicy->handle($throwable, $artifact);
 
                 return;
             }
 
-            throw $error;
+            throw $throwable;
         }
     }
 }

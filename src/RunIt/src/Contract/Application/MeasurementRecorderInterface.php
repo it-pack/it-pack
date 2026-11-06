@@ -22,13 +22,6 @@ use ItPack\RunIt\Contract\Domain\MeasurementUnitInterface;
  */
 interface MeasurementRecorderInterface
 {
-    /**
-     * @param string|MeasurementNameInterface $name
-     * @param int $value
-     * @param MeasurementUnitInterface|null $unit
-     * @param AttributeCollectionInterface|null $attributes
-     * @return MeasurementInterface
-     */
     public function counter(
         string|MeasurementNameInterface $name,
         int $value,
@@ -36,13 +29,6 @@ interface MeasurementRecorderInterface
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface;
 
-    /**
-     * @param string|MeasurementNameInterface $name
-     * @param float $value
-     * @param MeasurementUnitInterface|null $unit
-     * @param AttributeCollectionInterface|null $attributes
-     * @return MeasurementInterface
-     */
     public function gauge(
         string|MeasurementNameInterface $name,
         float $value,
@@ -50,13 +36,6 @@ interface MeasurementRecorderInterface
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface;
 
-    /**
-     * @param string|MeasurementNameInterface $name
-     * @param float $value
-     * @param MeasurementUnitInterface|null $unit
-     * @param AttributeCollectionInterface|null $attributes
-     * @return MeasurementInterface
-     */
     public function duration(
         string|MeasurementNameInterface $name,
         float $value,
@@ -64,13 +43,6 @@ interface MeasurementRecorderInterface
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface;
 
-    /**
-     * @param string|MeasurementNameInterface $name
-     * @param int $value
-     * @param MeasurementUnitInterface|null $unit
-     * @param AttributeCollectionInterface|null $attributes
-     * @return MeasurementInterface
-     */
     public function size(
         string|MeasurementNameInterface $name,
         int $value,
@@ -78,13 +50,6 @@ interface MeasurementRecorderInterface
         ?AttributeCollectionInterface $attributes = null
     ): MeasurementInterface;
 
-    /**
-     * @param string|MeasurementNameInterface $name
-     * @param float $value
-     * @param MeasurementUnitInterface|null $unit
-     * @param AttributeCollectionInterface|null $attributes
-     * @return MeasurementInterface
-     */
     public function ratio(
         string|MeasurementNameInterface $name,
         float $value,

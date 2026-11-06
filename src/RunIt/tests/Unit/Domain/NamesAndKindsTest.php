@@ -25,6 +25,7 @@ use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 final class NamesAndKindsTest extends Unit
 {
     public const string VALUE = 'configuration.resolve';
+
     public const string OTHER_VALUE = 'cli.command';
 
     /**

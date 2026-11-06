@@ -30,7 +30,7 @@ final class SystemMonotonicClock implements MonotonicClockInterface
 
     public function monotonicNanoseconds(): int
     {
-        return hrtime(true);
+        return hrtime(as_number: true);
     }
 
     public function measure(int $fromInclusive, int $toInclusive): DurationInterface

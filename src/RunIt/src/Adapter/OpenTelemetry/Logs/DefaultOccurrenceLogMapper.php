@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
@@ -59,13 +60,13 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         $activityId = $occurrence->activityId();
-        if ($activityId !== null) {
+        if ($activityId instanceof StringIdentifierInterface) {
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId->toString();
         }
 
         foreach ($occurrence->extensionAttributes() as $key => $value) {
             if ($this->occurrenceLogAttributeAllowList !== []
-                && !in_array($key, $this->occurrenceLogAttributeAllowList, true)
+                && !in_array($key, $this->occurrenceLogAttributeAllowList, strict: true)
             ) {
                 continue;
             }
@@ -73,7 +74,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[$key] = $value;
         }
 
-        if ($this->mapOccurrencesToLogs && $this->loggerProvider !== null) {
+        if ($this->mapOccurrencesToLogs && $this->loggerProvider instanceof LoggerProviderInterface) {
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
             $logger
                 ->logRecordBuilder()
@@ -105,7 +106,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         ];
 
         $activityId = $snapshot->activityId();
-        if ($activityId !== null) {
+        if ($activityId instanceof StringIdentifierInterface) {
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId->toString();
         }
 
@@ -124,7 +125,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             );
         }
 
-        if ($this->mapOccurrencesToLogs && $this->loggerProvider !== null) {
+        if ($this->mapOccurrencesToLogs && $this->loggerProvider instanceof LoggerProviderInterface) {
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
             $logger
                 ->logRecordBuilder()
@@ -230,9 +231,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     {
         $timeNanos = $timeEpochSeconds !== null
             ? $timeEpochSeconds * Duration::NANOS_PER_SECOND
-            : (int) (microtime(true) * Duration::NANOS_PER_SECOND);
+            : (int) (microtime(as_float: true) * Duration::NANOS_PER_SECOND);
 
-        if ($this->mapOccurrencesToLogs && $this->loggerProvider !== null) {
+        if ($this->mapOccurrencesToLogs && $this->loggerProvider instanceof LoggerProviderInterface) {
             $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
             $logger
                 ->logRecordBuilder()

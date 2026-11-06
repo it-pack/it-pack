@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use Codeception\Actor;
+use Tests\Support\_generated\ConformanceTesterActions;
 
 /**
  * Inherited Methods
@@ -23,7 +24,7 @@ use Codeception\Actor;
 */
 class ConformanceTester extends Actor
 {
-    use _generated\ConformanceTesterActions;
+    use ConformanceTesterActions;
 
     /**
      * Define custom actions here

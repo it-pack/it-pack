@@ -24,10 +24,10 @@ use Throwable;
  */
 final readonly class CallbackHealthReporter implements InternalHealthReporterInterface
 {
-    private readonly FallbackErrorLogReporter $fallback;
+    private FallbackErrorLogReporter $fallback;
 
     /**
-     * @param Closure(\Throwable, ExecutionArtifactInterface): void $callback
+     * @param Closure(Throwable, ExecutionArtifactInterface): void $callback
      */
     public function __construct(
         private Closure $callback,
@@ -36,14 +36,14 @@ final readonly class CallbackHealthReporter implements InternalHealthReporterInt
         $this->fallback = $fallback ?? new FallbackErrorLogReporter();
     }
 
-    public function report(\Throwable $error, ExecutionArtifactInterface $artifact): void
+    public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
     {
         try {
             ($this->callback)($error, $artifact);
-        } catch (Throwable $handlerFault) {
+        } catch (Throwable $throwable) {
             $id = $artifact->normalize()[ArtifactField::ID] ?? null;
 
-            $this->fallback->report($error, $handlerFault, is_string($id) ? $id : null);
+            $this->fallback->report($error, $throwable, is_string($id) ? $id : null);
         }
     }
 }

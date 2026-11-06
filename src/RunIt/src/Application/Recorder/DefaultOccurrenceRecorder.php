@@ -29,7 +29,7 @@ use ItPack\RunIt\Domain\Occurrence\Occurrence;
  *
  * @see https://w3id.org/itpack/runit#Occurrence
  */
-final class DefaultOccurrenceRecorder implements OccurrenceRecorderInterface
+final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInterface
 {
     use InstantClockBehavior;
 
@@ -37,13 +37,13 @@ final class DefaultOccurrenceRecorder implements OccurrenceRecorderInterface
      * @param Closure(): ?ActivityIdInterface $currentActivityId
      */
     public function __construct(
-        private readonly ExecutionIdInterface $executionId,
-        private readonly Closure $currentActivityId,
-        private readonly SequenceAllocatorInterface $sequenceAllocator,
-        private readonly MonotonicClockInterface $clock,
-        private readonly ArtifactPublisherInterface $publisher,
+        private ExecutionIdInterface $executionId,
+        private Closure $currentActivityId,
+        private SequenceAllocatorInterface $sequenceAllocator,
+        private MonotonicClockInterface $clock,
+        private ArtifactPublisherInterface $publisher,
         /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
-        private readonly StringIdentifierFactoryInterface $occurrenceIdFactory,
+        private StringIdentifierFactoryInterface $occurrenceIdFactory,
     ) {
     }
 

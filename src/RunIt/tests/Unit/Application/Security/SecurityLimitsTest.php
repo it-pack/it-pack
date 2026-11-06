@@ -52,8 +52,8 @@ final class SecurityLimitsTest extends Unit
         try {
             new SecurityLimits(maxSerializationBytes: -1);
             self::fail('non-positive security limits must be rejected');
-        } catch (InvalidSecurityLimitException $exception) {
-            self::assertInstanceOf(InvalidValueExceptionInterface::class, $exception);
+        } catch (InvalidSecurityLimitException $invalidSecurityLimitException) {
+            self::assertInstanceOf(InvalidValueExceptionInterface::class, $invalidSecurityLimitException);
         }
     }
 }

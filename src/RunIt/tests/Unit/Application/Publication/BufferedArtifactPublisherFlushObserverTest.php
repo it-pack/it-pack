@@ -27,6 +27,7 @@ use ItPack\RunIt\Domain\Shared\Instant;
 final class BufferedArtifactPublisherFlushObserverTest extends Unit
 {
     private MonotonicClockInterface $clock;
+
     private ArtifactByteEstimatorInterface $estimator;
 
     protected function setUp(): void
@@ -34,6 +35,7 @@ final class BufferedArtifactPublisherFlushObserverTest extends Unit
         $this->clock = new SystemMonotonicClock();
         $this->estimator = new DefaultArtifactByteEstimator();
     }
+
     public function testFlushNotifiesObserverWithFlushedCount(): void
     {
         $inner = new InMemoryArtifactPublisher();
@@ -44,8 +46,7 @@ final class BufferedArtifactPublisherFlushObserverTest extends Unit
             $inner,
             $this->clock,
             $this->estimator,
-            null,
-            $observer
+            observer: $observer
         );
 
         for ($i = 0; $i < 3; $i++) {
@@ -72,8 +73,7 @@ final class BufferedArtifactPublisherFlushObserverTest extends Unit
             $inner,
             $this->clock,
             $this->estimator,
-            null,
-            $observer
+            observer: $observer
         );
 
         for ($i = 0; $i < 2; $i++) {

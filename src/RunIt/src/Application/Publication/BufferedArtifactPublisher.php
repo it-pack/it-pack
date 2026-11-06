@@ -16,6 +16,7 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
+use Throwable;
 
 /**
  * Artifact publisher that buffers artifacts and flushes them in bounded batches.
@@ -59,13 +60,11 @@ final class BufferedArtifactPublisher implements
 
     private int $droppedCount = 0;
 
-    private int $lastFlushEpoch = 0;
+    private int $lastFlushEpoch;
 
     private readonly Closure $sleep;
 
     /**
-     * @param MonotonicClockInterface $clock
-     * @param ArtifactByteEstimatorInterface $byteEstimator
      * @param Closure(int $microseconds): void|null $sleep injectable wait for the blocking overflow strategy
      */
     public function __construct(
@@ -205,7 +204,7 @@ final class BufferedArtifactPublisher implements
     /**
      * @param array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $incoming
      */
-    private function failOverflow(array $incoming): void
+    private function failOverflow(array $incoming): never
     {
         $this->reportDrop($incoming['artifact']);
 
@@ -287,12 +286,9 @@ final class BufferedArtifactPublisher implements
         $this->reportDrop($item['artifact']);
     }
 
-    /**
-     * @return int|null
-     */
     private function oldestLowPriorityIndex(): ?int
     {
-        return array_find_key($this->buffer, fn ($item) => $item['priority'] === self::PRIORITY_LOW);
+        return array_find_key($this->buffer, fn ($item): bool => $item['priority'] === self::PRIORITY_LOW);
 
     }
 
@@ -305,7 +301,7 @@ final class BufferedArtifactPublisher implements
      * loudly rather than silently dropping them. Expired artifacts are dropped
      * and reported through the internal health reporter.
      *
-     * @throws \Throwable when the inner publisher throws
+     * @throws Throwable when the inner publisher throws
      */
     private function drain(int $limit): int
     {
@@ -335,7 +331,7 @@ final class BufferedArtifactPublisher implements
 
     private function observe(int $flushed, int $startedAtNanoseconds): void
     {
-        if ($this->observer === null) {
+        if (!$this->observer instanceof BatchFlushObserverInterface) {
             return;
         }
 

@@ -24,7 +24,9 @@ use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
 use ItPack\RunIt\SDK\RunItInterface;
+use Throwable;
 
 /**
  * Immutable assembler for a {@see RunItInterface} runtime.
@@ -127,7 +129,7 @@ interface RunItBuilderInterface
      * passed instead of a raw adapter error. Throwing from the handler is safe: the fault is
      * contained by the fallback sink and never reaches business flow.
      *
-     * @param Closure(\Throwable): void|null $handler
+     * @param Closure(Throwable): void|null $handler
      */
     public function withPublicationFailureHandler(?Closure $handler): RunItBuilderInterface;
 
@@ -135,7 +137,7 @@ interface RunItBuilderInterface
      * Receives snapshot-store failures so persistence problems stay observable without aborting
      * the execution. Without a handler, store failures follow the fail-open default.
      *
-     * @param Closure(\Throwable): void|null $handler
+     * @param Closure(Throwable): void|null $handler
      */
     public function withSnapshotStoreFailureHandler(?Closure $handler): RunItBuilderInterface;
 
@@ -149,7 +151,7 @@ interface RunItBuilderInterface
     /**
      * Builds an interface-backed runtime facade, validating required dependencies first.
      *
-     * @throws \ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException when a required dependency is missing
+     * @throws MissingBuilderDependencyException when a required dependency is missing
      */
     public function build(): RunItInterface;
 }

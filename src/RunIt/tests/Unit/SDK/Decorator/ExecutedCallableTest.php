@@ -16,8 +16,8 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
-#[CoversClass(ExecutedCallable::class)]
-#[CoversClass(MissingExecutionDefinitionException::class)]
+#[CoversClass(className: ExecutedCallable::class)]
+#[CoversClass(className: MissingExecutionDefinitionException::class)]
 final class ExecutedCallableTest extends TestCase
 {
     private RunItTestKit $kit;
@@ -72,7 +72,7 @@ final class ExecutedCallableTest extends TestCase
     {
         $wrapped = new ExecutedCallable(
             $this->kit->runner,
-            static function (): void {
+            static function (): never {
                 throw new DecoratorFailure();
             },
             $this->definition(),
@@ -105,8 +105,8 @@ final class ExecutedCallableTest extends TestCase
         $wrapped = new ExecutedCallable(
             $this->kit->runner,
             static fn (string $name): string => 'hello ' . $name,
-            null,
-            function (array $args): ExecutionDefinition {
+            definition: null,
+            definitionFactory: function (array $args): ExecutionDefinition {
                 self::assertSame(['world'], $args);
 
                 return ExecutionDefinition::create(
@@ -121,7 +121,7 @@ final class ExecutedCallableTest extends TestCase
 
     public function testMissingDefinitionThrowsOnInvoke(): void
     {
-        $wrapped = new ExecutedCallable($this->kit->runner, static fn (): int => 1, null);
+        $wrapped = new ExecutedCallable($this->kit->runner, static fn (): int => 1, definition: null);
 
         $this->expectException(MissingExecutionDefinitionException::class);
 

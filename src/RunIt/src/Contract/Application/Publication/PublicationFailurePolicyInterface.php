@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Application\Publication;
 
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Throwable;
 
 /**
  * Contract for the policy applied when artifact publication fails.
@@ -27,9 +28,9 @@ interface PublicationFailurePolicyInterface
     /**
      * Handles a publication failure.
      *
-     * @param \Throwable $error the original adapter or transport exception
+     * @param Throwable $error the original adapter or transport exception
      *
-     * @throws \Throwable a fail-closed policy rethrows {@see $error}
+     * @throws Throwable a fail-closed policy rethrows {@see $error}
      */
-    public function handle(\Throwable $error, ExecutionArtifactInterface $artifact): void;
+    public function handle(Throwable $error, ExecutionArtifactInterface $artifact): void;
 }

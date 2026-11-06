@@ -36,10 +36,10 @@ final class MonotonicClockVerifier implements VerifierInterface
 
         try {
             $wall = $clock->nowSeconds();
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('nowSeconds.throws', sprintf(
                 'nowSeconds() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 
@@ -53,6 +53,7 @@ final class MonotonicClockVerifier implements VerifierInterface
                     $e->getMessage()
                 )));
             }
+
             if ($previous !== null && $reading < $previous) {
                 $result = $result->add(new ConformanceViolation(
                     'monotonicNanoseconds.not-monotonic',
@@ -60,24 +61,27 @@ final class MonotonicClockVerifier implements VerifierInterface
                 ));
                 break;
             }
+
             $previous = $reading;
         }
 
         try {
             $zero = $clock->measure(100, 100)->nanoseconds();
             $forward = $clock->measure(100, 250)->nanoseconds();
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('measure.throws', sprintf(
                 'measure() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
+
         if ($zero !== 0) {
             $result = $result->add(new ConformanceViolation(
                 'measure.zero',
                 'measure(a, a) did not produce a zero duration'
             ));
         }
+
         if ($forward < 0) {
             $result = $result->add(new ConformanceViolation(
                 'measure.negative',

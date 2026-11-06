@@ -21,6 +21,6 @@ final class FiberRuntimeDetector implements RuntimeContextDetectorInterface
 
     public function inFiber(): bool
     {
-        return Fiber::getCurrent() !== null;
+        return Fiber::getCurrent() instanceof Fiber;
     }
 }

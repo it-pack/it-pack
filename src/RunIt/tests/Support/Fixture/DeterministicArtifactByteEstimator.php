@@ -20,7 +20,7 @@ final class DeterministicArtifactByteEstimator implements ArtifactByteEstimatorI
 {
     /** @param array<string, int> $sizesById */
     public function __construct(
-        private int $baseBytes = 100,
+        private readonly int $baseBytes = 100,
         private array $sizesById = [],
     ) {
     }

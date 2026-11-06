@@ -37,10 +37,10 @@ final class ExecutionEngineVerifier implements VerifierInterface
         try {
             $value = $engine->run($scope, static fn (): int => 42);
             $again = $engine->run($scope, static fn (): int => 42);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('run.throws', sprintf(
                 'run() threw for a plain operation: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 
@@ -50,6 +50,7 @@ final class ExecutionEngineVerifier implements VerifierInterface
                 'run() did not return the operation result'
             ));
         }
+
         if ($value !== $again) {
             $result = $result->add(new ConformanceViolation(
                 'run.not-deterministic',
@@ -59,12 +60,13 @@ final class ExecutionEngineVerifier implements VerifierInterface
 
         try {
             $null = $engine->run($scope, static fn (): ?int => null);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('run.null.throws', sprintf(
                 'run() threw for a null-returning operation: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
+
         if ($null !== null) {
             $result = $result->add(new ConformanceViolation(
                 'run.null.wrong-value',
@@ -74,10 +76,10 @@ final class ExecutionEngineVerifier implements VerifierInterface
 
         try {
             $engine->capability();
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('capability.throws', sprintf(
                 'capability() threw: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
 

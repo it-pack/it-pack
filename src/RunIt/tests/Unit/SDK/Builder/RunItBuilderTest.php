@@ -56,8 +56,8 @@ use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingSnapshotStore;
 use Throwable;
 
-#[CoversClass(RunItBuilder::class)]
-#[CoversClass(MissingBuilderDependencyException::class)]
+#[CoversClass(className: RunItBuilder::class)]
+#[CoversClass(className: MissingBuilderDependencyException::class)]
 final class RunItBuilderTest extends TestCase
 {
     private function builder(): RunItBuilderInterface
@@ -243,7 +243,7 @@ final class RunItBuilderTest extends TestCase
 
                 public function capability(): EngineCapabilityInterface
                 {
-                    return new EngineCapability(false, false, false);
+                    return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: false);
                 }
             })
             ->build()
@@ -374,7 +374,7 @@ final class RunItBuilderTest extends TestCase
         $thrown = new RuntimeException('secret failure detail');
 
         try {
-            $runtime->run($this->definition(), static function () use ($thrown): void {
+            $runtime->run($this->definition(), static function () use ($thrown): never {
                 throw $thrown;
             });
         } catch (RuntimeException) {
@@ -382,7 +382,7 @@ final class RunItBuilderTest extends TestCase
             // what we are inspecting here
         }
 
-        $redacted = array_filter($spy->published, static fn ($a) => $a instanceof RedactedArtifact);
+        $redacted = array_filter($spy->published, static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact);
         self::assertNotEmpty($redacted, 'without withRedactor() the default redactor must mask throwable messages');
     }
 
@@ -396,7 +396,7 @@ final class RunItBuilderTest extends TestCase
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
             ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->withRedactor(null)
+            ->withRedactor(redactor: null)
             ->build()
         ;
 
@@ -409,11 +409,11 @@ final class RunItBuilderTest extends TestCase
 
         $observations = array_filter(
             $spy->published,
-            static fn ($a) => $a instanceof ObservationInterface,
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface,
         );
         self::assertNotEmpty($observations, 'an explicit withRedactor(null) opt-out publishes raw observations');
         self::assertEmpty(
-            array_filter($spy->published, static fn ($a) => $a instanceof RedactedArtifact),
+            array_filter($spy->published, static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact),
             'no artifact may be wrapped by the redactor once opted out',
         );
     }
@@ -442,10 +442,10 @@ final class RunItBuilderTest extends TestCase
             });
 
             self::fail('configured maxActivityDepth must be enforced by the built runtime');
-        } catch (ActivityDepthExceededException $exception) {
+        } catch (ActivityDepthExceededException $activityDepthExceededException) {
             self::assertStringContainsString(
                 '2',
-                $exception->getMessage(),
+                $activityDepthExceededException->getMessage(),
                 'depth 2 must exceed the configured limit of 1'
             );
         }
@@ -582,9 +582,9 @@ final class TaggingRedactor implements RedactorInterface
     }
 }
 
-final class RedactedTagArtifact implements ExecutionArtifactInterface
+final readonly class RedactedTagArtifact implements ExecutionArtifactInterface
 {
-    public function __construct(private readonly ExecutionArtifactInterface $inner)
+    public function __construct(private ExecutionArtifactInterface $inner)
     {
     }
 

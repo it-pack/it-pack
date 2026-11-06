@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterfac
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use Throwable;
 
 /**
  * Failure policy that reports the failed artifact to a fallback publisher.
@@ -27,12 +28,12 @@ final readonly class ReportToFallbackPolicy implements PublicationFailurePolicyI
     ) {
     }
 
-    public function handle(\Throwable $error, ExecutionArtifactInterface $artifact): void
+    public function handle(Throwable $error, ExecutionArtifactInterface $artifact): void
     {
         try {
             $this->fallback->publish($artifact);
-        } catch (\Throwable $fallbackError) {
-            $this->health?->report($fallbackError, $artifact);
+        } catch (Throwable $throwable) {
+            $this->health?->report($throwable, $artifact);
         }
     }
 }

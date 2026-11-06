@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+
 /**
  * RunIt — measurements.
  *
@@ -32,11 +34,12 @@ $runtime = RunItBuilder::create()
     ->withSequenceAllocator(new InMemorySequenceAllocator())
     ->withSnapshotSerializer(new JsonSnapshotSerializer())
     ->withIdentifierGenerator(new RandomIdentifierGenerator())
-    ->build();
+    ->build()
+;
 
 $runtime->run(
     ExecutionDefinition::create(ExecutionName::fromString('checkout.process'), ExecutionKind::fromString('operation')),
-    static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope): void {
+    static function (ExecutionScopeInterface $scope): void {
         $scope->measurements()->counter(MeasurementName::fromString('items'), 3, MeasurementUnit::Count);
         $scope->measurements()->duration(MeasurementName::fromString('elapsed'), 12.5, MeasurementUnit::Milliseconds);
         $scope->measurements()->gauge(MeasurementName::fromString('memory_mb'), 64.0, MeasurementUnit::Megabytes);

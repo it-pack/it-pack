@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\CloudEvents;
 
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface;
 use ItPack\RunIt\Adapter\CloudEvents\Mapping\CloudEventMappingPolicy;
@@ -52,8 +53,8 @@ final class CloudEventsBridgeConfigBuilder
 
     public function build(): CloudEventsBridgeConfig
     {
-        if ($this->sink === null) {
-            throw new \InvalidArgumentException('A CloudEvent sink is required to build the bridge config.');
+        if (!$this->sink instanceof CloudEventSinkInterface) {
+            throw new InvalidArgumentException('A CloudEvent sink is required to build the bridge config.');
         }
 
         return new CloudEventsBridgeConfig($this->sink, $this->policy, $this->mapper);

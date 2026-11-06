@@ -38,7 +38,7 @@ final readonly class OccurrenceType implements OccurrenceTypeInterface
 
     public static function fromString(string $value): static
     {
-        $instance = new static($value);
+        $instance = new self($value);
 
         if (preg_match(self::FORMAT, $value) !== 1) {
             throw InvalidStringValueException::malformedOccurrenceType();

@@ -30,8 +30,7 @@ final class MeasurementTest extends Unit
             MeasurementName::fromString('files.loaded'),
             ExecutionId::fromString('exec-1'),
             42,
-            null,
-            Instant::of(1000),
+            instant: Instant::of(1000),
         );
 
         self::assertSame(MeasurementKind::Counter, $measurement->kind());
@@ -45,8 +44,7 @@ final class MeasurementTest extends Unit
             MeasurementName::fromString('cpu.usage'),
             ExecutionId::fromString('exec-1'),
             12.5,
-            null,
-            Instant::of(1000),
+            instant: Instant::of(1000),
         );
 
         self::assertSame(12.5, $measurement->value());
@@ -73,9 +71,9 @@ final class MeasurementTest extends Unit
                 NAN,
             );
             self::fail('non-finite measurement values must be rejected');
-        } catch (InvalidMeasurementValueException $exception) {
-            self::assertInstanceOf(RunItExceptionInterface::class, $exception);
-            self::assertInstanceOf(InvalidValueExceptionInterface::class, $exception);
+        } catch (InvalidMeasurementValueException $invalidMeasurementValueException) {
+            self::assertInstanceOf(RunItExceptionInterface::class, $invalidMeasurementValueException);
+            self::assertInstanceOf(InvalidValueExceptionInterface::class, $invalidMeasurementValueException);
         }
     }
 
@@ -137,10 +135,8 @@ final class MeasurementTest extends Unit
             MeasurementName::fromString('memory.peak'),
             ExecutionId::fromString('exec-1'),
             1024,
-            null,
-            Instant::of(1000),
-            null,
-            AttributeCollection::empty()->with('region', 'eu'),
+            instant: Instant::of(1000),
+            attributes: AttributeCollection::empty()->with('region', 'eu'),
         );
 
         self::assertSame(['region' => 'eu'], $measurement->attributes());
@@ -152,8 +148,7 @@ final class MeasurementTest extends Unit
             MeasurementName::fromString('success.rate'),
             ExecutionId::fromString('exec-1'),
             0.99,
-            null,
-            Instant::of(1000),
+            instant: Instant::of(1000),
         );
 
         $expected = [

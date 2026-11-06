@@ -46,7 +46,7 @@ final class DefaultMeasurementRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->measurements()->counter('hits', 3);
 
                 return null;
@@ -64,13 +64,13 @@ final class DefaultMeasurementRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->activities()->run(
                     ActivityDefinition::create(
                         ActivityName::fromString('load'),
                         ActivityKind::fromString('io')
                     ),
-                    function ($activityScope) {
+                    function ($activityScope): null {
                         $activityScope->measurements()->gauge('latency', 12.5);
 
                         return null;

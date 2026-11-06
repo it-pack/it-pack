@@ -26,12 +26,16 @@ Install dependencies with Composer, then run the checks relevant to a change:
 composer test
 composer analyse
 composer architecture
+composer refactor:dry
 composer cs:check
 ```
 
-`composer cs:check` reports coding-style violations without modifying files;
-`composer cs:fix` applies the project's PHP-CS-Fixer ruleset automatically. Run
-`composer cs:fix` before committing to keep the tree clean. Conformance changes
+`composer refactor:dry` previews Rector changes; `composer refactor` applies them.
+Run Rector before PHP-CS-Fixer because it can change formatting. Then use
+`composer cs:check` to report coding-style violations without modifying files, or
+`composer cs:fix` to apply the project's ruleset. Review automated changes rather
+than assuming they preserve behavior or compatibility: the current `rector.php`
+targets PHP 8.5 while the package supports PHP 8.4. Conformance changes
 should also pass `composer test:conformance`; API-surface changes should pass
 `composer api:check`.
 

@@ -30,8 +30,7 @@ final class ObservationTest extends Unit
             ObservationId::fromString('obs-1'),
             ExecutionId::fromString('exec-1'),
             'boom happened',
-            null,
-            'E_CFG',
+            diagnosticCode: 'E_CFG',
         );
 
         self::assertSame(ObservationSeverity::Error, $observation->severity());
@@ -46,10 +45,7 @@ final class ObservationTest extends Unit
             ObservationId::fromString('obs-2'),
             ExecutionId::fromString('exec-1'),
             'failure',
-            null,
-            null,
-            null,
-            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            throwableDescription: ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
         );
 
         $normalized = $observation->normalize();
@@ -77,9 +73,7 @@ final class ObservationTest extends Unit
             ObservationId::fromString('obs-4'),
             ExecutionId::fromString('exec-1'),
             'slow',
-            null,
-            null,
-            AttributeCollection::empty()->with('latency_ms', 1500),
+            attributes: AttributeCollection::empty()->with('latency_ms', 1500),
         );
 
         self::assertSame(['latency_ms' => 1500], $observation->attributes());
@@ -91,11 +85,7 @@ final class ObservationTest extends Unit
             ObservationId::fromString('obs-5'),
             ExecutionId::fromString('exec-1'),
             'cached',
-            null,
-            null,
-            null,
-            null,
-            Instant::of(1000),
+            instant: Instant::of(1000),
         );
 
         $expected = [

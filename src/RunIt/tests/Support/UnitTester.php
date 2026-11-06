@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Support;
 
 use Codeception\Actor;
+use Tests\Support\_generated\UnitTesterActions;
 
 /**
  * Inherited Methods
@@ -23,7 +24,7 @@ use Codeception\Actor;
 */
 final class UnitTester extends Actor
 {
-    use _generated\UnitTesterActions;
+    use UnitTesterActions;
 
     /**
      * Define custom actions here

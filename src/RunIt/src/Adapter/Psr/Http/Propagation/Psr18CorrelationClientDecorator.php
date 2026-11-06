@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Adapter\Psr\Http\Propagation;
 use ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\ContextEntryInterface;
 use ItPack\RunIt\Contract\Shared\CorrelationKeys;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;
@@ -39,7 +40,7 @@ final readonly class Psr18CorrelationClientDecorator implements ClientInterface
     {
         $scope = $this->current->get();
 
-        if ($scope === null) {
+        if (!$scope instanceof ExecutionScopeInterface) {
             return $this->inner->sendRequest($request);
         }
 
@@ -57,7 +58,7 @@ final readonly class Psr18CorrelationClientDecorator implements ClientInterface
     {
         $entry = $scope->context()->find(CorrelationKeys::CONTEXT_CORRELATION_KEY);
 
-        if ($entry === null) {
+        if (!$entry instanceof ContextEntryInterface) {
             return null;
         }
 

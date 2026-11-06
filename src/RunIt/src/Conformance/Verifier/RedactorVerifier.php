@@ -36,15 +36,17 @@ final class RedactorVerifier implements VerifierInterface
         $safeBefore = $safe->normalize();
         try {
             $redactedSafe = $redactor->redact($safe);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('redact.safe.throws', sprintf(
                 'redact() threw for a safe artifact: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
+
         if ($redactedSafe->normalize() !== $safeBefore) {
             $result = $result->add(new ConformanceViolation('redact.safe.alters', 'redact() changed a safe artifact'));
         }
+
         if ($safe->normalize() !== $safeBefore) {
             $result = $result->add(new ConformanceViolation(
                 'redact.safe.mutates',
@@ -56,18 +58,20 @@ final class RedactorVerifier implements VerifierInterface
         $secretBefore = $secret->normalize();
         try {
             $redactedSecret = $redactor->redact($secret);
-        } catch (Throwable $e) {
+        } catch (Throwable $throwable) {
             return $result->add(new ConformanceViolation('redact.secret.throws', sprintf(
                 'redact() threw for a sensitive artifact: %s',
-                $e->getMessage()
+                $throwable->getMessage()
             )));
         }
+
         if ($secret->normalize() !== $secretBefore) {
             $result = $result->add(new ConformanceViolation(
                 'redact.secret.mutates',
                 'redact() mutated the source sensitive artifact'
             ));
         }
+
         if ($this->contains($redactedSecret->normalize(), $fixture->sensitiveAttributeValue())) {
             $result = $result->add(new ConformanceViolation(
                 'redact.secret.leaks',

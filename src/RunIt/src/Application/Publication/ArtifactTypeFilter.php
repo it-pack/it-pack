@@ -24,12 +24,6 @@ final readonly class ArtifactTypeFilter implements ArtifactFilterInterface
 
     public function accepts(ExecutionArtifactInterface $artifact): bool
     {
-        foreach ($this->types as $type) {
-            if ($artifact instanceof $type) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($this->types, fn (string $type): bool => $artifact instanceof $type);
     }
 }

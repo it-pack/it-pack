@@ -10,6 +10,8 @@ use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use JsonException;
+use JsonSerializable;
+use WeakMap;
 
 /**
  * Default JSON serializer used by core snapshot recorders.
@@ -50,11 +52,11 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION,
                 $maxDepth
             );
-        } catch (JsonException $e) {
+        } catch (JsonException $jsonException) {
             throw new SerializationException(
-                'Unable to serialize snapshot payload: ' . $e->getMessage(),
+                'Unable to serialize snapshot payload: ' . $jsonException->getMessage(),
                 0,
-                $e
+                $jsonException
             );
         }
 
@@ -71,12 +73,12 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         }
 
         try {
-            return json_decode($encoded, true, $maxDepth, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
-        } catch (JsonException $e) {
+            return json_decode($encoded, associative: true, depth: $maxDepth, flags: JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+        } catch (JsonException $jsonException) {
             throw new SerializationException(
-                'Unable to serialize snapshot payload: ' . $e->getMessage(),
+                'Unable to serialize snapshot payload: ' . $jsonException->getMessage(),
                 0,
-                $e
+                $jsonException
             );
         }
     }
@@ -94,13 +96,13 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
      * recursing until the stack overflows. Only {@see \JsonSerializable} objects
      * survive; every other object type is rejected.
      *
-     * @param \WeakMap<object, true>|null $ancestors ancestor set used to detect cyclic object references
+     * @param WeakMap<object, true>|null $ancestors ancestor set used to detect cyclic object references
      *
      * @throws SerializationException when $data contains a resource, closure,
      *                                unsupported object, non-finite float, a cycle,
      *                                or exceeds the depth bound
      */
-    private function assertSafe(mixed $value, int $depth, ?\WeakMap $ancestors = null): void
+    private function assertSafe(mixed $value, int $depth, ?WeakMap $ancestors = null): void
     {
         if (is_resource($value)) {
             throw new SerializationException('Unable to serialize snapshot payload: resource values are not allowed.');
@@ -110,7 +112,7 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
             throw new SerializationException('Unable to serialize snapshot payload: closures are not allowed.');
         }
 
-        if ($value instanceof \JsonSerializable) {
+        if ($value instanceof JsonSerializable) {
             if ($depth > $this->limits->maxSerializationDepth) {
                 throw new SerializationException(
                     sprintf(
@@ -120,7 +122,7 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
                 );
             }
 
-            $ancestors ??= new \WeakMap();
+            $ancestors ??= new WeakMap();
 
             if (isset($ancestors[$value])) {
                 throw new SerializationException(

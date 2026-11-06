@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Tests\Unit\SDK\Attribute;
 
 use ItPack\RunIt\SDK\Attribute\CallableReflectionResolver;
-use Tests\Support\Fixture\SDK\ExtendedSampleService;
-use Tests\Support\Fixture\SDK\SampleInvokable;
-use Tests\Support\Fixture\SDK\SampleService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use ReflectionFunction;
 use ReflectionMethod;
+use Tests\Support\Fixture\SDK\ExtendedSampleService;
+use Tests\Support\Fixture\SDK\SampleInvokable;
+use Tests\Support\Fixture\SDK\SampleService;
 
-#[CoversClass(CallableReflectionResolver::class)]
+#[CoversClass(className: CallableReflectionResolver::class)]
 final class CallableReflectionResolverTest extends TestCase
 {
     private CallableReflectionResolver $resolver;
@@ -53,7 +53,7 @@ final class CallableReflectionResolverTest extends TestCase
         $class = SampleService::class;
         $method = 'statically';
 
-        $reflection = $this->resolver->resolve([new $class, $method]);
+        $reflection = $this->resolver->resolve([new $class(), $method]);
 
         $this->assertInstanceOf(ReflectionMethod::class, $reflection);
         $this->assertSame($class, $reflection->getDeclaringClass()->getName());
@@ -65,7 +65,7 @@ final class CallableReflectionResolverTest extends TestCase
         $class = SampleInvokable::class;
         $method = '__invoke';
 
-        $reflection = $this->resolver->resolve(new $class);
+        $reflection = $this->resolver->resolve(new $class());
 
         $this->assertInstanceOf(ReflectionMethod::class, $reflection);
         $this->assertSame($class, $reflection->getDeclaringClass()->getName());
@@ -106,7 +106,7 @@ final class CallableReflectionResolverTest extends TestCase
 
     public function testLambdaFunction(): void
     {
-        $function = static fn() => true;
+        $function = static fn (): true => true;
 
         $reflection = $this->resolver->resolve($function);
 
@@ -115,7 +115,7 @@ final class CallableReflectionResolverTest extends TestCase
 
     public function testClosure(): void
     {
-        $function = static fn() => true;
+        $function = static fn (): true => true;
 
         $reflection = $this->resolver->resolve($function(...));
 

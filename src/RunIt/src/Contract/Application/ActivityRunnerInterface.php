@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Application;
 
 use ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface;
+use Throwable;
 
 /**
  * Contract for running one activity inside an execution.
@@ -29,7 +30,7 @@ interface ActivityRunnerInterface
      *
      * @return TResult
      *
-     * @throws \Throwable the exact throwable raised by the operation, after the
+     * @throws Throwable the exact throwable raised by the operation, after the
      *                    activity has been completed as failed
      */
     public function run(ActivityDefinitionInterface $definition, callable $operation): mixed;

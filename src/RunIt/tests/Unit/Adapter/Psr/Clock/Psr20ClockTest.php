@@ -13,8 +13,8 @@ final class Psr20ClockTest extends Unit
 {
     private function clockAt(int $epochSeconds): ClockInterface
     {
-        return new class ($epochSeconds) implements ClockInterface {
-            public function __construct(private readonly int $epoch)
+        return new readonly class ($epochSeconds) implements ClockInterface {
+            public function __construct(private int $epoch)
             {
             }
 

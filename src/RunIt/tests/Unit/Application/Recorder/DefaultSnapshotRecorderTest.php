@@ -48,7 +48,7 @@ final class DefaultSnapshotRecorderTest extends Unit
     {
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->snapshots()->record(SnapshotType::fromString('itpack.state.v1'), ['ok' => true]);
 
                 return null;
@@ -61,6 +61,7 @@ final class DefaultSnapshotRecorderTest extends Unit
                 $userSnapshots[] = $snapshot;
             }
         }
+
         self::assertCount(1, $userSnapshots);
         self::assertSame('itpack.state.v1', $userSnapshots[0]->type()->toString());
         self::assertNull($userSnapshots[0]->activityId());
@@ -69,11 +70,11 @@ final class DefaultSnapshotRecorderTest extends Unit
     public function testSnapshotIsPersistedWhenStoreConfigured(): void
     {
         $store = new InMemorySnapshotStore();
-        $kit = new RunItTestKit(publisher: null, snapshotStore: $store);
+        $kit = new RunItTestKit(snapshotStore: $store);
 
         $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
+            function ($scope): null {
                 $scope->snapshots()->record(SnapshotType::fromString('itpack.state.v1'), ['ok' => true]);
 
                 return null;
@@ -96,7 +97,6 @@ final class DefaultSnapshotRecorderTest extends Unit
         };
 
         $kit = new RunItTestKit(
-            publisher: null,
             snapshotStore: $throwingStore,
             onSnapshotStoreFailure: static function (Throwable $error) use (&$captured): void {
                 $captured = $error;
@@ -105,9 +105,7 @@ final class DefaultSnapshotRecorderTest extends Unit
 
         $recorded = $kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
-            function ($scope) {
-                return $scope->snapshots()->record(SnapshotType::fromString('itpack.state.v1'), ['ok' => true]);
-            },
+            fn ($scope) => $scope->snapshots()->record(SnapshotType::fromString('itpack.state.v1'), ['ok' => true]),
         );
 
         self::assertInstanceOf(SnapshotInterface::class, $recorded);

@@ -16,7 +16,10 @@ return RectorConfig::configure()
         __DIR__ . '/examples',
     ])
     ->withSkipPath(
-        __DIR__ . '/tests/_support/_generated',
+        __DIR__ . '/tests/Support/_generated',
+    )
+    ->withSkipPath(
+        __DIR__ . '/tests/Support/Fixture',
     )
     ->withPhpSets(php85: true)
     ->withSets([
@@ -24,7 +27,7 @@ return RectorConfig::configure()
         SetList::CODE_QUALITY,
         SetList::CODING_STYLE,
         SetList::DEAD_CODE,
-        SetList::NAMED_ARGS,
+        //SetList::NAMED_ARGS,
         SetList::PRIVATIZATION,
         SetList::TYPE_DECLARATION,
     ])

@@ -146,9 +146,7 @@ final class BoundedArtifactPublisherTest extends Unit
             1,
             $payload,
             new DeterministicHashCalculator(),
-            null,
-            null,
-            SnapshotClassification::Terminal,
+            classification: SnapshotClassification::Terminal,
         );
     }
 
@@ -161,9 +159,7 @@ final class BoundedArtifactPublisherTest extends Unit
             1,
             ['final' => true],
             new DeterministicHashCalculator(),
-            null,
-            null,
-            SnapshotClassification::Terminal,
+            classification: SnapshotClassification::Terminal,
         );
     }
 

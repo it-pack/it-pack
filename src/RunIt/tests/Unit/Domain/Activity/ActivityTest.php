@@ -32,7 +32,6 @@ final class ActivityTest extends Unit
         return ActivityDefinition::create(
             ActivityName::fromString('http.call'),
             ActivityKind::fromString('client'),
-            null,
         );
     }
 
@@ -87,8 +86,8 @@ final class ActivityTest extends Unit
 
         $done = $running->complete(
             ActivityStatus::Succeeded,
-            null,
-            Instant::of(2000),
+            throwableDescription: null,
+            endedAt: Instant::of(2000),
         );
 
         self::assertSame(ActivityStatus::Succeeded, $done->status());
@@ -106,20 +105,20 @@ final class ActivityTest extends Unit
             Instant::of(1000),
         )->complete(
             ActivityStatus::Succeeded,
-            null,
-            Instant::of(2000),
+            throwableDescription: null,
+            endedAt: Instant::of(2000),
         );
 
         try {
             $done->complete(
                 ActivityStatus::Failed,
-                ThrowableDescription::create('RuntimeException', 'late failure', 0, null, null),
+                ThrowableDescription::create('RuntimeException', 'late failure', 0, previous: null, trace: null),
                 Instant::of(3000),
             );
             self::fail('reopening a completed activity must be rejected by the aggregate itself');
-        } catch (ConflictingActivityCompletionException $exception) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
-            self::assertStringContainsString('"succeeded"', $exception->getMessage());
+        } catch (ConflictingActivityCompletionException $conflictingActivityCompletionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $conflictingActivityCompletionException);
+            self::assertStringContainsString('"succeeded"', $conflictingActivityCompletionException->getMessage());
         }
     }
 
@@ -133,11 +132,11 @@ final class ActivityTest extends Unit
         );
 
         try {
-            $running->complete(ActivityStatus::Running, null, Instant::of(2000));
+            $running->complete(ActivityStatus::Running, throwableDescription: null, endedAt: Instant::of(2000));
             self::fail('completing to a non-terminal status must be rejected');
-        } catch (InvalidActivityTransitionException $exception) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $exception);
-            self::assertStringContainsString('"running" to "running"', $exception->getMessage());
+        } catch (InvalidActivityTransitionException $invalidActivityTransitionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $invalidActivityTransitionException);
+            self::assertStringContainsString('"running" to "running"', $invalidActivityTransitionException->getMessage());
         }
     }
 
@@ -174,7 +173,7 @@ final class ActivityTest extends Unit
 
         $done = $running->complete(
             ActivityStatus::Failed,
-            ThrowableDescription::create('RuntimeException', 'boom', 0, null, null),
+            ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
             Instant::of(2000),
         );
 
@@ -188,8 +187,7 @@ final class ActivityTest extends Unit
             ExecutionId::fromString('exec-1'),
             $this->definition(),
             Instant::of(1000),
-            null,
-            AttributeCollection::empty()->with('http.status', 200),
+            attributes: AttributeCollection::empty()->with('http.status', 200),
         );
 
         self::assertSame(['http.status' => 200], $activity->attributes());

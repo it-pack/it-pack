@@ -11,7 +11,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(ExecutionDefinitionFactory::class)]
+#[CoversClass(className: ExecutionDefinitionFactory::class)]
 final class ExecutionDefinitionFactoryTest extends TestCase
 {
     public function testCreatePreservesNameAndKind(): void

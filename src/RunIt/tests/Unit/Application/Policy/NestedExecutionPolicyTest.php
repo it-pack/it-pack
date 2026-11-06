@@ -35,7 +35,7 @@ final class NestedExecutionPolicyTest extends Unit
     public function testChildExecutionPolicyYieldsRootWhenNoParent(): void
     {
         $policy = new ChildExecutionPolicy();
-        self::assertSame(NestedExecutionMode::ChildExecution, $policy->resolve(null, $this->definition()));
+        self::assertSame(NestedExecutionMode::ChildExecution, $policy->resolve(current: null, definition: $this->definition()));
     }
 
     public function testChildExecutionPolicyYieldsChildWhenParentActive(): void

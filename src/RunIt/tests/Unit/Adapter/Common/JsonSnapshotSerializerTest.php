@@ -41,7 +41,7 @@ final class JsonSnapshotSerializerTest extends Unit
         $this->expectException(SerializationException::class);
         $this->expectExceptionMessageMatches('/closure/i');
 
-        $serializer->normalize(['fn' => static fn () => 1]);
+        $serializer->normalize(['fn' => static fn (): int => 1]);
     }
 
     public function testNonFiniteFloatIsRejected(): void
@@ -159,8 +159,8 @@ final class JsonSnapshotSerializerTest extends Unit
         try {
             $serializer->normalize(['entity' => new stdClass()]);
             self::fail('arbitrary objects must be rejected, never serialized');
-        } catch (SerializationException $exception) {
-            self::assertStringContainsString('unsupported object of type stdClass', $exception->getMessage());
+        } catch (SerializationException $serializationException) {
+            self::assertStringContainsString('unsupported object of type stdClass', $serializationException->getMessage());
         }
     }
 
@@ -181,8 +181,8 @@ final class JsonSnapshotSerializerTest extends Unit
         try {
             $serializer->normalize([[[$leaf]]]);
             self::fail('a JsonSerializable below the depth floor must be rejected');
-        } catch (SerializationException $exception) {
-            self::assertStringContainsString('maximum depth 3 exceeded', $exception->getMessage());
+        } catch (SerializationException $serializationException) {
+            self::assertStringContainsString('maximum depth 3 exceeded', $serializationException->getMessage());
         }
     }
 }

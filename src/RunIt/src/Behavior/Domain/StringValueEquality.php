@@ -22,9 +22,6 @@ final readonly class StringValueEquality
     {
     }
 
-    /**
-     * @param StringableInterface&object $subject
-     */
     public static function equals(StringableInterface $subject, object $other): bool
     {
         if ($other::class !== $subject::class || !$other instanceof StringableInterface) {

@@ -9,6 +9,8 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Trace\Span;
@@ -35,7 +37,7 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
 
     public function map(ObservationInterface $observation): void
     {
-        if ($this->loggerProvider === null) {
+        if (!$this->loggerProvider instanceof LoggerProviderInterface) {
             return;
         }
 
@@ -56,7 +58,7 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
         ];
 
         $activityId = $observation->activityId();
-        if ($activityId !== null) {
+        if ($activityId instanceof StringIdentifierInterface) {
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId->toString();
         }
 
@@ -70,7 +72,7 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
         }
 
         $throwable = $observation->throwableDescription();
-        if ($throwable !== null) {
+        if ($throwable instanceof ThrowableDescriptionInterface) {
             $attributes['exception.type'] = $throwable->class();
             $attributes['exception.message'] = $throwable->message();
             $trace = $throwable->trace();

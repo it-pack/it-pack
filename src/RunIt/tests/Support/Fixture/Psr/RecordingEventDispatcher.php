@@ -28,9 +28,6 @@ final class RecordingEventDispatcher implements EventDispatcherInterface
      */
     private array $listenerCalls = [];
 
-    /**
-     * @param callable $listener
-     */
     public function addListener(callable $listener): void
     {
         $this->listeners[] = $listener;

@@ -57,7 +57,7 @@ final class CompositeContextStorageTest extends Unit
 
     public function testFallsBackToSynchronousStorage(): void
     {
-        [$sync, , , $composite] = $this->build(new FakeDetector(false, false));
+        [$sync, , , $composite] = $this->build(new FakeDetector(coroutine: false, fiber: false));
         $scope = $this->scope();
 
         $token = $composite->attach($scope);
@@ -72,7 +72,7 @@ final class CompositeContextStorageTest extends Unit
 
     public function testSelectsFiberStorage(): void
     {
-        [, $fiber, , $composite] = $this->build(new FakeDetector(false, true));
+        [, $fiber, , $composite] = $this->build(new FakeDetector(coroutine: false, fiber: true));
         $scope = $this->scope();
 
         $token = $composite->attach($scope);
@@ -85,7 +85,7 @@ final class CompositeContextStorageTest extends Unit
 
     public function testSelectsCoroutineStorage(): void
     {
-        [, , $coroutine, $composite] = $this->build(new FakeDetector(true, false));
+        [, , $coroutine, $composite] = $this->build(new FakeDetector(coroutine: true, fiber: false));
         $scope = $this->scope();
 
         $token = $composite->attach($scope);
@@ -98,7 +98,7 @@ final class CompositeContextStorageTest extends Unit
 
     public function testForeignTokenIsRejected(): void
     {
-        [, , , $composite] = $this->build(new FakeDetector(false, false));
+        [, , , $composite] = $this->build(new FakeDetector(coroutine: false, fiber: false));
 
         $this->expectException(InvalidContextTokenException::class);
         $composite->detach(new FakeContextToken());
@@ -138,6 +138,7 @@ final class CompositeContextStorageTest extends Unit
         } catch (InvalidContextTokenException) {
             self::assertSame($scope, $child->current());
         }
+
         $original->detach($token);
         self::assertNull($child->current());
 
@@ -148,6 +149,7 @@ final class CompositeContextStorageTest extends Unit
         } catch (InvalidContextTokenException) {
             self::assertSame($scope, $child->current());
         }
+
         $clone->detach($cloneToken);
         self::assertNull($child->current());
     }
