@@ -40,14 +40,17 @@ final readonly class DefaultRunIt implements RunItInterface
 {
     private ExecutedCallableFactoryInterface $executedCallableFactory;
 
+    private readonly ExecutedAsMetadataReaderInterface $attributeReader;
+
     public function __construct(
         private ExecutionRunnerInterface   $runner,
         private CurrentExecutionInterface  $currentExecution,
-        private ExecutedAsMetadataReaderInterface $attributeReader = new DefaultExecutedAsMetadataReader(),
+        ?ExecutedAsMetadataReaderInterface $attributeReader = null,
         ?ExecutedCallableFactoryInterface $executedCallableFactory = null,
         private MetadataExecutionDefinitionFactoryInterface $metadataExecutionDefinitionFactory
             = new MetadataExecutionDefinitionFactory(),
     ) {
+        $this->attributeReader = $attributeReader ?? new DefaultExecutedAsMetadataReader();
         $this->executedCallableFactory = $executedCallableFactory ?? new ExecutedCallableFactory($runner);
     }
 
@@ -107,15 +110,15 @@ final readonly class DefaultRunIt implements RunItInterface
             }
         }
 
-        return $definition;
+        return null;
     }
 
     private function resolveFactory(
         ExecutionDefinitionInterface|callable|null $definition,
 
     ): ?Closure {
-         return is_callable($definition)
-             ? $definition(...)
-             : null;
+        return is_callable($definition)
+            ? fn (array $args) => $definition()
+            : null;
     }
 }

@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -102,6 +103,26 @@ final class DefaultRunItTest extends TestCase
         $this->expectException(MissingExecutionDefinitionException::class);
 
         $wrapped();
+    }
+
+    public function testWrapWithCallableDefinitionResolvesPerInvocation(): void
+    {
+        $runtime = $this->runtime();
+        $factoryInvoked = false;
+
+        $factory = function () use (&$factoryInvoked): ExecutionDefinitionInterface {
+            $factoryInvoked = true;
+
+            return $this->definition();
+        };
+
+        $wrapped = $runtime->wrap(
+            static fn (): int => 7,
+            $factory,
+        );
+
+        self::assertSame(7, $wrapped());
+        self::assertTrue($factoryInvoked, 'the callable definition factory must be invoked per execution');
     }
 }
 

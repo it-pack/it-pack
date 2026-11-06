@@ -6,6 +6,9 @@ namespace ItPack\RunIt\Contract\Domain;
 
 interface ExecutionDefinitionFactoryInterface
 {
+    /**
+     * @param list<ExecutionIdInterface> $linkedExecutionIds
+     */
     public function create(
         ExecutionNameInterface $name,
         ExecutionKindInterface $kind,

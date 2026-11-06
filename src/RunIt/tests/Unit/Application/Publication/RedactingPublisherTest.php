@@ -101,7 +101,7 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('token=abc123', $originalThrowable['message']);
     }
 
-    public function testCurrentRedactionLeavesNestedThrowableSecretsExposed(): void
+    public function testNestedThrowableSecretsAreRedacted(): void
     {
         $original = Observation::error(
             ObservationId::fromString('obs-nested'),
@@ -115,7 +115,11 @@ final class RedactingPublisherTest extends Unit
 
         $encoded = json_encode($this->publish($original)->normalize(), JSON_THROW_ON_ERROR);
         foreach (SensitiveExceptionChain::secrets() as $secret) {
-            self::assertStringContainsString($secret, $encoded);
+            self::assertStringNotContainsString(
+                $secret,
+                $encoded,
+                'no classified secret may reach the published output',
+            );
         }
     }
 

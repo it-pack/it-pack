@@ -10,7 +10,7 @@ use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 
-class CallableReflectionResolver implements CallableReflectionResolverInterface
+final class CallableReflectionResolver implements CallableReflectionResolverInterface
 {
     /**
      * Also called Paamayim Nekudotayim - @see https://www.php.net/manual/en/language.oop5.paamayim-nekudotayim.php

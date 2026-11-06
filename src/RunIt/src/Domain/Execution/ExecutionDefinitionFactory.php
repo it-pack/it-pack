@@ -11,8 +11,11 @@ use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionNameInterface;
 
-class ExecutionDefinitionFactory implements ExecutionDefinitionFactoryInterface
+final class ExecutionDefinitionFactory implements ExecutionDefinitionFactoryInterface
 {
+    /**
+     * @param list<ExecutionIdInterface> $linkedExecutionIds
+     */
     public function create(
         ExecutionNameInterface $name,
         ExecutionKindInterface $kind,

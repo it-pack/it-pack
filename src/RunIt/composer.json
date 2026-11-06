@@ -1,5 +1,6 @@
 {
     "name": "it-pack/run-it",
+    "version": "1.1.1",
     "description": "The execution model and runtime backbone for the ItPack ecosystem.",
     "type": "library",
     "license": "MIT",

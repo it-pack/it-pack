@@ -34,7 +34,7 @@ final readonly class FallbackErrorLogReporter
 
     private const string MESSAGE_TEMPLATE = '%s handler fault [%s] %s while reporting [%s] %s%s';
 
-    private const string ARTIFACT_TEMPLATE = 'artifact=%s';
+    private const string ARTIFACT_TEMPLATE = ' artifact=%s';
 
     /** @var int @see https://www.php.net/manual/en/function.error-log.php */
     private const int DEFAULT_LOG_TYPE = 0;
