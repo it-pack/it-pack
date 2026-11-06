@@ -1,8 +1,8 @@
 {
     "name": "it-pack/run-it",
     "description": "The execution model and runtime backbone for the ItPack ecosystem.",
-    "type": "library",
     "license": "MIT",
+    "type": "library",
     "keywords": [
         "runtime",
         "execution",
@@ -12,20 +12,6 @@
         "it-pack",
         "itpack"
     ],
-    "autoload": {
-        "psr-4": {
-            "ItPack\\RunIt\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/",
-            "Benchmarks\\": "benchmarks/",
-            "Tools\\ApiCompat\\": "tools/api-compat/",
-            "Tools\\Dogfood\\": "tools/dogfood/src/",
-            "Tools\\PhpStan\\RunitRules\\": "tools/phpstan/runit-rules/src/"
-        }
-    },
     "authors": [
         {
             "name": "tidal",
@@ -36,71 +22,83 @@
         "issues": "https://github.com/it-pack/it-pack/issues",
         "source": "https://github.com/it-pack/it-pack/tree/main/src/RunIt"
     },
-    "minimum-stability": "stable",
-    "prefer-stable": true,
     "require": {
         "php": "^8.4",
         "just-bases/php-obs-base": "^1.0"
     },
     "require-dev": {
-        "just-bases/php-unit-test-base": "^1.0",
-        "just-bases/php-qa-base": "^1.0",
-        "just-bases/php-obs-dev-base": "^0.1.0",
-        "phparkitect/phparkitect": "^1.2",
-        "codeception/module-phpbrowser": "^4.1",
         "codeception/module-asserts": "^3.3",
-        "symfony/http-client": "^8.1",
+        "codeception/module-phpbrowser": "^4.1",
+        "infection/codeception-adapter": "^0.4",
+        "just-bases/php-obs-dev-base": "^0.1.0",
+        "just-bases/php-qa-base": "^1.0",
+        "just-bases/php-unit-test-base": "^1.0",
         "nyholm/psr7": "^1.8",
-        "psr/clock": "^1.0",
-        "psr/log": "^3.0",
-        "psr/event-dispatcher": "^1.0",
-        "psr/http-server-middleware": "^1.0",
-        "psr/http-client": "^1.0",
-        "psr/http-server-handler": "^1.0",
         "open-telemetry/api": "^1.9",
         "open-telemetry/sdk": "^1.0",
-        "infection/codeception-adapter": "^0.4"
+        "phparkitect/phparkitect": "^1.2",
+        "psr/clock": "^1.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/http-client": "^1.0",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0",
+        "psr/log": "^3.0",
+        "symfony/http-client": "^8.1"
     },
     "suggest": {
+        "ext-openswoole": "OpenSwoole coroutine execution adapter",
+        "ext-swoole": "Swoole coroutine execution adapter",
+        "cloudevents/sdk-php": "CloudEvents occurrence mapping",
+        "open-telemetry/api": "OpenTelemetry mapping",
+        "open-telemetry/sdk": "OpenTelemetry SDK/export support",
         "psr/clock": "PSR-20 clock integration",
-        "psr/log": "PSR-3 observation and logger integration",
         "psr/event-dispatcher": "PSR-14 occurrence integration",
         "psr/http-message": "HTTP context propagation",
         "psr/http-server-handler": "PSR-15 execution middleware",
-        "open-telemetry/api": "OpenTelemetry mapping",
-        "open-telemetry/sdk": "OpenTelemetry SDK/export support",
-        "cloudevents/sdk-php": "CloudEvents occurrence mapping",
-        "ext-openswoole": "OpenSwoole coroutine execution adapter",
-        "ext-swoole": "Swoole coroutine execution adapter"
+        "psr/log": "PSR-3 observation and logger integration"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "ItPack\\RunIt\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Benchmarks\\": "benchmarks/",
+            "Tests\\": "tests/",
+            "Tools\\ApiCompat\\": "tools/api-compat/",
+            "Tools\\Dogfood\\": "tools/dogfood/src/",
+            "Tools\\PhpStan\\RunitRules\\": "tools/phpstan/runit-rules/src/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "dantleech/what-changed": true,
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true,
+            "php-http/discovery": true,
+            "phpstan/extension-installer": true,
+            "tbachert/spi": true
+        }
     },
     "scripts": {
-        "test": [
-            "@test:unit",
-            "@test:integration",
-            "@test:conformance",
-            "@test:concurrency"
-        ],
-        "test:unit": "vendor/bin/codecept run Unit",
-        "test:functional": "vendor/bin/codecept run Functional",
-        "test:integration": "vendor/bin/codecept run Integration",
-        "test:conformance": "vendor/bin/codecept run Conformance",
-        "test:concurrency": "vendor/bin/codecept run Concurrency",
-        "examples": "bash scripts/examples.sh",
-        "dogfood": "php tools/dogfood/run-dogfood.php",
+        "analyse": "vendor/bin/phpstan analyse",
+        "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
+        "api:baseline": "php tools/api-compat/api-compat.php baseline",
+        "api:check": "php tools/api-compat/api-compat.php check",
+        "architecture": "vendor/bin/phparkitect check",
+        "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "analyse": "vendor/bin/phpstan analyse",
-        "analyse:bleeding-edge": "vendor/bin/phpstan analyse -c phpstan-bleeding-edge.neon",
-        "architecture": "vendor/bin/phparkitect check",
+        "dogfood": "php tools/dogfood/run-dogfood.php",
+        "examples": "bash scripts/examples.sh",
         "lint:length": "php tools/lint/line-length.php",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction",
         "mutation:p0": "vendor/bin/infection --configuration=infection.s1s6.json5 --only-covering-test-cases --no-interaction",
-        "api:baseline": "php tools/api-compat/api-compat.php baseline",
-        "api:check": "php tools/api-compat/api-compat.php check",
-        "benchmark": "vendor/bin/phpbench run benchmarks --config=phpbench.json",
-        "security:audit": "@composer audit",
         "quality": [
             "@composer validate --strict",
             "@cs:check",
@@ -109,16 +107,21 @@
             "@lint:length",
             "@test",
             "@security:audit"
-        ]
-    },
-    "config": {
-        "allow-plugins": {
-            "infection/extension-installer": true,
-            "dantleech/what-changed": true,
-            "phpstan/extension-installer": true,
-            "php-http/discovery": true,
-            "tbachert/spi": true,
-            "ergebnis/composer-normalize": true
-        }
+        ],
+        "rector": "vendor/bin/rector",
+        "refactor": "@rector process",
+        "refactor:dry": "@rector process --dry-run",
+        "security:audit": "@composer audit",
+        "test": [
+            "@test:unit",
+            "@test:integration",
+            "@test:conformance",
+            "@test:concurrency"
+        ],
+        "test:concurrency": "vendor/bin/codecept run Concurrency",
+        "test:conformance": "vendor/bin/codecept run Conformance",
+        "test:functional": "vendor/bin/codecept run Functional",
+        "test:integration": "vendor/bin/codecept run Integration",
+        "test:unit": "vendor/bin/codecept run Unit"
     }
 }
