@@ -1070,6 +1070,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "id": {
+                "static": false,
+                "return": "int",
+                "params": []
             }
         },
         "cases": []
@@ -3854,6 +3859,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "id": {
+                "static": false,
+                "return": "int",
+                "params": []
             }
         },
         "cases": []
@@ -4647,6 +4657,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "id": {
+                "static": false,
+                "return": "int",
+                "params": []
             }
         },
         "cases": []
@@ -4675,6 +4690,11 @@
                         "optional": false
                     }
                 ]
+            },
+            "id": {
+                "static": false,
+                "return": "int",
+                "params": []
             }
         },
         "cases": []
@@ -12628,7 +12648,13 @@
         "extends": null,
         "implements": [],
         "constants": [],
-        "methods": [],
+        "methods": {
+            "id": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": {

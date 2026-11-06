@@ -19,6 +19,7 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -34,15 +35,28 @@ $runtime = RunItBuilder::create()
     ->build();
 
 $runtime->run(
-    ExecutionDefinition::create(ExecutionName::fromString('checkout.process'), ExecutionKind::fromString('operation')),
-    static function (\ItPack\RunIt\Contract\Application\ExecutionScopeInterface $scope): void {
-        $scope->observations()->record('payment accepted', ObservationSeverity::Info);
-        $scope->observations()->record('deprecated coupon code', ObservationSeverity::Warning);
+    ExecutionDefinition::create(
+        ExecutionName::fromString('checkout.process'),
+        ExecutionKind::fromString('operation')
+    ),
+    static function (ExecutionScopeInterface $scope): void {
+        $scope->observations()->record(
+            'payment accepted',
+            ObservationSeverity::Info
+        );
+        $scope->observations()->record(
+            'deprecated coupon code',
+            ObservationSeverity::Warning
+        );
 
         try {
             throw new RuntimeException('gateway timeout');
         } catch (Throwable $e) {
-            $scope->observations()->record('payment failed', ObservationSeverity::Error, throwable: $e);
+            $scope->observations()->record(
+                'payment failed',
+                ObservationSeverity::Error,
+                throwable: $e
+            );
         }
     },
 );

@@ -12,10 +12,13 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
+use RuntimeException;
+use Tests\Support\Fixture\RunItTestKit;
 
 /**
  * Interleaved fiber context isolation.
@@ -91,5 +94,77 @@ final class InterleavedFiberContextIsolationTest extends Unit
 
         self::assertCount(6, array_unique($ambients), 'interleaved fibers must not share an ambient execution');
         self::assertNull($runtime->currentExecution());
+    }
+
+    public function testNestedFailureRestoresFiberScopeDuringInterleavingAndReuse(): void
+    {
+        $kit = new RunItTestKit(storage: new FiberContextStorage());
+        $definition = ExecutionDefinition::create(
+            ExecutionName::fromString('interleaved.failure'),
+            ExecutionKind::fromString('task'),
+        );
+        $failure = new RuntimeException('nested failure');
+        $ids = [];
+
+        $first = new Fiber(static function () use ($kit, $definition, $failure, &$ids): void {
+            self::assertNull($kit->storage->current());
+            $kit->runner->run($definition, static function (ExecutionScopeInterface $outer) use (
+                $kit,
+                $definition,
+                $failure,
+                &$ids,
+            ): void {
+                $ids[] = $outer->execution()->id()->toString();
+                self::assertSame($outer, $kit->storage->current());
+
+                try {
+                    $kit->runner->run($definition, static function (ExecutionScopeInterface $inner) use (
+                        $kit,
+                        $failure,
+                        &$ids,
+                    ): void {
+                        $ids[] = $inner->execution()->id()->toString();
+                        self::assertSame($inner, $kit->storage->current());
+                        Fiber::suspend();
+                        self::assertSame($inner, $kit->storage->current());
+                        throw $failure;
+                    });
+                    self::fail('The nested operation must throw');
+                } catch (RuntimeException $caught) {
+                    self::assertSame($failure, $caught);
+                }
+
+                self::assertSame($outer, $kit->storage->current());
+            });
+            self::assertNull($kit->storage->current());
+
+            $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use ($kit, &$ids): void {
+                $ids[] = $scope->execution()->id()->toString();
+                self::assertSame($scope, $kit->storage->current());
+            });
+            self::assertNull($kit->storage->current());
+        });
+
+        $second = new Fiber(static function () use ($kit, $definition, &$ids): void {
+            self::assertNull($kit->storage->current());
+            $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use ($kit, &$ids): void {
+                $ids[] = $scope->execution()->id()->toString();
+                self::assertSame($scope, $kit->storage->current());
+                Fiber::suspend();
+                self::assertSame($scope, $kit->storage->current());
+            });
+            self::assertNull($kit->storage->current());
+        });
+
+        $first->start();
+        $second->start();
+        self::assertNull($kit->storage->current());
+        $first->resume();
+        self::assertTrue($first->isTerminated());
+        self::assertNull($kit->storage->current());
+        $second->resume();
+        self::assertTrue($second->isTerminated());
+        self::assertNull($kit->storage->current());
+        self::assertCount(4, array_unique($ids));
     }
 }

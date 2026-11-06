@@ -28,6 +28,13 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- **Breaking:** `ContextTokenInterface` requires `id(): int`. Implementations
+  must provide a stable storage-defined integer for the token's lifetime.
+  The value need not be unique; storage implementations must continue to
+  validate token ownership and detachment order independently. Consumers with
+  custom tokens must implement the method before upgrading. This intentionally
+  updates the `1.0.0-rc.1` API baseline, including the existing `id()` methods
+  on the four first-party token classes.
 - Established the M0 repository, quality-tooling, documentation, and CI
   foundation.
 - Added the M1.1 base contracts under `src/Contract/Domain/`:

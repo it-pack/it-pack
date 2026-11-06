@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Port;
 
 /**
- * Opaque token identifying one attached execution scope.
+ * Storage-issued token for one attached execution scope.
  *
  * A token is returned by {@see ContextStorageInterface::attach()} and accepted by
- * {@see ContextStorageInterface::detach()}. It carries no behavior: equality is
- * the only operation that matters, and the storage uses it to enforce
- * last-in-first-out detachment of the correct scope.
+ * {@see ContextStorageInterface::detach()}. The issuing storage determines
+ * token ownership and enforces last-in-first-out detachment.
  *
  * @api
  *
@@ -19,8 +18,10 @@ namespace ItPack\RunIt\Contract\Port;
 interface ContextTokenInterface
 {
     /**
-     * Stable integer identity of the attached scope, used by storages to
-     * enforce last-in-first-out detachment of the correct scope.
+     * Returns a stable storage-defined integer for this token's lifetime.
+     * Values need not uniquely identify tokens or scopes; they may identify
+     * the owning Fiber or coroutine. Do not use this value alone to authorize
+     * detachment or infer token equality.
      */
     public function id(): int;
 }

@@ -10,9 +10,8 @@ use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 /**
  * Immutable, last-in-first-out token identifying one attached execution scope.
  *
- * A token is issued by {@see StackContextStorage} and carries no behavior; equality with
- * the issuing storage's internal reference is the only operation that matters. This keeps
- * detachment tied to the exact attached scope and prevents restoring the wrong one.
+ * A token is issued by {@see StackContextStorage}. Detachment checks the issuing
+ * storage's exact token reference, rather than relying on its integer id alone.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
