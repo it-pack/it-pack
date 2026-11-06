@@ -325,15 +325,15 @@ composer install
 
 ### Quality checks
 
-The Composer scripts are stable for the release candidate. The intended commands are:
+The package provides these quality commands:
 
 ```bash
-composer validate
+composer validate --strict
+composer refactor:dry
+composer cs:check
 composer test
 composer analyse
 composer architecture
-composer coding-style
-composer api:baseline
 composer api:check
 composer mutation
 composer benchmark
@@ -342,21 +342,29 @@ composer examples
 composer quality
 ```
 
-Expected aggregate behavior:
+Run `composer refactor` to apply Rector changes before running `composer cs:fix`;
+Rector can alter formatting. Review automated changes for behavior and PHP 8.4
+compatibility: the current Rector configuration enables PHP 8.5 sets. Regenerate
+API baselines only with explicit approval; see `AGENTS.md` and `docs/compatibility.md`.
+
+The aggregate check:
 
 ```bash
 composer quality
 ```
 
-should run:
+is check-only and runs, in order:
 
 1. Composer validation.
-2. Coding-standard checks.
-3. PHPStan.
-4. DepTrac.
-5. Unit and integration tests.
-6. Security audit.
-7. Public API compatibility checks where applicable.
+2. Rector dry-run.
+3. Coding-standard checks.
+4. PHPStan.
+5. phparkitect.
+6. Line-length check.
+7. Unit, integration, conformance and concurrency tests.
+8. Security audit.
+
+Coverage, API compatibility checks, mutation tests and benchmarks are separate.
 
 ### Static analysis
 

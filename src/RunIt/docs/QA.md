@@ -37,9 +37,24 @@ misplaced — move it in the same PR that adds it.
    extension implementing the project-specific rules below. No external
    rule packages were added; the rules live in the repository.
 
-`composer quality` additionally runs `composer validate`, `php-cs-fixer`,
-DepTrac, the test suites, and the security audit, so the static-analysis gate
-is one component of a broader quality gate.
+`composer quality` runs strict Composer validation, Rector's dry run,
+PHP-CS-Fixer's check, PHPStan, phparkitect, the line-length check, all four
+configured test suites, and the security audit, in that order. Coverage, API
+compatibility, mutation tests, and benchmarks are separate checks.
+
+## Rector
+
+`rector.php` configures Rector for `src`, `tests`, and `examples`, excluding
+`tests/Support/_generated`. Run `composer refactor:dry` to preview proposed
+changes, or `composer refactor` to apply them; `vendor/bin/rector` is also
+available directly. Run Rector before PHP-CS-Fixer because Rector may alter
+formatting. Review automated changes for behavior, public API, and compatibility
+before accepting them, and preserve unrelated work. The current configuration
+enables PHP 8.5 sets while `composer.json` supports PHP 8.4; verify PHP 8.4
+compatibility rather than assuming all Rector output is safe for the minimum.
+In particular, review fixture methods and callable representations: removing an
+apparently empty method can invalidate a callable, and converting callable arrays
+to closures can remove coverage of array-specific behavior.
 
 ## RunIt-authored rules
 
@@ -300,10 +315,11 @@ failure; the rule only forbids the empty/swallowing form.
 informational job: it surfaces next-version PHPStan findings without gating
 `composer quality`.
 
-## DepTrac layering (M13.3)
+## Historical DepTrac layering (M13.3)
 
-`composer architecture` runs `deptrac --config-file=deptrac.yaml` (DepTrac 4.7).
-The configuration enforces the hexagonal dependency direction from `AGENTS.md`
+The following describes the former DepTrac setup, not the current gate.
+`composer architecture` now runs phparkitect using `phparkitect.php`.
+The former configuration enforced the hexagonal dependency direction from `AGENTS.md`
 with the following layers: `Common`, `Contract`, `Port`, `Domain`, `Application`,
 `SDK`, `Common Adapter`, `External Adapter`, `Test Support`.
 
@@ -367,8 +383,9 @@ risky surface is bounded to the three rules above.
 
 ### Local commands and CI
 
-- Check only: `composer cs:check`
-- Auto-fix: `composer cs:fix`
+- Check only, in order: `composer refactor:dry`, then `composer cs:check`.
+- Apply changes, in order: `composer refactor`, review its diff, then
+  `composer cs:fix` and review the resulting diff.
 
 CI (`.github/workflows/quality.yml`) runs `composer cs:check` inside the
 `quality` matrix (PHP 8.4/8.5 × locked/lowest) and also as a dedicated
