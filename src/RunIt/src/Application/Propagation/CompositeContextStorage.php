@@ -21,16 +21,16 @@ use WeakMap;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class CompositeContextStorage implements ContextStorageInterface
+final class CompositeContextStorage implements ContextStorageInterface
 {
     /** @var WeakMap<CompositeContextToken, true> */
     private WeakMap $issued;
 
     public function __construct(
-        private ContextStorageInterface         $synchronous,
-        private ContextStorageInterface         $fiber,
-        private ContextStorageInterface         $coroutine,
-        private RuntimeContextDetectorInterface $detector,
+        private readonly ContextStorageInterface         $synchronous,
+        private readonly ContextStorageInterface         $fiber,
+        private readonly ContextStorageInterface         $coroutine,
+        private readonly RuntimeContextDetectorInterface $detector,
     ) {
         $this->issued = new WeakMap();
     }
