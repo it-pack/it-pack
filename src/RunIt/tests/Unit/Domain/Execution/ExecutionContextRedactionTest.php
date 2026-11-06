@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Tests\Unit\Domain\Execution;
+namespace Tests\Unit\Domain\Execution;
 
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface as ContextContract;

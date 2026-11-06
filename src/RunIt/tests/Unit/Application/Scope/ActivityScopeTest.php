@@ -81,6 +81,7 @@ final class ActivityScopeTest extends Unit
             },
         );
 
+        /** @var list<MeasurementInterface> $measurements */
         $measurements = array_values(array_filter(
             $this->kit->artifacts(),
             static fn ($artifact): bool => $artifact instanceof MeasurementInterface,

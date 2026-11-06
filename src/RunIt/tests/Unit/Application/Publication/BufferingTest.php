@@ -19,6 +19,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 use Throwable;
 
@@ -77,6 +78,15 @@ final class BufferingTest extends Unit
             shutdownFlushBudget: $budget,
             overflow: $overflow,
         );
+    }
+
+    public function testDeterministicEstimatorUsesExplicitSizesForArbitraryIds(): void
+    {
+        $id = '12345678-1234-1234-1234-123456789012';
+        $estimator = new DeterministicArtifactByteEstimator(100, [$id => 101]);
+
+        self::assertSame(101, $estimator->estimate($this->artifact(id: $id)));
+        self::assertSame(100, $estimator->estimate($this->artifact(id: '99999999-1234-1234-1234-123456789012')));
     }
 
     public function testDropNewestBoundsBuffer(): void
@@ -394,9 +404,9 @@ final class BufferingTest extends Unit
             /** @var list<\Throwable> */
             public array $reported = [];
 
-            public function report(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
             {
-                $this->reported[] = $failure;
+                $this->reported[] = $error;
             }
         };
         $clock = new DeterministicMonotonicClock(1_000, 0);

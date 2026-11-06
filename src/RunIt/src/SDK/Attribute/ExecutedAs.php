@@ -17,11 +17,11 @@ use Attribute;
  * @see https://w3id.org/itpack/runit#Execution
  */
 #[Attribute(Attribute::TARGET_FUNCTION | Attribute::TARGET_METHOD | Attribute::TARGET_CLASS)]
-final class ExecutedAs
+final class ExecutedAs implements ExecutedAsInterface
 {
     public function __construct(
         public readonly string $name,
-        public readonly string $kind = 'operation',
+        public readonly string $kind = self::DEFAULT_KIND,
     ) {
     }
 }

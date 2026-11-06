@@ -157,12 +157,25 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
      */
     private function maskThrowable(array $throwable): array
     {
+        $masked = false;
+
         if (array_key_exists(ArtifactField::MESSAGE, $throwable) && is_string($throwable[ArtifactField::MESSAGE])) {
             $throwable[ArtifactField::MESSAGE] = $this->config->marker;
-
-            return [$throwable, true];
+            $masked = true;
         }
 
-        return [$throwable, false];
+        if (array_key_exists(ArtifactField::TRACE, $throwable) && is_string($throwable[ArtifactField::TRACE])) {
+            $throwable[ArtifactField::TRACE] = $this->config->marker;
+            $masked = true;
+        }
+
+        if (array_key_exists(ArtifactField::PREVIOUS, $throwable) && is_array($throwable[ArtifactField::PREVIOUS])) {
+            [$throwable[ArtifactField::PREVIOUS], $innerMasked] = $this->maskThrowable($throwable[ArtifactField::PREVIOUS]);
+            if ($innerMasked) {
+                $masked = true;
+            }
+        }
+
+        return [$throwable, $masked];
     }
 }

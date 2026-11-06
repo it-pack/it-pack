@@ -9,6 +9,7 @@ use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\SDK\Exception\MissingExecutionDefinitionException;
+use Throwable;
 
 /**
  * Callable decorator that wraps every invocation in a RunIt execution.
@@ -21,31 +22,39 @@ use ItPack\RunIt\SDK\Exception\MissingExecutionDefinitionException;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class ExecutedCallable implements ExecutedCallableInterface
+final readonly class ExecutedCallable implements ExecutedCallableInterface
 {
-    private readonly Closure $operation;
+    private Closure $operation;
 
-    private readonly ?Closure $definitionFactory;
+    private ?Closure $definitionFactory;
 
     public function __construct(
-        private readonly ExecutionRunnerInterface $runner,
-        callable $operation,
-        private readonly ?ExecutionDefinitionInterface $definition,
-        ?Closure $definitionFactory = null,
+        private ExecutionRunnerInterface      $runner,
+        callable                              $operation,
+        private ?ExecutionDefinitionInterface $definition,
+        ?Closure                              $definitionFactory = null,
     ) {
-        $this->operation = Closure::fromCallable($operation);
+        $this->operation = $operation(...);
         $this->definitionFactory = $definitionFactory;
     }
 
+    /**
+     * @throws Throwable
+     */
     public function __invoke(mixed ...$args): mixed
     {
-        $definition = $this->definitionFactory !== null ? ($this->definitionFactory)($args) : $this->definition;
+        $definition = $this->definitionFactory !== null
+            ? ($this->definitionFactory)($args) :
+            $this->definition;
 
         if ($definition === null) {
-            throw new MissingExecutionDefinitionException();
+            throw new MissingExecutionDefinitionException(
+                'No executed callable definition is defined for this operation.'
+            );
         }
 
         return $this->runner->run($definition, function (ExecutionScopeInterface $scope) use ($args): mixed {
+            /** @todo This is probably noop */
             unset($scope);
 
             return ($this->operation)(...$args);

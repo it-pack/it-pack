@@ -24,10 +24,15 @@ use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionContextInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ObservationIdInterface;
+use ItPack\RunIt\Contract\Domain\OccurrenceIdInterface;
 use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
@@ -42,6 +47,8 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 
 /**
  * Assembles a fully wired DefaultExecutionRunner for application-level tests.
@@ -72,19 +79,19 @@ final class RunItTestKit
 
     private ThrowableMapperInterface $throwableMapper;
 
-    /** @var StringIdentifierFactoryInterface<ExecutionIdInterfacee> */
+    /** @var StringIdentifierFactoryInterface<ExecutionIdInterface> */
     private StringIdentifierFactoryInterface $executionIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<ActivityIdInterfacee> */
+    /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
     private StringIdentifierFactoryInterface $activityIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<ObservationIdInterfacee> */
+    /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
     private StringIdentifierFactoryInterface $observationIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<OccurrenceIdInterfacee> */
+    /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
     private StringIdentifierFactoryInterface $occurrenceIdFactory;
 
-    /** @var StringIdentifierFactoryInterface<SnapshotIdInterfacee> */
+    /** @var StringIdentifierFactoryInterface<SnapshotIdInterface> */
     private StringIdentifierFactoryInterface $snapshotIdFactory;
 
     /** @var array<string, SequenceIdentifierGenerator> */
@@ -192,7 +199,8 @@ final class RunItTestKit
     }
 
     /**
-     * @return list<ExecutionArtifactInterfacee>
+     * @return list<ExecutionArtifactInterface>
+    >
      */
     public function artifacts(): array
     {
@@ -204,7 +212,7 @@ final class RunItTestKit
     }
 
     /**
-     * @return list<SnapshotInterfacee>
+     * @return list<SnapshotInterface>
      */
     public function storedSnapshots(): array
     {
