@@ -73,5 +73,24 @@
             "@security:audit"
         ],
         "architecture": "vendor/bin/phparkitect check"
-    }
+    },
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../CommitIt",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../RunIt",
+            "options": {
+                "symlink": true,
+                "versions": {
+                    "1.1.1": "1.1.1"
+                }
+            }
+        }
+    ]
 }

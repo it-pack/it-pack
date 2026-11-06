@@ -9,6 +9,8 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
+use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -122,7 +124,46 @@ final class DefaultRunItTest extends TestCase
         );
 
         self::assertSame(7, $wrapped());
-        self::assertTrue($factoryInvoked, 'the callable definition factory must be invoked per execution');
+        self::assertTrue($factoryInvoked, 'the callable definition factory must be invoked per invocation');
+    }
+
+    public function testWrapPassesInvocationArgsToCallableDefinitionFactory(): void
+    {
+        $receivedArgs = [];
+
+        $runner = $this->createMock(ExecutionRunnerInterface::class);
+        $runner->method('run')->willReturn('runner-result');
+
+        $factory = function (array $args) use (&$receivedArgs): ExecutionDefinitionInterface {
+            $receivedArgs = $args;
+
+            return ExecutionDefinition::create(
+                ExecutionName::fromString('arg.op'),
+                ExecutionKind::fromString('operation')
+            );
+        };
+
+        $runtime = new DefaultRunIt(
+            $runner,
+            new class () implements CurrentExecutionInterface {
+                public function get(): ?ExecutionScopeInterface
+                {
+                    return null;
+                }
+                public function require(): ExecutionScopeInterface
+                {
+                    throw new \RuntimeException('no active execution');
+                }
+            },
+        );
+
+        $wrapped = $runtime->wrap(
+            static fn (string $name): string => 'result-'.$name,
+            $factory,
+        );
+
+        self::assertSame('runner-result', $wrapped('hello'));
+        self::assertSame(['hello'], $receivedArgs, 'the invocation argument array is passed to the factory');
     }
 }
 

@@ -1,5 +1,6 @@
 {
     "name": "it-pack/commit-it",
+    "version": "1.1.1",
     "description": "A multipurpose VCS API and SDK for different VCS systems (starting with git)",
     "type": "library",
     "license": "MIT",

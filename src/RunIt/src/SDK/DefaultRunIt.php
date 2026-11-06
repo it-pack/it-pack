@@ -118,7 +118,7 @@ final readonly class DefaultRunIt implements RunItInterface
 
     ): ?Closure {
         return is_callable($definition)
-            ? fn (array $args) => $definition()
+            ? fn (array $args) => $definition($args)
             : null;
     }
 }
