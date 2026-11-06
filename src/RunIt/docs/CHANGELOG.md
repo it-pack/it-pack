@@ -28,6 +28,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Cloned composite context storages maintain separate token ownership; clones
+  still share their configured child storages and detector.
 - Composite context storage rejects foreign, forged, and previously detached
   wrapper tokens by identity while preserving retry after an out-of-order detach.
   Callers must detach using the exact token issued by the same composite instance.

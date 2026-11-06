@@ -124,6 +124,34 @@ final class CompositeContextStorageTest extends Unit
         self::assertNull($child->current());
     }
 
+    public function testCloneHasIndependentTokenOwnership(): void
+    {
+        $child = new StrictStackStorage();
+        $original = new CompositeContextStorage($child, $child, $child, new FakeDetector());
+        $scope = $this->scope();
+        $token = $original->attach($scope);
+        $clone = clone $original;
+
+        try {
+            $clone->detach($token);
+            self::fail('A clone must reject a token issued by the original.');
+        } catch (InvalidContextTokenException) {
+            self::assertSame($scope, $child->current());
+        }
+        $original->detach($token);
+        self::assertNull($child->current());
+
+        $cloneToken = $clone->attach($scope);
+        try {
+            $original->detach($cloneToken);
+            self::fail('The original must reject a token issued by its clone.');
+        } catch (InvalidContextTokenException) {
+            self::assertSame($scope, $child->current());
+        }
+        $clone->detach($cloneToken);
+        self::assertNull($child->current());
+    }
+
     public function testForgedWrapperIsRejectedWithoutDetachingInnerToken(): void
     {
         $child = new StrictStackStorage();

@@ -35,6 +35,12 @@ final readonly class CompositeContextStorage implements ContextStorageInterface
         $this->issued = new WeakMap();
     }
 
+    /** Keep token ownership local while sharing the configured storages. */
+    public function __clone(): void
+    {
+        $this->issued = new WeakMap();
+    }
+
     public function current(): ?ExecutionScopeInterface
     {
         return $this->active()->current();
