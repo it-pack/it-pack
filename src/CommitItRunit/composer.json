@@ -86,10 +86,7 @@
             "type": "path",
             "url": "../RunIt",
             "options": {
-                "symlink": true,
-                "versions": {
-                    "1.1.1": "1.1.1"
-                }
+                "symlink": true
             }
         }
     ]
