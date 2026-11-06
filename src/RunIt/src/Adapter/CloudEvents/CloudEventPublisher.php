@@ -105,8 +105,9 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
             $subject,
             $time !== null ? gmdate('Y-m-d\TH:i:s\Z', $time) : null,
             MediaTypes::APPLICATION_JSON,
-            extensions: $extensions,
-            specVersion: $this->policy->specVersion,
+            null,
+            $extensions,
+            $this->policy->specVersion,
         );
     }
 
