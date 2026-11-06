@@ -22,7 +22,11 @@ use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Execution\ExecutionSuccess;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+
+#[CoversClass(Execution::class)]
+#[CoversClass(ExecutionStatus::class)]
 final class ExecutionTest extends Unit
 {
     public function testTerminalStatusesAreReported(): void
