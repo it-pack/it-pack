@@ -302,11 +302,11 @@ final class RunItBuilder implements RunItBuilderInterface
 
         $currentExecution = new CurrentExecution($contextStorage);
 
-        // Deny-by-default redaction (Phase 1, T1.1): unless the consumer explicitly
-        // configured a redactor — including an explicit `withRedactor(null)` opt-out —
-        // the default redactor masks throwable messages before any sampling decision
-        // or export. Occurrence-data and snapshot-payload masking activate through
-        // the same component once sensitive keys are configured via a custom redactor.
+        // Unless the consumer explicitly configured a redactor, including an
+        // explicit `withRedactor(null)` opt-out,
+        // the default redactor is installed. Its current coverage is limited, and the
+        // default publisher stack calls the sampler before redaction. Occurrence-data
+        // and snapshot-payload masking require configured sensitive keys.
         $redactor = $this->redactor ?? ($this->redactorConfigured ? null : new DefaultArtifactRedactor());
 
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();

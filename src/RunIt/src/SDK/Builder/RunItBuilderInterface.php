@@ -65,9 +65,10 @@ interface RunItBuilderInterface
     public function withThrowableMapper(ThrowableMapperInterface $mapper): RunItBuilderInterface;
 
     /**
-     * Overrides the default redactor. Redaction is deny-by-default: when this
-     * method is never called, the built runtime masks throwable messages
-     * through the default redactor before sampling or export. Call
+     * Overrides the default redactor. When this method is never called, the
+     * built runtime installs the default redactor.
+     * Its current throwable masking does not cover every artifact shape, and a
+     * configured sampler receives the artifact before redaction. Call
      * `withRedactor($custom)` to supply a custom strategy — including one
      * configured with `sensitiveDataKeys` for occurrence/snapshot payload
      * masking — or `withRedactor(null)` to explicitly publish unredacted (the

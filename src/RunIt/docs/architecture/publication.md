@@ -11,9 +11,15 @@ The pipeline is built from decorators that all implement `ArtifactPublisherInter
 wrap an inner publisher. Because every stage shares the same contract, stages compose in
 any order and are independently testable.
 
-## Canonical ordering
+## Ordering
 
-A publish call flows through the stages outside-in:
+The following is the intended ordering, not a guarantee of the SDK builder's
+current stack. `PublisherStackFactory::compose()` currently places sampling
+outside redaction, so a configured sampling policy receives the original
+artifact before the redactor runs. The configurable order and redaction-first
+default are pending Phase 2 of `docs/REFACTORING_PLAN.md`.
+
+The intended call flow through the stages is outside-in:
 
 ```
 guard → fail-safe → filter → redact → sample → buffer → sink
@@ -37,7 +43,7 @@ flowchart TD;
 | Guard        | `PublicationGuard`, `GuardedArtifactPublisher`      | Prevents recursive publication on one execution path.               |
 | Fail-safe    | `FailSafeArtifactPublisher` + `PublicationFailurePolicyInterface` | Applies the failure policy when the inner publisher throws.  |
 | Filter       | `FilteringArtifactPublisher` + `ArtifactFilterInterface` | Drops uninteresting artifacts before any expensive mapping.    |
-| Redact       | `RedactingArtifactPublisher` + `RedactorInterface`   | Masks sensitive values before external publication.                |
+| Redact       | `RedactingArtifactPublisher` + `RedactorInterface`   | Applies the configured redactor before the sink.                   |
 | Sample       | `SamplingArtifactPublisher` + `SamplingPolicyInterface` | Drops artifacts the sampling policy rejects.                    |
 | Buffer       | `BufferedArtifactPublisher` + `BufferConfiguration`  | Bounds memory and flushes in batches.                             |
 | Sink         | any `ArtifactPublisherInterface` adapter            | The real transport (in-memory, log, OpenTelemetry, ...).          |
@@ -47,12 +53,14 @@ buffering, or the adapter, so volume costs are paid as late as possible.
 
 ## Redaction happens before external publication
 
-`RedactingArtifactPublisher` calls `RedactorInterface::redact()` and forwards only the
-redacted projection. The original immutable artifact is never mutated: when nothing
-matches, the redactor returns the same instance; when something is masked it returns a
-`RedactedArtifact` carrying the redacted `normalize()` output. `DefaultArtifactRedactor`
-masks configured attribute keys (the classified context surface), throwable messages,
-occurrence `data`, and snapshot `payloads` recursively.
+`RedactingArtifactPublisher` forwards the result of `RedactorInterface::redact()`.
+The default redactor returns the original instance when nothing matches and a generic
+`RedactedArtifact` projection otherwise; it does not mutate the original. Its current
+throwable masking only inspects a top-level `throwable`, not the `result.throwable`
+of a failed execution. Occurrence data and snapshot payload masking only covers
+configured key names, and the default lists are empty. Generic projections can also
+miss typed adapter dispatch. These limitations are tracked in Phase 2; do not treat
+this pipeline as a complete security boundary for arbitrary artifact contents.
 
 ## Failure policies
 

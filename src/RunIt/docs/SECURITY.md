@@ -38,14 +38,32 @@ data-exfiltration paths and applies defense-in-depth:
   `internal`, `confidential`, `restricted`, `secret`). Classification decides
   default export, propagation, and serialization behavior. See
   [`docs/concepts/context.md`](docs/concepts/context.md).
-- **Redact before publication.** Secret values are never exported and never
-  serialized; restricted values are masked; internal and confidential values are
-  dropped on export. Redaction is deny-by-default (ADR-012).
+- **Classified context.** Context export applies classification rules, but this
+  does not classify arbitrary messages, throwable descriptions, or payloads.
+  Do not put secrets into those fields without independent protection.
 - **Bound everything.** Keys, values, attribute maps, occurrences, and snapshots
   are size- and cardinality-bounded through `SecurityLimits`.
-- **Never serialize arbitrary objects.** Normalization produces only recursively
-  primitive arrays; throwables are normalized to safe `ThrowableDescription`
-  projections, never raw stack traces.
+- **Avoid arbitrary objects.** Built-in payload validation rejects arbitrary
+  objects. Throwable descriptions can contain sensitive messages and, when
+  enabled at capture, traces; their primitive representation is not itself a
+  redaction guarantee.
+
+### Current publication limitations
+
+The SDK builder installs `DefaultArtifactRedactor` unless explicitly overridden,
+but it does not currently protect every sensitive path. The default redactor
+examines a top-level `throwable`; failed executions normalize their throwable under
+`result.throwable`, which is not masked by that check. Configured payload-key
+masking is deny-list based and the default key lists are empty. The default stack
+also invokes a configured sampler before the redactor, so samplers can see the
+original artifact. A changed artifact is represented by a generic projection,
+which not all typed adapter paths accept. Directly configured publishers and
+`withRedactor(null)` can bypass redaction altogether.
+
+Until the Phase 2 work in `docs/REFACTORING_PLAN.md` is complete, do not rely on
+the built-in publisher stack to remove secrets from all artifact fields or from
+sampler inputs. Apply and verify an appropriate independent sanitization policy
+before data reaches a sampler or external sink.
 
 ## Threat model and supply chain
 

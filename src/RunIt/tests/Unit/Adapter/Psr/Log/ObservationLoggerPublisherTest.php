@@ -6,9 +6,12 @@ namespace Tests\Unit\Adapter\Psr\Log;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Psr\Log\ObservationLoggerPublisher;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -93,5 +96,94 @@ final class ObservationLoggerPublisherTest extends Unit
         $context = $entry['context'];
         self::assertSame('***', $context['password']);
         self::assertSame('exec-9', $context['execution_id']);
+    }
+
+    public function testConfiguredRedactorMasksValuesAndPreservesMetadata(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']),
+        ));
+        $observation = Observation::error(
+            ObservationId::fromString('o-mask'),
+            ExecutionId::fromString('exec-mask'),
+            'request failed',
+            activityId: ActivityId::fromString('activity-mask'),
+            diagnosticCode: 'NETWORK',
+            attributes: AttributeCollection::fromArray(['password' => 'private-value', 'attempt' => 3]),
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'private message',
+                42,
+                previous: ThrowableDescription::create(
+                    'Exception',
+                    'private cause',
+                    7,
+                    previous: null,
+                    trace: 'private cause trace',
+                ),
+                trace: 'private trace',
+            ),
+        );
+
+        $publisher->publish($observation);
+
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('error', $entry['level']);
+        self::assertSame('request failed', $entry['message']);
+        self::assertSame('[redacted]', $entry['context']['password']);
+        self::assertSame(3, $entry['context']['attempt']);
+        self::assertSame('exec-mask', $entry['context']['execution_id']);
+        self::assertSame('activity-mask', $entry['context']['activity_id']);
+        self::assertSame('o-mask', $entry['context']['observation_id']);
+        self::assertSame('NETWORK', $entry['context']['diagnostic_code']);
+        self::assertSame($observation->sequence(), $entry['context']['sequence']);
+        self::assertSame($observation->timestamp(), $entry['context']['timestamp']);
+        self::assertSame('error', $entry['context']['severity']);
+        self::assertSame([
+            'class' => 'RuntimeException',
+            'message' => '[redacted]',
+            'code' => 42,
+            'previous' => [
+                'class' => 'Exception',
+                'message' => '[redacted]',
+                'code' => 7,
+                'previous' => null,
+                'trace' => '[redacted]',
+            ],
+            'trace' => '[redacted]',
+        ], $entry['context']['exception']);
+        self::assertSame('private-value', $observation->attributes()['password']);
+    }
+
+    public function testDisabledRedactionPreservesBenignThrowableDetails(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher(
+            $logger,
+            new DefaultArtifactRedactor(ArtifactRedactionConfig::disabled()),
+        );
+        $publisher->publish(Observation::error(
+            ObservationId::fromString('o-opt-out'),
+            ExecutionId::fromString('exec-opt-out'),
+            'operation failed',
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'example',
+                2,
+                previous: null,
+                trace: null,
+            ),
+        ));
+
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('exec-opt-out', $entry['context']['execution_id']);
+        self::assertSame('o-opt-out', $entry['context']['observation_id']);
+        $exception = $entry['context']['exception'];
+        self::assertIsArray($exception);
+        self::assertSame('example', $exception['message']);
+        self::assertSame(2, $exception['code']);
     }
 }

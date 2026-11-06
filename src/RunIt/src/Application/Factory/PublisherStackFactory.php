@@ -17,7 +17,7 @@ use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
  * Mirrors the publisher-stack wiring previously inlined in
  * {@see \ItPack\RunIt\SDK\Builder\RunItBuilder::build()}: the redactor (when
  * configured) wraps the base publisher, and the sampler (when configured) wraps
- * the result, so the composition order is redaction, then sampling.
+ * the result. Publish calls therefore reach the sampler before the redactor.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
