@@ -91,6 +91,67 @@ final class BufferingTest extends Unit
         self::assertSame(100, $estimator->estimate($this->artifact(id: '99999999-1234-1234-1234-123456789012')));
     }
 
+    public function testByteAdmissionCurrentlyAcceptsOversizedFirstAndProjectedItemsForEveryStrategy(): void
+    {
+        foreach (OverflowStrategy::cases() as $strategy) {
+            $sink = new InMemoryArtifactPublisher();
+            $buffer = new BufferedArtifactPublisher(
+                $this->config(10, $strategy, maxBytes: 100),
+                $sink,
+                new DeterministicMonotonicClock(1_000, 0),
+                new DeterministicArtifactByteEstimator(60, ['oversized' => 101]),
+            );
+
+            $oversized = $this->artifact(id: 'oversized');
+            $buffer->publish($oversized);
+            self::assertSame(101, $buffer->estimatedBytes(), $strategy->name);
+            self::assertSame(1, $buffer->bufferedCount());
+            self::assertSame(0, $buffer->droppedCount());
+            $buffer->flush();
+            self::assertSame([$oversized], $sink->published());
+            self::assertSame(0, $buffer->estimatedBytes());
+
+            $first = $this->artifact(id: 'first');
+            $second = $this->artifact(id: 'second');
+            $buffer->publish($first);
+            $buffer->publish($second);
+            self::assertSame(120, $buffer->estimatedBytes(), $strategy->name);
+            self::assertSame(2, $buffer->bufferedCount());
+            self::assertSame(0, $buffer->droppedCount());
+            $buffer->flush();
+            self::assertSame([$oversized, $first, $second], $sink->published());
+            self::assertSame(0, $buffer->estimatedBytes());
+        }
+    }
+
+    public function testByteOverflowReplacementCurrentlyEvictsOnlyOneItem(): void
+    {
+        foreach ([OverflowStrategy::DropOldest, OverflowStrategy::DropLowPriority] as $strategy) {
+            $sink = new InMemoryArtifactPublisher();
+            $buffer = new BufferedArtifactPublisher(
+                $this->config(10, $strategy, maxBytes: 100),
+                $sink,
+                new DeterministicMonotonicClock(1_000, 0),
+                new DeterministicArtifactByteEstimator(50, ['incoming' => 80]),
+            );
+
+            $first = $this->artifact(id: 'first');
+            $second = $this->artifact(id: 'second');
+            $incoming = $this->artifact('error', 'incoming');
+            $buffer->publish($first);
+            $buffer->publish($second);
+            self::assertSame(100, $buffer->estimatedBytes());
+
+            $buffer->publish($incoming);
+            self::assertSame(130, $buffer->estimatedBytes(), $strategy->name);
+            self::assertSame(2, $buffer->bufferedCount());
+            self::assertSame(1, $buffer->droppedCount());
+            $buffer->flush();
+            self::assertSame([$second, $incoming], $sink->published());
+            self::assertSame(0, $buffer->estimatedBytes());
+        }
+    }
+
     public function testDropNewestBoundsBuffer(): void
     {
         $sink = new InMemoryArtifactPublisher();

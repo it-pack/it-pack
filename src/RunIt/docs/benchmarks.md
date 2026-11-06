@@ -76,6 +76,34 @@ meaningful for future comparisons on the same host, not absolute claims.
 | `benchBuffering` | 44.10 µs | ±64.3% |
 | `benchOtelNullProviderRecord` | ≈0.29 µs | at noise floor (see T3.5 verdict below) |
 
+### Existing hot-path suite (2026-11-06)
+
+`composer benchmark` passed at revision `6c1fad0ac7f67f0d9612d549051c127f46066c1e`
+with test-only worktree changes; production code was unchanged. PHPBench 1.7.0,
+PHP 8.5.12 CLI NTS, xdebug and CLI OPcache disabled, WSL2 x86-64 on an Intel
+Core i7-9700 with four virtual CPUs. Each subject uses two warmups, five
+iterations and 100 revolutions. Values below are PHPBench's reported mode and
+deviation, in microseconds per revolution; this run did not retain raw iterations.
+
+| Subject | Mode | Deviation |
+| --- | ---: | ---: |
+| `benchNullWrapper` | 0.230 | 0.00% |
+| `benchInMemoryExecutionLifecycle` | 82.919 | 2.21% |
+| `benchActivityLifecycle` | 116.241 | 3.79% |
+| `benchMeasurementCreation` | 98.185 | 0.96% |
+| `benchObservationCreation` | 98.192 | 3.23% |
+| `benchThrowableNormalization` | 1.792 | 5.82% |
+| `benchRedaction` | 3.041 | 3.77% |
+| `benchBoundedPublish` | 2.771 | 3.67% |
+| `benchOtelNullProviderRecord` | 0.210 | 3.74% |
+| `benchBuffering` | 31.601 | 1.08% |
+
+There were ten subjects and no benchmark errors or assertions. The buffering
+subject publishes 200 artifacts to `InMemoryArtifactPublisher`, not to
+`BufferedArtifactPublisher`; it does not replace the drain/close baseline below.
+These synthetic results are environment-relative, not a production throughput
+guarantee or a controlled comparison with older runs.
+
 ### Buffer drain and close baseline (2026-11-06)
 
 At revision `72c32f63c88c44913bc88c5b42e4673c36737174`, a focused harness

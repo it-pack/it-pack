@@ -10,7 +10,13 @@ use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Domain\Execution\Execution;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionFailure;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
@@ -113,6 +119,33 @@ final class RedactingPublisherTest extends Unit
                 'no classified secret may reach the published output',
             );
         }
+    }
+
+    public function testFailedExecutionThrowableCurrentlyBypassesRedaction(): void
+    {
+        $original = Execution::start(
+            ExecutionId::fromString('exec-failed'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+        $before = $original->normalize();
+        $sink = new InMemoryArtifactPublisher();
+        new RedactingArtifactPublisher(new DefaultArtifactRedactor(), $sink)->publish($original);
+        $published = $sink->published()[0]->normalize();
+
+        // Characterizes a known leak, not the required redaction policy.
+        self::assertIsArray($before['result']);
+        self::assertIsArray($published['result']);
+        self::assertSame($before['result']['throwable'], $published['result']['throwable']);
+        $encoded = json_encode($published, JSON_THROW_ON_ERROR);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringContainsString($secret, $encoded);
+        }
+
+        self::assertSame($before, $original->normalize());
     }
 
     public function testObservationThrowableMaskingPreservesMetadataAtEveryDepth(): void

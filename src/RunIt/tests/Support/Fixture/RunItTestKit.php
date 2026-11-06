@@ -23,6 +23,7 @@ use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
@@ -110,6 +111,7 @@ final class RunItTestKit
         ?ThrowableMapperInterface $throwableMapper = null,
         ?SecurityLimits $limits = null,
         ?NestedExecutionPolicyInterface $nestedPolicy = null,
+        ?ExecutionSnapshotFactoryInterface $snapshotFactory = null,
     ) {
         $this->publisher = $publisher ?? new InMemoryArtifactPublisher();
         $this->clock = new DeterministicMonotonicClock(1_000, 0);
@@ -137,7 +139,7 @@ final class RunItTestKit
             new JsonSnapshotSerializer(),
             new ExecutionFactory(),
             $coordinator ?? new ExecutionLifecycleCoordinator(),
-            new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
+            $snapshotFactory ?? new ExecutionSnapshotFactory($this->snapshotIdFactory, $this->hashCalculator),
             $nestedPolicy ?? new ChildExecutionPolicy(),
             $completionPolicy ?? new AutoFailOpenActivitiesPolicy(),
             $this->clock,

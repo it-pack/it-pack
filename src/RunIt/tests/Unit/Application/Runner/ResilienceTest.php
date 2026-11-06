@@ -13,13 +13,19 @@ use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
+use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
@@ -49,6 +55,158 @@ use Throwable;
  */
 final class ResilienceTest extends Unit
 {
+    public function testTerminalSnapshotFactoryFailureSuppressesTerminalPublication(): void
+    {
+        foreach ([false, true] as $businessFails) {
+            $factoryFailure = new RuntimeException('snapshot factory failed');
+            $factory = new readonly class ($factoryFailure) implements ExecutionSnapshotFactoryInterface {
+                public function __construct(private RuntimeException $failure)
+                {
+                }
+
+                public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
+                {
+                    throw $this->failure;
+                }
+            };
+            $failures = [];
+            $kit = new RunItTestKit(
+                onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
+                    $failures[] = $failure;
+                },
+                snapshotFactory: $factory,
+            );
+            $original = new RuntimeException('business failure');
+            $caught = null;
+            $result = null;
+            try {
+                $operation = static function () use ($businessFails, $original): int {
+                    if ($businessFails) {
+                        throw $original;
+                    }
+
+                    return 42;
+                };
+                $result = $kit->runner->run($this->definition(), $operation);
+            } catch (Throwable $failure) {
+                $caught = $failure;
+            }
+
+            self::assertSame($businessFails ? $original : null, $caught);
+            self::assertSame($businessFails ? null : 42, $result);
+            self::assertSame([$factoryFailure], $failures);
+            $terminal = array_values(array_filter(
+                $kit->artifacts(),
+                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface
+                    || ($artifact instanceof ExecutionInterface && $artifact->endedAt() instanceof InstantInterface),
+            ));
+            self::assertSame([], $terminal);
+            self::assertCount(1, array_filter(
+                $kit->artifacts(),
+                static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface
+                    && $artifact->status() === ExecutionStatus::Running,
+            ));
+            self::assertNull($kit->storage->current());
+        }
+    }
+
+    public function testTerminalPublicationOrderAndFailures(): void
+    {
+        foreach ([false, true] as $businessFails) {
+            foreach (['none', 'execution', 'snapshot'] as $failureTarget) {
+                $publicationFailure = new RuntimeException('publication failed');
+                $publisher = new class ($failureTarget, $publicationFailure) implements ArtifactPublisherInterface {
+                    /** @var list<string> */
+                    public array $attempts = [];
+
+                    public function __construct(
+                        private readonly string $target,
+                        private readonly RuntimeException $failure,
+                    ) {
+                    }
+
+                    public function publish(ExecutionArtifactInterface $artifact): void
+                    {
+                        $kind = match (true) {
+                            $artifact instanceof ExecutionInterface
+                                && $artifact->endedAt() instanceof InstantInterface => 'execution',
+                            $artifact instanceof ExecutionSnapshotInterface => 'snapshot',
+                            default => null,
+                        };
+                        if ($kind === null) {
+                            return;
+                        }
+
+                        $this->attempts[] = $kind;
+                        if ($kind === $this->target) {
+                            throw $this->failure;
+                        }
+                    }
+                };
+                $failures = [];
+                $kit = new RunItTestKit(
+                    publisher: $publisher,
+                    onPublicationFailure: static function (Throwable $failure) use (&$failures): void {
+                        $failures[] = $failure;
+                    },
+                );
+                $original = new RuntimeException('business failure');
+                $caught = null;
+                $result = null;
+                try {
+                    $operation = static function () use ($businessFails, $original): int {
+                        if ($businessFails) {
+                            throw $original;
+                        }
+
+                        return 42;
+                    };
+                    $result = $kit->runner->run($this->definition(), $operation);
+                } catch (Throwable $failure) {
+                    $caught = $failure;
+                }
+
+                self::assertSame($businessFails ? $original : null, $caught);
+                self::assertSame($businessFails ? null : 42, $result);
+                self::assertSame(['execution', 'snapshot'], $publisher->attempts);
+                self::assertSame($failureTarget === 'none' ? [] : [$publicationFailure], $failures);
+                self::assertNull($kit->storage->current());
+            }
+        }
+    }
+
+    public function testSnapshotFactoryFailureRestoresPreviousScope(): void
+    {
+        $factory = new class () implements ExecutionSnapshotFactoryInterface {
+            public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
+            {
+                throw new RuntimeException('snapshot factory failed');
+            }
+        };
+        $outer = new RunItTestKit();
+        $inner = new RunItTestKit(storage: $outer->storage, snapshotFactory: $factory);
+
+        $outer->runner->run($this->definition(), function (ExecutionScopeInterface $scope) use ($inner): void {
+            foreach ([false, true] as $businessFails) {
+                $original = new RuntimeException('business failure');
+                $caught = null;
+                try {
+                    $inner->runner->run($this->definition(), static function () use ($businessFails, $original): void {
+                        if ($businessFails) {
+                            throw $original;
+                        }
+                    });
+                } catch (Throwable $failure) {
+                    $caught = $failure;
+                }
+
+                self::assertSame($businessFails ? $original : null, $caught);
+                self::assertSame($scope, $inner->storage->current());
+            }
+        });
+        self::assertNull($outer->storage->current());
+    }
+
     public function testPublisherFailurePreservesOperationResult(): void
     {
         $failures = [];

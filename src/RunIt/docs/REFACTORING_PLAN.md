@@ -111,6 +111,27 @@ a failed execution published through the default redactor retains sensitive
 markers and traces. It checks class/code preservation and source immutability
 without printing the markers; the temporary script is not part of the test suite.
 
+**Further Phase 0 characterization (2026-11-06):** Starting from clean revision
+`6c1fad0ac7f67f0d9612d549051c127f46066c1e`, focused Unit tests now retain
+reproducible evidence without relying on temporary scripts:
+
+- `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`
+  shows that a failed execution's nested throwable and classified markers reach
+  the sink unchanged. This passing characterization documents the defect, not
+  the approved target policy.
+- `BufferingTest` characterizes oversized first items and projected byte
+  overflows for every overflow strategy, and single-item eviction leaving a
+  replacement over budget for `DropOldest` and `DropLowPriority`.
+- `ResilienceTest` shows that a terminal snapshot factory failure suppresses
+  terminal execution publication, while preserving the business outcome and
+  restoring context. Separate cases exercise normal execution-before-snapshot
+  ordering and failures in each publication attempt.
+
+The existing ten-subject `composer benchmark` suite also passed on PHP 8.5.12;
+the environment, workload, reported variation and limitations are recorded in
+`benchmarks.md`. It does not cover all planned hot paths or overflow patterns.
+The above characterizations do not fix the defects or complete Phase 0.
+
 The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. On 2026-11-06, `composer api:check` exited 1 on the current dirty tree for nine additive symbols and reported zero backward-compatibility breaks; this does not authorize a further baseline update. The current observation-level nested-redaction test passes, but failed-execution and adapter export paths, sampler input, byte admission, default failure reporting, concurrency risk, and complete token-ownership scenarios still require individual reproduction or documented reasons they cannot yet be reproduced. Phase 0 is not complete.
 
 ## Phase 1: Compatibility and context ownership
