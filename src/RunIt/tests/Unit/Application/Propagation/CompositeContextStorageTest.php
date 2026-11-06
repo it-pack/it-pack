@@ -103,6 +103,127 @@ final class CompositeContextStorageTest extends Unit
         $this->expectException(InvalidContextTokenException::class);
         $composite->detach(new FakeContextToken());
     }
+
+    public function testForeignCompositeTokenIsRejectedEvenWithSharedChild(): void
+    {
+        $child = new StrictStackStorage();
+        $detector = new FakeDetector();
+        $first = new CompositeContextStorage($child, $child, $child, $detector);
+        $second = new CompositeContextStorage($child, $child, $child, $detector);
+        $scope = $this->scope();
+        $token = $first->attach($scope);
+
+        try {
+            $second->detach($token);
+            self::fail('A foreign composite token must be rejected.');
+        } catch (InvalidContextTokenException) {
+            self::assertSame($scope, $child->current());
+        }
+
+        $first->detach($token);
+        self::assertNull($child->current());
+    }
+
+    public function testForgedWrapperIsRejectedWithoutDetachingInnerToken(): void
+    {
+        $child = new StrictStackStorage();
+        $composite = new CompositeContextStorage($child, $child, $child, new FakeDetector());
+        $scope = $this->scope();
+        $token = $composite->attach($scope);
+        self::assertInstanceOf(CompositeContextToken::class, $token);
+
+        try {
+            $composite->detach(new CompositeContextToken($token->owner, $token->inner));
+            self::fail('A forged wrapper must be rejected.');
+        } catch (InvalidContextTokenException) {
+            self::assertSame($scope, $child->current());
+        }
+
+        $composite->detach($token);
+        self::assertNull($child->current());
+    }
+
+    public function testCollidingTokensRetryOutOfOrderAndRejectRepeatedDetach(): void
+    {
+        $child = new StrictStackStorage();
+        $composite = new CompositeContextStorage($child, $child, $child, new FakeDetector());
+        $outerScope = $this->scope();
+        $innerScope = $this->scope();
+        $outer = $composite->attach($outerScope);
+        $inner = $composite->attach($innerScope);
+        self::assertSame($outer->id(), $inner->id());
+
+        try {
+            $composite->detach($outer);
+            self::fail('An out-of-order token must be rejected by its owner.');
+        } catch (InvalidContextTokenException) {
+            self::assertSame($innerScope, $child->current());
+        }
+
+        $composite->detach($inner);
+
+        try {
+            $composite->detach($inner);
+            self::fail('A detached token must not be accepted again.');
+        } catch (InvalidContextTokenException) {
+            self::assertSame($outerScope, $child->current());
+        }
+
+        $composite->detach($outer);
+        self::assertNull($child->current());
+    }
+
+    public function testDetachUsesOriginalOwnerAfterDetectorSwitches(): void
+    {
+        $sync = new StrictStackStorage();
+        $fiber = new StrictStackStorage();
+        $coroutine = new StrictStackStorage();
+        $detector = new FakeDetector();
+        $composite = new CompositeContextStorage($sync, $fiber, $coroutine, $detector);
+        $syncScope = $this->scope();
+        $fiberScope = $this->scope();
+        $syncToken = $composite->attach($syncScope);
+        $detector->fiber = true;
+        $fiberToken = $composite->attach($fiberScope);
+        self::assertSame($syncToken->id(), $fiberToken->id());
+        $detector->coroutine = true;
+
+        $composite->detach($syncToken);
+        self::assertNull($sync->current());
+        self::assertSame($fiberScope, $fiber->current());
+        $composite->detach($fiberToken);
+        self::assertNull($fiber->current());
+        self::assertNull($coroutine->current());
+    }
+}
+
+/** A LIFO storage whose distinct tokens deliberately have the same id. */
+final class StrictStackStorage implements ContextStorageInterface
+{
+    /** @var list<array{ContextTokenInterface, ExecutionScopeInterface}> */
+    private array $stack = [];
+
+    public function current(): ?ExecutionScopeInterface
+    {
+        return $this->stack === [] ? null : $this->stack[array_key_last($this->stack)][1];
+    }
+
+    public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
+    {
+        $token = new FakeContextToken();
+        $this->stack[] = [$token, $scope];
+
+        return $token;
+    }
+
+    public function detach(ContextTokenInterface $token): void
+    {
+        if ($this->stack === [] || $this->stack[array_key_last($this->stack)][0] !== $token) {
+            throw InvalidContextTokenException::mismatched();
+        }
+
+        array_pop($this->stack);
+    }
 }
 
 final class FakeStorage implements ContextStorageInterface
@@ -130,8 +251,8 @@ final class FakeStorage implements ContextStorageInterface
 final class FakeDetector implements RuntimeContextDetectorInterface
 {
     public function __construct(
-        private bool $coroutine = false,
-        private bool $fiber = false,
+        public bool $coroutine = false,
+        public bool $fiber = false,
     ) {
     }
 

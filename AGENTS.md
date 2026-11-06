@@ -134,6 +134,14 @@ repositories** (`"type": "path"`, `"options": { "symlink": true }` in
 `src/<Pkg>/composer.json`). This gives live cross-package editing. CI runs
 `composer quality` per package in `src/<Pkg>/`.
 
+Agents may run `composer update` in a package when refreshing dependencies is
+useful for the task or for assessing quality against current versions allowed by
+that package's constraints. Package `composer.lock` files are ignored rather than
+committed. Check the package's manifest and lockfile status first, preserve any
+tracked or pre-existing user changes, and report dependency-resolution failures
+or test changes after the update. Do not change version constraints or commit
+generated lockfiles merely to make an update succeed.
+
 ### Release workflow (monorepo-builder)
 
 1. **Tag-based trigger**: push a tag matching `v*` to trigger

@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Coroutine context storage tracks issued tokens by weak object keys instead of
+  scanning weak references on every attachment, preserving identity and LIFO.
+- The factory-construction PHPStan rule permits direct construction of PHP
+  internal classes, including extension classes. Existing enforcement for
+  userland project and third-party classes and its other exemptions remain.
+
 ### Added
 
 - **`CONTRIBUTING.md`** — contribution workflow, coding standards (PHP-CS-Fixer, Rector,

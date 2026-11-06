@@ -11,7 +11,7 @@
 Before and during implementation, the following dimensions are reviewed at every milestone. Items are conceptual, not implementation-level:
 
 - **Architecture & boundaries** — hexagonal ports/adapters, `Polling ≠ Scheduling ≠ Semantics`, domain depends only on Contracts/Ports, AsyncIt as RunIt's `ExecutionEngineInterface` infrastructure port (ADR-ITP-002).
-- **Coding discipline & modern PHP** — `final` + `readonly` value objects, enums for closed state sets, traits/composition over abstract classes, factories/builders for all instantiation, no magic literals, no `else`/`elseif`, no Yoda, PSR-4 one-type-per-file, declaration ordering.
+- **Coding discipline & modern PHP** — `final` + `readonly` value objects, enums for closed state sets, traits/composition over abstract classes, factories/builders for service construction with documented exemptions, no magic literals, no `else`/`elseif`, no Yoda, PSR-4 one-type-per-file, declaration ordering.
 - **Tests, conformance & mutation** — `AsyncRuntimeVerifier` (A/B/C) green across all adapters, ≥95% coverage with no cross-test leakage, Infection mutation testing, RunIt verifier reuse.
 - **Security & resource safety** — fiber-safe context isolation (no bleed, deny-by-default), deterministic `StreamPollHandle`/timer cleanup, recursion-guarded publication, no global/static request state.
 - **Performance, DX & SOLID/DRY** — monotonic clocks on hot paths, low complexity, capability-driven discovery, small focused interfaces, shared behavior via traits, documentation that demonstrates AsyncIt vocabulary.
@@ -123,7 +123,7 @@ Phases map to the implementation plan. Each milestone lists goal, tasks, and acc
   21 violations remain (`AsyncRuntimeFactory → Adapter\*`), tracked as REVIEW
   finding F11 / REFACTORING_PLAN R2.
 - [x] `.php-cs-fixer.php` extended with `yoda_style` (forbidden) and `ordered_class_elements`. The 120-char limit and one-type-per-file are enforced by `tools/lint/line-length.php` and `tools/lint/single-type-per-file.php` (composer `lint:length` / `lint:types`); `final` and no-`else` are enforced by the custom PHPStan rules below. (The invalid `no_superfluous_else` fixer was dropped — `else` removal is the `ForbidElseRule` concern.)
-- [x] Custom PHPStan rules added under `tools/phpstan/asyncit-rules/` and registered in `tools/phpstan/asyncit-rules/extension.neon`: `RequireFinalRule`, `ForbidElseRule`, and `ForbidNewOutsideFactoryBuilderRule` (forbids `new` of named types outside `*\Factory\*` / `*\Builder\*` namespaces; `self`/`static` construction and the `ItPack\AsyncIt\Conformance` namespace are exempt).
+- [x] Custom PHPStan rules added under `tools/phpstan/asyncit-rules/` and registered in `tools/phpstan/asyncit-rules/extension.neon`: `RequireFinalRule`, `ForbidElseRule`, and `ForbidNewOutsideFactoryBuilderRule`. The latter restricts named userland construction outside `*\Factory\*` / `*\Builder\*` namespaces, with existing value-object, throwable, self/static and conformance exemptions; PHP internal classes are also exempt.
 - [x] `src/Conformance/` skeleton created mirroring RunIt: `Contract/VerifierInterface`, `Contract/PortFixtureInterface`, `Result/ViolationSeverity`, `Result/ConformanceViolation`, `Result/ConformanceResult`.
 - [x] `@see` vocabulary references added to the conformance skeleton: `async-it#ConformanceResult` / `async-it#ConformanceViolation` / `async-it#ViolationSeverity` for AsyncIt-owned terms, and `run-it#Execution` where AsyncIt maps the RunIt execution it consumes (see §3 "Vocabulary alignment").
 
@@ -238,6 +238,7 @@ execute end-to-end.
 **Tasks (per adapter)**
 - [x] `PollerPort` implementation over the runtime's watcher/loop (`SwoolePoller`/`SwowPoller` register on the runtime reactor via `Swoole\Event`/`Swow\Event`; `RevoltPoller` on `Revolt\EventLoop`). Readiness still uses a portable `stream_select()` probe so the Fiber-driven scheduler is identical across every backend.
 - [x] Context-storage adapter: per-coroutine slot keyed by `Swoole\Coroutine::getCid()` / `Swow\Coroutine::getCid()` (ADR-013), or per-Fiber `WeakMap` slot for `RevoltFiberContextStorage`; always LIFO and `finally`-restored. Outside a coroutine all three degrade to a process-level LIFO stack, so the conformance harness still exercises the token protocol.
+- [x] Context-token ownership: all four storages require the original token object from the same storage and active slot; equal integer IDs, forged tokens, stale tokens, and out-of-order tokens cannot detach a scope. Coroutine adapters track token identity with weak keys, which are removed when the token is released without scanning active tokens on attachment.
 - [x] Capability negotiation (never `extension_loaded`): `AsyncRuntimeFactory::create()` probes runtime APIs and selects the adapter; the Swoole/Swow/Revolt fixtures prove each passes the suite. Native channels are selected where `CapabilityKind::NativeChannels` is `Supported`.
 - [x] `TaskChannel` backed by native channels when available (`SwooleChannel` over `Swoole\Coroutine\Channel`, `SwowChannel` over `Swow\Coroutine\Channel`); `RevoltChannel` and the reference runtime use the runtime-agnostic `EmulatedChannel` — same `TaskChannelInterface`.
 - [x] Lazy-loaded optional bridges via a lazy proxy: `LazyTelemetryBridge` materialises its `ArrayTelemetryRecorder` only on first `record()`.
@@ -634,7 +635,7 @@ Note the absence of `else`, the early-return guard, `final` + interface, injecte
 - `AsyncRuntimeVerifier` green across reference runtime **and** every adapter (A/B/C).
 - `AsyncRuntime` passes RunIt's `ExecutionEngineVerifier`.
 - Coverage ≥95%, no cross-test leakage, Infection clean.
-- Every concrete class `final`, interface-backed, one type per file; no abstract classes; no `else`/Yoda/magic literals; vocabularies in interfaces; factories/builder-only instantiation via DI.
+- Every concrete class `final`, interface-backed, one type per file; no abstract classes; no `else`/Yoda/magic literals; vocabularies in interfaces; factory/builder construction via DI with the documented exemptions.
 - `examples/conformance/third-party-adapter.php` runs unmodified for each shipped adapter.
 - Docs (`README.md`, `AGENTS.md`, `BRAINSTORM.md`, `IMPLEMENTATION_PLAN.md`, this roadmap) reflect the built reality; public contracts carry `@see` references to `async-it#*` / `async-it-taxonomy#*` (AsyncIt-owned) and `run-it#*` / `run-it-taxonomy#*` (consumed).
 
@@ -642,7 +643,7 @@ Note the absence of `else`, the early-return guard, `final` + interface, injecte
 
 ## 8. Final status
 
-The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-only, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, phparkitect, and mutation testing. All five implementation phases (M0–M10) are complete; follow-on quality-gate work (R7–R15) is tracked in `docs/REFACTORING_PLAN.md` and `docs/TODOS.md`, and must be green before Phase 6 begins. `composer quality` is NOT yet fully green — see the §5 status updates and the open task list.
+The roadmap converts the brainstorm and implementation plan into constraint-bearing milestones: each phase carries explicit architecture, security, performance, DX, and test/conformance gates, and the §3 catalog enforces the modern-PHP, factory-construction, no-abstract-class, no-else/Yoda/magic-literal, and PSR-4 rules via `php-cs-fixer`, PHPStan, phparkitect, and mutation testing. Factory construction has the documented exemptions, including PHP internal classes. All five implementation phases (M0–M10) are complete; follow-on quality-gate work (R7–R15) is tracked in `docs/REFACTORING_PLAN.md` and `docs/TODOS.md`, and must be green before Phase 6 begins. `composer quality` is NOT yet fully green — see the §5 status updates and the open task list.
 
 **Next-gen phases (Phase 6–Phase 13)** are documented in this roadmap as the strategic continuation. They implement the features catalogued in `docs/FEATURE_BACKLOG.md`, organised into waves:
 - **Foundational** (Phase 6): multi-task model + timers + task groups (M11–M12).

@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Contract\Port\ContextTokenInterface;
 use LogicException;
+use WeakMap;
 
 /**
  * Shared context-storage behaviour for coroutine/fiber-aware storages.
@@ -31,6 +32,9 @@ trait CoroutineContextStorageTrait
 
     private int $counter = 0;
 
+    /** @var WeakMap<ContextTokenInterface, int>|null */
+    private ?WeakMap $tokens = null;
+
     public function current(): ?ExecutionScopeInterface
     {
         $slot = $this->slot();
@@ -53,6 +57,8 @@ trait CoroutineContextStorageTrait
         $slot = $this->slot();
         $id = ++$this->counter;
         $token = new ContextToken($id);
+        $this->tokens ??= new WeakMap();
+        $this->tokens[$token] = $id;
 
         $stack = $slot->getStack();
         $stack[] = $id;
@@ -76,7 +82,7 @@ trait CoroutineContextStorageTrait
         }
 
         $top = array_last($stack);
-        if ($top !== $token->id()) {
+        if (($this->tokens[$token] ?? null) !== $top) {
             throw new LogicException('Cannot detach a context token that is not the most recently attached.');
         }
 
@@ -84,7 +90,7 @@ trait CoroutineContextStorageTrait
         $slot->setStack($stack);
 
         $scopes = $slot->getScopes();
-        unset($scopes[$token->id()]);
+        unset($scopes[$top], $this->tokens[$token]);
         $slot->setScopes($scopes);
     }
 

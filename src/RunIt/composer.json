@@ -93,6 +93,7 @@
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
+        "format": "@cs:fix",
         "dogfood": "php tools/dogfood/run-dogfood.php",
         "examples": "bash scripts/examples.sh",
         "lint:length": "php tools/lint/line-length.php",
