@@ -19,12 +19,12 @@ Context capacity is bounded (`MAX_ENTRIES`) and merging uses an explicit
 
 ## Storage and the ambient scope
 
-Context storage is a synchronous stack (`StackContextStorage`) keyed by an
-immutable `ContextToken`. Attaching a scope pushes a token; detaching pops it and
-restores the previous nested scope. The storage detects invalid tokens and
-double detachment. This keeps execution state in explicit, per-call storage
-rather than process-global mutable state, which is required for persistent-worker
-and Fiber safety.
+The default `StackContextStorage` is a synchronous stack. Attaching a scope
+returns a token; detaching it restores the previous nested scope. The storage
+rejects invalid tokens and double detachment. Its stack is shared by callers of
+the same storage instance, so it does not isolate interleaved Fibers or
+coroutines. Persistent workers with overlapping executions must configure
+runtime-appropriate storage explicitly.
 
 `CurrentExecution` is the ambient accessor. When no execution is active it
 returns `null` (the null-current-execution behavior); it never reads or writes
@@ -65,30 +65,29 @@ flowchart TD;
 
 ### Fiber
 
-Each Fiber keeps its own context slot. The runtime adapter suspends the current
-Fiber's context and restores the target Fiber's on switch, so no Fiber sees
-another's execution state.
+When `FiberContextStorage` is configured, it selects a stack by the current
+Fiber's identity, with a separate stack for the main call stack. No explicit
+context suspend or restore operation is invoked on a Fiber switch.
 
 ```mermaid
 flowchart TD;
-    Sched["Fiber scheduler"] --> F1["Fiber A → ContextStorage.suspend()"];
-    Sched --> F2["Fiber B → ContextStorage.restore()"];
-    F1 --> Slot["per-Fiber context slot"];
-    F2 --> Slot;
+    F1["Fiber A"] --> A["Fiber A scope stack"];
+    F2["Fiber B"] --> B["Fiber B scope stack"];
+    Main["Main stack"] --> M["Main scope stack"];
 ```
 
 ### Coroutine (Swoole / OpenSwoole)
 
-In a persistent worker, the `RuntimeContextDetectorInterface` resolves the active
-coroutine and the adapter stores the current execution per coroutine. Context is
-cleared or restored in `finally` so it never leaks between requests.
+With `CoroutineContextStorage`, a coroutine ID provider selects the active stack.
+The composite storage uses a runtime detector to select the appropriate storage.
+The runner detaches scopes in `finally` to restore the prior context.
 
 ```mermaid
 flowchart TD;
-    Worker["Swoole / OpenSwoole worker"] --> C1["Coroutine 1 → RuntimeContextDetector"];
-    Worker --> C2["Coroutine 2 → RuntimeContextDetector"];
-    C1 --> Slot["coroutine-local current execution"];
-    C2 --> Slot;
+    Worker["Swoole / OpenSwoole worker"] --> C1["Coroutine 1"];
+    Worker --> C2["Coroutine 2"];
+    C1 --> Slot1["Coroutine 1 scope stack"];
+    C2 --> Slot2["Coroutine 2 scope stack"];
 ```
 
 ## Security posture

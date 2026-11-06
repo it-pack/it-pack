@@ -15,27 +15,39 @@
 
 ### Decisions required before dependent changes
 
-- [ ] **API identity:** Decide whether to restore the frozen opaque `ContextTokenInterface` contract or explicitly approve a breaking versioned contract. The review establishes a break, not permission to change the baseline. Retaining concrete `id()` methods does not justify requiring them from third-party implementations.
-- [ ] **Redaction semantics:** Specify which throwable fields, nested causes, and traces are removed or masked, and whether explicitly configured trace export can remain enabled. Confirm whether sampling policies must receive a redacted projection and how that affects policies expecting concrete artifact interfaces.
-- [ ] **Redacted observations:** Decide whether OpenTelemetry must emit a safe redacted observation or make a drop visible through a defined health policy. Specify safe fields and classification without exposing payloads.
-- [ ] **Open-activity outcome:** Decide whether the policy changes terminal status or only emits a critical observation, and document how the chosen semantics preserve the business result. The existing contract and review do not decide this.
-- [ ] **Span-store retention:** Decide the retention bound or lifecycle and what happens to late child/parent lookups after eviction. Establish whether the change can remain internal to the frozen public API.
-- [ ] **Concurrency default:** Decide whether documentation and configuration validation suffice or whether automatic runtime detection is desired. Do not silently change the synchronous default or assume it is safe for interleaved execution.
-- [ ] **Coverage attribution:** Define the exact class-under-test attribution policy, justified collaborators, and CI environment needed to enforce it. Aggregate unit-only coverage alone does not establish per-test isolation.
-- [ ] **Coding standards:** Resolve the requested member ordering against the existing PHPStan rule in `docs/QA.md`; decide the scope and exemptions for factory-only construction, interfaces, one type per file, literals, imports, `else`/`elseif`, Yoda conditions, and 120-column lines. Do not assume blanket factory or interface creation is an architectural improvement.
+Checked items record approved policy direction, not completed implementation or
+verification. The unchecked design details below must still be resolved where applicable.
+
+- [x] **API identity:** Retain `ContextTokenInterface::id(): int` as an explicitly approved breaking contract. Update the API baseline and changelog and migrate affected ItPack implementations. The storage-defined value is stable for the token lifetime but is not necessarily unique; detachment must not rely on it alone.
+- [x] **Throwable redaction defaults:** Make redaction configurable. By default, mask throwable messages at every cause depth and omit traces; permit trace export only through explicit configuration. Preserve bounded processing and document the security implications of opting in.
+- [x] **Sampling and redaction order:** Make the order configurable, with redaction before sampling by default. Sampling first must be an explicit choice documented as exposing unredacted artifacts to samplers. Preserve built-in type-dependent sampling behavior when redaction happens first.
+- [x] **Throwable metadata:** Preserve throwable class names and error codes by default for diagnosis, with configuration to remove or mask them where required.
+- [x] **Redacted observations:** Make handling configurable: emit a sanitized observation by default, or allow explicit drop-and-report behavior. When safe mapping is impossible, report the drop through the health path. Specify safe fields and classification without exposing payloads during implementation.
+- [x] **Open-activity outcome:** Make the outcome configurable. By default, record a critical diagnostic without changing the operation-derived execution status; allow an explicit policy to mark the execution failed. Preserve the operation's returned value or original exception in either case.
+- [x] **Span-store retention:** Use a configurable finite default limit and evict oldest entries. Late lookups after eviction treat the parent as unavailable and must not change execution results. Choose and document the default limit with workload evidence; establish whether configuration can remain compatible with the frozen public API.
+- [x] **Concurrency default:** Retain the synchronous default and require explicit runtime-appropriate storage for interleaved executions. Document the limitation and add feasible configuration validation; do not silently switch storage or assume the default is concurrency-safe.
+- [x] **Coverage attribution policy:** Collect coverage from Unit tests only and require an explicit class under test, while permitting justified real collaborators and practical documented exceptions. Define the enforcement mechanism and CI environment; aggregate coverage alone does not establish per-test attribution.
+- [x] **Coding standards principle:** Keep existing enforced conventions and adopt additional rules only when useful, with focused exceptions. Do not impose blanket factory-only construction or interface creation. Reconcile individual rules, including member ordering, with `docs/QA.md` before changing or adding enforcement; avoid unnecessary public API changes.
+
+**Open design details:**
+- [ ] Define safe observation fields and classification, and the configurable drop/report mechanism.
+- [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
+- [ ] Determine feasible concurrency configuration validation and its behavior without silently changing the default.
+- [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
+- [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
 
 ## Phase 0: Baseline and safety net
 
 **Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
 
-- [x] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
-- [x] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Inspect scripts in `composer.json` before changing commands.
-- [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
-- [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
+- [ ] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
+- [ ] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Inspect scripts in `composer.json` before changing commands.
+- [ ] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
+- [ ] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
-- [x] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
+- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
 
-**Phase 0 results (recorded in `docs/REVIEW.md` verification record):**
+**Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
 | Check                        | Result                                                                                   |
 |------------------------------|------------------------------------------------------------------------------------------|
@@ -55,25 +67,36 @@
 - `tests/Support/Fixture/DeterministicArtifactByteEstimator.php` — deterministic byte estimator for buffer admission tests.
 - `tests/Concurrency/InterleavedFiberContextIsolationTest.php` — interleaved fiber isolation test.
 - CS fixes: two missing-space-after-`if` fixes in Swoole unit tests.
-- A passing characterization test reproduces nested throwable secret exposure; it must become a negative security regression after the policy and fix are agreed.
+- The current `RedactingPublisherTest::testNestedThrowableSecretsAreRedacted` checks that classified markers are absent from a published observation; it passed on 2026-11-06 (7 tests in the focused suite). This does not verify failed-execution or adapter export paths.
+- Other available fixtures include `DeterministicMonotonicClock`, `ThrowingArtifactPublisher`, throwing health callbacks in `ResilienceTest`, and the independent `RunItThirdPartySample` token. Full custom-token ownership regression coverage remains a Phase 1 task.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
 
-**Outstanding:** `composer api:check` reproduces the compatibility break and the observation characterization reproduces nested redaction leakage, but the full third-party token scenario, failed-execution/adapter redaction paths, and other high-priority regressions remain to be reproduced. Exact expected masking and compatibility fixes require the decisions above. Complete the baseline evidence and exit criterion before marking this phase complete. The existing benchmark does not measure buffered publisher drain/close; obtain a representative baseline before changing that path. See the baseline refresh in `REVIEW.md` for the environment, report location and limitations.
+**Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. The recorded Unit coverage XML and PhpMetrics/PHP Assumptions reports under `/tmp/kilo` are no longer present. Re-establish and preserve the evidence, record exact command exit codes and remaining diagnostic attribution, and obtain a buffered-publisher drain/close benchmark with workloads and variance. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+
+The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. On 2026-11-06, `composer api:check` exited 1 on the current dirty tree for nine additive symbols and reported zero backward-compatibility breaks; this does not authorize a further baseline update. The current observation-level nested-redaction test passes, but failed-execution and adapter export paths, sampler input, byte admission, default failure reporting, concurrency risk, and complete token-ownership scenarios still require individual reproduction or documented reasons they cannot yet be reproduced. Phase 0 is not complete.
 
 ## Phase 1: Compatibility and context ownership
 
-**Depends on:** Phase 0 and the API identity decision. **Review:** frozen interface break; concurrent context isolation.
+**Completion depends on:** Phase 0 exit and the API identity decision; preparatory work may proceed earlier. **Review:** frozen interface break; concurrent context isolation.
 
-- [ ] Inspect `src/Contract/Port/ContextTokenInterface.php`, `ContextStorageInterface`, the API baseline, all `id()` call sites, and concrete stack, Fiber, coroutine, and composite tokens. In particular, `src/Application/Propagation/CompositeContextToken.php` delegates to the inner token's `id()`; removing only the interface method is insufficient.
-- [ ] Add an external-style test token implementing the baseline interface without `id()` and a storage implementation that returns it. Exercise composite attach/detach, correct owner delegation, foreign token rejection, repeated detach, and LIFO behavior.
-- [ ] Implement the approved compatibility approach using opaque token identity or a separately negotiated capability as appropriate. Preserve existing concrete methods where needed for shipped callers; do not require methods absent from the frozen third-party interface.
-- [ ] Run context storage conformance tests and `composer api:check`. If an intentional break is explicitly approved, document versioning and migration, update `docs/CHANGELOG.md`, and regenerate the baseline only as part of that approved contract change.
-- [ ] Document `StackContextStorage` as synchronous-only at the SDK builder and concurrency entry points; show configuration of Fiber/coroutine storage for persistent workers.
+- [ ] Inspect `src/Contract/Port/ContextTokenInterface.php`, `ContextStorageInterface`, the API baseline, all `id()` call sites, and concrete stack, Fiber, coroutine, and composite tokens. Verify composite delegation and ownership semantics under the retained contract.
+- [ ] Exercise custom tokens implementing the approved `id()` contract and their storage through composite attach/detach, correct owner delegation, foreign token rejection, repeated detach, and LIFO behavior. The former opaque interface is intentionally not supported by the new baseline.
+- [ ] Complete the approved breaking-contract migration for affected internal consumers and retain correct token ownership and detachment semantics.
+- [ ] Verify the approved break's changelog, baseline, versioning and migration documentation; run context storage conformance tests and `composer api:check` against the final tree.
+- [x] Document `StackContextStorage` as synchronous-only at the SDK builder and concurrency entry points; show configuration of Fiber/coroutine storage for persistent workers.
 - [ ] Add interleaving tests that demonstrate the default risk and verify isolated current scopes, parent identity, LIFO detach, restoration after exceptions, and repeated requests with runtime-specific storage. Use the coroutine extension where available and report skips explicitly.
 - [ ] If runtime misuse detection is approved, add it without global mutable state or an undocumented default behavior change; test synchronous use and interleaving separately.
 
-**Exit:** external token implementations remain usable under the approved compatibility policy; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
+**Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
+
+**Progress:** The builder and integration guides explain the synchronous default and explicit Fiber/coroutine storage. The Swoole example retains the immutable builder returned by `withContextStorage()`. The Fiber concurrency suite covers nested failure restoration and a second execution on the same Fiber while another Fiber is suspended. Default-stack interleaving, parent identity, and the remaining runtime-specific cases are still open. The Fiber engine does not automatically propagate caller-local ambient scope into its new Fiber; the operation receives the explicit scope instead. Phase 0 remains open. The approved `id()` break is recorded in the changelog and API baseline; current RunIt, AsyncIt and RunItThirdPartySample token implementations already declare the method. The composite-token unit test verifies delegation to a custom token.
+
+**Consumer follow-up:** AsyncIt's `CoroutineContextStorageTrait` currently checks a token's integer ID rather than exact token ownership. A direct reproduction confirmed that a token from a different storage instance with a matching ID can detach the first instance's scope. This pre-existing behavior affects its Revolt, Swoole and Swow storages and requires a separate ownership fix and regression test; the `id()` contract does not guarantee uniqueness.
+
+**Historical verification:** On PHP 8.5, the concurrency suite passed (6 tests, 138 assertions), conformance passed (52 tests, 111 assertions), architecture and line-length checks passed, and the Swoole example ran with the extension loaded. Immediately after the approved baseline update, `composer api:check` and the composite storage test passed (4 tests, 12 assertions). The later current-tree API check is recorded above. `composer cs:check` reported existing import ordering in `tests/Support/Fixture/RunItTestKit.php`, which was not modified by this work. PHP 8.4 and OpenSwoole were not tested.
+
+AsyncIt's focused memory storage, Swoole storage and context-isolation verifier tests passed (12 tests total); RunItThirdPartySample's `composer test` passed (4 tests, 12 assertions). These tests do not cover the foreign-token collision above.
 
 ## Phase 2: Publication security and artifact routing
 
@@ -85,7 +108,7 @@
 - [ ] Exercise actual composed pipelines to PSR-3 and OpenTelemetry with in-memory sinks, asserting secrets are absent in exported fields and throwable arrays. Include a failed execution and a redacted observation, not only a unit-level normalized array.
 - [ ] In `src/Application/Factory/PublisherStackFactory.php`, align the execution order with the approved contract. Extend `tests/Unit/Application/Publication/SamplingTest.php` with a spy `SamplingPolicyInterface` and sink to prove what each receives. Test severity-floor, error-override, execution-kind, unchanged artifacts, and null-decorator combinations: `ErrorOverrideSamplePolicy` depends on `ObservationInterface`, which a generic redacted wrapper does not retain. Measure serialization costs before deployment.
 - [ ] Implement the approved safe handling for redacted observations in `src/Adapter/OpenTelemetry/TelemetryPublisher.php` and its mapper path, or make a deliberate drop visible via the health path. Check changed executions, activities, and measurements as well as occurrences and snapshots, because generic wrappers may bypass typed dispatch. Avoid inferring type from an ambiguous user-controlled field or exposing the original unredacted artifact through a wrapper.
-- [ ] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary.
+  - [ ] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary.
 - [ ] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision.
 
 **Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths.

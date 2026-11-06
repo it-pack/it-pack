@@ -6,8 +6,8 @@ declare(strict_types=1);
  * RunIt + Swoole / OpenSwoole — executable example.
  *
  * Demonstrates coroutine-local context storage and the server request middleware. When the Swoole
- * extension is loaded the work runs inside a real coroutine; otherwise the example still constructs
- * the adapters (they degrade safely) and exits.
+ * extension is loaded the work runs inside a real coroutine; otherwise the example uses the
+ * synchronous default for its remaining work.
  *
  * Run from the package root: `php examples/swoole.php`
  */
@@ -37,7 +37,7 @@ $builder = RunItBuilder::create()
     ->withIdentifierGenerator(new RandomIdentifierGenerator());
 
 if (extension_loaded('swoole') || extension_loaded('openswoole')) {
-    $builder->withContextStorage(new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
+    $builder = $builder->withContextStorage(new CoroutineContextStorage(new SwooleCoroutineIdProvider()));
 }
 
 $runIt = $builder->build();
@@ -54,7 +54,7 @@ if (extension_loaded('swoole') || extension_loaded('openswoole')) {
         );
     });
 } else {
-    echo 'Swoole/OpenSwoole not loaded; coroutine storage constructed and safe to use.' . PHP_EOL;
+    echo 'Swoole/OpenSwoole not loaded; using synchronous context storage.' . PHP_EOL;
 }
 
 // Server request middleware: one execution per request, with duration and status recorded.
