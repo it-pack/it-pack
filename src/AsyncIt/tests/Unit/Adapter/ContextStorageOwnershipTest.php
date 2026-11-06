@@ -118,7 +118,10 @@ final class ContextStorageOwnershipTest extends TestCase
 
     public function testSwooleRejectsForeignTokenInsideCoroutine(): void
     {
-        if (!class_exists(\Swoole\Coroutine::class)) {
+        if (
+            !class_exists(\Swoole\Coroutine::class)
+            || !function_exists('Swoole\\Coroutine\\run')
+        ) {
             self::markTestSkipped('Swoole is not installed.');
         }
 
