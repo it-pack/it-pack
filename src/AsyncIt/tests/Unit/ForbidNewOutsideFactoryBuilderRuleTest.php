@@ -31,7 +31,7 @@ final class ForbidNewOutsideFactoryBuilderRuleTest extends RuleTestCase
     {
         return new ForbidNewOutsideFactoryBuilderRule(
             self::getContainer()->getByType(ReflectionProvider::class),
-            srcRoot: __DIR__ . '/../Support/Data',
+            srcRoot: dirname(__DIR__) . '/Support/Data',
         );
     }
 }

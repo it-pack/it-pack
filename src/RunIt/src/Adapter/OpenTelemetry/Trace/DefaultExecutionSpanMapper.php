@@ -81,7 +81,9 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
         $parentSpan = $this->store->executionContext($parentId->toString());
 
-        return $parentSpan instanceof SpanContextInterface ? Context::getRoot()->withContextValue(Span::wrap($parentSpan)) : null;
+        return $parentSpan instanceof SpanContextInterface
+            ? Context::getRoot()->withContextValue(Span::wrap($parentSpan))
+            : null;
     }
 
     private function recordThrowable(SpanInterface $span, ThrowableDescriptionInterface $throwable): void

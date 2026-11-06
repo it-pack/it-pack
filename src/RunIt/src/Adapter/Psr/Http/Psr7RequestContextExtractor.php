@@ -103,6 +103,7 @@ final readonly class Psr7RequestContextExtractor implements HttpContextExtractor
         if (preg_match('/^\d+$/', $segment) === 1) {
             return true;
         }
+
         return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $segment) === 1;
     }
 }

@@ -43,6 +43,7 @@ final class SequenceAllocatorTest extends Unit
         $allocator = new InMemorySequenceAllocator();
 
         $allocator->allocate(ExecutionId::fromString('exec-a'));
+
         $second = $allocator->allocate(ExecutionId::fromString('exec-a'));
         $other = $allocator->allocate(ExecutionId::fromString('exec-b'));
 

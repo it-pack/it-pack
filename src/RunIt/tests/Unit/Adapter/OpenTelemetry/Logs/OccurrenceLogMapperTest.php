@@ -103,7 +103,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testSnapshotPayloadExportIsOptIn(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::Full, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::Full,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-2', 'exec-1', ['key' => 'value']));
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -113,7 +118,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testSnapshotNonePolicyExportsNoHash(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::None, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::None,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-3', 'exec-1', ['key' => 'value']));
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
@@ -123,7 +133,12 @@ final class OccurrenceLogMapperTest extends Unit
 
     public function testMissingLoggerProviderEmitsNothing(): void
     {
-        $mapper = new DefaultOccurrenceLogMapper(loggerProvider: null, snapshotPayloadPolicy: SnapshotPayloadPolicy::HashOnly, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            loggerProvider: null,
+            snapshotPayloadPolicy: SnapshotPayloadPolicy::HashOnly,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
         $mapper->mapOccurrence(RunItArtifactFactory::occurrence('occ-3', 'exec-1', 'execution.started.v1'));
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-4', 'exec-1', ['key' => 'value']));
 
@@ -302,7 +317,12 @@ final class OccurrenceLogMapperTest extends Unit
     {
         $snapshot = RunItArtifactFactory::snapshot('snap-act', 'exec-1', ['key' => 'value']);
 
-        $mapper = new DefaultOccurrenceLogMapper($this->kit->loggerProvider, SnapshotPayloadPolicy::None, mapOccurrencesToLogs: true, mapOccurrencesToSpanEvents: false);
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::None,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
         $mapper->mapSnapshot($snapshot);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();

@@ -134,7 +134,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         ?ExecutionEngineInterface                     $engine = null,
         private SecurityLimits                         $limits = new SecurityLimits(),
     ) {
-        $health = $this->onPublicationFailure instanceof Closure ? new CallbackHealthReporter($this->onPublicationFailure) : null;
+        $health = $this->onPublicationFailure instanceof Closure
+            ? new CallbackHealthReporter($this->onPublicationFailure)
+            : null;
         $bounded = new BoundedArtifactPublisher(
             $this->limits,
             $this->publisher,
@@ -169,7 +171,12 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         callable $operation
     ): mixed {
         if (!$current instanceof ExecutionScopeInterface) {
-            return $this->runExecution(NestedExecutionMode::ChildExecution, current: null, definition: $definition, operation: $operation);
+            return $this->runExecution(
+                NestedExecutionMode::ChildExecution,
+                current: null,
+                definition: $definition,
+                operation: $operation,
+            );
         }
 
         $activityDefinition = ActivityDefinition::create(

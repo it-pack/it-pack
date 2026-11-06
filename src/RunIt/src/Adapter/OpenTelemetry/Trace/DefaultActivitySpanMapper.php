@@ -86,7 +86,9 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
         $executionSpan = $this->store->executionContext($activity->executionId()->toString());
 
-        return $executionSpan instanceof SpanContextInterface ? Context::getRoot()->withContextValue(Span::wrap($executionSpan)) : null;
+        return $executionSpan instanceof SpanContextInterface
+            ? Context::getRoot()->withContextValue(Span::wrap($executionSpan))
+            : null;
     }
 
     private function recordThrowable(SpanInterface $span, ThrowableDescriptionInterface $throwable): void

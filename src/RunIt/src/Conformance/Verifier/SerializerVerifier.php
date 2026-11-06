@@ -101,6 +101,7 @@ final class SerializerVerifier implements VerifierInterface
         if (is_object($value) || is_resource($value)) {
             return false;
         }
+
         return !is_array($value) || !array_any($value, fn ($item): bool => !$this->isRecursivelyPrimitive($item));
     }
 }

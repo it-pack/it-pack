@@ -97,7 +97,11 @@ final readonly class CloudEvent
                 $normalizedExtensions[$key] = $value;
             }
         } catch (InvalidContextValueException $invalidContextValueException) {
-            throw new InvalidCloudEventException($invalidContextValueException->getMessage(), 0, $invalidContextValueException);
+            throw new InvalidCloudEventException(
+                $invalidContextValueException->getMessage(),
+                0,
+                $invalidContextValueException,
+            );
         }
 
         return new self(

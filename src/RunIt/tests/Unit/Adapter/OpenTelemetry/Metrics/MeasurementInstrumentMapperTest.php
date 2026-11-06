@@ -181,7 +181,11 @@ final class MeasurementInstrumentMapperTest extends Unit
 
     public function testMissingMeterProviderRecordsNothing(): void
     {
-        $mapper = new DefaultMeasurementInstrumentMapper(meterProvider: null, cache: new InstrumentCache(64), metricAttributeAllowList: []);
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            meterProvider: null,
+            cache: new InstrumentCache(64),
+            metricAttributeAllowList: [],
+        );
         $mapper->record(Measurement::counter(
             MeasurementName::fromString('items'),
             ExecutionId::fromString('exec-1'),

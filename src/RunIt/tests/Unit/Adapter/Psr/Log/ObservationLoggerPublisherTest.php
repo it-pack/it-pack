@@ -29,7 +29,13 @@ final class ObservationLoggerPublisherTest extends Unit
             'request failed',
             diagnosticCode: 'NETWORK',
             attributes: AttributeCollection::fromArray(['attempt' => 3]),
-            throwableDescription: ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'boom',
+                0,
+                previous: null,
+                trace: null,
+            ),
         );
 
         $publisher->publish($observation);

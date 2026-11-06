@@ -126,7 +126,12 @@ final class ExecutionSpanMapperTest extends Unit
 
     public function testMissingTracerProviderExportsNothing(): void
     {
-        $mapper = new DefaultExecutionSpanMapper(tracerProvider: null, store: $this->store, statusMap: new SpanStatusMap(), kindMap: new SpanKindMap());
+        $mapper = new DefaultExecutionSpanMapper(
+            tracerProvider: null,
+            store: $this->store,
+            statusMap: new SpanStatusMap(),
+            kindMap: new SpanKindMap(),
+        );
         $execution = RunItArtifactFactory::execution('exec-none', 'import', 'internal', 'succeeded');
 
         $mapper->map($execution);

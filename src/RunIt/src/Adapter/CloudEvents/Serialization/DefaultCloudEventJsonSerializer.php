@@ -73,7 +73,12 @@ final readonly class DefaultCloudEventJsonSerializer implements CloudEventSerial
         try {
             /** @var positive-int $depth */
             $depth = $this->limits->maxSerializationDepth;
-            $decoded = json_decode($payload, associative: true, depth: $depth, flags: JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR);
+            $decoded = json_decode(
+                $payload,
+                associative: true,
+                depth: $depth,
+                flags: JSON_BIGINT_AS_STRING | JSON_THROW_ON_ERROR,
+            );
         } catch (JsonException) {
             throw InvalidCloudEventException::malformedJson();
         }

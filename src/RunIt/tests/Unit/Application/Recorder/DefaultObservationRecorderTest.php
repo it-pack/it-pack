@@ -95,7 +95,7 @@ final class DefaultObservationRecorderTest extends Unit
         $this->kit->runner->run(
             ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
             function ($scope) use ($error): null {
-                $scope->observations()->record('failed step', ObservationSeverity::Error, null, $error, 'step.failed');
+                $scope->observations()->record('failed step', ObservationSeverity::Error, throwable: $error, diagnosticCode: 'step.failed');
 
                 return null;
             },

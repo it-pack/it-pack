@@ -77,9 +77,7 @@ final class DefaultOccurrenceRecorderTest extends Unit
                 $scope->occurrences()->record(
                     OccurrenceType::fromString('itpack.thing.done.v1'),
                     'app',
-                    null,
-                    null,
-                    $extensions,
+                    extensionAttributes: $extensions,
                 );
 
                 return null;

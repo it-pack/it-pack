@@ -105,6 +105,7 @@ final class ObservationRecordingLogger extends AbstractLogger implements LoggerI
         if (is_object($value) || is_resource($value)) {
             return false;
         }
+
         return !is_array($value) || !array_any($value, static fn ($item): bool => is_object($item) || is_resource($item));
     }
 
