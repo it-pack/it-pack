@@ -549,14 +549,22 @@ final class FiberTaskScheduler implements
             array_shift($this->taskResults);
         }
 
-        $this->lifecyclePublisher->publishCompleted($task, $status, $startTime, $throwable);
+        // Publication and listener notification must never skip terminalization
+        // or handle/timer release, even when they throw. Fail open: record the
+        // publication failure on the health path ($this->errors) and continue so
+        // the task still reaches a terminal state (conformance Assertion C).
+        try {
+            $this->lifecyclePublisher->publishCompleted($task, $status, $startTime, $throwable);
 
-        $this->notifyListeners(SchedulerEvent::completed($task, $status));
-
-        $task->complete($status);
-        $this->ioAwaitService->releaseForRecord($record);
-        $this->timerService->clearForRecord($record);
-        $record->markDone();
+            $this->notifyListeners(SchedulerEvent::completed($task, $status));
+        } catch (Throwable $publicationFailure) {
+            $this->errors[] = $publicationFailure;
+        } finally {
+            $task->complete($status);
+            $this->ioAwaitService->releaseForRecord($record);
+            $this->timerService->clearForRecord($record);
+            $record->markDone();
+        }
     }
 
     private function resumeAwaiters(TaskRecordInterface $completed): void

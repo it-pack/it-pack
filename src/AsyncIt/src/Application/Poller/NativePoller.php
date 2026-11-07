@@ -7,7 +7,6 @@ namespace ItPack\AsyncIt\Application\Poller;
 use ItPack\AsyncIt\Contract\PollerPortInterface;
 use ItPack\AsyncIt\Contract\Port\PollerVocabulary;
 use ItPack\AsyncIt\Domain\Poller\StreamSelectPollerTrait;
-use ItPack\AsyncIt\Domain\StreamPollHandle;
 
 /**
  * Native {@see PollerPortInterface} over PHP 8.6 `Io\Poll`.
@@ -38,36 +37,42 @@ final class NativePoller implements PollerPortInterface
 
     public function await(int $timeoutNanoseconds): void
     {
-        $milliseconds = (int) ceil($timeoutNanoseconds / PollerVocabulary::NANOSECONDS_PER_MILLISECOND);
-
         if (!method_exists($this->poll, 'poll')) {
             return;
         }
 
+        // Io\Poll::poll(?float $timeout) expects seconds, not milliseconds.
+        $seconds = $timeoutNanoseconds / PollerVocabulary::NANOSECONDS_PER_SECOND;
+
         /** @var callable $poll */
         $poll = [$this->poll, 'poll'];
-        ($poll)($milliseconds);
-    }
+        $entries = ($poll)($seconds);
 
-    public function readyHandles(): array
-    {
-        $ready = [];
+        if (!is_array($entries)) {
+            return;
+        }
 
-        foreach ($this->handles as $id => $stream) {
+        $this->readyReadStreams = [];
+        $this->readyWriteStreams = [];
+
+        foreach ($entries as $entry) {
+            if (!is_object($entry)) {
+                continue;
+            }
+
+            $stream = $entry->stream ?? null;
             if (!is_resource($stream)) {
                 continue;
             }
 
-            $read = [$stream];
-            $write = [$stream];
-            $except = [];
+            if (($entry->readable ?? false) === true) {
+                $this->readyReadStreams[] = $stream;
+            }
 
-            if (@stream_select($read, $write, $except, 0, 0) > 0) {
-                $ready[] = new StreamPollHandle($id);
+            if (($entry->writable ?? false) === true) {
+                $this->readyWriteStreams[] = $stream;
             }
         }
-
-        return $ready;
     }
 
     protected function getHandleIdPrefix(): string
