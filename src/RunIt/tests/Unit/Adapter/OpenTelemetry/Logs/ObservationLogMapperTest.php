@@ -12,6 +12,7 @@ use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use OpenTelemetry\API\Logs\Severity;
+use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
@@ -124,7 +125,7 @@ final class ObservationLogMapperTest extends Unit
         }
 
         $spans = $spanExporter->getSpans();
-        /** @var SpanDataInterfacee $spanData */
+        /** @var SpanDataInterface $spanData */
         $spanData = $spans[0];
         $events = $spanData->getEvents();
         self::assertCount(1, $events);

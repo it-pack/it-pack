@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\OpenTelemetry;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Adapter\OpenTelemetry\BridgeCapability;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;

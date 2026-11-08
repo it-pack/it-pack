@@ -126,6 +126,24 @@ The direct leak control failed as expected. A working gate still needs an
 explicit-target audit, a runner that propagates strict-coverage errors, and
 verified Unit-only isolation; the controls are not a substitute for that gate.
 
+An experimental separate Codeception extension in the temporary directory
+`/tmp/kilo/runit-coverage-control/` starts its own per-test PCOV collection and
+reports strict-coverage exceptions through the result aggregator. On PHP 8.5.12,
+Codeception 5.3.7 and php-code-coverage 14.5.1, synthetic declared-target and
+allowed-collaborator controls exited 0; undeclared execution, missing targets,
+`CoversNothing`, and a `Medium` test leaking coverage exited 1. With PCOV
+disabled it failed, but also raised a second cleanup error. The fixture uses a
+two-file filter, not the real Unit source set, and is not a CI gate. Before
+adoption it needs fail-safe cleanup, Unit-only enforcement, complete source
+filtering and tests for discovery, providers, hooks, failures, skips, metadata
+forms, process isolation and simultaneous coverage collection. Temporary files
+are not durable; the experiment does not prove that declared targets are correct.
+
+A separate PHPUnit prototype failed the leak and missing-target controls only
+when coverage was enabled, but accepted `Medium` leaks and `CoversNothing` and
+could not expand the Codeception data-provider attribute used by a real test.
+It is therefore not a drop-in replacement for this suite.
+
 ## Phase 0: Baseline and safety net
 
 **Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
@@ -181,6 +199,31 @@ The originally reported token break is approved, not erased, and coverage
 enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
+
+At clean starting revision `109f0edf754ae53cdb09288c8c86f85c9a5430fd`,
+`php tests/target-policy-regressions.php` was added as an explicitly invoked
+target-policy harness, separate from the normal suites. On PHP 8.4 and 8.5 it
+exits 1 with ten failures: execution throwable messages and traces at three
+depths, observation trace omission at three depths, and unredacted sampler input.
+It checks metadata, immutability and two typed sampling policies as well. The
+failure is expected until the approved policies are implemented; this is not a
+security fix, and the harness does not cover exporter paths, opt-in behavior,
+or execution-kind sampling. Other high-priority target-policy evidence remains
+open, so Phase 0 is not complete.
+
+Six shared-domain Unit test classes gained reviewed coverage subjects and
+collaborators. Their focused suite passed 104 tests and 238 assertions; metadata
+alone does not enforce attribution. OpenTelemetry test PHPDoc type corrections
+and a fixture return correction removed a cascade of invalid PHPStan diagnostics.
+After removal of an unused import and a fixture formatting correction, `composer
+quality` passed validation, Rector and style and stopped at PHPStan with 78
+diagnostics, compared with the preceding 138 count; no full diagnostic-set
+comparison was performed. Architecture passed separately. On this environment,
+`composer audit` reported no advisories but exited 1 for the abandoned development
+dependency `doctrine/annotations`; `composer audit --no-dev` passed.
+The four configured suites and Unit-only coverage passed on PHP 8.5; coverage
+reported 3,575/4,090 statements. The change in aggregate after metadata updates
+is not evidence of isolation. The XML is generated and PCOV has no branch data.
 
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
 

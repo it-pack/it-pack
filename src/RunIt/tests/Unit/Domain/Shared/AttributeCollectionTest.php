@@ -5,12 +5,23 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Behavior\Domain\AttributeValidator;
+use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
+use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use stdClass;
 
+#[CoversClass(AttributeCollection::class)]
+#[UsesClass(AttributeValidator::class)]
+#[UsesClass(BoundedKeyGuard::class)]
+#[UsesClass(BoundedPrimitiveValueWalker::class)]
+#[UsesClass(InvalidAttributeException::class)]
+#[UsesClass(SecurityLimits::class)]
 final class AttributeCollectionTest extends Unit
 {
     public function testEmptyCollectionReportsEmpty(): void

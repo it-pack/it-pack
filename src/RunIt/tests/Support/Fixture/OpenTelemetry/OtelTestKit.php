@@ -72,7 +72,7 @@ final class OtelTestKit
         /** @var ReadableLogRecord $record */
         $record = $this->logExporter->getStorage()->offsetGet($index);
 
-        return $this->logExporter->getStorage()->offsetGet($index);
+        return $record;
     }
 
     /**
@@ -89,7 +89,7 @@ final class OtelTestKit
     {
         return array_find(
             $this->metrics(),
-            fn($metric) => $metric->name === $name
+            fn ($metric) => $metric->name === $name
         );
     }
 
