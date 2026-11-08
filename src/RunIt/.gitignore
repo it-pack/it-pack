@@ -40,3 +40,6 @@ packages/
 # deptrac
 /.deptrac.cache
 .deptrac.cache
+
+# graphify
+graphify-out/
