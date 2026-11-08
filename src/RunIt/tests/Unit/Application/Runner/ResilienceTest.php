@@ -8,8 +8,10 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -30,6 +32,7 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\EmptyArtifact;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
@@ -55,6 +58,74 @@ use Throwable;
  */
 final class ResilienceTest extends Unit
 {
+    public function testRunnerOuterFailSafeHandlesInnerHealthReporterFailures(): void
+    {
+        foreach (['normalization', 'fallback'] as $failureSource) {
+            foreach ([false, true] as $businessFails) {
+                $reportingFailure = new RuntimeException($failureSource . ' failed');
+                $artifact = self::createStub(ExecutionArtifactInterface::class);
+                $artifact->method('normalize')->willThrowException($reportingFailure);
+                $fallbackCalls = 0;
+                $health = new CallbackHealthReporter(
+                    static function (): never {
+                        throw new RuntimeException('callback failed');
+                    },
+                    new FallbackErrorLogReporter(static function () use (&$fallbackCalls, $reportingFailure): never {
+                        ++$fallbackCalls;
+                        throw $reportingFailure;
+                    }),
+                );
+                $inner = new FailSafeArtifactPublisher(new ThrowingArtifactPublisher(), new FailOpenPolicy(), $health);
+                $replacement = $failureSource === 'normalization' ? $artifact : null;
+                $publisher = new readonly class ($inner, $replacement) implements ArtifactPublisherInterface {
+                    public function __construct(
+                        private ArtifactPublisherInterface $inner,
+                        private ?ExecutionArtifactInterface $replacement,
+                    ) {
+                    }
+
+                    public function publish(ExecutionArtifactInterface $artifact): void
+                    {
+                        $this->inner->publish($this->replacement ?? $artifact);
+                    }
+                };
+                $reported = [];
+                $kit = new RunItTestKit(
+                    publisher: $publisher,
+                    onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
+                        $reported[] = $failure;
+                    },
+                );
+                $original = new RuntimeException('business failed');
+                $value = new stdClass();
+                $caught = null;
+                $result = null;
+                try {
+                    $operation = static function () use ($businessFails, $original, $value): object {
+                        if ($businessFails) {
+                            throw $original;
+                        }
+
+                        return $value;
+                    };
+                    $result = $kit->runner->run($this->definition(), $operation);
+                } catch (Throwable $failure) {
+                    $caught = $failure;
+                }
+
+                self::assertSame($businessFails ? $original : null, $caught);
+                self::assertSame($businessFails ? null : $value, $result);
+                self::assertCount($businessFails ? 4 : 3, $reported);
+                foreach ($reported as $failure) {
+                    self::assertSame($reportingFailure, $failure);
+                }
+
+                self::assertSame($failureSource === 'normalization' ? 0 : count($reported), $fallbackCalls);
+                self::assertNull($kit->storage->current());
+            }
+        }
+    }
+
     public function testTerminalSnapshotFactoryFailureSuppressesTerminalPublication(): void
     {
         foreach ([false, true] as $businessFails) {

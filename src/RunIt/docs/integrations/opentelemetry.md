@@ -81,6 +81,28 @@ $publisher = TelemetryPublisher::fromConfig($config);
 A `null` provider disables that signal without error, so a consumer can enable only the
 signals it needs.
 
+## Span context retention
+
+`TelemetryPublisher::fromConfig()` creates an in-memory store by default, shared by
+its execution and activity mappers. It retains contexts, not live spans, in separate
+ID-keyed maps with no limit, removal, or eviction. A long-lived publisher can therefore
+grow with the number of distinct execution and activity IDs. Reusing an ID replaces the
+previous context in that map; activity IDs are not scoped by execution. The maps live
+as long as their store remains reachable. A null tracer provider records nothing.
+
+An application can pass an `ExecutionSpanStoreInterface` as the second argument to
+`fromConfig()`. Both mappers use that exact store; sharing it between publishers also
+shares correlation and its lifetime. Custom stores define their own retention, duplicate
+handling, and concurrency properties. The interface permits eviction, but supplies no
+removal or capacity configuration contract.
+
+Each mapper looks up a parent before starting its span and records its own context
+after ending the span. Child executions look up their parent execution. Activities look
+up their parent activity first, then their execution if that lookup misses. If no stored
+parent is found, the bridge does not set an explicit parent; the OpenTelemetry builder
+may use the ambient context. A later parent does not reparent an already exported span.
+Evicting a context in a custom store can consequently alter linkage for late children.
+
 ## Cardiality and payload controls
 
 - `withMetricAttributeAllowList(['region'])` — only listed keys become metric
@@ -120,11 +142,12 @@ masked.
 
 ## Fiber considerations
 
-The bridge keeps correlation in an explicit, id-keyed span store rather than in global
-mutable context, so invoking the publisher from multiple Fibers cannot leak one
-execution's parent linkage into another. Fiber-aware OpenTelemetry context storage is
-optional; when it is unavailable the bridge still works because correlation is carried
-by RunIt artifact identity, not by ambient context.
+The bridge uses an explicit ID-keyed store for known parents, rather than relying on
+ambient context for those lookups. IDs must be suitably unique within a shared store:
+duplicates can replace another execution's or activity's context. Missing lookups can
+fall back to ambient OpenTelemetry context, whose isolation depends on its configured
+context storage. The default store provides no explicit synchronization or per-Fiber
+partitioning; assess custom stores and concurrent runtime use independently.
 
 ## Example
 

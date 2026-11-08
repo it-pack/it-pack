@@ -142,6 +142,14 @@ These tests exercise the publisher boundary with injected collaborators, not a
 real system error-log failure or the effect on a runner's business outcome. The
 diagnostic exposure and failure-    handling defects remain unresolved.
 
+Further runner-level characterization composes an inner fail-open publisher
+whose callback and normalization or injected fallback sink fail with the
+runner's own fail-safe publisher. For successful and failing business operations,
+the outer reporter receives the escaping inner failure, the returned object or
+original business exception is preserved, and the top-level scope is detached.
+This does not fix the inner publisher's escape or test a failing outer reporter,
+real system error log failure, or restoration of a previously attached scope.
+
 The current worktree's `composer coverage -- --silent` passed on PHP 8.5.12
 with Unit-only PCOV coverage of 3,610/4,087 statements (88.33%). The generated
 XML is `tests/_output/coverage.xml` and is not tracked; aggregate coverage does
@@ -328,6 +336,24 @@ messages and traces are masked, class and code remain, and the original is
 unchanged. This is a current-behavior test, not a security guarantee for other
 paths or a fix for nested attributes.
 
+Further characterization confirms configured occurrence data keys are masked
+recursively while an identically named occurrence extension attribute remains
+visible. A deliberately nonconforming custom projection also retains unknown
+fields and an object value. Built-in payload validation is a separate boundary;
+the redactor itself has no cycle detection or independent traversal depth bound.
+These tests characterize current behavior and do not establish safe handling of
+arbitrary custom projections.
+
+On 2026-11-08, starting from clean revision
+`8dc9825e0c981c30592ccf69135fd3aac47990a6`, the additional runner, redactor,
+and span-store characterizations passed in the PHP 8.5.12 `composer test`
+run and the PHP 8.4.27 Unit suite. The quality command passed validation,
+Rector and style, then stopped at PHPStan with 147 diagnostics; no complete
+diagnostic-set comparison was made for this run. Architecture passed separately;
+the line-length check reported 26 existing violations outside these changes.
+No production or public API behavior changed. Unit coverage, the complete PHP
+8.4 multi-suite matrix, and unavailable OpenSwoole and Swow paths were not rerun.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
@@ -387,6 +413,16 @@ do not establish coverage for unavailable OpenSwoole or Swow extensions.
 ## Phase 5: OpenTelemetry retention
 
 **Depends on:** Phase 0 and the span-store retention decision. **Review:** unbounded span-context store.
+
+**Preparatory characterization:** The default in-memory store retains execution
+and activity contexts in separate unbounded ID-keyed maps. Repeated IDs replace
+earlier values; activity keys are not scoped by execution. Activity mapping first
+looks up its parent activity, then the execution; child execution mapping looks up
+its parent execution. A missing stored parent leaves selection to the telemetry
+builder, and a later parent does not change an already exported child. Injected
+stores may be shared between publishers and thereby share correlation state. See
+`integrations/opentelemetry.md` for operational limitations. These tests do not
+establish a suitable retention limit, concurrent-store guarantees, or memory cost.
 
 - [ ] Trace `TelemetryPublisher::fromConfig()`, `InMemoryExecutionSpanStore`, execution/activity span mappers, and `ExecutionSpanStoreInterface`; characterize parent lookup order, lifetime, concurrency, and consumer-provided store behavior.
 - [ ] Add tests with many unique executions and activities, nested and late-arriving children, duplicate IDs, and a long-lived publisher. Assert the approved bound or lifecycle, parent lookup before and after eviction, and behavior of injected third-party stores.

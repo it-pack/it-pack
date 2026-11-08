@@ -219,6 +219,50 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('123-45-6789', $originalNested['ssn']);
     }
 
+    public function testOccurrenceExtensionAttributesAreNotCoveredByConfiguredKeys(): void
+    {
+        $original = Occurrence::create(
+            OccurrenceId::fromString('occ-extensions'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'source',
+            Instant::of(1000),
+            ['items' => [['password' => 'data-secret']]],
+            extensionAttributes: AttributeCollection::fromArray(['password' => 'extension-secret']),
+        );
+
+        $published = $this->publish($original)->normalize();
+        self::assertSame(['items' => [['password' => '[redacted]']]], $published['data']);
+        self::assertSame(['password' => 'extension-secret'], $published['extension_attributes']);
+    }
+
+    public function testUnsupportedCustomProjectionIsNotValidatedOrTraversed(): void
+    {
+        $object = (object) ['password' => 'object-secret'];
+        // Deliberately violates NormalizableInterface to characterize the boundary.
+        $artifact = new readonly class ($object) implements ExecutionArtifactInterface {
+            public function __construct(private object $value)
+            {
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'attributes' => ['password' => 'attribute-secret'],
+                    'unknown' => ['password' => 'unknown-secret'],
+                    'data' => ['password' => 'data-secret'],
+                    'object' => $this->value,
+                ];
+            }
+        };
+
+        $published = $this->publish($artifact)->normalize();
+        self::assertSame(['password' => '[redacted]'], $published['attributes']);
+        self::assertSame(['password' => 'unknown-secret'], $published['unknown']);
+        self::assertSame(['password' => 'data-secret'], $published['data']);
+        self::assertSame($object, $published['object']);
+    }
+
     public function testSnapshotPayloadIsMasked(): void
     {
         $original = ExecutionSnapshot::create(

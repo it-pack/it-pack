@@ -65,6 +65,24 @@ level. A composed PSR-3 logger test confirms that the same key inside a nested
 attribute reaches the logger unchanged. Do not put secrets in nested attributes
 and rely on these key settings to remove them.
 
+The current redactor matches configured keys exactly and case-sensitively. It
+walks arrays recursively only in occurrence `data` and snapshot `payload`, and
+only when the artifact implements the corresponding interface. Occurrence
+`extension_attributes`, other unknown fields, messages, identifiers, and values
+under unconfigured keys are not covered by that traversal. A unit characterization
+confirms that a matching key in occurrence extensions remains visible even when
+the same key in nested data is masked. Snapshot `content_hash` also remains the
+hash of the original payload after masking.
+
+Built-in occurrence and snapshot constructors normally validate payload values;
+custom implementations must honor the bounded, recursively primitive
+`NormalizableInterface` contract. The redactor itself neither validates that
+contract nor bounds recursion or detects cycles in custom projections. A test
+using a deliberately nonconforming custom artifact confirms that an object and
+unknown fields pass through unchanged, including when another field is masked.
+Such projections can expose data or exhaust resources; do not treat the redactor
+as a validator or sanitizer for untrusted artifact implementations.
+
 A composed OpenTelemetry test confirms that the outer exception message and
 trace of a failed execution reach the exported span event with default redaction.
 The test's nested-cause markers did not appear in those two event fields; this
