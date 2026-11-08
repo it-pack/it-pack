@@ -53,7 +53,7 @@ final readonly class FallbackErrorLogReporter
 
     /**
      * Records a primary failure plus the handler fault that occurred while
-     * reporting it. Never throws.
+     * reporting it. Exceptions from an injected log destination can propagate.
      */
     public function report(Throwable $primary, Throwable $handlerFault, ?string $artifactId = null): void
     {

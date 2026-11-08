@@ -40,16 +40,19 @@ final class FailSafeArtifactPublisher implements
     private int $publishDepth = 0;
 
     public function __construct(
-        private ArtifactPublisherInterface        $inner,
-        private PublicationFailurePolicyInterface $policy,
-        private ?InternalHealthReporterInterface  $health = null,
+        private readonly ArtifactPublisherInterface        $inner,
+        private readonly PublicationFailurePolicyInterface $policy,
+        private readonly ?InternalHealthReporterInterface  $health = null,
     ) {
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         if ($this->publishDepth > 0) {
-            $this->health?->report(RecursivePublicationException::forNestedPublish(), $artifact);
+            $this->health?->report(
+                RecursivePublicationException::forNestedPublish(),
+                $artifact
+            );
 
             return;
         }
@@ -71,5 +74,4 @@ final class FailSafeArtifactPublisher implements
             --$this->publishDepth;
         }
     }
-
 }

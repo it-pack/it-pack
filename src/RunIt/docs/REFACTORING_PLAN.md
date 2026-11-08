@@ -132,7 +132,26 @@ the environment, workload, reported variation and limitations are recorded in
 `benchmarks.md`. It does not cover all planned hot paths or overflow patterns.
 The above characterizations do not fix the defects or complete Phase 0.
 
-The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. On 2026-11-06, `composer api:check` exited 1 on the current dirty tree for nine additive symbols and reported zero backward-compatibility breaks; this does not authorize a further baseline update. The current observation-level nested-redaction test passes, but failed-execution and adapter export paths, sampler input, byte admission, default failure reporting, concurrency risk, and complete token-ownership scenarios still require individual reproduction or documented reasons they cannot yet be reproduced. Phase 0 is not complete.
+Starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
+`FailureHandlingTest` additionally characterizes publication failure reporting.
+With no health reporter the fail-open publisher drops the failure. A throwing
+callback followed by a successful fallback logs both exception messages and the
+artifact ID. A throwing injected fallback sink escapes the fail-open publisher;
+so does an exception from artifact normalization before the fallback is invoked.
+These tests exercise the publisher boundary with injected collaborators, not a
+real system error-log failure or the effect on a runner's business outcome. The
+diagnostic exposure and failure-handling defects remain unresolved.
+
+The current worktree's `composer coverage -- --silent` passed on PHP 8.5.12
+with Unit-only PCOV coverage of 3,610/4,087 statements (88.33%). The generated
+XML is `tests/_output/coverage.xml` and is not tracked; aggregate coverage does
+not establish per-test attribution, and PCOV does not report branch coverage.
+`composer audit` found no security advisories and reported abandoned development
+dependency `doctrine/annotations`; `composer audit --no-dev` found no advisories.
+`composer why doctrine/annotations --tree` traces it through PHPBench 1.7.0 and
+the development dependency `just-bases/php-qa-base` 1.0.9.
+
+The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. An earlier `composer api:check` exited 1 for nine additive symbols and reported zero backward-compatibility breaks; the later ten-addition result is recorded above. This does not authorize a further baseline update. The characterizations above and in Phase 2 reproduce several of the previously outstanding paths, but do not exhaust all adapter, failure-reporting, concurrency, or ownership scenarios. Phase 0 is not complete.
 
 ## Phase 1: Compatibility and context ownership
 
@@ -215,6 +234,26 @@ not the approved target. A severity-policy check demonstrates why simply moving
 the generic redacted wrapper ahead of sampling changes the decision. The focused
 suite passed on PHP 8.5.12 and 8.4.27 (13 tests, 42 assertions); error override,
 execution-kind composition, and the redaction-first target remain open.
+
+**Additional characterization (2026-11-06):** At baseline revision
+`91ab15a7567a75b713487acd0b51bc9d0249fbe6`, composed OpenTelemetry tests
+show that the default redactor permits a failed execution's outer throwable
+message and trace into the exported span event. The tested event fields did not
+include the two nested-cause markers; other output fields and exporters have not
+been proven safe. The explicit throwable-redaction opt-out also exports those
+outer fields. The tests use synthetic secrets and preserve the original artifact.
+
+Factory-composed sampling tests show that error override keeps original error
+observations and execution-kind sampling keeps allowed original observations;
+both policies reject changed generic projections in the tested configurations.
+These are current-behavior characterizations, not redaction-first factory tests
+or approval of the existing leak. Target-policy assertions and routing remain
+open; the tests documenting unsafe behavior must change when the defects are fixed.
+The focused telemetry, sampling and failure-handling files passed on PHP 8.4 and
+8.5. An initial concurrent PHP 8.4 invocation raced on generated Codeception
+support; running the three files sequentially passed. Subsequently,
+`php8.4 vendor/bin/codecept run --silent` passed the full configured test run;
+this does not cover unavailable runtime extensions.
 
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.

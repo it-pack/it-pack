@@ -60,6 +60,16 @@ original artifact. A changed artifact is represented by a generic projection,
 which not all typed adapter paths accept. Directly configured publishers and
 `withRedactor(null)` can bypass redaction altogether.
 
+A composed OpenTelemetry test confirms that the outer exception message and
+trace of a failed execution reach the exported span event with default redaction.
+The test's nested-cause markers did not appear in those two event fields; this
+does not establish that other fields or exporters are safe.
+
+When a publication health callback fails, the fallback reporter can log both
+exception messages and the artifact ID. Those diagnostics may contain sensitive
+data; treat the fallback log as sensitive and avoid placing secrets in exception
+messages or identifiers.
+
 Until the Phase 2 work in `docs/REFACTORING_PLAN.md` is complete, do not rely on
 the built-in publisher stack to remove secrets from all artifact fields or from
 sampler inputs. Apply and verify an appropriate independent sanitization policy
