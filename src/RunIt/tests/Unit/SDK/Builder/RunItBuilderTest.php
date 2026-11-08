@@ -56,8 +56,8 @@ use Tests\Support\Fixture\ThrowingArtifactPublisher;
 use Tests\Support\Fixture\ThrowingSnapshotStore;
 use Throwable;
 
-#[CoversClass(className: RunItBuilder::class)]
-#[CoversClass(className: MissingBuilderDependencyException::class)]
+#[CoversClass(RunItBuilder::class)]
+#[CoversClass(MissingBuilderDependencyException::class)]
 final class RunItBuilderTest extends TestCase
 {
     private function builder(): RunItBuilderInterface

@@ -28,6 +28,16 @@ control did not fail for an undeclared class. See `REFACTORING_PLAN.md` for the
 investigation and remaining enforcement work; do not treat a passing coverage
 command as proof that unintended coverage is rejected.
 
+### Target-policy regressions
+
+Run `php tests/target-policy-regressions.php` separately to check the approved
+redaction, sampling, health-reporting and buffer byte-bound targets. It currently
+exits nonzero for known violations and is intentionally excluded from the normal
+Codeception suites; a passing normal suite does not mean those policies are
+implemented. The checks use synthetic inputs and do not cover every exporter,
+configuration, overflow edge case or failure path. See `REFACTORING_PLAN.md` for
+the observed failures and remaining design gates.
+
 ### Suite-leakage rule (Phase 0, T0.5)
 
 Suites mirror namespaces: Unit tests target Domain/Application/SDK/Behavior/

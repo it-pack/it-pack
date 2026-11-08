@@ -26,8 +26,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-#[CoversClass(className: DefaultRunIt::class)]
-#[CoversClass(className: RunItBuilder::class)]
+#[CoversClass(DefaultRunIt::class)]
+#[CoversClass(RunItBuilder::class)]
 final class DefaultRunItTest extends TestCase
 {
     private function runtime(): RunItInterface

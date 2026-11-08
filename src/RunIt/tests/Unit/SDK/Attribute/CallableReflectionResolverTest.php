@@ -13,7 +13,7 @@ use Tests\Support\Fixture\SDK\ExtendedSampleService;
 use Tests\Support\Fixture\SDK\SampleInvokable;
 use Tests\Support\Fixture\SDK\SampleService;
 
-#[CoversClass(className: CallableReflectionResolver::class)]
+#[CoversClass(CallableReflectionResolver::class)]
 final class CallableReflectionResolverTest extends TestCase
 {
     private CallableReflectionResolver $resolver;
@@ -31,9 +31,9 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve($methodString);
 
-        $this->assertInstanceOf(ReflectionMethod::class, $reflection);
-        $this->assertSame($class, $reflection->getDeclaringClass()->getName());
-        $this->assertSame($method, $reflection->getName());
+        self::assertInstanceOf(ReflectionMethod::class, $reflection);
+        self::assertSame($class, $reflection->getDeclaringClass()->getName());
+        self::assertSame($method, $reflection->getName());
     }
 
     public function testResolveMethodArray(): void
@@ -43,9 +43,9 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve([$class, $method]);
 
-        $this->assertInstanceOf(ReflectionMethod::class, $reflection);
-        $this->assertSame($class, $reflection->getDeclaringClass()->getName());
-        $this->assertSame($method, $reflection->getName());
+        self::assertInstanceOf(ReflectionMethod::class, $reflection);
+        self::assertSame($class, $reflection->getDeclaringClass()->getName());
+        self::assertSame($method, $reflection->getName());
     }
 
     public function testResolveObjectMethodArray(): void
@@ -55,9 +55,9 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve([new $class(), $method]);
 
-        $this->assertInstanceOf(ReflectionMethod::class, $reflection);
-        $this->assertSame($class, $reflection->getDeclaringClass()->getName());
-        $this->assertSame($method, $reflection->getName());
+        self::assertInstanceOf(ReflectionMethod::class, $reflection);
+        self::assertSame($class, $reflection->getDeclaringClass()->getName());
+        self::assertSame($method, $reflection->getName());
     }
 
     public function testResolveInvokable(): void
@@ -67,9 +67,9 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve(new $class());
 
-        $this->assertInstanceOf(ReflectionMethod::class, $reflection);
-        $this->assertSame($class, $reflection->getDeclaringClass()->getName());
-        $this->assertSame($method, $reflection->getName());
+        self::assertInstanceOf(ReflectionMethod::class, $reflection);
+        self::assertSame($class, $reflection->getDeclaringClass()->getName());
+        self::assertSame($method, $reflection->getName());
     }
 
     public function testClosureFromMethod(): void
@@ -78,9 +78,10 @@ final class CallableReflectionResolverTest extends TestCase
         $method = 'run';
 
         $reflection = $this->resolver->resolve(
-            new $class()->{$method}(...),
+            new $class()->run(...),
         );
-        $this->assertSame($method, $reflection->getName());
+        self::assertInstanceOf(ReflectionFunction::class, $reflection);
+        self::assertSame($method, $reflection->getName());
     }
 
     public function testClosureFromExtendedClassMethod(): void
@@ -89,9 +90,10 @@ final class CallableReflectionResolverTest extends TestCase
         $method = 'run';
 
         $reflection = $this->resolver->resolve(
-            new $class()->{$method}(...),
+            new $class()->run(...),
         );
-        $this->assertSame($method, $reflection->getName());
+        self::assertInstanceOf(ReflectionFunction::class, $reflection);
+        self::assertSame($method, $reflection->getName());
     }
 
     public function testFunctionString(): void
@@ -100,8 +102,8 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve($function);
 
-        $this->assertInstanceOf(ReflectionFunction::class, $reflection);
-        $this->assertSame($function, $reflection->getName());
+        self::assertInstanceOf(ReflectionFunction::class, $reflection);
+        self::assertSame($function, $reflection->getName());
     }
 
     public function testLambdaFunction(): void
@@ -110,7 +112,7 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve($function);
 
-        $this->assertInstanceOf(ReflectionFunction::class, $reflection);
+        self::assertInstanceOf(ReflectionFunction::class, $reflection);
     }
 
     public function testClosure(): void
@@ -119,6 +121,6 @@ final class CallableReflectionResolverTest extends TestCase
 
         $reflection = $this->resolver->resolve($function(...));
 
-        $this->assertInstanceOf(ReflectionFunction::class, $reflection);
+        self::assertInstanceOf(ReflectionFunction::class, $reflection);
     }
 }

@@ -139,6 +139,20 @@ filtering and tests for discovery, providers, hooks, failures, skips, metadata
 forms, process isolation and simultaneous coverage collection. Temporary files
 are not durable; the experiment does not prove that declared targets are correct.
 
+Further temporary prototype controls fixed the secondary error when PCOV is
+unavailable. Setup and teardown leaks failed for both provider datasets, but
+provider execution occurred before collection and was not detected. Failure and
+skip outcomes remained visible alongside teardown coverage errors; a mixed
+ten-test run continued after negative controls. With a recursively enumerated
+production-source filter, one real `NamesAndKindsTest` run expanded 50 cases
+and reported 26 strict-coverage errors involving `StringValueEquality` or
+`InvalidStringValueException`; these are unadjudicated prototype findings, not
+proof that metadata is wrong. The experimental extension also ran on Integration
+and produced missing-target errors, so Unit-only selection is not enforced.
+Provider handling, exact filter equivalence, process isolation, simultaneous
+coverage, partial driver-start failures and the full Unit suite remain unverified.
+The prototype is still not suitable for CI.
+
 A separate PHPUnit prototype failed the leak and missing-target controls only
 when coverage was enabled, but accepted `Medium` leaks and `CoversNothing` and
 could not expand the Codeception data-provider attribute used by a real test.
@@ -187,10 +201,10 @@ themselves satisfy the literal exit criterion.
 
 | Review issue | Existing reproduction | Remaining evidence |
 | --- | --- | --- |
-| Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent` | Target-policy negative tests across causes, traces, and exporters. |
-| Sampling before redaction | Factory-composed spy and typed-policy cases in `SamplingTest` | Redaction-first target and compatible typed routing tests. |
-| Buffer byte limit | Oversized, projected-overflow, eviction, integer-overflow and timeout cases in `BufferingTest` | Target-invariant matrix and approved edge semantics. |
-| Silent or recursive publication failures | `FailureHandlingTest` and runner `ResilienceTest` | Recursion-safe reporting target and real system-log failure evidence. |
+| Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php` | Target-policy negative tests for exporters and configuration. |
+| Sampling before redaction | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php` | Redaction-first implementation and broader typed routing tests. |
+| Buffer byte limit | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php` | Complete target-invariant matrix and approved edge semantics. |
+| Silent or recursive publication failures | `FailureHandlingTest`, runner `ResilienceTest`, and bounded recursive reporter target control | Other system-log configurations and recursion-safe implementation. |
 | Token interface compatibility | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline | Final migration, versioning and API-check verification for external implementers. |
 | Unit coverage and attribution | Unit-only XML and synthetic attribution controls recorded below | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
 | Synchronous context under concurrency | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest` | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable. |
@@ -224,6 +238,29 @@ dependency `doctrine/annotations`; `composer audit --no-dev` passed.
 The four configured suites and Unit-only coverage passed on PHP 8.5; coverage
 reported 3,575/4,090 statements. The change in aggregate after metadata updates
 is not evidence of isolation. The XML is generated and PCOV has no branch data.
+
+At clean starting revision `59110b4329f7e0a301d9a8cf2c6614e4e9347746`, the
+target-policy harness gained a bounded recursive health-reporter control and
+oversized and projected-overflow byte-bound checks for all five strategies. It
+does not prescribe whether an overflowing item must be dropped or rejected.
+PHP 8.4 and 8.5 each reported 21 expected failures: the original ten, one
+recursive-reporting violation, and ten byte-bound violations. These are failing
+target assertions, not fixes; implementation and other Phase 0 evidence remain
+open. PHPUnit coverage attributes were also switched from unsupported named
+constructor arguments to equivalent positional arguments in ten Unit files.
+Static PHPUnit calls in the callable-reflection and Swoole detector tests were
+corrected, and reflection results are checked before dereferencing. On PHP
+8.5.12 the four configured suites passed; Unit-only PCOV coverage was
+3,575/4,090 statements. `composer quality` passed validation, Rector and style,
+then stopped at PHPStan with 38 diagnostics (the previous run had 78; the full
+diagnostic sets were not compared). API checking exited 1 for ten additions and
+reported no detected breaks. All four configured suites passed separately on
+PHP 8.4.27; branch coverage was not measured and OpenSwoole and Swow were not
+loaded. Architecture
+passed separately and line-length checking reported 26 violations outside the
+changed regression harness. `composer audit --no-dev` reported no advisories;
+full `composer audit` reported no advisories but exited 1 for the abandoned
+development dependency `doctrine/annotations`.
 
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
 

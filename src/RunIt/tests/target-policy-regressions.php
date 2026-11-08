@@ -9,9 +9,17 @@ require __DIR__ . '/../vendor/autoload.php';
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\BufferConfiguration;
+use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
+use ItPack\RunIt\Application\Publication\BufferOverflowException;
+use ItPack\RunIt\Application\Publication\CallbackArtifactPublisher;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\ErrorOverrideSamplePolicy;
+use ItPack\RunIt\Application\Publication\FailOpenPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
+use ItPack\RunIt\Application\Publication\OverflowStrategy;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -29,6 +37,8 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
+use Tests\Support\Fixture\DeterministicMonotonicClock;
 
 $failures = [];
 $check = static function (bool $condition, string $message) use (&$failures): void {
@@ -64,7 +74,9 @@ foreach (['execution' => $execution, 'observation' => $observation] as $name => 
     $sink = new InMemoryArtifactPublisher();
     new RedactingArtifactPublisher(new DefaultArtifactRedactor(), $sink)->publish($artifact);
     $published = $sink->published()[0]->normalize();
-    $throwable = $name === 'execution' ? ($published['result']['throwable'] ?? null) : ($published['throwable'] ?? null);
+    $throwable = $name === 'execution'
+        ? ($published['result']['throwable'] ?? null)
+        : ($published['throwable'] ?? null);
     foreach ([['OuterException', 2], ['MiddleException', 1], ['InnerException', 0]] as $depth => [$class, $code]) {
         $check(is_array($throwable), "$name cause $depth is present");
         if (!is_array($throwable)) {
@@ -126,6 +138,65 @@ foreach ([
         count($published) === 1 && ($published[0]->normalize()['attributes']['private'] ?? null) === '[redacted]',
         "$name publishes the redacted artifact"
     );
+}
+
+$calls = 0;
+$reports = 0;
+$publisher = null;
+$health = new CallbackHealthReporter(
+    static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports, &$publisher): void {
+        ++$reports;
+        if ($reports < 4 && $publisher instanceof FailSafeArtifactPublisher) {
+            $publisher->publish($artifact);
+        }
+    },
+);
+$sink = new CallbackArtifactPublisher(static function () use (&$calls): never {
+    ++$calls;
+    throw new RuntimeException('synthetic transport failure');
+});
+$publisher = new FailSafeArtifactPublisher($sink, new FailOpenPolicy(), $health);
+$publisher->publish($observation);
+$check($reports === 1, 'recursive health publication does not reenter the health reporter');
+$check($calls === 1, 'recursive health publication does not reenter the failing sink');
+$previousReports = $reports;
+$publisher->publish($observation);
+$check($calls === 2, 'publication guard resets after recursive health reporting');
+$check($reports === $previousReports + 1, 'health reporting resumes for a subsequent independent failure');
+
+foreach (OverflowStrategy::cases() as $strategy) {
+    foreach (['oversized', 'projected'] as $scenario) {
+        $buffer = new BufferedArtifactPublisher(
+            new BufferConfiguration(
+                maxItems: 10,
+                maxEstimatedBytes: 100,
+                maxAgeSeconds: 60,
+                batchSize: 10,
+                flushIntervalSeconds: 5,
+                shutdownFlushBudget: 10,
+                overflow: $strategy,
+            ),
+            new InMemoryArtifactPublisher(),
+            new DeterministicMonotonicClock(1000, 0),
+            new DeterministicArtifactByteEstimator(60, ['oversized' => 101]),
+        );
+        $ids = $scenario === 'oversized' ? ['oversized'] : ['first', 'second'];
+        foreach ($ids as $itemId) {
+            try {
+                $buffer->publish(Observation::info(ObservationId::fromString($itemId), $id, 'synthetic'));
+            } catch (BufferOverflowException) {
+                // Rejection is permitted; the invariant is independent of the disposition.
+            }
+
+            $check(
+                $buffer->estimatedBytes() <= 100,
+                "{$strategy->name} $scenario after $itemId stays within the estimated-byte limit"
+            );
+        }
+
+        $buffer->flush();
+        $check($buffer->estimatedBytes() === 0, "{$strategy->name} $scenario accounting clears after flush");
+    }
 }
 
 foreach ($failures as $failure) {
