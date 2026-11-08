@@ -8,14 +8,25 @@ Milestone M13 ("Conformance Tooling and QA Completion") static-analysis work.
 
 ### Statement coverage (Phase 0, T0.4 of the 2026-08-25 plan)
 
-Statement coverage over `src`, measured by the shipped pipeline
-(`Unit,Conformance,Integration,Concurrency` with pcov via
-`codeception.yml`), is **95.24% (3278/3442 statements)** as of 2026-08-25 —
-the review bar of ≥95% is met and becomes the new floor for future changes.
-The residual uncovered statements are concentrated in Conformance verifiers
-(self-exercise is Phase 2 of the plan), Swoole adapter branches that require
-ext-swoole, and documented defensive-only paths (e.g. the serializer's decode
-failure catch, whose encode side is guarded by prior validation).
+`composer coverage` measures the Unit suite only. The former combined-suite
+95.24% figure from 2026-08-25 is historical and does not establish Unit-only
+coverage or per-test attribution. The refactoring plan records more recent
+measurements, limitations and the target CI gate.
+
+Declare the actual subject of a Unit test with PHPUnit coverage attributes;
+use `UsesClass` or equivalent metadata for justified real collaborators rather
+than crediting them as subjects. Use `CoversNothing` only when the test should
+credit no production code, not merely because it exercises several classes or
+checks properties. Named data sets can make shared invariants independently
+identifiable; preserve setup and cases when converting to `DataProvider`. The
+installed Codeception Unit loader recognizes `Codeception\Attribute\DataProvider`;
+verify dataset discovery when using another runner or changing runner versions.
+
+Coverage attributes express intent and affect attribution, but they do not by
+themselves prove isolation. The installed Codeception strict-coverage negative
+control did not fail for an undeclared class. See `REFACTORING_PLAN.md` for the
+investigation and remaining enforcement work; do not treat a passing coverage
+command as proof that unintended coverage is rejected.
 
 ### Suite-leakage rule (Phase 0, T0.5)
 

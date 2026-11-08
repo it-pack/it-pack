@@ -19,6 +19,8 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Throwable;
 
@@ -26,6 +28,19 @@ use Throwable;
  * @group application
  * @group publication
  */
+#[CoversClass(CallbackHealthReporter::class)]
+#[CoversClass(CollectAndContinuePolicy::class)]
+#[CoversClass(FailClosedPolicy::class)]
+#[CoversClass(FailOpenPolicy::class)]
+#[CoversClass(FailSafeArtifactPublisher::class)]
+#[CoversClass(ReportToFallbackPolicy::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackArtifactPublisher::class)]
+#[UsesClass(FallbackErrorLogReporter::class)]
+#[UsesClass(RecursivePublicationException::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
 final class FailureHandlingTest extends Unit
 {
     private function artifact(): ExecutionArtifactInterface

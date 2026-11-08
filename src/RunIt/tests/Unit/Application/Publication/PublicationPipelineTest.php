@@ -8,17 +8,26 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Common\DefaultArtifactByteEstimator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\ArtifactTypeFilter;
 use ItPack\RunIt\Application\Publication\BufferConfiguration;
+use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\FailClosedPolicy;
+use ItPack\RunIt\Application\Publication\FailOpenPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\FilteringArtifactPublisher;
 use ItPack\RunIt\Application\Publication\GuardedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\ObservationSeverityFilter;
 use ItPack\RunIt\Application\Publication\OverflowStrategy;
+use ItPack\RunIt\Application\Publication\PublicationGuard;
 use ItPack\RunIt\Application\Publication\PublicationPipeline;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
@@ -31,12 +40,44 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(PublicationPipeline::class)]
+#[UsesClass(DefaultArtifactByteEstimator::class)]
+#[UsesClass(SystemMonotonicClock::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(PublisherStackFactory::class)]
+#[UsesClass(ArtifactRedactionConfig::class)]
+#[UsesClass(ArtifactTypeFilter::class)]
+#[UsesClass(BufferConfiguration::class)]
+#[UsesClass(CallbackArtifactPublisher::class)]
+#[UsesClass(DefaultArtifactRedactor::class)]
+#[UsesClass(FailClosedPolicy::class)]
+#[UsesClass(GuardedArtifactPublisher::class)]
+#[UsesClass(NeverSamplePolicy::class)]
+#[UsesClass(ObservationSeverityFilter::class)]
+#[UsesClass(BufferedArtifactPublisher::class)]
+#[UsesClass(FailOpenPolicy::class)]
+#[UsesClass(FailSafeArtifactPublisher::class)]
+#[UsesClass(FilteringArtifactPublisher::class)]
+#[UsesClass(PublicationGuard::class)]
+#[UsesClass(RedactedArtifact::class)]
+#[UsesClass(RedactingArtifactPublisher::class)]
+#[UsesClass(SamplingArtifactPublisher::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
+#[UsesClass(Occurrence::class)]
+#[UsesClass(OccurrenceId::class)]
+#[UsesClass(OccurrenceType::class)]
+#[UsesClass(AttributeCollection::class)]
+#[UsesClass(Instant::class)]
 final class PublicationPipelineTest extends Unit
 {
     private MonotonicClockInterface $clock;

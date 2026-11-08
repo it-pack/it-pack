@@ -19,6 +19,8 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
@@ -29,6 +31,15 @@ use TypeError;
  * @group application
  * @group publication
  */
+#[CoversClass(BufferedArtifactPublisher::class)]
+#[UsesClass(DefaultArtifactByteEstimator::class)]
+#[UsesClass(SystemMonotonicClock::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(BufferConfiguration::class)]
+#[UsesClass(BufferOverflowException::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
 final class BufferingTest extends Unit
 {
     private MonotonicClockInterface $clock;

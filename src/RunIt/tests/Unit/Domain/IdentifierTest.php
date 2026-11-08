@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain;
 
 use Closure;
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\CorrelationIdInterface;
@@ -21,7 +22,17 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Shared\CorrelationId;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
+#[CoversClass(ActivityId::class)]
+#[CoversClass(CorrelationId::class)]
+#[CoversClass(ExecutionId::class)]
+#[CoversClass(ObservationId::class)]
+#[CoversClass(OccurrenceId::class)]
+#[CoversClass(SnapshotId::class)]
+#[UsesClass(InvalidIdentifierException::class)]
+#[UsesClass(StringIdentifierValidator::class)]
 final class IdentifierTest extends Unit
 {
     public const string VALUE = '018f3a1c-6f0e-7c4a-9f2b-0c1d2e3f4a5b';
@@ -48,9 +59,8 @@ final class IdentifierTest extends Unit
     /**
      * @param Closure(string): StringIdentifierInterface $create
      * @param class-string                               $contract
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testIdentifierSatisfiesItsContract(Closure $create, string $contract): void
     {
         $identifier = $create(self::VALUE);
@@ -61,9 +71,8 @@ final class IdentifierTest extends Unit
 
     /**
      * @param Closure(string): StringIdentifierInterface $create
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testStringConversionIsDeterministicAndVerbatim(Closure $create): void
     {
         $identifier = $create(self::VALUE);
@@ -75,9 +84,8 @@ final class IdentifierTest extends Unit
 
     /**
      * @param Closure(string): StringIdentifierInterface $create
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testEqualityIsByValue(Closure $create): void
     {
         $first = $create(self::VALUE);
@@ -103,9 +111,8 @@ final class IdentifierTest extends Unit
 
     /**
      * @param Closure(string): StringIdentifierInterface $create
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testEmptyValueIsRejected(Closure $create): void
     {
         $this->expectException(InvalidIdentifierException::class);
@@ -115,9 +122,8 @@ final class IdentifierTest extends Unit
 
     /**
      * @param Closure(string): StringIdentifierInterface $create
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testValueExceedingTheMaximumLengthIsRejected(Closure $create): void
     {
         $this->expectException(InvalidIdentifierException::class);
@@ -127,9 +133,8 @@ final class IdentifierTest extends Unit
 
     /**
      * @param Closure(string): StringIdentifierInterface $create
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testValueAtTheMaximumLengthIsAccepted(Closure $create): void
     {
         $value = str_repeat('a', StringIdentifierValidator::MAX_LENGTH);
@@ -139,9 +144,8 @@ final class IdentifierTest extends Unit
 
     /**
      * @param Closure(string): StringIdentifierInterface $create
-     *
-     * @dataProvider identifierProvider
      */
+    #[DataProvider('identifierProvider')]
     public function testWhitespaceIsRejectedRatherThanTrimmed(Closure $create): void
     {
         $this->expectException(InvalidIdentifierException::class);

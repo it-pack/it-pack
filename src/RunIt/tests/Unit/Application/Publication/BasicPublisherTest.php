@@ -15,12 +15,21 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(NullArtifactPublisher::class)]
+#[CoversClass(InMemoryArtifactPublisher::class)]
+#[CoversClass(CallbackArtifactPublisher::class)]
+#[CoversClass(CompositeArtifactPublisher::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
 final class BasicPublisherTest extends Unit
 {
     private function artifact(): ExecutionArtifactInterface

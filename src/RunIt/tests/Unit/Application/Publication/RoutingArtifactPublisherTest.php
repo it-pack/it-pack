@@ -9,6 +9,8 @@ use ItPack\RunIt\Application\Publication\PublicationRoute;
 use ItPack\RunIt\Application\Publication\RoutingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Tests\Support\Fixture\LifecycleSpy;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 
@@ -16,6 +18,8 @@ use Tests\Support\Fixture\RecordingArtifactPublisher;
  * @group application
  * @group publication
  */
+#[CoversClass(RoutingArtifactPublisher::class)]
+#[UsesClass(PublicationRoute::class)]
 final class RoutingArtifactPublisherTest extends Unit
 {
     public function testMatchingRouteReceivesTheArtifact(): void

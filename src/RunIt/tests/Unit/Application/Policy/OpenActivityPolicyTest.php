@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Policy;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\AutoCancelOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
@@ -29,6 +30,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 use stdClass;
 use Tests\Support\Fixture\RunItTestKit;
@@ -38,6 +40,10 @@ use Throwable;
  * @group application
  * @group policy
  */
+#[CoversClass(AutoCancelOpenActivitiesPolicy::class)]
+#[CoversClass(AutoFailOpenActivitiesPolicy::class)]
+#[CoversClass(FailExecutionOnOpenActivitiesPolicy::class)]
+#[CoversClass(WarnAndIgnoreOpenActivitiesPolicy::class)]
 final class OpenActivityPolicyTest extends Unit
 {
     private RunItTestKit $kit;
@@ -50,7 +56,7 @@ final class OpenActivityPolicyTest extends Unit
     /**
      * @return iterable<string, array{0: ExecutionCompletionPolicyInterface, 1: ObservationSeverity, 2: string}>
      */
-    public function policyProvider(): iterable
+    public static function policyProvider(): iterable
     {
         yield 'auto-fail' => [new AutoFailOpenActivitiesPolicy(), ObservationSeverity::Warning, 'auto-resolved'];
         yield 'auto-cancel' => [new AutoCancelOpenActivitiesPolicy(), ObservationSeverity::Warning, 'auto-cancelled'];
@@ -93,9 +99,7 @@ final class OpenActivityPolicyTest extends Unit
         return $observations[0];
     }
 
-    /**
-     * @dataProvider policyProvider
-     */
+    #[DataProvider('policyProvider')]
     public function testPolicyRecordsDiagnosticObservationForOpenActivity(
         ExecutionCompletionPolicyInterface $policy,
         ObservationSeverity $severity,

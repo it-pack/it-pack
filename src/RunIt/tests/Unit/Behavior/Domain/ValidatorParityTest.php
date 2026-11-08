@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Tests\Unit\Behavior\Domain;
 
 use Closure;
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Behavior\Domain\AttributeValidator;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use stdClass;
 
 /**
@@ -17,6 +19,8 @@ use stdClass;
  * accept/reject sets so the shared implementation cannot silently diverge from
  * either public contract.
  */
+#[CoversClass(AttributeValidator::class)]
+#[CoversClass(ContextValueValidator::class)]
 final class ValidatorParityTest extends Unit
 {
     /**
@@ -48,9 +52,7 @@ final class ValidatorParityTest extends Unit
         ];
     }
 
-    /**
-     * @dataProvider acceptedValueProvider
-     */
+    #[DataProvider('acceptedValueProvider')]
     public function testAcceptedSetsAreIdentical(string $label, mixed $value): void
     {
         $this->assertAccepted(
@@ -64,9 +66,7 @@ final class ValidatorParityTest extends Unit
         );
     }
 
-    /**
-     * @dataProvider rejectedValueProvider
-     */
+    #[DataProvider('rejectedValueProvider')]
     public function testRejectedSetsAreIdentical(string $label, mixed $value): void
     {
         $this->assertRejected(

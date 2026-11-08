@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Application\Publication\BoundDropException;
 use ItPack\RunIt\Application\Publication\BoundedArtifactPublisher;
+use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
+use ItPack\RunIt\Application\Publication\PayloadSectionByteEstimator;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
@@ -18,6 +21,8 @@ use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\RecordingArtifactPublisher;
 
@@ -25,6 +30,20 @@ use Tests\Support\Fixture\RecordingArtifactPublisher;
  * @group application
  * @group security
  */
+#[CoversClass(BoundedArtifactPublisher::class)]
+#[UsesClass(BoundDropException::class)]
+#[UsesClass(FallbackErrorLogReporter::class)]
+#[UsesClass(PayloadSectionByteEstimator::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Occurrence::class)]
+#[UsesClass(OccurrenceId::class)]
+#[UsesClass(OccurrenceType::class)]
+#[UsesClass(DeterministicHashCalculator::class)]
+#[UsesClass(Instant::class)]
+#[UsesClass(SecurityLimits::class)]
+#[UsesClass(Snapshot::class)]
+#[UsesClass(SnapshotId::class)]
+#[UsesClass(SnapshotType::class)]
 final class BoundedArtifactPublisherTest extends Unit
 {
     private RecordingArtifactPublisher $inner;

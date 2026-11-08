@@ -64,6 +64,27 @@ requires an explicit-target audit, isolated Unit-only output, and negative
 controls for unrelated execution, allowed collaborators, and missing metadata.
 No working isolation gate or CI enforcement has yet been demonstrated.
 
+The Unit metadata preparation now declares explicit subjects for the domain
+identifier, value and artifact-invariant tests and the publication test group.
+Real collaborators are distinguished with `UsesClass` where identified.
+Legacy provider annotations are being replaced with the Codeception
+`DataProvider` attribute: the installed Unit loader does not discover PHPUnit's
+equivalent. Artifact providers use factories so production objects are created
+inside each test rather than during provider discovery. These declarations are
+an incremental inventory, not proof of isolation or complete suite metadata;
+remaining Unit test classes still require individual subject and collaborator
+review and the negative-control gate remains open.
+
+On 2026-11-08, a recursive filename inventory found coverage attributes in 33
+of 121 `*Test.php` files; this does not establish correct attribution within
+those files. Unit tests and Unit-only coverage passed after provider conversion;
+the XML reported 3,584/4,090 statements (87.63%). This is not directly
+comparable to the prior aggregate as an attribution-quality measure, and the
+strict negative control remains unresolved. `composer quality` stopped at
+Rector on a pre-existing unused import in `TelemetryPublisherTest.php`; a
+separate style check also reported a pre-existing fixture formatting issue.
+PHPStan reported 138 diagnostics; their complete attribution was not compared.
+
 An isolated synthetic negative control on those same tool versions and PCOV
 subsequently ran in `/tmp/kilo/runit-coverage-control` without changing normal
 Unit coverage. With `strict_covers_annotation` enabled, an undeclared production

@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain;
 
+use Closure;
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
-use ItPack\RunIt\Contract\Domain\SequencedInterface;
-use ItPack\RunIt\Contract\Domain\TimestampedInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -31,115 +30,116 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\Snapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionClass;
 
 /**
- * @phpstan-type Artifact ExecutionArtifactInterface&ExecutionOwnedInterface&SequencedInterface&TimestampedInterface
+ * @phpstan-type Artifact Execution|Activity|Measurement|Observation|Occurrence|Snapshot
  */
+#[CoversClass(Execution::class)]
+#[CoversClass(Activity::class)]
+#[CoversClass(Measurement::class)]
+#[CoversClass(Observation::class)]
+#[CoversClass(Occurrence::class)]
+#[CoversClass(Snapshot::class)]
 final class ArtifactRelationshipTest extends Unit
 {
     /**
-     * @return array<string, ExecutionArtifactInterface>
+     * @return array<string, array{Closure(): Artifact}>
      */
-    private function artifacts(): array
+    public static function artifacts(): array
     {
-        $instant = Instant::of(1700000000);
-        $executionId = ExecutionId::fromString('exec-1');
-
         return [
-            'execution' => Execution::start(
-                $executionId,
+            'execution' => [static fn (): Execution => Execution::start(
+                ExecutionId::fromString('exec-1'),
                 ExecutionDefinition::create(
                     ExecutionName::fromString('import'),
                     ExecutionKind::fromString('batch'),
                 ),
-                $instant,
-            ),
-            'activity' => Activity::start(
+                Instant::of(1700000000),
+            )],
+            'activity' => [static fn (): Activity => Activity::start(
                 ActivityId::fromString('act-1'),
-                $executionId,
+                ExecutionId::fromString('exec-1'),
                 ActivityDefinition::create(
                     ActivityName::fromString('http.call'),
                     ActivityKind::fromString('client'),
                 ),
-                $instant,
-            ),
-            'measurement' => Measurement::counter(
+                Instant::of(1700000000),
+            )],
+            'measurement' => [static fn (): Measurement => Measurement::counter(
                 MeasurementName::fromString('files.loaded'),
-                $executionId,
+                ExecutionId::fromString('exec-1'),
                 42,
-                instant: $instant,
-            ),
-            'observation' => Observation::info(
+                instant: Instant::of(1700000000),
+            )],
+            'observation' => [static fn (): Observation => Observation::info(
                 ObservationId::fromString('obs-1'),
-                $executionId,
+                ExecutionId::fromString('exec-1'),
                 'started',
-                instant: $instant,
-            ),
-            'occurrence' => Occurrence::create(
+                instant: Instant::of(1700000000),
+            )],
+            'occurrence' => [static fn (): Occurrence => Occurrence::create(
                 OccurrenceId::fromString('occ-1'),
-                $executionId,
+                ExecutionId::fromString('exec-1'),
                 OccurrenceType::fromString('itpack.system.event.v1'),
                 'svc',
-                $instant,
-            ),
-            'snapshot' => Snapshot::create(
+                Instant::of(1700000000),
+            )],
+            'snapshot' => [static fn (): Snapshot => Snapshot::create(
                 SnapshotId::fromString('snap-1'),
-                $executionId,
+                ExecutionId::fromString('exec-1'),
                 SnapshotType::fromString('execution.snapshot'),
                 1,
                 ['status' => 'running'],
                 new DeterministicHashCalculator(),
-                createdAt: $instant,
-            ),
+                createdAt: Instant::of(1700000000),
+            )],
         ];
     }
 
-    public function testEveryArtifactIsAnExecutionArtifact(): void
+    /** @param Closure(): Artifact $create */
+    #[DataProvider('artifacts')]
+    public function testEveryArtifactIsAnExecutionArtifact(Closure $create): void
     {
-        foreach ($this->artifacts() as $artifact) {
-            /** @var Artifact $artifact */
-            self::assertInstanceOf(ExecutionArtifactInterface::class, $artifact);
-        }
+        self::assertInstanceOf(ExecutionArtifactInterface::class, $create());
     }
 
-    public function testEveryArtifactBelongsToExactlyOneExecution(): void
+    /** @param Closure(): Artifact $create */
+    #[DataProvider('artifacts')]
+    public function testEveryArtifactBelongsToExactlyOneExecution(Closure $create): void
     {
-        foreach ($this->artifacts() as $artifact) {
-            /** @var Artifact $artifact */
-            self::assertSame('exec-1', $artifact->executionId()->toString());
-        }
+        self::assertSame('exec-1', $create()->executionId()->toString());
     }
 
-    public function testEveryArtifactHasRequiredSequenceAndTimestamp(): void
+    /** @param Closure(): Artifact $create */
+    #[DataProvider('artifacts')]
+    public function testEveryArtifactHasRequiredSequenceAndTimestamp(Closure $create): void
     {
-        foreach ($this->artifacts() as $artifact) {
-            /** @var Artifact $artifact */
-            self::assertSame(0, $artifact->sequence());
-            self::assertSame(1700000000, $artifact->timestamp());
-        }
+        $artifact = $create();
+        self::assertSame(0, $artifact->sequence());
+        self::assertSame(1700000000, $artifact->timestamp());
     }
 
-    public function testNormalizationIsDeterministicAndReferencesExecution(): void
+    /** @param Closure(): Artifact $create */
+    #[DataProvider('artifacts')]
+    public function testNormalizationIsDeterministicAndReferencesExecution(Closure $create): void
     {
-        foreach ($this->artifacts() as $artifact) {
-            /** @var Artifact $artifact */
-            $first = $artifact->normalize();
+        $artifact = $create();
+        $first = $artifact->normalize();
 
-            self::assertSame($first, $artifact->normalize());
-            // The execution record identifies itself with `id`; other artifacts
-            // reference it with `execution_id`. Both must be present and equal.
-            $executionRef = $first['execution_id'] ?? $first['id'] ?? null;
-            self::assertSame('exec-1', $executionRef);
-        }
+        self::assertSame($first, $artifact->normalize());
+        // The execution record identifies itself with `id`; other artifacts
+        // reference it with `execution_id`. Both must be present and equal.
+        $executionRef = $first['execution_id'] ?? $first['id'] ?? null;
+        self::assertSame('exec-1', $executionRef);
     }
 
-    public function testArtifactsDoNotRetainMutableSessions(): void
+    /** @param Closure(): Artifact $create */
+    #[DataProvider('artifacts')]
+    public function testArtifactsDoNotRetainMutableSessions(Closure $create): void
     {
-        foreach ($this->artifacts() as $artifact) {
-            /** @var Artifact $artifact */
-            self::assertTrue(new ReflectionClass($artifact)->isReadOnly());
-        }
+        self::assertTrue(new ReflectionClass($create())->isReadOnly());
     }
 
     public function testActivityBoundArtifactsCarryActivityIdentity(): void

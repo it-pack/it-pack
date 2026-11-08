@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\Shared;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\StringIdentifierValidatorInterface;
 use ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface;
@@ -11,8 +12,11 @@ use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidIdentifierException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Throwable;
 
+#[CoversClass(StringIdentifierValidator::class)]
+#[CoversClass(ExecutionId::class)]
 final class StringIdentifierValidatorTest extends Unit
 {
     /**
@@ -57,9 +61,7 @@ final class StringIdentifierValidatorTest extends Unit
         ];
     }
 
-    /**
-     * @dataProvider acceptedProvider
-     */
+    #[DataProvider('acceptedProvider')]
     public function testAcceptedValuesDoNotThrow(string $value): void
     {
         try {
@@ -73,9 +75,7 @@ final class StringIdentifierValidatorTest extends Unit
         self::assertSame($value, ExecutionId::fromString($value)->toString());
     }
 
-    /**
-     * @dataProvider rejectedProvider
-     */
+    #[DataProvider('rejectedProvider')]
     public function testRejectedValuesThrowATypedRunItException(string $value): void
     {
         $caught = null;
@@ -91,9 +91,7 @@ final class StringIdentifierValidatorTest extends Unit
         self::assertInstanceOf(RunItExceptionInterface::class, $caught);
     }
 
-    /**
-     * @dataProvider rejectedProvider
-     */
+    #[DataProvider('rejectedProvider')]
     public function testRejectionMessageNeverEchoesTheRejectedValue(string $value): void
     {
         try {

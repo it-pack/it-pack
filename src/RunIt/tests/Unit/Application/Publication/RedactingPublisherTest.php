@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
@@ -30,6 +31,8 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 
@@ -37,6 +40,29 @@ use Tests\Support\Fixture\SensitiveExceptionChain;
  * @group application
  * @group publication
  */
+#[CoversClass(DefaultArtifactRedactor::class)]
+#[CoversClass(RedactingArtifactPublisher::class)]
+#[CoversClass(Observation::class)]
+#[CoversClass(Occurrence::class)]
+#[CoversClass(ExecutionSnapshot::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(ArtifactRedactionConfig::class)]
+#[UsesClass(RedactedArtifact::class)]
+#[UsesClass(Execution::class)]
+#[UsesClass(ExecutionDefinition::class)]
+#[UsesClass(ExecutionFailure::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(ExecutionKind::class)]
+#[UsesClass(ExecutionName::class)]
+#[UsesClass(ObservationId::class)]
+#[UsesClass(OccurrenceId::class)]
+#[UsesClass(OccurrenceType::class)]
+#[UsesClass(AttributeCollection::class)]
+#[UsesClass(DefaultThrowableMapper::class)]
+#[UsesClass(DeterministicHashCalculator::class)]
+#[UsesClass(Instant::class)]
+#[UsesClass(SnapshotId::class)]
+#[UsesClass(SnapshotType::class)]
 final class RedactingPublisherTest extends Unit
 {
     private function redactor(): DefaultArtifactRedactor

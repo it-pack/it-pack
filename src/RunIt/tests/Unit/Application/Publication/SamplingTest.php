@@ -15,6 +15,8 @@ use ItPack\RunIt\Application\Publication\ExecutionKindSamplePolicy;
 use ItPack\RunIt\Application\Publication\HeadBasedSamplingPolicy;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RatioSamplePolicy;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -27,11 +29,33 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(PublisherStackFactory::class)]
+#[CoversClass(AlwaysSamplePolicy::class)]
+#[CoversClass(ErrorOverrideSamplePolicy::class)]
+#[CoversClass(ExecutionKindSamplePolicy::class)]
+#[CoversClass(HeadBasedSamplingPolicy::class)]
+#[CoversClass(NeverSamplePolicy::class)]
+#[CoversClass(RatioSamplePolicy::class)]
+#[CoversClass(SamplingArtifactPublisher::class)]
+#[CoversClass(SeveritySamplePolicy::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(ArtifactRedactionConfig::class)]
+#[UsesClass(DefaultArtifactRedactor::class)]
+#[UsesClass(RedactedArtifact::class)]
+#[UsesClass(RedactingArtifactPublisher::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(ExecutionKind::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
+#[UsesClass(AttributeCollection::class)]
+#[UsesClass(SecurityLimits::class)]
 final class SamplingTest extends Unit
 {
     public function testHeadBasedSamplingFallsBackToAnEmptyKeyWhenTheArtifactHasNoStringId(): void

@@ -11,6 +11,8 @@ use ItPack\RunIt\Domain\Exception\InvalidIdentifierException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Shared\CorrelationId;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Throwable;
 
 /**
@@ -20,6 +22,11 @@ use Throwable;
  * checked against a fresh sample on every run of the suite only in the sense
  * that the sample is large; the sequence itself is deterministic.
  */
+#[CoversClass(ActivityId::class)]
+#[CoversClass(CorrelationId::class)]
+#[CoversClass(ExecutionId::class)]
+#[UsesClass(InvalidIdentifierException::class)]
+#[UsesClass(StringIdentifierValidator::class)]
 final class IdentifierPropertyTest extends Unit
 {
     private const int SEED = 20_260_809;
