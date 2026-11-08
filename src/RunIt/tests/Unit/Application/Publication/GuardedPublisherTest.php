@@ -10,16 +10,28 @@ use ItPack\RunIt\Application\Publication\CallbackArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\GuardedArtifactPublisher;
 use ItPack\RunIt\Application\Publication\PublicationGuard;
+use ItPack\RunIt\Application\Publication\RecursivePublicationException;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Throwable;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(GuardedArtifactPublisher::class)]
+#[CoversClass(PublicationGuard::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackArtifactPublisher::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(RecursivePublicationException::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
 final class GuardedPublisherTest extends Unit
 {
     private function artifact(): ExecutionArtifactInterface

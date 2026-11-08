@@ -10,6 +10,9 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 
 /**
@@ -20,6 +23,11 @@ use RuntimeException;
  * @group application
  * @group security
  */
+#[CoversClass(ErrorLogHealthReporter::class)]
+#[UsesClass(DefaultThrowableMapper::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
 final class ErrorLogHealthReporterTest extends Unit
 {
     /** @var list<string> */

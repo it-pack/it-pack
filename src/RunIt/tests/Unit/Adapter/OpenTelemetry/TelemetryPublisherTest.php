@@ -8,6 +8,9 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeCapability;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -20,6 +23,10 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Occurrence\Occurrence;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Trace\StatusCode;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
@@ -57,7 +64,6 @@ final class TelemetryPublisherTest extends Unit
         $publisher = $this->publisher();
 
         $capability = $publisher->capability();
-        self::assertInstanceOf(BridgeCapability::class, $capability);
         self::assertTrue($capability->trace);
         self::assertTrue($capability->metrics);
         self::assertTrue($capability->logs);
@@ -75,6 +81,75 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('import', $spans[0]->getName());
         self::assertSame('parse', $spans[1]->getName());
         self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+    }
+
+    /** Characterizes retention and replacement across repeated publications. */
+    public function testInjectedStoreRetainsContextsAndDuplicateIdsReplaceThem(): void
+    {
+        $store = new InMemoryExecutionSpanStore();
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        for ($i = 0; $i < 100; ++$i) {
+            $publisher->publish(RunItArtifactFactory::execution('exec-' . $i, 'exec', 'internal', 'succeeded'));
+            $publisher->publish(RunItArtifactFactory::activity(
+                'act-' . $i,
+                'exec-' . $i,
+                'act',
+                'internal',
+                'succeeded',
+            ));
+        }
+
+        $spans = $this->kit->spans();
+        self::assertSame($spans[0]->getContext()->getSpanId(), $store->executionContext('exec-0')?->getSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $store->activityContext('act-0')?->getSpanId());
+
+        $publisher->publish(RunItArtifactFactory::execution('exec-0', 'replacement', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('act-0', 'exec-0', 'replacement', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('late', 'exec-0', 'late', 'internal', 'succeeded', 'act-0'));
+
+        $spans = $this->kit->spans();
+        self::assertSame($spans[200]->getContext()->getSpanId(), $store->executionContext('exec-0')->getSpanId());
+        self::assertSame($spans[201]->getContext()->getSpanId(), $store->activityContext('act-0')->getSpanId());
+        self::assertSame($spans[200]->getContext()->getSpanId(), $spans[201]->getParentSpanId());
+        self::assertSame($spans[201]->getContext()->getSpanId(), $spans[202]->getParentSpanId());
+    }
+
+    /** Characterizes lookups when parents arrive after children. */
+    public function testMissingParentsFallBackAndLaterParentsAreNotRetroactive(): void
+    {
+        $publisher = $this->publisher();
+        $publisher->publish(RunItArtifactFactory::execution('child', 'child', 'internal', 'succeeded', 'parent'));
+        $publisher->publish(RunItArtifactFactory::execution('parent', 'parent', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity(
+            'early',
+            'parent',
+            'early',
+            'internal',
+            'succeeded',
+            'outer',
+        ));
+        $publisher->publish(RunItArtifactFactory::activity('outer', 'parent', 'outer', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('late', 'parent', 'late', 'internal', 'succeeded', 'outer'));
+
+        $spans = $this->kit->spans();
+        self::assertNotSame($spans[1]->getContext()->getSpanId(), $spans[0]->getParentSpanId());
+        self::assertSame($spans[1]->getContext()->getSpanId(), $spans[2]->getParentSpanId());
+        self::assertSame($spans[3]->getContext()->getSpanId(), $spans[4]->getParentSpanId());
+    }
+
+    /** Characterizes delegation to an externally supplied store. */
+    public function testPublisherUsesInjectedStoreForBothMappers(): void
+    {
+        $store = $this->createMock(ExecutionSpanStoreInterface::class);
+        $store->expects($this->once())->method('recordExecution')->with('exec', self::anything());
+        $store->expects($this->once())->method('activityContext')->with('missing')->willReturn(null);
+        $store->expects($this->once())->method('executionContext')->with('exec')->willReturn(null);
+        $store->expects($this->once())->method('recordActivity')->with('act', self::anything());
+        $config = new BridgeConfigBuilder()->withTracerProvider($this->kit->tracerProvider)->build();
+        $publisher = TelemetryPublisher::fromConfig($config, $store);
+        $publisher->publish(RunItArtifactFactory::execution('exec', 'exec', 'internal', 'succeeded'));
+        $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'missing'));
     }
 
     public function testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent(): void
@@ -131,7 +206,7 @@ final class TelemetryPublisherTest extends Unit
         }
 
         self::assertCount(0, $this->kit->logs());
-        self::assertTrue($before === $execution->normalize(), 'The original execution remains unchanged.');
+        self::assertSame($before, $execution->normalize(), 'The original execution remains unchanged.');
     }
 
     public function testPublishesMeasurementAsMetric(): void
@@ -158,6 +233,53 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['ok' => true]));
 
         self::assertCount(3, $this->kit->logs());
+    }
+
+    /** Characterizes the current loss of observations wrapped by the default redactor. */
+    public function testRedactedObservationIsIgnoredWhileUnredactedObservationIsExported(): void
+    {
+        $observation = RunItArtifactFactory::observation(
+            'obs-red',
+            'exec-1',
+            'info',
+            'observed',
+            attributes: ['password' => 'secret'],
+        );
+        $before = $observation->normalize();
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['password'],
+        ))->redact($observation);
+
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $normalized = $redacted->normalize();
+        self::assertIsArray($normalized['attributes']);
+        self::assertSame('[redacted]', $normalized['attributes']['password']);
+        self::assertArrayNotHasKey('source', $normalized);
+        self::assertArrayNotHasKey('classification', $normalized);
+        self::assertSame($before, $observation->normalize());
+
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withObservationSpanEvents(enabled: true)
+            ->build()
+        ;
+        $publisher = TelemetryPublisher::fromConfig($config);
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            $publisher->publish($redacted);
+            self::assertCount(0, $this->kit->logs());
+            $publisher->publish(RunItArtifactFactory::observation('obs-control', 'exec-1', 'info', 'control'));
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        self::assertSame('control', $this->kit->log(0)->getBody());
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('runit.observation', $events[0]->getName());
     }
 
     public function testRedactedOccurrenceProducesVisibleSuppressedLog(): void
@@ -231,6 +353,118 @@ final class TelemetryPublisherTest extends Unit
             $delivered,
             'A redacted snapshot routes through the snapshot log mapper, not the occurrence path.'
         );
+    }
+
+    /** Characterizes the redacted occurrence mapping and its allow-list bypass. */
+    public function testActualRedactedOccurrenceExportsNormalizedTimeAndUnfilteredExtensions(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-characterized'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('payment.captured.v1'),
+            'it-pack/test',
+            Instant::of(1600),
+            ['password' => 'secret'],
+            extensionAttributes: AttributeCollection::fromArray(['allowed' => 'yes', 'excluded' => 'still-exported']),
+        );
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['password'],
+            redactOccurrenceData: true,
+        ))->redact($occurrence);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $normalized = $redacted->normalize();
+        self::assertSame(1600, $normalized['time']);
+        self::assertIsArray($normalized['data']);
+        self::assertNotSame('secret', $normalized['data']['password']);
+        self::assertIsArray($normalized['extension_attributes']);
+        self::assertSame('still-exported', $normalized['extension_attributes']['excluded']);
+
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withOccurrenceLogging(enabled: true)
+            ->withOccurrenceSpanEvents(enabled: true)
+            ->withOccurrenceLogAttributeAllowList(['allowed'])
+            ->build()
+        ;
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            TelemetryPublisher::fromConfig($config)->publish($redacted);
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        $record = $this->kit->log(0);
+        self::assertSame('runit.occurrence', $record->getEventName());
+        self::assertSame('payment.captured.v1', $record->getBody());
+        self::assertSame(1_600_000_000_000, $record->getTimestamp());
+        $attributes = $record->getAttributes()->toArray();
+        self::assertSame('occ-characterized', $attributes['runit.occurrence.id']);
+        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame('yes', $attributes['allowed']);
+        self::assertSame('still-exported', $attributes['excluded']);
+        self::assertArrayNotHasKey('runit.occurrence.content_type', $attributes);
+        self::assertArrayNotHasKey('password', $attributes);
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('runit.occurrence', $events[0]->getName());
+        self::assertSame('still-exported', $events[0]->getAttributes()->get('excluded'));
+    }
+
+    /** Characterizes redacted snapshot timestamp and hash handling. */
+    public function testActualRedactedSnapshotExportsHashDespiteNonePolicyAndUsesCurrentTime(): void
+    {
+        $snapshot = RunItArtifactFactory::snapshot('snap-characterized', 'exec-1', ['secret' => 'value'], 'act-1');
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['secret'],
+            redactSnapshotPayloads: true,
+        ))->redact($snapshot);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $normalized = $redacted->normalize();
+        self::assertSame(1700, $normalized['created_at']);
+        self::assertArrayNotHasKey('time', $normalized);
+        self::assertSame($snapshot->contentHash(), $normalized['content_hash']);
+        self::assertIsArray($normalized['payload']);
+        self::assertNotSame('value', $normalized['payload']['secret']);
+
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withSnapshotPayloadPolicy(SnapshotPayloadPolicy::None)
+            ->withOccurrenceLogging(enabled: true)
+            ->withOccurrenceSpanEvents(enabled: true)
+            ->build()
+        ;
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            $before = (int) (microtime(true) * 1_000_000_000);
+            TelemetryPublisher::fromConfig($config)->publish($redacted);
+            $after = (int) (microtime(true) * 1_000_000_000);
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        $record = $this->kit->log(0);
+        self::assertSame('runit.snapshot', $record->getEventName());
+        self::assertSame('execution.snapshot', $record->getBody());
+        self::assertGreaterThanOrEqual($before, $record->getTimestamp());
+        self::assertLessThanOrEqual($after, $record->getTimestamp());
+        $attributes = $record->getAttributes()->toArray();
+        self::assertSame('snap-characterized', $attributes['runit.snapshot.id']);
+        self::assertSame('act-1', $attributes['runit.activity.id']);
+        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame($snapshot->contentHash(), $attributes['runit.snapshot.hash']);
+        self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
+        self::assertArrayNotHasKey('runit.snapshot.schema_version', $attributes);
+        self::assertArrayNotHasKey('runit.snapshot.content_type', $attributes);
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('runit.snapshot', $events[0]->getName());
+        self::assertSame($snapshot->contentHash(), $events[0]->getAttributes()->get('runit.snapshot.hash'));
     }
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void

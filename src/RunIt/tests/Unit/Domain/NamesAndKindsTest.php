@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain;
 
 use Closure;
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Domain\ActivityKindInterface;
@@ -21,7 +22,15 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(ExecutionName::class)]
+#[CoversClass(ExecutionKind::class)]
+#[CoversClass(ActivityName::class)]
+#[CoversClass(ActivityKind::class)]
+#[CoversClass(MeasurementName::class)]
+#[CoversClass(SnapshotType::class)]
+#[CoversClass(StringValueValidator::class)]
 final class NamesAndKindsTest extends Unit
 {
     public const string VALUE = 'configuration.resolve';
@@ -48,9 +57,8 @@ final class NamesAndKindsTest extends Unit
     /**
      * @param Closure(string): StringValueInterface $create
      * @param class-string                               $contract
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testValueSatisfiesItsContract(callable $create, string $contract): void
     {
         $value = $create(self::VALUE);
@@ -61,9 +69,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testStringConversionIsDeterministicAndVerbatim(callable $create): void
     {
         $value = $create(self::VALUE);
@@ -75,9 +82,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testEqualityIsByValue(callable $create): void
     {
         $first = $create(self::VALUE);
@@ -102,9 +108,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testEmptyValueIsRejected(callable $create): void
     {
         $this->expectException(InvalidStringValueException::class);
@@ -114,9 +119,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testValueExceedingTheMaximumLengthIsRejected(callable $create): void
     {
         $this->expectException(InvalidStringValueException::class);
@@ -126,9 +130,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testValueAtTheMaximumLengthIsAccepted(callable $create): void
     {
         $value = str_repeat('a', StringValueValidator::MAX_LENGTH);
@@ -138,9 +141,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testSymbolsOutsideTheAllowedSetAreRejected(callable $create): void
     {
         $this->expectException(InvalidStringValueException::class);
@@ -150,9 +152,8 @@ final class NamesAndKindsTest extends Unit
 
     /**
      * @param Closure(string): StringValueInterface $create
-     *
-     * @dataProvider valueProvider
      */
+    #[DataProvider('valueProvider')]
     public function testACommonSeparatorSetIsAccepted(callable $create): void
     {
         self::assertSame('http.request', $create('http.request')->toString());

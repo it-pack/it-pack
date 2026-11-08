@@ -14,6 +14,8 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Exception\RunItExceptionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Throwable;
 
 /**
@@ -21,6 +23,10 @@ use Throwable;
  * T0.3): a publish arriving while publication is already active on the same path
  * is reported to the health channel exactly once per attempt and never forwarded.
  */
+#[CoversClass(FailSafeArtifactPublisher::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(FailOpenPolicy::class)]
+#[UsesClass(RecursivePublicationException::class)]
 final class FailSafeRecursionTest extends Unit
 {
     /** @var list<array{0: Throwable, 1: ExecutionArtifactInterface}> */

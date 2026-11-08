@@ -7,12 +7,14 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use LogicException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use RuntimeException;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(FallbackErrorLogReporter::class)]
 final class FallbackErrorLogReporterTest extends Unit
 {
     public function testReportedLineIncludesArtifactIdSeparatedByLeadingSpace(): void

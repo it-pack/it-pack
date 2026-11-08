@@ -8,8 +8,10 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Lifecycle\ExecutionLifecycleCoordinator;
 use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -30,6 +32,7 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use RuntimeException;
+use stdClass;
 use Tests\Support\Fixture\EmptyArtifact;
 use Tests\Support\Fixture\RunItTestKit;
 use Tests\Support\Fixture\ThrowingArtifactPublisher;
@@ -55,6 +58,154 @@ use Throwable;
  */
 final class ResilienceTest extends Unit
 {
+    public function testRunnerHandlesOuterHealthReporterNormalizationFailure(): void
+    {
+        foreach ([false, true] as $businessFails) {
+            $publicationFailure = new RuntimeException('snapshot execution id failed');
+            $reportingFailure = new RuntimeException('snapshot normalization failed');
+            $callbackFailure = new RuntimeException('health callback failed');
+            $snapshot = self::createStub(ExecutionSnapshotInterface::class);
+            $snapshot->method('executionId')->willThrowException($publicationFailure);
+            $snapshot->method('normalize')->willThrowException($reportingFailure);
+            $factory = new readonly class ($snapshot) implements ExecutionSnapshotFactoryInterface {
+                public function __construct(private ExecutionSnapshotInterface $snapshot)
+                {
+                }
+
+                public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
+                {
+                    return $this->snapshot;
+                }
+            };
+            $reported = [];
+            $outer = new RunItTestKit();
+            $kit = new RunItTestKit(
+                onPublicationFailure: static function (Throwable $failure) use (
+                    &$reported,
+                    $publicationFailure,
+                    $callbackFailure,
+                ): void {
+                    $reported[] = $failure;
+                    if ($failure === $publicationFailure) {
+                        throw $callbackFailure;
+                    }
+                },
+                storage: $outer->storage,
+                snapshotFactory: $factory,
+            );
+            $original = new RuntimeException('business failed');
+            $value = new stdClass();
+            $outer->runner->run($this->definition(), function (ExecutionScopeInterface $parent) use (
+                $kit,
+                $businessFails,
+                $original,
+                $value,
+            ): void {
+                $caught = null;
+                $result = null;
+                try {
+                    $result = $kit->runner->run($this->definition(), static function () use (
+                        $businessFails,
+                        $original,
+                        $value,
+                    ): object {
+                        if ($businessFails) {
+                            throw $original;
+                        }
+
+                        return $value;
+                    });
+                } catch (Throwable $throwable) {
+                    $caught = $throwable;
+                }
+
+                self::assertSame($businessFails ? $original : null, $caught);
+                self::assertSame($businessFails ? null : $value, $result);
+                self::assertSame($parent, $kit->storage->current());
+            });
+            self::assertSame([$publicationFailure, $reportingFailure], $reported);
+            self::assertNull($kit->storage->current());
+        }
+    }
+
+    public function testRunnerOuterFailSafeHandlesInnerHealthReporterFailures(): void
+    {
+        foreach (['normalization', 'fallback'] as $failureSource) {
+            foreach ([false, true] as $businessFails) {
+                $reportingFailure = new RuntimeException($failureSource . ' failed');
+                $artifact = self::createStub(ExecutionArtifactInterface::class);
+                $artifact->method('normalize')->willThrowException($reportingFailure);
+                $fallbackCalls = 0;
+                $health = new CallbackHealthReporter(
+                    static function (): never {
+                        throw new RuntimeException('callback failed');
+                    },
+                    new FallbackErrorLogReporter(static function () use (&$fallbackCalls, $reportingFailure): never {
+                        ++$fallbackCalls;
+                        throw $reportingFailure;
+                    }),
+                );
+                $inner = new FailSafeArtifactPublisher(new ThrowingArtifactPublisher(), new FailOpenPolicy(), $health);
+                $replacement = $failureSource === 'normalization' ? $artifact : null;
+                $publisher = new readonly class ($inner, $replacement) implements ArtifactPublisherInterface {
+                    public function __construct(
+                        private ArtifactPublisherInterface $inner,
+                        private ?ExecutionArtifactInterface $replacement,
+                    ) {
+                    }
+
+                    public function publish(ExecutionArtifactInterface $artifact): void
+                    {
+                        $this->inner->publish($this->replacement ?? $artifact);
+                    }
+                };
+                $reported = [];
+                $outer = new RunItTestKit();
+                $kit = new RunItTestKit(
+                    publisher: $publisher,
+                    onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
+                        $reported[] = $failure;
+                    },
+                    storage: $outer->storage,
+                );
+                $original = new RuntimeException('business failed');
+                $value = new stdClass();
+                $outer->runner->run($this->definition(), function (ExecutionScopeInterface $parent) use (
+                    $kit,
+                    $businessFails,
+                    $original,
+                    $value,
+                ): void {
+                    $caught = null;
+                    $result = null;
+                    try {
+                        $operation = static function () use ($businessFails, $original, $value): object {
+                            if ($businessFails) {
+                                throw $original;
+                            }
+
+                            return $value;
+                        };
+                        $result = $kit->runner->run($this->definition(), $operation);
+                    } catch (Throwable $throwable) {
+                        $caught = $throwable;
+                    }
+
+                    self::assertSame($businessFails ? $original : null, $caught);
+                    self::assertSame($businessFails ? null : $value, $result);
+                    self::assertSame($parent, $kit->storage->current());
+                });
+                self::assertCount($businessFails ? 4 : 3, $reported);
+                foreach ($reported as $failure) {
+                    self::assertSame($reportingFailure, $failure);
+                }
+
+                self::assertSame($failureSource === 'normalization' ? 0 : count($reported), $fallbackCalls);
+                self::assertNull($kit->storage->current());
+            }
+        }
+    }
+
     public function testTerminalSnapshotFactoryFailureSuppressesTerminalPublication(): void
     {
         foreach ([false, true] as $businessFails) {

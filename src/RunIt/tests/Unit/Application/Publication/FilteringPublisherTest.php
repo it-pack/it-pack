@@ -32,11 +32,36 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(ArtifactTypeFilter::class)]
+#[CoversClass(CompositeArtifactFilter::class)]
+#[CoversClass(ExecutionKindFilter::class)]
+#[CoversClass(FilteringArtifactPublisher::class)]
+#[CoversClass(ObservationSeverityFilter::class)]
+#[CoversClass(OccurrenceTypeFilter::class)]
+#[CoversClass(RoutingArtifactPublisher::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(PublicationRoute::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(ExecutionKind::class)]
+#[UsesClass(Measurement::class)]
+#[UsesClass(MeasurementName::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
+#[UsesClass(Occurrence::class)]
+#[UsesClass(OccurrenceId::class)]
+#[UsesClass(OccurrenceType::class)]
+#[UsesClass(DeterministicHashCalculator::class)]
+#[UsesClass(Instant::class)]
+#[UsesClass(ExecutionSnapshot::class)]
+#[UsesClass(SnapshotId::class)]
+#[UsesClass(SnapshotType::class)]
 final class FilteringPublisherTest extends Unit
 {
     public function testCompositeFilterWithoutFiltersAcceptsEverything(): void

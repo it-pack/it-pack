@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
@@ -30,6 +31,8 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 
@@ -37,6 +40,29 @@ use Tests\Support\Fixture\SensitiveExceptionChain;
  * @group application
  * @group publication
  */
+#[CoversClass(DefaultArtifactRedactor::class)]
+#[CoversClass(RedactingArtifactPublisher::class)]
+#[CoversClass(Observation::class)]
+#[CoversClass(Occurrence::class)]
+#[CoversClass(ExecutionSnapshot::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(ArtifactRedactionConfig::class)]
+#[UsesClass(RedactedArtifact::class)]
+#[UsesClass(Execution::class)]
+#[UsesClass(ExecutionDefinition::class)]
+#[UsesClass(ExecutionFailure::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(ExecutionKind::class)]
+#[UsesClass(ExecutionName::class)]
+#[UsesClass(ObservationId::class)]
+#[UsesClass(OccurrenceId::class)]
+#[UsesClass(OccurrenceType::class)]
+#[UsesClass(AttributeCollection::class)]
+#[UsesClass(DefaultThrowableMapper::class)]
+#[UsesClass(DeterministicHashCalculator::class)]
+#[UsesClass(Instant::class)]
+#[UsesClass(SnapshotId::class)]
+#[UsesClass(SnapshotType::class)]
 final class RedactingPublisherTest extends Unit
 {
     private function redactor(): DefaultArtifactRedactor
@@ -217,6 +243,75 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('alice', $data['user']);
         self::assertSame('[redacted]', $nested['ssn']);
         self::assertSame('123-45-6789', $originalNested['ssn']);
+    }
+
+    public function testOccurrenceExtensionAttributesAreNotCoveredByConfiguredKeys(): void
+    {
+        $original = Occurrence::create(
+            OccurrenceId::fromString('occ-extensions'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'source',
+            Instant::of(1000),
+            ['items' => [['password' => 'data-secret']]],
+            extensionAttributes: AttributeCollection::fromArray(['password' => 'extension-secret']),
+        );
+
+        $published = $this->publish($original)->normalize();
+        self::assertSame(['items' => [['password' => '[redacted]']]], $published['data']);
+        self::assertSame(['password' => 'extension-secret'], $published['extension_attributes']);
+    }
+
+    public function testUnsupportedCustomProjectionIsNotValidatedOrTraversed(): void
+    {
+        $object = (object) ['password' => 'object-secret'];
+        // Deliberately violates NormalizableInterface to characterize the boundary.
+        $artifact = new readonly class ($object) implements ExecutionArtifactInterface {
+            public function __construct(private object $value)
+            {
+            }
+
+            public function normalize(): array
+            {
+                return [
+                    'attributes' => ['password' => 'attribute-secret'],
+                    'unknown' => ['password' => 'unknown-secret'],
+                    'data' => ['password' => 'data-secret'],
+                    'object' => $this->value,
+                ];
+            }
+        };
+
+        $published = $this->publish($artifact)->normalize();
+        self::assertSame(['password' => '[redacted]'], $published['attributes']);
+        self::assertSame(['password' => 'unknown-secret'], $published['unknown']);
+        self::assertSame(['password' => 'data-secret'], $published['data']);
+        self::assertSame($object, $published['object']);
+    }
+
+    public function testArrayValuedThrowableTracePassesThroughInCustomProjection(): void
+    {
+        $artifact = new readonly class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [
+                    'throwable' => [
+                        'message' => 'message-secret',
+                        'trace' => [['password' => 'trace-secret']],
+                        'previous' => null,
+                    ],
+                ];
+            }
+        };
+
+        $before = $artifact->normalize();
+        $published = $this->publish($artifact)->normalize();
+
+        // The projection is primitive and finite, but its trace is not a string.
+        self::assertIsArray($published['throwable']);
+        self::assertSame('[redacted]', $published['throwable']['message']);
+        self::assertSame([['password' => 'trace-secret']], $published['throwable']['trace']);
+        self::assertSame($before, $artifact->normalize());
     }
 
     public function testSnapshotPayloadIsMasked(): void

@@ -13,11 +13,14 @@ use ItPack\RunIt\Application\Publication\FailClosedPolicy;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
+use ItPack\RunIt\Application\Publication\RecursivePublicationException;
 use ItPack\RunIt\Application\Publication\ReportToFallbackPolicy;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Throwable;
 
@@ -25,6 +28,19 @@ use Throwable;
  * @group application
  * @group publication
  */
+#[CoversClass(CallbackHealthReporter::class)]
+#[CoversClass(CollectAndContinuePolicy::class)]
+#[CoversClass(FailClosedPolicy::class)]
+#[CoversClass(FailOpenPolicy::class)]
+#[CoversClass(FailSafeArtifactPublisher::class)]
+#[CoversClass(ReportToFallbackPolicy::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(CallbackArtifactPublisher::class)]
+#[UsesClass(FallbackErrorLogReporter::class)]
+#[UsesClass(RecursivePublicationException::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(Observation::class)]
+#[UsesClass(ObservationId::class)]
 final class FailureHandlingTest extends Unit
 {
     private function artifact(): ExecutionArtifactInterface
@@ -55,6 +71,40 @@ final class FailureHandlingTest extends Unit
         }
 
         self::assertNull($thrown);
+    }
+
+    public function testRecursiveHealthPublicationReentersTheReporter(): void
+    {
+        $errors = [];
+        $calls = 0;
+        $publisher = null;
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$errors, &$publisher): void {
+                $errors[] = $error;
+                if (count($errors) < 4) {
+                    self::assertInstanceOf(FailSafeArtifactPublisher::class, $publisher);
+                    $publisher->publish($artifact);
+                }
+            },
+        );
+        $sink = new CallbackArtifactPublisher(static function () use (&$calls): never {
+            ++$calls;
+            throw new RuntimeException('transport down');
+        });
+        $publisher = new FailSafeArtifactPublisher($sink, new FailOpenPolicy(), $health);
+
+        $publisher->publish($this->artifact());
+
+        self::assertSame(1, $calls);
+        self::assertCount(4, $errors);
+        self::assertSame('transport down', $errors[0]->getMessage());
+        foreach (array_slice($errors, 1) as $error) {
+            self::assertInstanceOf(RecursivePublicationException::class, $error);
+        }
+
+        $publisher->publish($this->artifact());
+        self::assertSame(2, $calls);
+        self::assertCount(5, $errors);
     }
 
     public function testThrowingHealthCallbackReportsBothFailuresAndArtifactId(): void

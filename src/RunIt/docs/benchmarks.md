@@ -11,21 +11,21 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 
 ## Covered scenarios
 
-| Scenario | Benchmark subject | What it measures |
-|----------|-------------------|------------------|
-| Null execution wrapper | `benchNullWrapper` | Baseline call overhead |
-| In-memory execution lifecycle | `benchInMemoryExecutionLifecycle` | One execution: start, complete, publish |
-| Activity lifecycle | `benchActivityLifecycle` | One nested activity start/complete |
-| Measurement creation | `benchMeasurementCreation` | Recording one measurement |
-| Observation creation | `benchObservationCreation` | Recording one observation |
-| Throwable normalization | `benchThrowableNormalization` | `DefaultThrowableMapper::describe` |
-| Bounded publication gate | `benchBoundedPublish` | Per-execution count + payload-bound checks (native byte estimation) |
-| OTel bridge no-op path | `benchOtelNullProviderRecord` | Instrument-mapper record without a meter provider |
-| Context copy-on-write | (context suites) | Immutable `with`/`without` projections |
-| Composite publisher | (publication suites) | Redact + sample + publish chain |
-| Filtering and sampling | `benchRedaction` / sampling suites | Policy decisions per artifact |
-| Redaction | `benchRedaction` | Secret masking of a snapshot payload |
-| Buffering | `benchBuffering` | Publishing many artifacts to an in-memory buffer |
+| Scenario                      | Benchmark subject                  | What it measures                                                    |
+|-------------------------------|------------------------------------|---------------------------------------------------------------------|
+| Null execution wrapper        | `benchNullWrapper`                 | Baseline call overhead                                              |
+| In-memory execution lifecycle | `benchInMemoryExecutionLifecycle`  | One execution: start, complete, publish                             |
+| Activity lifecycle            | `benchActivityLifecycle`           | One nested activity start/complete                                  |
+| Measurement creation          | `benchMeasurementCreation`         | Recording one measurement                                           |
+| Observation creation          | `benchObservationCreation`         | Recording one observation                                           |
+| Throwable normalization       | `benchThrowableNormalization`      | `DefaultThrowableMapper::describe`                                  |
+| Bounded publication gate      | `benchBoundedPublish`              | Per-execution count + payload-bound checks (native byte estimation) |
+| OTel bridge no-op path        | `benchOtelNullProviderRecord`      | Instrument-mapper record without a meter provider                   |
+| Context copy-on-write         | (context suites)                   | Immutable `with`/`without` projections                              |
+| Composite publisher           | (publication suites)               | Redact + sample + publish chain                                     |
+| Filtering and sampling        | `benchRedaction` / sampling suites | Policy decisions per artifact                                       |
+| Redaction                     | `benchRedaction`                   | Secret masking of a snapshot payload                                |
+| Buffering                     | `benchBuffering`                   | Publishing many artifacts to an in-memory buffer                    |
 
 OTel and CloudEvents mapping benchmarks are planned for the adapter conformance suite.
 
@@ -34,14 +34,14 @@ OTel and CloudEvents mapping benchmarks are planned for the adapter conformance 
 Targets are documented here rather than asserted theoretically. They are reviewed whenever the
 implementation of the relevant path changes.
 
-| Metric | Target | Status |
-|--------|--------|--------|
-| In-memory execution latency (p50, 100 revs) | < 50 µs | baseline recorded |
-| Activity latency (p50) | < 25 µs | baseline recorded |
-| Measurement creation (p50) | < 10 µs | baseline recorded |
-| Observation creation (p50) | < 15 µs | baseline recorded |
-| Throwable normalization (p50) | < 20 µs | baseline recorded |
-| Artifact publication throughput | > 50k artifacts/s | baseline recorded |
+| Metric                                      | Target            | Status            |
+|---------------------------------------------|-------------------|-------------------|
+| In-memory execution latency (p50, 100 revs) | < 50 µs           | baseline recorded |
+| Activity latency (p50)                      | < 25 µs           | baseline recorded |
+| Measurement creation (p50)                  | < 10 µs           | baseline recorded |
+| Observation creation (p50)                  | < 15 µs           | baseline recorded |
+| Throwable normalization (p50)               | < 20 µs           | baseline recorded |
+| Artifact publication throughput             | > 50k artifacts/s | baseline recorded |
 
 ## Regression policy
 
@@ -63,18 +63,18 @@ First machine-readable baselines, measured after the Phase 2 hot-path work. Envi
 PHP 8.5.8 CLI, no xdebug, no opcache, Linux container — figures are environment-relative,
 meaningful for future comparisons on the same host, not absolute claims.
 
-| Subject | Mean | Deviation |
-|---------|------|-----------|
-| `benchNullWrapper` | 0.31 µs | ±5.9% |
-| `benchInMemoryExecutionLifecycle` | 182.7 µs | ±41.6% |
-| `benchActivityLifecycle` | 208.4 µs | ±36.1% |
-| `benchMeasurementCreation` | 220.9 µs | ±39.4% |
-| `benchObservationCreation` | 220.8 µs | ±27.0% |
-| `benchThrowableNormalization` | 2.11 µs | ±11.1% |
-| `benchRedaction` | 3.93 µs | ±9.7% |
-| `benchBoundedPublish` | 3.59 µs | ±4.5% |
-| `benchBuffering` | 44.10 µs | ±64.3% |
-| `benchOtelNullProviderRecord` | ≈0.29 µs | at noise floor (see T3.5 verdict below) |
+| Subject                           | Mean     | Deviation                               |
+|-----------------------------------|----------|-----------------------------------------|
+| `benchNullWrapper`                | 0.31 µs  | ±5.9%                                   |
+| `benchInMemoryExecutionLifecycle` | 182.7 µs | ±41.6%                                  |
+| `benchActivityLifecycle`          | 208.4 µs | ±36.1%                                  |
+| `benchMeasurementCreation`        | 220.9 µs | ±39.4%                                  |
+| `benchObservationCreation`        | 220.8 µs | ±27.0%                                  |
+| `benchThrowableNormalization`     | 2.11 µs  | ±11.1%                                  |
+| `benchRedaction`                  | 3.93 µs  | ±9.7%                                   |
+| `benchBoundedPublish`             | 3.59 µs  | ±4.5%                                   |
+| `benchBuffering`                  | 44.10 µs | ±64.3%                                  |
+| `benchOtelNullProviderRecord`     | ≈0.29 µs | at noise floor (see T3.5 verdict below) |
 
 ### Existing hot-path suite (2026-11-06)
 
@@ -85,18 +85,18 @@ Core i7-9700 with four virtual CPUs. Each subject uses two warmups, five
 iterations and 100 revolutions. Values below are PHPBench's reported mode and
 deviation, in microseconds per revolution; this run did not retain raw iterations.
 
-| Subject | Mode | Deviation |
-| --- | ---: | ---: |
-| `benchNullWrapper` | 0.230 | 0.00% |
-| `benchInMemoryExecutionLifecycle` | 82.919 | 2.21% |
-| `benchActivityLifecycle` | 116.241 | 3.79% |
-| `benchMeasurementCreation` | 98.185 | 0.96% |
-| `benchObservationCreation` | 98.192 | 3.23% |
-| `benchThrowableNormalization` | 1.792 | 5.82% |
-| `benchRedaction` | 3.041 | 3.77% |
-| `benchBoundedPublish` | 2.771 | 3.67% |
-| `benchOtelNullProviderRecord` | 0.210 | 3.74% |
-| `benchBuffering` | 31.601 | 1.08% |
+| Subject                           |    Mode | Deviation |
+|-----------------------------------|--------:|----------:|
+| `benchNullWrapper`                |   0.230 |     0.00% |
+| `benchInMemoryExecutionLifecycle` |  82.919 |     2.21% |
+| `benchActivityLifecycle`          | 116.241 |     3.79% |
+| `benchMeasurementCreation`        |  98.185 |     0.96% |
+| `benchObservationCreation`        |  98.192 |     3.23% |
+| `benchThrowableNormalization`     |   1.792 |     5.82% |
+| `benchRedaction`                  |   3.041 |     3.77% |
+| `benchBoundedPublish`             |   2.771 |     3.67% |
+| `benchOtelNullProviderRecord`     |   0.210 |     3.74% |
+| `benchBuffering`                  |  31.601 |     1.08% |
 
 There were ten subjects and no benchmark errors or assertions. The buffering
 subject publishes 200 artifacts to `InMemoryArtifactPublisher`, not to
@@ -113,11 +113,11 @@ budget or a 256-item budget, dropping the remainder. It checked delivery, drop,
 queue and byte totals. Results are milliseconds per operation, median and full
 range over nine samples after two warmups with rotating case order:
 
-| Items | Flush | Full-budget close | Close with budget 256 |
-| ---: | ---: | ---: | ---: |
-| 256 | 0.234 (0.215–0.241) | 0.216 (0.210–0.283) | 0.229 (0.209–0.355) |
-| 1,024 | 1.708 (1.665–1.929) | 1.731 (1.648–1.968) | 1.444 (1.412–8.665) |
-| 4,096 | 19.543 (18.997–22.411) | 19.550 (18.989–20.749) | 18.594 (17.577–19.877) |
+|  Items |                     Flush |         Full-budget close |     Close with budget 256 |
+|-------:|--------------------------:|--------------------------:|--------------------------:|
+|    256 |       0.234 (0.215–0.241) |       0.216 (0.210–0.283) |       0.229 (0.209–0.355) |
+|  1,024 |       1.708 (1.665–1.929) |       1.731 (1.648–1.968) |       1.444 (1.412–8.665) |
+|  4,096 |    19.543 (18.997–22.411) |    19.550 (18.989–20.749) |    18.594 (17.577–19.877) |
 | 16,384 | 292.483 (282.612–440.644) | 286.980 (281.001–306.188) | 280.919 (276.619–344.994) |
 
 PHP 8.5.12 CLI NTS, CLI OPcache/JIT disabled, unlimited memory, WSL2 x86-64,
@@ -131,6 +131,92 @@ isolate its cause or establish production latency. The temporary harness and
 samples are `/tmp/kilo/runit-buffer-baseline.php` and
 `/tmp/kilo/runit-buffer-baseline-results.txt`; neither is tracked.
 
+### Buffer overflow and priority baseline (2026-11-08)
+
+At revision `6d602fe384db04d76c6ba68cf78f7a2154cb6a4e` the worktree was
+clean before this documentation change. The existing `benchBuffering` does not
+exercise the buffered publisher, and the drain/close measurement excludes
+overflow. This baseline fills a fresh `BufferedArtifactPublisher` outside the
+timed region, then times 128 consecutive publishes into the full count-bound
+queue. Values are microseconds per publish: median and full range of 11 sample
+averages, after two warmup rounds, with case order rotated each round.
+
+| Full queue / overflow case | 256 items | 1,024 items | 4,096 items |
+|----------------------------|----------:|------------:|------------:|
+| Drop oldest, incoming high | 1.594 (1.583–1.978) | 3.173 (2.989–12.601) | 9.246 (8.941–10.363) |
+| Priority, reject incoming low | 0.899 (0.873–1.496) | 0.904 (0.886–1.207) | 0.930 (0.898–1.205) |
+| Priority, low items at front | 2.644 (2.536–7.268) | 6.382 (5.677–9.826) | 24.153 (23.120–33.869) |
+| Priority, 128 low items at tail | 12.222 (11.540–39.478) | 73.937 (69.019–88.743) | 349.744 (324.253–374.240) |
+| Priority, all high | 20.791 (20.061–73.284) | 84.183 (77.136–98.860) | 337.253 (307.577–405.166) |
+
+The oldest, reject-low and low-front cases start with all low-priority
+observations. The tail case starts with high-priority observations followed by
+128 low-priority observations; the all-high case contains only high-priority
+observations. Except for reject-low, each incoming observation is high priority.
+The tail case successively removes those 128 low items, while all-high scans the
+entire queue then drops the oldest; neither is an isolated scan measurement.
+Priority classifies reused real info/error observations. A deterministic clock,
+constant 100-byte estimator, disabled interval flushing and an effectively
+unbounded byte limit isolate count overflow. Filling, flushing and correctness
+checks are outside the timed region; every sample verifies count, drops, byte
+accounting and delivered high/low totals. The 1,024 count is the default; the
+other sizes are stress comparisons, not default configurations.
+
+PHP 8.5.12 CLI NTS, unlimited memory, CLI OPcache/JIT and PCOV disabled, Xdebug
+absent; WSL2 x86-64, four virtual CPUs on Intel Core i7-9700. The temporary,
+untracked harness is `/tmp/kilo/runit-overflow-priority-baseline.php`. While it
+remains available, run from the package directory:
+
+```bash
+php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-overflow-priority-baseline.php
+```
+
+The output includes individual sample averages. These single-process, unpinned
+measurements have substantial outliers and are not regression thresholds or
+production throughput estimates. They include item construction, priority
+classification, clock and estimator calls, and loop overhead, but exclude real
+estimation costs, health reporting, sink I/O, expiration, byte-bound overflow,
+blocking/fail strategies, concurrent traffic, memory profiling and PHP 8.4.
+The scan and array operations both contribute; these results do not attribute
+their individual costs or demonstrate behavior under a realistic priority mix.
+
+### Nested snapshot redaction and serialization (2026-11-08)
+
+At revision `bc12bc5dad009c0210c90000aaaa0f1f440b701b`, a focused synthetic
+baseline used real snapshots with nested checkout-like payloads. The 8-row and
+64-row fixtures encoded to 1,164 and 9,108 bytes respectively, with 16 and 128
+configured key masks. Median and full range below are microseconds per
+operation over 11 sample averages, after two warmup rounds. Each sample used
+1,000 operations for 8 rows and 300 for 64 rows; case order rotated.
+
+| Workload                                       |                 8 rows |                    64 rows |
+|------------------------------------------------|-----------------------:|---------------------------:|
+| `Snapshot::normalize()`                        |    0.607 (0.586–0.676) |        0.607 (0.591–0.841) |
+| Configured `DefaultArtifactRedactor::redact()` | 16.042 (14.942–35.605) |  109.366 (104.034–137.497) |
+| `JsonSnapshotSerializer::normalize()`          | 32.247 (31.488–73.790) |  242.741 (231.743–538.300) |
+| Redacting publisher with JSON-encoding sink    | 23.268 (22.362–39.641) | 153.423 (146.582–1527.889) |
+
+PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on Intel Core i7-9700;
+CLI OPcache, JIT and PCOV disabled, Xdebug absent, unlimited memory. Fixtures
+were created outside the timed region; representative masks, immutability,
+serializer round-trip and sink output were checked. The publisher case uses a
+custom JSON-encoding sink, not `JsonSnapshotSerializer`. `Snapshot::normalize()`
+is a projection rather than deep serialization. The existing `benchRedaction`
+uses a small snapshot with no configured sensitive data keys and does not cover
+this recursive masking workload.
+
+These unpinned single-process results include wide outliers and are not a
+regression threshold or production throughput measurement. They exclude
+creation and hashing, actual I/O, buffering, adapter encoding, concurrency,
+memory profiling, failure paths, and PHP 8.4. The temporary harness and raw
+samples are `/tmp/kilo/runit-redaction-serialization-baseline.php` and
+`/tmp/kilo/runit-redaction-serialization-results.txt`; they are not tracked.
+While available, rerun from the package directory with:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-redaction-serialization-baseline.php
+```
+
 Phase 2 (T2.4) replaced the bounded publisher's per-publish
 `strlen(json_encode(...))` sizing — which encoded every occurrence/snapshot
 payload just to measure it — with the native
@@ -139,16 +225,68 @@ run before), so the change is justified analytically (one full payload encoding
 eliminated per publish) and pinned going forward by `benchBoundedPublish`.
 Regenerate with `composer benchmark` when comparing.
 
+### Execution span store retention baseline (Phase 5 preparation, 2026-11-08)
+
+At revision `5474bfb78d2f811a99667d80b7ccd10ce453d431`, an untracked
+standalone harness exercised the existing `InMemoryExecutionSpanStore` directly,
+without production changes. Seven samples ran in one process, each creating a
+fresh store at each size in ascending order, then releasing it before the next
+case. Sizes below are **pairs**: one execution and one activity entry per pair.
+Each has a distinct real OpenTelemetry `SpanContext`, null trace state, and
+fixed-width synthetic IDs (33-byte store keys, 32-byte trace IDs and 16-byte
+span IDs). Thus 100,000 pairs means 200,000 retained contexts. Autoloading and
+one context construction precede measurements. The harness checks the last
+entry and all timed lookup outcomes; it does not simulate actual publishers.
+
+| Pairs | PHP used-byte delta, median (range) | Hit ns/lookup, median (range) | Miss ns/lookup, median (range) |
+|------:|------------------------------------:|------------------------------:|-------------------------------:|
+| 0 | 80 (80–80) | N/A | 105.458 (92.157–141.933) |
+| 1,000 | 1,490,112 (1,490,112–1,498,304) | 145.887 (119.576–232.170) | 114.591 (102.625–138.068) |
+| 10,000 | 15,390,912 (15,390,912–15,636,672) | 194.694 (155.517–253.500) | 113.124 (101.647–138.451) |
+| 100,000 | 151,286,000 (151,286,000–153,121,032) | 310.162 (211.434–431.107) | 128.213 (106.429–188.564) |
+
+Each timing is an average of 200,000 calls, alternating execution and activity
+lookups over 256 deterministic precomputed key pairs; hits precede misses.
+The timed loop includes key selection, method calls and result checks, so these
+are not isolated hash-table costs. There are no separate warmup samples, case
+order is fixed, and the wide ranges and small repeatedly accessed key set limit
+interpretation. Memory is `memory_get_usage(false)` after filling minus before
+creating the store, after garbage collection; it includes PHP object and key
+allocations, not just map buckets. The corresponding `memory_get_usage(true)`
+delta at 100,000 pairs ranged from 10,485,760 to 138,412,032 bytes (median
+10,485,760): earlier cases leave allocator pages available for reuse. Neither
+metric is process RSS, a peak, a fresh-worker baseline, nor a measurement of
+memory returned to the OS. Context sharing, trace state, ID lengths, other
+worker allocations and allocator history can materially change the result.
+
+PHP 8.5.12 CLI NTS, unlimited PHP memory limit, CLI OPcache/JIT and PCOV
+disabled, Xdebug absent; WSL2 x86-64, four virtual CPUs on Intel Core i7-9700.
+The synthetic sizes illustrate retained growth while the store is alive, not
+an actual traffic rate, deployment memory budget, concurrency behavior, or a
+justification for any particular retention limit. The store has no removal or
+bound, and a long-lived store with unique IDs can accumulate entries; overwrite,
+parent-lookup correctness, real SDK lifetimes, RSS and PHP 8.4 are not measured.
+No regression threshold or retention limit is selected from this baseline.
+
+The exact untracked harness and raw per-sample results are
+`/tmp/kilo/runit-span-store-baseline.php` and
+`/tmp/kilo/runit-span-store-results.json`. While available, rerun from the package
+directory with (the command overwrites the results file):
+
+```bash
+php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-span-store-baseline.php
+```
+
 ### Redaction default (Phase 1, T1.1, 2026-08-24)
 
 The builder now installs a deny-by-default redactor (throwable-message masking)
 unless explicitly configured otherwise. Measured per-artifact cost of passing
 through the redacting stage on the snapshot path:
 
-| Subject | Mean | Deviation |
-|---------|------|-----------|
-| `benchBoundedPublish` (no redaction stage) | 3.52 µs | ±20.1% |
-| `benchRedaction` (sampling → redaction chain) | 4.58 µs | ±10.6% |
+| Subject                                       | Mean    | Deviation |
+|-----------------------------------------------|---------|-----------|
+| `benchBoundedPublish` (no redaction stage)    | 3.52 µs | ±20.1%    |
+| `benchRedaction` (sampling → redaction chain) | 4.58 µs | ±10.6%    |
 
 The redaction stage costs ≈0.5–1.0 µs per artifact in this environment
 (projection walk + mask comparison). This is the price of deny-by-default

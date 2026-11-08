@@ -81,6 +81,28 @@ $publisher = TelemetryPublisher::fromConfig($config);
 A `null` provider disables that signal without error, so a consumer can enable only the
 signals it needs.
 
+## Span context retention
+
+`TelemetryPublisher::fromConfig()` creates an in-memory store by default, shared by
+its execution and activity mappers. It retains contexts, not live spans, in separate
+ID-keyed maps with no limit, removal, or eviction. A long-lived publisher can therefore
+grow with the number of distinct execution and activity IDs. Reusing an ID replaces the
+previous context in that map; activity IDs are not scoped by execution. The maps live
+as long as their store remains reachable. A null tracer provider records nothing.
+
+An application can pass an `ExecutionSpanStoreInterface` as the second argument to
+`fromConfig()`. Both mappers use that exact store; sharing it between publishers also
+shares correlation and its lifetime. Custom stores define their own retention, duplicate
+handling, and concurrency properties. The interface permits eviction, but supplies no
+removal or capacity configuration contract.
+
+Each mapper looks up a parent before starting its span and records its own context
+after ending the span. Child executions look up their parent execution. Activities look
+up their parent activity first, then their execution if that lookup misses. If no stored
+parent is found, the bridge does not set an explicit parent; the OpenTelemetry builder
+may use the ambient context. A later parent does not reparent an already exported span.
+Evicting a context in a custom store can consequently alter linkage for late children.
+
 ## Cardiality and payload controls
 
 - `withMetricAttributeAllowList(['region'])` — only listed keys become metric
@@ -96,16 +118,20 @@ signals it needs.
 
 ## Redaction before export
 
-The bridge exports whatever artifact reaches it, so redaction must be composed
-*before* the bridge. The SDK builder does this for you: since Phase 1 of the
-2026-08-24 plan, `RunItBuilder` installs a deny-by-default redactor that masks
-throwable messages unless you explicitly opt out with `withRedactor(null)` or
-supply a custom strategy. Payload masking (occurrence `data`, snapshot
-`payload`) is key-driven — configure a custom redactor:
+The bridge receives the artifact supplied by its publisher. `RunItBuilder`
+installs a default redactor unless you opt out with `withRedactor(null)` or
+supply a custom strategy, but the default is not a comprehensive sanitizer.
+In particular, it does not mask failed-execution throwables nested under
+`result.throwable`; free-form messages and unconfigured payload keys can also
+contain sensitive data. Apply and verify independent sanitization before data
+reaches the bridge or a sampler. See [current publication limitations](../SECURITY.md#current-publication-limitations).
+
+Payload-key masking for occurrence `data` and snapshot `payload` can be
+configured explicitly, subject to the limitations linked above:
 
 ```php
 $runtime = RunItBuilder::create()
-    ->withPublisher(new TelemetryPublisher::fromConfig($bridgeConfig))
+    ->withPublisher(TelemetryPublisher::fromConfig($bridgeConfig))
     ->withRedactor(new DefaultArtifactRedactor(new ArtifactRedactionConfig(
         sensitiveDataKeys: ['token', 'password'],
     )))
@@ -114,17 +140,25 @@ $runtime = RunItBuilder::create()
 ;
 ```
 
-The builder composes redaction closest to the sink and sampling outside it, so
-dropped artifacts are never serialized and exported artifacts are already
-masked.
+The builder composes redaction closest to the sink and sampling outside it;
+consequently, configured samplers receive the original artifact. When redaction
+changes an artifact, the resulting generic projection does not necessarily follow
+the same adapter path as the original typed artifact. Do not assume that all
+fields reaching an exporter have been masked or that every redacted artifact is
+delivered.
+In a test with a configured sensitive attribute, an observation changed by the
+default redactor produces neither an OpenTelemetry log nor a span event, whereas
+an unredacted control produces both. This characterizes the tested paths, not all
+possible redacted artifact shapes.
 
 ## Fiber considerations
 
-The bridge keeps correlation in an explicit, id-keyed span store rather than in global
-mutable context, so invoking the publisher from multiple Fibers cannot leak one
-execution's parent linkage into another. Fiber-aware OpenTelemetry context storage is
-optional; when it is unavailable the bridge still works because correlation is carried
-by RunIt artifact identity, not by ambient context.
+The bridge uses an explicit ID-keyed store for known parents, rather than relying on
+ambient context for those lookups. IDs must be suitably unique within a shared store:
+duplicates can replace another execution's or activity's context. Missing lookups can
+fall back to ambient OpenTelemetry context, whose isolation depends on its configured
+context storage. The default store provides no explicit synchronization or per-Fiber
+partitioning; assess custom stores and concurrent runtime use independently.
 
 ## Example
 

@@ -76,8 +76,10 @@ this pipeline as a complete security boundary for arbitrary artifact contents.
 
 ## Buffering and backpressure
 
-`BufferedArtifactPublisher` is hard-bounded by item count and estimated bytes, so memory
-never grows without limit under sustained load. When it is full, the configured
+`BufferedArtifactPublisher` checks the current item count and estimated bytes before
+admission. The estimated-byte limit is not currently a hard bound: an incoming item can
+exceed it, including after a blocking wait or a single eviction. Estimates are not actual
+process-memory measurements. When the existing buffer is full, the configured
 `OverflowStrategy` decides what to drop:
 
 - **DropNewest** — discard the incoming artifact.
@@ -91,6 +93,11 @@ never grows without limit under sustained load. When it is full, the configured
 `shutdownFlushBudget` and drops whatever remains. Dropped and expired artifacts are
 reported to the internal health reporter so loss stays observable without re-entering the
 guarded pipeline.
+
+Current failure-path characterization also shows that integer overflow in byte accounting
+can leave an appended item unaccounted, and a throwing health reporter can interrupt an
+eviction before the replacement is appended. These observations describe current behavior,
+not a recommended configuration or a guarantee of future behavior.
 
 ## Recursion prevention
 

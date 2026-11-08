@@ -19,11 +19,25 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
 /**
  * @group application
  * @group publication
  */
+#[CoversClass(BufferedArtifactPublisher::class)]
+#[CoversClass(RecordingBatchFlushObserver::class)]
+#[UsesClass(DefaultArtifactByteEstimator::class)]
+#[UsesClass(SystemMonotonicClock::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
+#[UsesClass(BufferConfiguration::class)]
+#[UsesClass(Execution::class)]
+#[UsesClass(ExecutionDefinition::class)]
+#[UsesClass(ExecutionId::class)]
+#[UsesClass(ExecutionKind::class)]
+#[UsesClass(ExecutionName::class)]
+#[UsesClass(Instant::class)]
 final class BufferedArtifactPublisherFlushObserverTest extends Unit
 {
     private MonotonicClockInterface $clock;

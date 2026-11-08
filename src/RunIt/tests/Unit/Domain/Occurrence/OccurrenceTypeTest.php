@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Domain\Occurrence;
 
+use Codeception\Attribute\DataProvider;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(OccurrenceType::class)]
 final class OccurrenceTypeTest extends Unit
 {
     /**
@@ -47,9 +50,7 @@ final class OccurrenceTypeTest extends Unit
         ];
     }
 
-    /**
-     * @dataProvider acceptedProvider
-     */
+    #[DataProvider('acceptedProvider')]
     public function testAcceptedTypesRoundTripAndExposeVersion(string $value, string $version): void
     {
         $type = OccurrenceType::fromString($value);
@@ -59,9 +60,7 @@ final class OccurrenceTypeTest extends Unit
         self::assertSame($version, $type->version());
     }
 
-    /**
-     * @dataProvider rejectedProvider
-     */
+    #[DataProvider('rejectedProvider')]
     public function testRejectedTypesThrowATypedException(string $value): void
     {
         $this->expectException(InvalidStringValueException::class);
