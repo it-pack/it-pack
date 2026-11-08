@@ -33,7 +33,7 @@ final class ExecutedAsMetadataReaderTest extends TestCase
 
     public function testAttributeMetadataIsResolvedFromClassMethod(): void
     {
-        $metadata = $this->reader->read([SampleService::class, 'statically']);
+        $metadata = $this->reader->read(SampleService::statically(...));
 
         self::assertNotNull($metadata);
         self::assertSame('service.static', $metadata->name);

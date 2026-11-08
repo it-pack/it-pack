@@ -162,6 +162,41 @@ the identifier counts are not independent root causes. The equal total does not
 prove the diagnostic sets match the earlier baseline. Full attribution remains
 open. PCOV and Swoole were loaded; OpenSwoole and Swow were not.
 
+An isolated PHPStan 2.3.5 comparison on PHP 8.5.12 subsequently found 147
+diagnostics at both `ed8a1d72cf132ebf1f799b511b6af0f40028af1f` and
+`a7d75a3d61c19c3ed58e60a47d2bdd64d30a10ea` with the same installed dependency
+contents. Paths, identifiers, messages and multiplicities match; seven lines in
+`TelemetryPublisherTest.php` shifted by five lines. The current-revision reports
+contain 34 diagnostics in production source, 69 in OpenTelemetry fixtures and
+tests, and 44 in other tests; these location counts are not independent root
+causes. Misspelled OpenTelemetry PHPDoc types cause cascades, and PHPUnit
+named-argument and dynamic-static-call diagnostics form separate groups. Fiber
+test control-flow reports and production type findings still need individual
+investigation. The checkout advanced during this comparison, and the live copy
+was not an atomic snapshot. Historical dependency versions were not reproduced;
+JSON reports are temporary under `/tmp/kilo/phpstan-attribution/`.
+
+On 2026-11-08, starting from revision
+`bc12bc5dad009c0210c90000aaaa0f1f440b701b` with a pre-existing plan edit,
+`composer test` passed on PHP 8.5.12: Unit 863/6,061, Integration 3/7,
+Conformance 52/111 and Concurrency 8/172 (tests/assertions). On PHP 8.4.27,
+the four configured suites passed separately, including the native Swoole test.
+A direct `php8.4 vendor/bin/codecept run` instead attempted the Functional suite
+and failed because its bootstrap is absent; this command is not equivalent to
+the four-suite Composer script. `composer coverage -- --silent` passed with
+Unit-only PCOV statement coverage 3,615/4,090 (88.39%); the generated XML is
+`tests/_output/coverage.xml`, which is not tracked. PCOV provides no branch
+coverage, and the aggregate does not establish per-test attribution. A nested
+snapshot redaction and serialization benchmark is recorded in `benchmarks.md`;
+its temporary harness, wide variance and excluded workloads limit comparisons.
+On this worktree, Composer validation, style and architecture passed; the
+quality command stopped at the existing Rector callable-fixture suggestion.
+The line-length check reported 26 violations outside the new tests. The API
+check reported ten additions, no detected breaks and exited 1; no baseline was
+changed. Composer audit reported no vulnerability advisories, with the existing
+abandoned development dependency `doctrine/annotations`; `--no-dev` also found
+no advisories. Focused PHPStan checks passed for both new test files.
+
 The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. An earlier `composer api:check` exited 1 for nine additive symbols and reported zero backward-compatibility breaks; the later ten-addition result is recorded above. This does not authorize a further baseline update. The characterizations above and in Phase 2 reproduce several of the previously outstanding paths, but do not exhaust all adapter, failure-reporting, concurrency, or ownership scenarios. Phase 0 is not complete.
 
 ## Phase 1: Compatibility and context ownership
@@ -195,6 +230,14 @@ The API identity and redaction policy directions above are now recorded; impleme
 Historically AsyncIt's focused memory storage, Swoole storage and context-isolation verifier tests passed (12 tests total); RunItThirdPartySample's `composer test` passed (4 tests, 12 assertions). The later AsyncIt ownership regression covers the foreign-token collision separately.
 
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
+
+`InterleavedSwooleContextIsolationTest` extends the preparatory concurrency
+coverage with native Swoole coroutines. It checks nested parent identity,
+interleaved scope isolation, original exception identity, restoration, and a
+second execution in a coroutine while another is suspended. On PHP 8.5.12 with
+Swoole 6.2.3 the concurrency suite passed 8 tests and 172 assertions. The test
+skips when Swoole is unavailable; its skip path, OpenSwoole, and Swow were not
+verified. This coverage does not complete the remaining Phase 1 requirements.
 
 - [#38: Composite context storage ownership overhead](issues/composite-context-storage-performance.md) — representative performance and memory measurements and any evidence-backed optimization.
 - [#37: AsyncIt context-token cleanup cost](issues/asyncit-context-storage-cleanup-performance.md) — scan replaced with weak keys; broader runtime, nested-workload and memory measurements remain open.
@@ -262,9 +305,10 @@ or approval of the existing leak. Target-policy assertions and routing remain
 open; the tests documenting unsafe behavior must change when the defects are fixed.
 The focused telemetry, sampling and failure-handling files passed on PHP 8.4 and
 8.5. An initial concurrent PHP 8.4 invocation raced on generated Codeception
-support; running the three files sequentially passed. Subsequently,
-`php8.4 vendor/bin/codecept run --silent` passed the full configured test run;
-this does not cover unavailable runtime extensions.
+support; running the three files sequentially passed. A subsequent direct
+`php8.4 vendor/bin/codecept run --silent` was recorded as passing, but is not
+evidence of a full configured run: the later explicit suite runs and Functional
+bootstrap failure are documented in the refreshed Phase 0 results above.
 
 Further composed OpenTelemetry characterizations use real redacted artifacts and
 in-memory exporters. In the tested occurrence configuration, an extension excluded
@@ -276,6 +320,13 @@ clock. The original content hash is exported to both signals even with
 snapshot payload; these cases do not establish safety for other configurations or
 exporters. Routing, extension filtering, timestamp handling, and hash exposure
 remain open security and correctness work.
+
+A PSR-3 observation logger characterization additionally shows that a configured
+sensitive attribute key is masked at the top level but remains visible when it
+appears within a nested attribute. In the same test the three-level throwable
+messages and traces are masked, class and code remain, and the original is
+unchanged. This is a current-behavior test, not a security guarantee for other
+paths or a fix for nested attributes.
 
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
@@ -314,8 +365,9 @@ returned object and thrown exception are preserved by identity, and the context
 is detached. This describes current behavior, not the approved configurable
 outcome; the misleading diagnostic and policy implementation remain open.
 
-On PHP 8.5.12, the full `composer test -- --silent` run passed; on PHP 8.4.27,
-`php8.4 vendor/bin/codecept run --silent` passed. The focused open-activity
+On PHP 8.5.12, the full `composer test -- --silent` run passed. The previous
+PHP 8.4 direct-run claim is qualified by the refreshed Phase 0 results above.
+The focused open-activity
 test file passed with 5 tests and 28 assertions. Style and architecture checks
 passed, and focused PHPStan analysis of that test file passed. The quality gate
 stopped at the existing Rector callable-fixture suggestion; the independent

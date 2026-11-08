@@ -60,6 +60,11 @@ original artifact. A changed artifact is represented by a generic projection,
 which not all typed adapter paths accept. Directly configured publishers and
 `withRedactor(null)` can bypass redaction altogether.
 
+Configured sensitive observation-attribute keys are only masked at the top
+level. A composed PSR-3 logger test confirms that the same key inside a nested
+attribute reaches the logger unchanged. Do not put secrets in nested attributes
+and rely on these key settings to remove them.
+
 A composed OpenTelemetry test confirms that the outer exception message and
 trace of a failed execution reach the exported span event with default redaction.
 The test's nested-cause markers did not appear in those two event fields; this

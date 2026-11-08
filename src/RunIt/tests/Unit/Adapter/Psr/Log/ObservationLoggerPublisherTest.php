@@ -18,6 +18,7 @@ use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use Tests\Support\Fixture\Psr\InMemoryLogger;
+use Tests\Support\Fixture\SensitiveExceptionChain;
 
 final class ObservationLoggerPublisherTest extends Unit
 {
@@ -155,6 +156,50 @@ final class ObservationLoggerPublisherTest extends Unit
             'trace' => '[redacted]',
         ], $entry['context']['exception']);
         self::assertSame('private-value', $observation->attributes()['password']);
+    }
+
+    /** Characterizes nested attribute exposure and throwable masking at the logger boundary. */
+    public function testNestedAttributeKeysRemainVisibleWhileThrowableChainIsMasked(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']),
+        ));
+        $observation = Observation::error(
+            ObservationId::fromString('o-nested'),
+            ExecutionId::fromString('exec-nested'),
+            'request failed',
+            attributes: AttributeCollection::fromArray([
+                'password' => 'top-level-secret',
+                'request' => ['password' => 'nested-secret', 'method' => 'POST'],
+            ]),
+            throwableDescription: SensitiveExceptionChain::classifiedChain(),
+        );
+        $before = $observation->normalize();
+
+        $publisher->publish($observation);
+
+        self::assertSame(1, $logger->count());
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('[redacted]', $entry['context']['password']);
+        self::assertSame(['password' => 'nested-secret', 'method' => 'POST'], $entry['context']['request']);
+        $throwable = $entry['context']['exception'];
+        foreach ([['RuntimeException', 2], ['PDOException', 1], ['RuntimeException', 0]] as [$class, $code]) {
+            self::assertIsArray($throwable);
+            self::assertSame($class, $throwable['class']);
+            self::assertSame($code, $throwable['code']);
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertSame('[redacted]', $throwable['trace']);
+            $throwable = $throwable['previous'];
+        }
+
+        self::assertNull($throwable);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringNotContainsString($secret, serialize($entry));
+        }
+
+        self::assertSame($before, $observation->normalize());
     }
 
     public function testDisabledRedactionPreservesBenignThrowableDetails(): void
