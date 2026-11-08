@@ -58,7 +58,8 @@ final class NestedExecutionPolicyTest extends Unit
         $policy = new ChildExecutionPolicy();
         self::assertSame(
             NestedExecutionMode::ChildExecution,
-            $policy->resolve($current,
+            $policy->resolve(
+                $current,
                 $this->definition()
             )
         );

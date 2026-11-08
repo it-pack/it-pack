@@ -251,7 +251,8 @@ final class RunItBuilderTest extends TestCase
 
         self::assertSame(
             'engine-installed',
-            $runtime->run($this->definition(),
+            $runtime->run(
+                $this->definition(),
                 static fn (): string => 'ignored'
             )
         );
