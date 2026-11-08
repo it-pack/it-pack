@@ -36,6 +36,23 @@ verification. The unchecked design details below must still be resolved where ap
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
 
+**Observation design investigation:** A candidate sanitized representation
+would implement `ObservationInterface` without retaining the source artifact,
+derive getters and normalization from the same bounded sanitized state, and use
+an explicit trusted type signal. Preserving validated severity could retain
+typed sampling, but messages, attributes, identifiers, diagnostic codes, timing
+and sequence each need a policy: none is inherently classified safe. Attribute
+keys also require control because adapter context fields can collide. Context
+classification does not classify arbitrary observation fields. Candidate default
+suppression of free-form messages and attributes, and an independent guarded
+health report using a payload-free placeholder, are proposals rather than
+approved field or reporting decisions. Identifiers are required by the existing
+interface, and changing values or normalized shapes can affect consumers.
+Disabled providers must be distinguished from unsafe-mapping drops. A real
+redacted observation through OpenTelemetry still needs a delivery-or-report test;
+generic redacted artifacts otherwise risk bypassing typed dispatch. These
+investigations do not authorize public-interface or schema changes.
+
 Coverage attribution investigation (PHP 8.5.12, Codeception 5.3.7, PHPUnit
 13.1.14, php-code-coverage 14.5.1): source inspection indicates empty coverage
 targets do not filter executed lines, and `strict_covers_annotation` defaults to
@@ -95,7 +112,58 @@ not a CI gate, and do not establish real-suite attribution or branch coverage.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
 
+**High-priority evidence inventory:** The following links identify executable
+current-behavior characterizations. Their assertions intentionally describe the
+defects; they are not failing tests of the approved target policy and do not by
+themselves satisfy the literal exit criterion.
+
+| Review issue | Existing reproduction | Remaining evidence |
+| --- | --- | --- |
+| Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent` | Target-policy negative tests across causes, traces, and exporters. |
+| Sampling before redaction | Factory-composed spy and typed-policy cases in `SamplingTest` | Redaction-first target and compatible typed routing tests. |
+| Buffer byte limit | Oversized, projected-overflow, eviction, integer-overflow and timeout cases in `BufferingTest` | Target-invariant matrix and approved edge semantics. |
+| Silent or recursive publication failures | `FailureHandlingTest` and nested runner `ResilienceTest` | Recursion-safe reporting target and outer reporter/system-log failure evidence. |
+| Token interface compatibility | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline | Final migration, versioning and API-check verification for external implementers. |
+| Unit coverage and attribution | Unit-only XML and synthetic attribution controls recorded below | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
+| Synchronous context under concurrency | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest` | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable. |
+
+The originally reported token break is approved, not erased, and coverage
+enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
+coverage alone establishes whether Phase 0's reproduction exit is met. A
+per-finding target-failure or documented inability is still required.
+
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+
+**Revision-specific refresh (2026-11-08):** Started clean at
+`6d602fe384db04d76c6ba68cf78f7a2154cb6a4e`. Runs used PHP 8.5.12 CLI NTS,
+PCOV, Fiber and Swoole 6.2.3; OpenSwoole and Swow were not loaded. Installed
+dependencies came from the ignored package lockfile; no update was performed.
+Documentation and an unrelated concurrent `AGENTS.md` edit appeared during the
+refresh, but no production or test source was intentionally changed. The four
+configured test suites also passed separately on PHP 8.4.27.
+
+| Command | Exit | Result |
+| --- | ---: | --- |
+| `composer validate --strict` | 0 | Valid manifest. |
+| `composer api:check` | 1 | Ten additions, zero detected breaks; no baseline changed. |
+| `composer analyse -- --error-format=json --no-progress` | 1 | 147 diagnostics; full current-set attribution remains open. |
+| `composer refactor:dry` | 0 | No changes proposed. |
+| `composer cs:check` | 0 | Passed after Rector. |
+| `composer architecture` | 0 | 404 classes, no violations. |
+| `composer lint:length` | 1 | 26 violations. |
+| `composer test -- --silent` | 0 | Four configured suites passed. |
+| `composer coverage -- --silent` | 0 | Unit only: 3,616/4,090 statements (88.41%). |
+| `composer audit` | 0 | No advisories; abandoned dev dependency `doctrine/annotations`. |
+| `composer quality` | 1 | Stopped at PHPStan after validation, Rector and style. |
+
+The Unit XML is `/tmp/kilo/runit-6d602fe3-unit-coverage.xml`; PCOV supplies no
+branch coverage and aggregate results do not establish per-test attribution.
+PhpMetrics 2.11.0 produced `/tmp/kilo/runit-6d602fe3-phpmetrics.json`, `.csv`
+and `-summary.json`; PHP Assumptions 0.9.1 produced
+`/tmp/kilo/runit-6d602fe3-phpa.xml` with 75 heuristic assumptions, not confirmed
+defects. PhpMetrics reported 236 classes. These temporary files are not tracked
+or guaranteed durable. This refresh does not resolve the target regressions or
+complete Phase 0.
 
 **Partial refreshed baseline (2026-11-06):** At revision
 `72c32f63c88c44913bc88c5b42e4673c36737174`, the initial worktree was clean.
@@ -154,6 +222,13 @@ The existing ten-subject `composer benchmark` suite also passed on PHP 8.5.12;
 the environment, workload, reported variation and limitations are recorded in
 `benchmarks.md`. It does not cover all planned hot paths or overflow patterns.
 The above characterizations do not fix the defects or complete Phase 0.
+
+At revision `6d602fe384db04d76c6ba68cf78f7a2154cb6a4e`, a further synthetic
+count-bound overflow baseline exercised the actual buffering publisher at 256,
+1,024 and 4,096 queued items. The all-high priority case had median costs of
+20.791, 84.183 and 337.253 microseconds per publish respectively; sample ranges,
+other priority patterns, workload and limitations are in `benchmarks.md`. This
+does not isolate scanning from array costs or establish production throughput.
 
 Starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
 `FailureHandlingTest` additionally characterizes publication failure reporting.

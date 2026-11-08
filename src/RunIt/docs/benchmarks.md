@@ -131,6 +131,55 @@ isolate its cause or establish production latency. The temporary harness and
 samples are `/tmp/kilo/runit-buffer-baseline.php` and
 `/tmp/kilo/runit-buffer-baseline-results.txt`; neither is tracked.
 
+### Buffer overflow and priority baseline (2026-11-08)
+
+At revision `6d602fe384db04d76c6ba68cf78f7a2154cb6a4e` the worktree was
+clean before this documentation change. The existing `benchBuffering` does not
+exercise the buffered publisher, and the drain/close measurement excludes
+overflow. This baseline fills a fresh `BufferedArtifactPublisher` outside the
+timed region, then times 128 consecutive publishes into the full count-bound
+queue. Values are microseconds per publish: median and full range of 11 sample
+averages, after two warmup rounds, with case order rotated each round.
+
+| Full queue / overflow case | 256 items | 1,024 items | 4,096 items |
+|----------------------------|----------:|------------:|------------:|
+| Drop oldest, incoming high | 1.594 (1.583–1.978) | 3.173 (2.989–12.601) | 9.246 (8.941–10.363) |
+| Priority, reject incoming low | 0.899 (0.873–1.496) | 0.904 (0.886–1.207) | 0.930 (0.898–1.205) |
+| Priority, low items at front | 2.644 (2.536–7.268) | 6.382 (5.677–9.826) | 24.153 (23.120–33.869) |
+| Priority, 128 low items at tail | 12.222 (11.540–39.478) | 73.937 (69.019–88.743) | 349.744 (324.253–374.240) |
+| Priority, all high | 20.791 (20.061–73.284) | 84.183 (77.136–98.860) | 337.253 (307.577–405.166) |
+
+The oldest, reject-low and low-front cases start with all low-priority
+observations. The tail case starts with high-priority observations followed by
+128 low-priority observations; the all-high case contains only high-priority
+observations. Except for reject-low, each incoming observation is high priority.
+The tail case successively removes those 128 low items, while all-high scans the
+entire queue then drops the oldest; neither is an isolated scan measurement.
+Priority classifies reused real info/error observations. A deterministic clock,
+constant 100-byte estimator, disabled interval flushing and an effectively
+unbounded byte limit isolate count overflow. Filling, flushing and correctness
+checks are outside the timed region; every sample verifies count, drops, byte
+accounting and delivered high/low totals. The 1,024 count is the default; the
+other sizes are stress comparisons, not default configurations.
+
+PHP 8.5.12 CLI NTS, unlimited memory, CLI OPcache/JIT and PCOV disabled, Xdebug
+absent; WSL2 x86-64, four virtual CPUs on Intel Core i7-9700. The temporary,
+untracked harness is `/tmp/kilo/runit-overflow-priority-baseline.php`. While it
+remains available, run from the package directory:
+
+```bash
+php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-overflow-priority-baseline.php
+```
+
+The output includes individual sample averages. These single-process, unpinned
+measurements have substantial outliers and are not regression thresholds or
+production throughput estimates. They include item construction, priority
+classification, clock and estimator calls, and loop overhead, but exclude real
+estimation costs, health reporting, sink I/O, expiration, byte-bound overflow,
+blocking/fail strategies, concurrent traffic, memory profiling and PHP 8.4.
+The scan and array operations both contribute; these results do not attribute
+their individual costs or demonstrate behavior under a realistic priority mix.
+
 ### Nested snapshot redaction and serialization (2026-11-08)
 
 At revision `bc12bc5dad009c0210c90000aaaa0f1f440b701b`, a focused synthetic

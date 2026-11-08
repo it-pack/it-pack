@@ -4,6 +4,10 @@ This document records the data-classification and exfiltration review performed 
 Milestone M12. It is the security companion to `docs/ROADMAP.md` (Milestone M12) and to
 `docs/SECURITY.md` (the security policy).
 
+This is a historical milestone review, not a guarantee of current protection.
+For confirmed current limitations and mitigation guidance, see
+[`../SECURITY.md`](../SECURITY.md#current-publication-limitations).
+
 ## Scope
 
 RunIt is a library. The data-exfiltration surface is every place where caller-supplied or
@@ -16,11 +20,11 @@ serialization, context propagation, and telemetry/event mapping.
 |-------|----------------|------------------|
 | Context values marked `secret` | Secret | Never exported; redacted at the boundary |
 | Context values marked `restricted` | Restricted | Redacted before external publication |
-| Observation/occurrence messages | Potentially sensitive | Redacted by default (`redactThrowableMessages`) |
+| Observation/occurrence messages | Potentially sensitive | Free-form messages are not sanitized by `redactThrowableMessages`; sanitize before publication |
 | Occurrence `data` | Potentially sensitive | Redacted when `redactOccurrenceData` is set |
 | Snapshot `payload` | Potentially sensitive | Redacted when `redactSnapshotPayloads` is set |
 | Environment variables | Secret by default | Never captured automatically |
-| Stack traces | Restricted | Safely normalized, bounded, not exported by default |
+| Stack traces | Restricted | Current redaction has documented gaps; see the security policy before export |
 | Arbitrary PHP objects | Non-serializable | Rejected by the serializer |
 
 ## Artifact field review
