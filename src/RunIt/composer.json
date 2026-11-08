@@ -113,7 +113,7 @@
         "rector": "vendor/bin/rector",
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
-        "security:audit": "@composer audit",
+        "security:audit": "@composer audit --no-dev",
         "test": [
             "@test:unit",
             "@test:integration",
