@@ -65,6 +65,13 @@ trace of a failed execution reach the exported span event with default redaction
 The test's nested-cause markers did not appear in those two event fields; this
 does not establish that other fields or exporters are safe.
 
+For redacted occurrences, the tested OpenTelemetry log and span-event paths
+export extension attributes even when they are excluded by the configured
+occurrence allow-list. For redacted snapshots, the tested paths export the
+original content hash even with `SnapshotPayloadPolicy::None`. Do not rely on
+these controls to suppress those fields on redacted projections until the adapter
+behavior is corrected; hashes can also disclose information about their inputs.
+
 When a publication health callback fails, the fallback reporter can log both
 exception messages and the artifact ID. Those diagnostics may contain sensitive
 data; treat the fallback log as sensitive and avoid placing secrets in exception

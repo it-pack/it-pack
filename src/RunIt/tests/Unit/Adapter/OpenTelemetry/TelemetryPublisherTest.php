@@ -8,6 +8,7 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeCapability;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -20,6 +21,10 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Occurrence\Occurrence;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
+use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Trace\StatusCode;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
@@ -231,6 +236,118 @@ final class TelemetryPublisherTest extends Unit
             $delivered,
             'A redacted snapshot routes through the snapshot log mapper, not the occurrence path.'
         );
+    }
+
+    /** Characterizes the redacted occurrence mapping and its allow-list bypass. */
+    public function testActualRedactedOccurrenceExportsNormalizedTimeAndUnfilteredExtensions(): void
+    {
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-characterized'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('payment.captured.v1'),
+            'it-pack/test',
+            Instant::of(1600),
+            ['password' => 'secret'],
+            extensionAttributes: AttributeCollection::fromArray(['allowed' => 'yes', 'excluded' => 'still-exported']),
+        );
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['password'],
+            redactOccurrenceData: true,
+        ))->redact($occurrence);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $normalized = $redacted->normalize();
+        self::assertSame(1600, $normalized['time']);
+        self::assertIsArray($normalized['data']);
+        self::assertNotSame('secret', $normalized['data']['password']);
+        self::assertIsArray($normalized['extension_attributes']);
+        self::assertSame('still-exported', $normalized['extension_attributes']['excluded']);
+
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withOccurrenceLogging(enabled: true)
+            ->withOccurrenceSpanEvents(enabled: true)
+            ->withOccurrenceLogAttributeAllowList(['allowed'])
+            ->build()
+        ;
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            TelemetryPublisher::fromConfig($config)->publish($redacted);
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        $record = $this->kit->log(0);
+        self::assertSame('runit.occurrence', $record->getEventName());
+        self::assertSame('payment.captured.v1', $record->getBody());
+        self::assertSame(1_600_000_000_000, $record->getTimestamp());
+        $attributes = $record->getAttributes()->toArray();
+        self::assertSame('occ-characterized', $attributes['runit.occurrence.id']);
+        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame('yes', $attributes['allowed']);
+        self::assertSame('still-exported', $attributes['excluded']);
+        self::assertArrayNotHasKey('runit.occurrence.content_type', $attributes);
+        self::assertArrayNotHasKey('password', $attributes);
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('runit.occurrence', $events[0]->getName());
+        self::assertSame('still-exported', $events[0]->getAttributes()->get('excluded'));
+    }
+
+    /** Characterizes redacted snapshot timestamp and hash handling. */
+    public function testActualRedactedSnapshotExportsHashDespiteNonePolicyAndUsesCurrentTime(): void
+    {
+        $snapshot = RunItArtifactFactory::snapshot('snap-characterized', 'exec-1', ['secret' => 'value'], 'act-1');
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['secret'],
+            redactSnapshotPayloads: true,
+        ))->redact($snapshot);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $normalized = $redacted->normalize();
+        self::assertSame(1700, $normalized['created_at']);
+        self::assertArrayNotHasKey('time', $normalized);
+        self::assertSame($snapshot->contentHash(), $normalized['content_hash']);
+        self::assertIsArray($normalized['payload']);
+        self::assertNotSame('value', $normalized['payload']['secret']);
+
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withSnapshotPayloadPolicy(SnapshotPayloadPolicy::None)
+            ->withOccurrenceLogging(enabled: true)
+            ->withOccurrenceSpanEvents(enabled: true)
+            ->build()
+        ;
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            $before = (int) (microtime(true) * 1_000_000_000);
+            TelemetryPublisher::fromConfig($config)->publish($redacted);
+            $after = (int) (microtime(true) * 1_000_000_000);
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        $record = $this->kit->log(0);
+        self::assertSame('runit.snapshot', $record->getEventName());
+        self::assertSame('execution.snapshot', $record->getBody());
+        self::assertGreaterThanOrEqual($before, $record->getTimestamp());
+        self::assertLessThanOrEqual($after, $record->getTimestamp());
+        $attributes = $record->getAttributes()->toArray();
+        self::assertSame('snap-characterized', $attributes['runit.snapshot.id']);
+        self::assertSame('act-1', $attributes['runit.activity.id']);
+        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame($snapshot->contentHash(), $attributes['runit.snapshot.hash']);
+        self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
+        self::assertArrayNotHasKey('runit.snapshot.schema_version', $attributes);
+        self::assertArrayNotHasKey('runit.snapshot.content_type', $attributes);
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('runit.snapshot', $events[0]->getName());
+        self::assertSame($snapshot->contentHash(), $events[0]->getAttributes()->get('runit.snapshot.hash'));
     }
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void

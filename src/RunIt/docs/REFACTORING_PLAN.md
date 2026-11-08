@@ -81,18 +81,18 @@ The subsequent test and coverage runs include the new, uncommitted
 Swoole and Fiber available; OpenSwoole and Swow were not loaded. The package's
 ignored lockfile supplied the installed dependencies; no update was run.
 
-| Check | Exit | Result |
-| --- | ---: | --- |
-| `composer validate --strict` | 0 | Valid manifest. |
-| `composer api:check` | 1 | Ten additive entries, zero detected breaks; baseline not changed. |
-| `composer analyse` | 1 | 147 diagnostics; full baseline attribution remains open. |
-| `composer refactor:dry` | 2 | Existing callable-array fixture would be converted. |
-| `composer cs:check` | 0 | No formatting changes. |
-| `composer architecture` | 0 | No violations in 404 analyzed classes. |
-| `composer lint:length` | 1 | 26 violations outside the new sampling test. |
-| `composer test` | 0 | Unit 846/5,803; Integration 3/7; Conformance 52/111; Concurrency 7/145 (tests/assertions). |
-| `composer coverage` | 0 | Unit only: 3,605/4,087 lines (88.20%); 846 tests. |
-| `composer audit` | 0 | No vulnerability advisories; abandoned `doctrine/annotations`. |
+| Check                        | Exit | Result                                                                                     |
+|------------------------------|-----:|--------------------------------------------------------------------------------------------|
+| `composer validate --strict` |    0 | Valid manifest.                                                                            |
+| `composer api:check`         |    1 | Ten additive entries, zero detected breaks; baseline not changed.                          |
+| `composer analyse`           |    1 | 147 diagnostics; full baseline attribution remains open.                                   |
+| `composer refactor:dry`      |    2 | Existing callable-array fixture would be converted.                                        |
+| `composer cs:check`          |    0 | No formatting changes.                                                                     |
+| `composer architecture`      |    0 | No violations in 404 analyzed classes.                                                     |
+| `composer lint:length`       |    1 | 26 violations outside the new sampling test.                                               |
+| `composer test`              |    0 | Unit 846/5,803; Integration 3/7; Conformance 52/111; Concurrency 7/145 (tests/assertions). |
+| `composer coverage`          |    0 | Unit only: 3,605/4,087 lines (88.20%); 846 tests.                                          |
+| `composer audit`             |    0 | No vulnerability advisories; abandoned `doctrine/annotations`.                             |
 
 An additional Unit-only run produced `/tmp/kilo/runit-unit-coverage.xml` with
 the same 3,605/4,087 statement totals. PCOV does not provide branch coverage;
@@ -140,7 +140,7 @@ artifact ID. A throwing injected fallback sink escapes the fail-open publisher;
 so does an exception from artifact normalization before the fallback is invoked.
 These tests exercise the publisher boundary with injected collaborators, not a
 real system error-log failure or the effect on a runner's business outcome. The
-diagnostic exposure and failure-handling defects remain unresolved.
+diagnostic exposure and failure-    handling defects remain unresolved.
 
 The current worktree's `composer coverage -- --silent` passed on PHP 8.5.12
 with Unit-only PCOV coverage of 3,610/4,087 statements (88.33%). The generated
@@ -150,6 +150,17 @@ not establish per-test attribution, and PCOV does not report branch coverage.
 dependency `doctrine/annotations`; `composer audit --no-dev` found no advisories.
 `composer why doctrine/annotations --tree` traces it through PHPBench 1.7.0 and
 the development dependency `just-bases/php-qa-base` 1.0.9.
+
+At revision `a7d75a3d61c19c3ed58e60a47d2bdd64d30a10ea`, with a clean worktree
+at the start and PHP 8.5.12, PHPStan again reported 147 diagnostics while
+characterization work was in progress. Grouping
+the JSON output by identifier produced 38 `class.notFound`, 21
+`method.nonObject`, 20 `staticMethod.dynamicCall`, 17 `argument.named`, 14
+`argument.type`, 10 `missingType.iterableValue`, and 27 other diagnostics.
+Some missing types in the OpenTelemetry fixtures propagate to other diagnostics;
+the identifier counts are not independent root causes. The equal total does not
+prove the diagnostic sets match the earlier baseline. Full attribution remains
+open. PCOV and Swoole were loaded; OpenSwoole and Swow were not.
 
 The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. An earlier `composer api:check` exited 1 for nine additive symbols and reported zero backward-compatibility breaks; the later ten-addition result is recorded above. This does not authorize a further baseline update. The characterizations above and in Phase 2 reproduce several of the previously outstanding paths, but do not exhaust all adapter, failure-reporting, concurrency, or ownership scenarios. Phase 0 is not complete.
 
@@ -255,6 +266,17 @@ support; running the three files sequentially passed. Subsequently,
 `php8.4 vendor/bin/codecept run --silent` passed the full configured test run;
 this does not cover unavailable runtime extensions.
 
+Further composed OpenTelemetry characterizations use real redacted artifacts and
+in-memory exporters. In the tested occurrence configuration, an extension excluded
+by the occurrence allow-list is still exported in both log and span-event fields;
+the normalized occurrence time is used. For a redacted snapshot, the normalized
+`created_at` is not read as the mapper's `time`, so its log uses the current wall
+clock. The original content hash is exported to both signals even with
+`SnapshotPayloadPolicy::None`. The tested mappings omit occurrence data and
+snapshot payload; these cases do not establish safety for other configurations or
+exporters. Routing, extension filtering, timestamp handling, and hash exposure
+remain open security and correctness work.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
@@ -283,6 +305,22 @@ this does not cover unavailable runtime extensions.
 ## Phase 4: Failure handling and lifecycle outcomes
 
 **Depends on:** Phase 0; open-activity behavior additionally depends on its decision gate. **Review:** silent failure, lost terminal execution, ambiguous open-activity policy.
+
+**Preparatory characterization:** `OpenActivityPolicyTest` exercises a runner
+with `FailExecutionOnOpenActivitiesPolicy` and an open activity. The critical
+diagnostic says the execution is flagged as failed, but its published terminal
+status remains succeeded or failed according to the business operation. Both the
+returned object and thrown exception are preserved by identity, and the context
+is detached. This describes current behavior, not the approved configurable
+outcome; the misleading diagnostic and policy implementation remain open.
+
+On PHP 8.5.12, the full `composer test -- --silent` run passed; on PHP 8.4.27,
+`php8.4 vendor/bin/codecept run --silent` passed. The focused open-activity
+test file passed with 5 tests and 28 assertions. Style and architecture checks
+passed, and focused PHPStan analysis of that test file passed. The quality gate
+stopped at the existing Rector callable-fixture suggestion; the independent
+line-length check reported 26 violations outside these changes. Silent test runs
+do not establish coverage for unavailable OpenSwoole or Swow extensions.
 
 - [ ] Trace `DefaultExecutionRunner`, `FailSafeArtifactPublisher`, `FailOpenPolicy`, and existing fallback reporter behavior. Define a recursion-safe default health sink that does not send failures back through the failing publisher, expose secrets, or replace the business outcome.
 - [ ] Add failure-injection tests for no callback, successful callback, callback throwing, fallback sink throwing, inner publisher throwing, recursive publication, and artifact normalization throwing during failure reporting. Check bounded/sanitized reporting and verify no failure is silently discarded under the chosen policy.
