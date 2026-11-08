@@ -195,8 +195,8 @@ final class HttpAdaptersTest extends Unit
         try {
             $middleware->process(new ServerRequest('GET', '/fail'), $handler);
             self::fail('The handler exception must be rethrown.');
-        } catch (RuntimeException $caught) {
-            self::assertSame($error, $caught);
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($error, $runtimeException);
         }
 
         $recorded = $runner->lastObservations()?->recorded() ?? [];

@@ -239,6 +239,37 @@ blocking/fail strategies, concurrent traffic, memory profiling and PHP 8.4.
 The scan and array operations both contribute; these results do not attribute
 their individual costs or demonstrate behavior under a realistic priority mix.
 
+### Byte-bound buffer overflow baseline
+
+At revision `8fdbb0f19ea236c226f1ed82529c932bc0f3c6ee`, with unrelated
+worktree edits present, a focused `DropOldest` test filled a real buffered
+publisher with 1,024 observations estimated at 100 bytes each. The byte limit
+was 102,400 and the item limit 2,048, so the subsequent 128 timed publishes
+triggered the byte limit rather than the count limit. Each sample used a fresh
+publisher; prefill, validation and flush were outside the timed region. All
+samples verified 128 drops, 1,024 retained items and 102,400 estimated bytes,
+then 1,024 deliveries in survivor order and zero remaining bytes after flush.
+
+After two warmups, 11 batch samples had a median of 530,576 ns per 128
+publishes (4.145 microseconds per publish), ranging from 479,671 to 1,591,829
+ns per batch (3.747 to 12.436 microseconds per publish). Batch samples in ns:
+1,591,829; 530,576; 538,745; 928,958; 479,671; 600,809; 513,441; 486,843;
+513,541; 510,254; 716,866.
+
+PHP 8.5.12 CLI on x86-64 WSL2, with CLI OPcache, JIT and PCOV disabled and
+garbage collection enabled. The temporary harness is
+`/tmp/kilo/runit-drop-oldest-baseline.php`:
+
+```bash
+php -d opcache.enable_cli=0 -d pcov.enabled=0 /tmp/kilo/runit-drop-oldest-baseline.php
+```
+
+This single-process microbenchmark includes publisher and loop costs but not
+real estimator cost, sink I/O, concurrency or flush performance. It does not
+test variable-size projected admission or establish production throughput.
+The temporary harness is not durable; the variability precludes using this as
+a regression threshold.
+
 ### Nested snapshot redaction and serialization (2026-11-08)
 
 At revision `bc12bc5dad009c0210c90000aaaa0f1f440b701b`, a focused synthetic

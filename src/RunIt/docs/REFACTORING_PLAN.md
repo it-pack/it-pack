@@ -317,6 +317,43 @@ development dependency `doctrine/annotations`.
 
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
 
+**Partial baseline refresh:** At starting revision
+`8fdbb0f19ea236c226f1ed82529c932bc0f3c6ee`, the worktree was initially clean,
+but concurrent edits appeared in `ObservationRecordingLogger.php`,
+`HttpAdaptersTest.php` and `RequireInterfaceRuleTest.php` during the checks.
+Consequently these results are mixed-worktree observations, not an attributable
+clean-revision baseline. On PHP 8.5.12 with PCOV and Swoole, Composer 2.9.7,
+`composer validate --strict`, `composer cs:check`, `composer architecture`,
+`composer lint:length`, `composer test -- --silent`, and Unit-only `composer
+coverage -- --silent` exited 0. The Unit XML in `tests/_output/coverage.xml`
+reported 3,608/4,126 statements; it is generated and can be overwritten. PCOV
+does not measure branches and this aggregate does not establish attribution.
+`composer analyse -- --no-progress` exited 1 with a leading-backslash rule
+diagnostic in the concurrently edited `RequireInterfaceRuleTest.php`;
+`composer refactor:dry` exited 2 with a change proposed in that same file.
+These results cannot be attributed to the starting revision. `composer
+api:check` exited 1 for ten additions with no detected breaks; the baseline
+was not changed. `composer audit` exited 0, found no advisories, and reported
+the abandoned development dependency `doctrine/annotations`.
+
+PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 generated reports under
+`/tmp/kilo/runit-8fdbb0-phpmetrics*` and `/tmp/kilo/runit-8fdbb0-phpa.xml`;
+the latter reports 75 heuristic assumptions, not verified defects. These
+temporary reports are not durable. This refresh leaves Phase 0 open.
+The byte-bound `DropOldest` overflow microbenchmark and its limitations are
+recorded in `benchmarks.md`; it supplements, but does not complete, the
+representative hot-path baseline.
+
+The separately invoked `tests/target-policy-swoole-http-regressions.php`
+exercises the Swoole HTTP middleware with a fake runner and a recorder that
+throws a distinct exception. On PHP 8.4 and 8.5 it exits 1 with two expected
+target failures: neither the successful handler's exact response nor the
+failing handler's original exception survives the recorder failure. Handler
+and recorder invocation and positional recorder arguments are checked as
+controls. This is a failing safety net, not a production fix; it does not
+exercise a live server, an actual runner's reporting, measurement failures or
+redaction. It requires no Swoole extension and is outside the normal suites.
+
 **Current baseline and integer-boundary control (2026-11-08):** Starting clean
 at `133db4746e2c87c2e2ace6d803020412ce3d6ce8`, PHP 8.5.12 with PCOV and
 Swoole loaded, `composer quality` and `composer analyse -- --no-progress`

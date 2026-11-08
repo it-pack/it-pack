@@ -7,12 +7,13 @@ namespace Tests\Unit\Tools;
 use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule;
 
 /**
  * @extends RuleTestCase<RequireInterfaceRule>
- * @covers \Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule
  */
+#[CoversClass(\Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule::class)]
 final class RequireInterfaceRuleTest extends RuleTestCase
 {
     protected function getRule(): Rule
