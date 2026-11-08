@@ -180,15 +180,32 @@ final class HttpAdaptersTest extends Unit
             new Psr7ResponseCorrelationEnricher()
         );
 
-        $this->expectException(RuntimeException::class);
+        $error = new RuntimeException('handler failed');
+        $handler = new readonly class ($error) implements RequestHandlerInterface {
+            public function __construct(private RuntimeException $error)
+            {
+            }
+
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                throw $this->error;
+            }
+        };
 
         try {
-            $middleware->process(new ServerRequest('GET', '/fail'), $this->handler(200, throw: true));
-        } finally {
-            $recorded = $runner->lastObservations()?->recorded() ?? [];
-            self::assertSame('http.request.failed', $recorded[0]['message'] ?? null);
-            self::assertSame(ObservationSeverity::Error->label(), $recorded[0]['severity']?->label());
+            $middleware->process(new ServerRequest('GET', '/fail'), $handler);
+            self::fail('The handler exception must be rethrown.');
+        } catch (RuntimeException $caught) {
+            self::assertSame($error, $caught);
         }
+
+        $recorded = $runner->lastObservations()?->recorded() ?? [];
+        self::assertCount(1, $recorded);
+        self::assertSame('http.request.failed', $recorded[0]['message']);
+        self::assertSame(ObservationSeverity::Error, $recorded[0]['severity']);
+        self::assertSame(['error' => 'handler failed'], $recorded[0]['attributes']?->toArray());
+        self::assertSame($error, $recorded[0]['throwable']);
+        self::assertNull($recorded[0]['diagnosticCode']);
     }
 
     public function testMalformedOrEmptyCorrelationHeaderYieldsNoCorrelation(): void
@@ -230,19 +247,15 @@ final class HttpAdaptersTest extends Unit
         self::assertSame($malicious, $response->getHeaderLine('X-Correlation-Id'));
     }
 
-    private function handler(int $status, bool $throw = false): RequestHandlerInterface
+    private function handler(int $status): RequestHandlerInterface
     {
-        return new readonly class ($status, $throw) implements RequestHandlerInterface {
-            public function __construct(private int $status, private bool $throw)
+        return new readonly class ($status) implements RequestHandlerInterface {
+            public function __construct(private int $status)
             {
             }
 
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                if ($this->throw) {
-                    throw new RuntimeException('handler failed');
-                }
-
                 return new Response($this->status);
             }
         };

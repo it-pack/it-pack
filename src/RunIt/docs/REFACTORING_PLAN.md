@@ -223,6 +223,25 @@ enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
 
+At clean starting revision `bf42eddec1f382acc654987038c05a65ec8fcf24`, the
+PSR-15 `HttpAdaptersTest::testMiddlewareRecordsRequestFailureAndRethrows`
+was strengthened to verify the original handler exception is rethrown by
+identity and passed to the recorder with the expected severity, message,
+attributes and null diagnostic code. The focused suite passed on PHP 8.4 and
+8.5 (12 tests, 37 assertions each). This characterizes a successful recorder;
+it does not cover recorder failure, redaction or export, and does not complete
+Phase 0. Targeted PHPStan analysis passed on PHP 8.5.
+
+On PHP 8.5.12 with Composer 2.9.7, PCOV and Swoole loaded, the pre-change
+`composer test -- --silent` and `composer architecture` passed. `composer
+quality` stopped at Rector (exit 2): an unused `LoggerInterface` import in
+`ObservationRecordingLogger.php` and a coverage annotation conversion in
+`RequireInterfaceRuleTest.php`. The API check exited 1 for ten additions and
+reported zero detected breaks; no baseline was changed. The full audit script
+reported no advisories and the abandoned development dependency
+`doctrine/annotations`. OpenSwoole and Swow were not loaded. This partial
+baseline does not replace the remaining Phase 0 checks.
+
 At clean starting revision `109f0edf754ae53cdb09288c8c86f85c9a5430fd`,
 `php tests/target-policy-regressions.php` was added as an explicitly invoked
 target-policy harness, separate from the normal suites. On PHP 8.4 and 8.5 it
