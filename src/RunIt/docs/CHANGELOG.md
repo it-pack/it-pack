@@ -28,6 +28,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Swoole HTTP request reporting passes observation arguments positionally, so
+  custom recorders may use different parameter names without breaking requests.
 - `CallbackHealthReporter` contains failures while extracting an artifact ID or
   invoking its fallback, and attempts a bounded, payload-free system-log notice
   before returning. A failed last-resort log cannot replace the business outcome.

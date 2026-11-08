@@ -199,6 +199,15 @@ current-behavior characterizations. Their assertions intentionally describe the
 defects; they are not failing tests of the approved target policy and do not by
 themselves satisfy the literal exit criterion.
 
+At starting revision `27829db45172d27f4e1d95c5b08d2eccdf94fe5e`, a worker
+failure-reporting Unit regression exercises a custom observation recorder with
+different parameter names. It checks positional argument values, including both
+null placeholders and the original throwable. The same control exercises Swoole
+HTTP middleware, whose named diagnostic argument was replaced with a positional
+call. The default runner and affected test calls also use positional arguments.
+This protects the tested recorder compatibility paths; it does not establish
+failure-path coverage for other adapters or complete Phase 0.
+
 | Review issue                             | Existing reproduction                                                                                                                                                                                                                                                                                                   | Remaining evidence                                                                      |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
 | Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php` | Broader exporter and configuration controls.                                            |

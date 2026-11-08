@@ -305,8 +305,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             $scope->observations()->record(
                 self::FAILURE_MESSAGE_PREFIX . $description->message(),
                 ObservationSeverity::Error,
-                throwable: $throwable,
-                diagnosticCode: self::FAILURE_DIAGNOSTIC_CODE,
+                null,
+                $throwable,
+                self::FAILURE_DIAGNOSTIC_CODE,
             );
         } catch (Throwable $failure) {
             $this->reportFailure($failure);

@@ -110,8 +110,9 @@ final class DefaultObservationRecorderTest extends Unit
                 $scope->observations()->record(
                     'failed step',
                     ObservationSeverity::Error,
-                    throwable: $error,
-                    diagnosticCode: 'step.failed'
+                    null,
+                    $error,
+                    'step.failed'
                 );
 
                 return null;
