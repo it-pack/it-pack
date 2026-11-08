@@ -90,31 +90,41 @@ final class ResilienceTest extends Unit
                     }
                 };
                 $reported = [];
+                $outer = new RunItTestKit();
                 $kit = new RunItTestKit(
                     publisher: $publisher,
                     onPublicationFailure: static function (Throwable $failure) use (&$reported): void {
                         $reported[] = $failure;
                     },
+                    storage: $outer->storage,
                 );
                 $original = new RuntimeException('business failed');
                 $value = new stdClass();
-                $caught = null;
-                $result = null;
-                try {
-                    $operation = static function () use ($businessFails, $original, $value): object {
-                        if ($businessFails) {
-                            throw $original;
-                        }
+                $outer->runner->run($this->definition(), function (ExecutionScopeInterface $parent) use (
+                    $kit,
+                    $businessFails,
+                    $original,
+                    $value,
+                ): void {
+                    $caught = null;
+                    $result = null;
+                    try {
+                        $operation = static function () use ($businessFails, $original, $value): object {
+                            if ($businessFails) {
+                                throw $original;
+                            }
 
-                        return $value;
-                    };
-                    $result = $kit->runner->run($this->definition(), $operation);
-                } catch (Throwable $failure) {
-                    $caught = $failure;
-                }
+                            return $value;
+                        };
+                        $result = $kit->runner->run($this->definition(), $operation);
+                    } catch (Throwable $throwable) {
+                        $caught = $throwable;
+                    }
 
-                self::assertSame($businessFails ? $original : null, $caught);
-                self::assertSame($businessFails ? null : $value, $result);
+                    self::assertSame($businessFails ? $original : null, $caught);
+                    self::assertSame($businessFails ? null : $value, $result);
+                    self::assertSame($parent, $kit->storage->current());
+                });
                 self::assertCount($businessFails ? 4 : 3, $reported);
                 foreach ($reported as $failure) {
                     self::assertSame($reportingFailure, $failure);

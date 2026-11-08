@@ -36,6 +36,17 @@ verification. The unchecked design details below must still be resolved where ap
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
 
+Coverage attribution investigation (PHP 8.5.12, Codeception 5.3.7, PHPUnit
+13.1.14, php-code-coverage 14.5.1): source inspection indicates empty coverage
+targets do not filter executed lines, and `strict_covers_annotation` defaults to
+false. The installed Codeception exception-handling path may not propagate a
+strict-coverage exception as a failing test; this is an unverified source-level
+finding, not an established bypass. A filename search found coverage metadata in
+10 of 121 Unit test files, not a complete per-class audit. Candidate enforcement
+requires an explicit-target audit, isolated Unit-only output, and negative
+controls for unrelated execution, allowed collaborators, and missing metadata.
+No end-to-end isolation control or CI enforcement has yet been demonstrated.
+
 ## Phase 0: Baseline and safety net
 
 **Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
@@ -147,8 +158,9 @@ whose callback and normalization or injected fallback sink fail with the
 runner's own fail-safe publisher. For successful and failing business operations,
 the outer reporter receives the escaping inner failure, the returned object or
 original business exception is preserved, and the top-level scope is detached.
-This does not fix the inner publisher's escape or test a failing outer reporter,
-real system error log failure, or restoration of a previously attached scope.
+The nested variant additionally checks restoration of a previously attached parent
+scope. This does not fix the inner publisher's escape or test a failing outer
+reporter or a real system error-log failure.
 
 The current worktree's `composer coverage -- --silent` passed on PHP 8.5.12
 with Unit-only PCOV coverage of 3,610/4,087 statements (88.33%). The generated
@@ -335,6 +347,9 @@ appears within a nested attribute. In the same test the three-level throwable
 messages and traces are masked, class and code remain, and the original is
 unchanged. This is a current-behavior test, not a security guarantee for other
 paths or a fix for nested attributes.
+Another composed PSR-3 test confirms that an observation's free-form message is
+exported unchanged even when a configured attribute and throwable fields are
+masked; configured key masks do not sanitize that message.
 
 Further characterization confirms configured occurrence data keys are masked
 recursively while an identically named occurrence extension attribute remains
@@ -354,6 +369,20 @@ the line-length check reported 26 existing violations outside these changes.
 No production or public API behavior changed. Unit coverage, the complete PHP
 8.4 multi-suite matrix, and unavailable OpenSwoole and Swow paths were not rerun.
 
+At clean starting revision `51001491` on PHP 8.5.12 with PCOV and Swoole,
+the new characterization tests passed in `composer test` and in the PHP 8.4
+Unit suite. The Unit-only `composer coverage` run reported 3,616/4,090 covered
+statements (88.41%); its XML was copied to
+`/tmp/kilo/runit-unit-coverage-51001491.xml`, a temporary, untracked location.
+The report includes the new uncommitted tests, does not establish per-test
+attribution, and PCOV does not provide branch coverage. Validation, Rector,
+style, architecture and focused PHPStan checks passed. `composer quality`
+stopped at PHPStan with 147 diagnostics; a complete set comparison was not made.
+The line-length check reported 26 violations outside these changes. API checking
+exited 1 for ten additions and reported no detected breaks; audit found no
+advisories and reported abandoned dev dependency `doctrine/annotations`.
+OpenSwoole, Swow and the complete PHP 8.4 multi-suite matrix were not tested.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
@@ -368,6 +397,12 @@ No production or public API behavior changed. Unit coverage, the complete PHP
 ## Phase 3: Bounded buffering and performance
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
+
+Additional characterization shows that integer overflow in byte accounting
+can throw after appending, leaving the item unaccounted and a negative estimate
+after flushing. A throwing drop reporter can interrupt `DropOldest` after an
+eviction, while `BlockWithTimeout` can append an oversized item after space is
+freed. These are current behaviors, not approved policies or fixes.
 
 - [ ] In `src/Application/Publication/BufferedArtifactPublisher.php`, define admission as both item-count and projected estimated-byte capacity, using overflow-safe arithmetic. Establish behavior for an item larger than the full limit and for invalid estimator results or configuration values without silently inventing public semantics.
 - [ ] Expand `tests/Unit/Application/Publication/BufferingTest.php` with deterministic estimates: empty/exact/full/nearly-full buffers, oversized first item, multiple evictions, both count and byte constraints, zero or boundary values where supported, and every overflow strategy (`Fail`, `DropNewest`, `DropOldest`, `DropLowPriority`, `BlockWithTimeout`).

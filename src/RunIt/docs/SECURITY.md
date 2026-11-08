@@ -63,7 +63,10 @@ which not all typed adapter paths accept. Directly configured publishers and
 Configured sensitive observation-attribute keys are only masked at the top
 level. A composed PSR-3 logger test confirms that the same key inside a nested
 attribute reaches the logger unchanged. Do not put secrets in nested attributes
-and rely on these key settings to remove them.
+and rely on these key settings to remove them. A separate composed PSR-3 test
+shows that the observation's own message reaches the logger unchanged even
+when a configured attribute and its throwable message and trace are masked.
+These settings do not sanitize free-form observation messages.
 
 The current redactor matches configured keys exactly and case-sensitively. It
 walks arrays recursively only in occurrence `data` and snapshot `payload`, and

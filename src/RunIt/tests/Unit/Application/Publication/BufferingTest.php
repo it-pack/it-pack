@@ -19,9 +19,11 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use RuntimeException;
 use Tests\Support\Fixture\DeterministicArtifactByteEstimator;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 use Throwable;
+use TypeError;
 
 /**
  * @group application
@@ -150,6 +152,98 @@ final class BufferingTest extends Unit
             self::assertSame([$second, $incoming], $sink->published());
             self::assertSame(0, $buffer->estimatedBytes());
         }
+    }
+
+    public function testIntegerOverflowDuringAdmissionLeavesTheAppendedItemUnaccounted(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(10, OverflowStrategy::DropNewest, maxBytes: PHP_INT_MAX),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(1, ['first' => PHP_INT_MAX - 1, 'second' => 2]),
+        );
+        $first = $this->artifact(id: 'first');
+        $second = $this->artifact(id: 'second');
+        $buffer->publish($first);
+
+        try {
+            $buffer->publish($second);
+            self::fail('Integer overflow must currently surface as a TypeError.');
+        } catch (TypeError) {
+            self::assertSame(2, $buffer->bufferedCount());
+            self::assertSame(PHP_INT_MAX - 1, $buffer->estimatedBytes());
+            self::assertSame(0, $buffer->droppedCount());
+        }
+
+        $buffer->flush();
+        self::assertSame([$first, $second], $sink->published());
+        self::assertSame(-2, $buffer->estimatedBytes());
+    }
+
+    public function testFailingDropReporterInterruptsReplacementAfterEviction(): void
+    {
+        $failure = new RuntimeException('health failure');
+        $health = new readonly class ($failure) implements InternalHealthReporterInterface {
+            public function __construct(private RuntimeException $failure)
+            {
+            }
+
+            public function report(Throwable $error, ?ExecutionArtifactInterface $artifact = null): void
+            {
+                throw $this->failure;
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, OverflowStrategy::DropOldest),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(10),
+            $health,
+        );
+        $buffer->publish($this->artifact(id: 'first'));
+
+        try {
+            $buffer->publish($this->artifact(id: 'second'));
+            self::fail('The reporter failure must currently propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($failure, $runtimeException);
+        }
+
+        self::assertSame(0, $buffer->bufferedCount());
+        self::assertSame(0, $buffer->estimatedBytes());
+        self::assertSame(1, $buffer->droppedCount());
+        $buffer->flush();
+        self::assertSame([], $sink->published());
+    }
+
+    public function testBlockingOverflowCanAppendAnOversizedItemAfterSpaceIsFreed(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $buffer = null;
+        $buffer = new BufferedArtifactPublisher(
+            $this->config(1, OverflowStrategy::BlockWithTimeout, maxBytes: 100),
+            $sink,
+            new DeterministicMonotonicClock(),
+            new DeterministicArtifactByteEstimator(50, ['incoming' => 101]),
+            sleep: static function (int $microseconds) use (&$buffer): void {
+                self::assertInstanceOf(BufferedArtifactPublisher::class, $buffer);
+                $buffer->flush();
+            },
+        );
+        $first = $this->artifact(id: 'first');
+        $incoming = $this->artifact(id: 'incoming');
+        $buffer->publish($first);
+        $buffer->publish($incoming);
+
+        self::assertSame([$first], $sink->published());
+        self::assertSame(1, $buffer->bufferedCount());
+        self::assertSame(101, $buffer->estimatedBytes());
+        self::assertSame(0, $buffer->droppedCount());
+        $buffer->flush();
+        self::assertSame([$first, $incoming], $sink->published());
+        self::assertSame(0, $buffer->estimatedBytes());
     }
 
     public function testDropNewestBoundsBuffer(): void

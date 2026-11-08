@@ -202,6 +202,47 @@ final class ObservationLoggerPublisherTest extends Unit
         self::assertSame($before, $observation->normalize());
     }
 
+    /** Characterizes the separate observation message at the PSR-3 boundary. */
+    public function testObservationMessageRemainsVisibleWhenOtherFieldsAreRedacted(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']),
+        ));
+        $observation = Observation::error(
+            ObservationId::fromString('o-message'),
+            ExecutionId::fromString('exec-message'),
+            'message-secret',
+            attributes: AttributeCollection::fromArray(['password' => 'attribute-secret']),
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'throwable-secret',
+                42,
+                previous: null,
+                trace: 'trace-secret',
+            ),
+        );
+        $before = $observation->normalize();
+
+        $publisher->publish($observation);
+
+        self::assertSame(1, $logger->count());
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        // Current behavior, not an assertion that message export is safe.
+        self::assertSame('message-secret', $entry['message']);
+        self::assertSame('[redacted]', $entry['context']['password']);
+        self::assertSame([
+            'class' => 'RuntimeException',
+            'message' => '[redacted]',
+            'code' => 42,
+            'previous' => null,
+            'trace' => '[redacted]',
+        ], $entry['context']['exception']);
+        self::assertSame('exec-message', $entry['context']['execution_id']);
+        self::assertSame($before, $observation->normalize());
+    }
+
     public function testDisabledRedactionPreservesBenignThrowableDetails(): void
     {
         $logger = new InMemoryLogger();
