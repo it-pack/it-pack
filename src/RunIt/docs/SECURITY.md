@@ -85,6 +85,9 @@ using a deliberately nonconforming custom artifact confirms that an object and
 unknown fields pass through unchanged, including when another field is masked.
 Such projections can expose data or exhaust resources; do not treat the redactor
 as a validator or sanitizer for untrusted artifact implementations.
+Even a finite, primitive custom projection can use an array-valued throwable
+trace: the current redactor masks string traces but leaves that array unchanged.
+The built-in throwable shape is not a validation guarantee for custom artifacts.
 
 A composed OpenTelemetry test confirms that the outer exception message and
 trace of a failed execution reach the exported span event with default redaction.
@@ -102,6 +105,11 @@ When a publication health callback fails, the fallback reporter can log both
 exception messages and the artifact ID. Those diagnostics may contain sensitive
 data; treat the fallback log as sensitive and avoid placing secrets in exception
 messages or identifiers.
+
+Do not publish through the same fail-safe publisher from its health reporter.
+The recursion guard reports each nested attempt through that reporter, which can
+reenter it repeatedly. A bounded test demonstrates repeated reporter invocation;
+it does not establish a safe recursion limit for an unbounded callback.
 
 Until the Phase 2 work in `docs/REFACTORING_PLAN.md` is complete, do not rely on
 the built-in publisher stack to remove secrets from all artifact fields or from

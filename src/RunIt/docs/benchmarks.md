@@ -176,6 +176,58 @@ run before), so the change is justified analytically (one full payload encoding
 eliminated per publish) and pinned going forward by `benchBoundedPublish`.
 Regenerate with `composer benchmark` when comparing.
 
+### Execution span store retention baseline (Phase 5 preparation, 2026-11-08)
+
+At revision `5474bfb78d2f811a99667d80b7ccd10ce453d431`, an untracked
+standalone harness exercised the existing `InMemoryExecutionSpanStore` directly,
+without production changes. Seven samples ran in one process, each creating a
+fresh store at each size in ascending order, then releasing it before the next
+case. Sizes below are **pairs**: one execution and one activity entry per pair.
+Each has a distinct real OpenTelemetry `SpanContext`, null trace state, and
+fixed-width synthetic IDs (33-byte store keys, 32-byte trace IDs and 16-byte
+span IDs). Thus 100,000 pairs means 200,000 retained contexts. Autoloading and
+one context construction precede measurements. The harness checks the last
+entry and all timed lookup outcomes; it does not simulate actual publishers.
+
+| Pairs | PHP used-byte delta, median (range) | Hit ns/lookup, median (range) | Miss ns/lookup, median (range) |
+|------:|------------------------------------:|------------------------------:|-------------------------------:|
+| 0 | 80 (80–80) | N/A | 105.458 (92.157–141.933) |
+| 1,000 | 1,490,112 (1,490,112–1,498,304) | 145.887 (119.576–232.170) | 114.591 (102.625–138.068) |
+| 10,000 | 15,390,912 (15,390,912–15,636,672) | 194.694 (155.517–253.500) | 113.124 (101.647–138.451) |
+| 100,000 | 151,286,000 (151,286,000–153,121,032) | 310.162 (211.434–431.107) | 128.213 (106.429–188.564) |
+
+Each timing is an average of 200,000 calls, alternating execution and activity
+lookups over 256 deterministic precomputed key pairs; hits precede misses.
+The timed loop includes key selection, method calls and result checks, so these
+are not isolated hash-table costs. There are no separate warmup samples, case
+order is fixed, and the wide ranges and small repeatedly accessed key set limit
+interpretation. Memory is `memory_get_usage(false)` after filling minus before
+creating the store, after garbage collection; it includes PHP object and key
+allocations, not just map buckets. The corresponding `memory_get_usage(true)`
+delta at 100,000 pairs ranged from 10,485,760 to 138,412,032 bytes (median
+10,485,760): earlier cases leave allocator pages available for reuse. Neither
+metric is process RSS, a peak, a fresh-worker baseline, nor a measurement of
+memory returned to the OS. Context sharing, trace state, ID lengths, other
+worker allocations and allocator history can materially change the result.
+
+PHP 8.5.12 CLI NTS, unlimited PHP memory limit, CLI OPcache/JIT and PCOV
+disabled, Xdebug absent; WSL2 x86-64, four virtual CPUs on Intel Core i7-9700.
+The synthetic sizes illustrate retained growth while the store is alive, not
+an actual traffic rate, deployment memory budget, concurrency behavior, or a
+justification for any particular retention limit. The store has no removal or
+bound, and a long-lived store with unique IDs can accumulate entries; overwrite,
+parent-lookup correctness, real SDK lifetimes, RSS and PHP 8.4 are not measured.
+No regression threshold or retention limit is selected from this baseline.
+
+The exact untracked harness and raw per-sample results are
+`/tmp/kilo/runit-span-store-baseline.php` and
+`/tmp/kilo/runit-span-store-results.json`. While available, rerun from the package
+directory with (the command overwrites the results file):
+
+```bash
+php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-span-store-baseline.php
+```
+
 ### Redaction default (Phase 1, T1.1, 2026-08-24)
 
 The builder now installs a deny-by-default redactor (throwable-message masking)

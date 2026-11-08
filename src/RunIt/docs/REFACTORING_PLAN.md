@@ -45,7 +45,19 @@ finding, not an established bypass. A filename search found coverage metadata in
 10 of 121 Unit test files, not a complete per-class audit. Candidate enforcement
 requires an explicit-target audit, isolated Unit-only output, and negative
 controls for unrelated execution, allowed collaborators, and missing metadata.
-No end-to-end isolation control or CI enforcement has yet been demonstrated.
+No working isolation gate or CI enforcement has yet been demonstrated.
+
+An isolated synthetic negative control on those same tool versions and PCOV
+subsequently ran in `/tmp/kilo/runit-coverage-control` without changing normal
+Unit coverage. With `strict_covers_annotation` enabled, an undeclared production
+class executed by a test resulted in exit 0 rather than the expected failure;
+neither synthetic line was credited. With no metadata, the unrelated executed
+class was credited and the run also exited 0. A declared collaborator was not
+credited. Direct php-code-coverage controls exited 1 for the leak and 0 for the
+declared collaborator. This demonstrates that strict configuration alone is not
+a reliable isolation gate in this tested environment; it does not prove precisely
+where Codeception handles the exception. The temporary controls and reports are
+not a CI gate, and do not establish real-suite attribution or branch coverage.
 
 ## Phase 0: Baseline and safety net
 
@@ -161,6 +173,13 @@ original business exception is preserved, and the top-level scope is detached.
 The nested variant additionally checks restoration of a previously attached parent
 scope. This does not fix the inner publisher's escape or test a failing outer
 reporter or a real system error-log failure.
+
+The fail-safe recursion guard prevents the inner publisher from running on a
+nested attempt, but calls the health reporter for each such attempt. A bounded
+callback test republishes three times and observes three recursive-publication
+reports before voluntarily stopping. Thus a reporter that republishes without
+its own guard can recurse indefinitely; the guard's depth is reset afterward in
+the bounded case. This is current behavior, not a recursion-safe health policy.
 
 The current worktree's `composer coverage -- --silent` passed on PHP 8.5.12
 with Unit-only PCOV coverage of 3,610/4,087 statements (88.33%). The generated
@@ -358,6 +377,11 @@ fields and an object value. Built-in payload validation is a separate boundary;
 the redactor itself has no cycle detection or independent traversal depth bound.
 These tests characterize current behavior and do not establish safe handling of
 arbitrary custom projections.
+An additional finite third-party projection with an array-valued throwable trace
+passes that trace through unchanged while its string message is masked. The
+normalization contract permits recursively primitive values but does not prescribe
+the throwable shape; built-in validators and serializer limits are not independent
+redactor traversal bounds.
 
 On 2026-11-08, starting from clean revision
 `8dc9825e0c981c30592ccf69135fd3aac47990a6`, the additional runner, redactor,
@@ -382,6 +406,14 @@ The line-length check reported 26 violations outside these changes. API checking
 exited 1 for ten additions and reported no detected breaks; audit found no
 advisories and reported abandoned dev dependency `doctrine/annotations`.
 OpenSwoole, Swow and the complete PHP 8.4 multi-suite matrix were not tested.
+
+On 2026-11-08, starting from clean revision `5474bfb78d2f811a99667d80b7ccd10ce453d431`,
+the new bounded recursion and custom trace characterizations passed in the PHP
+8.5.12 configured test suites and the PHP 8.4 Unit suite. Rector, style,
+architecture and focused PHPStan checks passed; `composer quality` stopped
+at PHPStan with 147 diagnostics, without a full set comparison. Line-length
+checking reported 26 violations outside the new tests. Coverage and the full
+PHP 8.4 suite matrix were not rerun; no production behavior or API changed.
 
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
@@ -458,6 +490,14 @@ builder, and a later parent does not change an already exported child. Injected
 stores may be shared between publishers and thereby share correlation state. See
 `integrations/opentelemetry.md` for operational limitations. These tests do not
 establish a suitable retention limit, concurrent-store guarantees, or memory cost.
+
+A synthetic pre-change store benchmark is now recorded in `benchmarks.md`.
+In one PHP 8.5.12 process, the median used-heap delta for 100,000 distinct
+execution/activity pairs was 151,286,000 bytes; hit and miss lookup medians
+were 310.162 and 128.213 ns respectively. Seven samples had substantial timing
+variation and allocator reuse; the result is not a fresh-worker RSS measure or
+an evidence-backed production limit. Selecting the default and its policy remains
+open.
 
 - [ ] Trace `TelemetryPublisher::fromConfig()`, `InMemoryExecutionSpanStore`, execution/activity span mappers, and `ExecutionSpanStoreInterface`; characterize parent lookup order, lifetime, concurrency, and consumer-provided store behavior.
 - [ ] Add tests with many unique executions and activities, nested and late-arriving children, duplicate IDs, and a long-lived publisher. Assert the approved bound or lifecycle, parent lookup before and after eviction, and behavior of injected third-party stores.

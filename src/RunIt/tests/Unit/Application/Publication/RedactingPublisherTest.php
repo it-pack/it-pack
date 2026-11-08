@@ -263,6 +263,31 @@ final class RedactingPublisherTest extends Unit
         self::assertSame($object, $published['object']);
     }
 
+    public function testArrayValuedThrowableTracePassesThroughInCustomProjection(): void
+    {
+        $artifact = new readonly class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [
+                    'throwable' => [
+                        'message' => 'message-secret',
+                        'trace' => [['password' => 'trace-secret']],
+                        'previous' => null,
+                    ],
+                ];
+            }
+        };
+
+        $before = $artifact->normalize();
+        $published = $this->publish($artifact)->normalize();
+
+        // The projection is primitive and finite, but its trace is not a string.
+        self::assertIsArray($published['throwable']);
+        self::assertSame('[redacted]', $published['throwable']['message']);
+        self::assertSame([['password' => 'trace-secret']], $published['throwable']['trace']);
+        self::assertSame($before, $artifact->normalize());
+    }
+
     public function testSnapshotPayloadIsMasked(): void
     {
         $original = ExecutionSnapshot::create(
