@@ -77,8 +77,10 @@ final readonly class WorkerLifecycleReporter implements WorkerLifecycleInterface
             );
             $scope->observations()->record(
                 'Worker failed: ' . $throwable->getMessage(),
-                throwable: $throwable,
-                diagnosticCode: 'worker.failure',
+                null,
+                null,
+                $throwable,
+                'worker.failure',
             );
         });
     }

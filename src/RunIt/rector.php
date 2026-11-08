@@ -27,6 +27,7 @@ return RectorConfig::configure()
         SetList::CODE_QUALITY,
         SetList::CODING_STYLE,
         SetList::DEAD_CODE,
+        // NAMED_ARGS an introduce unwanted behavior, may be run on individual files if desired, but not on the package as a whole
         //SetList::NAMED_ARGS,
         SetList::PRIVATIZATION,
         SetList::TYPE_DECLARATION,

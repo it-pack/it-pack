@@ -47,16 +47,20 @@ final readonly class CallbackHealthReporter implements InternalHealthReporterInt
 
                 $this->fallback->report($error, $throwable, is_string($id) ? $id : null);
             } catch (Throwable $fallbackFailure) {
-                try {
-                    new FallbackErrorLogReporter()->report(
-                        new RuntimeException('Publication health reporting failed'),
-                        new RuntimeException('Fallback failure: ' . $fallbackFailure::class),
-                    );
-                } catch (Throwable) {
-                    // No further independent sink remains; preserve the business outcome.
-                    return;
-                }
+                $this->reportLastResort($fallbackFailure);
             }
+        }
+    }
+
+    private function reportLastResort(Throwable $fallbackFailure): void
+    {
+        try {
+            new FallbackErrorLogReporter()->report(
+                new RuntimeException('Publication health reporting failed'),
+                new RuntimeException('Fallback failure: ' . $fallbackFailure::class),
+            );
+        } catch (Throwable) {
+            // No further independent sink remains; preserve the business outcome.
         }
     }
 }

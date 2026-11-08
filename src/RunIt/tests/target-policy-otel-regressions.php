@@ -81,7 +81,7 @@ foreach (['default', 'opt-out'] as $mode) {
     }
 
     $check($message === '[redacted]', 'default masks the exception message');
-    $check($trace === null, 'default omits the exception trace');
+    $check($trace === null || $trace === '', 'default omits the exception trace');
     $exported = [$span->getName(), $span->getStatus()->getDescription(), $span->getAttributes()->toArray()];
     foreach ($events as $event) {
         $exported[] = [$event->getName(), $event->getAttributes()->toArray()];

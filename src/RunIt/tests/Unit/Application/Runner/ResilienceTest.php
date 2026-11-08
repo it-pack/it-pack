@@ -197,6 +197,8 @@ final class ResilienceTest extends Unit
                 });
                 self::assertSame([], $reported);
                 if ($failureSource === 'fallback') {
+                    // Startup execution, completed execution, and terminal snapshot;
+                    // business failure also publishes an error observation.
                     self::assertSame($businessFails ? 4 : 3, $fallbackCalls);
                 }
 

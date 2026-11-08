@@ -151,8 +151,9 @@ composer quality
   failure paths and extension-specific tests when relevant; report skips.
 - `composer refactor:dry` checks Rector changes without modifying files;
   `composer refactor` applies them. Rector scans `src`, `tests`, and `examples`
-  except generated test support. Run Rector before PHP-CS-Fixer, since Rector
-  may change formatting. Inspect automated changes and preserve unrelated work.
+  except `tests/Support/_generated` and `tests/Support/Fixture`. Run Rector
+  before PHP-CS-Fixer, since Rector may change formatting. Inspect automated
+  changes and preserve unrelated work.
   The current `rector.php` targets PHP 8.5 despite the package's PHP 8.4 minimum;
   do not assume generated code is PHP 8.4-compatible without verification.
 - `composer quality` runs validation, Rector dry-run, style, analysis, architecture, line
