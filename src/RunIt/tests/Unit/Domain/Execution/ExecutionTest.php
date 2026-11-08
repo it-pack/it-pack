@@ -173,6 +173,7 @@ final class ExecutionTest extends Unit
             $created->complete(ExecutionSuccess::create(), Instant::of(2000));
             self::fail('skipping the running state must be rejected');
         } catch (InvalidLifecycleTransitionException $invalidLifecycleTransitionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $invalidLifecycleTransitionException);
             self::assertStringContainsString(
                 '"created" to "succeeded"',
                 $invalidLifecycleTransitionException->getMessage()

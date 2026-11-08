@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Activity;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -122,6 +123,7 @@ final class ActivityTest extends Unit
             );
             self::fail('reopening a completed activity must be rejected by the aggregate itself');
         } catch (ConflictingActivityCompletionException $conflictingActivityCompletionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $conflictingActivityCompletionException);
             self::assertStringContainsString(
                 '"succeeded"',
                 $conflictingActivityCompletionException->getMessage()
@@ -146,6 +148,7 @@ final class ActivityTest extends Unit
             );
             self::fail('completing to a non-terminal status must be rejected');
         } catch (InvalidActivityTransitionException $invalidActivityTransitionException) {
+            self::assertInstanceOf(LifecycleExceptionInterface::class, $invalidActivityTransitionException);
             self::assertStringContainsString(
                 '"running" to "running"',
                 $invalidActivityTransitionException->getMessage()
