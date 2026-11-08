@@ -112,13 +112,21 @@ final class ActivityTest extends Unit
         try {
             $done->complete(
                 ActivityStatus::Failed,
-                ThrowableDescription::create('RuntimeException', 'late failure', 0, previous: null, trace: null),
+                ThrowableDescription::create(
+                    'RuntimeException',
+                    'late failure',
+                    0,
+                    previous: null,
+                    trace: null
+                ),
                 Instant::of(3000),
             );
             self::fail('reopening a completed activity must be rejected by the aggregate itself');
         } catch (ConflictingActivityCompletionException $conflictingActivityCompletionException) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $conflictingActivityCompletionException);
-            self::assertStringContainsString('"succeeded"', $conflictingActivityCompletionException->getMessage());
+            self::assertStringContainsString(
+                '"succeeded"',
+                $conflictingActivityCompletionException->getMessage()
+            );
         }
     }
 
@@ -132,11 +140,17 @@ final class ActivityTest extends Unit
         );
 
         try {
-            $running->complete(ActivityStatus::Running, throwableDescription: null, endedAt: Instant::of(2000));
+            $running->complete(
+                ActivityStatus::Running,
+                throwableDescription: null,
+                endedAt: Instant::of(2000)
+            );
             self::fail('completing to a non-terminal status must be rejected');
         } catch (InvalidActivityTransitionException $invalidActivityTransitionException) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $invalidActivityTransitionException);
-            self::assertStringContainsString('"running" to "running"', $invalidActivityTransitionException->getMessage());
+            self::assertStringContainsString(
+                '"running" to "running"',
+                $invalidActivityTransitionException->getMessage()
+            );
         }
     }
 

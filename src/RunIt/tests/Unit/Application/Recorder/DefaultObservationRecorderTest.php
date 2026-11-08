@@ -47,7 +47,10 @@ final class DefaultObservationRecorderTest extends Unit
     public function testObservationWithoutActivityBindsExecutionOnly(): void
     {
         $this->kit->runner->run(
-            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('op'),
+                ExecutionKind::fromString('task')
+            ),
             function ($scope): null {
                 $scope->observations()->record('plain message', ObservationSeverity::Warning);
 
@@ -65,7 +68,10 @@ final class DefaultObservationRecorderTest extends Unit
     public function testObservationInsideActivityBindsActivity(): void
     {
         $this->kit->runner->run(
-            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('op'),
+                ExecutionKind::fromString('task')
+            ),
             function ($scope): null {
                 $scope->activities()->run(
                     ActivityDefinition::create(
@@ -85,7 +91,10 @@ final class DefaultObservationRecorderTest extends Unit
 
         $observations = $this->observations();
         self::assertCount(1, $observations);
-        self::assertNotNull($observations[0]->activityId(), 'Observations inside an activity must bind the activity.');
+        self::assertNotNull(
+            $observations[0]->activityId(),
+            'Observations inside an activity must bind the activity.'
+        );
     }
 
     public function testThrowableIsNormalizedThroughMapper(): void
@@ -93,9 +102,17 @@ final class DefaultObservationRecorderTest extends Unit
         $error = new RuntimeException('boom');
 
         $this->kit->runner->run(
-            ExecutionDefinition::create(ExecutionName::fromString('op'), ExecutionKind::fromString('task')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('op'),
+                ExecutionKind::fromString('task')
+            ),
             function ($scope) use ($error): null {
-                $scope->observations()->record('failed step', ObservationSeverity::Error, throwable: $error, diagnosticCode: 'step.failed');
+                $scope->observations()->record(
+                    'failed step',
+                    ObservationSeverity::Error,
+                    throwable: $error,
+                    diagnosticCode: 'step.failed'
+                );
 
                 return null;
             },

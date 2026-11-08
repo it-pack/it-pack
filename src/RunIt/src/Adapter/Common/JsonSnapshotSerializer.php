@@ -73,7 +73,12 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         }
 
         try {
-            return json_decode($encoded, associative: true, depth: $maxDepth, flags: JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+            return json_decode(
+                $encoded,
+                associative: true,
+                depth: $maxDepth,
+                flags: JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING
+            );
         } catch (JsonException $jsonException) {
             throw new SerializationException(
                 'Unable to serialize snapshot payload: ' . $jsonException->getMessage(),

@@ -249,7 +249,12 @@ final class RunItBuilderTest extends TestCase
             ->build()
         ;
 
-        self::assertSame('engine-installed', $runtime->run($this->definition(), static fn (): string => 'ignored'));
+        self::assertSame(
+            'engine-installed',
+            $runtime->run($this->definition(),
+                static fn (): string => 'ignored'
+            )
+        );
     }
 
     public function testWithNestedExecutionPolicyDrivesNestedRunSemantics(): void
@@ -264,7 +269,10 @@ final class RunItBuilderTest extends TestCase
             static function () use ($runtime, &$inner): string {
                 /** @var string $resolved */
                 $resolved = $runtime->run(
-                    ExecutionDefinition::create(ExecutionName::fromString('nested'), ExecutionKind::fromString('step')),
+                    ExecutionDefinition::create(
+                        ExecutionName::fromString('nested'),
+                        ExecutionKind::fromString('step')
+                    ),
                     static fn (): string => 'activity',
                 );
                 $inner = $resolved;
@@ -312,7 +320,10 @@ final class RunItBuilderTest extends TestCase
 
         $runtime->run($this->definition(), static fn (): int => 1);
 
-        self::assertTrue($factory->called, 'build() must compose the publisher stack through the configured factory');
+        self::assertTrue(
+            $factory->called,
+            'build() must compose the publisher stack through the configured factory'
+        );
     }
 
     public function testBoundExceededDropIsObservableThroughPublicationHandler(): void
@@ -346,7 +357,10 @@ final class RunItBuilderTest extends TestCase
         );
 
         self::assertSame(5, $result, 'a bounded drop must not affect the business result');
-        self::assertNotEmpty($failures, 'bound-exceeded drops must be observable through the publication handler');
+        self::assertNotEmpty(
+            $failures,
+            'bound-exceeded drops must be observable through the publication handler'
+        );
 
         foreach ($failures as $failure) {
             self::assertInstanceOf(BoundDropException::class, $failure);
@@ -382,8 +396,14 @@ final class RunItBuilderTest extends TestCase
             // what we are inspecting here
         }
 
-        $redacted = array_filter($spy->published, static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact);
-        self::assertNotEmpty($redacted, 'without withRedactor() the default redactor must mask throwable messages');
+        $redacted = array_filter(
+            $spy->published,
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact
+        );
+        self::assertNotEmpty(
+            $redacted,
+            'without withRedactor() the default redactor must mask throwable messages'
+        );
     }
 
     public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
@@ -411,9 +431,15 @@ final class RunItBuilderTest extends TestCase
             $spy->published,
             static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface,
         );
-        self::assertNotEmpty($observations, 'an explicit withRedactor(null) opt-out publishes raw observations');
+        self::assertNotEmpty(
+            $observations,
+            'an explicit withRedactor(null) opt-out publishes raw observations'
+        );
         self::assertEmpty(
-            array_filter($spy->published, static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact),
+            array_filter(
+                $spy->published,
+                static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact
+            ),
             'no artifact may be wrapped by the redactor once opted out',
         );
     }
@@ -428,7 +454,10 @@ final class RunItBuilderTest extends TestCase
         try {
             $runtime->run($this->definition(), static function (ExecutionScopeInterface $scope): void {
                 $scope->activities()->run(
-                    ActivityDefinition::create(ActivityName::fromString('outer'), ActivityKind::fromString('task')),
+                    ActivityDefinition::create(
+                        ActivityName::fromString('outer'),
+                        ActivityKind::fromString('task')
+                    ),
                     static function () use ($scope): void {
                         $scope->activities()->run(
                             ActivityDefinition::create(
@@ -510,7 +539,10 @@ final class RunItBuilderTest extends TestCase
         $result = $runtime->run($this->definition(), static fn (): string => 'seams');
 
         self::assertSame('seams', $result);
-        self::assertTrue($spy->called, 'configured hash calculator must be wired into the default snapshot factory');
+        self::assertTrue(
+            $spy->called,
+            'configured hash calculator must be wired into the default snapshot factory'
+        );
     }
 
     public function testBuildAcceptsAllCustomSeams(): void

@@ -54,7 +54,10 @@ final class NestedBoundariesTest extends Unit
             });
             self::fail('nesting beyond the depth limit must be rejected');
         } catch (ActivityDepthExceededException $activityDepthExceededException) {
-            self::assertStringContainsString('must not exceed 1, got 2', $activityDepthExceededException->getMessage());
+            self::assertStringContainsString(
+                'must not exceed 1, got 2',
+                $activityDepthExceededException->getMessage()
+            );
         }
     }
 
@@ -69,7 +72,10 @@ final class NestedBoundariesTest extends Unit
             });
             self::fail('a rejected nested execution must raise the rejection exception');
         } catch (RejectedNestedExecutionException $rejectedNestedExecutionException) {
-            self::assertStringContainsString('already active', $rejectedNestedExecutionException->getMessage());
+            self::assertStringContainsString(
+                'already active',
+                $rejectedNestedExecutionException->getMessage()
+            );
         }
     }
 
@@ -78,27 +84,33 @@ final class NestedBoundariesTest extends Unit
         $kit = new RunItTestKit(limits: new SecurityLimits(maxActivityDepth: 5));
         $definition = $this->definition();
 
-        $result = $kit->runner->run($definition, static fn (ExecutionScopeInterface $scope): string => $scope->activities()->run(
-            ActivityDefinition::create(
-                ActivityName::fromString('outer'),
-                ActivityKind::fromString('task'),
-            ),
-            static function (ExecutionScopeInterface $innerScope): string {
-                // Delegates through the activity scope back to the execution scope.
-                $innerScope->snapshots()->record(
-                    SnapshotType::fromString('stage.snapshot'),
-                    ['stage' => 'nested'],
-                );
+        $result = $kit->runner->run(
+            $definition,
+            static fn (ExecutionScopeInterface $scope): string => $scope->activities()->run(
+                ActivityDefinition::create(
+                    ActivityName::fromString('outer'),
+                    ActivityKind::fromString('task'),
+                ),
+                static function (ExecutionScopeInterface $innerScope): string {
+                    // Delegates through the activity scope back to the execution scope.
+                    $innerScope->snapshots()->record(
+                        SnapshotType::fromString('stage.snapshot'),
+                        ['stage' => 'nested'],
+                    );
 
-                return 'nested-ok';
-            },
-        ));
+                    return 'nested-ok';
+                },
+            )
+        );
 
         self::assertSame('nested-ok', $result);
     }
 
     private function definition(): ExecutionDefinitionInterface
     {
-        return ExecutionDefinition::create(ExecutionName::fromString('boundary'), ExecutionKind::fromString('task'));
+        return ExecutionDefinition::create(
+            ExecutionName::fromString('boundary'),
+            ExecutionKind::fromString('task')
+        );
     }
 }

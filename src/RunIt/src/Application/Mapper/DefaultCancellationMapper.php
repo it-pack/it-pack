@@ -26,7 +26,13 @@ final class DefaultCancellationMapper implements CancellationMapperInterface
     public function map(CancellationInterface $cancellation): ExecutionResultInterface
     {
         $description = $cancellation->throwableDescription()
-            ?? ThrowableDescription::create(Cancellation::class, $cancellation->cause(), 0, previous: null, trace: null);
+            ?? ThrowableDescription::create(
+                Cancellation::class,
+                $cancellation->cause(),
+                0,
+                previous: null,
+                trace: null
+            );
 
         return ExecutionFailure::of(ExecutionStatus::Cancelled, $description);
     }

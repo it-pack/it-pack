@@ -23,7 +23,10 @@ final class ExecutedCallableFactoryTest extends TestCase
 
         $runner = $this->createMock(ExecutionRunnerInterface::class);
         $runner->method('run')->willReturnCallback(
-            static function (ExecutionDefinitionInterface $definition, callable $operation) use (&$captured, $result): mixed {
+            static function (
+                ExecutionDefinitionInterface $definition,
+                callable $operation
+            ) use (&$captured, $result): string {
                 $captured = $definition;
 
                 return $result;

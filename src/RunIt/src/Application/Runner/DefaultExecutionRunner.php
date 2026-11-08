@@ -98,7 +98,8 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     private const string UNKNOWN_IDENTITY = 'unknown';
 
     /**
-     * @param Closure(Throwable): void|null $onPublicationFailure receives publication errors so they can be reported without replacing the business result
+     * @param Closure(Throwable): void|null $onPublicationFailure receives publication errors so they can be reported
+     *      without replacing the business result
      */
     private FailSafeArtifactPublisher $safePublisher;
 
@@ -198,12 +199,14 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         // the caller — but they are always reported first, so no execution can
         // fail to materialize silently (Phase 0, T0.2).
         try {
-            $parentId = ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
-                ? $current->execution()->id()
-                : null;
-            $linkedIds = ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface)
-                ? [$current->execution()->id()]
-                : [];
+            $parentId =
+                ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
+                    ? $current->execution()->id()
+                    : null;
+            $linkedIds =
+                ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface)
+                    ? [$current->execution()->id()]
+                    : [];
 
             $effectiveDefinition = ExecutionDefinition::create(
                 $definition->name(),

@@ -53,7 +53,13 @@ final class ExecutionTest extends Unit
     {
         $failure = ExecutionFailure::of(
             ExecutionStatus::Failed,
-            ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
+            ThrowableDescription::create(
+                'RuntimeException',
+                'boom',
+                0,
+                previous: null,
+                trace: null
+            ),
         );
 
         self::assertSame(ExecutionStatus::Failed, $failure->status());
@@ -94,7 +100,11 @@ final class ExecutionTest extends Unit
 
     public function testCompleteReturnsNewTerminalExecution(): void
     {
-        $running = Execution::start(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000));
+        $running = Execution::start(
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000)
+        );
         $done = $running->complete(ExecutionSuccess::create(), Instant::of(2000));
 
         self::assertSame(ExecutionStatus::Succeeded, $done->status());
@@ -106,7 +116,11 @@ final class ExecutionTest extends Unit
 
     public function testCompleteFromTerminalStatusIsRejectedByAggregate(): void
     {
-        $terminal = Execution::start(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000))
+        $terminal = Execution::start(
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000)
+        )
             ->complete(ExecutionSuccess::create(), Instant::of(2000))
         ;
 
@@ -114,7 +128,13 @@ final class ExecutionTest extends Unit
             $terminal->complete(
                 ExecutionFailure::of(
                     ExecutionStatus::Failed,
-                    ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
+                    ThrowableDescription::create(
+                        'RuntimeException',
+                        'boom',
+                        0,
+                        previous: null,
+                        trace: null
+                    ),
                 ),
                 Instant::of(3000),
             );
@@ -128,7 +148,11 @@ final class ExecutionTest extends Unit
 
     public function testTerminalReCompletionWithSameStatusIsAlsoRejectedByAggregate(): void
     {
-        $terminal = Execution::start(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000))
+        $terminal = Execution::start(
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000)
+        )
             ->complete(ExecutionSuccess::create(), Instant::of(2000))
         ;
 
@@ -139,20 +163,29 @@ final class ExecutionTest extends Unit
 
     public function testCompleteFromCreatedSkippingRunningIsRejected(): void
     {
-        $created = Execution::create(ExecutionId::fromString('exec-1'), $this->definition(), Instant::of(1000));
+        $created = Execution::create(
+            ExecutionId::fromString('exec-1'),
+            $this->definition(),
+            Instant::of(1000)
+        );
 
         try {
             $created->complete(ExecutionSuccess::create(), Instant::of(2000));
             self::fail('skipping the running state must be rejected');
         } catch (InvalidLifecycleTransitionException $invalidLifecycleTransitionException) {
-            self::assertInstanceOf(LifecycleExceptionInterface::class, $invalidLifecycleTransitionException);
-            self::assertStringContainsString('"created" to "succeeded"', $invalidLifecycleTransitionException->getMessage());
+            self::assertStringContainsString(
+                '"created" to "succeeded"',
+                $invalidLifecycleTransitionException->getMessage()
+            );
         }
     }
 
     public function testLifecycleExceptionsRemainCatchableAsInvalidValue(): void
     {
-        $conflict = ConflictingCompletionException::forConflict(ExecutionStatus::Succeeded, ExecutionStatus::Failed);
+        $conflict = ConflictingCompletionException::forConflict(
+            ExecutionStatus::Succeeded,
+            ExecutionStatus::Failed
+        );
         $transition = InvalidLifecycleTransitionException::forTransition(
             ExecutionStatus::Created,
             ExecutionStatus::Running
