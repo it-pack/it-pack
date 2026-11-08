@@ -6,6 +6,7 @@ namespace Tools\PhpStan\RunitRules\Rule;
 
 use PhpParser\Node;
 use PHPStan\Analyser\Scope;
+use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use Tools\PhpStan\RunitRules\Support\AbstractSrcRule;
@@ -31,6 +32,7 @@ final class RequireInterfaceRule extends AbstractSrcRule implements Rule
         string $srcRoot,
         private readonly array $exemptDirectories,
         private readonly array $exemptFiles,
+        private readonly ReflectionProvider $reflectionProvider,
     ) {
         parent::__construct($srcRoot);
     }
@@ -70,6 +72,14 @@ final class RequireInterfaceRule extends AbstractSrcRule implements Rule
 
         if ($node->implements !== []) {
             return [];
+        }
+
+        if ($node->extends !== null) {
+            $parent = $scope->resolveName($node->extends);
+            if ($this->reflectionProvider->hasClass($parent)
+                && $this->reflectionProvider->getClass($parent)->getInterfaces() !== []) {
+                return [];
+            }
         }
 
         return [RuleErrorBuilder::message(sprintf(
