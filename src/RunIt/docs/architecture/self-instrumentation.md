@@ -56,7 +56,9 @@ resort is contained, although PHP's system log can fail without reporting it.
 Other invocation sites, including the runner and bounded-publisher drop callback,
 have separate failure paths and are not covered by this guarantee. Setup faults
 before an execution materializes (identity allocation, start, scope assembly,
-attach) are reported once and then surfaced unchanged.
+attach) are passed to the runner's health callback when one is configured. If
+no callback is configured, no health report is emitted. In either case, the
+original setup exception is surfaced unchanged to the caller.
 
 ## Instrument batches, not every method
 
