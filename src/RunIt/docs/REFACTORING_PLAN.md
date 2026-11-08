@@ -72,9 +72,86 @@ verification. The unchecked design details below must still be resolved where ap
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
 
-**Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. The recorded Unit coverage XML and PhpMetrics/PHP Assumptions reports under `/tmp/kilo` are no longer present. Re-establish and preserve the evidence, record exact command exit codes and remaining diagnostic attribution, and obtain a buffered-publisher drain/close benchmark with workloads and variance. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+**Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
 
-The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. On 2026-11-06, `composer api:check` exited 1 on the current dirty tree for nine additive symbols and reported zero backward-compatibility breaks; this does not authorize a further baseline update. The current observation-level nested-redaction test passes, but failed-execution and adapter export paths, sampler input, byte admission, default failure reporting, concurrency risk, and complete token-ownership scenarios still require individual reproduction or documented reasons they cannot yet be reproduced. Phase 0 is not complete.
+**Partial refreshed baseline (2026-11-06):** At revision
+`72c32f63c88c44913bc88c5b42e4673c36737174`, the initial worktree was clean.
+The subsequent test and coverage runs include the new, uncommitted
+`SamplingTest.php` characterization tests. PHP was 8.5.12 CLI NTS with PCOV,
+Swoole and Fiber available; OpenSwoole and Swow were not loaded. The package's
+ignored lockfile supplied the installed dependencies; no update was run.
+
+| Check | Exit | Result |
+| --- | ---: | --- |
+| `composer validate --strict` | 0 | Valid manifest. |
+| `composer api:check` | 1 | Ten additive entries, zero detected breaks; baseline not changed. |
+| `composer analyse` | 1 | 147 diagnostics; full baseline attribution remains open. |
+| `composer refactor:dry` | 2 | Existing callable-array fixture would be converted. |
+| `composer cs:check` | 0 | No formatting changes. |
+| `composer architecture` | 0 | No violations in 404 analyzed classes. |
+| `composer lint:length` | 1 | 26 violations outside the new sampling test. |
+| `composer test` | 0 | Unit 846/5,803; Integration 3/7; Conformance 52/111; Concurrency 7/145 (tests/assertions). |
+| `composer coverage` | 0 | Unit only: 3,605/4,087 lines (88.20%); 846 tests. |
+| `composer audit` | 0 | No vulnerability advisories; abandoned `doctrine/annotations`. |
+
+An additional Unit-only run produced `/tmp/kilo/runit-unit-coverage.xml` with
+the same 3,605/4,087 statement totals. PCOV does not provide branch coverage;
+aggregate results do not prove per-test attribution. PhpMetrics 2.11.0 and PHP
+Assumptions 0.9.1 completed using the commands in `REVIEW.md`, generating
+`/tmp/kilo/runit-phpmetrics.{json,csv}`,
+`/tmp/kilo/runit-phpmetrics-summary.json`, and `/tmp/kilo/runit-phpa.xml`.
+They report 236 classes and 75 assumptions respectively; assumptions are not
+verified defects. `/tmp/kilo` is temporary and the reports are not tracked.
+The focused buffer drain/close measurement is recorded in `benchmarks.md`;
+other hot paths, failure cases, and Phase 0 exit criteria remain open.
+
+The standalone negative reproduction
+`php /tmp/kilo/runit-execution-redaction-repro.php "$PWD"` exits 1 on this tree:
+a failed execution published through the default redactor retains sensitive
+markers and traces. It checks class/code preservation and source immutability
+without printing the markers; the temporary script is not part of the test suite.
+
+**Further Phase 0 characterization (2026-11-06):** Starting from clean revision
+`6c1fad0ac7f67f0d9612d549051c127f46066c1e`, focused Unit tests now retain
+reproducible evidence without relying on temporary scripts:
+
+- `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`
+  shows that a failed execution's nested throwable and classified markers reach
+  the sink unchanged. This passing characterization documents the defect, not
+  the approved target policy.
+- `BufferingTest` characterizes oversized first items and projected byte
+  overflows for every overflow strategy, and single-item eviction leaving a
+  replacement over budget for `DropOldest` and `DropLowPriority`.
+- `ResilienceTest` shows that a terminal snapshot factory failure suppresses
+  terminal execution publication, while preserving the business outcome and
+  restoring context. Separate cases exercise normal execution-before-snapshot
+  ordering and failures in each publication attempt.
+
+The existing ten-subject `composer benchmark` suite also passed on PHP 8.5.12;
+the environment, workload, reported variation and limitations are recorded in
+`benchmarks.md`. It does not cover all planned hot paths or overflow patterns.
+The above characterizations do not fix the defects or complete Phase 0.
+
+Starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
+`FailureHandlingTest` additionally characterizes publication failure reporting.
+With no health reporter the fail-open publisher drops the failure. A throwing
+callback followed by a successful fallback logs both exception messages and the
+artifact ID. A throwing injected fallback sink escapes the fail-open publisher;
+so does an exception from artifact normalization before the fallback is invoked.
+These tests exercise the publisher boundary with injected collaborators, not a
+real system error-log failure or the effect on a runner's business outcome. The
+diagnostic exposure and failure-handling defects remain unresolved.
+
+The current worktree's `composer coverage -- --silent` passed on PHP 8.5.12
+with Unit-only PCOV coverage of 3,610/4,087 statements (88.33%). The generated
+XML is `tests/_output/coverage.xml` and is not tracked; aggregate coverage does
+not establish per-test attribution, and PCOV does not report branch coverage.
+`composer audit` found no security advisories and reported abandoned development
+dependency `doctrine/annotations`; `composer audit --no-dev` found no advisories.
+`composer why doctrine/annotations --tree` traces it through PHPBench 1.7.0 and
+the development dependency `just-bases/php-qa-base` 1.0.9.
+
+The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. An earlier `composer api:check` exited 1 for nine additive symbols and reported zero backward-compatibility breaks; the later ten-addition result is recorded above. This does not authorize a further baseline update. The characterizations above and in Phase 2 reproduce several of the previously outstanding paths, but do not exhaust all adapter, failure-reporting, concurrency, or ownership scenarios. Phase 0 is not complete.
 
 ## Phase 1: Compatibility and context ownership
 
@@ -150,6 +227,34 @@ On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
 
+The newer sampling tests exercise the real factory with a spy sampler and sink,
+including null decorators, rejected and accepted inputs, and changed versus
+unchanged observations. They characterize the current pre-redaction exposure,
+not the approved target. A severity-policy check demonstrates why simply moving
+the generic redacted wrapper ahead of sampling changes the decision. The focused
+suite passed on PHP 8.5.12 and 8.4.27 (13 tests, 42 assertions); error override,
+execution-kind composition, and the redaction-first target remain open.
+
+**Additional characterization (2026-11-06):** At baseline revision
+`91ab15a7567a75b713487acd0b51bc9d0249fbe6`, composed OpenTelemetry tests
+show that the default redactor permits a failed execution's outer throwable
+message and trace into the exported span event. The tested event fields did not
+include the two nested-cause markers; other output fields and exporters have not
+been proven safe. The explicit throwable-redaction opt-out also exports those
+outer fields. The tests use synthetic secrets and preserve the original artifact.
+
+Factory-composed sampling tests show that error override keeps original error
+observations and execution-kind sampling keeps allowed original observations;
+both policies reject changed generic projections in the tested configurations.
+These are current-behavior characterizations, not redaction-first factory tests
+or approval of the existing leak. Target-policy assertions and routing remain
+open; the tests documenting unsafe behavior must change when the defects are fixed.
+The focused telemetry, sampling and failure-handling files passed on PHP 8.4 and
+8.5. An initial concurrent PHP 8.4 invocation raced on generated Codeception
+support; running the three files sequentially passed. Subsequently,
+`php8.4 vendor/bin/codecept run --silent` passed the full configured test run;
+this does not cover unavailable runtime extensions.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
@@ -182,6 +287,7 @@ establish per-test attribution or the planned isolation guarantee.
 - [ ] Trace `DefaultExecutionRunner`, `FailSafeArtifactPublisher`, `FailOpenPolicy`, and existing fallback reporter behavior. Define a recursion-safe default health sink that does not send failures back through the failing publisher, expose secrets, or replace the business outcome.
 - [ ] Add failure-injection tests for no callback, successful callback, callback throwing, fallback sink throwing, inner publisher throwing, recursive publication, and artifact normalization throwing during failure reporting. Check bounded/sanitized reporting and verify no failure is silently discarded under the chosen policy.
 - [ ] Implement guarded fallback reporting for the default fail-open path and guard diagnostic extraction itself. Keep fail-closed behavior explicit and preserve the original throwable and context restoration in `finally`.
+- [ ] Fix the confirmed `CallbackHealthReporter::report()` fail-open hole in a later change: wrap artifact normalization and the fallback report in their own `try`/`catch` so either failure cannot escape through `FailSafeArtifactPublisher::publish()`. Add runner-level regression tests proving the business result and original business exception are preserved when normalization or the fallback sink throws; retain the chosen safe reporting policy.
 - [ ] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration.
 - [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
 - [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.

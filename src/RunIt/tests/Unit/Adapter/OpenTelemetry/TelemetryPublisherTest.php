@@ -9,11 +9,22 @@ use ItPack\RunIt\Adapter\OpenTelemetry\BridgeCapability;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Domain\Execution\Execution;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionFailure;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Shared\Instant;
+use OpenTelemetry\API\Trace\StatusCode;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Tests\Support\Fixture\SensitiveExceptionChain;
 
 /**
  * M9 — Telemetry publisher end-to-end dispatch.
@@ -64,6 +75,63 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('import', $spans[0]->getName());
         self::assertSame('parse', $spans[1]->getName());
         self::assertSame($spans[0]->getContext()->getSpanId(), $spans[1]->getParentSpanId());
+    }
+
+    public function testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent(): void
+    {
+        $this->assertFailedExecutionExport(new ArtifactRedactionConfig());
+    }
+
+    public function testFailedExecutionExportWithThrowableRedactionDisabled(): void
+    {
+        $this->assertFailedExecutionExport(new ArtifactRedactionConfig(redactThrowableMessages: false));
+    }
+
+    private function assertFailedExecutionExport(ArtifactRedactionConfig $config): void
+    {
+        $execution = Execution::start(
+            ExecutionId::fromString('exec-sensitive'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+        $before = $execution->normalize();
+        $publisher = new PublisherStackFactory()->compose(
+            $this->publisher(),
+            new DefaultArtifactRedactor($config),
+            null,
+        );
+        $publisher->publish($execution);
+
+        $spans = $this->kit->spans();
+        self::assertCount(1, $spans);
+        $span = $spans[0];
+        self::assertSame('import', $span->getName());
+        self::assertSame(StatusCode::STATUS_ERROR, $span->getStatus()->getCode());
+        self::assertSame('exec-sensitive', $span->getAttributes()->get('runit.execution.id'));
+        self::assertSame('failed', $span->getAttributes()->get('runit.execution.status'));
+        $events = $span->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('exception', $events[0]->getName());
+        $attributes = $events[0]->getAttributes();
+        self::assertSame('RuntimeException', $attributes->get('exception.type'));
+        $message = $attributes->get('exception.message');
+        $trace = $attributes->get('exception.stacktrace');
+        self::assertIsString($message);
+        self::assertIsString($trace);
+        $secrets = SensitiveExceptionChain::secrets();
+        // This is a known leak, not the intended redaction policy.
+        self::assertTrue(str_contains($message, $secrets[1]), 'Outer message reaches the exporter.');
+        self::assertTrue(str_contains($trace, $secrets[1]), 'Outer trace reaches the exporter.');
+        foreach ([$secrets[0], $secrets[2]] as $secret) {
+            self::assertFalse(str_contains($message, $secret));
+            self::assertFalse(str_contains($trace, $secret));
+        }
+
+        self::assertCount(0, $this->kit->logs());
+        self::assertTrue($before === $execution->normalize(), 'The original execution remains unchanged.');
     }
 
     public function testPublishesMeasurementAsMetric(): void

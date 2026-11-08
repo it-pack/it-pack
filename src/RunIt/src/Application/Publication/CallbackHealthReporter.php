@@ -16,9 +16,8 @@ use Throwable;
  * Used by tests and by applications that collect internal publication failures
  * (for example into a metrics counter) without touching the guarded publisher.
  *
- * The callback is userland code and may throw. A throwing callback is contained
- * here: the primary failure plus the handler fault land in the fallback sink,
- * and nothing escapes into publication or business flow (Phase 0, T0.1).
+ * A throwing callback is forwarded to the fallback sink along with the primary
+ * failure. Artifact normalization or the fallback sink itself can still throw.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */

@@ -6,7 +6,10 @@ namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\AlwaysSamplePolicy;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\ErrorOverrideSamplePolicy;
 use ItPack\RunIt\Application\Publication\ExecutionKindSamplePolicy;
 use ItPack\RunIt\Application\Publication\HeadBasedSamplingPolicy;
@@ -22,6 +25,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 
 /**
@@ -197,5 +201,166 @@ final class SamplingTest extends Unit
         $keep->publish($this->observation('info'));
 
         self::assertCount(1, $keepSink->published());
+    }
+
+    public function testFactoryCurrentlySamplesOriginalArtifactsBeforeRedaction(): void
+    {
+        $policy = new class () implements SamplingPolicyInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $seen = [];
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen[] = $artifact;
+
+                return $artifact->normalize()['message'] !== 'reject';
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
+        $id = ExecutionId::fromString('exec-1');
+        $changed = Observation::info(ObservationId::fromString('changed'), $id, 'keep', attributes: $attributes);
+        $rejected = Observation::info(ObservationId::fromString('rejected'), $id, 'reject', attributes: $attributes);
+        $unchanged = $this->observation();
+
+        $publisher->publish($changed);
+        $publisher->publish($rejected);
+        $publisher->publish($unchanged);
+
+        // Characterizes current exposure to the policy, not an approved security ordering.
+        self::assertSame([$changed, $rejected, $unchanged], $policy->seen);
+        self::assertSame(['secret' => 'sensitive'], $policy->seen[0]->normalize()['attributes']);
+        self::assertSame(['secret' => 'sensitive'], $policy->seen[1]->normalize()['attributes']);
+        self::assertCount(2, $sink->published());
+        self::assertNotSame($changed, $sink->published()[0]);
+        self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
+        self::assertSame($unchanged, $sink->published()[1]);
+    }
+
+    public function testFactoryHandlesNullDecorators(): void
+    {
+        $factory = new PublisherStackFactory();
+        $sink = new InMemoryArtifactPublisher();
+        $artifact = $this->observation();
+        self::assertSame($sink, $factory->compose($sink, null, null));
+
+        $sampling = new class () implements SamplingPolicyInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $seen = [];
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen[] = $artifact;
+
+                return true;
+            }
+        };
+        $factory->compose($sink, null, $sampling)->publish($artifact);
+        self::assertSame([$artifact], $sampling->seen);
+        self::assertSame([$artifact], $sink->published());
+
+        $changed = Observation::info(
+            ObservationId::fromString('secret'),
+            ExecutionId::fromString('exec-1'),
+            'message',
+            attributes: AttributeCollection::fromArray(['secret' => 'sensitive']),
+        );
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactedSink = new InMemoryArtifactPublisher();
+        $factory->compose($redactedSink, $redactor, null)->publish($changed);
+        self::assertCount(1, $redactedSink->published());
+        self::assertNotSame($changed, $redactedSink->published()[0]);
+        self::assertSame(['secret' => '[redacted]'], $redactedSink->published()[0]->normalize()['attributes']);
+    }
+
+    public function testFactorySamplesObservationSeverityBeforeRedactionChangesItsType(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $policy = new SeveritySamplePolicy(ObservationSeverity::Warning->level());
+        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
+        $id = ExecutionId::fromString('exec-1');
+        $low = Observation::info(ObservationId::fromString('low'), $id, 'low', attributes: $attributes);
+        $high = Observation::warning(ObservationId::fromString('high'), $id, 'high', attributes: $attributes);
+
+        self::assertTrue($policy->sample($redactor->redact($low)), 'A redacted wrapper is not an observation.');
+        $publisher->publish($low);
+        $publisher->publish($high);
+
+        self::assertCount(1, $sink->published());
+        self::assertSame('high', $sink->published()[0]->normalize()['message']);
+        self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
+    }
+
+    public function testFactorySamplesErrorOverrideBeforeRedactionChangesItsType(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $policy = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
+        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $id = ExecutionId::fromString('exec-1');
+        $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
+        $error = Observation::error(ObservationId::fromString('error'), $id, 'error', attributes: $attributes);
+        $info = Observation::info(ObservationId::fromString('info'), $id, 'info', attributes: $attributes);
+        $unchanged = $this->observation('error');
+        $redacted = $redactor->redact($error);
+
+        self::assertTrue($policy->sample($error));
+        self::assertFalse($policy->sample($redacted));
+        self::assertSame($unchanged, $redactor->redact($unchanged));
+        $publisher->publish($error);
+        $publisher->publish($info);
+        $publisher->publish($unchanged);
+
+        self::assertCount(2, $sink->published());
+        self::assertNotSame($error, $sink->published()[0]);
+        self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
+        self::assertSame($unchanged, $sink->published()[1]);
+    }
+
+    public function testFactorySamplesExecutionKindBeforeRedactionChangesItsType(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $policy = new ExecutionKindSamplePolicy(
+            static fn (ExecutionIdInterface $id): ?ExecutionKind => match ($id->toString()) {
+                'exec-1' => ExecutionKind::fromString('http.request'),
+                'exec-2' => ExecutionKind::fromString('cli.command'),
+                default => null,
+            },
+            ['http.request' => true, 'cli.command' => false],
+        );
+        $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
+        $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
+        $kept = Observation::info(
+            ObservationId::fromString('kept'),
+            ExecutionId::fromString('exec-1'),
+            'kept',
+            attributes: $attributes,
+        );
+        $dropped = Observation::info(
+            ObservationId::fromString('dropped'),
+            ExecutionId::fromString('exec-2'),
+            'dropped',
+            attributes: $attributes,
+        );
+        $unknown = $this->observation('info', 'exec-3');
+        $unchanged = $this->observation();
+
+        self::assertTrue($policy->sample($kept));
+        self::assertFalse($policy->sample($redactor->redact($kept)));
+        self::assertSame($unchanged, $redactor->redact($unchanged));
+        $publisher->publish($kept);
+        $publisher->publish($dropped);
+        $publisher->publish($unknown);
+        $publisher->publish($unchanged);
+
+        self::assertCount(2, $sink->published());
+        self::assertNotSame($kept, $sink->published()[0]);
+        self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
+        self::assertSame($unchanged, $sink->published()[1]);
     }
 }
