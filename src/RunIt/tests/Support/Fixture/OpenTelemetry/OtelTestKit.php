@@ -72,7 +72,7 @@ final class OtelTestKit
         /** @var ReadableLogRecord $record */
         $record = $this->logExporter->getStorage()->offsetGet($index);
 
-        return $record;
+        return $this->logExporter->getStorage()->offsetGet($index);
     }
 
     /**
@@ -81,25 +81,20 @@ final class OtelTestKit
     public function metrics(): array
     {
         $this->metricReader->collect();
-        /** @var Metric[] $metrics */
-        $metrics = $this->metricExporter->collect(reset: true);
 
-        return $metrics;
+        return $this->metricExporter->collect(reset: true);
     }
 
     public function metric(string $name): ?Metric
     {
-        foreach ($this->metrics() as $metric) {
-            if ($metric->name === $name) {
-                return $metric;
-            }
-        }
-
-        return null;
+        return array_find(
+            $this->metrics(),
+            fn($metric) => $metric->name === $name
+        );
     }
 
     /**
-     * @return Metricc[]
+     * @return Metric[]
      */
     public function collectMetrics(): array
     {
@@ -109,7 +104,7 @@ final class OtelTestKit
     }
 
     /**
-     * @return ArrayObject<int, ReadableLogRecordd>
+     * @return ArrayObject<int, ReadableLogRecord>
      */
     public function logs(): ArrayObject
     {

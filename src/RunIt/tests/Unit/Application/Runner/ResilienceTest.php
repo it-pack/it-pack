@@ -58,6 +58,76 @@ use Throwable;
  */
 final class ResilienceTest extends Unit
 {
+    public function testRunnerHandlesOuterHealthReporterNormalizationFailure(): void
+    {
+        foreach ([false, true] as $businessFails) {
+            $publicationFailure = new RuntimeException('snapshot execution id failed');
+            $reportingFailure = new RuntimeException('snapshot normalization failed');
+            $callbackFailure = new RuntimeException('health callback failed');
+            $snapshot = self::createStub(ExecutionSnapshotInterface::class);
+            $snapshot->method('executionId')->willThrowException($publicationFailure);
+            $snapshot->method('normalize')->willThrowException($reportingFailure);
+            $factory = new readonly class ($snapshot) implements ExecutionSnapshotFactoryInterface {
+                public function __construct(private ExecutionSnapshotInterface $snapshot)
+                {
+                }
+
+                public function terminal(ExecutionInterface $execution): ExecutionSnapshotInterface
+                {
+                    return $this->snapshot;
+                }
+            };
+            $reported = [];
+            $outer = new RunItTestKit();
+            $kit = new RunItTestKit(
+                onPublicationFailure: static function (Throwable $failure) use (
+                    &$reported,
+                    $publicationFailure,
+                    $callbackFailure,
+                ): void {
+                    $reported[] = $failure;
+                    if ($failure === $publicationFailure) {
+                        throw $callbackFailure;
+                    }
+                },
+                storage: $outer->storage,
+                snapshotFactory: $factory,
+            );
+            $original = new RuntimeException('business failed');
+            $value = new stdClass();
+            $outer->runner->run($this->definition(), function (ExecutionScopeInterface $parent) use (
+                $kit,
+                $businessFails,
+                $original,
+                $value,
+            ): void {
+                $caught = null;
+                $result = null;
+                try {
+                    $result = $kit->runner->run($this->definition(), static function () use (
+                        $businessFails,
+                        $original,
+                        $value,
+                    ): object {
+                        if ($businessFails) {
+                            throw $original;
+                        }
+
+                        return $value;
+                    });
+                } catch (Throwable $throwable) {
+                    $caught = $throwable;
+                }
+
+                self::assertSame($businessFails ? $original : null, $caught);
+                self::assertSame($businessFails ? null : $value, $result);
+                self::assertSame($parent, $kit->storage->current());
+            });
+            self::assertSame([$publicationFailure, $reportingFailure], $reported);
+            self::assertNull($kit->storage->current());
+        }
+    }
+
     public function testRunnerOuterFailSafeHandlesInnerHealthReporterFailures(): void
     {
         foreach (['normalization', 'fallback'] as $failureSource) {

@@ -94,6 +94,11 @@ trace of a failed execution reach the exported span event with default redaction
 The test's nested-cause markers did not appear in those two event fields; this
 does not establish that other fields or exporters are safe.
 
+A separate OpenTelemetry characterization shows that an observation changed by
+the default redactor is silently dropped by the tested log and span-event paths,
+while an unredacted control reaches both. This is an observability loss, not a
+guarantee that other redacted projections are dropped or safe to export.
+
 For redacted occurrences, the tested OpenTelemetry log and span-event paths
 export extension attributes even when they are excluded by the configured
 occurrence allow-list. For redacted snapshots, the tested paths export the

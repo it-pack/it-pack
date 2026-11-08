@@ -118,16 +118,20 @@ Evicting a context in a custom store can consequently alter linkage for late chi
 
 ## Redaction before export
 
-The bridge exports whatever artifact reaches it, so redaction must be composed
-*before* the bridge. The SDK builder does this for you: since Phase 1 of the
-2026-08-24 plan, `RunItBuilder` installs a deny-by-default redactor that masks
-throwable messages unless you explicitly opt out with `withRedactor(null)` or
-supply a custom strategy. Payload masking (occurrence `data`, snapshot
-`payload`) is key-driven — configure a custom redactor:
+The bridge receives the artifact supplied by its publisher. `RunItBuilder`
+installs a default redactor unless you opt out with `withRedactor(null)` or
+supply a custom strategy, but the default is not a comprehensive sanitizer.
+In particular, it does not mask failed-execution throwables nested under
+`result.throwable`; free-form messages and unconfigured payload keys can also
+contain sensitive data. Apply and verify independent sanitization before data
+reaches the bridge or a sampler. See [current publication limitations](../SECURITY.md#current-publication-limitations).
+
+Payload-key masking for occurrence `data` and snapshot `payload` can be
+configured explicitly, subject to the limitations linked above:
 
 ```php
 $runtime = RunItBuilder::create()
-    ->withPublisher(new TelemetryPublisher::fromConfig($bridgeConfig))
+    ->withPublisher(TelemetryPublisher::fromConfig($bridgeConfig))
     ->withRedactor(new DefaultArtifactRedactor(new ArtifactRedactionConfig(
         sensitiveDataKeys: ['token', 'password'],
     )))
@@ -136,9 +140,16 @@ $runtime = RunItBuilder::create()
 ;
 ```
 
-The builder composes redaction closest to the sink and sampling outside it, so
-dropped artifacts are never serialized and exported artifacts are already
-masked.
+The builder composes redaction closest to the sink and sampling outside it;
+consequently, configured samplers receive the original artifact. When redaction
+changes an artifact, the resulting generic projection does not necessarily follow
+the same adapter path as the original typed artifact. Do not assume that all
+fields reaching an exporter have been masked or that every redacted artifact is
+delivered.
+In a test with a configured sensitive attribute, an observation changed by the
+default redactor produces neither an OpenTelemetry log nor a span event, whereas
+an unredacted control produces both. This characterizes the tested paths, not all
+possible redacted artifact shapes.
 
 ## Fiber considerations
 

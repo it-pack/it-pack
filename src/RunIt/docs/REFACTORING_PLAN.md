@@ -49,16 +49,16 @@ health report using a payload-free placeholder, are proposals rather than
 approved field or reporting decisions. Identifiers are required by the existing
 interface, and changing values or normalized shapes can affect consumers.
 Disabled providers must be distinguished from unsafe-mapping drops. A real
-redacted observation through OpenTelemetry still needs a delivery-or-report test;
-generic redacted artifacts otherwise risk bypassing typed dispatch. These
+redacted observation is silently dropped on the tested OpenTelemetry log and
+span-event paths, while an unredacted control reaches both; generic redacted
+artifacts can bypass typed dispatch. Target delivery-or-report tests remain. These
 investigations do not authorize public-interface or schema changes.
 
 Coverage attribution investigation (PHP 8.5.12, Codeception 5.3.7, PHPUnit
 13.1.14, php-code-coverage 14.5.1): source inspection indicates empty coverage
 targets do not filter executed lines, and `strict_covers_annotation` defaults to
 false. The installed Codeception exception-handling path may not propagate a
-strict-coverage exception as a failing test; this is an unverified source-level
-finding, not an established bypass. A filename search found coverage metadata in
+strict-coverage exception as a failing test. A filename search found coverage metadata in
 10 of 121 Unit test files, not a complete per-class audit. Candidate enforcement
 requires an explicit-target audit, isolated Unit-only output, and negative
 controls for unrelated execution, allowed collaborators, and missing metadata.
@@ -72,9 +72,22 @@ neither synthetic line was credited. With no metadata, the unrelated executed
 class was credited and the run also exited 0. A declared collaborator was not
 credited. Direct php-code-coverage controls exited 1 for the leak and 0 for the
 declared collaborator. This demonstrates that strict configuration alone is not
-a reliable isolation gate in this tested environment; it does not prove precisely
-where Codeception handles the exception. The temporary controls and reports are
+a reliable isolation gate in this tested environment. In the installed Codeception
+`CodeCoverage` feature, `$status` is replaced by a status object or enum before
+`stop()`, then compared to the original success string in the coverage-exception
+handler. That source path explains the observed result, though it was not patched
+to independently verify a fix. Run direct controls from the fixture directory:
+running from the package directory produced a false negative with PCOV. The
+temporary controls and reports are
 not a CI gate, and do not establish real-suite attribution or branch coverage.
+
+On 2026-11-08, the declared target, allowed collaborator, missing-metadata and
+undeclared-execution controls were rerun from the fixture directory. The target
+was credited, the allowed collaborator was not credited, missing metadata
+credited unrelated execution, and undeclared execution did not fail Codeception.
+The direct leak control failed as expected. A working gate still needs an
+explicit-target audit, a runner that propagates strict-coverage errors, and
+verified Unit-only isolation; the controls are not a substitute for that gate.
 
 ## Phase 0: Baseline and safety net
 
@@ -122,7 +135,7 @@ themselves satisfy the literal exit criterion.
 | Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent` | Target-policy negative tests across causes, traces, and exporters. |
 | Sampling before redaction | Factory-composed spy and typed-policy cases in `SamplingTest` | Redaction-first target and compatible typed routing tests. |
 | Buffer byte limit | Oversized, projected-overflow, eviction, integer-overflow and timeout cases in `BufferingTest` | Target-invariant matrix and approved edge semantics. |
-| Silent or recursive publication failures | `FailureHandlingTest` and nested runner `ResilienceTest` | Recursion-safe reporting target and outer reporter/system-log failure evidence. |
+| Silent or recursive publication failures | `FailureHandlingTest` and runner `ResilienceTest` | Recursion-safe reporting target and real system-log failure evidence. |
 | Token interface compatibility | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline | Final migration, versioning and API-check verification for external implementers. |
 | Unit coverage and attribution | Unit-only XML and synthetic attribution controls recorded below | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
 | Synchronous context under concurrency | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest` | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable. |
@@ -246,8 +259,18 @@ runner's own fail-safe publisher. For successful and failing business operations
 the outer reporter receives the escaping inner failure, the returned object or
 original business exception is preserved, and the top-level scope is detached.
 The nested variant additionally checks restoration of a previously attached parent
-scope. This does not fix the inner publisher's escape or test a failing outer
-reporter or a real system error-log failure.
+scope. A separate runner test makes the outer callback fail for a snapshot
+publication error and makes that snapshot's normalization throw while the
+fallback handles it. In the tested success and failure cases, the runner reports
+the escaping normalization error, preserves the business value or original
+exception, and restores the parent context. This does not fix the reporter escape
+or exercise an actual system error-log failure or all outer failure paths.
+
+The 2026-11-08 follow-up added the runner and OpenTelemetry characterizations
+above. Unit tests passed; `composer quality` passed validation, Rector and style,
+then stopped at PHPStan with 147 diagnostics. The diagnostic count matches the
+previous recorded baseline but does not itself establish identical sets. These
+characterizations do not satisfy the target-policy failure criterion by themselves.
 
 The fail-safe recursion guard prevents the inner publisher from running on a
 nested attempt, but calls the health reporter for each such attempt. A bounded
