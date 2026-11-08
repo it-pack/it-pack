@@ -115,7 +115,7 @@
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
         "security:audit": "@composer audit --no-dev",
-        "security:audit:full": "@composer audit",
+        "security:audit:full": "@composer audit --abandoned=report",
         "test": [
             "@test:unit",
             "@test:integration",

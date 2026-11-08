@@ -62,8 +62,11 @@ misplaced — move it in the same PR that adds it.
 PHP-CS-Fixer's check, PHPStan, phparkitect, the line-length check, all four
 configured test suites, the production-only security audit, and the full
 dependency audit, in that order. Composer stops the sequence on failure. The
-full audit also reports issues in development dependencies. Coverage, API
-compatibility, mutation tests, and benchmarks are separate checks.
+full audit also checks development dependencies. It reports abandoned packages
+without failing solely because of abandonment; security advisories still fail
+the audit. The production-only audit retains Composer's default abandonment
+policy. Coverage, API compatibility, mutation tests, and benchmarks are separate
+checks.
 
 ## Rector
 
