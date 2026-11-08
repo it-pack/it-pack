@@ -34,7 +34,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class ObservationRecordingLogger extends AbstractLogger implements LoggerInterface
+final class ObservationRecordingLogger extends AbstractLogger
 {
     /**
      * @param list<string> $reservedContextKeys context keys consumed by the bridge and

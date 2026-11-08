@@ -7,7 +7,6 @@ use Rector\PHPUnit\AnnotationsToAttributes\Rector\Class_\CoversAnnotationWithVal
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
 use Rector\TypeDeclaration\Rector\Property\TypedPropertyFromAssignsRector;
-use Rector\TypeDeclaration\Rector\ClassMethod\AddVoidReturnTypeWhereNoReturnRector;
 
 return RectorConfig::configure()
     ->withPaths([
