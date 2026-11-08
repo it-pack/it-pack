@@ -160,7 +160,10 @@ final class JsonSnapshotSerializerTest extends Unit
             $serializer->normalize(['entity' => new stdClass()]);
             self::fail('arbitrary objects must be rejected, never serialized');
         } catch (SerializationException $serializationException) {
-            self::assertStringContainsString('unsupported object of type stdClass', $serializationException->getMessage());
+            self::assertStringContainsString(
+                'unsupported object of type stdClass',
+                $serializationException->getMessage()
+            );
         }
     }
 

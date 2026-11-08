@@ -7,7 +7,9 @@ namespace Tests\Unit\Domain\Shared;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(ThrowableDescription::class)]
 final class ThrowableDescriptionTest extends Unit
 {
     public function testCreateExposesCapturedPrimitiveValues(): void

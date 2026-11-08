@@ -28,6 +28,16 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Swoole HTTP request reporting passes observation arguments positionally, so
+  custom recorders may use different parameter names without breaking requests.
+- `CallbackHealthReporter` contains failures while extracting an artifact ID or
+  invoking its fallback, and attempts a bounded, payload-free system-log notice
+  before returning. A failed last-resort log cannot replace the business outcome.
+- Corrected attribute collection PHPDoc to reflect existing support for bounded,
+  recursively primitive arrays. Nested array members are represented as `mixed`
+  in the static types; consumers must not assume every member is a scalar. This
+  may require changes to downstream static-analysis assumptions. Runtime
+  validation and native signatures are unchanged.
 - Cloned composite context storages maintain separate token ownership; clones
   still share their configured child storages and detector.
 - Composite context storage rejects foreign, forged, and previously detached

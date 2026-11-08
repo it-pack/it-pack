@@ -66,7 +66,10 @@ final readonly class ServerExecutionMiddleware implements ServerExecutionMiddlew
 
         $scope->observations()->record(
             'HTTP request handled',
-            diagnosticCode: 'http.request',
+            null,
+            null,
+            null,
+            'http.request',
         );
     }
 }

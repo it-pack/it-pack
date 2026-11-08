@@ -13,7 +13,7 @@ use ItPack\RunIt\SDK\Decorator\ExecutedCallableFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
-#[CoversClass(className: ExecutedCallableFactory::class)]
+#[CoversClass(ExecutedCallableFactory::class)]
 final class ExecutedCallableFactoryTest extends TestCase
 {
     public function testBuildReturnsWrapperThatInvokesRunnerWithDefinition(): void
@@ -23,7 +23,10 @@ final class ExecutedCallableFactoryTest extends TestCase
 
         $runner = $this->createMock(ExecutionRunnerInterface::class);
         $runner->method('run')->willReturnCallback(
-            static function (ExecutionDefinitionInterface $definition, callable $operation) use (&$captured, $result): mixed {
+            static function (
+                ExecutionDefinitionInterface $definition,
+                callable $operation
+            ) use (&$captured, $result): string {
                 $captured = $definition;
 
                 return $result;

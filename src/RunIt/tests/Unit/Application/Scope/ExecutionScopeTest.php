@@ -51,7 +51,8 @@ final class ExecutionScopeTest extends Unit
                 $scope->observations()->record(
                     'cache miss',
                     ObservationSeverity::Warning,
-                    throwable: new RuntimeException('no entry')
+                    null,
+                    new RuntimeException('no entry')
                 );
 
                 return null;

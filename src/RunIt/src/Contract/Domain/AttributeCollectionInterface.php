@@ -9,9 +9,9 @@ use Countable;
 /**
  * Contract for an immutable, bounded collection of structured attributes.
  *
- * Attributes are key-value metadata where values are limited to scalars, null,
- * and lists/maps of scalar values. The collection is immutable: `with()` and
- * `without()` return a new collection and never mutate the receiver.
+ * Attributes are key-value metadata where values are scalars, null, or bounded
+ * lists/maps containing recursively primitive values. The collection is immutable:
+ * `with()` and `without()` return a new collection and never mutate the receiver.
  *
  * Implementations enforce a maximum key length and attribute count, and they
  * reject objects and resources so normalization and serialization stay safe.
@@ -27,7 +27,7 @@ interface AttributeCollectionInterface extends Countable
     /**
      * Returns the value stored under the key, or null when the key is absent.
      *
-     * @return int|float|string|bool|null|array<int|string, int|float|string|bool|null>
+     * @return int|float|string|bool|null|array<int|string, mixed>
      */
     public function get(string $key): int|float|string|bool|null|array;
 
@@ -57,7 +57,7 @@ interface AttributeCollectionInterface extends Countable
     /**
      * Returns a deterministic, bounded, recursively-primitive attribute map.
      *
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
      */
     public function toArray(): array;
 }

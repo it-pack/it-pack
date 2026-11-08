@@ -5,9 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Behavior\Domain\AttributeValidator;
+use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
+use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Exception\InvalidAttributeException;
 use ItPack\RunIt\Domain\Shared\AttributeKey;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
+#[CoversClass(AttributeKey::class)]
+#[UsesClass(AttributeValidator::class)]
+#[UsesClass(BoundedKeyGuard::class)]
+#[UsesClass(StringValueEquality::class)]
+#[UsesClass(InvalidAttributeException::class)]
+#[UsesClass(SecurityLimits::class)]
 final class AttributeKeyTest extends Unit
 {
     public function testFromStringProjectsAndRendersCanonically(): void

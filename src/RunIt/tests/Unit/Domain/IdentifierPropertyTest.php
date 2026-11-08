@@ -13,6 +13,7 @@ use ItPack\RunIt\Domain\Shared\CorrelationId;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use Random\RandomException;
 use Throwable;
 
 /**
@@ -36,13 +37,14 @@ final class IdentifierPropertyTest extends Unit
     /**
      * Property: every value built from the accepted alphabet, within the
      * accepted length, is accepted and round-trips verbatim.
+     * @throws RandomException
      */
     public function testAcceptedValuesRoundTripVerbatim(): void
     {
         mt_srand(self::SEED);
 
         for ($sample = 0; $sample < self::SAMPLE_SIZE; ++$sample) {
-            $value = $this->visibleAsciiValue(mt_rand(1, StringIdentifierValidator::MAX_LENGTH));
+            $value = $this->visibleAsciiValue(random_int(1, StringIdentifierValidator::MAX_LENGTH));
 
             $identifier = ExecutionId::fromString($value);
 
@@ -57,13 +59,14 @@ final class IdentifierPropertyTest extends Unit
     /**
      * Property: equality is reflexive, symmetric, and value-based for any
      * accepted value.
+     * @throws RandomException
      */
     public function testEqualityIsReflexiveAndSymmetric(): void
     {
         mt_srand(self::SEED + 1);
 
         for ($sample = 0; $sample < self::SAMPLE_SIZE; ++$sample) {
-            $value = $this->visibleAsciiValue(mt_rand(1, 64));
+            $value = $this->visibleAsciiValue(random_int(1, 64));
 
             $first = ExecutionId::fromString($value);
             $second = ExecutionId::fromString($value);
@@ -77,13 +80,14 @@ final class IdentifierPropertyTest extends Unit
     /**
      * Property: two identifiers of different types never compare equal, no
      * matter which accepted value they share.
+     * @throws RandomException
      */
     public function testDifferentIdentifierTypesNeverCompareEqual(): void
     {
         mt_srand(self::SEED + 2);
 
         for ($sample = 0; $sample < self::SAMPLE_SIZE; ++$sample) {
-            $value = $this->visibleAsciiValue(mt_rand(1, 64));
+            $value = $this->visibleAsciiValue(random_int(1, 64));
 
             $executionId = ExecutionId::fromString($value);
             $activityId = ActivityId::fromString($value);
@@ -98,6 +102,7 @@ final class IdentifierPropertyTest extends Unit
     /**
      * Property: inserting any single byte outside the accepted alphabet into
      * an otherwise valid value always causes rejection.
+     * @throws RandomException
      */
     public function testAnyForbiddenByteCausesRejection(): void
     {
@@ -108,7 +113,7 @@ final class IdentifierPropertyTest extends Unit
                 continue;
             }
 
-            $value = $this->visibleAsciiValue(mt_rand(1, 32)) . chr($byte);
+            $value = $this->visibleAsciiValue(random_int(1, 32)) . chr($byte);
 
             self::assertTrue(
                 $this->isRejected(ExecutionId::fromString(...), $value),
@@ -120,13 +125,14 @@ final class IdentifierPropertyTest extends Unit
     /**
      * Property: any value longer than the documented maximum is rejected,
      * whatever it contains.
+     * @throws RandomException
      */
     public function testAnyOversizedValueIsRejected(): void
     {
         mt_srand(self::SEED + 4);
 
         for ($sample = 0; $sample < 100; ++$sample) {
-            $length = StringIdentifierValidator::MAX_LENGTH + mt_rand(1, 512);
+            $length = StringIdentifierValidator::MAX_LENGTH + random_int(1, 512);
 
             self::assertTrue(
                 $this->isRejected(
@@ -154,12 +160,15 @@ final class IdentifierPropertyTest extends Unit
         return false;
     }
 
+    /**
+     * @throws RandomException
+     */
     private function visibleAsciiValue(int $length): string
     {
         $value = '';
 
         for ($position = 0; $position < $length; ++$position) {
-            $value .= chr(mt_rand(0x21, 0x7E));
+            $value .= chr(random_int(0x21, 0x7E));
         }
 
         return $value;

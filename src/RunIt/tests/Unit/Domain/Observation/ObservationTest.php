@@ -45,7 +45,13 @@ final class ObservationTest extends Unit
             ObservationId::fromString('obs-2'),
             ExecutionId::fromString('exec-1'),
             'failure',
-            throwableDescription: ThrowableDescription::create('RuntimeException', 'boom', 0, previous: null, trace: null),
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'boom',
+                0,
+                previous: null,
+                trace: null
+            ),
         );
 
         $normalized = $observation->normalize();

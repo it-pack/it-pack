@@ -44,7 +44,7 @@ final readonly class ExecutedCallable implements ExecutedCallableInterface
             ? ($this->definitionFactory)($args) :
             $this->definition;
 
-        if ($definition === null) {
+        if (!$definition instanceof ExecutionDefinitionInterface) {
             throw new MissingExecutionDefinitionException(
                 'No executed callable definition is defined for this operation.'
             );

@@ -73,7 +73,12 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
         }
 
         try {
-            return json_decode($encoded, associative: true, depth: $maxDepth, flags: JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
+            return json_decode(
+                $encoded,
+                associative: true,
+                depth: $maxDepth,
+                flags: JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING
+            );
         } catch (JsonException $jsonException) {
             throw new SerializationException(
                 'Unable to serialize snapshot payload: ' . $jsonException->getMessage(),
@@ -96,7 +101,7 @@ final readonly class JsonSnapshotSerializer implements SerializerInterface
      * recursing until the stack overflows. Only {@see \JsonSerializable} objects
      * survive; every other object type is rejected.
      *
-     * @param WeakMap<object, true>|null $ancestors ancestor set used to detect cyclic object references
+     * @param WeakMap<object, mixed>|null $ancestors ancestor set used to detect cyclic object references
      *
      * @throws SerializationException when $data contains a resource, closure,
      *                                unsupported object, non-finite float, a cycle,

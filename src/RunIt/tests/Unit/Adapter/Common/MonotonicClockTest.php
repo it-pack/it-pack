@@ -8,8 +8,13 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Domain\Shared\Duration;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Tests\Support\Fixture\DeterministicMonotonicClock;
 
+#[CoversClass(SystemMonotonicClock::class)]
+#[CoversClass(DeterministicMonotonicClock::class)]
+#[UsesClass(Duration::class)]
 final class MonotonicClockTest extends Unit
 {
     public function testDeterministicClockReturnsSeededValues(): void

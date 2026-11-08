@@ -7,11 +7,16 @@ namespace Tests\Unit\Domain\Shared;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
+use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionNamedType;
 use ReflectionObject;
 use RuntimeException;
 use Throwable;
 
+#[CoversClass(DefaultThrowableMapper::class)]
+#[UsesClass(ThrowableDescription::class)]
 final class DefaultThrowableMapperTest extends Unit
 {
     private function chain(int $depth): RuntimeException

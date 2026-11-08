@@ -67,8 +67,6 @@ services:
     #   * PHP attributes (`ExecutedAs`) cannot implement interfaces meaningfully.
     #   * Builders exist to construct their own config VO; an interface would
     #     duplicate the constructed type (`*BridgeConfigBuilder`).
-    #   * PSR-3 loggers are transitively backed by `LoggerInterface` via
-    #     `AbstractLogger`; no RunIt-specific contract adds information.
     #   * Pure data carriers consumed only inside their adapter/config namespace
     #     (`CloudEvent`, maps, caches) expose value semantics, not behavior.
     - { class: Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule, arguments: { srcRoot: %currentWorkingDirectory%/src, exemptDirectories: [src/Conformance, src/Behavior], exemptFiles: [

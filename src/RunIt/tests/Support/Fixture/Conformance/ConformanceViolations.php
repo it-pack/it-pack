@@ -19,6 +19,11 @@ final class ConformanceViolations
      */
     public static function ids(ConformanceResult $result): array
     {
-        return array_values(array_map(static fn (ConformanceViolation $violation): string => $violation->id, $result->violations));
+        return array_values(
+            array_map(
+                static fn (ConformanceViolation $violation): string => $violation->id,
+                $result->violations
+            )
+        );
     }
 }

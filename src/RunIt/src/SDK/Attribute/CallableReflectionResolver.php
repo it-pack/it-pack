@@ -25,10 +25,11 @@ final class CallableReflectionResolver implements CallableReflectionResolverInte
             is_object($callable) => $this->resolveObject($callable),
             is_array($callable),
             is_string($callable) => $this->resolveLiteral($callable),
-            default => $this->resolveFunction($callable),
+            default => null,
         };
     }
 
+    /** @param object&callable $callable */
     private function resolveObject(callable $callable): ?ReflectionFunctionAbstract
     {
         return $callable instanceof Closure
@@ -36,7 +37,7 @@ final class CallableReflectionResolver implements CallableReflectionResolverInte
             : $this->resolveInvokable($callable);
     }
 
-    private function resolveFunction(callable $callable): ?ReflectionFunctionAbstract
+    private function resolveFunction(Closure $callable): ?ReflectionFunctionAbstract
     {
         try {
             return new ReflectionFunction($callable);
@@ -45,6 +46,7 @@ final class CallableReflectionResolver implements CallableReflectionResolverInte
         }
     }
 
+    /** @param object&callable $callable */
     private function resolveInvokable(callable $callable): ?ReflectionFunctionAbstract
     {
         return method_exists($callable, self::INVOKE_METHOD)
@@ -52,6 +54,7 @@ final class CallableReflectionResolver implements CallableReflectionResolverInte
             : null;
     }
 
+    /** @param (string|array{object|string, string})&callable $callable */
     private function resolveLiteral(string|array $callable): ?ReflectionFunctionAbstract
     {
         try {
@@ -68,7 +71,7 @@ final class CallableReflectionResolver implements CallableReflectionResolverInte
         }
     }
 
-    private function isMethod(callable $callable): bool
+    private function isMethod(string $callable): bool
     {
         return str_contains($callable, self::DOUBLE_COLON)
             && method_exists(...explode(self::DOUBLE_COLON, $callable, 2));

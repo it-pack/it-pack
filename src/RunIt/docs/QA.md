@@ -28,6 +28,16 @@ control did not fail for an undeclared class. See `REFACTORING_PLAN.md` for the
 investigation and remaining enforcement work; do not treat a passing coverage
 command as proof that unintended coverage is rejected.
 
+### Target-policy regressions
+
+Run `php tests/target-policy-regressions.php` separately to check the approved
+redaction, sampling, health-reporting and buffer byte-bound targets. It currently
+exits nonzero for known violations and is intentionally excluded from the normal
+Codeception suites; a passing normal suite does not mean those policies are
+implemented. The checks use synthetic inputs and do not cover every exporter,
+configuration, overflow edge case or failure path. See `REFACTORING_PLAN.md` for
+the observed failures and remaining design gates.
+
 ### Suite-leakage rule (Phase 0, T0.5)
 
 Suites mirror namespaces: Unit tests target Domain/Application/SDK/Behavior/
@@ -50,8 +60,13 @@ misplaced — move it in the same PR that adds it.
 
 `composer quality` runs strict Composer validation, Rector's dry run,
 PHP-CS-Fixer's check, PHPStan, phparkitect, the line-length check, all four
-configured test suites, and the security audit, in that order. Coverage, API
-compatibility, mutation tests, and benchmarks are separate checks.
+configured test suites, the production-only security audit, and the full
+dependency audit, in that order. Composer stops the sequence on failure. The
+full audit also checks development dependencies. It reports abandoned packages
+without failing solely because of abandonment; security advisories still fail
+the audit. The production-only audit retains Composer's default abandonment
+policy. Coverage, API compatibility, mutation tests, and benchmarks are separate
+checks.
 
 ## Rector
 
@@ -464,12 +479,13 @@ The configuration (`infection.json5`) is finalized:
   suite per mutant exceeds Infection's timeout and produces mass timeouts.
 - **PHPStan integration** — intended as `staticAnalysisTool: phpstan` to kill
   escaped mutants that PHPStan can prove invalid (e.g. type errors), reducing
-  false escapes without new tests. It is **currently disabled**. As of the
-  Phase 0 coverage work `composer analyse` is green (zero PHPStan errors across
-  `src` and `tests`), so the integration can be re-enabled in a follow-up; it is
-  left disabled here to keep local mutation runs stable and to avoid coupling the
-  mutation gate to PHPStan's per-mutant cost. PHPStan still runs as a separate
-  `composer analyse` gate.
+  false escapes without new tests. It is **currently disabled**. The refactoring
+  plan records `composer analyse` passing at revision
+  `133db4746e2c87c2e2ace6d803020412ce3d6ce8` and `composer quality` passing
+  after subsequent work based on `c4841f341d8c6e8efbcc19ad6dfd85d6eb8aa205`.
+  Infection integration remains disabled to keep local mutation runs stable and
+  avoid coupling the mutation gate to PHPStan's per-mutant cost. PHPStan still
+  runs as a separate `composer analyse` gate.
 - **Coverage** — Infection auto-detects the `pcov` driver; the Unit suite is run
   once for initial coverage, then each mutant reruns only its covering tests.
 - **Mutators** — `@default` profile (the standard, non-risky mutator set).

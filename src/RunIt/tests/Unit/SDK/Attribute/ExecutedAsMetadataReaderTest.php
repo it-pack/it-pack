@@ -11,8 +11,8 @@ use PHPUnit\Framework\TestCase;
 use Tests\Support\Fixture\SDK\AttributedService;
 use Tests\Support\Fixture\SDK\SampleService;
 
-#[CoversClass(className: DefaultExecutedAsMetadataReader::class)]
-#[CoversClass(className: ExecutedAs::class)]
+#[CoversClass(DefaultExecutedAsMetadataReader::class)]
+#[CoversClass(ExecutedAs::class)]
 final class ExecutedAsMetadataReaderTest extends TestCase
 {
     private DefaultExecutedAsMetadataReader $reader;

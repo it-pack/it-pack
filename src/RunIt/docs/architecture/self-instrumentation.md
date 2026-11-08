@@ -32,8 +32,8 @@ flowchart TD;
 ```
 
 Health reporters (`CallbackHealthReporter`, `ErrorLogHealthReporter`) implement
-`InternalHealthReporterInterface`. They must never call the guarded publisher, so
-self-observation and fallback reporting can never loop.
+`InternalHealthReporterInterface`. They must not call the guarded publisher:
+a callback that republishes can recursively trigger health reporting.
 
 ## Guard in the default stack
 
@@ -47,14 +47,20 @@ simple default wiring.
 
 ## Health callbacks are contained
 
-Health callbacks are userland code, so they may throw. Every invocation site —
-the runner's publication-failure handler, `CallbackHealthReporter`, and the
-bounded-publisher drop callback — wraps the call: a handler fault plus the
-failure it was reporting land in a last-resort fallback sink
-(`FallbackErrorLogReporter`, one bounded error-log line) and never replace the
-business outcome or escape into publication flow. Setup faults before an
-execution materializes (identity allocation, start, scope assembly, attach) are
-reported once and then surfaced unchanged.
+Health callbacks are userland code, so they may throw. `CallbackHealthReporter`
+normally forwards the original failure and callback fault to a bounded fallback
+log, including the artifact ID when available. If extracting the ID or writing
+that fallback throws, it attempts a separate bounded system-log notice containing
+the failure class but no artifact or exception messages. A failure of that last
+resort is contained, although PHP's system log can fail without reporting it.
+Other invocation sites, including the runner and bounded-publisher drop callback,
+have separate failure paths and are not covered by this guarantee. Setup faults
+before an execution materializes (identity allocation, start, scope assembly,
+attach) are passed to the runner's health callback when one is configured. If
+no callback is configured, no health report is emitted. The original setup
+exception is surfaced to the caller unless the callback throws and the runner's
+fallback reporting also fails. For example, an `error_log` fallback error when
+PHP error logging is disabled can escape instead of the original exception.
 
 ## Instrument batches, not every method
 

@@ -25,7 +25,13 @@ final class CancellationTimeoutTest extends Unit
 
     public function testCancellationUsesProvidedDescription(): void
     {
-        $description = ThrowableDescription::create('RunIt\Cancellation', 'cooperative stop', 0, previous: null, trace: null);
+        $description = ThrowableDescription::create(
+            'RunIt\Cancellation',
+            'cooperative stop',
+            0,
+            previous: null,
+            trace: null
+        );
         $cancellation = Cancellation::of('stopped', description: $description);
 
         self::assertSame($description, $cancellation->throwableDescription());
@@ -33,7 +39,11 @@ final class CancellationTimeoutTest extends Unit
 
     public function testTimeoutCarriesLimitElapsedAndCause(): void
     {
-        $timeout = Timeout::of(Duration::ofSeconds(3), Duration::ofSeconds(9), 'request timeout');
+        $timeout = Timeout::of(
+            Duration::ofSeconds(3),
+            Duration::ofSeconds(9),
+            'request timeout'
+        );
 
         self::assertSame(3, $timeout->limit()->seconds());
         self::assertSame(9, $timeout->elapsed()->seconds());

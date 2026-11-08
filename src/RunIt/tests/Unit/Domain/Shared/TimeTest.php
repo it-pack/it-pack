@@ -10,7 +10,12 @@ use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Exception\InvalidStringValueException;
 use ItPack\RunIt\Domain\Shared\Duration;
 use ItPack\RunIt\Domain\Shared\Instant;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
+#[CoversClass(Duration::class)]
+#[CoversClass(Instant::class)]
+#[UsesClass(InvalidStringValueException::class)]
 final class TimeTest extends Unit
 {
     public function testInstantExposesEpochSeconds(): void

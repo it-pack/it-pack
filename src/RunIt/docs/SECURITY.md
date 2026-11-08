@@ -35,18 +35,26 @@ RunIt treats context, observations, occurrences, and snapshots as potential
 data-exfiltration paths and applies defense-in-depth:
 
 - **Classify.** Every context entry carries a classification (`public`,
-  `internal`, `confidential`, `restricted`, `secret`). Classification decides
-  default export, propagation, and serialization behavior. See
+  `internal`, `confidential`, `restricted`, `secret`). Classification informs
+  export, propagation, and serialization policies. See
   [`docs/concepts/context.md`](docs/concepts/context.md).
-- **Classified context.** Context export applies classification rules, but this
-  does not classify arbitrary messages, throwable descriptions, or payloads.
-  Do not put secrets into those fields without independent protection.
+- **Classified context.** `Execution::normalize()` applies the default context
+  redaction policy. Direct `ExecutionContext::toArray()` calls apply no policy by
+  default; pass `DefaultContextRedactionPolicy::default()` explicitly to redact
+  before export. Classification does not cover arbitrary messages, throwable
+  descriptions, or payloads. Do not put secrets into those fields without
+  independent protection.
 - **Bound everything.** Keys, values, attribute maps, occurrences, and snapshots
   are size- and cardinality-bounded through `SecurityLimits`.
-- **Avoid arbitrary objects.** Built-in payload validation rejects arbitrary
-  objects. Throwable descriptions can contain sensitive messages and, when
-  enabled at capture, traces; their primitive representation is not itself a
-  redaction guarantee.
+- **Avoid arbitrary objects.** Built-in payload validation rejects unsupported
+  objects, but snapshots recorded by `DefaultSnapshotRecorder` with
+  `JsonSnapshotSerializer` can accept `JsonSerializable` objects. The serializer
+  calls `jsonSerialize()` during validation and again during JSON encoding, so
+  object code runs before the snapshot is normalized. Do not rely on snapshot
+  recording to reject arbitrary object inputs before invoking their code.
+  Throwable descriptions can contain sensitive messages and, when enabled at
+  capture, traces; their primitive representation is not itself a redaction
+  guarantee.
 
 ### Current publication limitations
 

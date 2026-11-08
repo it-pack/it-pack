@@ -48,7 +48,11 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testRunningToSucceededIsAllowed(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $completed = $coordinator->transition($this->running(), ExecutionSuccess::create(), Instant::of(2000));
+        $completed = $coordinator->transition(
+            $this->running(),
+            ExecutionSuccess::create(),
+            Instant::of(2000)
+        );
 
         self::assertSame(ExecutionStatus::Succeeded, $completed->status());
         self::assertSame(2000, $completed->endedAt()?->epochSeconds());
@@ -110,13 +114,20 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testTransitionFromTerminalIsRejected(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $completed = $coordinator->transition($this->running(), ExecutionSuccess::create(), Instant::of(2000));
+        $completed = $coordinator->transition(
+            $this->running(),
+            ExecutionSuccess::create(),
+            Instant::of(2000)
+        );
 
         $this->expectException(ConflictingCompletionException::class);
         // A terminal execution cannot transition to a different terminal status.
         $coordinator->transition(
             $completed,
-            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, previous: null, trace: null)),
+            ExecutionFailure::of(
+                ExecutionStatus::Failed,
+                ThrowableDescription::create('X', 'e', 0, previous: null, trace: null)
+            ),
             Instant::of(3000)
         );
     }
@@ -133,12 +144,19 @@ final class ExecutionLifecycleCoordinatorTest extends Unit
     public function testConflictingCompletionRaises(): void
     {
         $coordinator = new ExecutionLifecycleCoordinator();
-        $succeeded = $coordinator->transition($this->running(), ExecutionSuccess::create(), Instant::of(2000));
+        $succeeded = $coordinator->transition(
+            $this->running(),
+            ExecutionSuccess::create(),
+            Instant::of(2000)
+        );
 
         $this->expectException(ConflictingCompletionException::class);
         $coordinator->transition(
             $succeeded,
-            ExecutionFailure::of(ExecutionStatus::Failed, ThrowableDescription::create('X', 'e', 0, previous: null, trace: null)),
+            ExecutionFailure::of(
+                ExecutionStatus::Failed,
+                ThrowableDescription::create('X', 'e', 0, previous: null, trace: null)
+            ),
             Instant::of(3000)
         );
     }

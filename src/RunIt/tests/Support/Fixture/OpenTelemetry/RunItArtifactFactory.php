@@ -72,7 +72,13 @@ final class RunItArtifactFactory
             'failed' => $execution->complete(
                 ExecutionFailure::of(
                     ExecutionStatus::Failed,
-                    ThrowableDescription::create('RuntimeException', 'execution failed', 0, previous: null, trace: null),
+                    ThrowableDescription::create(
+                        'RuntimeException',
+                        'execution failed',
+                        0,
+                        previous: null,
+                        trace: null
+                    ),
                 ),
                 Instant::of(2_000),
             ),
@@ -102,14 +108,32 @@ final class RunItArtifactFactory
         );
 
         return match ($status) {
-            'succeeded' => $activity->complete(ActivityStatus::Succeeded, throwableDescription: null, endedAt: Instant::of(1_200)),
+            'succeeded' => $activity->complete(
+                ActivityStatus::Succeeded,
+                throwableDescription: null,
+                endedAt: Instant::of(1_200)
+            ),
             'failed' => $activity->complete(
                 ActivityStatus::Failed,
-                ThrowableDescription::create('RuntimeException', 'activity failed', 0, previous: null, trace: null),
+                ThrowableDescription::create(
+                    'RuntimeException',
+                    'activity failed',
+                    0,
+                    previous: null,
+                    trace: null
+                ),
                 Instant::of(1_200),
             ),
-            'cancelled' => $activity->complete(ActivityStatus::Cancelled, throwableDescription: null, endedAt: Instant::of(1_200)),
-            'timed_out' => $activity->complete(ActivityStatus::TimedOut, throwableDescription: null, endedAt: Instant::of(1_200)),
+            'cancelled' => $activity->complete(
+                ActivityStatus::Cancelled,
+                throwableDescription: null,
+                endedAt: Instant::of(1_200)
+            ),
+            'timed_out' => $activity->complete(
+                ActivityStatus::TimedOut,
+                throwableDescription: null,
+                endedAt: Instant::of(1_200)
+            ),
             default => $activity,
         };
     }
@@ -148,14 +172,6 @@ final class RunItArtifactFactory
         $attributesCollection = AttributeCollection::fromArray($attributes);
 
         return match ($severity) {
-            'debug' => Observation::debug(
-                ObservationId::fromString($id),
-                ExecutionId::fromString($executionId),
-                $message,
-                $activityIdValue,
-                attributes: $attributesCollection,
-                instant: Instant::of(1_800)
-            ),
             'info' => Observation::info(
                 ObservationId::fromString($id),
                 ExecutionId::fromString($executionId),
@@ -224,13 +240,18 @@ final class RunItArtifactFactory
     }
 
     /**
+     * @param string $id
+     * @param string $executionId
+     * @param string $type
      * @param mixed $data
+     * @param string|null $activityId
+     * @return OccurrenceInterface
      */
     public static function occurrence(
-        string $id,
-        string $executionId,
-        string $type,
-        $data = ['outcome' => 'ok'],
+        string  $id,
+        string  $executionId,
+        string  $type,
+        mixed   $data = ['outcome' => 'ok'],
         ?string $activityId = null,
     ): OccurrenceInterface {
         return Occurrence::create(

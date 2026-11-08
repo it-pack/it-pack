@@ -57,7 +57,8 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
         };
     }
 
-    private function readObjectKeyed(callable|Closure $operation): ?ExecutedAs
+    /** @param object&callable $operation */
+    private function readObjectKeyed(callable $operation): ?ExecutedAs
     {
         if ($this->objectCache->offsetExists($operation)) {
             return $this->objectCache->offsetGet($operation);
@@ -74,7 +75,8 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
             : $this->objectCache[$operation] = null;
     }
 
-    private function readLiteralKeyed(callable|Closure $operation): ?ExecutedAs
+    /** @param (string|array{object|string, string})&callable $operation */
+    private function readLiteralKeyed(string|array $operation): ?ExecutedAs
     {
         $key = $this->literalKey($operation);
 
@@ -106,6 +108,7 @@ final class DefaultExecutedAsMetadataReader implements ExecutedAsMetadataReaderI
         return $attributes[0]->newInstance();
     }
 
+    /** @param string|array{object|string, string} $operation */
     private function literalKey(array|string $operation): string
     {
         if (is_string($operation)) {

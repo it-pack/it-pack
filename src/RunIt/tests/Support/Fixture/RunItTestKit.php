@@ -120,8 +120,14 @@ final class RunItTestKit
         $this->hashCalculator = new DeterministicHashCalculator();
         $this->throwableMapper = $throwableMapper ?? new DefaultThrowableMapper();
 
-        $this->executionIdFactory = new StringIdentifierFactory(ExecutionId::fromString(...), $this->generator('exec'));
-        $this->activityIdFactory = new StringIdentifierFactory(ActivityId::fromString(...), $this->generator('act'));
+        $this->executionIdFactory = new StringIdentifierFactory(
+            ExecutionId::fromString(...),
+            $this->generator('exec')
+        );
+        $this->activityIdFactory = new StringIdentifierFactory(
+            ActivityId::fromString(...),
+            $this->generator('act')
+        );
         $this->observationIdFactory = new StringIdentifierFactory(
             ObservationId::fromString(...),
             $this->generator('obs')
@@ -130,7 +136,10 @@ final class RunItTestKit
             OccurrenceId::fromString(...),
             $this->generator('occ')
         );
-        $this->snapshotIdFactory = new StringIdentifierFactory(SnapshotId::fromString(...), $this->generator('snap'));
+        $this->snapshotIdFactory = new StringIdentifierFactory(
+            SnapshotId::fromString(...),
+            $this->generator('snap')
+        );
 
         $this->runner = new DefaultExecutionRunner(
             new CurrentExecution($this->storage),
@@ -175,7 +184,9 @@ final class RunItTestKit
             new FailSafeArtifactPublisher(
                 $this->publisher,
                 new FailOpenPolicy(),
-                $this->onPublicationFailure instanceof Closure ? new CallbackHealthReporter($this->onPublicationFailure) : null,
+                $this->onPublicationFailure instanceof Closure
+                    ? new CallbackHealthReporter($this->onPublicationFailure)
+                    : null,
             ),
             new JsonSnapshotSerializer(),
             $this->throwableMapper,

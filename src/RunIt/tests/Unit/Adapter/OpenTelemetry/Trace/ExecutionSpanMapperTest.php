@@ -41,11 +41,11 @@ final class ExecutionSpanMapperTest extends Unit
     }
 
     /**
-     * @return SpanDataInterfacee[]
+     * @return SpanDataInterface[]
      */
     private function spans(): array
     {
-        /** @var SpanDataInterfacee[] $spans */
+        /** @var SpanDataInterface[] $spans */
         $spans = $this->spanExporter->getSpans();
 
         return $spans;

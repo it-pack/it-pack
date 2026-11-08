@@ -15,9 +15,9 @@ use Traversable;
  * An immutable, bounded collection of structured attributes.
  *
  * Every attribute is validated on construction. Keys must be valid attribute
- * keys; values must be scalars, null, or lists/maps of scalars — objects and
- * resources are rejected. The collection enforces a maximum key length and
- * attribute count.
+ * keys; values must be scalars, null, or bounded lists/maps containing recursively
+ * primitive values. Objects and resources are rejected. The collection enforces
+ * a maximum key length and attribute count.
  *
  * The collection is immutable: `with()` and `without()` return a new collection
  * and never mutate the receiver. `toArray()` returns a deterministic,
@@ -26,26 +26,30 @@ use Traversable;
  *
  * @api
  *
- * @implements IteratorAggregate<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+ * @implements IteratorAggregate<string, int|float|string|bool|null|array<int|string, mixed>>
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
 final readonly class AttributeCollection implements AttributeCollectionInterface, IteratorAggregate
 {
+    /** @var array<string, int|float|string|bool|null|array<int|string, mixed>> */
+    private array $attributes;
+
     /**
      * @param array<string, mixed> $attributes
      */
     private function __construct(
-        private array $attributes,
+        array $attributes,
         private SecurityLimits $limits = new SecurityLimits(),
     ) {
-        new AttributeValidator($this->limits)->assertValidAttributes($this->attributes);
+        $this->validateAttributes($attributes);
+        $this->attributes = $attributes;
     }
 
     /**
      * Creates a collection from a set of attributes, validating each one.
      *
-     * @param array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes
+     * @param array<string, int|float|string|bool|null|array<int|string, mixed>> $attributes
      * @param SecurityLimits|null $limits optional tighter bounds; defaults to the conservative built-in limits
      *
      * @throws InvalidAttributeException when a key or value violates a rule, or
@@ -65,7 +69,7 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
     }
 
     /**
-     * @return int|float|string|bool|null|array<int|string, int|float|string|bool|null>
+     * @return int|float|string|bool|null|array<int|string, mixed>
      */
     public function get(string $key): int|float|string|bool|null|array
     {
@@ -108,7 +112,7 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
     }
 
     /**
-     * @return Traversable<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return Traversable<string, int|float|string|bool|null|array<int|string, mixed>>
      */
     public function getIterator(): Traversable
     {
@@ -116,7 +120,7 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
     }
 
     /**
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
      */
     public function toArray(): array
     {
@@ -124,5 +128,17 @@ final readonly class AttributeCollection implements AttributeCollectionInterface
         ksort($sorted);
 
         return $sorted;
+    }
+
+    /**
+     * Validates the attribute map before it is stored.
+     *
+     * @param array<string, mixed> $attributes
+     *
+     * @phpstan-assert array<string, int|float|string|bool|null|array<int|string, mixed>> $attributes
+     */
+    private function validateAttributes(array $attributes): void
+    {
+        new AttributeValidator($this->limits)->assertValidAttributes($attributes);
     }
 }

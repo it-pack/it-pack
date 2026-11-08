@@ -16,8 +16,8 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
-#[CoversClass(className: ExecutedCallable::class)]
-#[CoversClass(className: MissingExecutionDefinitionException::class)]
+#[CoversClass(ExecutedCallable::class)]
+#[CoversClass(MissingExecutionDefinitionException::class)]
 final class ExecutedCallableTest extends TestCase
 {
     private RunItTestKit $kit;

@@ -23,12 +23,12 @@ use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
  */
 final readonly class ExecutionKindFilter implements ArtifactFilterInterface
 {
+    private ArtifactPredicateInterface $predicate;
+
     /**
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param list<string>                                           $allowedKinds
      */
-    private ArtifactPredicateInterface $predicate;
-
     public function __construct(Closure $resolver, array $allowedKinds)
     {
         $this->predicate = new ExecutionKindPredicate(

@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
@@ -64,7 +65,7 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('it-pack/test', $record->getAttributes()->get('runit.occurrence.source'));
 
         $spans = $spanExporter->getSpans();
-        /** @var SpanDataInterfacee $spanData */
+        /** @var SpanDataInterface $spanData */
         $spanData = $spans[0];
         $events = $spanData->getEvents();
         self::assertCount(1, $events);
@@ -238,12 +239,11 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('on', $attributes['tenantflag']);
 
         $spans = $spanExporter->getSpans();
-        /** @var SpanDataInterfacee $spanData */
+        /** @var SpanDataInterface $spanData */
         $spanData = $spans[0];
         $events = $spanData->getEvents();
         self::assertCount(1, $events);
 
-        /** @var Eventt $event */
         $event = $events[0];
         self::assertSame('user-42', $event->getAttributes()->get('runit.occurrence.subject'));
         self::assertSame('act-7', $event->getAttributes()->get('runit.activity.id'));

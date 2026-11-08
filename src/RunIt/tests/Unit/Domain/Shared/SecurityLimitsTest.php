@@ -6,11 +6,13 @@ namespace Tests\Unit\Domain\Shared;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
 
 /**
  * @group domain
  * @group security
  */
+#[CoversClass(SecurityLimits::class)]
 final class SecurityLimitsTest extends Unit
 {
     public function testDefaultsAreBoundedAndPositive(): void

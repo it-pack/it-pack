@@ -23,12 +23,12 @@ use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
  */
 final readonly class ExecutionKindSamplePolicy implements SamplingPolicyInterface
 {
+    private ArtifactPredicateInterface $predicate;
+
     /**
      * @param Closure(ExecutionIdInterface): ?ExecutionKindInterface $resolver
      * @param array<string, bool>                                     $decisions kind name => keep?
      */
-    private ArtifactPredicateInterface $predicate;
-
     public function __construct(Closure $resolver, array $decisions)
     {
         $this->predicate = new ExecutionKindPredicate(

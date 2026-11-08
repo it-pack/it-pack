@@ -46,9 +46,9 @@ interface OccurrenceInterface extends
     public function contentType(): string;
 
     /**
-     * Returns the bounded extension attributes.
+     * Returns the bounded, recursively primitive extension attributes.
      *
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
      */
     public function extensionAttributes(): array;
 }

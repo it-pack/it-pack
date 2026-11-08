@@ -34,7 +34,7 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final class ObservationRecordingLogger extends AbstractLogger implements LoggerInterface
+final class ObservationRecordingLogger extends AbstractLogger
 {
     /**
      * @param list<string> $reservedContextKeys context keys consumed by the bridge and
@@ -106,7 +106,10 @@ final class ObservationRecordingLogger extends AbstractLogger implements LoggerI
             return false;
         }
 
-        return !is_array($value) || !array_any($value, static fn ($item): bool => is_object($item) || is_resource($item));
+        return !is_array($value) || !array_any(
+            $value,
+            static fn ($item): bool => is_object($item) || is_resource($item)
+        );
     }
 
     private function levelToString(mixed $level): string

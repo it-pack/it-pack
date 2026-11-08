@@ -13,7 +13,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  * attribute validators.
  *
  * Both rule sets accept exactly the same shapes — scalars, null, and lists/maps
- * whose members are themselves scalars or null — bounded by string length,
+ * whose members are recursively primitive — bounded by string length,
  * nesting depth, and (optionally) per-array entry count. Only the exception
  * carrying the violation differs between the two public rule sets, so the walk
  * is parameterized by exception factories instead of being duplicated.
@@ -40,7 +40,7 @@ final readonly class BoundedPrimitiveValueWalker
 
     /**
      * @throws RunItExceptionInterface when the value is not a scalar, null, or a
-     *                                 bounded list/map of scalars
+     *                                 bounded list/map of recursively primitive values
      */
     public function assertSupported(mixed $value): void
     {
@@ -49,7 +49,7 @@ final readonly class BoundedPrimitiveValueWalker
 
     /**
      * @throws RunItExceptionInterface when the value is not a scalar, null, or a
-     *                                 bounded list/map of scalars
+     *                                 bounded list/map of recursively primitive values
      */
     private function walk(mixed $value, int $depth, int $maxDepth): void
     {

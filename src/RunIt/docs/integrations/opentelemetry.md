@@ -131,7 +131,7 @@ configured explicitly, subject to the limitations linked above:
 
 ```php
 $runtime = RunItBuilder::create()
-    ->withPublisher(TelemetryPublisher::fromConfig($bridgeConfig))
+    ->withPublisher(TelemetryPublisher::fromConfig($config))
     ->withRedactor(new DefaultArtifactRedactor(new ArtifactRedactionConfig(
         sensitiveDataKeys: ['token', 'password'],
     )))

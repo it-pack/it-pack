@@ -150,6 +150,7 @@ final class InterleavedFiberContextIsolationTest extends Unit
                 $ids[] = $outer->execution()->id()->toString();
                 self::assertSame($outer, $kit->storage->current());
 
+                $caught = null;
                 try {
                     $kit->runner->run($definition, static function (ExecutionScopeInterface $inner) use (
                         $kit,
@@ -163,15 +164,15 @@ final class InterleavedFiberContextIsolationTest extends Unit
                             $inner->execution()->definition()->parentExecutionId()?->toString(),
                         );
                         self::assertSame($inner, $kit->storage->current());
-                        Fiber::suspend();
+                        self::suspendFiber();
                         self::assertSame($inner, $kit->storage->current());
                         throw $failure;
                     });
-                    self::fail('The nested operation must throw');
                 } catch (RuntimeException $runtimeException) {
-                    self::assertSame($failure, $runtimeException);
+                    $caught = $runtimeException;
                 }
 
+                self::assertSame($failure, $caught);
                 self::assertSame($outer, $kit->storage->current());
             });
             self::assertNull($kit->storage->current());
@@ -188,7 +189,7 @@ final class InterleavedFiberContextIsolationTest extends Unit
             $kit->runner->run($definition, static function (ExecutionScopeInterface $scope) use ($kit, &$ids): void {
                 $ids[] = $scope->execution()->id()->toString();
                 self::assertSame($scope, $kit->storage->current());
-                Fiber::suspend();
+                self::suspendFiber();
                 self::assertSame($scope, $kit->storage->current());
             });
             self::assertNull($kit->storage->current());
@@ -204,5 +205,11 @@ final class InterleavedFiberContextIsolationTest extends Unit
         self::assertTrue($second->isTerminated());
         self::assertNull($kit->storage->current());
         self::assertCount(4, array_unique($ids));
+    }
+
+    /** Suspend so another fiber can run before the scope is checked again. */
+    private static function suspendFiber(): void
+    {
+        Fiber::suspend();
     }
 }

@@ -21,9 +21,9 @@ implementation changes.
 
 Examples covered by this decision:
 
-- PSR-3 loggers (`ExecutionAwareLogger`, `ObservationRecordingLogger`) declare
-  `implements \Psr\Log\LoggerInterface` (they transitively satisfy it via
-  `AbstractLogger`; the declaration is explicit so the backing is direct).
+- PSR-3 loggers (`ExecutionAwareLogger`, `ObservationRecordingLogger`) satisfy
+  `\Psr\Log\LoggerInterface` through `AbstractLogger`, including when the
+  interface is not explicitly redeclared on the concrete class.
 - OpenTelemetry lookup maps (`SeverityMap`, `SpanKindMap`, `SpanStatusMap`)
   declare `implements SeverityMapInterface` / `SpanKindMapInterface` /
   `SpanStatusMapInterface`, so the mappers that inject them depend on the

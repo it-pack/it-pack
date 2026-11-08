@@ -34,7 +34,8 @@ final class FallbackErrorLogReporterTest extends Unit
         );
 
         self::assertSame(
-            '[runit] publication health fallback:  handler fault [LogicException] handler fault while reporting [RuntimeException] primary boom artifact=artifact-42',
+            '[runit] publication health fallback:  handler fault [LogicException] handler fault while reporting'
+            .' [RuntimeException] primary boom artifact=artifact-42',
             $logged,
             'the artifact id must be appended to the preceding message with a leading space separator',
         );
@@ -56,7 +57,8 @@ final class FallbackErrorLogReporterTest extends Unit
         );
 
         self::assertSame(
-            '[runit] publication health fallback:  handler fault [LogicException] handler fault while reporting [RuntimeException] primary boom',
+            '[runit] publication health fallback:  handler fault [LogicException] handler fault while reporting'
+            .' [RuntimeException] primary boom',
             $logged,
         );
     }
