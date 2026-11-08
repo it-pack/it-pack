@@ -136,7 +136,7 @@ final readonly class Occurrence implements OccurrenceInterface
     }
 
     /**
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
      */
     public function extensionAttributes(): array
     {

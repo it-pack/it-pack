@@ -239,6 +239,31 @@ The four configured suites and Unit-only coverage passed on PHP 8.5; coverage
 reported 3,575/4,090 statements. The change in aggregate after metadata updates
 is not evidence of isolation. The XML is generated and PCOV has no branch data.
 
+Starting from clean revision `dc91c24bd1bd8fbab176cd1a072c395109f0af40`,
+the PHPStan work corrected callable and context-storage type information,
+CloudEvents and serializer annotations, publication-policy constructor
+annotations, and concurrency test analysis. On PHP 8.5.12, `composer quality`
+passed validation, Rector and style, then stopped at one diagnostic, down
+from the initial 38. Two initial diagnostics concerned `AttributeCollection`: the validator accepts
+recursively nested primitive arrays, as demonstrated by
+`testNestedPrimitiveValuesArePreserved`, whereas the public return PHPDoc only
+described one array level. The approved documentation correction preserves runtime
+validation but widens static array-member types. The third concerns
+`ExecutedCallable`'s unconstrained definition-factory return type. An invokable
+`ExecutionDefinitionInterface` can also reach the factory path without promising
+a definition return; excluding it or validating its result would change runtime
+behavior, so that issue remains open under the decision to preserve behavior.
+The correction also updates related artifact attribute PHPDoc; `mixed` cannot
+express the full recursive primitive constraint to PHPStan. No PHPStan
+baseline or suppression was added. API checking reported ten additions and no
+detected breaks, but exited 1. Architecture passed and line-length checking
+reported 26 existing violations. The configured PHP 8.5 and PHP 8.4 suites and
+Unit-only coverage passed; PCOV reported 3,577/4,092
+statements and does not measure branch coverage or establish per-test isolation.
+The ten-subject `composer benchmark` suite also passed on PHP 8.5.12 without
+Xdebug or CLI OPcache. No controlled before/after comparison was made, so this
+run does not establish a performance change.
+
 At clean starting revision `59110b4329f7e0a301d9a8cf2c6614e4e9347746`, the
 target-policy harness gained a bounded recursive health-reporter control and
 oversized and projected-overflow byte-bound checks for all five strategies. It

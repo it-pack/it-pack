@@ -88,6 +88,7 @@ final class FiberContextStorage implements ContextStorageInterface
         return $current ?? $this->main;
     }
 
+    /** @return list<FiberContextToken> */
     private function stack(): array
     {
         return $this->stacks[$this->anchor()] ?? [];

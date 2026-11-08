@@ -148,7 +148,7 @@ final readonly class Activity implements ActivityInterface
     }
 
     /**
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
      */
     public function attributes(): array
     {

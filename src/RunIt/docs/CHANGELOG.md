@@ -28,6 +28,11 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Corrected attribute collection PHPDoc to reflect existing support for bounded,
+  recursively primitive arrays. Nested array members are represented as `mixed`
+  in the static types; consumers must not assume every member is a scalar. This
+  may require changes to downstream static-analysis assumptions. Runtime
+  validation and native signatures are unchanged.
 - Cloned composite context storages maintain separate token ownership; clones
   still share their configured child storages and detector.
 - Composite context storage rejects foreign, forged, and previously detached

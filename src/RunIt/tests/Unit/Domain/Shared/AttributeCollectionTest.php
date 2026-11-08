@@ -70,6 +70,15 @@ final class AttributeCollectionTest extends Unit
         self::assertSame(['alpha' => 2, 'middle' => 3, 'zeta' => 1], $collection->toArray());
     }
 
+    public function testNestedPrimitiveValuesArePreserved(): void
+    {
+        $nested = ['outer' => ['inner' => 42]];
+        $collection = AttributeCollection::empty()->with('nested', $nested);
+
+        self::assertSame($nested, $collection->get('nested'));
+        self::assertSame(['nested' => $nested], $collection->toArray());
+    }
+
     public function testWithReturnsANewCollectionAndLeavesTheOriginalUnchanged(): void
     {
         $original = AttributeCollection::empty();

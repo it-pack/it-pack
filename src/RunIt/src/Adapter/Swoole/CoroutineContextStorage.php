@@ -90,6 +90,7 @@ final class CoroutineContextStorage implements ContextStorageInterface
         return $cid >= 0 ? 'cid:' . $cid : 'main';
     }
 
+    /** @return list<CoroutineContextToken> */
     private function stack(): array
     {
         return $this->stacks[$this->key()] ?? [];

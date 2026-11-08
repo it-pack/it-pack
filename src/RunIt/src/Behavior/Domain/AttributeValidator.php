@@ -14,8 +14,8 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
  * An attribute key is a validated string: non-empty, bounded, and made of
  * letters, digits, and the separators `.`, `-`, `_` (so dotted namespacing such
  * as `http.status` is allowed). An attribute value is bounded and recursively
- * primitive: a scalar, null, or a list/map whose members are themselves scalars
- * or null. Objects and resources are rejected so normalization and
+ * primitive: a scalar, null, or a list/map whose members are recursively primitive.
+ * Objects and resources are rejected so normalization and
  * serialization stay safe and deterministic.
  *
  * The rules are structural: a consumer may supply arbitrary namespaced keys and

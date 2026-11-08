@@ -36,6 +36,9 @@ final readonly class CloudEvent
 
     private const string EXTENSION_KEY_PATTERN = '/^[a-z0-9]+(?:-[a-z0-9]+)*$/';
 
+    /**
+     * @param array<array-key, mixed> $extensions
+     */
     private function __construct(
         public string $specVersion,
         public string $id,
@@ -50,6 +53,9 @@ final readonly class CloudEvent
     ) {
     }
 
+    /**
+     * @param array<string, mixed> $extensions
+     */
     public static function create(
         string $id,
         string $source,
@@ -123,6 +129,9 @@ final readonly class CloudEvent
         return preg_match(self::EXTENSION_KEY_PATTERN, $key) === 1;
     }
 
+    /**
+     * @param array<array-key, mixed> $extensions
+     */
     public function withExtensions(array $extensions): self
     {
         return new self(
@@ -139,6 +148,9 @@ final readonly class CloudEvent
         );
     }
 
+    /**
+     * @return array<array-key, mixed>
+     */
     public function toArray(): array
     {
         $event = [

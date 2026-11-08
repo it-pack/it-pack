@@ -25,7 +25,7 @@ interface AttributedInterface
     /**
      * Returns the attributes carried by this artifact.
      *
-     * @return array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>>
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
      *         a deterministic, bounded, recursively-primitive attribute map
      */
     public function attributes(): array;

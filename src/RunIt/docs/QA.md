@@ -475,9 +475,9 @@ The configuration (`infection.json5`) is finalized:
 - **PHPStan integration** — intended as `staticAnalysisTool: phpstan` to kill
   escaped mutants that PHPStan can prove invalid (e.g. type errors), reducing
   false escapes without new tests. It is **currently disabled**. As of the
-  Phase 0 coverage work `composer analyse` is green (zero PHPStan errors across
-  `src` and `tests`), so the integration can be re-enabled in a follow-up; it is
-  left disabled here to keep local mutation runs stable and to avoid coupling the
+  current refactoring work `composer analyse` still reports errors; see
+  `REFACTORING_PLAN.md` for the current assessment. It remains disabled to keep
+  local mutation runs stable and to avoid coupling the
   mutation gate to PHPStan's per-mutant cost. PHPStan still runs as a separate
   `composer analyse` gate.
 - **Coverage** — Infection auto-detects the `pcov` driver; the Unit suite is run
