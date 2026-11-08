@@ -57,8 +57,10 @@ Other invocation sites, including the runner and bounded-publisher drop callback
 have separate failure paths and are not covered by this guarantee. Setup faults
 before an execution materializes (identity allocation, start, scope assembly,
 attach) are passed to the runner's health callback when one is configured. If
-no callback is configured, no health report is emitted. In either case, the
-original setup exception is surfaced unchanged to the caller.
+no callback is configured, no health report is emitted. The original setup
+exception is surfaced to the caller unless the callback throws and the runner's
+fallback reporting also fails. For example, an `error_log` fallback error when
+PHP error logging is disabled can escape instead of the original exception.
 
 ## Instrument batches, not every method
 

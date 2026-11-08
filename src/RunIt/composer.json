@@ -115,7 +115,10 @@
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
         "security:audit": "@composer audit --no-dev",
-        "security:audit:full": "@composer audit --abandoned=report",
+        "security:audit:full": [
+            "@putenv COMPOSER_AUDIT_ABANDONED=report",
+            "@composer audit"
+        ],
         "test": [
             "@test:unit",
             "@test:integration",
