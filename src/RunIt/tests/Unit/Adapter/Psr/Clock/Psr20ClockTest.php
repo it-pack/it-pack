@@ -7,8 +7,13 @@ namespace Tests\Unit\Adapter\Psr\Clock;
 use Codeception\Test\Unit;
 use DateTimeImmutable;
 use ItPack\RunIt\Adapter\Psr\Clock\Psr20Clock;
+use ItPack\RunIt\Domain\Shared\Duration;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Psr\Clock\ClockInterface;
 
+#[CoversClass(Psr20Clock::class)]
+#[UsesClass(Duration::class)]
 final class Psr20ClockTest extends Unit
 {
     private function clockAt(int $epochSeconds): ClockInterface

@@ -159,6 +159,45 @@ final class FailureHandlingTest extends Unit
         self::assertSame($sinkFailure, $caught);
     }
 
+    public function testSystemFallbackLogFailureIsNotReportedToPublisher(): void
+    {
+        if (!is_writable('/dev/full') || @file_put_contents('/dev/full', 'probe') !== false) {
+            self::markTestSkipped('A writable /dev/full device that rejects writes is required.');
+        }
+
+        $previousLog = ini_set('error_log', '/dev/full');
+        if ($previousLog === false) {
+            self::markTestSkipped('The PHP error_log setting cannot be changed.');
+        }
+
+        $warnings = [];
+        set_error_handler(static function (int $severity, string $message) use (&$warnings): bool {
+            $warnings[] = [$severity, $message];
+
+            return true;
+        });
+
+        try {
+            $health = new CallbackHealthReporter(static function (): never {
+                throw new RuntimeException('callback down');
+            });
+            $handled = [];
+            $policy = new CollectAndContinuePolicy(
+                static function (Throwable $error) use (&$handled): void {
+                    $handled[] = $error->getMessage();
+                },
+            );
+
+            new FailSafeArtifactPublisher($this->throwingSink(), $policy, $health)->publish($this->artifact());
+
+            self::assertSame(['transport down'], $handled);
+            self::assertSame([], $warnings);
+        } finally {
+            restore_error_handler();
+            ini_set('error_log', $previousLog);
+        }
+    }
+
     public function testArtifactNormalizationFailureEscapesBeforeFallbackLogging(): void
     {
         $normalizationFailure = new RuntimeException('normalization failed');

@@ -85,6 +85,22 @@ Rector on a pre-existing unused import in `TelemetryPublisherTest.php`; a
 separate style check also reported a pre-existing fixture formatting issue.
 PHPStan reported 138 diagnostics; their complete attribution was not compared.
 
+Further preparation at revision `6e369d27662790058496e7f4d283853191a1bdd7`
+adds explicit clock subjects and the `Duration` collaborator to the monotonic and
+PSR-20 clock tests. Their focused tests passed (9 tests, 19 assertions); the
+remaining tests still require review and no attribution gate is implied. A nested
+stack/Fiber context-storage baseline, including depth, variation and limitations,
+is recorded in `benchmarks.md`; it does not complete the performance baseline.
+On PHP 8.5.12, all four configured suites and Unit-only coverage passed on the
+resulting worktree; coverage was 3,583/4,090 statements. PCOV does not measure
+branches, and the total does not establish isolation. Architecture passed;
+API checking reported ten additions and no detected breaks but exited 1.
+Quality stopped at the existing Rector unused-import finding, style reported
+that import and an existing fixture formatting issue, PHPStan reported 138
+diagnostics, and line-length checking reported 26 violations. The two focused
+clock tests and `FailureHandlingTest` also passed on PHP 8.4.27. No diagnostic-set
+comparison or full PHP 8.4 matrix was performed for this work.
+
 An isolated synthetic negative control on those same tool versions and PCOV
 subsequently ran in `/tmp/kilo/runit-coverage-control` without changing normal
 Unit coverage. With `strict_covers_annotation` enabled, an undeclared production
@@ -286,6 +302,14 @@ fallback handles it. In the tested success and failure cases, the runner reports
 the escaping normalization error, preserves the business value or original
 exception, and restores the parent context. This does not fix the reporter escape
 or exercise an actual system error-log failure or all outer failure paths.
+
+`FailureHandlingTest::testSystemFallbackLogFailureIsNotReportedToPublisher`
+now exercises PHP's system error-log path with `error_log` set to `/dev/full`.
+On the tested PHP 8.4 and 8.5 environment the write is rejected, but the
+publisher receives no warning or fallback failure and continues after handling
+the original transport error. The test restores process settings and skips when
+the device or configuration is unavailable. It characterizes one failure mode,
+not all logging backends or a reliable health-reporting fix.
 
 The 2026-11-08 follow-up added the runner and OpenTelemetry characterizations
 above. Unit tests passed; `composer quality` passed validation, Rector and style,

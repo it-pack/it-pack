@@ -57,6 +57,36 @@ implementation of the relevant path changes.
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
 
+## Nested context-storage baseline (2026-11-08)
+
+At revision `6e369d27662790058496e7f4d283853191a1bdd7`, a temporary harness
+measured immediate attach/detach pairs at a pre-existing nesting depth. Values
+are nanoseconds per pair: median and full range across 11 samples after two
+warmups, with 20,000 pairs per sample and rotated case order.
+
+| Storage | Existing depth | Median | Range |
+| --- | ---: | ---: | ---: |
+| Stack | 0 | 527.58 | 501.52-611.99 |
+| Stack | 7 | 529.90 | 508.18-559.19 |
+| Stack | 63 | 529.07 | 513.02-5,504.74 |
+| Stack | 255 | 553.29 | 525.53-3,620.57 |
+| Fiber | 0 | 855.30 | 805.63-8,444.93 |
+| Fiber | 7 | 884.46 | 854.17-956.09 |
+| Fiber | 63 | 1,268.72 | 1,247.02-5,461.96 |
+| Fiber | 255 | 2,628.49 | 2,555.38-7,674.60 |
+
+PHP 8.5.12 CLI NTS on WSL2 x86-64, Intel Core i7-9700, four virtual CPUs;
+CLI OPcache, JIT and PCOV were disabled. A real scope was reused, with setup,
+current-scope checks and LIFO cleanup outside the timed region. Fiber cases ran
+inside a Fiber. The temporary harness is `/tmp/kilo/runit-nested-context-bench.php`
+(SHA-256 `0d8697743671f1ef53953835f96f4cf8ef3b65cc9e778e7b3c0e0f4b4d6551f2`),
+which is not durable. While available, run it from the package directory with
+`php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-nested-context-bench.php`.
+The Fiber median grew with depth; large outliers preclude
+using this as a regression threshold or identifying a cause. This synthetic
+single-process test excludes scope creation, scheduling, interleaving, composite
+and coroutine storage, memory profiling, failure paths and PHP 8.4.
+
 ## Recorded baselines (2026-08-23)
 
 First machine-readable baselines, measured after the Phase 2 hot-path work. Environment:
