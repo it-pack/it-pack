@@ -199,15 +199,15 @@ current-behavior characterizations. Their assertions intentionally describe the
 defects; they are not failing tests of the approved target policy and do not by
 themselves satisfy the literal exit criterion.
 
-| Review issue | Existing reproduction | Remaining evidence |
-| --- | --- | --- |
-| Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php` | Target-policy negative tests for other exporters and configuration. |
-| Sampling before redaction | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php` | Redaction-first implementation and broader typed routing tests. |
-| Buffer byte limit | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php` | Complete target-invariant matrix and approved edge semantics. |
-| Silent or recursive publication failures | `FailureHandlingTest`, runner `ResilienceTest`, and bounded recursive reporter target control | Other system-log configurations and recursion-safe implementation. |
-| Token interface compatibility | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline | Final migration, versioning and API-check verification for external implementers. |
-| Unit coverage and attribution | Unit-only XML and synthetic attribution controls recorded below | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
-| Synchronous context under concurrency | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest` | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable. |
+| Review issue                             | Existing reproduction                                                                                                                                                                                                                                                                                                   | Remaining evidence                                                                      |
+|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php` | Broader exporter and configuration controls.                                            |
+| Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                    | Redaction-first implementation and broader typed routing tests.                         |
+| Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                   | Complete target-invariant matrix and approved edge semantics.                           |
+| Silent or recursive publication failures | `FailureHandlingTest`, runner `ResilienceTest`, and bounded recursive reporter target control                                                                                                                                                                                                                           | Other system-log configurations and recursion-safe implementation.                      |
+| Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                        | Final migration, versioning and API-check verification for external implementers.       |
+| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                         | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
+| Synchronous context under concurrency    | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest`                                                                                                                                                                                                                                      | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable.            |
 
 The originally reported token break is approved, not erased, and coverage
 enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
@@ -320,6 +320,36 @@ After adding both controls, `composer quality --quiet` passed on PHP 8.5.12;
 that command does not run either intentionally failing standalone harness or
 the separate API check and coverage command.
 
+At clean starting revision `c4841f341d8c6e8efbcc19ad6dfd85d6eb8aa205`,
+`tests/target-policy-otel-regressions.php` adds a separately invoked composed
+failed-execution check using the actual OpenTelemetry SDK in-memory exporter.
+On PHP 8.4.27 and 8.5.12 it exits 1 for three target assertions: the default
+exception message is not masked, the trace is not omitted, and the outer
+synthetic marker reaches exported span data. Delivery, span metadata, an explicit
+message-redaction opt-out, and source immutability controls pass. The other cause
+markers do not appear in the tested exported fields; this does not establish
+safety for other exporters or paths. No production redaction behavior was changed.
+
+The existing target harness also exercises the real execution-kind policy through
+the factory with a delegating spy. Allowed, denied, unknown, unconfigured and
+unchanged cases check routing decisions, source immutability and sampler input.
+PHP 8.4.27 and 8.5.12 each report 41 target failures, five more than before:
+four sampler inputs are not yet redacted and the allowed sink projection differs
+from the sampler's unredacted input. These are target-policy failures, not fixes.
+The existing `SamplingTest` passed on both versions (15 tests, 56 assertions).
+
+At the same revision, Unit-only coverage passed (904 tests, 6,183 assertions;
+3,598/4,113 statements) with PCOV 1.0.12. XML and HTML were retained under
+`/tmp/kilo/runit-coverage-c4841f341d8c6e8efbcc19ad6dfd85d6eb8aa205/`;
+these temporary reports are not durable. PhpMetrics 2.11.0 and PHP Assumptions
+0.9.1 completed and wrote reports under `/tmp/kilo/`; the latter produced 75
+heuristic assumptions, not verified defects. PHP was 8.5.12, Composer 2.9.7 and
+Codeception 5.3.7. PCOV provides no branch coverage, and the aggregate does not
+establish isolation. The PSR-3 publication microbenchmark and its limitations
+are recorded in `benchmarks.md`; it does not complete the performance baseline.
+After integration, `composer quality --quiet` passed on PHP 8.5.12. It does
+not run the standalone target harnesses, API checker or coverage command.
+
 **Revision-specific refresh (2026-11-08):** Started clean at
 `6d602fe384db04d76c6ba68cf78f7a2154cb6a4e`. Runs used PHP 8.5.12 CLI NTS,
 PCOV, Fiber and Swoole 6.2.3; OpenSwoole and Swow were not loaded. Installed
@@ -328,19 +358,19 @@ Documentation and an unrelated concurrent `AGENTS.md` edit appeared during the
 refresh, but no production or test source was intentionally changed. The four
 configured test suites also passed separately on PHP 8.4.27.
 
-| Command | Exit | Result |
-| --- | ---: | --- |
-| `composer validate --strict` | 0 | Valid manifest. |
-| `composer api:check` | 1 | Ten additions, zero detected breaks; no baseline changed. |
-| `composer analyse -- --error-format=json --no-progress` | 1 | 147 diagnostics; full current-set attribution remains open. |
-| `composer refactor:dry` | 0 | No changes proposed. |
-| `composer cs:check` | 0 | Passed after Rector. |
-| `composer architecture` | 0 | 404 classes, no violations. |
-| `composer lint:length` | 1 | 26 violations. |
-| `composer test -- --silent` | 0 | Four configured suites passed. |
-| `composer coverage -- --silent` | 0 | Unit only: 3,616/4,090 statements (88.41%). |
-| `composer audit` | 0 | No advisories; abandoned dev dependency `doctrine/annotations`. |
-| `composer quality` | 1 | Stopped at PHPStan after validation, Rector and style. |
+| Command                                                 | Exit | Result                                                          |
+|---------------------------------------------------------|-----:|-----------------------------------------------------------------|
+| `composer validate --strict`                            |    0 | Valid manifest.                                                 |
+| `composer api:check`                                    |    1 | Ten additions, zero detected breaks; no baseline changed.       |
+| `composer analyse -- --error-format=json --no-progress` |    1 | 147 diagnostics; full current-set attribution remains open.     |
+| `composer refactor:dry`                                 |    0 | No changes proposed.                                            |
+| `composer cs:check`                                     |    0 | Passed after Rector.                                            |
+| `composer architecture`                                 |    0 | 404 classes, no violations.                                     |
+| `composer lint:length`                                  |    1 | 26 violations.                                                  |
+| `composer test -- --silent`                             |    0 | Four configured suites passed.                                  |
+| `composer coverage -- --silent`                         |    0 | Unit only: 3,616/4,090 statements (88.41%).                     |
+| `composer audit`                                        |    0 | No advisories; abandoned dev dependency `doctrine/annotations`. |
+| `composer quality`                                      |    1 | Stopped at PHPStan after validation, Rector and style.          |
 
 The Unit XML is `/tmp/kilo/runit-6d602fe3-unit-coverage.xml`; PCOV supplies no
 branch coverage and aggregate results do not establish per-test attribution.

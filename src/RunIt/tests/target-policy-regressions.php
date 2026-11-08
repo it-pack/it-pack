@@ -16,6 +16,7 @@ use ItPack\RunIt\Application\Publication\CallbackArtifactPublisher;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\ErrorOverrideSamplePolicy;
+use ItPack\RunIt\Application\Publication\ExecutionKindSamplePolicy;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
@@ -24,6 +25,7 @@ use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -137,6 +139,78 @@ foreach ([
     $check(
         count($published) === 1 && ($published[0]->normalize()['attributes']['private'] ?? null) === '[redacted]',
         "$name publishes the redacted artifact"
+    );
+}
+
+$kindPolicy = new ExecutionKindSamplePolicy(
+    static fn (ExecutionIdInterface $executionId): ?ExecutionKind => match ($executionId->toString()) {
+        'kind-allowed' => ExecutionKind::fromString('http.request'),
+        'kind-denied' => ExecutionKind::fromString('cli.command'),
+        'kind-unconfigured' => ExecutionKind::fromString('batch'),
+        default => null,
+    },
+    ['http.request' => true, 'cli.command' => false],
+);
+$kindSpy = new class ($kindPolicy) implements SamplingPolicyInterface {
+    /** @var list<array<string, mixed>> */
+    public array $seen = [];
+
+    /** @var list<bool> */
+    public array $decisions = [];
+
+    public function __construct(private readonly SamplingPolicyInterface $inner)
+    {
+    }
+
+    public function sample(ExecutionArtifactInterface $artifact): bool
+    {
+        $this->seen[] = $artifact->normalize();
+
+        $decision = $this->inner->sample($artifact);
+        $this->decisions[] = $decision;
+
+        return $decision;
+    }
+};
+$kindSink = new InMemoryArtifactPublisher();
+$kindPublisher = $factory->compose($kindSink, $redactor, $kindSpy);
+$kindInputs = [];
+foreach (['allowed', 'denied', 'unknown', 'unconfigured', 'unchanged'] as $case) {
+    $executionId = $case === 'unchanged' ? 'kind-allowed' : "kind-$case";
+    $kindInputs[$case] = Observation::info(
+        ObservationId::fromString("kind-$case"),
+        ExecutionId::fromString($executionId),
+        "kind-$case",
+        attributes: $case === 'unchanged' ? AttributeCollection::fromArray([]) : $attributes,
+    );
+    $before = $kindInputs[$case]->normalize();
+    $kindPublisher->publish($kindInputs[$case]);
+    $check($kindInputs[$case]->normalize() === $before, "execution-kind $case source remains unchanged");
+}
+
+$check(count($kindSpy->seen) === 5, 'execution-kind sampler receives every input');
+foreach (['allowed', 'denied', 'unknown', 'unconfigured', 'unchanged'] as $index => $case) {
+    $expected = $case === 'allowed' || $case === 'unchanged';
+    $check(($kindSpy->decisions[$index] ?? null) === $expected, "execution-kind $case decision is preserved");
+}
+
+foreach (['allowed', 'denied', 'unknown', 'unconfigured'] as $index => $case) {
+    $check(
+        ($kindSpy->seen[$index]['attributes']['private'] ?? null) === '[redacted]',
+        "execution-kind $case sampler receives redacted attributes"
+    );
+}
+
+$kindPublished = $kindSink->published();
+$check(count($kindPublished) === 2, 'execution-kind retains only allowed and unchanged inputs');
+if (count($kindPublished) === 2) {
+    $check(
+        $kindPublished[0]->normalize() === $kindSpy->seen[0],
+        'execution-kind allowed sink receives the sampled redacted artifact'
+    );
+    $check(
+        $kindPublished[1]->normalize() === $kindSpy->seen[4],
+        'execution-kind unchanged allowed input reaches the sink'
     );
 }
 
