@@ -28,6 +28,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- `CallbackHealthReporter` contains failures while extracting an artifact ID or
+  invoking its fallback, and attempts a bounded, payload-free system-log notice
+  before returning. A failed last-resort log cannot replace the business outcome.
 - Corrected attribute collection PHPDoc to reflect existing support for bounded,
   recursively primitive arrays. Nested array members are represented as `mixed`
   in the static types; consumers must not assume every member is a scalar. This

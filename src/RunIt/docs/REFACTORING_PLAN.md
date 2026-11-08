@@ -779,12 +779,21 @@ do not establish coverage for unavailable OpenSwoole or Swow extensions.
 - [ ] Trace `DefaultExecutionRunner`, `FailSafeArtifactPublisher`, `FailOpenPolicy`, and existing fallback reporter behavior. Define a recursion-safe default health sink that does not send failures back through the failing publisher, expose secrets, or replace the business outcome.
 - [ ] Add failure-injection tests for no callback, successful callback, callback throwing, fallback sink throwing, inner publisher throwing, recursive publication, and artifact normalization throwing during failure reporting. Check bounded/sanitized reporting and verify no failure is silently discarded under the chosen policy.
 - [ ] Implement guarded fallback reporting for the default fail-open path and guard diagnostic extraction itself. Keep fail-closed behavior explicit and preserve the original throwable and context restoration in `finally`.
-- [ ] Fix the confirmed `CallbackHealthReporter::report()` fail-open hole in a later change: wrap artifact normalization and the fallback report in their own `try`/`catch` so either failure cannot escape through `FailSafeArtifactPublisher::publish()`. Add runner-level regression tests proving the business result and original business exception are preserved when normalization or the fallback sink throws; retain the chosen safe reporting policy.
+- [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard artifact normalization and fallback reporting; verify runner outcomes and context restoration when either fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback retains its existing behavior.
 - [ ] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration.
 - [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
 - [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
 
 **Exit:** terminal outcomes and health failures remain observable without masking business results; lifecycle and failure-injection tests pass under the approved policy.
+
+The callback reporter fix is limited to its own secondary failure path. On PHP
+8.5.12, the focused publication and runner tests passed, as did `composer
+quality`; the focused tests also passed on
+PHP 8.4.27. The system error log may fail silently, and a throwing system-log
+destination was not reproduced. Recursive callback publication and the runner's
+independent reporting path remain open; this change does not complete Phase 4.
+The ten-subject benchmark suite passed without a controlled before/after
+comparison and does not characterize this exceptional path.
 
 ## Phase 5: OpenTelemetry retention
 

@@ -123,12 +123,12 @@ final class ResilienceTest extends Unit
                 self::assertSame($businessFails ? null : $value, $result);
                 self::assertSame($parent, $kit->storage->current());
             });
-            self::assertSame([$publicationFailure, $reportingFailure], $reported);
+            self::assertSame([$publicationFailure], $reported);
             self::assertNull($kit->storage->current());
         }
     }
 
-    public function testRunnerOuterFailSafeHandlesInnerHealthReporterFailures(): void
+    public function testRunnerInnerHealthReporterFailuresDoNotReachOuterFailSafe(): void
     {
         foreach (['normalization', 'fallback'] as $failureSource) {
             foreach ([false, true] as $businessFails) {
@@ -195,12 +195,11 @@ final class ResilienceTest extends Unit
                     self::assertSame($businessFails ? null : $value, $result);
                     self::assertSame($parent, $kit->storage->current());
                 });
-                self::assertCount($businessFails ? 4 : 3, $reported);
-                foreach ($reported as $failure) {
-                    self::assertSame($reportingFailure, $failure);
+                self::assertSame([], $reported);
+                if ($failureSource === 'fallback') {
+                    self::assertSame($businessFails ? 4 : 3, $fallbackCalls);
                 }
 
-                self::assertSame($failureSource === 'normalization' ? 0 : count($reported), $fallbackCalls);
                 self::assertNull($kit->storage->current());
             }
         }

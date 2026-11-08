@@ -108,12 +108,14 @@
             "@architecture",
             "@lint:length",
             "@test",
-            "@security:audit"
+            "@security:audit",
+            "@security:audit:full"
         ],
         "rector": "vendor/bin/rector",
         "refactor": "@rector process",
         "refactor:dry": "@rector process --dry-run",
         "security:audit": "@composer audit --no-dev",
+        "security:audit:full": "@composer audit",
         "test": [
             "@test:unit",
             "@test:integration",

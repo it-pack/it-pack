@@ -136,7 +136,7 @@ final class FailureHandlingTest extends Unit
         ], $lines);
     }
 
-    public function testThrowingFallbackLogSinkEscapesFailOpenPublisher(): void
+    public function testThrowingFallbackLogSinkDoesNotPreventFailurePolicy(): void
     {
         $sinkFailure = new RuntimeException('log sink down');
         $health = new CallbackHealthReporter(
@@ -147,7 +147,11 @@ final class FailureHandlingTest extends Unit
                 throw $sinkFailure;
             }),
         );
-        $publisher = new FailSafeArtifactPublisher($this->throwingSink(), new FailOpenPolicy(), $health);
+        $handled = [];
+        $policy = new CollectAndContinuePolicy(static function (Throwable $error) use (&$handled): void {
+            $handled[] = $error->getMessage();
+        });
+        $publisher = new FailSafeArtifactPublisher($this->throwingSink(), $policy, $health);
 
         $caught = null;
         try {
@@ -156,7 +160,8 @@ final class FailureHandlingTest extends Unit
             $caught = $throwable;
         }
 
-        self::assertSame($sinkFailure, $caught);
+        self::assertNull($caught);
+        self::assertSame(['transport down'], $handled);
     }
 
     public function testSystemFallbackLogFailureIsNotReportedToPublisher(): void
@@ -198,21 +203,23 @@ final class FailureHandlingTest extends Unit
         }
     }
 
-    public function testArtifactNormalizationFailureEscapesBeforeFallbackLogging(): void
+    public function testArtifactNormalizationFailureDoesNotPreventFailurePolicy(): void
     {
         $normalizationFailure = new RuntimeException('normalization failed');
         $artifact = $this->createMock(ExecutionArtifactInterface::class);
         $artifact->expects($this->once())->method('normalize')->willThrowException($normalizationFailure);
-        $lines = [];
         $health = new CallbackHealthReporter(
             static function (): never {
                 throw new RuntimeException('callback down');
             },
-            new FallbackErrorLogReporter(static function (string $line) use (&$lines): void {
-                $lines[] = $line;
+            new FallbackErrorLogReporter(static function (): void {
             }),
         );
-        $publisher = new FailSafeArtifactPublisher($this->throwingSink(), new FailOpenPolicy(), $health);
+        $handled = [];
+        $policy = new CollectAndContinuePolicy(static function (Throwable $error) use (&$handled): void {
+            $handled[] = $error->getMessage();
+        });
+        $publisher = new FailSafeArtifactPublisher($this->throwingSink(), $policy, $health);
 
         $caught = null;
         try {
@@ -221,8 +228,51 @@ final class FailureHandlingTest extends Unit
             $caught = $throwable;
         }
 
-        self::assertSame($normalizationFailure, $caught);
-        self::assertSame([], $lines);
+        self::assertNull($caught);
+        self::assertSame(['transport down'], $handled);
+    }
+
+    public function testSecondaryFailureReachesSanitizedSystemFallback(): void
+    {
+        $path = tempnam(sys_get_temp_dir(), 'runit-health-');
+        self::assertNotFalse($path);
+        $oldLog = ini_get('error_log');
+        $oldEnabled = ini_get('log_errors');
+        self::assertNotFalse($oldLog);
+        self::assertNotFalse($oldEnabled);
+
+        try {
+            ini_set('error_log', $path);
+            ini_set('log_errors', '1');
+            foreach (['normalization', 'fallback'] as $source) {
+                $artifact = $this->createMock(ExecutionArtifactInterface::class);
+                if ($source === 'normalization') {
+                    $artifact->method('normalize')->willThrowException(new RuntimeException('secret normalization'));
+                } else {
+                    $artifact->method('normalize')->willReturn(['id' => 'secret artifact']);
+                }
+
+                $reporter = new CallbackHealthReporter(
+                    static function (): never {
+                        throw new RuntimeException('secret callback');
+                    },
+                    new FallbackErrorLogReporter(static function (): never {
+                        throw new RuntimeException('secret sink');
+                    }),
+                );
+                $reporter->report(new RuntimeException('secret primary'), $artifact);
+            }
+
+            $log = file_get_contents($path);
+            self::assertIsString($log);
+            self::assertSame(2, substr_count($log, 'publication health fallback'));
+            self::assertSame(2, substr_count($log, 'Fallback failure: RuntimeException'));
+            self::assertStringNotContainsString('secret', $log);
+        } finally {
+            ini_set('error_log', $oldLog);
+            ini_set('log_errors', $oldEnabled);
+            unlink($path);
+        }
     }
 
     public function testFailClosedRethrowsOriginalAdapterError(): void
@@ -238,6 +288,43 @@ final class FailureHandlingTest extends Unit
 
         self::assertNotNull($thrown);
         self::assertSame('transport down', $thrown->getMessage());
+    }
+
+    public function testFailClosedPreservesOriginalErrorWhenHealthFallbackFails(): void
+    {
+        foreach (['normalization', 'fallback'] as $source) {
+            $original = new RuntimeException('original publication failure');
+            $artifact = $this->createMock(ExecutionArtifactInterface::class);
+            if ($source === 'normalization') {
+                $artifact->method('normalize')->willThrowException(new RuntimeException('normalization failure'));
+            } else {
+                $artifact->method('normalize')->willReturn([]);
+            }
+
+            $health = new CallbackHealthReporter(
+                static function (): never {
+                    throw new RuntimeException('callback failure');
+                },
+                new FallbackErrorLogReporter(static function (): never {
+                    throw new RuntimeException('fallback failure');
+                }),
+            );
+            $publisher = new FailSafeArtifactPublisher(
+                new CallbackArtifactPublisher(static function () use ($original): never {
+                    throw $original;
+                }),
+                new FailClosedPolicy(),
+                $health,
+            );
+            $caught = null;
+            try {
+                $publisher->publish($artifact);
+            } catch (Throwable $error) {
+                $caught = $error;
+            }
+
+            self::assertSame($original, $caught);
+        }
     }
 
     public function testCollectAndContinueCapturesOriginalError(): void
