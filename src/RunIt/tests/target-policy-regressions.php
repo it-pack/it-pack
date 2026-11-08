@@ -199,6 +199,40 @@ foreach (OverflowStrategy::cases() as $strategy) {
     }
 }
 
+foreach (OverflowStrategy::cases() as $strategy) {
+    $sink = new InMemoryArtifactPublisher();
+    $buffer = new BufferedArtifactPublisher(
+        new BufferConfiguration(
+            maxItems: 10,
+            maxEstimatedBytes: PHP_INT_MAX,
+            maxAgeSeconds: 60,
+            batchSize: 10,
+            flushIntervalSeconds: 5,
+            shutdownFlushBudget: 10,
+            overflow: $strategy,
+        ),
+        $sink,
+        new DeterministicMonotonicClock(1000, 0),
+        new DeterministicArtifactByteEstimator(10, ['near-integer-limit' => PHP_INT_MAX - 5]),
+    );
+    $buffer->publish(Observation::info(ObservationId::fromString('near-integer-limit'), $id, 'synthetic'));
+    $check($buffer->estimatedBytes() === PHP_INT_MAX - 5, "{$strategy->name} integer boundary initial accounting");
+
+    try {
+        $buffer->publish(Observation::info(ObservationId::fromString('integer-overflow'), $id, 'synthetic'));
+    } catch (BufferOverflowException) {
+        // Explicit rejection is permitted, but must not corrupt the buffer.
+    } catch (Throwable $error) {
+        $check(false, "{$strategy->name} integer boundary unexpected " . $error::class);
+    }
+
+    $check($buffer->bufferedCount() <= 1, "{$strategy->name} integer boundary does not retain both items");
+    $check($buffer->estimatedBytes() >= 0, "{$strategy->name} integer boundary accounting is nonnegative");
+    $buffer->flush();
+    $check($buffer->bufferedCount() === 0, "{$strategy->name} integer boundary buffer clears after flush");
+    $check($buffer->estimatedBytes() === 0, "{$strategy->name} integer boundary accounting clears after flush");
+}
+
 foreach ($failures as $failure) {
     fwrite(STDERR, "FAIL: $failure\n");
 }

@@ -201,7 +201,7 @@ themselves satisfy the literal exit criterion.
 
 | Review issue | Existing reproduction | Remaining evidence |
 | --- | --- | --- |
-| Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php` | Target-policy negative tests for exporters and configuration. |
+| Throwable redaction | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php` | Target-policy negative tests for other exporters and configuration. |
 | Sampling before redaction | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php` | Redaction-first implementation and broader typed routing tests. |
 | Buffer byte limit | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php` | Complete target-invariant matrix and approved edge semantics. |
 | Silent or recursive publication failures | `FailureHandlingTest`, runner `ResilienceTest`, and bounded recursive reporter target control | Other system-log configurations and recursion-safe implementation. |
@@ -288,6 +288,37 @@ full `composer audit` reported no advisories but exited 1 for the abandoned
 development dependency `doctrine/annotations`.
 
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+
+**Current baseline and integer-boundary control (2026-11-08):** Starting clean
+at `133db4746e2c87c2e2ace6d803020412ce3d6ce8`, PHP 8.5.12 with PCOV and
+Swoole loaded, `composer quality` and `composer analyse -- --no-progress`
+passed. `composer api:check` exited 1 for ten additions and reported no
+detected breaks; no baseline was updated. Unit-only `composer coverage --
+--silent` passed and reported 3,598/4,113 statements. PCOV does not measure
+branches, and this aggregate does not establish per-test attribution. OpenSwoole
+and Swow were not loaded. The quality and coverage runs preceded the new
+standalone controls below.
+
+The standalone `tests/target-policy-regressions.php` now additionally exercises
+near-`PHP_INT_MAX` byte accounting for all five buffer strategies without
+prescribing whether overflow is rejected, dropped, or resolved through eviction.
+On PHP 8.4.27 and 8.5.12 the harness exits 1 with 36 failed target checks:
+the prior 21 and 15 new checks. For each strategy, adding the second item throws
+`TypeError`, retains both items, and leaves nonzero accounting after flush. This
+is a safety-net reproduction, not a buffer fix or a complete admission matrix.
+Phase 0 and the policy decisions for invalid estimates and oversized items remain
+open.
+
+The separately invoked `tests/target-policy-psr3-regressions.php` composes the
+factory redactor with the PSR-3 observation logger and a synthetic three-cause
+throwable. On PHP 8.4.27 and 8.5.12 it exits 1 for the three traces not being
+omitted; message masking, class and code preservation, delivery, correlation,
+and source immutability controls pass. It is intentionally outside the normal
+suites and does not establish OpenTelemetry export behavior, opt-in behavior,
+or safe handling of unclassified observation messages and attributes.
+After adding both controls, `composer quality --quiet` passed on PHP 8.5.12;
+that command does not run either intentionally failing standalone harness or
+the separate API check and coverage command.
 
 **Revision-specific refresh (2026-11-08):** Started clean at
 `6d602fe384db04d76c6ba68cf78f7a2154cb6a4e`. Runs used PHP 8.5.12 CLI NTS,
