@@ -8,7 +8,12 @@ use Codeception\Test\Unit;
 use ItPack\RunIt\Domain\Context\ContextClassification;
 use ItPack\RunIt\Domain\Context\DefaultContextPropagationPolicy;
 use ItPack\RunIt\Domain\Context\DefaultContextSerializationPolicy;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
+#[CoversClass(DefaultContextPropagationPolicy::class)]
+#[CoversClass(DefaultContextSerializationPolicy::class)]
+#[UsesClass(ContextClassification::class)]
 final class DefaultContextPoliciesTest extends Unit
 {
     public function testPropagationDelegatesToClassification(): void

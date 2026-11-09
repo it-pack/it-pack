@@ -215,6 +215,27 @@ remain. See `docs/QA.md` for scope and limitations. After integration, `composer
 quality --quiet` passed on PHP 8.5.12; it does not run the standalone harness,
 coverage or API checker.
 
+At clean starting revision `228a7ff9`, the default context propagation and
+serialization policy tests and the context value validator test gained coverage
+subject and collaborator declarations. The context-domain Unit directory
+passed on PHP 8.4.27 and 8.5.12 (43 tests, 92 assertions on each). These
+declarations are incremental preparation, not a demonstrated isolation gate;
+other classes still need review and strict attribution remains unresolved.
+The standalone terminal-publication harness also covers a throwing health
+callback for each publisher failure and business outcome. All four added cases
+passed on both PHP versions; the existing six snapshot-factory target failures
+remain. The controls and their fallback-reporting limitations are described in
+`docs/QA.md` and do not complete Phase 0.
+The durable buffered-flush benchmark and its synthetic measurements are recorded
+in `docs/benchmarks.md`; they do not establish a production throughput or complete
+the benchmark baseline. On the integrated PHP 8.5.12 worktree, `composer quality
+--quiet` passed validation, Rector and style, then stopped at PHPStan: unchanged
+`ContextEntryTest.php:123` passes a `resource|false` to `fclose`. The subsequent
+separately run architecture, line-length, four configured test suites and runtime
+and full dependency audits passed; the full audit reported abandoned development
+dependency `doctrine/annotations`. Coverage and API checks were not rerun for
+this test, benchmark and documentation work.
+
 - `tests/Support/Fixture/SensitiveExceptionChain.php` — nested throwable chain with classified values (API key, DB password, session token) at three depths.
 - `tests/Support/Fixture/DeterministicArtifactByteEstimator.php` — deterministic byte estimator for buffer admission tests.
 - `tests/Concurrency/InterleavedFiberContextIsolationTest.php` — interleaved fiber isolation test.

@@ -24,6 +24,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Sampling and redaction        | `benchRedaction`                   | Sampling, redaction and in-memory publication of a snapshot         |
 | In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 | Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
+| Buffered batch flush          | `BufferedFlushBench`               | One 256-item flush from a full 1,024-item buffer                    |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
 
@@ -55,6 +56,41 @@ hardware, runtime and variance; the figures below are not automatic CI threshold
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## Buffered batch flush baseline (2026-11-09)
+
+At clean starting revision `228a7ff9efaa8a5c309fb744992ecf67de92d7f5` plus
+the benchmark and this documentation, run from the package directory:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedFlushBench.php --config=phpbench.json --report=default
+```
+
+Each iteration constructs and fills a fresh buffer outside the timed region with
+1,024 distinct small snapshots and the real byte estimator. The item limit is
+1,024, byte limit 8 MiB, maximum age 3,600 seconds, batch size 256, periodic
+flush disabled, and overflow strategy `Fail`. The timed operation is one flush
+to an in-memory sink. After timing, checks require the first 256 objects in FIFO
+order, 768 remaining items, the correct remaining estimated bytes and zero drops;
+closing the buffer then verifies the full order, zero remaining bytes and no
+drops. These hooks throw on failure; PHPBench reports zero framework assertions.
+The benchmark requires one revolution and zero warmups because each flush consumes
+the prepared buffer. Fixture creation, estimation during admission and the final
+close are not timed.
+
+PHPBench 1.7.0 on PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on an
+Intel Core i7-9700, with CLI OPcache, JIT and PCOV disabled and Xdebug absent,
+reported a mode of **657.671 µs per batch**, relative standard deviation 4.58%,
+and iteration range **642-730 µs**, across ten iterations. No CPU pinning or
+in-process warmup was used. A separate PHP 8.4.27 run passed the same controls
+and reported 747.614 µs mode and 37.36% relative standard deviation; it ran
+concurrently with other checks and is not a controlled version comparison.
+
+This synthetic single-batch measurement includes the clock and in-memory sink,
+not network I/O. It excludes overflow, expired items, failures, concurrent
+publishers, other batch sizes and memory profiling. It is not production
+throughput, a controlled before/after comparison or a regression threshold.
+Phase 0 remains incomplete.
 
 ## CloudEvents mapping and serialization baseline (2026-11-09)
 
