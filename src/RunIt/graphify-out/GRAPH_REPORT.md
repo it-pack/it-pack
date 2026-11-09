@@ -1,21 +1,15 @@
-# Graph Report - RunIt  (2026-11-09)
+# Graph Report - .  (2026-11-09)
 
 ## Corpus Check
-- 817 files · ~364,126 words
-- Verdict: corpus is large enough that graph structure adds value.
+- Report regenerated from existing graph; file statistics unavailable
 
 ## Summary
 - 5621 nodes · 13208 edges · 400 communities (306 shown, 94 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 1198 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
-## Graph Freshness
-- Built from commit: `228a7ff9`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
-
 ## Community Hubs (Navigation)
-- ItPack\RunIt\Contract\Port\ArtifactPublisherInterface
+- Execution Context and Collision Policy
 - ItPack\RunIt\Contract\Domain\ExecutionInterface
 - ItPack\RunIt\Contract\Domain\ExecutionIdInterface
 - ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface
@@ -56,7 +50,7 @@
 - ItPack\RunIt\Contract\Domain\ExecutionKindInterface
 - ExecutionId
 - ItPack\RunIt\Contract\Application\ExecutionRunnerInterface
-- BufferedArtifactPublisher
+- Activity Lifecycle Exceptions
 - RuntimeException
 - ExecutionContext
 - RunIt — In-Depth Review
@@ -383,29 +377,29 @@
 
 ## Communities (400 total, 94 thin omitted)
 
-### Community 0 - "ItPack\RunIt\Contract\Port\ArtifactPublisherInterface"
+### Community 0 - "Execution Context and Collision Policy"
 Cohesion: 0.12
-Nodes (6): ItPack\RunIt\Contract\Domain\ContextCollisionPolicy, ItPack\RunIt\Contract\Domain\ContextEntryInterface, ExecutionContext, ContextCollisionPolicy, self, ExecutionContextTest
+Nodes (6): ExecutionContext, self, ContextCollisionPolicy, ExecutionContextTest, ItPack\RunIt\Contract\Domain\ContextEntryInterface, ItPack\RunIt\Contract\Domain\ContextCollisionPolicy
 
 ### Community 1 - "ItPack\RunIt\Contract\Domain\ExecutionInterface"
 Cohesion: 0.07
-Nodes (15): ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface, CollectAndContinuePolicy, FailClosedPolicy, FailOpenPolicy, self, RecursivePublicationException, ReportToFallbackPolicy, report() (+7 more)
+Nodes (15): CollectAndContinuePolicy, FailClosedPolicy, FailOpenPolicy, RecursivePublicationException, self, ReportToFallbackPolicy, report(), handle() (+7 more)
 
 ### Community 2 - "ItPack\RunIt\Contract\Domain\ExecutionIdInterface"
 Cohesion: 0.06
-Nodes (9): ItPack\RunIt\SDK\Builder\RunItBuilderInterface, RunItBuilderInterface, RunItBuilder, MissingBuilderDependencyException, self, RunItFactories, RunItBuilderInterface, RedactedTagArtifact (+1 more)
+Nodes (9): RunItBuilder, RunItBuilderInterface, MissingBuilderDependencyException, self, RunItFactories, RunItBuilderTest, RunItBuilderInterface, RedactedTagArtifact (+1 more)
 
 ### Community 3 - "ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface"
 Cohesion: 0.14
-Nodes (10): ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface, ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface, ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface, Psr\Http\Message\ServerRequestInterface, Psr\Http\Server\MiddlewareInterface, extract(), ExecutionMiddleware, Psr7RequestContextExtractor (+2 more)
+Nodes (10): extract(), ExecutionMiddleware, Psr7RequestContextExtractor, Psr7ResponseCorrelationEnricher, handle(), ItPack\RunIt\Contract\Shared\HttpExecutionContextInterface, Psr\Http\Message\ServerRequestInterface, ItPack\RunIt\Adapter\Psr\Contract\HttpContextExtractorInterface (+2 more)
 
 ### Community 4 - "ItPack\RunIt\Contract\Domain\OccurrenceInterface"
 Cohesion: 0.07
-Nodes (10): ItPack\RunIt\Behavior\Domain\SequencedBehavior, ItPack\RunIt\Contract\Domain\ContextValueValidatorInterface, ItPack\RunIt\Contract\Domain\OccurrenceIdInterface, ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface, ItPack\RunIt\Contract\Domain\SequencedInterface, ItPack\RunIt\Contract\Domain\StringIdentifierInterface, equals(), record() (+2 more)
+Nodes (10): equals(), record(), Occurrence, FixedSequencedArtifact, ItPack\RunIt\Contract\Domain\OccurrenceTypeInterface, ItPack\RunIt\Contract\Domain\OccurrenceIdInterface, ItPack\RunIt\Contract\Domain\StringIdentifierInterface, ItPack\RunIt\Behavior\Domain\SequencedBehavior (+2 more)
 
 ### Community 5 - "ConformanceResult"
 Cohesion: 0.05
-Nodes (27): ItPack\RunIt\Adapter\Swoole\Contract\CoroutineIdProviderInterface, ItPack\RunIt\Contract\Application\ExecutionScopeInterface, ItPack\RunIt\Contract\Port\ContextStorageInterface, ItPack\RunIt\Contract\Port\ContextTokenInterface, FiberContextStorage, FiberContextToken, CoroutineContextStorage, CoroutineContextToken (+19 more)
+Nodes (27): FiberContextStorage, FiberContextToken, CoroutineContextStorage, CoroutineContextToken, SwooleCoroutineIdProvider, CompositeContextToken, ContextToken, CurrentExecution (+19 more)
 
 ### Community 6 - "ConformanceViolations"
 Cohesion: 0.05
@@ -413,15 +407,15 @@ Nodes (10): ArtifactPublisherVerifierNegativeTest, ContextStorageVerifierNegativ
 
 ### Community 7 - "ItPack\RunIt\Contract\Domain\SnapshotInterface"
 Cohesion: 0.09
-Nodes (7): ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface, ItPack\RunIt\Contract\Domain\SnapshotIdInterface, ItPack\RunIt\Contract\Domain\SnapshotTypeInterface, record(), static, ImpureNormalizeSnapshot, NoopSnapshotRecorder
+Nodes (7): record(), static, ImpureNormalizeSnapshot, NoopSnapshotRecorder, ItPack\RunIt\Contract\Domain\SnapshotIdInterface, ItPack\RunIt\Contract\Domain\SnapshotTypeInterface, ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface
 
 ### Community 8 - "RunItBuilder"
 Cohesion: 0.12
-Nodes (7): ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterface, ItPack\RunIt\Adapter\Psr\Contract\PsrEventToOccurrenceMapperInterface, ItPack\RunIt\Contract\Domain\OccurrenceInterface, OpenTelemetry\SDK\Trace\TracerProvider, DefaultCloudEventToOccurrenceMapper, map(), DefaultPsrEventToOccurrenceMapper
+Nodes (7): DefaultCloudEventToOccurrenceMapper, map(), DefaultPsrEventToOccurrenceMapper, ItPack\RunIt\Contract\Domain\OccurrenceInterface, OpenTelemetry\SDK\Trace\TracerProvider, ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventToOccurrenceMapperInterface, ItPack\RunIt\Adapter\Psr\Contract\PsrEventToOccurrenceMapperInterface
 
 ### Community 9 - "ItPack\RunIt\Contract\Port\ContextStorageInterface"
 Cohesion: 0.12
-Nodes (10): ItPack\RunIt\Adapter\Swoole\Contract\RequestContextExtractorInterface, ItPack\RunIt\Contract\Application\ServerExecutionMiddlewareInterface, ItPack\RunIt\Contract\Domain\ExecutionKindInterface, ItPack\RunIt\Contract\Domain\ExecutionNameInterface, HttpExecutionContext, ServerExecutionMiddleware, getContext(), getKind() (+2 more)
+Nodes (10): HttpExecutionContext, ServerExecutionMiddleware, getName(), getKind(), getContext(), self, ItPack\RunIt\Contract\Domain\ExecutionKindInterface, ItPack\RunIt\Contract\Domain\ExecutionNameInterface (+2 more)
 
 ### Community 10 - "ExecutionDefinition"
 Cohesion: 0.09
@@ -429,11 +423,11 @@ Nodes (12): ExecutionDefinition, ExecutionKind, ExecutionName, InterleavedFiberC
 
 ### Community 11 - "RunIt Implementation Plan"
 Cohesion: 0.04
-Nodes (55): 10.1 `ExecutionRunner`, 10.2 Reentrancy and nested executions, 10.3 Open activity handling, 10. Runtime Coordination, 11.1 Canonical API, 11.2 Fluent immutable SDK, 11.3 Non-intrusive callable decorator, 11.4 Object decorator (+47 more)
+Nodes (55): RunIt Implementation Plan, 1. Executive Summary, 2. Required Decisions and Missing Inputs, 4. Architectural Principles, 6. Semantic Model, 6.2 Execution Context, 6.3 Activity, 6.4 Measurement (+47 more)
 
 ### Community 12 - "ROADMAP.md"
 Cohesion: 0.08
-Nodes (11): ItPack\RunIt\Contract\Application\CurrentExecutionInterface, ItPack\RunIt\Domain\Observation\ObservationSeverity, LoggerCollisionPolicy, Psr\Log\AbstractLogger, Psr\Log\LoggerInterface, ExecutionAwareLogger, ObservationRecordingLogger, ObservationSeverity (+3 more)
+Nodes (11): ExecutionAwareLogger, LoggerCollisionPolicy, ObservationRecordingLogger, ObservationSeverity, Stringable, InMemoryLogger, ObservationRecordingLoggerTest, ItPack\RunIt\Contract\Application\CurrentExecutionInterface (+3 more)
 
 ### Community 13 - "README.md"
 Cohesion: 0.04
@@ -441,19 +435,19 @@ Nodes (28): ADR-001: Execution is the root aggregate, ADR-002: Domain artifacts 
 
 ### Community 14 - "ItPack\RunIt\Contract\Domain\ObservationInterface"
 Cohesion: 0.05
-Nodes (20): IteratorAggregate, ItPack\RunIt\Conformance\Contract\VerifierInterface, ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface, RandomIdentifierGenerator, ConformanceResult, self, ConformanceViolation, IdentifierGeneratorVerifier (+12 more)
+Nodes (20): RandomIdentifierGenerator, ConformanceResult, IteratorAggregate, self, ConformanceViolation, ViolationSeverity, IdentifierGeneratorVerifier, IdentifierGeneratorInterface (+12 more)
 
 ### Community 15 - "ItPack\RunIt\Contract\Domain\ActivityIdInterface"
 Cohesion: 0.09
-Nodes (10): InvalidArgumentException, SerializationExceptionInterface, ConfigurableHashCalculator, fromString(), static, SerializationException, InvalidIdentifierException, self (+2 more)
+Nodes (10): ConfigurableHashCalculator, fromString(), static, InvalidArgumentException, SerializationException, SerializationExceptionInterface, InvalidIdentifierException, self (+2 more)
 
 ### Community 16 - "ExecutionId.php"
 Cohesion: 0.13
-Nodes (20): ItPack\RunIt\Behavior\Application\InstantClockBehavior, ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface, ItPack\RunIt\Contract\Application\SnapshotRecorderInterface, ItPack\RunIt\Contract\Domain\Factory\StringIdentifierFactoryInterface, ItPack\RunIt\Contract\Domain\HashCalculatorInterface, ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface, ItPack\RunIt\Contract\Domain\ThrowableMapperInterface, ItPack\RunIt\Contract\Port\MonotonicClockInterface (+12 more)
+Nodes (20): InMemorySequenceAllocator, ExecutionSnapshotFactory, DefaultObservationRecorder, DefaultOccurrenceRecorder, DefaultSnapshotRecorder, DefaultActivityRunner, DefaultExecutionRunner, NestedExecutionMode (+12 more)
 
 ### Community 17 - "ItPack\RunIt\Contract\Domain\AttributeCollectionInterface"
 Cohesion: 0.15
-Nodes (14): ItPack\RunIt\Contract\Domain\AttributeCollectionInterface, ItPack\RunIt\Contract\Domain\MeasurementInterface, ItPack\RunIt\Contract\Domain\MeasurementKindInterface, ItPack\RunIt\Contract\Domain\MeasurementNameInterface, ItPack\RunIt\Contract\Domain\MeasurementUnitInterface, record(), DefaultMeasurementRecorder, counter() (+6 more)
+Nodes (14): record(), DefaultMeasurementRecorder, counter(), gauge(), duration(), size(), ratio(), Measurement (+6 more)
 
 ### Community 19 - "RunItArtifactFactory"
 Cohesion: 0.06
@@ -461,47 +455,47 @@ Nodes (8): TelemetryPublisher, RunItArtifactFactory, CloudEventPublisherTest, Oc
 
 ### Community 21 - "README.md"
 Cohesion: 0.25
-Nodes (8): Classification, Collection and merging, Entries and values, Execution context, Redaction, Security posture, Standard vocabulary, Types
+Nodes (8): Execution context, Types, Classification, Entries and values, Collection and merging, Redaction, Standard vocabulary, Security posture
 
 ### Community 22 - "ExecutionKind.php"
 Cohesion: 0.07
-Nodes (15): ItPack\RunIt\Contract\Domain\ObservationInterface, ItPack\RunIt\Contract\Domain\ObservationSeverityInterface, OpenTelemetry\API\Logs\Severity, map(), toNumber(), toSeverity(), toText(), toLevel() (+7 more)
+Nodes (15): map(), toSeverity(), toNumber(), toText(), toLevel(), record(), ImpureNormalizeObservation, RecordingObservationRecorder (+7 more)
 
 ### Community 23 - "getting-started.md"
 Cohesion: 0.33
-Nodes (6): Nesting activities, Next, Running an activity, Tutorial 2 — Activities, What you learned, Why activities?
+Nodes (6): Tutorial 2 — Activities, Why activities?, Running an activity, Nesting activities, What you learned, Next
 
 ### Community 24 - "Codeception\Test\Unit"
 Cohesion: 0.11
-Nodes (5): ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface, ItPack\RunIt\Contract\Domain\ActivityStatusInterface, run(), Activity, self
+Nodes (5): run(), Activity, self, ItPack\RunIt\Contract\Domain\ActivityStatusInterface, ItPack\RunIt\Contract\Domain\ActivityDefinitionInterface
 
 ### Community 25 - "FilteringPublisherTest.php"
 Cohesion: 0.38
-Nodes (3): CompositeContextStorageTest, FakeStorage, ExecutionScopeInterface
+Nodes (3): CompositeContextStorageTest, ExecutionScopeInterface, FakeStorage
 
 ### Community 26 - "BufferingTest"
 Cohesion: 0.22
-Nodes (3): ItPack\RunIt\Application\Publication\OverflowStrategy, BufferingTest, OverflowStrategy
+Nodes (3): BufferingTest, OverflowStrategy, ItPack\RunIt\Application\Publication\OverflowStrategy
 
 ### Community 27 - "Closure"
 Cohesion: 0.06
-Nodes (12): ProcessRunnerInterface, DogfoodRunnerTest, FakeProcessRunner, Tools\Dogfood\Process\ProcessRunnerInterface, ProcessResult, run(), ShellProcessRunner, DogfoodReport (+4 more)
+Nodes (12): DogfoodRunnerTest, FakeProcessRunner, ProcessResult, run(), ShellProcessRunner, ProcessRunnerInterface, DogfoodReport, ToolOutcome (+4 more)
 
 ### Community 28 - "RunIt-authored rules"
 Cohesion: 0.05
-Nodes (37): API compatibility (M13.6), Bleeding-edge analysis (non-blocking), Blocker fixed to enable mutation testing, Coding style (M13.4), Complexity guard (Phase 3, T3.2), Contract enums without interfaces (deliberate), Dogfood teardown abort fixed (REVIEW §3 P1-2, plan T1.1), Exception checks (+29 more)
+Nodes (37): Quality Assurance & Static Analysis, Gate overview, Statement coverage (Phase 0, T0.4 of the 2026-08-25 plan), Target-policy regressions, Suite-leakage rule (Phase 0, T0.5), Rector, RunIt-authored rules, Key decision: explicit `mixed` is permitted (+29 more)
 
 ### Community 29 - "ExecutionAwareLoggerTest.php"
 Cohesion: 0.14
-Nodes (11): ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface, DefaultObservationLogMapper, Severity (+3 more)
+Nodes (11): DefaultObservationLogMapper, SeverityMap, Severity, equals(), self, ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface (+3 more)
 
 ### Community 30 - "ItPack\RunIt\Contract\Domain\StringIdentifierInterface"
 Cohesion: 0.17
-Nodes (10): ItPack\RunIt\Contract\Application\NestedExecutionMode, ItPack\RunIt\Contract\Application\NestedExecutionPolicyInterface, ActivityOnlyPolicy, NestedExecutionMode, ChildExecutionPolicy, NestedExecutionMode, DetachedExecutionPolicy, NestedExecutionMode (+2 more)
+Nodes (10): ActivityOnlyPolicy, NestedExecutionMode, ChildExecutionPolicy, NestedExecutionMode, DetachedExecutionPolicy, NestedExecutionMode, RejectNestedPolicy, NestedExecutionMode (+2 more)
 
 ### Community 31 - "ItPack\RunIt\Contract\Domain\ActivityInterface"
 Cohesion: 0.06
-Nodes (16): ExampleVendorPublisher, ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface, ItPack\RunIt\Contract\Port\ArtifactByteEstimatorInterface, DefaultArtifactByteEstimator, BoundedArtifactPublisher, RedactedArtifact, accepts(), test() (+8 more)
+Nodes (16): ExampleVendorPublisher, DefaultArtifactByteEstimator, BoundedArtifactPublisher, RedactedArtifact, accepts(), test(), redact(), sample() (+8 more)
 
 ### Community 32 - "OccurrenceType"
 Cohesion: 0.11
@@ -509,11 +503,11 @@ Nodes (4): NestedSnapshotBench, ArtifactRedactionConfig, self, DefaultArtifactRe
 
 ### Community 33 - "CloudEvent"
 Cohesion: 0.09
-Nodes (9): CloudEvent, self, create(), deserialize(), serialize(), send(), map(), CloudEventSinkTest (+1 more)
+Nodes (9): CloudEvent, self, create(), serialize(), deserialize(), send(), map(), CloudEventSinkTest (+1 more)
 
 ### Community 34 - "SnapshotType"
 Cohesion: 0.07
-Nodes (11): BufferedAdmissionBench, ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface, terminal(), ExecutionSnapshot, Snapshot, SnapshotId, self, SnapshotType (+3 more)
+Nodes (11): BufferedAdmissionBench, terminal(), ExecutionSnapshot, Snapshot, SnapshotId, SnapshotType, self, BoundedArtifactPublisherTest (+3 more)
 
 ### Community 35 - "ActivityDefinition"
 Cohesion: 0.10
@@ -525,39 +519,39 @@ Nodes (9): RunIt Coding and Architecture Standards, RunIt-specific supplements, 
 
 ### Community 37 - "8. Findings register"
 Cohesion: 0.06
-Nodes (32): 10. Performance assessment, 11. Maintainability & DX, 12. Verification, 13. Recommended follow-ups (ordered), 1. Assumptions, 2. Method, 3. Executive summary, 4. Feature assessment (+24 more)
+Nodes (32): RunIt — In-Depth Technical Review, 1. Assumptions, 2. Method, 3. Executive summary, 4. Feature assessment, 5. Architecture (hexagonal, SOLID), 5.1 Boundary integrity — verified, not asserted, 5.2 Factories, builders, instantiation discipline (+24 more)
 
 ### Community 38 - "ItPack\RunIt\Contract\Domain\ExecutionKindInterface"
 Cohesion: 0.27
-Nodes (4): IdentifierFactoryMarkerInterface, ItPack\RunIt\Common\Contract\IdentifierFactoryMarkerInterface, build(), StringIdentifierFactoryTest
+Nodes (4): build(), StringIdentifierFactoryTest, IdentifierFactoryMarkerInterface, ItPack\RunIt\Common\Contract\IdentifierFactoryMarkerInterface
 
 ### Community 39 - "ExecutionId"
 Cohesion: 0.07
-Nodes (7): ExecutionFailure, ExecutionSuccess, self, ThrowableDescription, ExecutionLifecycleCoordinatorTest, ExecutionTest, ThrowableDescriptionTest
+Nodes (7): ExecutionFailure, ExecutionSuccess, ThrowableDescription, self, ExecutionLifecycleCoordinatorTest, ExecutionTest, ThrowableDescriptionTest
 
 ### Community 40 - "ItPack\RunIt\Contract\Application\ExecutionRunnerInterface"
 Cohesion: 0.08
-Nodes (14): ItPack\RunIt\Contract\Application\ActivityRunnerInterface, ItPack\RunIt\Contract\Application\ActivityScopeInterface, ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface, ItPack\RunIt\Contract\Application\MeasurementRecorderInterface, ItPack\RunIt\Contract\Application\ObservationRecorderInterface, ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface, ItPack\RunIt\Contract\Domain\ExecutionInterface, map() (+6 more)
+Nodes (14): map(), transition(), start(), FakeExecutionScope, NoopActivityRunner, NoopOccurrenceRecorder, TransitionFailingCoordinator, ItPack\RunIt\Contract\Domain\ExecutionInterface (+6 more)
 
-### Community 41 - "BufferedArtifactPublisher"
+### Community 41 - "Activity Lifecycle Exceptions"
 Cohesion: 0.13
-Nodes (8): ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface, canTransitionTo(), label(), ConflictingActivityCompletionException, self, InvalidActivityTransitionException, self, ExceptionMarkerContractTest
+Nodes (8): label(), canTransitionTo(), ConflictingActivityCompletionException, self, InvalidActivityTransitionException, self, ExceptionMarkerContractTest, ItPack\RunIt\Contract\Exception\LifecycleExceptionInterface
 
 ### Community 42 - "RuntimeException"
 Cohesion: 0.07
-Nodes (20): ItPack\RunIt\Contract\Exception\RunItExceptionInterface, LogicException, RuntimeException, BoundDropException, self, BufferOverflowException, self, SamplingDropException (+12 more)
+Nodes (20): BoundDropException, RuntimeException, self, BufferOverflowException, SamplingDropException, self, ActivityDepthExceededException, self (+12 more)
 
 ### Community 43 - "ExecutionContext"
 Cohesion: 0.07
-Nodes (29): ExecutedCallableFactoryInterface, ExecutedCallableInterface, ItPack\RunIt\Contract\Application\ExecutionRunnerInterface, ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface, ItPack\RunIt\SDK\Attribute\ExecutedAsMetadataReaderInterface, ItPack\RunIt\SDK\Decorator\ExecutedCallableFactoryInterface, ItPack\RunIt\SDK\Decorator\ExecutedCallableInterface, ItPack\RunIt\SDK\Execution\MetadataExecutionDefinitionFactoryInterface (+21 more)
+Nodes (29): run(), resolve(), ExecutionScopeInterface, NestedExecutionMode, ExecutedCallable, ExecutedCallableInterface, ExecutedCallableFactory, ExecutedCallableFactoryInterface (+21 more)
 
 ### Community 44 - "RunIt — In-Depth Review"
 Cohesion: 0.07
-Nodes (28): 10.1 Already correct, 10.2 Opportunities — [DERIVED], 10. PHP 8.4 feature leverage, 11. Security — [VERIFIED for S1–S6], 12. Performance — [DERIVED/VERIFIED], 13. DX, 14. Maintainability, 15. Testing gaps (+20 more)
+Nodes (28): RunIt — In-Depth Review, 1. Executive summary, 2. Strengths (preserve), 3. Architecture, ports & adapters, 3.1 Hexagonal boundaries — [VERIFIED], 3.2 Ports/adapters — sound. See §3.1 and §6., 4. Interface coverage — [DERIVED], 5. Factories — [DERIVED] (+20 more)
 
 ### Community 45 - "HttpAdaptersTest.php"
 Cohesion: 0.22
-Nodes (8): ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface, OpenTelemetry\API\Trace\SpanContextInterface, activityContext(), executionContext(), recordActivity(), recordExecution(), InMemoryExecutionSpanStore, self
+Nodes (8): recordExecution(), recordActivity(), executionContext(), activityContext(), InMemoryExecutionSpanStore, self, ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface, OpenTelemetry\API\Trace\SpanContextInterface
 
 ### Community 47 - "ExecutionContext.php"
 Cohesion: 0.22
@@ -565,7 +559,7 @@ Nodes (3): RunItPortFixture, Instant, self
 
 ### Community 48 - "Phase 0 — P0 correctness & security (do first, blocks release)"
 Cohesion: 0.07
-Nodes (27): Ordering & dependencies, Phase 0 — P0 correctness & security (do first, blocks release), Phase 1 — P1 invariants & contracts (magic values, clocks), Phase 2 — P2 mechanical DRY, factories, interfaces, feature leverage, Phase 3 — P3 guardrails & hygiene, RunIt — Refactoring Plan, T0.1 — S1: wire secret context redaction into normalization — **DONE 2026-08-21**, T0.2 — S2: bound serializer recursion for objects — **DONE 2026-08-21** (+19 more)
+Nodes (27): RunIt — Refactoring Plan, Phase 0 — P0 correctness & security (do first, blocks release), T0.1 — S1: wire secret context redaction into normalization — **DONE 2026-08-21**, T0.2 — S2: bound serializer recursion for objects — **DONE 2026-08-21**, T0.3 — S3: bound context value recursion — **DONE 2026-08-21**, T0.4 — S4: validate `ExecutionSnapshot` payload — **DONE 2026-08-21**, T0.5 — S5: `WeakMap` metadata cache — **DONE 2026-08-21**, T0.6 — S6: redaction must not silently drop artifacts — **DONE 2026-08-21** (+19 more)
 
 ### Community 50 - "AttributeCollection"
 Cohesion: 0.11
@@ -577,7 +571,7 @@ Nodes (26): scripts, analyse, analyse:bleeding-edge, api:baseline, api:check, ar
 
 ### Community 56 - "RunIt — Refactoring Plan"
 Cohesion: 0.08
-Nodes (25): Cross-cutting rules for all phases, Milestone ordering & exit criteria, Out of scope (recorded, not planned), Phase 1 — Mechanical normalization (behavior-free), Phase 2 — Guards: make the categories non-regrowable, Phase 3 — Structural decisions: interface backing & vocabulary homes, Phase 4 — Mutation testing: enforce, don't admire, Phase 5 — Opportunistic modernization (each task independently skippable) (+17 more)
+Nodes (25): RunIt — Refactoring Plan, Cross-cutting rules for all phases, Phase 1 — Mechanical normalization (behavior-free), T1.1 — Member-declaration-order normalization (R-3), T1.2 — Test-suite import pass (R-1), T1.3 — Fixture constant hoist (R-12), Phase 2 — Guards: make the categories non-regrowable, T2.1 — `MemberOrderRule` (guards T1.1) (+17 more)
 
 ### Community 57 - "TelemetryPublisher.php"
 Cohesion: 0.12
@@ -585,31 +579,31 @@ Nodes (5): AttributionCollaborator, AttributionTarget, AllowedTest, AttributionT
 
 ### Community 58 - "ExecutionMiddleware.php"
 Cohesion: 0.11
-Nodes (8): ArrayObject, OpenTelemetry\SDK\Logs\Exporter\InMemoryExporter, OpenTelemetry\SDK\Logs\ReadableLogRecord, OpenTelemetry\SDK\Metrics\Data\Metric, OpenTelemetry\SDK\Metrics\MetricExporter\InMemoryExporter, OpenTelemetry\SDK\Metrics\MetricReader\ExportingReader, OtelTestKit, ObservationLogMapperTest
+Nodes (8): OtelTestKit, ArrayObject, ObservationLogMapperTest, OpenTelemetry\SDK\Metrics\MetricReader\ExportingReader, OpenTelemetry\SDK\Logs\ReadableLogRecord, OpenTelemetry\SDK\Metrics\Data\Metric, OpenTelemetry\SDK\Metrics\MetricExporter\InMemoryExporter, OpenTelemetry\SDK\Logs\Exporter\InMemoryExporter
 
 ### Community 59 - "ItPack\RunIt\Contract\Domain\ExecutionResultInterface"
 Cohesion: 0.07
-Nodes (13): Closure, CallbackHealthReporter, ErrorLogHealthReporter, ExecutionKindPredicate, FallbackErrorLogReporter, RatioSamplePolicy, executionId(), ExecutionIdInterface (+5 more)
+Nodes (13): CallbackHealthReporter, ErrorLogHealthReporter, ExecutionKindPredicate, FallbackErrorLogReporter, RatioSamplePolicy, executionId(), ExecutionIdInterface, read() (+5 more)
 
 ### Community 60 - "RunIt"
 Cohesion: 0.08
-Nodes (26): Architecture, Coding standards, Contributing, Core Concepts, Dependency architecture, Design Philosophy, Development, Documentation (+18 more)
+Nodes (26): RunIt, Table of Contents, Purpose, Example execution kinds, Project Status, Requirements, Installation, Core Concepts (+18 more)
 
 ### Community 61 - "OpenActivityPolicyTest.php"
 Cohesion: 0.13
-Nodes (8): ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface, AutoCancelOpenActivitiesPolicy, AutoFailOpenActivitiesPolicy, FailExecutionOnOpenActivitiesPolicy, WarnAndIgnoreOpenActivitiesPolicy, isError(), level(), ThrowingCompletionPolicy
+Nodes (8): AutoCancelOpenActivitiesPolicy, AutoFailOpenActivitiesPolicy, FailExecutionOnOpenActivitiesPolicy, WarnAndIgnoreOpenActivitiesPolicy, level(), isError(), ThrowingCompletionPolicy, ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface
 
 ### Community 63 - "RunIt Documentation Plan — Reasoning & Suggestions"
 Cohesion: 0.08
-Nodes (24): 10. Open questions for the maintainer, 11. References (existing files this plan builds on), 1. Thesis, 2.1 What already exists (strengths), 2.2 Key weaknesses, 2. Current documentation inventory & assessment, 3. Identified gaps & inconsistencies (consolidation targets), 4. Proposed information architecture (sitemap) (+16 more)
+Nodes (24): RunIt Documentation Plan — Reasoning & Suggestions, 1. Thesis, 2. Current documentation inventory & assessment, 2.1 What already exists (strengths), 2.2 Key weaknesses, 3. Identified gaps & inconsistencies (consolidation targets), 4. Proposed information architecture (sitemap), 5. The step-by-step learning path (core ask) (+16 more)
 
 ### Community 64 - "CloudEventMappingPolicy"
 Cohesion: 0.08
-Nodes (17): ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior, ItPack\RunIt\Contract\Domain\ActivityInterface, OpenTelemetry\API\Trace\SpanInterface, OpenTelemetry\Context\ContextInterface, resolveParentContext(), startSpan(), map(), extractContext() (+9 more)
+Nodes (17): startSpan(), resolveParentContext(), map(), extractContext(), toRunItContext(), DefaultActivitySpanMapper, DefaultExecutionSpanMapper, ActivityScope (+9 more)
 
 ### Community 65 - "BridgeConfigBuilder"
 Cohesion: 0.08
-Nodes (17): ItPack\RunIt\Adapter\Psr\Contract\ObservationToPsr3LevelMapperInterface, ItPack\RunIt\Conformance\Contract\PortFixtureInterface, ItPack\RunIt\Contract\Application\Publication\PublicationGuardInterface, ItPack\RunIt\Contract\Application\Publication\RedactorInterface, ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface, PublicationPipelineInterface, DefaultObservationToPsr3LevelMapper, ObservationLoggerPublisher (+9 more)
+Nodes (17): DefaultObservationToPsr3LevelMapper, ObservationLoggerPublisher, PublicationPipeline, PublicationPipelineInterface, ArtifactPublisherVerifier, ArtifactPublisherInterface, RedactorVerifier, RedactorInterface (+9 more)
 
 ### Community 66 - "IdentifierTest.php"
 Cohesion: 0.15
@@ -617,63 +611,63 @@ Nodes (4): CloudEventBench, DefaultCloudEventJsonSerializer, InvalidCloudEventEx
 
 ### Community 67 - "ItPack\RunIt\Contract\Domain\ExecutionStatusInterface"
 Cohesion: 0.10
-Nodes (19): ItPack\RunIt\Adapter\OpenTelemetry\Contract\ContextToOtelMapperInterface, ItPack\RunIt\Contract\Domain\ExecutionContextInterface, OpenTelemetry\API\Baggage\BaggageInterface, injectIntoCarrier(), toBaggage(), DefaultContextToOtelMapper, extract(), activities() (+11 more)
+Nodes (19): toBaggage(), injectIntoCarrier(), DefaultContextToOtelMapper, extract(), execution(), context(), activities(), ActivityRunnerInterface (+11 more)
 
 ### Community 68 - "RunItBuilderInterface.php"
 Cohesion: 0.13
-Nodes (26): ItPack\RunIt\Contract\Application\ExecutionFactoryInterface, ExecutionFactory, build(), create(), RunItBuilderInterface, withClock(), withCompletionPolicy(), withContextStorage() (+18 more)
+Nodes (26): ExecutionFactory, create(), RunItBuilderInterface, withPublisher(), withClock(), withSequenceAllocator(), withSnapshotSerializer(), withIdentifierGenerator() (+18 more)
 
 ### Community 69 - "RunIt — Refactoring Plan"
 Cohesion: 0.08
-Nodes (23): Cross-cutting rules for all phases, Milestone ordering & exit criteria, Out of scope (recorded, not planned), Phase 0 — Verification gap: raise statement coverage to ≥95% (REVIEW §3 P1-1), Phase 1 — Unblock local mutation testing; set an MSI floor (REVIEW §3 P1-2), Phase 2 — Conformance kit self-exercise (REVIEW §3 P1-3), Phase 3 — Mechanical hygiene passes (REVIEW §3 P2-1..P2-3), Phase 4 — Cosmetic residues (REVIEW §3 P3-1..P3-3) (+15 more)
+Nodes (23): RunIt — Refactoring Plan, Cross-cutting rules for all phases, Phase 0 — Verification gap: raise statement coverage to ≥95% (REVIEW §3 P1-1), T0.1 — Publication-path branch closure (~16 stmts), T0.2 — Domain value-set completion (~12 stmts), T0.3 — Exception named constructors (~6 stmts), T0.4 — Long-tail strengthening (~85 stmts across ~30 files), T0.5 — Leakage audit as a standing rule (+15 more)
 
 ### Community 70 - "3. Detailed findings"
 Cohesion: 0.08
-Nodes (23): 1. Conceptual review checklist, 2. Summary scorecard, 3.10 Developer experience & maintainability, 3.11 Quality gates executed in this environment, 3.1 Architecture & hexagonal boundaries, 3.2 SOLID, 3.3 DRY, 3.4 Interface coverage (+15 more)
+Nodes (23): RunIt — In-Depth Code Review, 1. Conceptual review checklist, 2. Summary scorecard, 3. Detailed findings, 3.1 Architecture & hexagonal boundaries, 3.2 SOLID, 3.3 DRY, 3.4 Interface coverage (+15 more)
 
 ### Community 71 - "RunItTestKit"
 Cohesion: 0.21
-Nodes (3): self, SecurityLimits, SecurityLimitsTest
+Nodes (3): SecurityLimits, self, SecurityLimitsTest
 
 ### Community 72 - "ContextKey"
 Cohesion: 0.20
-Nodes (4): ItPack\RunIt\Contract\Application\WorkerLifecycleInterface, self, WorkerLifecycleReporter, WorkerLifecycleReporterTest
+Nodes (4): WorkerLifecycleReporter, self, WorkerLifecycleReporterTest, ItPack\RunIt\Contract\Application\WorkerLifecycleInterface
 
 ### Community 73 - "ItPack\RunIt\Contract\Domain\ActivityStatusInterface"
 Cohesion: 0.07
-Nodes (21): ItPack\RunIt\Contract\Application\CancellationMapperInterface, ItPack\RunIt\Contract\Application\TimeoutMapperInterface, ItPack\RunIt\Contract\Domain\CancellationInterface, ItPack\RunIt\Contract\Domain\ExecutionResultInterface, ItPack\RunIt\Contract\Domain\ExecutionStatusInterface, ItPack\RunIt\Contract\Domain\TimeoutInterface, ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface, map() (+13 more)
+Nodes (21): map(), ExecutionLifecycleCoordinator, DefaultCancellationMapper, DefaultTimeoutMapper, map(), map(), ConflictingCompletionException, self (+13 more)
 
 ### Community 75 - "AttributeValidatorTest"
 Cohesion: 0.20
-Nodes (10): M5.1 Activity runtime contracts, M5.2 Activity runner, M5.3 Open activity policies, M5.4 Measurement recorder, M5.5 Observation recorder, M5.6 Occurrence recorder, M5.7 Snapshot recorder, M5 acceptance gate (+2 more)
+Nodes (10): Milestone M5 — Activity Runtime and Artifact Recorders, M5.1 Activity runtime contracts, M5.2 Activity runner, M5.3 Open activity policies, M5.4 Measurement recorder, M5.5 Observation recorder, M5.6 Occurrence recorder, M5.7 Snapshot recorder (+2 more)
 
 ### Community 76 - "3. Detailed findings"
 Cohesion: 0.09
-Nodes (21): 1. Conceptual review checklist, 2. Summary scorecard, 3.10 Quality gates, 3.1 Architecture & hexagonal boundaries, 3.2 SOLID, 3.3 DRY, 3.4 Interface coverage, 3.5 Control-flow, complexity & magic values (+13 more)
+Nodes (21): RunIt — In-Depth Code Review, 1. Conceptual review checklist, 2. Summary scorecard, 3. Detailed findings, 3.1 Architecture & hexagonal boundaries, 3.2 SOLID, 3.3 DRY, 3.4 Interface coverage (+13 more)
 
 ### Community 77 - "3. Detailed findings"
 Cohesion: 0.09
-Nodes (21): 1. Conceptual review checklist, 2. Summary scorecard, 3.1 Architecture & hexagonal boundaries, 3.2 SOLID & interface coverage, 3.3 DRY, 3.4 Control flow, complexity & magic values, 3.5 Lifecycle, publication & the exception-preservation hole, 3.6 Security (+13 more)
+Nodes (21): RunIt — In-Depth Code Review, 1. Conceptual review checklist, 2. Summary scorecard, 3. Detailed findings, 3.1 Architecture & hexagonal boundaries, 3.2 SOLID & interface coverage, 3.3 DRY, 3.4 Control flow, complexity & magic values (+13 more)
 
 ### Community 78 - "M14.8 — Third-Party Usability Validation: Reasoning and Plan"
 Cohesion: 0.09
-Nodes (21): 10. Implementation status (delivered), 1. TL;DR, 2.1 Conformance toolkit — already shipped and exported, 2.2 First-party examples and docs, 2.3 The real gap, 2. Current state (what already exists), 3. Defining "third party" for this milestone, 4. Proposed deliverable structure (+13 more)
+Nodes (21): M14.8 — Third-Party Usability Validation: Reasoning and Plan, 1. TL;DR, 2. Current state (what already exists), 2.1 Conformance toolkit — already shipped and exported, 2.2 First-party examples and docs, 2.3 The real gap, 3. Defining "third party" for this milestone, 4. Proposed deliverable structure (+13 more)
 
 ### Community 79 - "Phase 3 — P3: polish, hygiene, and measured modernization"
 Cohesion: 0.10
-Nodes (20): Cross-cutting notes, Phase 0 — P0: gate health & exception-preservation guarantee, Phase 1 — P1: structural lifecycle invariants & real exception markers, Phase 2 — P2: DRY consolidation, bounded caches, hot-path cost, Phase 3 — P3: polish, hygiene, and measured modernization, RunIt — Refactoring Plan, T0.1 — Add `withSecurityLimits()` and health-callback seams to `RunItBuilder` (REVIEW.md §3.10, §3.7, §4 P0-1), T0.2 — Guarantee original-exception preservation in `completeFailure()` (REVIEW.md §3.7, §4 P0-2) (+12 more)
+Nodes (20): RunIt — Refactoring Plan, Phase 0 — P0: gate health & exception-preservation guarantee, T0.1 — Add `withSecurityLimits()` and health-callback seams to `RunItBuilder` (REVIEW.md §3.10, §3.7, §4 P0-1), T0.2 — Guarantee original-exception preservation in `completeFailure()` (REVIEW.md §3.7, §4 P0-2), Phase 1 — P1: structural lifecycle invariants & real exception markers, T1.1 — Enforce the transition matrix in the aggregate, not only the coordinator (REVIEW.md §3.7, §4 P1-3), T1.2 — Implement the promised lifecycle marker; retire or implement the unused one (REVIEW.md §3.7, §4 P1-4), T1.3 — No unmarked SPL exceptions (REVIEW.md §3.5, §4 P1-5) (+12 more)
 
 ### Community 80 - "RunIt — Refactoring Plan"
 Cohesion: 0.10
-Nodes (19): Cross-cutting notes, Phase 0 — P0: exception-preservation & observability holes, Phase 1 — P1: real security default & bounded-state defects, Phase 2 — P2: DRY residue & contract hygiene, Phase 3 — P3: decisions, defensive edges, polish, RunIt — Refactoring Plan, T0.1 — Guard all health-callback invocations (REVIEW.md §3.5.1, §3.6, §4 P0-1), T0.2 — Report pre-try-block faults (REVIEW.md §3.5.2, §4 P0-2) (+11 more)
+Nodes (19): RunIt — Refactoring Plan, Phase 0 — P0: exception-preservation & observability holes, T0.1 — Guard all health-callback invocations (REVIEW.md §3.5.1, §3.6, §4 P0-1), T0.2 — Report pre-try-block faults (REVIEW.md §3.5.2, §4 P0-2), T0.3 — Recursion guard and drop observability in the default stack (REVIEW.md §3.5.3–§3.5.4, §4 P0-3), Phase 1 — P1: real security default & bounded-state defects, T1.1 — Make redaction the default and teach it (REVIEW.md §3.6, §4 P1-4), T1.2 — Bounded-state hygiene cluster (REVIEW.md §3.5.5, §3.7, §4 P1-5) (+11 more)
 
 ### Community 81 - "EXECUTION.md"
 Cohesion: 0.10
-Nodes (18): Activity, Adapter Mapping, Concept reference, ConfigureIt Example, Design Principles, Execution, Execution Context, Future Packages (+10 more)
+Nodes (18): It_Pack Execution Model, Purpose, Philosophy, Execution, Execution Context, Activity, Measurement, Observation (+10 more)
 
 ### Community 83 - "ObservationRecordingLoggerTest"
 Cohesion: 0.10
-Nodes (9): ItPack\RunIt\Contract\Domain\ContextKeyInterface, ItPack\RunIt\Contract\Domain\ContextSourceInterface, ContextEntry, self, ContextKey, self, ContextEntryTest, ContextKeyTest (+1 more)
+Nodes (9): ContextEntry, self, ContextKey, self, ContextEntryTest, ContextKeyTest, DefaultContextRedactionPolicyTest, ItPack\RunIt\Contract\Domain\ContextKeyInterface (+1 more)
 
 ### Community 84 - "ItPack\RunIt\Contract\Exception\InvalidValueExceptionInterface"
 Cohesion: 0.12
@@ -681,15 +675,15 @@ Nodes (3): ExecutionContextInterface, DeterministicHashCalculator, CurrentExecut
 
 ### Community 85 - "BridgeConfig"
 Cohesion: 0.15
-Nodes (5): ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface, BufferConfiguration, OverflowStrategy, self, BufferedArtifactPublisher
+Nodes (5): BufferConfiguration, OverflowStrategy, self, BufferedArtifactPublisher, ItPack\RunIt\Contract\Application\Publication\BatchFlushObserverInterface
 
 ### Community 86 - "RunIt — Refactoring Plan"
 Cohesion: 0.11
-Nodes (18): Cross-cutting notes, Phase 0 — P0: make `composer analyse` pass (release-blocking), Phase 1 — P1: close the DIP leak & sweep dead code, Phase 2 — P2: DRY, assembly & modern-PHP leverage, Phase 3 — P3: polish, RunIt — Refactoring Plan, T0.1 — Add a contract for `HttpExecutionContext` (REVIEW.md §3.4, §4 P0-1) — **DONE**, T0.2 — Type the redactor iterables (REVIEW.md §3.7, §4 P0-2) (+10 more)
+Nodes (18): RunIt — Refactoring Plan, Phase 0 — P0: make `composer analyse` pass (release-blocking), T0.1 — Add a contract for `HttpExecutionContext` (REVIEW.md §3.4, §4 P0-1) — **DONE**, T0.2 — Type the redactor iterables (REVIEW.md §3.7, §4 P0-2), Phase 1 — P1: close the DIP leak & sweep dead code, T1.1 — Document `HttpExecutionContext` as a public contract (REVIEW.md §4 P1-3) — **DONE**, T1.2 — Triage the `shipmonk.deadMethod` notices (REVIEW.md §3.9, §4 P1-4) — **DONE**, Phase 2 — P2: DRY, assembly & modern-PHP leverage (+10 more)
 
 ### Community 87 - "Milestone M12 — Security, Privacy, Performance, and Resilience"
 Cohesion: 0.11
-Nodes (19): Benchmarks (M12.5 / M12.6), Data protection (M12.1), M12.1 Data protection, M12.2 Tenant isolation, M12.3 Serialization security, M12.4 Snapshot integrity, M12.5 Performance benchmarks, M12.6 Performance gates (+11 more)
+Nodes (19): Milestone M12 — Security, Privacy, Performance, and Resilience, M12.1 Data protection, M12.2 Tenant isolation, M12.3 Serialization security, M12.4 Snapshot integrity, M12.5 Performance benchmarks, M12.6 Performance gates, M12.7 Resilience (+11 more)
 
 ### Community 88 - "InvalidCloudEventException"
 Cohesion: 0.09
@@ -697,7 +691,7 @@ Nodes (5): OccurrenceId, OccurrenceType, OccurrenceEventTest, OccurrenceTest, Oc
 
 ### Community 89 - "StringValueEquality"
 Cohesion: 0.09
-Nodes (12): ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy, OpenTelemetry\API\Logs\LoggerProviderInterface, OpenTelemetry\API\Metrics\MeterProviderInterface, OpenTelemetry\API\Trace\TracerProviderInterface, OpenTelemetry\Context\Propagation\TextMapPropagatorInterface, BridgeCapability, self, BridgeConfig (+4 more)
+Nodes (12): BridgeCapability, self, BridgeConfig, self, BridgeConfigBuilder, self, BridgeConfigTest, OpenTelemetry\API\Trace\TracerProviderInterface (+4 more)
 
 ### Community 90 - "require-dev"
 Cohesion: 0.11
@@ -705,139 +699,139 @@ Nodes (18): require-dev, codeception/module-asserts, codeception/module-phpbrows
 
 ### Community 91 - "CloudEventJsonSerializerTest"
 Cohesion: 0.04
-Nodes (55): 1. Purpose, 2.1 Checklist semantics, 2.2 Definition of implemented, 2.3 Definition of verified, 2.4 Scheduling assumptions, 2. Roadmap Rules, 3. Release Overview, Architecture (+47 more)
+Nodes (55): RunIt Roadmap, 1. Purpose, 2. Roadmap Rules, 2.1 Checklist semantics, 2.2 Definition of implemented, 2.3 Definition of verified, 2.4 Scheduling assumptions, 3. Release Overview (+47 more)
 
 ### Community 93 - "composer.json"
 Cohesion: 0.12
-Nodes (16): authors, autoload, psr-4, description, license, minimum-stability, name, prefer-stable (+8 more)
+Nodes (16): name, description, license, type, authors, support, issues, source (+8 more)
 
 ### Community 94 - "3. Findings"
 Cohesion: 0.12
-Nodes (16): 1. Conceptual review checklist, 2. Summary scorecard, 3. Findings, 4. Verified strengths (evidence-backed), 5. Assumptions, 6. Recommended order of work, P1-1 — Statement coverage is 90.50%, below the 95% requirement, P1-2 — Mutation testing cannot complete locally (+8 more)
+Nodes (16): RunIt — In-Depth Code Review, 1. Conceptual review checklist, 2. Summary scorecard, 3. Findings, P1-1 — Statement coverage is 90.50%, below the 95% requirement, P1-2 — Mutation testing cannot complete locally, P1-3 — Conformance kit is not self-exercised, P2-1 — Inline FQCN references bypass imports (14 sites) (+8 more)
 
 ### Community 96 - "CloudEventPublisher.php"
 Cohesion: 0.09
-Nodes (15): ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventFactoryInterface, ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSinkInterface, ItPack\RunIt\Adapter\CloudEvents\Contract\OccurrenceToCloudEventMapperInterface, ItPack\RunIt\Contract\Domain\RedactedArtifactInterface, CloudEventPublisher, self, CloudEventsBridgeConfig, CloudEventsBridgeConfigBuilder (+7 more)
+Nodes (15): CloudEventPublisher, self, CloudEventsBridgeConfig, CloudEventsBridgeConfigBuilder, self, map(), CloudEventMappingPolicy, self (+7 more)
 
 ### Community 97 - "ItPack\RunIt\Contract\Domain\ExecutionContextInterface"
 Cohesion: 0.08
-Nodes (19): ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior, ItPack\RunIt\Conformance\Result\ViolationSeverity, ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface, ItPack\RunIt\Contract\Port\ArtifactPublisherInterface, ItPack\RunIt\Contract\Port\CloseablePublisherInterface, ItPack\RunIt\Contract\Port\FlushablePublisherInterface, NullArtifactPublisher, CallbackArtifactPublisher (+11 more)
+Nodes (19): NullArtifactPublisher, CallbackArtifactPublisher, CompositeArtifactPublisher, FailSafeArtifactPublisher, FilteringArtifactPublisher, GuardedArtifactPublisher, build(), RedactingArtifactPublisher (+11 more)
 
 ### Community 98 - "PhpParser\Node"
 Cohesion: 0.17
-Nodes (12): M9.1 Integration boundaries, M9.2 Execution and trace mapping, M9.3 Activity and span mapping, M9.4 Context and propagation, M9.5 Measurements and metrics, M9.6 Observations and logs, M9.7 Occurrences and snapshots, M9.8 Fiber-aware OTel integration (+4 more)
+Nodes (12): Milestone M9 — OpenTelemetry Integration, M9.1 Integration boundaries, M9.2 Execution and trace mapping, M9.3 Activity and span mapping, M9.4 Context and propagation, M9.5 Measurements and metrics, M9.6 Observations and logs, M9.7 Occurrences and snapshots (+4 more)
 
 ### Community 99 - "CompositeContextStorageTest"
 Cohesion: 0.25
-Nodes (4): PHPStan\Reflection\ReflectionProvider, PHPStan\Testing\RuleTestCase, RequireInterfaceRuleTest, RequireInterfaceRule
+Nodes (4): RequireInterfaceRuleTest, RequireInterfaceRule, PHPStan\Reflection\ReflectionProvider, PHPStan\Testing\RuleTestCase
 
 ### Community 102 - "Milestone M14 — Documentation, Dogfooding, and ItPack Adoption"
 Cohesion: 0.12
-Nodes (16): M14.1 Core documentation, M14.1 status audit — August 21, 2026, M14.2 Architecture documentation, M14.2 status audit — August 21, 2026, M14.3 Integration documentation, M14.3 status audit — August 21, 2026, M14.4 Recipes, M14.4 status audit — August 21, 2026 (+8 more)
+Nodes (16): Milestone M14 — Documentation, Dogfooding, and ItPack Adoption, M14.1 Core documentation, M14.1 status audit — August 21, 2026, M14.2 Architecture documentation, M14.2 status audit — August 21, 2026, M14.3 Integration documentation, M14.3 status audit — August 21, 2026, M14.4 Recipes (+8 more)
 
 ### Community 105 - "ContextEntry"
 Cohesion: 0.20
-Nodes (10): Activity, Invariants, Lifecycle, Nesting, Normalization, Ownership, Public API usage, Related decisions (+2 more)
+Nodes (10): Activity, What an activity represents, Types, Lifecycle, Nesting, Ownership, Normalization, Invariants (+2 more)
 
 ### Community 107 - "ExecutionSuccess"
 Cohesion: 0.20
-Nodes (6): ItPack\RunIt\Contract\Domain\ContextClassificationInterface, ItPack\RunIt\Contract\Domain\ContextPropagationPolicyInterface, ItPack\RunIt\Contract\Domain\ContextSerializationPolicyInterface, DefaultContextPropagationPolicy, DefaultContextSerializationPolicy, DefaultContextPoliciesTest
+Nodes (6): DefaultContextPropagationPolicy, DefaultContextSerializationPolicy, DefaultContextPoliciesTest, ItPack\RunIt\Contract\Domain\ContextClassificationInterface, ItPack\RunIt\Contract\Domain\ContextPropagationPolicyInterface, ItPack\RunIt\Contract\Domain\ContextSerializationPolicyInterface
 
 ### Community 108 - "SecurityLimits"
 Cohesion: 0.19
-Nodes (7): ItPack\RunIt\Contract\Domain\SnapshotInterface, mapOccurrence(), mapSnapshot(), verifyChain(), verifyIntegrity(), store(), ThrowingSnapshotStore
+Nodes (7): mapOccurrence(), mapSnapshot(), verifyIntegrity(), verifyChain(), store(), ThrowingSnapshotStore, ItPack\RunIt\Contract\Domain\SnapshotInterface
 
 ### Community 109 - "RedactingPublisherTest"
 Cohesion: 0.20
-Nodes (4): ItPack\RunIt\Contract\Domain\DurationInterface, measure(), self, Timeout
+Nodes (4): measure(), Timeout, self, ItPack\RunIt\Contract\Domain\DurationInterface
 
 ### Community 110 - "SamplingTest"
 Cohesion: 0.17
-Nodes (5): PhpParser\Node, ForbiddenUnsafeTypeRule, Param, MemberOrderRule, TypeNode
+Nodes (5): ForbiddenUnsafeTypeRule, Param, MemberOrderRule, TypeNode, PhpParser\Node
 
 ### Community 111 - "Codeception\Actor"
 Cohesion: 0.22
-Nodes (10): Codeception\Actor, ConcurrencyTester, ConformanceTester, FunctionalTester, Tests\Support\_generated\ConcurrencyTesterActions, Tests\Support\_generated\ConformanceTesterActions, Tests\Support\_generated\FunctionalTesterActions, Tests\Support\_generated\UnitTesterActions (+2 more)
+Nodes (10): ConcurrencyTester, ConformanceTester, FunctionalTester, IntegrationTester, UnitTester, Codeception\Actor, Tests\Support\_generated\ConcurrencyTesterActions, Tests\Support\_generated\ConformanceTesterActions (+2 more)
 
 ### Community 112 - "Prioritized findings"
 Cohesion: 0.13
-Nodes (15): High: Buffer byte limit is not a hard admission limit, High: Default publication failures can be silent, High: Redaction occurs after the sampling decision, High: Runtime-specific context storage is required for concurrency, High: The frozen interface baseline detects a breaking change, High: Throwable redaction misses nested failure details, High: Unit coverage is below the required floor, Medium: Architecture gate covers less than the architecture prose implies (+7 more)
+Nodes (15): Prioritized findings, High: Throwable redaction misses nested failure details, High: Redaction occurs after the sampling decision, High: Buffer byte limit is not a hard admission limit, High: Default publication failures can be silent, High: The frozen interface baseline detects a breaking change, High: Unit coverage is below the required floor, High: Runtime-specific context storage is required for concurrency (+7 more)
 
 ### Community 114 - "OpenTelemetry\API\Trace\SpanContextInterface"
 Cohesion: 0.27
-Nodes (6): ItPack\RunIt\Contract\Domain\ExecutionDefinitionFactoryInterface, ItPack\RunIt\SDK\Attribute\ExecutedAsInterface, MetadataExecutionDefinitionFactoryInterface, ExecutionDefinitionFactory, MetadataExecutionDefinitionFactory, create()
+Nodes (6): ExecutionDefinitionFactory, MetadataExecutionDefinitionFactory, MetadataExecutionDefinitionFactoryInterface, create(), ItPack\RunIt\Contract\Domain\ExecutionDefinitionFactoryInterface, ItPack\RunIt\SDK\Attribute\ExecutedAsInterface
 
 ### Community 115 - "DefaultMeasurementInstrumentMapper"
 Cohesion: 0.19
-Nodes (3): OpenTelemetry\API\Metrics\MeterInterface, DefaultMeasurementInstrumentMapper, InstrumentCache
+Nodes (3): DefaultMeasurementInstrumentMapper, InstrumentCache, OpenTelemetry\API\Metrics\MeterInterface
 
 ### Community 116 - "PHPStan\Rules\Rule"
 Cohesion: 0.19
-Nodes (5): ItPack\RunIt\Behavior\Domain\ValidatedStringIdentifierBehavior, ItPack\RunIt\Contract\Domain\CorrelationIdInterface, ActivityId, CorrelationId, ActivityTest
+Nodes (5): ActivityId, CorrelationId, ActivityTest, ItPack\RunIt\Behavior\Domain\ValidatedStringIdentifierBehavior, ItPack\RunIt\Contract\Domain\CorrelationIdInterface
 
 ### Community 117 - "ActivityInterface.php"
 Cohesion: 0.17
-Nodes (14): complete(), definition(), endedAt(), id(), ActivityDefinitionInterface, ActivityIdInterface, ActivityInterface, ActivityStatusInterface (+6 more)
+Nodes (14): id(), ActivityIdInterface, definition(), ActivityDefinitionInterface, status(), ActivityStatusInterface, startedAt(), InstantInterface (+6 more)
 
 ### Community 118 - "ExecutionInterface.php"
 Cohesion: 0.17
-Nodes (14): beginRunning(), complete(), definition(), endedAt(), id(), ExecutionDefinitionInterface, ExecutionIdInterface, ExecutionInterface (+6 more)
+Nodes (14): id(), ExecutionIdInterface, definition(), ExecutionDefinitionInterface, status(), ExecutionStatusInterface, startedAt(), InstantInterface (+6 more)
 
 ### Community 120 - "Backward compatibility"
 Cohesion: 0.14
-Nodes (14): Backward compatibility, Baseline policy, CI, Phase 0 (P0) public API additions, Public API scope, Refactoring plan (2026-08-23) public API additions, Refactoring plan Phase 0 (2026-08-24) additions, Refactoring plan Phase 1 (2026-08-23) lifecycle changes (+6 more)
+Nodes (14): Backward compatibility, Public API scope, Phase 0 (P0) public API additions, Refactoring plan (2026-08-23) public API additions, Refactoring plan Phase 1 (2026-08-23) lifecycle changes, Refactoring plan Phase 0 (2026-08-24) additions, Refactoring plan Phase 1 (2026-08-24) changes, Refactoring plan Phase 3 (2026-08-24) changes (+6 more)
 
 ### Community 121 - "Per-adapter behaviour"
 Cohesion: 0.14
-Nodes (14): Adapter failure policies, Choosing a policy, CloudEvents, Domain failure policies, Fiber, OpenTelemetry, Per-adapter behaviour, PSR-14 (occurrence dispatch) (+6 more)
+Nodes (14): Adapter failure policies, The pipeline wraps every adapter, Domain failure policies, Per-adapter behaviour, OpenTelemetry, CloudEvents, PSR-3 (observation export, logger decorator, log-to-observation bridge), PSR-14 (occurrence dispatch) (+6 more)
 
 ### Community 122 - "PSR interoperability"
 Cohesion: 0.14
-Nodes (14): Behaviour summary, Failure behaviour, HTTP server example, Level mapping, Outbound HTTP client example, PSR-14 occurrence bridge, PSR-15 middleware, PSR-18 propagation client (+6 more)
+Nodes (14): PSR interoperability, Required optional packages, PSR-20 clock, PSR-3 observation export, Level mapping, PSR-3 execution-aware decorator, PSR-3 to observation bridge, PSR-14 occurrence bridge (+6 more)
 
 ### Community 123 - "InvalidArgumentException"
 Cohesion: 0.29
-Nodes (3): ItPack\RunIt\Contract\Domain\ContextRedactionPolicyInterface, DefaultContextRedactionPolicy, self
+Nodes (3): DefaultContextRedactionPolicy, self, ItPack\RunIt\Contract\Domain\ContextRedactionPolicyInterface
 
 ### Community 124 - "ItPack\RunIt\Contract\Domain\ContextClassificationInterface"
 Cohesion: 0.29
-Nodes (3): attributeWrappedOperation(), DefaultRunItTest, RunItInterface
+Nodes (3): DefaultRunItTest, RunItInterface, attributeWrappedOperation()
 
 ### Community 125 - "ItPack\RunIt\Contract\Domain\DurationInterface"
 Cohesion: 0.22
-Nodes (4): ItPack\RunIt\Contract\Domain\AttributeValidatorInterface, AttributeValidator, InvalidAttributeException, self
+Nodes (4): AttributeValidator, InvalidAttributeException, self, ItPack\RunIt\Contract\Domain\AttributeValidatorInterface
 
 ### Community 126 - "ProcessResult"
 Cohesion: 0.15
-Nodes (8): ItPack\RunIt\Contract\Domain\StringIdentifierValidatorInterface, measurement(), occurrence(), safeObservation(), sensitiveObservation(), snapshot(), snapshotPatcher(), stringIdentifierValidator()
+Nodes (8): safeObservation(), sensitiveObservation(), measurement(), occurrence(), snapshot(), snapshotPatcher(), stringIdentifierValidator(), ItPack\RunIt\Contract\Domain\StringIdentifierValidatorInterface
 
 ### Community 127 - "ExecutionContextInterface.php"
 Cohesion: 0.09
-Nodes (15): Countable, self, with(), without(), find(), get(), merge(), ContextCollisionPolicy (+7 more)
+Nodes (15): Countable, with(), self, without(), get(), ContextEntryInterface, find(), with() (+7 more)
 
 ### Community 128 - "Duration"
 Cohesion: 0.39
-Nodes (7): Contract, Direct, Inherited, Intermediate, Missing, ParentWithInterface, ParentWithoutInterface
+Nodes (7): ParentWithInterface, Contract, Intermediate, Direct, Inherited, ParentWithoutInterface, Missing
 
 ### Community 132 - "ReflectionFunctionAbstract"
 Cohesion: 0.33
-Nodes (4): CallableReflectionResolverInterface, ReflectionFunctionAbstract, CallableReflectionResolver, resolve()
+Nodes (4): CallableReflectionResolver, CallableReflectionResolverInterface, resolve(), ReflectionFunctionAbstract
 
 ### Community 133 - "Milestone M11 — Fiber and Swoole/OpenSwoole Execution"
 Cohesion: 0.15
-Nodes (13): M11.1 Fiber context storage, M11.2 Composite context storage, M11.3 Execution engine port, M11.4 Swoole/OpenSwoole feasibility, M11.5 Coroutine context storage, M11.6 HTTP server adapter, M11.7 Worker lifecycle, M11 acceptance gate (+5 more)
+Nodes (13): Milestone M11 — Fiber and Swoole/OpenSwoole Execution, M11.1 Fiber context storage, M11.2 Composite context storage, M11.3 Execution engine port, M11.4 Swoole/OpenSwoole feasibility, M11.5 Coroutine context storage, M11.6 HTTP server adapter, M11.7 Worker lifecycle (+5 more)
 
 ### Community 134 - "Milestone M13 — Conformance Tooling and QA Completion"
 Cohesion: 0.15
-Nodes (13): M13.1 Test-framework-agnostic contract suites, M13.2 PHPStan completion, M13.3 DepTrac completion, M13.3 status audit — August 21, 2026, M13.4 Coding standards, M13.4 status audit — August 21, 2026, M13.5 Mutation testing, M13.6 Backward compatibility (+5 more)
+Nodes (13): Milestone M13 — Conformance Tooling and QA Completion, M13.1 Test-framework-agnostic contract suites, M13.2 PHPStan completion, M13.3 DepTrac completion, M13.3 status audit — August 21, 2026, M13.4 Coding standards, M13.4 status audit — August 21, 2026, M13.5 Mutation testing (+5 more)
 
 ### Community 135 - "Milestone M1 — Shared Domain Primitives"
 Cohesion: 0.15
-Nodes (13): M1.1 Base contracts, M1.2 Identifiers, M1.2 status audit, M1.3 Names and kinds, M1.3 status audit, M1.4 status audit, M1.4 Time and sequencing, M1.5 Attributes (+5 more)
+Nodes (13): Milestone M1 — Shared Domain Primitives, M1.1 Base contracts, M1.2 Identifiers, M1.2 status audit, M1.3 Names and kinds, M1.3 status audit, M1.4 Time and sequencing, M1.4 status audit (+5 more)
 
 ### Community 136 - "Milestone M4 — Execution Lifecycle Runtime"
 Cohesion: 0.15
-Nodes (13): M4.1 Application contracts, M4.2 Execution state machine, M4.3 Default execution runner, M4.4 Nested execution policies, M4.5 Execution scope, M4.6 Context storage, M4.7 Cancellation and timeout, M4 acceptance gate (+5 more)
+Nodes (13): Milestone M4 — Execution Lifecycle Runtime, M4.1 Application contracts, M4.2 Execution state machine, M4.3 Default execution runner, M4.4 Nested execution policies, M4.5 Execution scope, M4.6 Context storage, M4.7 Cancellation and timeout (+5 more)
 
 ### Community 139 - "ContextValueValidator.php"
 Cohesion: 0.10
@@ -845,75 +839,75 @@ Nodes (5): ObservationId, ObservationLoggerPublisherTest, GuardedPublisherTest, 
 
 ### Community 140 - "ExecutionScopeInterface.php"
 Cohesion: 0.12
-Nodes (6): ItPack\RunIt\Contract\Domain\StringValueValidatorInterface, StringValueValidator, __construct(), fromString(), static, StringValueValidatorTest
+Nodes (6): StringValueValidator, __construct(), fromString(), static, StringValueValidatorTest, ItPack\RunIt\Contract\Domain\StringValueValidatorInterface
 
 ### Community 141 - "OccurrenceInterface.php"
 Cohesion: 0.15
-Nodes (6): id(), InstantInterface, OccurrenceIdInterface, OccurrenceTypeInterface, time(), type()
+Nodes (6): id(), OccurrenceIdInterface, type(), OccurrenceTypeInterface, time(), InstantInterface
 
 ### Community 142 - "ActivityId"
 Cohesion: 0.25
-Nodes (8): Invariants, Normalization, Occurrence, Ownership, Public API usage, Related decisions, Types, What an occurrence represents
+Nodes (8): Occurrence, What an occurrence represents, Types, Ownership, Normalization, Invariants, Public API usage, Related decisions
 
 ### Community 146 - "Recorded baselines (2026-08-23)"
 Cohesion: 0.09
-Nodes (21): Buffer drain and close baseline (2026-11-06), Buffer overflow and priority baseline (2026-11-08), Buffered admission baseline (2026-11-09), Buffered batch flush baseline (2026-11-09), Buffered drain and close baseline (2026-11-09), Byte-bound buffer overflow baseline, CloudEvents mapping and serialization baseline (2026-11-09), Covered scenarios (+13 more)
+Nodes (21): M12.5 / M12.6 Performance Benchmarks, Covered scenarios, Targets, Regression policy, Buffered batch flush baseline (2026-11-09), CloudEvents mapping and serialization baseline (2026-11-09), PHPBench baseline (2026-11-09), Buffered admission baseline (2026-11-09) (+13 more)
 
 ### Community 147 - "RunIt Refactoring Plan"
 Cohesion: 0.17
-Nodes (12): Decisions required before dependent changes, Phase 0: Baseline and safety net, Phase 1: Compatibility and context ownership, Phase 2: Publication security and artifact routing, Phase 3: Bounded buffering and performance, Phase 4: Failure handling and lifecycle outcomes, Phase 5: OpenTelemetry retention, Phase 6: Coverage, QA, architecture, and dependency maintenance (+4 more)
+Nodes (12): RunIt Refactoring Plan, Scope and execution rules, Decisions required before dependent changes, Phase 0: Baseline and safety net, Phase 1: Compatibility and context ownership, Phase 2: Publication security and artifact routing, Phase 3: Bounded buffering and performance, Phase 4: Failure handling and lifecycle outcomes (+4 more)
 
 ### Community 148 - "Milestone M6 — Artifact Publication Pipeline"
 Cohesion: 0.22
-Nodes (9): Base Contracts, Contracts, Exception markers, ExecutionArtifactInterface, NormalizableInterface, Ownership contracts, StringIdentifierInterface, StringProviderInterface and StringValueInterface (+1 more)
+Nodes (9): Base Contracts, Contracts, NormalizableInterface, StringProviderInterface and StringValueInterface, StringIdentifierInterface, ExecutionArtifactInterface, Ownership contracts, Timing, sequencing, attributes (+1 more)
 
 ### Community 149 - "DefaultExecutedAsMetadataReader"
 Cohesion: 0.27
-Nodes (5): ExecutedAsInterface, ExecutedAsMetadataReaderInterface, DefaultExecutedAsMetadataReader, CallableReflectionResolverInterface, ExecutedAs
+Nodes (5): DefaultExecutedAsMetadataReader, ExecutedAsMetadataReaderInterface, CallableReflectionResolverInterface, ExecutedAs, ExecutedAsInterface
 
 ### Community 150 - "ContextEntryInterface.php"
 Cohesion: 0.18
-Nodes (9): classification(), expiresAt(), isExpired(), key(), ContextClassificationInterface, ContextKeyInterface, ContextSourceInterface, InstantInterface (+1 more)
+Nodes (9): key(), ContextKeyInterface, classification(), ContextClassificationInterface, expiresAt(), InstantInterface, source(), ContextSourceInterface (+1 more)
 
 ### Community 151 - "SnapshotInterface.php"
 Cohesion: 0.18
-Nodes (7): classification(), id(), SnapshotClassificationInterface, SnapshotIdInterface, SnapshotTypeInterface, predecessorId(), type()
+Nodes (7): id(), SnapshotIdInterface, type(), SnapshotTypeInterface, classification(), SnapshotClassificationInterface, predecessorId()
 
 ### Community 153 - "RunIt Agent Guide"
 Cohesion: 0.18
-Nodes (10): Architecture And Domain, Find The Right Context, Finish, graphify, Package And Release, PHP And Design, Public API And Compatibility, RunIt Agent Guide (+2 more)
+Nodes (10): RunIt Agent Guide, Start Here, Package And Release, Find The Right Context, Architecture And Domain, PHP And Design, Tests And Quality, Public API And Compatibility (+2 more)
 
 ### Community 154 - "ExecutionBench"
 Cohesion: 0.33
-Nodes (6): Adapters and bridges, Capability summary, Constraints and guarantees, Integration compatibility matrix, Related ADRs, Runtime
+Nodes (6): Integration compatibility matrix, Runtime, Adapters and bridges, Capability summary, Constraints and guarantees, Related ADRs
 
 ### Community 155 - "suggest"
 Cohesion: 0.18
-Nodes (11): suggest, cloudevents/sdk-php, ext-openswoole, ext-swoole, open-telemetry/api, open-telemetry/sdk, psr/clock, psr/event-dispatcher (+3 more)
+Nodes (11): suggest, ext-openswoole, ext-swoole, cloudevents/sdk-php, open-telemetry/api, open-telemetry/sdk, psr/clock, psr/event-dispatcher (+3 more)
 
 ### Community 156 - "RunIt Architecture Security"
 Cohesion: 0.18
-Nodes (11): Bounds everywhere (no unbounded exfiltration), Classification and redaction (deny-by-default), Defense-in-depth layers, Fail-open by default, fail-closed available, No global mutable execution state, Ports isolate external effects, Recursive publication is contained, RunIt Architecture Security (+3 more)
+Nodes (11): RunIt Architecture Security, Defense-in-depth layers, Classification and redaction (deny-by-default), Bounds everywhere (no unbounded exfiltration), No global mutable execution state, Ports isolate external effects, Recursive publication is contained, Fail-open by default, fail-closed available (+3 more)
 
 ### Community 157 - "Changelog"
 Cohesion: 0.18
-Nodes (10): 1.0.0-rc.1, Changelog, Unreleased, Unreleased — M1.2 identifiers, Unreleased — M1.3 names and kinds, Unreleased — M1.4 time and sequencing, Unreleased — Phase 0 (P0), Unreleased — Phase 1 (P1) (+2 more)
+Nodes (10): Changelog, 1.0.0-rc.1, Unreleased, Unreleased — Phase 0 (P0), Unreleased — Phase 1 (P1), Unreleased — Phase 2 (P2), Unreleased — Phase 3 (P3), Unreleased — M1.2 identifiers (+2 more)
 
 ### Community 158 - "ContextSource"
 Cohesion: 0.33
-Nodes (6): Components, Composite (runtime-aware) storage, Context cleanup, Fiber context storage, Fiber execution engine, RunIt + Fibers
+Nodes (6): RunIt + Fibers, Components, Fiber context storage, Composite (runtime-aware) storage, Fiber execution engine, Context cleanup
 
 ### Community 159 - "HmacSnapshotSigner"
 Cohesion: 0.22
-Nodes (3): ItPack\RunIt\Contract\Port\SnapshotSignerInterface, HmacSnapshotSigner, HmacSnapshotSignerTest
+Nodes (3): HmacSnapshotSigner, HmacSnapshotSignerTest, ItPack\RunIt\Contract\Port\SnapshotSignerInterface
 
 ### Community 161 - ".runExecution"
 Cohesion: 0.29
-Nodes (7): A taste: CloudEvents, A taste: OpenTelemetry, Choosing an integration, Inspecting what was produced, Publication guarantees, Tutorial 7 — Publish & integrate, Where to go now
+Nodes (7): Tutorial 7 — Publish & integrate, Inspecting what was produced, Choosing an integration, A taste: OpenTelemetry, A taste: CloudEvents, Publication guarantees, Where to go now
 
 ### Community 162 - "MeasurementUnit.php"
 Cohesion: 0.22
-Nodes (9): Benchmarked changes, Bounded buffers and backpressure, Cost model, Determinism and hashing, Fiber and coroutine switching, Hot-path design rules, RunIt Architecture Performance, Vocabulary (+1 more)
+Nodes (9): RunIt Architecture Performance, Hot-path design rules, Cost model, Bounded buffers and backpressure, Fiber and coroutine switching, Determinism and hashing, What the architecture avoids, Benchmarked changes (+1 more)
 
 ### Community 164 - "ActivitySpanMapperTest"
 Cohesion: 0.22
@@ -921,155 +915,155 @@ Nodes (3): Cancellation, self, CancellationTimeoutTest
 
 ### Community 165 - "BasicPublisherTest"
 Cohesion: 0.33
-Nodes (6): Attaching context to an execution, Building context, Next, Tutorial 5 — Context & classification, What you learned, Why deny-by-default?
+Nodes (6): Tutorial 5 — Context & classification, Building context, Attaching context to an execution, Why deny-by-default?, What you learned, Next
 
 ### Community 166 - "NamesAndKindsTest"
 Cohesion: 0.29
-Nodes (6): Attribute types, Attributes, Immutability and normalization, Security posture, Usage, Validation rules
+Nodes (6): Attributes, Attribute types, Validation rules, Immutability and normalization, Usage, Security posture
 
 ### Community 167 - "ExecutedCallableTest"
 Cohesion: 0.20
-Nodes (10): M3.1 Execution model, M3.2 Activity model, M3.3 Measurement model, M3.4 Observation model, M3.5 Occurrence model, M3.6 Snapshot model, M3.7 Artifact relationships, M3 acceptance gate (+2 more)
+Nodes (10): Milestone M3 — Execution and Artifact Semantic Model, M3.1 Execution model, M3.2 Activity model, M3.3 Measurement model, M3.4 Observation model, M3.5 Occurrence model, M3.6 Snapshot model, M3.7 Artifact relationships (+2 more)
 
 ### Community 169 - "By theme"
 Cohesion: 0.20
-Nodes (10): Architecture & boundaries, By theme, Context & propagation, Domain model, Integrations & packaging, Principles every reader should know, Publication, security & resilience, RunIt Architecture Decision Records (+2 more)
+Nodes (10): RunIt Architecture Decision Records, Principles every reader should know, By theme, Domain model, Architecture & boundaries, Context & propagation, Time & sequencing, Publication, security & resilience (+2 more)
 
 ### Community 170 - "RunIt Context Propagation"
 Cohesion: 0.22
-Nodes (9): Execution, Identity, ownership, and relationships, Invariants, Lifecycle, Normalization, Public API usage, Related decisions, Types (+1 more)
+Nodes (9): Execution, What an execution represents, Types, Lifecycle, Identity, ownership, and relationships, Normalization, Invariants, Public API usage (+1 more)
 
 ### Community 171 - "RunIt Self-Instrumentation"
 Cohesion: 0.20
-Nodes (10): Dogfooding without recursion, Guard in the default stack, Health callbacks are contained, Instrument batches, not every method, Intentionally uninstrumented bootstrap path, Recursion guard, RunIt Self-Instrumentation, The recursion problem (+2 more)
+Nodes (10): RunIt Self-Instrumentation, The recursion problem, Recursion guard, Guard in the default stack, Health callbacks are contained, Instrument batches, not every method, Intentionally uninstrumented bootstrap path, Dogfooding without recursion (+2 more)
 
 ### Community 172 - "Activity"
 Cohesion: 0.08
-Nodes (10): ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface, ArtifactTypeFilter, CompositeArtifactFilter, ExecutionKindFilter, ObservationSeverityFilter, OccurrenceTypeFilter, PublicationRoute, RecordingArtifactPublisher (+2 more)
+Nodes (10): ArtifactTypeFilter, CompositeArtifactFilter, ExecutionKindFilter, ObservationSeverityFilter, OccurrenceTypeFilter, PublicationRoute, RecordingArtifactPublisher, RoutingArtifactPublisherTest (+2 more)
 
 ### Community 173 - "CloudEvents integration"
 Cohesion: 0.20
-Nodes (10): CloudEvents integration, Conceptual mapping, Delivery guarantees, Event size limits, HTTP delivery, Installation, Mapping an occurrence to a CloudEvent, Required optional packages (+2 more)
+Nodes (10): CloudEvents integration, Scope, Conceptual mapping, Required optional packages, Installation, Mapping an occurrence to a CloudEvent, Serialization, HTTP delivery (+2 more)
 
 ### Community 174 - "OpenTelemetry integration"
 Cohesion: 0.20
-Nodes (10): Cardiality and payload controls, Conceptual mappings, Example, Fiber considerations, Installation, OpenTelemetry integration, Provider responsibility, Redaction before export (+2 more)
+Nodes (10): OpenTelemetry integration, Required optional packages, Conceptual mappings, Installation, Provider responsibility, Span context retention, Cardiality and payload controls, Redaction before export (+2 more)
 
 ### Community 175 - "Milestone M10 — CloudEvents Integration"
 Cohesion: 0.20
-Nodes (10): M10.1 Integration boundaries, M10.2 Occurrence to CloudEvent, M10.3 CloudEvent to occurrence, M10.4 Serialization and bindings, M10.5 Delivery adapters, M10 acceptance gate, M10 documentation, M10 status audit — August 20, 2026 (+2 more)
+Nodes (10): Milestone M10 — CloudEvents Integration, M10.1 Integration boundaries, M10.2 Occurrence to CloudEvent, M10.3 CloudEvent to occurrence, M10.4 Serialization and bindings, M10.5 Delivery adapters, M10 documentation, M10 acceptance gate (+2 more)
 
 ### Community 177 - "Milestone M5 — Activity Runtime and Artifact Recorders"
 Cohesion: 0.25
-Nodes (8): Equality, Exceptions, Identifier types, Identifiers, Representation decision, Security notes, Tests, Validation rules
+Nodes (8): Identifiers, Identifier types, Representation decision, Validation rules, Equality, Exceptions, Security notes, Tests
 
 ### Community 178 - "Milestone M7 — Programmatic SDK and Non-Intrusive Adoption"
 Cohesion: 0.20
-Nodes (10): M7.1 Runtime builder, M7.2 Runtime facade, M7.3 Callable decorator, M7.4 Service decorators, M7.5 Attribute metadata, M7.6 Developer experience, M7 acceptance gate, M7 status audit — August 19, 2026 (+2 more)
+Nodes (10): Milestone M7 — Programmatic SDK and Non-Intrusive Adoption, M7.1 Runtime builder, M7.2 Runtime facade, M7.3 Callable decorator, M7.4 Service decorators, M7.5 Attribute metadata, M7.6 Developer experience, M7 acceptance gate (+2 more)
 
 ### Community 179 - "Milestone M8 — PSR Interoperability"
 Cohesion: 0.20
-Nodes (10): M8.1 PSR-20 clock, M8.2 PSR-3 observation export, M8.3 Execution-aware PSR-3 decorator, M8.4 PSR-3 to observation bridge, M8.5 PSR-14 occurrence bridge, M8.6 HTTP PSRs, M8 acceptance gate, M8 documentation (+2 more)
+Nodes (10): Milestone M8 — PSR Interoperability, M8.1 PSR-20 clock, M8.2 PSR-3 observation export, M8.3 Execution-aware PSR-3 decorator, M8.4 PSR-3 to observation bridge, M8.5 PSR-14 occurrence bridge, M8.6 HTTP PSRs, M8 documentation (+2 more)
 
 ### Community 180 - "ExecutionDefinitionInterface.php"
 Cohesion: 0.20
-Nodes (8): context(), kind(), name(), parentExecutionId(), ExecutionContextInterface, ExecutionIdInterface, ExecutionKindInterface, ExecutionNameInterface
+Nodes (8): name(), ExecutionNameInterface, kind(), ExecutionKindInterface, parentExecutionId(), ExecutionIdInterface, context(), ExecutionContextInterface
 
 ### Community 181 - "MeasurementInterface.php"
 Cohesion: 0.20
-Nodes (8): activityId(), kind(), name(), MeasurementKindInterface, MeasurementNameInterface, MeasurementUnitInterface, StringIdentifierInterface, unit()
+Nodes (8): name(), MeasurementNameInterface, kind(), MeasurementKindInterface, unit(), MeasurementUnitInterface, activityId(), StringIdentifierInterface
 
 ### Community 182 - "DeterministicMonotonicClock"
 Cohesion: 0.15
-Nodes (8): ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanKindMapInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanStatusMapInterface, OpenTelemetry\SDK\Trace\SpanDataInterface, OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter, __construct(), SpanKindMap, SpanStatusMap, SpanKindMapTest
+Nodes (8): __construct(), SpanKindMap, SpanStatusMap, SpanKindMapTest, ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanKindMapInterface, ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanStatusMapInterface, OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter, OpenTelemetry\SDK\Trace\SpanDataInterface
 
 ### Community 184 - ".snapshot"
 Cohesion: 0.40
-Nodes (5): Artifact catalog, Classification and redaction, Normalization schema, Ownership, sequencing, and timing invariants, Semantic model (artifacts)
+Nodes (5): Semantic model (artifacts), Ownership, sequencing, and timing invariants, Artifact catalog, Classification and redaction, Normalization schema
 
 ### Community 187 - "DogfoodRunner.php"
 Cohesion: 0.29
-Nodes (7): Dev and example dependencies, Installation patterns, No global provider configuration, Optional dependencies, Related, Suggested (opt-in) packages, What the core always requires
+Nodes (7): Optional dependencies, What the core always requires, Suggested (opt-in) packages, Dev and example dependencies, Installation patterns, No global provider configuration, Related
 
 ### Community 188 - "DevTool"
 Cohesion: 0.33
-Nodes (6): Errors preserve the original exception, Linking executions, Next, Tutorial 6 — Nesting, flow & errors, What you learned, Why this matters
+Nodes (6): Tutorial 6 — Nesting, flow & errors, Linking executions, Errors preserve the original exception, Why this matters, What you learned, Next
 
 ### Community 189 - "quality"
 Cohesion: 0.20
-Nodes (10): quality, @analyse, @architecture, @composer validate --strict, @cs:check, @lint:length, @refactor:dry, @security:audit (+2 more)
+Nodes (10): quality, @composer validate --strict, @refactor:dry, @cs:check, @analyse, @architecture, @lint:length, @test (+2 more)
 
 ### Community 190 - "22.1 Testing layers"
 Cohesion: 0.22
-Nodes (9): 22.1 Testing layers, Adapter integration tests, Application tests, Compatibility tests, Concurrency tests, Contract test suites, Domain tests, Failure-injection tests (+1 more)
+Nodes (9): 22.1 Testing layers, Domain tests, Application tests, Contract test suites, Adapter integration tests, Compatibility tests, Property-based tests, Concurrency tests (+1 more)
 
 ### Community 191 - "PublicationGuard"
 Cohesion: 0.08
-Nodes (8): ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface, FiberRuntimeDetector, SwooleRuntimeDetector, CompositeContextStorage, FiberRuntimeDetectorTest, SwooleRuntimeDetectorTest, FakeDetector, WeakMap
+Nodes (8): FiberRuntimeDetector, SwooleRuntimeDetector, CompositeContextStorage, FiberRuntimeDetectorTest, SwooleRuntimeDetectorTest, FakeDetector, WeakMap, ItPack\RunIt\Contract\Port\RuntimeContextDetectorInterface
 
 ### Community 192 - "Execution"
 Cohesion: 0.25
-Nodes (8): Activity nesting, Cancellation and timeout, Exception preservation, Nested execution, RunIt Execution Lifecycle, Runner flow, State machine, Vocabulary
+Nodes (8): RunIt Execution Lifecycle, State machine, Runner flow, Nested execution, Activity nesting, Exception preservation, Cancellation and timeout, Vocabulary
 
 ### Community 193 - "Snapshot"
 Cohesion: 0.22
-Nodes (9): Hashing and integrity, Invariants, Normalization, Ownership, Public API usage, Related decisions, Snapshot, Types (+1 more)
+Nodes (9): Snapshot, What a snapshot represents, Types, Ownership, Normalization, Hashing and integrity, Invariants, Public API usage (+1 more)
 
 ### Community 194 - "Time and sequencing"
 Cohesion: 0.22
-Nodes (8): ArtifactSequence, Duration, Instant, MonotonicClock (port), SequenceAllocator (port), Tests, Time and sequencing, Vocabulary
+Nodes (8): Time and sequencing, Instant, Duration, ArtifactSequence, SequenceAllocator (port), MonotonicClock (port), Vocabulary, Tests
 
 ### Community 195 - "RunIt dogfooding"
 Cohesion: 0.22
-Nodes (8): Instrumenting adapter batch flushes, RunIt dogfooding, Running it, The intentionally uninstrumented bootstrap path, The six represented runs, Verify dogfooding does not distort benchmarks, Verify dogfooding does not recurse, Why dogfood at all
+Nodes (8): RunIt dogfooding, Why dogfood at all, The six represented runs, Instrumenting adapter batch flushes, Verify dogfooding does not recurse, Verify dogfooding does not distort benchmarks, The intentionally uninstrumented bootstrap path, Running it
 
 ### Community 196 - "Milestone M0 — Repository and Architecture Foundation"
 Cohesion: 0.22
-Nodes (9): M0.1 Repository initialization, M0.2 Composer package, M0.3 Directory structure, M0.4 Coding and architectural standards, M0.5 Initial ADRs, M0.6 Tooling bootstrap, M0 acceptance gate, M0 status audit — August 5, 2026 (+1 more)
+Nodes (9): Milestone M0 — Repository and Architecture Foundation, M0.1 Repository initialization, M0.2 Composer package, M0.3 Directory structure, M0.4 Coding and architectural standards, M0.5 Initial ADRs, M0.6 Tooling bootstrap, M0 acceptance gate (+1 more)
 
 ### Community 197 - "M12.8 Supply-Chain Security"
 Cohesion: 0.22
-Nodes (8): CI action pinning, Dependency audit, Dependency review, M12.8 Supply-Chain Security, Provenance, SBOM, Secret scanning, Vulnerability reporting
+Nodes (8): M12.8 Supply-Chain Security, Dependency audit, SBOM, Dependency review, CI action pinning, Secret scanning, Vulnerability reporting, Provenance
 
 ### Community 198 - "StringIdentifierFactoryTest"
 Cohesion: 0.29
-Nodes (7): Equality, Exceptions, Names and kinds, Tests, Validation rules, Value objects, Why extensible strings, not enums
+Nodes (7): Names and kinds, Value objects, Why extensible strings, not enums, Validation rules, Equality, Exceptions, Tests
 
 ### Community 199 - "CloudEventPublisher"
 Cohesion: 0.08
-Nodes (14): ItPack\RunIt\Contract\Application\Publication\ArtifactPredicateInterface, ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface, PublisherStackFactory, AlwaysSamplePolicy, ErrorOverrideSamplePolicy, ExecutionKindSamplePolicy, HeadBasedSamplingPolicy, NeverSamplePolicy (+6 more)
+Nodes (14): PublisherStackFactory, AlwaysSamplePolicy, ErrorOverrideSamplePolicy, ExecutionKindSamplePolicy, HeadBasedSamplingPolicy, NeverSamplePolicy, ObservationSeverityPredicate, SeveritySamplePolicy (+6 more)
 
 ### Community 200 - ".run"
 Cohesion: 0.14
-Nodes (5): BufferedFlushBench, ItPack\RunIt\Contract\Application\Publication\PublicationGuardTokenInterface, InMemoryArtifactPublisher, PublicationGuard, PublicationGuardToken
+Nodes (5): BufferedFlushBench, InMemoryArtifactPublisher, PublicationGuard, PublicationGuardToken, ItPack\RunIt\Contract\Application\Publication\PublicationGuardTokenInterface
 
 ### Community 201 - "ObservationInterface.php"
 Cohesion: 0.22
-Nodes (6): id(), ObservationIdInterface, ObservationSeverityInterface, ThrowableDescriptionInterface, severity(), throwableDescription()
+Nodes (6): id(), ObservationIdInterface, severity(), ObservationSeverityInterface, throwableDescription(), ThrowableDescriptionInterface
 
 ### Community 202 - "TimeoutInterface.php"
 Cohesion: 0.25
-Nodes (7): elapsed(), labels(), limit(), AttributeCollectionInterface, DurationInterface, ThrowableDescriptionInterface, throwableDescription()
+Nodes (7): limit(), DurationInterface, elapsed(), labels(), AttributeCollectionInterface, throwableDescription(), ThrowableDescriptionInterface
 
 ### Community 203 - "PublicationPipelineTest"
 Cohesion: 0.08
-Nodes (19): Architecture, Cross-cutting, Guides, RunIt integration documentation, Components, Coroutine context storage, HTTP server middleware, Persistent-worker requirements (+11 more)
+Nodes (19): RunIt integration documentation, Guides, Cross-cutting, Architecture, RunIt + Swoole / OpenSwoole, Components, Coroutine context storage, HTTP server middleware (+11 more)
 
 ### Community 204 - "RoutingArtifactPublisherTest"
 Cohesion: 0.11
-Nodes (8): ItPack\RunIt\Behavior\Domain\StringProviderBehavior, ItPack\RunIt\Common\Contract\StringableInterface, ItPack\RunIt\Contract\Domain\StringValueInterface, StringValueEquality, equals(), ContextSource, self, ContextSourceTest
+Nodes (8): StringValueEquality, equals(), ContextSource, self, ContextSourceTest, ItPack\RunIt\Common\Contract\StringableInterface, ItPack\RunIt\Contract\Domain\StringValueInterface, ItPack\RunIt\Behavior\Domain\StringProviderBehavior
 
 ### Community 206 - "allow-plugins"
 Cohesion: 0.25
-Nodes (8): dantleech/what-changed, ergebnis/composer-normalize, infection/extension-installer, php-http/discovery, phpstan/extension-installer, tbachert/spi, config, allow-plugins
+Nodes (8): config, allow-plugins, dantleech/what-changed, ergebnis/composer-normalize, infection/extension-installer, php-http/discovery, phpstan/extension-installer, tbachert/spi
 
 ### Community 207 - "keywords"
 Cohesion: 0.25
-Nodes (8): keywords, context, execution, it-pack, itpack, observability, runtime, telemetry
+Nodes (8): keywords, runtime, execution, observability, telemetry, context, it-pack, itpack
 
 ### Community 208 - "RunIt Hexagonal Architecture"
 Cohesion: 0.25
-Nodes (8): Adapters, Boundaries at a glance, Consumers and SDK, Dependency direction, Layered diagram, Ports, RunIt Hexagonal Architecture, Vocabulary
+Nodes (8): RunIt Hexagonal Architecture, Dependency direction, Layered diagram, Ports, Adapters, Consumers and SDK, Boundaries at a glance, Vocabulary
 
 ### Community 210 - "Execution context"
 Cohesion: 0.17
@@ -1077,7 +1071,7 @@ Nodes (3): ExtendedSampleService, SampleInvokable, SampleService
 
 ### Community 213 - "Psr\Http\Client\ClientInterface"
 Cohesion: 0.25
-Nodes (8): Invariants, Normalization, Observation, Ownership, Public API usage, Related decisions, Types, What an observation represents
+Nodes (8): Observation, What an observation represents, Types, Ownership, Normalization, Invariants, Public API usage, Related decisions
 
 ### Community 214 - "Occurrence"
 Cohesion: 0.24
@@ -1085,47 +1079,47 @@ Nodes (3): AttributeKey, self, AttributeKeyTest
 
 ### Community 215 - "Port Conformance Verification"
 Cohesion: 0.25
-Nodes (8): Authoring a new verifier, Port Conformance Verification, Reference, Run it as a plain script (no test framework), Run it inside a test framework, Self-exercised in CI, The fixture contract, Verifiers
+Nodes (8): Port Conformance Verification, Verifiers, The fixture contract, Run it as a plain script (no test framework), Run it inside a test framework, Self-exercised in CI, Authoring a new verifier, Reference
 
 ### Community 216 - "RunIt Ecosystem"
 Cohesion: 0.25
-Nodes (8): Bridges and future packages, Core package — `it-pack/run-it`, How the pieces fit, Next, Reference consumer — ConfigureIt, RunIt Ecosystem, Validation — `it-pack/run-it-third-party-sample`, Vocabulary packages
+Nodes (8): RunIt Ecosystem, Core package — `it-pack/run-it`, Validation — `it-pack/run-it-third-party-sample`, Reference consumer — ConfigureIt, Bridges and future packages, Vocabulary packages, How the pieces fit, Next
 
 ### Community 217 - "RunIt Documentation"
 Cohesion: 0.25
-Nodes (8): Choose your path, Full map, I'm building an adapter or third-party library (~half day), I'm evaluating RunIt (~15 min), I'm integrating RunIt into my app (~1–2 h), New here?, Quick orientation by question, RunIt Documentation
+Nodes (8): RunIt Documentation, New here?, Choose your path, I'm evaluating RunIt (~15 min), I'm integrating RunIt into my app (~1–2 h), I'm building an adapter or third-party library (~half day), Full map, Quick orientation by question
 
 ### Community 218 - "RunIt 1.0.0-rc.1 — Release-candidate preparation (M15.1)"
 Cohesion: 0.25
-Nodes (8): Backward-compatibility baseline, Changelog and upgrade guide, Explicit internal namespaces, Public API freeze, Publishing the release candidate, Removed / abandoned experimental APIs, Review of public contracts, RunIt 1.0.0-rc.1 — Release-candidate preparation (M15.1)
+Nodes (8): RunIt 1.0.0-rc.1 — Release-candidate preparation (M15.1), Public API freeze, Explicit internal namespaces, Removed / abandoned experimental APIs, Review of public contracts, Backward-compatibility baseline, Changelog and upgrade guide, Publishing the release candidate
 
 ### Community 219 - "RunIt Project Review"
 Cohesion: 0.25
-Nodes (8): Assumptions and limits, Executive assessment, Maintainability and design, Metrics, Phase 0 additions (2026-11-05), Phase 0 baseline refresh, RunIt Project Review, Verification record
+Nodes (8): RunIt Project Review, Assumptions and limits, Executive assessment, Maintainability and design, Metrics, Verification record, Phase 0 baseline refresh, Phase 0 additions (2026-11-05)
 
 ### Community 220 - "Security Policy"
 Cohesion: 0.25
-Nodes (8): Current publication limitations, Default limits, External adapters, Reporting a vulnerability, Security model, Security Policy, Supported versions, Threat model and supply chain
+Nodes (8): Security Policy, Reporting a vulnerability, Supported versions, Security model, Current publication limitations, Threat model and supply chain, Default limits, External adapters
 
 ### Community 221 - "RunIt Use Cases"
 Cohesion: 0.25
-Nodes (8): Common deployment shapes, Next, Pick your integration, RunIt Use Cases, RunIt vs. a logging / APM library, What RunIt is (and is not), When a lighter approach is enough, When RunIt is a good fit
+Nodes (8): RunIt Use Cases, What RunIt is (and is not), When RunIt is a good fit, When a lighter approach is enough, Pick your integration, Common deployment shapes, RunIt vs. a logging / APM library, Next
 
 ### Community 222 - "RunIt Vocabulary"
 Cohesion: 0.25
-Nodes (8): Editing the vocabulary, How the code references the vocabulary, Namespaces, Reuse by sibling packages, RunIt Vocabulary, Two artifacts, What the ontology defines, What the taxonomy defines
+Nodes (8): RunIt Vocabulary, Two artifacts, Namespaces, What the ontology defines, What the taxonomy defines, How the code references the vocabulary, Reuse by sibling packages, Editing the vocabulary
 
 ### Community 224 - "FiberRuntimeDetector"
 Cohesion: 0.40
-Nodes (5): Getting Started with RunIt, Install, What just happened?, Where to go next, Your first execution
+Nodes (5): Getting Started with RunIt, Install, Your first execution, What just happened?, Where to go next
 
 ### Community 225 - "SnapshotIntegrityException"
 Cohesion: 0.09
-Nodes (18): ItPack\RunIt\Contract\Domain\ActivityIdInterface, ItPack\RunIt\Contract\Domain\ArtifactSequenceInterface, ItPack\RunIt\Contract\Domain\ExecutionIdInterface, ItPack\RunIt\Contract\Domain\InstantInterface, ItPack\RunIt\Contract\Domain\ObservationIdInterface, ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface, now(), create() (+10 more)
+Nodes (18): now(), start(), create(), Execution, self, self, Observation, self (+10 more)
 
 ### Community 226 - "BoundedPrimitiveValueWalker"
 Cohesion: 0.13
-Nodes (6): Psr\EventDispatcher\EventDispatcherInterface, Psr\EventDispatcher\StoppableEventInterface, OccurrenceEvent, OccurrenceEventWrapper, OccurrencePublisher, RecordingEventDispatcher
+Nodes (6): OccurrenceEvent, OccurrenceEventWrapper, OccurrencePublisher, RecordingEventDispatcher, Psr\EventDispatcher\StoppableEventInterface, Psr\EventDispatcher\EventDispatcherInterface
 
 ### Community 228 - "DefaultActivityRunnerTest"
 Cohesion: 0.13
@@ -1133,11 +1127,11 @@ Nodes (6): ExecutionId, MeasurementName, SequenceAllocatorTest, MeasurementInstr
 
 ### Community 232 - "IdentifierPropertyTest"
 Cohesion: 0.20
-Nodes (10): Coroutine (Swoole / OpenSwoole), Fiber, Immutable context, Propagation diagrams, RunIt Context Propagation, Scope lifetime, Security posture, Storage and the ambient scope (+2 more)
+Nodes (10): RunIt Context Propagation, Immutable context, Storage and the ambient scope, Scope lifetime, Propagation diagrams, Synchronous, Fiber, Coroutine (Swoole / OpenSwoole) (+2 more)
 
 ### Community 238 - "StringValueValidatorTest"
 Cohesion: 0.05
-Nodes (19): Codeception\Test\Unit, ItPack\RunIt\Adapter\Psr\Log\LoggerCollisionPolicy, ItPack\RunIt\Behavior\Domain\ValidatedStringValueBehavior, ItPack\RunIt\Contract\Domain\ActivityKindInterface, ItPack\RunIt\Contract\Domain\ActivityNameInterface, equals(), self, ActivityDefinition (+11 more)
+Nodes (19): equals(), self, ActivityDefinition, self, InterleavedSwooleContextIsolationTest, BenchmarkBootstrapUninstrumentedTest, RunItTestKit, SeverityMapTest (+11 more)
 
 ### Community 239 - "DogfoodReport"
 Cohesion: 0.23
@@ -1145,7 +1139,7 @@ Nodes (4): InvalidValueExceptionInterface, InvalidStringValueException, self, st
 
 ### Community 240 - "ExecutionMiddleware"
 Cohesion: 0.29
-Nodes (7): Artifact Publication Pipeline, Buffering and backpressure, Composition example, Failure policies, Ordering, Recursion prevention, Redaction happens before external publication
+Nodes (7): Artifact Publication Pipeline, Ordering, Redaction happens before external publication, Failure policies, Buffering and backpressure, Recursion prevention, Composition example
 
 ### Community 241 - "psr-4"
 Cohesion: 0.29
@@ -1153,207 +1147,207 @@ Nodes (7): autoload-dev, psr-4, Benchmarks\\, Tests\\, Tools\\ApiCompat\\, Tools
 
 ### Community 242 - "DefaultContextRedactionPolicy.php"
 Cohesion: 0.40
-Nodes (5): Next, Run an execution, The runtime, Tutorial 1 — Hello, execution, What you learned
+Nodes (5): Tutorial 1 — Hello, execution, The runtime, Run an execution, What you learned, Next
 
 ### Community 243 - "Attributes"
 Cohesion: 0.15
-Nodes (4): PHPStan\Rules\Rule, ForbidArbitraryObjectSerializationRule, ForbidDirectWallClockRule, RequireReadonlyForArtifactRule
+Nodes (4): ForbidArbitraryObjectSerializationRule, ForbidDirectWallClockRule, RequireReadonlyForArtifactRule, PHPStan\Rules\Rule
 
 ### Community 245 - "Optional dependencies"
 Cohesion: 0.40
-Nodes (5): Measurements (quantitative), Next, Observations (qualitative), Tutorial 3 — Measurements & observations, What you learned
+Nodes (5): Tutorial 3 — Measurements & observations, Measurements (quantitative), Observations (qualitative), What you learned, Next
 
 ### Community 247 - "M12.1 Data-Protection Threat Model"
 Cohesion: 0.29
-Nodes (7): Adapter mapping review, Artifact field review, Classified assets, Controls implemented, M12.1 Data-Protection Threat Model, Negative tests, Scope
+Nodes (7): M12.1 Data-Protection Threat Model, Scope, Classified assets, Artifact field review, Adapter mapping review, Controls implemented, Negative tests
 
 ### Community 249 - "Upgrading RunIt"
 Cohesion: 0.29
-Nodes (7): Automated compatibility checking, Current release status, Deprecations, Optional dependencies, Upgrade steps, Upgrading RunIt, What is compatibility-sensitive
+Nodes (7): Upgrading RunIt, Current release status, What is compatibility-sensitive, Automated compatibility checking, Upgrade steps, Deprecations, Optional dependencies
 
 ### Community 250 - "RunItPortFixture"
 Cohesion: 0.40
-Nodes (5): Architecture & runtime, Core model, Identifiers, names, and time, Related reading, RunIt Glossary
+Nodes (5): RunIt Glossary, Core model, Identifiers, names, and time, Architecture & runtime, Related reading
 
 ### Community 251 - "ActivityDefinitionInterface.php"
 Cohesion: 0.29
-Nodes (6): kind(), name(), parentActivityId(), ActivityIdInterface, ActivityKindInterface, ActivityNameInterface
+Nodes (6): name(), ActivityNameInterface, kind(), ActivityKindInterface, parentActivityId(), ActivityIdInterface
 
 ### Community 252 - "create"
 Cohesion: 0.29
-Nodes (6): create(), ExecutionContextInterface, ExecutionDefinitionInterface, ExecutionIdInterface, ExecutionKindInterface, ExecutionNameInterface
+Nodes (6): create(), ExecutionNameInterface, ExecutionKindInterface, ExecutionIdInterface, ExecutionContextInterface, ExecutionDefinitionInterface
 
 ### Community 254 - "ContextSource"
 Cohesion: 0.40
-Nodes (5): Next, Occurrences (immutable facts), Snapshots (state projections), Tutorial 4 — Occurrences & snapshots, What you learned
+Nodes (5): Tutorial 4 — Occurrences & snapshots, Occurrences (immutable facts), Snapshots (state projections), What you learned, Next
 
 ### Community 258 - "18. PHP 8.4 Language Usage"
 Cohesion: 0.33
-Nodes (6): 18.1 Property hooks and virtual properties, 18.2 Lazy objects, 18.3 Fibers, 18.4 `readonly`, 18.5 Traits, 18. PHP 8.4 Language Usage
+Nodes (6): 18. PHP 8.4 Language Usage, 18.1 Property hooks and virtual properties, 18.2 Lazy objects, 18.3 Fibers, 18.4 `readonly`, 18.5 Traits
 
 ### Community 259 - "Throwable normalization"
 Cohesion: 0.33
-Nodes (5): Captured fields, Safety policy, Throwable normalization, Types, Usage
+Nodes (5): Throwable normalization, Types, Captured fields, Safety policy, Usage
 
 ### Community 261 - "REFACTORING_PLAN.md"
 Cohesion: 0.33
-Nodes (3): Assess AsyncIt context-token cleanup cost, Follow-up, Problem
+Nodes (3): Assess AsyncIt context-token cleanup cost, Problem, Follow-up
 
 ### Community 262 - "Getting Started with RunIt"
 Cohesion: 0.67
-Nodes (3): security:audit:full, @composer audit, @putenv COMPOSER_AUDIT_ABANDONED=report
+Nodes (3): security:audit:full, @putenv COMPOSER_AUDIT_ABANDONED=report, @composer audit
 
 ### Community 263 - "CancellationInterface.php"
 Cohesion: 0.33
-Nodes (4): labels(), AttributeCollectionInterface, ThrowableDescriptionInterface, throwableDescription()
+Nodes (4): labels(), AttributeCollectionInterface, throwableDescription(), ThrowableDescriptionInterface
 
 ### Community 264 - "Duration.php"
 Cohesion: 0.12
-Nodes (6): PHPStan\Analyser\Scope, ExplicitForeachByRefRule, ForbidSplObjectHashRule, NoEmptyCatchRule, NoMutableStaticPropertyRule, AbstractSrcRule
+Nodes (6): ExplicitForeachByRefRule, ForbidSplObjectHashRule, NoEmptyCatchRule, NoMutableStaticPropertyRule, AbstractSrcRule, PHPStan\Analyser\Scope
 
 ### Community 267 - ".definition"
 Cohesion: 0.18
-Nodes (7): DefaultInvoiceService, InstrumentedInvoiceService, InvoiceService, ItPack\RunIt\SDK\RunItInterface, JsonSnapshotSerializer, __construct(), RuntimeException
+Nodes (7): DefaultInvoiceService, InvoiceService, InstrumentedInvoiceService, JsonSnapshotSerializer, __construct(), RuntimeException, ItPack\RunIt\SDK\RunItInterface
 
 ### Community 270 - "test"
 Cohesion: 0.40
-Nodes (5): test, @test:concurrency, @test:conformance, @test:integration, @test:unit
+Nodes (5): test, @test:unit, @test:integration, @test:conformance, @test:concurrency
 
 ### Community 271 - "Contributing to RunIt"
 Cohesion: 0.40
-Nodes (5): Before submitting a change, Contributing to RunIt, Development checks, Reporting issues, Scope and status
+Nodes (5): Contributing to RunIt, Scope and status, Reporting issues, Development checks, Before submitting a change
 
 ### Community 272 - "RunIt Architecture Dependency Graph"
 Cohesion: 0.40
-Nodes (5): Enforced dependency rules, Layers, Prohibitions (architecture boundaries), RunIt Architecture Dependency Graph, Uncovered dependencies (reviewed)
+Nodes (5): RunIt Architecture Dependency Graph, Layers, Enforced dependency rules, Prohibitions (architecture boundaries), Uncovered dependencies (reviewed)
 
 ### Community 273 - "14. OpenTelemetry Adapter"
 Cohesion: 0.40
-Nodes (5): 14.1 Mapping, 14.2 Adapter components, 14.3 Dependency policy, 14.4 Cardinality controls, 14. OpenTelemetry Adapter
+Nodes (5): 14. OpenTelemetry Adapter, 14.1 Mapping, 14.2 Adapter components, 14.3 Dependency policy, 14.4 Cardinality controls
 
 ### Community 274 - "5. Measurable Success Criteria"
 Cohesion: 0.40
-Nodes (5): 5.1 Functional criteria, 5.2 Performance criteria, 5.3 Reliability criteria, 5.4 Quality criteria, 5. Measurable Success Criteria
+Nodes (5): 5. Measurable Success Criteria, 5.1 Functional criteria, 5.2 Performance criteria, 5.3 Reliability criteria, 5.4 Quality criteria
 
 ### Community 277 - "Recipe: Snapshot Integrity and Authenticity"
 Cohesion: 0.40
-Nodes (4): Chain verification, Recipe: Snapshot Integrity and Authenticity, Sign snapshots for authenticity, Verify integrity of a stored snapshot
+Nodes (4): Recipe: Snapshot Integrity and Authenticity, Verify integrity of a stored snapshot, Sign snapshots for authenticity, Chain verification
 
 ### Community 279 - "bug_report.md"
 Cohesion: 0.40
-Nodes (4): Actual behavior, Expected behavior, Reproduction, Version and environment
+Nodes (4): Expected behavior, Actual behavior, Reproduction, Version and environment
 
 ### Community 281 - "ExecutionEngineInterface.php"
 Cohesion: 0.40
-Nodes (4): capability(), EngineCapabilityInterface, ExecutionScopeInterface, run()
+Nodes (4): run(), ExecutionScopeInterface, capability(), EngineCapabilityInterface
 
 ### Community 282 - "PublicationGuardInterface.php"
 Cohesion: 0.50
-Nodes (3): enter(), leave(), PublicationGuardTokenInterface
+Nodes (3): enter(), PublicationGuardTokenInterface, leave()
 
 ### Community 284 - "ExecutionResultInterface.php"
 Cohesion: 0.40
-Nodes (4): ExecutionStatusInterface, ThrowableDescriptionInterface, status(), throwableDescription()
+Nodes (4): status(), ExecutionStatusInterface, throwableDescription(), ThrowableDescriptionInterface
 
 ### Community 295 - "Tutorial 1 — Hello, execution"
 Cohesion: 0.25
-Nodes (8): Invariants, Measurement, Normalization, Ownership, Public API usage, Related decisions, Types, What a measurement represents
+Nodes (8): Measurement, What a measurement represents, Types, Ownership, Normalization, Invariants, Public API usage, Related decisions
 
 ### Community 297 - "15. CloudEvents Adapter"
 Cohesion: 0.50
-Nodes (4): 15.1 Mapping, 15.2 Adapter components, 15.3 Requirements, 15. CloudEvents Adapter
+Nodes (4): 15. CloudEvents Adapter, 15.1 Mapping, 15.2 Adapter components, 15.3 Requirements
 
 ### Community 298 - "19. Self-Instrumentation"
 Cohesion: 0.50
-Nodes (4): 19.1 Internal execution coverage, 19.2 Recursion prevention, 19.3 Dogfooding, 19. Self-Instrumentation
+Nodes (4): 19. Self-Instrumentation, 19.1 Internal execution coverage, 19.2 Recursion prevention, 19.3 Dogfooding
 
 ### Community 299 - "20. Security and Privacy"
 Cohesion: 0.50
-Nodes (4): 20.1 Threat model, 20.2 Required controls, 20.3 Recommended defaults, 20. Security and Privacy
+Nodes (4): 20. Security and Privacy, 20.1 Threat model, 20.2 Required controls, 20.3 Recommended defaults
 
 ### Community 300 - "21. Performance and Resource Management"
 Cohesion: 0.50
-Nodes (4): 21.1 Hot-path rules, 21.2 Persistent-worker controls, 21.3 Benchmarks, 21. Performance and Resource Management
+Nodes (4): 21. Performance and Resource Management, 21.1 Hot-path rules, 21.2 Persistent-worker controls, 21.3 Benchmarks
 
 ### Community 301 - "Measure composite context storage ownership overhead"
 Cohesion: 0.50
-Nodes (3): Follow-up, Measure composite context storage ownership overhead, Problem
+Nodes (3): Measure composite context storage ownership overhead, Problem, Follow-up
 
 ### Community 302 - "Resolve context refactoring quality gate failures"
 Cohesion: 0.50
-Nodes (3): Follow-up, Problem, Resolve context refactoring quality gate failures
+Nodes (3): Resolve context refactoring quality gate failures, Problem, Follow-up
 
 ### Community 303 - "Complete context ownership and runtime validation"
 Cohesion: 0.50
-Nodes (3): Complete context ownership and runtime validation, Follow-up, Problem
+Nodes (3): Complete context ownership and runtime validation, Problem, Follow-up
 
 ### Community 304 - "adapter_proposal.md"
 Cohesion: 0.50
-Nodes (3): External system, Optional dependency and failure policy, RunIt mapping
+Nodes (3): External system, RunIt mapping, Optional dependency and failure policy
 
 ### Community 305 - "architecture_decision.md"
 Cohesion: 0.50
-Nodes (3): Consequences, Context, Decision
+Nodes (3): Context, Decision, Consequences
 
 ### Community 306 - "feature_proposal.md"
 Cohesion: 0.50
-Nodes (3): Domain and compatibility impact, Problem, Proposed behavior
+Nodes (3): Problem, Proposed behavior, Domain and compatibility impact
 
 ### Community 315 - "allocate"
 Cohesion: 0.50
-Nodes (3): allocate(), ArtifactSequenceInterface, ExecutionIdInterface
+Nodes (3): allocate(), ExecutionIdInterface, ArtifactSequenceInterface
 
 ### Community 316 - "BoundedPrimitiveValueWalker"
 Cohesion: 0.38
-Nodes (3): BoundedPrimitiveValueWalker, count(), sequence()
+Nodes (3): BoundedPrimitiveValueWalker, sequence(), count()
 
 ### Community 317 - "Psr7RequestContextExtractor"
 Cohesion: 0.12
-Nodes (14): sendRequest(), ItPack\RunIt\Adapter\CloudEvents\Contract\CloudEventSerializerInterface, ItPack\RunIt\Adapter\Psr\Contract\HeaderPropagatorInterface, Psr\Http\Client\ClientInterface, Psr\Http\Message\RequestFactoryInterface, Psr\Http\Message\RequestInterface, Psr\Http\Message\ResponseInterface, Psr\Http\Message\StreamFactoryInterface (+6 more)
+Nodes (14): sendRequest(), Psr18CloudEventSink, enrich(), DefaultHeaderPropagator, Psr18CorrelationClientDecorator, RecordingHttpClient, enrich(), Psr\Http\Client\ClientInterface (+6 more)
 
 ### Community 319 - "3. Business Goals"
 Cohesion: 0.67
-Nodes (3): 3.1 Primary goals, 3.2 Non-goals, 3. Business Goals
+Nodes (3): 3. Business Goals, 3.1 Primary goals, 3.2 Non-goals
 
 ### Community 320 - "Phase 8 — Release Candidate and Adoption, Week 12"
 Cohesion: 0.67
-Nodes (3): Deliver, Final `1.0.0` gate, Phase 8 — Release Candidate and Adoption, Week 12
+Nodes (3): Phase 8 — Release Candidate and Adoption, Week 12, Deliver, Final `1.0.0` gate
 
 ### Community 321 - "Phase 0 — Architectural Ratification, Week 1"
 Cohesion: 0.67
-Nodes (3): Deliverables, Exit criteria, Phase 0 — Architectural Ratification, Week 1
+Nodes (3): Phase 0 — Architectural Ratification, Week 1, Deliverables, Exit criteria
 
 ### Community 322 - "Phase 7 — Hardening, Week 11"
 Cohesion: 0.67
-Nodes (3): Execute, Exit criteria, Phase 7 — Hardening, Week 11
+Nodes (3): Phase 7 — Hardening, Week 11, Execute, Exit criteria
 
 ### Community 323 - "Phase 1 — Domain Kernel, Weeks 2–3"
 Cohesion: 0.67
-Nodes (3): Exit criteria, Implement, Phase 1 — Domain Kernel, Weeks 2–3
+Nodes (3): Phase 1 — Domain Kernel, Weeks 2–3, Implement, Exit criteria
 
 ### Community 324 - "Phase 2 — Execution Runtime, Weeks 4–5"
 Cohesion: 0.67
-Nodes (3): Exit criteria, Implement, Phase 2 — Execution Runtime, Weeks 4–5
+Nodes (3): Phase 2 — Execution Runtime, Weeks 4–5, Implement, Exit criteria
 
 ### Community 325 - "Phase 3 — Publication Pipeline, Week 6"
 Cohesion: 0.67
-Nodes (3): Exit criteria, Implement, Phase 3 — Publication Pipeline, Week 6
+Nodes (3): Phase 3 — Publication Pipeline, Week 6, Implement, Exit criteria
 
 ### Community 326 - "Phase 4 — SDK and Non-Intrusive Adoption, Week 7"
 Cohesion: 0.67
-Nodes (3): Exit criteria, Implement, Phase 4 — SDK and Non-Intrusive Adoption, Week 7
+Nodes (3): Phase 4 — SDK and Non-Intrusive Adoption, Week 7, Implement, Exit criteria
 
 ### Community 327 - "Phase 5 — OpenTelemetry and PSR Adapters, Weeks 8–9"
 Cohesion: 0.67
-Nodes (3): Exit criteria, Implement, Phase 5 — OpenTelemetry and PSR Adapters, Weeks 8–9
+Nodes (3): Phase 5 — OpenTelemetry and PSR Adapters, Weeks 8–9, Implement, Exit criteria
 
 ### Community 328 - "Phase 6 — CloudEvents and Runtime Adapters, Week 10"
 Cohesion: 0.67
-Nodes (3): Exit criteria, Implement, Phase 6 — CloudEvents and Runtime Adapters, Week 10
+Nodes (3): Phase 6 — CloudEvents and Runtime Adapters, Week 10, Implement, Exit criteria
 
 ### Community 395 - "Cross-Cutting Verification Matrix"
 Cohesion: 0.16
-Nodes (8): EngineCapabilityInterface, ItPack\RunIt\Contract\Application\EngineCapabilityInterface, ItPack\RunIt\Contract\Application\ExecutionEngineInterface, FiberExecutionEngine, SynchronousExecutionEngine, ExecutionEngineVerifier, ExecutionEngineInterface, EngineCapability
+Nodes (8): FiberExecutionEngine, SynchronousExecutionEngine, ExecutionEngineVerifier, ExecutionEngineInterface, EngineCapability, EngineCapabilityInterface, ItPack\RunIt\Contract\Application\EngineCapabilityInterface, ItPack\RunIt\Contract\Application\ExecutionEngineInterface
 
 ### Community 417 - "CurrentExecutionInterface.php"
 Cohesion: 0.67
@@ -1377,7 +1371,7 @@ _Questions this graph is uniquely positioned to answer:_
   _`ExecutionId` has 159 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `name`, `description`, `license` to the rest of the system?**
   _1201 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `ItPack\RunIt\Contract\Port\ArtifactPublisherInterface` be split into smaller, more focused modules?**
+- **Should `Execution Context and Collision Policy` be split into smaller, more focused modules?**
   _Cohesion score 0.11965811965811966 - nodes in this community are weakly interconnected._
 - **Should `ItPack\RunIt\Contract\Domain\ExecutionInterface` be split into smaller, more focused modules?**
   _Cohesion score 0.0696969696969697 - nodes in this community are weakly interconnected._

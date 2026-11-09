@@ -1,5 +1,5 @@
 {
-  "0": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+  "0": "Execution Context and Collision Policy",
   "1": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
   "2": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
   "3": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
@@ -40,7 +40,7 @@
   "38": "ItPack\\RunIt\\Contract\\Domain\\ExecutionKindInterface",
   "39": "ExecutionId",
   "40": "ItPack\\RunIt\\Contract\\Application\\ExecutionRunnerInterface",
-  "41": "BufferedArtifactPublisher",
+  "41": "Activity Lifecycle Exceptions",
   "42": "RuntimeException",
   "43": "ExecutionContext",
   "44": "RunIt — In-Depth Review",
