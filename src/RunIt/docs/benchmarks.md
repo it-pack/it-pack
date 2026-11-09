@@ -25,7 +25,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Composite publisher           | (publication suites)               | Redact + sample + publish chain                                     |
 | Filtering and sampling        | `benchRedaction` / sampling suites | Policy decisions per artifact                                       |
 | Redaction                     | `benchRedaction`                   | Secret masking of a snapshot payload                                |
-| Buffering                     | `benchBuffering`                   | Publishing many artifacts to an in-memory buffer                    |
+| In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 
 OTel and CloudEvents mapping benchmarks are planned for the adapter conformance suite.
 
@@ -56,6 +56,37 @@ implementation of the relevant path changes.
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## PHPBench baseline (2026-11-09)
+
+At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
+`composer benchmark -- --report=default` passed all ten subjects (no
+assertions). PHPBench 1.7.0 ran PHP 8.5.12 CLI NTS without Xdebug or CLI
+OPcache, with two warmups, five iterations and 100 revolutions per iteration.
+The following ranges are the minimum and maximum iteration-average times in
+microseconds per subject invocation, not per individual artifact:
+
+| Subject | Range (µs) |
+| --- | ---: |
+| Null wrapper | 0.210-0.230 |
+| In-memory execution lifecycle | 77.530-91.760 |
+| Activity lifecycle | 114.150-162.680 |
+| Measurement creation with execution | 104.830-114.350 |
+| Observation creation with execution | 94.950-128.160 |
+| Throwable normalization | 1.630-1.850 |
+| Sampling and redaction | 2.950-4.970 |
+| Bounded publication gate | 2.670-3.510 |
+| OTel null-provider record | 0.200-0.220 |
+| `benchBuffering` (200 in-memory writes) | 30.680-32.980 |
+
+The snapshot has two payload fields; setup is outside each timed subject.
+The bounded publisher uses default security limits. `benchBuffering` constructs
+an in-memory publisher per invocation and does not exercise
+`BufferedArtifactPublisher`, byte limits, eviction or drain. These synthetic
+measurements are not a comparison or a regression threshold; scheduling and
+concurrent work can affect them, and several ranges vary substantially. They
+do not cover PHP 8.4, concurrency, real export I/O or failure paths. See the
+separate byte-bound buffer and nested context baselines below for other workloads.
 
 ## PSR-3 publication baseline (2026-11-08)
 

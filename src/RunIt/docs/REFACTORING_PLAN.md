@@ -165,7 +165,7 @@ It is therefore not a drop-in replacement for this suite.
 - [ ] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
 - [ ] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
 - [ ] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
-- [ ] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
+- [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
 - [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
 
@@ -193,6 +193,28 @@ It is therefore not a drop-in replacement for this suite.
 - Other available fixtures include `DeterministicMonotonicClock`, `ThrowingArtifactPublisher`, throwing health callbacks in `ResilienceTest`, and the independent `RunItThirdPartySample` token. Full custom-token ownership regression coverage remains a Phase 1 task.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
+
+At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
+PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 ran successfully on `src` with
+PHP 8.5.12. Reports were directed outside tracked source:
+
+```bash
+vendor/bin/phpmetrics --composer=false --report-json=/tmp/kilo/runit-phase0-20261109-phpmetrics.json --report-csv=/tmp/kilo/runit-phase0-20261109-phpmetrics.csv --report-summary-json=/tmp/kilo/runit-phase0-20261109-phpmetrics-summary.json src
+vendor/bin/phpa src -f xml -o /tmp/kilo/runit-phase0-20261109-phpa.xml
+```
+
+PhpMetrics reported 236 classes, 154 interfaces, 736 methods and average class
+cyclomatic complexity 4.06; it recorded 18 error, 22 warning and four
+informational violations. PHP Assumptions reported 75 assumptions among 485
+boolean expressions, including duplicate entries. These are review prompts,
+not verified defects; class metrics do not name every method above a threshold.
+Despite `--composer=false`, PhpMetrics printed a Packagist request message; the
+output does not establish whether a request succeeded. The reports in `/tmp/kilo`
+are temporary, cover production `src` only, and are not directly comparable to
+the older different-revision report. `docs/benchmarks.md` records the refreshed
+ten-subject benchmark and its limitations, including that `benchBuffering` does
+not measure the bounded buffer. `composer api:check` again exited 1 with ten
+additions and zero detected breaks. Other Phase 0 gates and evidence remain open.
 
 **High-priority evidence inventory:** The following links identify executable
 current-behavior characterizations. Their assertions intentionally describe the
