@@ -6,6 +6,54 @@ Milestone M13 ("Conformance Tooling and QA Completion") static-analysis work.
 
 ## Gate overview
 
+### Downstream compatibility
+
+The monorepo's `.github/workflows/runit-downstream-compat.yml` exercises RunIt
+consumers separately from RunIt's own suites. It tests `DeriveItRunit` and
+`RunItThirdPartySample` on PHP 8.4, and those packages plus `ConfigureItRunit`,
+`CommitItRunit`, and `AsyncIt` on PHP 8.5. Each job uploads its evidence as a
+separate artifact, including when a check fails. Extension-dependent skips must
+not be interpreted as passing extension coverage. The workflow currently marks
+`DeriveItRunit` on PHP 8.4 as experimental with `continue-on-error`, so that
+job does not block the workflow while the dependency mismatch remains open. Each
+matrix job runs the offline runner self-tests before its compatibility check.
+
+From the monorepo root, select the PHP executable and consumer explicitly:
+
+```bash
+php8.4 tools/repo/downstream-test.php --package=RunItThirdPartySample --output=/tmp/runit-downstream-84.json
+php8.5 tools/repo/downstream-test.php --package=CommitItRunit --output=/tmp/runit-downstream-85.json
+```
+
+The runner resolves dependencies in an isolated consumer-root environment and
+checks that the installed RunIt points to this checkout before running tests.
+Its local path version is a test-only Composer resolution aid, not a statement
+about a released package version. In particular, it does not change the
+`CommitItRunit` manifest or its released `^1.1` requirement. Results establish
+only what each consumer's executed tests cover; they do not establish released
+package compatibility, replace RunIt's API check, or contribute to its Unit-only
+coverage. Dependency resolution requires Composer and access to the configured
+package repositories. Omit `--package` to run every consumer compatible with
+the selected PHP version, and omit `--output` to print JSON to standard output;
+an output path must not already exist and is reserved before the run starts; an
+early failure may leave it empty. Invalid UTF-8 in captured output is replaced
+in the JSON report. An explicitly selected consumer with an
+unsupported PHP version fails the command. Skip detection is based on test
+output and is not exhaustive; inspect the captured output and available runtime
+extensions. Run `php tools/repo/downstream-test-self-test.php` for offline tooling
+controls.
+
+At revision `61f11b10` with a dirty worktree on PHP 8.4.27, the sample passed
+four tests and 12 assertions after checkout verification. The `DeriveItRunit`
+install failed: its `^8.4` root constraint does not override the local
+`DeriveIt` dependency's PHP `^8.5` requirement. The experimental PHP 8.4 CI
+job is therefore expected to fail until that mismatch is resolved; do not bypass
+platform requirements or treat the bridge's own constraint as proof that its
+dependency graph supports PHP 8.4.
+On PHP 8.5.12 with the same starting revision and a dirty worktree, the
+isolated `CommitItRunit` test passed all 33 cases after checkout verification;
+these adapter tests do not establish coverage of every real execution path.
+
 ### Statement coverage (Phase 0, T0.4 of the 2026-08-25 plan)
 
 `composer coverage` measures the Unit suite only. The former combined-suite
@@ -73,6 +121,17 @@ the observed failures and remaining design gates.
 Run `php tests/target-policy-psr15-regressions.php` separately for the PSR-15
 handler-exception and response-status recorder-failure targets. It is also
 outside the normal suites and currently fails against the existing middleware.
+
+Run `php tests/target-policy-swoole-http-regressions.php` separately for Swoole
+HTTP failure isolation; it does not require the Swoole extension. At clean
+starting revision `919a75c80fa944b3b2164d0c70f47350d0846b80`, PHP 8.4.27 and
+8.5.12 each exited 1 with four target failures: the existing two recorder-failure
+outcome checks and two new post-handler clock-failure outcome checks. In the
+new cases the handler runs once and the second clock reading is reached, but the
+exact response or original handler exception is not preserved. A nonthrowing
+observation recorder and fake runner isolate the clock path. This does not test
+measurement-recorder failures, initial clock failures, failure reporting, a real
+runner or HTTP server. It is outside the normal suites and does not fix behavior.
 
 Run `php tests/target-policy-terminal-publication-regressions.php` separately
 for terminal publication failure injection. At starting revision `01cd9371`

@@ -197,6 +197,16 @@ provider execution or real-suite attribution and is not a CI gate.
 
 **Phase 0 additions:**
 
+At clean starting revision `919a75c80fa944b3b2164d0c70f47350d0846b80`, the
+Swoole HTTP target harness gained post-handler clock-failure cases for successful
+and failing handlers. PHP 8.4.27 and 8.5.12 each exited 1 with four target
+failures: the two existing recorder failures and both new business-outcome
+identity checks. Handler invocation and the second clock reading passed as
+controls. The fake runner and nonthrowing observation recorder isolate this path;
+measurement-recorder and initial clock failures, reporting, and real HTTP I/O
+remain untested. This is a safety net, not a production fix or completion of
+Phase 0; see `docs/QA.md` for the command.
+
 At clean starting revision `01cd9371f9707d6ab6adbeab2edbb27473b0c928`,
 `composer validate --strict` and both runtime and full security audits passed
 on PHP 8.5.12. The full audit reported the abandoned development dependency
@@ -831,6 +841,15 @@ The API identity and redaction policy directions above are now recorded; impleme
 Historically AsyncIt's focused memory storage, Swoole storage and context-isolation verifier tests passed (12 tests total); RunItThirdPartySample's `composer test` passed (4 tests, 12 assertions). The later AsyncIt ownership regression covers the foreign-token collision separately.
 
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
+
+The monorepo downstream compatibility workflow and runner described in
+`docs/QA.md` are intended to collect consumer-owned test evidence against the
+current RunIt checkout. Inspect each job's results, source verification, and
+skips before counting any scenario; the tooling alone does not complete the
+token migration, API check, runtime validation, or Phase 0.
+In the initial PHP 8.4.27 run, `RunItThirdPartySample` passed; `DeriveItRunit`
+could not install because the local `DeriveIt` requires PHP `^8.5`. See
+`docs/QA.md` for the lane and evidence limitations.
 
 `InterleavedSwooleContextIsolationTest` extends the preparatory concurrency
 coverage with native Swoole coroutines. It checks nested parent identity,

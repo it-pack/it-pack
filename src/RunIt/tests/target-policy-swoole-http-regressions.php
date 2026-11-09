@@ -11,9 +11,11 @@ use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
+use ItPack\RunIt\Contract\Domain\DurationInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
+use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Context\ExecutionContext;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
@@ -22,6 +24,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Shared\Instant;
 use Tests\Support\Fixture\Psr\FakeExecutionScope;
+use Tests\Support\Fixture\Psr\RecordingObservationRecorder;
 
 $failures = [];
 $check = /** Collect a failed assertion without stopping the remaining checks. */
@@ -122,6 +125,79 @@ $check(
 );
 $check($handlerError !== $recorderError, 'handler and recorder failures are distinct objects');
 $check($caught === $handlerError, 'failing handler propagates the exact original exception');
+
+foreach ([false, true] as $handlerFails) {
+    $clockError = new RuntimeException('synthetic clock failure');
+    $clock = new class ($clockError) implements MonotonicClockInterface {
+        public int $calls = 0;
+
+        /** Keep the error for the post-handler clock reading. */
+        public function __construct(private readonly Throwable $error)
+        {
+        }
+
+        /** Return a start time, then fail when duration is collected. */
+        public function nowSeconds(): int
+        {
+            if (++$this->calls === 1) {
+                return 100;
+            }
+
+            throw $this->error;
+        }
+
+        /** This middleware does not use monotonic nanoseconds. */
+        public function monotonicNanoseconds(): int
+        {
+            throw new LogicException('unexpected monotonic clock call');
+        }
+
+        /** This middleware does not use the clock duration method. */
+        public function measure(int $fromInclusive, int $toInclusive): DurationInterface
+        {
+            throw new LogicException('unexpected duration calculation');
+        }
+    };
+    $safeRecorder = new RecordingObservationRecorder();
+    $clockScope = new FakeExecutionScope($scope->execution(), $scope->context(), $safeRecorder);
+    $clockRunner = new readonly class ($clockScope) implements ExecutionRunnerInterface {
+        /** Keep the scope passed to the operation. */
+        public function __construct(private ExecutionScopeInterface $scope)
+        {
+        }
+
+        /** Run the operation with the configured scope. */
+        public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
+        {
+            return $operation($this->scope);
+        }
+    };
+    $clockMiddleware = new ServerExecutionMiddleware($clockRunner, $name, $kind, clock: $clock);
+    $calls = 0;
+    $result = null;
+    $caught = null;
+    try {
+        $result = $clockMiddleware->handle($request, /** Return or throw the business outcome. */
+            static function () use ($handlerFails, $handlerError, $response, &$calls): object {
+                ++$calls;
+                if ($handlerFails) {
+                    throw $handlerError;
+                }
+
+                return $response;
+            });
+    } catch (Throwable $throwable) {
+        $caught = $throwable;
+    }
+
+    $label = $handlerFails ? 'failing' : 'successful';
+    $check($calls === 1, "$label clock-failure handler is invoked once");
+    $check($clock->calls === 2, "$label clock-failure case reaches the post-handler reading");
+    $check(
+        $handlerFails ? $caught === $handlerError : !$caught instanceof Throwable && $result === $response,
+        "$label handler outcome survives the post-handler clock failure",
+    );
+}
 
 foreach ($failures as $failure) {
     fwrite(STDERR, "FAIL: $failure\n");

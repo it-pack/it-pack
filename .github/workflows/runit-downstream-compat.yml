@@ -1,0 +1,65 @@
+name: RunIt downstream compatibility
+
+on:
+  push:
+    branches: [main, release]
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tools/repo/downstream-test*.php'
+      - '.github/workflows/runit-downstream-compat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  downstream:
+    name: ${{ matrix.package }} (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.experimental == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php: '8.4'
+            package: DeriveItRunit
+            experimental: true
+          - php: '8.4'
+            package: RunItThirdPartySample
+          - php: '8.5'
+            package: AsyncIt
+          - php: '8.5'
+            package: CommitItRunit
+          - php: '8.5'
+            package: ConfigureItRunit
+          - php: '8.5'
+            package: DeriveItRunit
+          - php: '8.5'
+            package: RunItThirdPartySample
+    steps:
+      - name: Checkout monorepo
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer
+          coverage: none
+          extensions: mbstring, xml, curl, zip, grpc, protobuf
+
+      - name: Test downstream runner offline
+        run: php tools/repo/downstream-test-self-test.php
+
+      - name: Run downstream compatibility checks
+        run: php tools/repo/downstream-test.php --package=${{ matrix.package }} --output=downstream-compat.json
+
+      - name: Upload compatibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runit-downstream-${{ matrix.package }}-php-${{ matrix.php }}
+          path: downstream-compat.json
+          if-no-files-found: warn
