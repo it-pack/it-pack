@@ -354,6 +354,21 @@ controls. This is a failing safety net, not a production fix; it does not
 exercise a live server, an actual runner's reporting, measurement failures or
 redaction. It requires no Swoole extension and is outside the normal suites.
 
+At clean starting revision `8dcb38a8`, the separately invoked
+`tests/target-policy-psr15-regressions.php` exercises PSR-15 request failure
+with a fake runner and a throwing observation recorder. On PHP 8.4 and 8.5 it
+exits 1 with one expected target failure: the recorder exception replaces the
+original handler exception. Invocation counts and the recorded message,
+severity, attributes, throwable identity and diagnostic code are controls.
+This is a safety net, not a production fix; it does not cover response-status
+recording, a real runner, reporting or redaction, and is outside normal suites.
+The test coverage attribute in `RequireInterfaceRuleTest.php` was also corrected
+to use its existing import after the clean baseline Rector check failed. On the
+resulting PHP 8.5 worktree `composer quality --quiet` and targeted PHPStan passed;
+the separate API check reported ten additions and no detected breaks but exited
+1. No baseline was updated. Quality does not run this standalone target control,
+coverage or the API check; these results do not complete Phase 0.
+
 **Current baseline and integer-boundary control (2026-11-08):** Starting clean
 at `133db4746e2c87c2e2ace6d803020412ce3d6ce8`, PHP 8.5.12 with PCOV and
 Swoole loaded, `composer quality` and `composer analyse -- --no-progress`

@@ -13,7 +13,7 @@ use Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule;
 /**
  * @extends RuleTestCase<RequireInterfaceRule>
  */
-#[CoversClass(\Tools\PhpStan\RunitRules\Rule\RequireInterfaceRule::class)]
+#[CoversClass(RequireInterfaceRule::class)]
 final class RequireInterfaceRuleTest extends RuleTestCase
 {
     protected function getRule(): Rule
