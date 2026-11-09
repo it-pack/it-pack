@@ -27,6 +27,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Redaction                     | `benchRedaction`                   | Secret masking of a snapshot payload                                |
 | In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 | Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
+| Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 
 OTel and CloudEvents mapping benchmarks are planned for the adapter conformance suite.
 
@@ -400,6 +401,39 @@ While available, rerun from the package directory with:
 ```bash
 php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-redaction-serialization-baseline.php
 ```
+
+### Reproducible nested snapshot benchmark (2026-11-09)
+
+`benchmarks/NestedSnapshotBench.php` provides a durable synthetic workload for
+8 and 64 checkout-like rows, with two configured sensitive keys per row. It
+checks every mask, source immutability, JSON normalization and sink output outside
+the timed subjects. The publisher uses a JSON-encoding in-memory sink; projection
+does not perform deep serialization. Run from the package directory:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/NestedSnapshotBench.php --config=phpbench.json --report=aggregate
+```
+
+At starting revision `5ee134f43dcae8789ebc78ccb98b435793babd12`, with the new
+benchmark and concurrent test and documentation work, PHPBench 1.7.0 on PHP
+8.5.12 CLI NTS reported the following modes and relative standard deviations
+in microseconds per operation. Each subject used two warmups and five iterations
+of 100 operations. The host was WSL2 x86-64, four virtual CPUs on an Intel
+Core i7-9700; CLI OPcache, JIT and PCOV were disabled and Xdebug was absent.
+
+| Workload | 8 rows | 64 rows |
+| --- | ---: | ---: |
+| Snapshot projection | 1.453 (7.29%) | 1.411 (13.18%) |
+| Configured redaction | 26.813 (7.30%) | 224.142 (5.23%) |
+| JSON normalization | 47.591 (9.56%) | 342.713 (3.07%) |
+| Redacting publisher | 33.388 (2.11%) | 218.040 (5.97%) |
+
+The prior temporary harness is unavailable and its fixture and method are not
+identical, so these results are not a controlled comparison. Concurrent activity,
+unpinned execution and observed variability limit interpretation; these are not
+regression thresholds or production throughput estimates. They exclude creation
+and hashing, real I/O, buffering, concurrency, failure paths and PHP 8.4 timing.
+The broader Phase 0 benchmark baseline remains open.
 
 Phase 2 (T2.4) replaced the bounded publisher's per-publish
 `strlen(json_encode(...))` sizing — which encoded every occurrence/snapshot

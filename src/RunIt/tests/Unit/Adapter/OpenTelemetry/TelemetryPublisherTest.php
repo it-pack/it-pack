@@ -33,9 +33,13 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
+use OpenTelemetry\API\Globals;
+use OpenTelemetry\API\Instrumentation\Configurator;
 use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\SDK\Metrics\Data\Sum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use ReflectionProperty;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 use Tests\Support\Fixture\SensitiveExceptionChain;
@@ -49,9 +53,21 @@ final class TelemetryPublisherTest extends Unit
 {
     private OtelTestKit $kit;
 
+    /** @var array<string, mixed>|null */
+    private ?array $globalState = null;
+
     protected function _before(): void
     {
         $this->kit = new OtelTestKit();
+    }
+
+    protected function _after(): void
+    {
+        if ($this->globalState !== null) {
+            foreach ($this->globalState as $name => $value) {
+                new ReflectionProperty(Globals::class, $name)->setValue(null, $value);
+            }
+        }
     }
 
     private function publisher(): TelemetryPublisher
@@ -532,6 +548,35 @@ final class TelemetryPublisherTest extends Unit
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void
     {
+        $this->globalState = [];
+        foreach (['globals', 'initializers'] as $name) {
+            $this->globalState[$name] = new ReflectionProperty(Globals::class, $name)->getValue();
+        }
+
+        Globals::reset();
+        Globals::registerInitializer(fn (Configurator $config): Configurator => $config
+            ->withTracerProvider($this->kit->tracerProvider)
+            ->withMeterProvider($this->kit->meterProvider)
+            ->withLoggerProvider($this->kit->loggerProvider));
+        $control = TelemetryPublisher::fromConfig(new BridgeConfigBuilder()
+            ->withTracerProvider(Globals::tracerProvider())
+            ->withMeterProvider(Globals::meterProvider())
+            ->withLoggerProvider(Globals::loggerProvider())
+            ->build());
+        $control->publish(RunItArtifactFactory::activity('act-control', 'exec-2', 'control', 'internal', 'succeeded'));
+        $control->publish(RunItArtifactFactory::counter('exec-2', 'items', 7));
+        $control->publish(RunItArtifactFactory::observation('obs-control', 'exec-2', 'info', 'control'));
+        self::assertCount(1, $this->kit->spans());
+        self::assertSame('control', $this->kit->spans()[0]->getName());
+        self::assertCount(1, $this->kit->logs());
+        $metrics = $this->kit->collectMetrics();
+        self::assertCount(1, $metrics);
+        self::assertSame('items', $metrics[0]->name);
+        self::assertInstanceOf(Sum::class, $metrics[0]->data);
+        $points = iterator_to_array($metrics[0]->data->dataPoints);
+        self::assertCount(1, $points);
+        self::assertSame(7, array_values($points)[0]->value);
+
         $publisher = TelemetryPublisher::fromConfig(BridgeConfig::default());
 
         $publisher->publish(RunItArtifactFactory::execution('exec-2', 'import', 'internal', 'succeeded'));
@@ -541,9 +586,15 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::occurrence('occ-2', 'exec-2', 'execution.started.v1'));
         $publisher->publish(RunItArtifactFactory::snapshot('snap-2', 'exec-2', ['ok' => true]));
 
-        self::assertCount(0, $this->kit->spans());
-        self::assertCount(0, $this->kit->collectMetrics());
-        self::assertCount(0, $this->kit->logs());
+        self::assertCount(1, $this->kit->spans());
+        self::assertCount(1, $this->kit->logs());
+        $metrics = $this->kit->collectMetrics();
+        self::assertCount(1, $metrics);
+        self::assertSame('items', $metrics[0]->name);
+        self::assertInstanceOf(Sum::class, $metrics[0]->data);
+        $points = iterator_to_array($metrics[0]->data->dataPoints);
+        // The test reader uses delta temporality, so the first collection consumed the control value.
+        self::assertCount(0, $points);
         self::assertFalse($publisher->capability()->any());
     }
 }
