@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 // Run separately: php tests/target-policy-psr15-regressions.php
-// This target-policy control fails until recorder failures preserve handler exceptions.
+// These target-policy controls fail until recorder failures preserve handler outcomes.
 require __DIR__ . '/../vendor/autoload.php';
 
+use ItPack\RunIt\Adapter\Psr\Contract\ResponseCorrelationEnricherInterface;
 use ItPack\RunIt\Adapter\Psr\Http\ExecutionMiddleware;
 use ItPack\RunIt\Contract\Application\ExecutionRunnerInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
@@ -22,6 +23,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\Instant;
+use Nyholm\Psr7\Response;
 use Nyholm\Psr7\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -119,6 +121,59 @@ $check(
 $check($arguments !== null && $arguments[3] === $handlerError, 'recorder receives the original handler exception');
 $check($arguments !== null && $arguments[4] === null, 'diagnostic code is absent');
 $check($caught === $handlerError, 'the exact original handler exception is propagated');
+
+$enricher = new class () implements ResponseCorrelationEnricherInterface {
+    /** Return the original response without modification. */
+    public function enrich(
+        ResponseInterface $response,
+        string $executionId,
+        ?string $correlationId = null,
+    ): ResponseInterface {
+        return $response;
+    }
+};
+$middleware = new ExecutionMiddleware($runner, enricher: $enricher);
+foreach ([
+    [404, 'http.response.client_error', ObservationSeverity::Warning],
+    [500, 'http.response.server_error', ObservationSeverity::Error],
+] as [$status, $message, $severity]) {
+    $response = new Response($status);
+    $handler = new class ($response) implements RequestHandlerInterface {
+        public int $calls = 0;
+
+        /** Keep the response returned by the handler. */
+        public function __construct(private readonly ResponseInterface $response)
+        {
+        }
+
+        /** Return the configured response. */
+        public function handle(ServerRequestInterface $request): ResponseInterface
+        {
+            ++$this->calls;
+
+            return $this->response;
+        }
+    };
+    $callsBefore = $recorder->calls;
+    $returned = null;
+    try {
+        $returned = $middleware->process(new ServerRequest('GET', '/status'), $handler);
+    } catch (Throwable) {
+        // The identity assertion below reports a recorder failure without stopping other controls.
+    }
+
+    $arguments = $recorder->arguments[$callsBefore] ?? null;
+    $check($handler->calls === 1, "$status handler is invoked once");
+    $check($recorder->calls === $callsBefore + 1, "$status recorder is invoked once");
+    $check($arguments !== null && $arguments[0] === $message, "$status observation message is recorded");
+    $check($arguments !== null && $arguments[1] === $severity, "$status observation severity is recorded");
+    $check($arguments !== null && $arguments[2]?->toArray() === ['status' => $status], "$status attribute is recorded");
+    $check(
+        $arguments !== null && $arguments[3] === null && $arguments[4] === null,
+        "$status has no throwable or diagnostic code",
+    );
+    $check($returned === $response, "$status exact handler response is returned");
+}
 
 foreach ($failures as $failure) {
     fwrite(STDERR, "FAIL: $failure\n");

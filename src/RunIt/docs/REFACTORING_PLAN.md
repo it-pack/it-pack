@@ -213,19 +213,19 @@ Swoole 6.2.3 were used with the existing installed dependencies and ignored
 `composer.lock`; no dependency update was performed. OpenSwoole and Swow were
 not loaded and the PHP 8.4 matrix was not rerun.
 
-| Check | Exit | Result |
-| --- | ---: | --- |
-| `composer validate --strict` | 0 | Valid |
-| `composer api:check` | 1 | Ten additions, zero detected breaks; matches prior result, no baseline update |
-| `composer analyse -- --no-progress` | 0 | No PHPStan errors |
-| `composer refactor:dry` | 0 | Passed, before style check |
-| `composer cs:check` | 0 | Passed |
-| `composer architecture` | 0 | 404 classes, no violations |
-| `composer lint:length` | 0 | Passed |
-| `composer test` | 0 | Four suites passed, no reported skips |
-| `composer coverage -- --silent` | 0 | Unit-only XML, 3,608/4,126 statements (87.45%) |
-| `composer audit` | 0 | No advisories; abandoned development dependency `doctrine/annotations` |
-| `composer audit --no-dev` | 0 | No advisories |
+| Check                               | Exit | Result                                                                        |
+|-------------------------------------|-----:|-------------------------------------------------------------------------------|
+| `composer validate --strict`        |    0 | Valid                                                                         |
+| `composer api:check`                |    1 | Ten additions, zero detected breaks; matches prior result, no baseline update |
+| `composer analyse -- --no-progress` |    0 | No PHPStan errors                                                             |
+| `composer refactor:dry`             |    0 | Passed, before style check                                                    |
+| `composer cs:check`                 |    0 | Passed                                                                        |
+| `composer architecture`             |    0 | 404 classes, no violations                                                    |
+| `composer lint:length`              |    0 | Passed                                                                        |
+| `composer test`                     |    0 | Four suites passed, no reported skips                                         |
+| `composer coverage -- --silent`     |    0 | Unit-only XML, 3,608/4,126 statements (87.45%)                                |
+| `composer audit`                    |    0 | No advisories; abandoned development dependency `doctrine/annotations`        |
+| `composer audit --no-dev`           |    0 | No advisories                                                                 |
 
 The four suites reported Unit 908 tests/6,188 assertions, Integration 3/7,
 Conformance 52/111, and Concurrency 8/172. The Unit XML was copied to
@@ -240,6 +240,9 @@ controlled before/after comparison or complete the broader benchmark baseline.
 `benchmarks/BufferedAdmissionBench.php` adds a reproducible normal-admission
 workload with real byte estimation; its PHP 8.5 measurements and concurrent-load
 limitations are also recorded there. This is not an overflow or exporter test.
+The nested snapshot redaction and serialization benchmark in `benchmarks/` makes
+that workload reproducible; its measurements and limitations are recorded in
+`docs/benchmarks.md`. This additional baseline does not complete Phase 0.
 
 At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
 PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 ran successfully on `src` with
@@ -482,14 +485,22 @@ with a fake runner and a throwing observation recorder. On PHP 8.4 and 8.5 it
 exits 1 with one expected target failure: the recorder exception replaces the
 original handler exception. Invocation counts and the recorded message,
 severity, attributes, throwable identity and diagnostic code are controls.
-This is a safety net, not a production fix; it does not cover response-status
-recording, a real runner, reporting or redaction, and is outside normal suites.
+This historical run did not cover response-status recording, a real runner,
+reporting or redaction, and is outside normal suites.
 The test coverage attribute in `RequireInterfaceRuleTest.php` was also corrected
 to use its existing import after the clean baseline Rector check failed. On the
 resulting PHP 8.5 worktree `composer quality --quiet` and targeted PHPStan passed;
 the separate API check reported ten additions and no detected breaks but exited
 1. No baseline was updated. Quality does not run this standalone target control,
 coverage or the API check; these results do not complete Phase 0.
+
+At starting revision `5ee134f43dcae8789ebc78ccb98b435793babd12`, the same
+standalone harness was extended with successful 404 and 500 handlers and a
+pass-through response enricher. On PHP 8.4 and 8.5 it exits 1 with three
+expected failures: the original handler exception and both exact responses are
+replaced by recorder failures. Invocation and recorded status details pass.
+These controls use a fake runner and do not test reporting or real HTTP I/O;
+they document the target, not a production fix.
 
 **Current baseline and integer-boundary control (2026-11-08):** Starting clean
 at `133db4746e2c87c2e2ace6d803020412ce3d6ce8`, PHP 8.5.12 with PCOV and

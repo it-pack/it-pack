@@ -70,6 +70,10 @@ implemented. The checks use synthetic inputs and do not cover every exporter,
 configuration, overflow edge case or failure path. See `REFACTORING_PLAN.md` for
 the observed failures and remaining design gates.
 
+Run `php tests/target-policy-psr15-regressions.php` separately for the PSR-15
+handler-exception and response-status recorder-failure targets. It is also
+outside the normal suites and currently fails against the existing middleware.
+
 ### Suite-leakage rule (Phase 0, T0.5)
 
 Suites mirror namespaces: Unit tests target Domain/Application/SDK/Behavior/
