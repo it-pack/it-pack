@@ -19,6 +19,7 @@ Checked items record approved policy direction, not completed implementation or
 verification. The unchecked design details below must still be resolved where applicable.
 
 - [x] **API identity:** Retain `ContextTokenInterface::id(): int` as an explicitly approved breaking contract. Update the API baseline and changelog and migrate affected ItPack implementations. The storage-defined value is stable for the token lifetime but is not necessarily unique; detachment must not rely on it alone.
+- [x] **Compatibility baseline:** Keep the API checker strict and the committed API and normalization-schema snapshots as comparison points. A deliberate contract change requires maintainer approval and coordinated migration of affected consumers: review the contract diff, run relevant RunIt and downstream checks against the changed checkout, update snapshots only after approval, record the change in the changelog, and coordinate split releases where necessary.
 - [x] **Throwable redaction defaults:** Make redaction configurable. By default, mask throwable messages at every cause depth and omit traces; permit trace export only through explicit configuration. Preserve bounded processing and document the security implications of opting in.
 - [x] **Sampling and redaction order:** Make the order configurable, with redaction before sampling by default. Sampling first must be an explicit choice documented as exposing unredacted artifacts to samplers. Preserve built-in type-dependent sampling behavior when redaction happens first.
 - [x] **Throwable metadata:** Preserve throwable class names and error codes by default for diagnosis, with configuration to remove or mask them where required.
@@ -180,7 +181,7 @@ provider execution or real-suite attribution and is not a CI gate.
 - [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
 - [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
-- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
+- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
 
 **Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
@@ -257,7 +258,9 @@ this test, benchmark and documentation work.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
 
-At starting revision `f1b49169387ea4e736b5a410084ed011c7c71711`, the
+### Phase 0 compatibility reference
+
+At starting revision [`f1b49169387ea4e736b5a410084ed011c7c71711`](https://github.com/it-pack/it-pack/commit/f1b49169387ea4e736b5a410084ed011c7c71711), the
 worktree was initially clean; this plan's documentation was edited during the
 checks, without production or test changes. PHP 8.5.12 CLI NTS, Composer 2.9.7,
 Codeception 5.3.7, PHPUnit 13.1.14, php-code-coverage 14.5.1, PCOV 1.0.12 and
@@ -861,11 +864,13 @@ Historically AsyncIt's focused memory storage, Swoole storage and context-isolat
 
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
 
-The monorepo downstream compatibility workflow and runner described in
-`docs/QA.md` are intended to collect consumer-owned test evidence against the
-current RunIt checkout. Inspect each job's results, source verification, and
-skips before counting any scenario; the tooling alone does not complete the
-token migration, API check, runtime validation, or Phase 0.
+The [downstream compatibility workflow](../../../.github/workflows/runit-downstream-compat.yml)
+provides consumer-behavior evidence only for selected consumers and tests that
+actually ran against the verified checkout. Its offline self-test verifies the
+runner itself, not consumer compatibility. Inspect each job's results, source
+verification, and skips before counting any scenario; the tooling alone does not
+complete the token migration, API check, runtime validation, or Phase 0. See
+`docs/QA.md` for execution and evidence details.
 In the initial PHP 8.4.27 run, `RunItThirdPartySample` passed; `DeriveItRunit`
 could not install because the local `DeriveIt` requires PHP `^8.5`. See
 `docs/QA.md` for the lane and evidence limitations.
