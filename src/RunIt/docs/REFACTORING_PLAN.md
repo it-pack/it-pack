@@ -27,6 +27,7 @@ verification. The unchecked design details below must still be resolved where ap
 - [x] **Span-store retention:** Use a configurable finite default limit and evict oldest entries. Late lookups after eviction treat the parent as unavailable and must not change execution results. Choose and document the default limit with workload evidence; establish whether configuration can remain compatible with the frozen public API.
 - [x] **Concurrency default:** Retain the synchronous default and require explicit runtime-appropriate storage for interleaved executions. Document the limitation and add feasible configuration validation; do not silently switch storage or assume the default is concurrency-safe.
 - [x] **Coverage attribution policy:** Collect coverage from Unit tests only and require an explicit class under test, while permitting justified real collaborators and practical documented exceptions. Define the enforcement mechanism and CI environment; aggregate coverage alone does not establish per-test attribution.
+- [x] **Publication health reporting:** The application layer exposes configurable health reporting: consumers may use a replaceable SDK default, provide their own reporter, or explicitly disable reporting. The fail-open runner preserves the exact returned value or original business exception, contains reporter failures and re-entry into the same publication path, and restores context. Report bounded, sanitized diagnostics independently of the failing publisher; transport, buffering, retries, acknowledgements and durability belong to consumers, adapters and bridges. Phase 4 must choose the default destination and resolve compatibility of the existing nullable callback API.
 - [x] **Coding standards principle:** Keep existing enforced conventions and adopt additional rules only when useful, with focused exceptions. Do not impose blanket factory-only construction or interface creation. Reconcile individual rules, including member ordering, with `docs/QA.md` before changing or adding enforcement; avoid unnecessary public API changes.
 
 **Open design details:**
@@ -35,6 +36,7 @@ verification. The unchecked design details below must still be resolved where ap
 - [ ] Determine feasible concurrency configuration validation and its behavior without silently changing the default.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
+- [ ] Choose the publication-health default destination and resolve nullable callback API compatibility in Phase 4.
 
 **Observation design investigation:** A candidate sanitized representation
 would implement `ObservationInterface` without retaining the source artifact,
@@ -335,7 +337,7 @@ failure-path coverage for other adapters or complete Phase 0.
 | Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php` | Broader exporter and configuration controls.                                            |
 | Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                    | Redaction-first implementation and broader typed routing tests.                         |
 | Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                   | Complete target-invariant matrix and approved edge semantics.                           |
-| Silent or recursive publication failures | `FailureHandlingTest`, runner `ResilienceTest`, and bounded recursive reporter target control                                                                                                                                                                                                                           | Other system-log configurations and recursion-safe implementation.                      |
+| Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                        | Phase 4 default destination, compatibility and regression matrix.                      |
 | Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                        | Final migration, versioning and API-check verification for external implementers.       |
 | Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                         | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
 | Synchronous context under concurrency    | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest`                                                                                                                                                                                                                                      | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable.            |
@@ -344,6 +346,21 @@ The originally reported token break is approved, not erased, and coverage
 enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
+
+### Publication failure evidence
+
+With no reporter, [fail-open drops the publisher failure](../tests/Unit/Application/Publication/FailureHandlingTest.php#L62);
+the runner tests preserve the [result](../tests/Unit/Application/Runner/DefaultExecutionRunnerTest.php#L129)
+and [original exception](../tests/Unit/Application/Runner/DefaultExecutionRunnerTest.php#L138)
+when publication fails without a callback. The [bounded re-entry control](../tests/Unit/Application/Publication/FailureHandlingTest.php#L76)
+shows nested attempts do not reach the sink but repeatedly invoke the reporter;
+the [target control](../tests/target-policy-regressions.php#L234) requires one
+report and checks guard reset. The existing throwing-callback fix is supported by
+the [fallback-sink](../tests/Unit/Application/Publication/FailureHandlingTest.php#L139)
+and [normalization](../tests/Unit/Application/Publication/FailureHandlingTest.php#L206)
+failure checks, not proof of all runner reporting paths. The
+[approved boundary](#decisions-required-before-dependent-changes) and Phase 4
+matrix remain target behavior, not current behavior.
 
 The original opaque-token compatibility expectation is no longer an unmet target:
 the `id(): int` break was explicitly approved. A failing test requiring the old
@@ -709,7 +726,7 @@ count-bound overflow baseline exercised the actual buffering publisher at 256,
 other priority patterns, workload and limitations are in `benchmarks.md`. This
 does not isolate scanning from array costs or establish production throughput.
 
-Starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
+Before the later callback-reporter fix, starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
 `FailureHandlingTest` additionally characterizes publication failure reporting.
 With no health reporter the fail-open publisher drops the failure. A throwing
 callback followed by a successful fallback logs both exception messages and the
@@ -1058,15 +1075,14 @@ stopped at the existing Rector callable-fixture suggestion; the independent
 line-length check reported 26 violations outside these changes. Silent test runs
 do not establish coverage for unavailable OpenSwoole or Swow extensions.
 
-- [ ] Trace `DefaultExecutionRunner`, `FailSafeArtifactPublisher`, `FailOpenPolicy`, and existing fallback reporter behavior. Define a recursion-safe default health sink that does not send failures back through the failing publisher, expose secrets, or replace the business outcome.
-- [ ] Add failure-injection tests for no callback, successful callback, callback throwing, fallback sink throwing, inner publisher throwing, recursive publication, and artifact normalization throwing during failure reporting. Check bounded/sanitized reporting and verify no failure is silently discarded under the chosen policy.
-- [ ] Implement guarded fallback reporting for the default fail-open path and guard diagnostic extraction itself. Keep fail-closed behavior explicit and preserve the original throwable and context restoration in `finally`.
+- [ ] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
+- [ ] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
 - [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard artifact normalization and fallback reporting; verify runner outcomes and context restoration when either fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback retains its existing behavior.
 - [ ] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration.
 - [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
 - [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
 
-**Exit:** terminal outcomes and health failures remain observable without masking business results; lifecycle and failure-injection tests pass under the approved policy.
+**Exit:** terminal outcomes remain observable and health failures are reported unless explicitly disabled, without masking business results; lifecycle and failure-injection tests pass under the approved policy.
 
 The callback reporter fix is limited to its own secondary failure path. On PHP
 8.5.12, the focused publication and runner tests passed, as did `composer
