@@ -5,15 +5,22 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Context;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use stdClass;
 
 /**
  * T0.3 (REVIEW S3): context value recursion must be depth-bounded so a deeply
  * nested payload throws instead of overflowing the stack.
  */
+#[CoversClass(ContextValueValidator::class)]
+#[UsesClass(BoundedPrimitiveValueWalker::class)]
+#[UsesClass(InvalidContextValueException::class)]
+#[UsesClass(SecurityLimits::class)]
 final class ContextValueValidatorTest extends Unit
 {
     /**
@@ -34,7 +41,7 @@ final class ContextValueValidatorTest extends Unit
     {
         new ContextValueValidator()->assertSupportedValue('ok');
 
-        self::expectNotToPerformAssertions();
+        $this->expectNotToPerformAssertions();
     }
 
     public function testObjectIsRejected(): void
@@ -48,7 +55,7 @@ final class ContextValueValidatorTest extends Unit
     {
         new ContextValueValidator()->assertSupportedValue($this->nestedArray(7));
 
-        self::expectNotToPerformAssertions();
+        $this->expectNotToPerformAssertions();
     }
 
     public function testDeepNestingIsRejectedWithoutSegfault(): void

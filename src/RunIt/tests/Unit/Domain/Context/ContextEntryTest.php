@@ -118,9 +118,14 @@ final class ContextEntryTest extends Unit
         $this->expectException(TypeError::class);
 
         $resource = fopen('php://memory', 'rb');
-        // @phpstan-ignore argument.type (Deliberate resource value to assert rejection.)
-        ContextEntry::public(ContextKey::fromString('k'), $resource);
-        fclose($resource);
+        self::assertIsResource($resource);
+
+        try {
+            // @phpstan-ignore argument.type (Deliberate resource value to assert rejection.)
+            ContextEntry::public(ContextKey::fromString('k'), $resource);
+        } finally {
+            fclose($resource);
+        }
     }
 
     public function testNestedObjectValueIsRejectedByValidator(): void

@@ -88,6 +88,17 @@ do not cover a throwing callback, fail-closed behavior, every adapter, or actual
 delivery after a publisher throws. They do not fix the factory failure or close
 Phase 0 and are not part of `composer quality`.
 
+At clean starting revision `228a7ff9`, the same standalone harness was extended
+with a throwing health callback for each terminal publisher and business outcome.
+On PHP 8.4.27 and 8.5.12 it exited 1 with only the same six factory-failure
+checks; all four new cases passed the existing publication-order, reporting
+attempt, business identity and context-restoration assertions. The fallback emitted
+four synthetic diagnostics on each run, but their contents and delivery are not
+asserted. This exercises synchronous fail-open behavior, not fail-closed policy,
+throwing fallback sinks, other adapters or actual artifact delivery after a throw.
+The standalone harness remains outside `composer quality` and does not fix or
+close the factory-failure gap.
+
 ### Suite-leakage rule (Phase 0, T0.5)
 
 Suites mirror namespaces: Unit tests target Domain/Application/SDK/Behavior/

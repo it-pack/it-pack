@@ -130,8 +130,9 @@ foreach ([false, true] as $factoryFails) {
 }
 
 foreach (['execution', 'snapshot'] as $failedArtifact) {
-    foreach ([false, true] as $businessFails) {
-        $label = "$failedArtifact publication failure, business " . ($businessFails ? 'failure' : 'success');
+    foreach ([[false, false], [true, false], [false, true], [true, true]] as [$businessFails, $reporterFails]) {
+        $label = "$failedArtifact publication failure, business " . ($businessFails ? 'failure' : 'success')
+            . ', reporter ' . ($reporterFails ? 'failure' : 'success');
         $publicationError = new RuntimeException('terminal publication failed');
         $publisher = new class ($failedArtifact, $publicationError) implements ArtifactPublisherInterface {
             /** @var list<string> */
@@ -168,8 +169,11 @@ foreach (['execution', 'snapshot'] as $failedArtifact) {
         $inner = new RunItTestKit(
             publisher: $publisher,
             onPublicationFailure: /** Capture the original publisher failure. */
-                static function (Throwable $error) use (&$reported): void {
+                static function (Throwable $error) use (&$reported, $reporterFails): void {
                     $reported[] = $error;
+                    if ($reporterFails) {
+                        throw new RuntimeException('synthetic health callback failure');
+                    }
                 },
             storage: $outer->storage,
         );
