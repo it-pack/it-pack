@@ -74,6 +74,20 @@ Run `php tests/target-policy-psr15-regressions.php` separately for the PSR-15
 handler-exception and response-status recorder-failure targets. It is also
 outside the normal suites and currently fails against the existing middleware.
 
+Run `php tests/target-policy-terminal-publication-regressions.php` separately
+for terminal publication failure injection. At starting revision `01cd9371`
+with a clean worktree, PHP 8.4.27 and 8.5.12 each exited 1 with the same six
+existing target failures: a throwing snapshot factory prevents publication of
+the terminal execution, for both successful and failing operations. The new
+publisher-failure cases passed all checks on both versions: for each terminal
+artifact and business outcome, both publications were attempted in order, the
+publisher error was reported once by identity, the business result or exception
+was preserved by identity, and the parent context was restored and detached.
+These are synchronous, fail-open controls with a successful health callback; they
+do not cover a throwing callback, fail-closed behavior, every adapter, or actual
+delivery after a publisher throws. They do not fix the factory failure or close
+Phase 0 and are not part of `composer quality`.
+
 ### Suite-leakage rule (Phase 0, T0.5)
 
 Suites mirror namespaces: Unit tests target Domain/Application/SDK/Behavior/

@@ -5,9 +5,21 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Context;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
+use ItPack\RunIt\Behavior\Domain\StringValueEquality;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextKey;
+use ItPack\RunIt\Domain\Context\ContextValueValidator;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 
+#[CoversClass(ContextKey::class)]
+#[UsesClass(BoundedKeyGuard::class)]
+#[UsesClass(StringValueEquality::class)]
+#[UsesClass(InvalidContextValueException::class)]
+#[UsesClass(ContextValueValidator::class)]
+#[UsesClass(SecurityLimits::class)]
 final class ContextKeyTest extends Unit
 {
     public function testFromStringProjectsAndRendersCanonically(): void

@@ -129,6 +129,91 @@ foreach ([false, true] as $factoryFails) {
     }
 }
 
+foreach (['execution', 'snapshot'] as $failedArtifact) {
+    foreach ([false, true] as $businessFails) {
+        $label = "$failedArtifact publication failure, business " . ($businessFails ? 'failure' : 'success');
+        $publicationError = new RuntimeException('terminal publication failed');
+        $publisher = new class ($failedArtifact, $publicationError) implements ArtifactPublisherInterface {
+            /** @var list<string> */
+            public array $attempts = [];
+
+            /** Configure which terminal publication fails. */
+            public function __construct(
+                private readonly string $failedArtifact,
+                private readonly RuntimeException $error,
+            ) {
+            }
+
+            /** Record terminal attempts and inject one publication failure. */
+            public function publish(ExecutionArtifactInterface $artifact): void
+            {
+                $kind = match (true) {
+                    $artifact instanceof ExecutionInterface && $artifact->endedAt() instanceof InstantInterface
+                        => 'execution',
+                    $artifact instanceof ExecutionSnapshotInterface => 'snapshot',
+                    default => null,
+                };
+                if ($kind === null) {
+                    return;
+                }
+
+                $this->attempts[] = $kind;
+                if ($kind === $this->failedArtifact) {
+                    throw $this->error;
+                }
+            }
+        };
+        $reported = [];
+        $outer = new RunItTestKit();
+        $inner = new RunItTestKit(
+            publisher: $publisher,
+            onPublicationFailure: /** Capture the original publisher failure. */
+                static function (Throwable $error) use (&$reported): void {
+                    $reported[] = $error;
+                },
+            storage: $outer->storage,
+        );
+        $businessError = new RuntimeException('business failed');
+        $value = new stdClass();
+        $outer->runner->run($definition, /** Verify business identity and restoration inside the parent scope. */
+            static function (ExecutionScopeInterface $parent) use (
+                $inner,
+                $definition,
+                $businessFails,
+                $businessError,
+                $value,
+                $check,
+                $label,
+            ): void {
+                $caught = null;
+                $result = null;
+                try {
+                    $result = $inner->runner->run($definition, /** Complete or fail with the original value. */
+                        static function () use ($businessFails, $businessError, $value): object {
+                            if ($businessFails) {
+                                throw $businessError;
+                            }
+
+                            return $value;
+                        });
+                } catch (Throwable $throwable) {
+                    $caught = $throwable;
+                }
+
+                $check($caught === ($businessFails ? $businessError : null), "$label: original exception identity");
+                $check($result === ($businessFails ? null : $value), "$label: original result identity");
+                $check($inner->storage->current() === $parent, "$label: prior context restored");
+            });
+
+        $check(!$outer->storage->current() instanceof ExecutionScopeInterface, "$label: outer context detached");
+        $check($reported === [$publicationError], "$label: publication error reported exactly once");
+        $check(
+            $publisher->attempts === ['execution', 'snapshot'],
+            "$label: both terminal publications attempted in order",
+        );
+    }
+}
+
 foreach ($failures as $failure) {
     fwrite(STDERR, "FAIL: $failure\n");
 }
