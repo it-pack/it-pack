@@ -162,9 +162,9 @@ It is therefore not a drop-in replacement for this suite.
 
 **Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
 
-- [ ] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
-- [ ] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
-- [ ] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
+- [x] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
+- [x] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
+- [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
 - [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
 - [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
@@ -193,6 +193,39 @@ It is therefore not a drop-in replacement for this suite.
 - Other available fixtures include `DeterministicMonotonicClock`, `ThrowingArtifactPublisher`, throwing health callbacks in `ResilienceTest`, and the independent `RunItThirdPartySample` token. Full custom-token ownership regression coverage remains a Phase 1 task.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
+
+At starting revision `f1b49169387ea4e736b5a410084ed011c7c71711`, the
+worktree was initially clean; this plan's documentation was edited during the
+checks, without production or test changes. PHP 8.5.12 CLI NTS, Composer 2.9.7,
+Codeception 5.3.7, PHPUnit 13.1.14, php-code-coverage 14.5.1, PCOV 1.0.12 and
+Swoole 6.2.3 were used with the existing installed dependencies and ignored
+`composer.lock`; no dependency update was performed. OpenSwoole and Swow were
+not loaded and the PHP 8.4 matrix was not rerun.
+
+| Check | Exit | Result |
+| --- | ---: | --- |
+| `composer validate --strict` | 0 | Valid |
+| `composer api:check` | 1 | Ten additions, zero detected breaks; matches prior result, no baseline update |
+| `composer analyse -- --no-progress` | 0 | No PHPStan errors |
+| `composer refactor:dry` | 0 | Passed, before style check |
+| `composer cs:check` | 0 | Passed |
+| `composer architecture` | 0 | 404 classes, no violations |
+| `composer lint:length` | 0 | Passed |
+| `composer test` | 0 | Four suites passed, no reported skips |
+| `composer coverage -- --silent` | 0 | Unit-only XML, 3,608/4,126 statements (87.45%) |
+| `composer audit` | 0 | No advisories; abandoned development dependency `doctrine/annotations` |
+| `composer audit --no-dev` | 0 | No advisories |
+
+The four suites reported Unit 908 tests/6,188 assertions, Integration 3/7,
+Conformance 52/111, and Concurrency 8/172. The Unit XML was copied to
+`/tmp/kilo/runit-unit-f1b49169-20261109T0102-coverage.xml`; this temporary copy
+is not durable. Generated reports under `tests/_output` can be overwritten.
+PCOV does not provide branch coverage, and the aggregate neither establishes
+per-test attribution nor meets the proposed 95% floor. These commands do not
+run the standalone target-policy regressions or complete Phase 0.
+The refreshed buffered drain and close stress measurements, including workload,
+variance and limitations, are in `docs/benchmarks.md`; they do not establish a
+controlled before/after comparison or complete the broader benchmark baseline.
 
 At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
 PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 ran successfully on `src` with
@@ -244,6 +277,19 @@ The originally reported token break is approved, not erased, and coverage
 enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
+
+The original opaque-token compatibility expectation is no longer an unmet target:
+the `id(): int` break was explicitly approved. A failing test requiring the old
+contract would contradict that decision; migration and external-implementer
+verification remain Phase 1 work. Likewise, the synchronous default is explicitly
+retained, so a test requiring it to isolate interleaved Fibers would be invalid.
+The default-risk characterization exists, but a target test for misuse detection
+cannot be specified until the validation behavior is decided. This design gap is
+distinct from unavailable OpenSwoole and Swow environments. Coverage below 95%
+and the experimental attribution controls establish gaps, but do not yet provide
+a durable failing threshold or isolation gate. The separate no-callback health
+visibility target also needs a specified observable fallback; recursion evidence
+alone does not establish that target.
 
 At clean starting revision `bf42eddec1f382acc654987038c05a65ec8fcf24`, the
 PSR-15 `HttpAdaptersTest::testMiddlewareRecordsRequestFailureAndRethrows`

@@ -88,6 +88,46 @@ concurrent work can affect them, and several ranges vary substantially. They
 do not cover PHP 8.4, concurrency, real export I/O or failure paths. See the
 separate byte-bound buffer and nested context baselines below for other workloads.
 
+## Buffered drain and close baseline (2026-11-09)
+
+At revision `f1b49169387ea4e736b5a410084ed011c7c71711`, a temporary harness
+measured the existing `BufferedArtifactPublisher`. Each fresh buffer was filled
+outside the timed region with one reused real info observation. Its item limit
+equalled the queue size, the byte limit was 8 MiB, and a constant estimator
+returned 100 bytes per item. Automatic flushing was disabled; the maximum age
+was 60 seconds, with a system clock and counting sink. The flush case repeatedly
+drained batches of 256; full close had a budget equal to the queue size; limited
+close used a budget of 256 and dropped the remainder. Delivery, drop, count and
+byte-accounting checks passed. Values are milliseconds for the entire operation,
+median and full range across nine samples after two warmups, with case order
+rotated between rounds.
+
+| Items | Flush median (range) | Full close median (range) | Limited close median (range) |
+| ---: | ---: | ---: | ---: |
+| 256 | 0.149 (0.142-0.223) | 0.155 (0.139-0.187) | 0.143 (0.139-0.150) |
+| 1,024 | 1.332 (1.276-1.889) | 1.388 (1.288-1.640) | 1.249 (1.203-1.903) |
+| 4,096 | 18.107 (17.218-20.042) | 18.215 (17.623-20.033) | 17.510 (17.005-18.634) |
+| 16,384 | 284.814 (268.522-323.959) | 283.731 (273.327-341.804) | 279.919 (275.551-295.503) |
+
+PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on Intel Core i7-9700;
+CLI OPcache, JIT and PCOV disabled, Xdebug absent, without CPU pinning. Other
+quality checks ran concurrently. The temporary harness
+`/tmp/kilo/runit-drain-current.php` (SHA-256
+`248969b9b120c6f70a80dd8a76f80fea4ce295919cf4c8602159eb3eb5532dad`)
+is not durable. While present, run from the package directory:
+
+```bash
+php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-drain-current.php
+```
+
+The stress sizes exceed the default 1,024-item maximum. Elapsed time grew
+strongly superlinearly in this workload, but the measurement does not isolate
+the cost of `array_shift()` or prove causation. It excludes real I/O,
+serialization, timed estimation, overflow, expiration, concurrency, failures,
+memory profiling and PHP 8.4. It is not a production guarantee, regression
+threshold or controlled comparison with the older baseline, whose harness is
+unavailable and used a different estimator.
+
 ## PSR-3 publication baseline (2026-11-08)
 
 At revision `c4841f341d8c6e8efbcc19ad6dfd85d6eb8aa205`, a temporary
