@@ -371,9 +371,10 @@ The default-risk characterization exists, but a target test for misuse detection
 cannot be specified until the validation behavior is decided. This design gap is
 distinct from unavailable OpenSwoole and Swow environments. Coverage below 95%
 and the experimental attribution controls establish gaps, but do not yet provide
-a CI threshold or isolation gate. The separate no-callback health
-visibility target also needs a specified observable fallback; recursion evidence
-alone does not establish that target.
+a CI threshold or isolation gate. The current no-callback behavior is reproduced,
+and the recursion target already has a failing check. Verification of reporting
+with the SDK default is deferred to Phase 4, where the default destination and
+nullable callback compatibility will be decided.
 
 For redacted observations, the existing OpenTelemetry characterization proves
 the tested silent drop and unredacted delivery, but a policy-independent
