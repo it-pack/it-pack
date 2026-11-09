@@ -42,4 +42,4 @@ packages/
 .deptrac.cache
 
 # graphify
-graphify-out/
+graphify-out/*/
