@@ -5,15 +5,33 @@ declare(strict_types=1);
 namespace Tests\Unit\Domain\Context;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Behavior\Domain\BoundedKeyGuard;
+use ItPack\RunIt\Behavior\Domain\BoundedPrimitiveValueWalker;
+use ItPack\RunIt\Behavior\Domain\StringValueValidator;
 use ItPack\RunIt\Contract\Exception\InvalidContextValueException;
 use ItPack\RunIt\Domain\Context\ContextClassification;
 use ItPack\RunIt\Domain\Context\ContextEntry;
 use ItPack\RunIt\Domain\Context\ContextKey;
 use ItPack\RunIt\Domain\Context\ContextSource;
+use ItPack\RunIt\Domain\Context\ContextValueValidator;
 use ItPack\RunIt\Domain\Shared\Instant;
+use ItPack\RunIt\Domain\Shared\SecurityLimits;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use stdClass;
 use TypeError;
 
+#[CoversClass(ContextEntry::class)]
+#[UsesClass(BoundedKeyGuard::class)]
+#[UsesClass(BoundedPrimitiveValueWalker::class)]
+#[UsesClass(StringValueValidator::class)]
+#[UsesClass(InvalidContextValueException::class)]
+#[UsesClass(ContextClassification::class)]
+#[UsesClass(ContextKey::class)]
+#[UsesClass(ContextSource::class)]
+#[UsesClass(ContextValueValidator::class)]
+#[UsesClass(Instant::class)]
+#[UsesClass(SecurityLimits::class)]
 final class ContextEntryTest extends Unit
 {
     public function testPublicNamedConstructorSetsClassificationAndValue(): void
@@ -102,6 +120,7 @@ final class ContextEntryTest extends Unit
         $resource = fopen('php://memory', 'rb');
         // @phpstan-ignore argument.type (Deliberate resource value to assert rejection.)
         ContextEntry::public(ContextKey::fromString('k'), $resource);
+        fclose($resource);
     }
 
     public function testNestedObjectValueIsRejectedByValidator(): void

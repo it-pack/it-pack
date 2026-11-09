@@ -7,7 +7,9 @@ namespace Tests\Unit\Domain\Context;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Contract\Domain\ContextClassificationInterface;
 use ItPack\RunIt\Domain\Context\ContextClassification;
+use PHPUnit\Framework\Attributes\CoversClass;
 
+#[CoversClass(ContextClassification::class)]
 final class ContextClassificationTest extends Unit
 {
     public function testPublicIsExportablePropagatableAndSerializable(): void

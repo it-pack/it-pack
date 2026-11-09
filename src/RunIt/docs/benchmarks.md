@@ -21,43 +21,77 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Throwable normalization       | `benchThrowableNormalization`      | `DefaultThrowableMapper::describe`                                  |
 | Bounded publication gate      | `benchBoundedPublish`              | Per-execution count + payload-bound checks (native byte estimation) |
 | OTel bridge no-op path        | `benchOtelNullProviderRecord`      | Instrument-mapper record without a meter provider                   |
-| Context copy-on-write         | (context suites)                   | Immutable `with`/`without` projections                              |
-| Composite publisher           | (publication suites)               | Redact + sample + publish chain                                     |
-| Filtering and sampling        | `benchRedaction` / sampling suites | Policy decisions per artifact                                       |
-| Redaction                     | `benchRedaction`                   | Secret masking of a snapshot payload                                |
+| Sampling and redaction        | `benchRedaction`                   | Sampling, redaction and in-memory publication of a snapshot         |
 | In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 | Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
+| CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
 
-OTel and CloudEvents mapping benchmarks are planned for the adapter conformance suite.
+Additional adapter and context workloads are discussed below; some use temporary
+harnesses rather than the checked-in PHPBench suite.
 
 ## Targets
 
-Targets are documented here rather than asserted theoretically. They are reviewed whenever the
-implementation of the relevant path changes.
+These are historical targets, not verified results. The recorded iteration-average
+ranges below do not establish p50 or throughput, and some subjects include an
+entire execution rather than an isolated operation.
 
 | Metric                                      | Target            | Status            |
 |---------------------------------------------|-------------------|-------------------|
-| In-memory execution latency (p50, 100 revs) | < 50 µs           | baseline recorded |
-| Activity latency (p50)                      | < 25 µs           | baseline recorded |
-| Measurement creation (p50)                  | < 10 µs           | baseline recorded |
-| Observation creation (p50)                  | < 15 µs           | baseline recorded |
-| Throwable normalization (p50)               | < 20 µs           | baseline recorded |
-| Artifact publication throughput             | > 50k artifacts/s | baseline recorded |
+| In-memory execution latency (p50, 100 revs) | < 50 µs           | not established   |
+| Activity latency (p50)                      | < 25 µs           | not established   |
+| Measurement creation (p50)                  | < 10 µs           | not established   |
+| Observation creation (p50)                  | < 15 µs           | not established   |
+| Throwable normalization (p50)               | < 20 µs           | not established   |
+| Artifact publication throughput             | > 50k artifacts/s | not established   |
 
 ## Regression policy
 
-- Each pull request runs the benchmark suite in **non-blocking** mode and stores a machine-readable
-  baseline under `benchmarks/.baseline/`.
-- Once a baseline is stable, a **blocking** regression gate fails the build when a measured metric
-  regresses beyond the accepted threshold (default 5% for latency, 5% for throughput).
-- Hardware and runtime configuration (PHP version, extensions, CPU model) are recorded with every
-  baseline so comparisons are meaningful.
+The previously proposed per-PR benchmark and blocking regression gates are not
+established by the current workflows. Measurements should record the workload,
+hardware, runtime and variance; the figures below are not automatic CI thresholds.
 
 > Historical note: in the M12 development environment the installed phpbench binary failed to
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## CloudEvents mapping and serialization baseline (2026-11-09)
+
+At clean starting revision `01cd9371f9707d6ab6adbeab2edbb27473b0c928` plus
+the benchmark and this documentation, run from the package directory:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/CloudEventBench.php --config=phpbench.json --report=aggregate
+```
+
+The reusable occurrence has 16 nested item rows, execution and activity IDs,
+a subject, correlation ID and one custom extension. The mapping subject maps
+that occurrence with the default policy; the serialization subject encodes a
+pre-mapped event using the default structured JSON serializer. Fixture creation
+and verification are outside the timed subjects. After each iteration the hook
+checks envelope fields, extensions, data and a JSON round-trip; failures throw,
+although PHPBench reports zero framework assertions.
+
+PHPBench 1.7.0 on PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on an
+Intel Core i7-9700, with CLI OPcache, JIT and PCOV disabled and Xdebug absent,
+reported these modes and relative standard deviations across five iterations of
+1,000 operations, after two warmups:
+
+| Subject | Mode (µs/operation) | Relative standard deviation |
+| --- | ---: | ---: |
+| Occurrence to CloudEvent | 59.245 | 11.05% |
+| CloudEvent to structured JSON | 5.141 | 10.28% |
+
+This unpinned single-process synthetic run is not a regression threshold or a
+controlled comparison. It excludes occurrence creation, deserialization timing,
+network and sink I/O, buffering, redaction, failures, concurrency, memory
+profiling and PHP 8.4 timing. Its fixture and results do not represent all
+CloudEvents traffic. A separate PHP 8.4.27 invocation using the same PHPBench
+configuration passed both verification hooks, with modes of 60.674 µs for mapping
+and 5.190 µs for serialization (relative standard deviations 2.78% and 6.55%).
+It overlapped a quality run and used the default PHP configuration, so it is not
+a controlled PHP-version comparison. Phase 0 remains open.
 
 ## PHPBench baseline (2026-11-09)
 

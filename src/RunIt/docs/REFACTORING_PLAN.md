@@ -196,6 +196,25 @@ provider execution or real-suite attribution and is not a CI gate.
 | Benchmarks                   | 10 subjects, 0 failures                                                                  |
 
 **Phase 0 additions:**
+
+At clean starting revision `01cd9371f9707d6ab6adbeab2edbb27473b0c928`,
+`composer validate --strict` and both runtime and full security audits passed
+on PHP 8.5.12. The full audit reported the abandoned development dependency
+`doctrine/annotations`; neither audit found vulnerability advisories. The API
+checker exited 1 for ten additions and reported no detected breaks. No API or
+schema baseline was changed. These checks do not complete Phase 0.
+The checked-in CloudEvents mapping and structured JSON benchmark adds a
+reproducible synthetic serialization baseline; its commands, measurements and
+limitations are in `docs/benchmarks.md`. Four context-domain Unit test classes
+now declare coverage subjects and identified collaborators. Their metadata is
+preparation only, not a verified isolation or attribution gate.
+The terminal-publication target harness now also checks each publisher failure
+against successful and failing business operations. On PHP 8.4.27 and 8.5.12
+those added checks passed; the six existing snapshot-factory target failures
+remain. See `docs/QA.md` for scope and limitations. After integration, `composer
+quality --quiet` passed on PHP 8.5.12; it does not run the standalone harness,
+coverage or API checker.
+
 - `tests/Support/Fixture/SensitiveExceptionChain.php` — nested throwable chain with classified values (API key, DB password, session token) at three depths.
 - `tests/Support/Fixture/DeterministicArtifactByteEstimator.php` — deterministic byte estimator for buffer admission tests.
 - `tests/Concurrency/InterleavedFiberContextIsolationTest.php` — interleaved fiber isolation test.
