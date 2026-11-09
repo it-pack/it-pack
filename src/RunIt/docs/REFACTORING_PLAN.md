@@ -197,6 +197,16 @@ provider execution or real-suite attribution and is not a CI gate.
 
 **Phase 0 additions:**
 
+At clean starting revision `919a75c80fa944b3b2164d0c70f47350d0846b80`, the
+Swoole HTTP target harness gained post-handler clock-failure cases for successful
+and failing handlers. PHP 8.4.27 and 8.5.12 each exited 1 with four target
+failures: the two existing recorder failures and both new business-outcome
+identity checks. Handler invocation and the second clock reading passed as
+controls. The fake runner and nonthrowing observation recorder isolate this path;
+measurement-recorder and initial clock failures, reporting, and real HTTP I/O
+remain untested. This is a safety net, not a production fix or completion of
+Phase 0; see `docs/QA.md` for the command.
+
 At clean starting revision `01cd9371f9707d6ab6adbeab2edbb27473b0c928`,
 `composer validate --strict` and both runtime and full security audits passed
 on PHP 8.5.12. The full audit reported the abandoned development dependency

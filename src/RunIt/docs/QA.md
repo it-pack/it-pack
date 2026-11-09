@@ -74,6 +74,17 @@ Run `php tests/target-policy-psr15-regressions.php` separately for the PSR-15
 handler-exception and response-status recorder-failure targets. It is also
 outside the normal suites and currently fails against the existing middleware.
 
+Run `php tests/target-policy-swoole-http-regressions.php` separately for Swoole
+HTTP failure isolation; it does not require the Swoole extension. At clean
+starting revision `919a75c80fa944b3b2164d0c70f47350d0846b80`, PHP 8.4.27 and
+8.5.12 each exited 1 with four target failures: the existing two recorder-failure
+outcome checks and two new post-handler clock-failure outcome checks. In the
+new cases the handler runs once and the second clock reading is reached, but the
+exact response or original handler exception is not preserved. A nonthrowing
+observation recorder and fake runner isolate the clock path. This does not test
+measurement-recorder failures, initial clock failures, failure reporting, a real
+runner or HTTP server. It is outside the normal suites and does not fix behavior.
+
 Run `php tests/target-policy-terminal-publication-regressions.php` separately
 for terminal publication failure injection. At starting revision `01cd9371`
 with a clean worktree, PHP 8.4.27 and 8.5.12 each exited 1 with the same six
