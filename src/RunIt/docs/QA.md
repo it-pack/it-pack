@@ -34,6 +34,9 @@ directory, run each Codeception control separately with PCOV enabled:
 
 ```bash
 php -d pcov.enabled=1 -d pcov.directory=. ../../vendor/bin/codecept run Unit --filter testUndeclaredExecution --coverage --coverage-xml
+php -d pcov.enabled=1 -d pcov.directory=. ../../vendor/bin/codecept run Unit --filter testTarget --coverage --coverage-xml
+php -d pcov.enabled=1 -d pcov.directory=. ../../vendor/bin/codecept run Unit --filter testDeclaredCollaborator --coverage --coverage-xml
+php -d pcov.enabled=1 -d pcov.directory=. ../../vendor/bin/codecept run Unit --filter testMissingMetadata --coverage --coverage-xml
 php -d pcov.enabled=1 -d pcov.directory=. direct.php leak
 php -d pcov.enabled=1 -d pcov.directory=. direct.php allowed
 ```

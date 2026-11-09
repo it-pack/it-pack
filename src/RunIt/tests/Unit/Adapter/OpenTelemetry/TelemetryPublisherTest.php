@@ -34,6 +34,8 @@ use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Trace\StatusCode;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 use Tests\Support\Fixture\SensitiveExceptionChain;
@@ -41,6 +43,8 @@ use Tests\Support\Fixture\SensitiveExceptionChain;
 /**
  * M9 — Telemetry publisher end-to-end dispatch.
  */
+#[CoversClass(TelemetryPublisher::class)]
+#[UsesClass(DefaultArtifactRedactor::class)]
 final class TelemetryPublisherTest extends Unit
 {
     private OtelTestKit $kit;
