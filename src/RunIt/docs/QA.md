@@ -32,7 +32,9 @@ package compatibility, replace RunIt's API check, or contribute to its Unit-only
 coverage. Dependency resolution requires Composer and access to the configured
 package repositories. Omit `--package` to run every consumer compatible with
 the selected PHP version, and omit `--output` to print JSON to standard output;
-an output path must not already exist. An explicitly selected consumer with an
+an output path must not already exist and is reserved before the run starts; an
+early failure may leave it empty. Invalid UTF-8 in captured output is replaced
+in the JSON report. An explicitly selected consumer with an
 unsupported PHP version fails the command. Skip detection is based on test
 output and is not exhaustive; inspect the captured output and available runtime
 extensions. Run `php tools/repo/downstream-test-self-test.php` for offline tooling

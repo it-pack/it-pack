@@ -89,6 +89,13 @@ function main(array $argv): int
     if (count($argv) !== 1 + count($options) || array_diff($packages, DOWNSTREAM_PACKAGES)) {
         throw new RuntimeException('Invalid arguments or package; use --help and --option=value');
     }
+    $handle = null;
+    if (isset($options['output'])) {
+        $handle = @fopen($options['output'], 'x');
+        if (!$handle) {
+            throw new RuntimeException('Cannot create output file');
+        }
+    }
     $repo = dirname(__DIR__, 2);
     $checkout = realpath($repo . '/src/RunIt');
     $git = command(['git', 'status', '--porcelain', '--untracked-files=all'], $repo);
@@ -187,11 +194,12 @@ function main(array $argv): int
         fwrite(STDERR, sprintf("%s: %s (%s)%s\n", $result['package'], $result['status'], $result['stage'], isset($result['error']) ? ': ' . $result['error'] : ''));
     }
     $summary = ['php' => ['binary' => PHP_BINARY, 'version' => PHP_VERSION], 'checkout' => ['path' => $checkout, 'revision' => trim($revision['stdout']), 'dirty' => $git['stdout'] !== '', 'status' => $git['stdout']], 'results' => $results];
-    $json = json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
-    if (isset($options['output'])) {
-        $handle = @fopen($options['output'], 'x');
-        if (!$handle || fwrite($handle, $json) !== strlen($json) || !fclose($handle)) {
-            throw new RuntimeException('Cannot create output file');
+    $json = json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\n";
+    if ($handle !== null) {
+        $written = fwrite($handle, $json);
+        $closed = fclose($handle);
+        if ($written !== strlen($json) || !$closed) {
+            throw new RuntimeException('Cannot write output file');
         }
     } else {
         fwrite(STDOUT, $json);

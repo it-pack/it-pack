@@ -43,6 +43,27 @@ PHP;
     if ($run($checkout, '1.1.2')['exit_code'] === 0) {
         throw new RuntimeException('Copied package accepted in place of checkout');
     }
+    $composer = "$temp/composer.php";
+    $marker = "$temp/composer-ran";
+    file_put_contents($composer, '<?php file_put_contents(' . var_export($marker, true) . ', "yes"); fwrite(STDERR, "bad\\xFFoutput"); exit(1);');
+    $output = "$temp/results.json";
+    file_put_contents($output, 'existing evidence');
+    $args = [PHP_BINARY, $runner, '--package=RunItThirdPartySample', "--composer=$composer", "--output=$output"];
+    $existing = command($args, $temp);
+    if ($existing['exit_code'] === 0 || file_exists($marker) || file_get_contents($output) !== 'existing evidence') {
+        throw new RuntimeException('Existing output was not rejected before running Composer');
+    }
+    $args[4] = "--output=$temp/missing/results.json";
+    if (command($args, $temp)['exit_code'] === 0 || file_exists($marker)) {
+        throw new RuntimeException('Invalid output path was not rejected before running Composer');
+    }
+    unlink($output);
+    $args[4] = "--output=$output";
+    $invalidUtf8 = command($args, $temp);
+    $summary = json_decode(file_get_contents($output), true, 512, JSON_THROW_ON_ERROR);
+    if ($invalidUtf8['exit_code'] === 0 || !str_contains($summary['results'][0]['steps']['install']['stderr'] ?? '', "bad\u{FFFD}output")) {
+        throw new RuntimeException('Invalid UTF-8 output was not preserved with substitution');
+    }
     fwrite(STDOUT, "Downstream verification self-tests passed.\n");
 } finally {
     removeTree($temp);
