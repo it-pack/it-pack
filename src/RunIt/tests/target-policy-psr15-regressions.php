@@ -29,11 +29,12 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Tests\Support\Fixture\Psr\FakeExecutionScope;
 
 $failures = [];
-$check = static function (bool $condition, string $message) use (&$failures): void {
-    if (!$condition) {
-        $failures[] = $message;
-    }
-};
+$check = /** Collect a failed assertion without stopping the remaining checks. */
+    static function (bool $condition, string $message) use (&$failures): void {
+        if (!$condition) {
+            $failures[] = $message;
+        }
+    };
 $handlerError = new RuntimeException('synthetic handler failure');
 $recorderError = new RuntimeException('synthetic recorder failure');
 $recorder = new class ($recorderError) implements ObservationRecorderInterface {
@@ -42,10 +43,12 @@ $recorder = new class ($recorderError) implements ObservationRecorderInterface {
     /** @var list<array{string, ?ObservationSeverityInterface, ?AttributeCollectionInterface, ?Throwable, ?string}> */
     public array $arguments = [];
 
+    /** Keep the error that the observation recorder will throw. */
     public function __construct(private readonly Throwable $error)
     {
     }
 
+    /** Capture the observation arguments, then throw the configured error. */
     public function record(
         string $message,
         ?ObservationSeverityInterface $severity = null,
@@ -69,10 +72,12 @@ $scope = new FakeExecutionScope(
     $recorder,
 );
 $runner = new readonly class ($scope) implements ExecutionRunnerInterface {
+    /** Keep the scope passed to the operation. */
     public function __construct(private ExecutionScopeInterface $scope)
     {
     }
 
+    /** Run the operation with the configured scope. */
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
     {
         return $operation($this->scope);
@@ -81,10 +86,12 @@ $runner = new readonly class ($scope) implements ExecutionRunnerInterface {
 $handler = new class ($handlerError) implements RequestHandlerInterface {
     public int $calls = 0;
 
+    /** Keep the error that the request handler will throw. */
     public function __construct(private readonly Throwable $error)
     {
     }
 
+    /** Count the request and throw the configured handler error. */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         ++$this->calls;

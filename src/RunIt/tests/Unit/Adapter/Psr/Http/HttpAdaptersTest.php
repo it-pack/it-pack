@@ -171,6 +171,7 @@ final class HttpAdaptersTest extends Unit
         self::assertSame(ObservationSeverity::Warning->label(), $recorded[0]['severity']?->label());
     }
 
+    /** Verify the failure observation and preservation of the original handler exception. */
     public function testMiddlewareRecordsRequestFailureAndRethrows(): void
     {
         $runner = new FakeExecutionRunner();
@@ -182,10 +183,12 @@ final class HttpAdaptersTest extends Unit
 
         $error = new RuntimeException('handler failed');
         $handler = new readonly class ($error) implements RequestHandlerInterface {
+            /** Keep the handler error for the identity assertion. */
             public function __construct(private RuntimeException $error)
             {
             }
 
+            /** Fail the request with the configured handler error. */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 throw $this->error;
@@ -247,13 +250,16 @@ final class HttpAdaptersTest extends Unit
         self::assertSame($malicious, $response->getHeaderLine('X-Correlation-Id'));
     }
 
+    /** Create a handler that returns a response with the given status. */
     private function handler(int $status): RequestHandlerInterface
     {
         return new readonly class ($status) implements RequestHandlerInterface {
+            /** Keep the response status for the handler. */
             public function __construct(private int $status)
             {
             }
 
+            /** Return a response with the configured status. */
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
                 return new Response($this->status);

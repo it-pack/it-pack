@@ -24,11 +24,12 @@ use ItPack\RunIt\Domain\Shared\Instant;
 use Tests\Support\Fixture\Psr\FakeExecutionScope;
 
 $failures = [];
-$check = static function (bool $condition, string $message) use (&$failures): void {
-    if (!$condition) {
-        $failures[] = $message;
-    }
-};
+$check = /** Collect a failed assertion without stopping the remaining checks. */
+    static function (bool $condition, string $message) use (&$failures): void {
+        if (!$condition) {
+            $failures[] = $message;
+        }
+    };
 
 $recorderError = new RuntimeException('synthetic recorder failure');
 $handlerError = new RuntimeException('synthetic handler failure');
@@ -38,10 +39,12 @@ $recorder = new class ($recorderError) implements ObservationRecorderInterface {
     /** @var list<array{string, ?ObservationSeverityInterface, ?AttributeCollectionInterface, ?Throwable, ?string}> */
     public array $arguments = [];
 
+    /** Keep the error that the observation recorder will throw. */
     public function __construct(private readonly Throwable $error)
     {
     }
 
+    /** Capture the observation arguments, then throw the configured error. */
     public function record(
         string $message,
         ?ObservationSeverityInterface $severity = null,
@@ -67,10 +70,12 @@ $scope = new FakeExecutionScope(
     $recorder,
 );
 $runner = new readonly class ($scope) implements ExecutionRunnerInterface {
+    /** Keep the scope passed to the operation. */
     public function __construct(private ExecutionScopeInterface $scope)
     {
     }
 
+    /** Run the operation with the configured scope. */
     public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
     {
         return $operation($this->scope);
@@ -83,11 +88,12 @@ $handlerCalls = 0;
 $result = null;
 $caught = null;
 try {
-    $result = $middleware->handle($request, static function () use ($response, &$handlerCalls): object {
-        ++$handlerCalls;
+    $result = $middleware->handle($request, /** Count the call and return the response. */
+        static function () use ($response, &$handlerCalls): object {
+            ++$handlerCalls;
 
-        return $response;
-    });
+            return $response;
+        });
 } catch (Throwable $throwable) {
     $caught = $throwable;
 }
@@ -98,11 +104,12 @@ $check(!$caught instanceof Throwable && $result === $response, 'successful handl
 
 $caught = null;
 try {
-    $middleware->handle($request, static function () use ($handlerError, &$handlerCalls): never {
-        ++$handlerCalls;
+    $middleware->handle($request, /** Count the call and throw the original handler error. */
+        static function () use ($handlerError, &$handlerCalls): never {
+            ++$handlerCalls;
 
-        throw $handlerError;
-    });
+            throw $handlerError;
+        });
 } catch (Throwable $throwable) {
     $caught = $throwable;
 }
