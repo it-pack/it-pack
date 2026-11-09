@@ -13,7 +13,9 @@ consumers separately from RunIt's own suites. It tests `DeriveItRunit` and
 `RunItThirdPartySample` on PHP 8.4, and those packages plus `ConfigureItRunit`,
 `CommitItRunit`, and `AsyncIt` on PHP 8.5. Each job uploads its evidence as a
 separate artifact, including when a check fails. Extension-dependent skips must
-not be interpreted as passing extension coverage.
+not be interpreted as passing extension coverage. The workflow currently marks
+`DeriveItRunit` on PHP 8.4 as experimental with `continue-on-error`, so that
+job does not block the workflow while the dependency mismatch remains open.
 
 From the monorepo root, select the PHP executable and consumer explicitly:
 
@@ -43,8 +45,8 @@ controls.
 At revision `61f11b10` with a dirty worktree on PHP 8.4.27, the sample passed
 four tests and 12 assertions after checkout verification. The `DeriveItRunit`
 install failed: its `^8.4` root constraint does not override the local
-`DeriveIt` dependency's PHP `^8.5` requirement. The PHP 8.4 CI job will therefore
-remain failing until that compatibility mismatch is resolved; do not bypass
+`DeriveIt` dependency's PHP `^8.5` requirement. The experimental PHP 8.4 CI
+job is therefore expected to fail until that mismatch is resolved; do not bypass
 platform requirements or treat the bridge's own constraint as proof that its
 dependency graph supports PHP 8.4.
 On PHP 8.5.12 with the same starting revision and a dirty worktree, the

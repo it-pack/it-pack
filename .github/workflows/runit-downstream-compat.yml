@@ -25,6 +25,7 @@ jobs:
         include:
           - php: '8.4'
             package: DeriveItRunit
+            experimental: true
           - php: '8.4'
             package: RunItThirdPartySample
           - php: '8.5'
@@ -35,7 +36,6 @@ jobs:
             package: ConfigureItRunit
           - php: '8.5'
             package: DeriveItRunit
-            experimental: true
           - php: '8.5'
             package: RunItThirdPartySample
     steps:
