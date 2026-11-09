@@ -25,7 +25,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Composite publisher           | (publication suites)               | Redact + sample + publish chain                                     |
 | Filtering and sampling        | `benchRedaction` / sampling suites | Policy decisions per artifact                                       |
 | Redaction                     | `benchRedaction`                   | Secret masking of a snapshot payload                                |
-| Buffering                     | `benchBuffering`                   | Publishing many artifacts to an in-memory buffer                    |
+| In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 
 OTel and CloudEvents mapping benchmarks are planned for the adapter conformance suite.
 
@@ -56,6 +56,77 @@ implementation of the relevant path changes.
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## PHPBench baseline (2026-11-09)
+
+At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
+`composer benchmark -- --report=default` passed all ten subjects (no
+assertions). PHPBench 1.7.0 ran PHP 8.5.12 CLI NTS without Xdebug or CLI
+OPcache, with two warmups, five iterations and 100 revolutions per iteration.
+The following ranges are the minimum and maximum iteration-average times in
+microseconds per subject invocation, not per individual artifact:
+
+| Subject | Range (µs) |
+| --- | ---: |
+| Null wrapper | 0.210-0.230 |
+| In-memory execution lifecycle | 77.530-91.760 |
+| Activity lifecycle | 114.150-162.680 |
+| Measurement creation with execution | 104.830-114.350 |
+| Observation creation with execution | 94.950-128.160 |
+| Throwable normalization | 1.630-1.850 |
+| Sampling and redaction | 2.950-4.970 |
+| Bounded publication gate | 2.670-3.510 |
+| OTel null-provider record | 0.200-0.220 |
+| `benchBuffering` (200 in-memory writes) | 30.680-32.980 |
+
+The snapshot has two payload fields; setup is outside each timed subject.
+The bounded publisher uses default security limits. `benchBuffering` constructs
+an in-memory publisher per invocation and does not exercise
+`BufferedArtifactPublisher`, byte limits, eviction or drain. These synthetic
+measurements are not a comparison or a regression threshold; scheduling and
+concurrent work can affect them, and several ranges vary substantially. They
+do not cover PHP 8.4, concurrency, real export I/O or failure paths. See the
+separate byte-bound buffer and nested context baselines below for other workloads.
+
+## Buffered drain and close baseline (2026-11-09)
+
+At revision `f1b49169387ea4e736b5a410084ed011c7c71711`, a temporary harness
+measured the existing `BufferedArtifactPublisher`. Each fresh buffer was filled
+outside the timed region with one reused real info observation. Its item limit
+equalled the queue size, the byte limit was 8 MiB, and a constant estimator
+returned 100 bytes per item. Automatic flushing was disabled; the maximum age
+was 60 seconds, with a system clock and counting sink. The flush case repeatedly
+drained batches of 256; full close had a budget equal to the queue size; limited
+close used a budget of 256 and dropped the remainder. Delivery, drop, count and
+byte-accounting checks passed. Values are milliseconds for the entire operation,
+median and full range across nine samples after two warmups, with case order
+rotated between rounds.
+
+| Items | Flush median (range) | Full close median (range) | Limited close median (range) |
+| ---: | ---: | ---: | ---: |
+| 256 | 0.149 (0.142-0.223) | 0.155 (0.139-0.187) | 0.143 (0.139-0.150) |
+| 1,024 | 1.332 (1.276-1.889) | 1.388 (1.288-1.640) | 1.249 (1.203-1.903) |
+| 4,096 | 18.107 (17.218-20.042) | 18.215 (17.623-20.033) | 17.510 (17.005-18.634) |
+| 16,384 | 284.814 (268.522-323.959) | 283.731 (273.327-341.804) | 279.919 (275.551-295.503) |
+
+PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on Intel Core i7-9700;
+CLI OPcache, JIT and PCOV disabled, Xdebug absent, without CPU pinning. Other
+quality checks ran concurrently. The temporary harness
+`/tmp/kilo/runit-drain-current.php` (SHA-256
+`248969b9b120c6f70a80dd8a76f80fea4ce295919cf4c8602159eb3eb5532dad`)
+is not durable. While present, run from the package directory:
+
+```bash
+php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-drain-current.php
+```
+
+The stress sizes exceed the default 1,024-item maximum. Elapsed time grew
+strongly superlinearly in this workload, but the measurement does not isolate
+the cost of `array_shift()` or prove causation. It excludes real I/O,
+serialization, timed estimation, overflow, expiration, concurrency, failures,
+memory profiling and PHP 8.4. It is not a production guarantee, regression
+threshold or controlled comparison with the older baseline, whose harness is
+unavailable and used a different estimator.
 
 ## PSR-3 publication baseline (2026-11-08)
 
@@ -238,6 +309,37 @@ estimation costs, health reporting, sink I/O, expiration, byte-bound overflow,
 blocking/fail strategies, concurrent traffic, memory profiling and PHP 8.4.
 The scan and array operations both contribute; these results do not attribute
 their individual costs or demonstrate behavior under a realistic priority mix.
+
+### Byte-bound buffer overflow baseline
+
+At revision `8fdbb0f19ea236c226f1ed82529c932bc0f3c6ee`, with unrelated
+worktree edits present, a focused `DropOldest` test filled a real buffered
+publisher with 1,024 observations estimated at 100 bytes each. The byte limit
+was 102,400 and the item limit 2,048, so the subsequent 128 timed publishes
+triggered the byte limit rather than the count limit. Each sample used a fresh
+publisher; prefill, validation and flush were outside the timed region. All
+samples verified 128 drops, 1,024 retained items and 102,400 estimated bytes,
+then 1,024 deliveries in survivor order and zero remaining bytes after flush.
+
+After two warmups, 11 batch samples had a median of 530,576 ns per 128
+publishes (4.145 microseconds per publish), ranging from 479,671 to 1,591,829
+ns per batch (3.747 to 12.436 microseconds per publish). Batch samples in ns:
+1,591,829; 530,576; 538,745; 928,958; 479,671; 600,809; 513,441; 486,843;
+513,541; 510,254; 716,866.
+
+PHP 8.5.12 CLI on x86-64 WSL2, with CLI OPcache, JIT and PCOV disabled and
+garbage collection enabled. The temporary harness is
+`/tmp/kilo/runit-drop-oldest-baseline.php`:
+
+```bash
+php -d opcache.enable_cli=0 -d pcov.enabled=0 /tmp/kilo/runit-drop-oldest-baseline.php
+```
+
+This single-process microbenchmark includes publisher and loop costs but not
+real estimator cost, sink I/O, concurrency or flush performance. It does not
+test variable-size projected admission or establish production throughput.
+The temporary harness is not durable; the variability precludes using this as
+a regression threshold.
 
 ### Nested snapshot redaction and serialization (2026-11-08)
 

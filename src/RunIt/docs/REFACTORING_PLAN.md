@@ -162,10 +162,10 @@ It is therefore not a drop-in replacement for this suite.
 
 **Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
 
-- [ ] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
-- [ ] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
-- [ ] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
-- [ ] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
+- [x] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
+- [x] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
+- [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
+- [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
 - [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
 
@@ -193,6 +193,61 @@ It is therefore not a drop-in replacement for this suite.
 - Other available fixtures include `DeterministicMonotonicClock`, `ThrowingArtifactPublisher`, throwing health callbacks in `ResilienceTest`, and the independent `RunItThirdPartySample` token. Full custom-token ownership regression coverage remains a Phase 1 task.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
+
+At starting revision `f1b49169387ea4e736b5a410084ed011c7c71711`, the
+worktree was initially clean; this plan's documentation was edited during the
+checks, without production or test changes. PHP 8.5.12 CLI NTS, Composer 2.9.7,
+Codeception 5.3.7, PHPUnit 13.1.14, php-code-coverage 14.5.1, PCOV 1.0.12 and
+Swoole 6.2.3 were used with the existing installed dependencies and ignored
+`composer.lock`; no dependency update was performed. OpenSwoole and Swow were
+not loaded and the PHP 8.4 matrix was not rerun.
+
+| Check | Exit | Result |
+| --- | ---: | --- |
+| `composer validate --strict` | 0 | Valid |
+| `composer api:check` | 1 | Ten additions, zero detected breaks; matches prior result, no baseline update |
+| `composer analyse -- --no-progress` | 0 | No PHPStan errors |
+| `composer refactor:dry` | 0 | Passed, before style check |
+| `composer cs:check` | 0 | Passed |
+| `composer architecture` | 0 | 404 classes, no violations |
+| `composer lint:length` | 0 | Passed |
+| `composer test` | 0 | Four suites passed, no reported skips |
+| `composer coverage -- --silent` | 0 | Unit-only XML, 3,608/4,126 statements (87.45%) |
+| `composer audit` | 0 | No advisories; abandoned development dependency `doctrine/annotations` |
+| `composer audit --no-dev` | 0 | No advisories |
+
+The four suites reported Unit 908 tests/6,188 assertions, Integration 3/7,
+Conformance 52/111, and Concurrency 8/172. The Unit XML was copied to
+`/tmp/kilo/runit-unit-f1b49169-20261109T0102-coverage.xml`; this temporary copy
+is not durable. Generated reports under `tests/_output` can be overwritten.
+PCOV does not provide branch coverage, and the aggregate neither establishes
+per-test attribution nor meets the proposed 95% floor. These commands do not
+run the standalone target-policy regressions or complete Phase 0.
+The refreshed buffered drain and close stress measurements, including workload,
+variance and limitations, are in `docs/benchmarks.md`; they do not establish a
+controlled before/after comparison or complete the broader benchmark baseline.
+
+At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
+PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 ran successfully on `src` with
+PHP 8.5.12. Reports were directed outside tracked source:
+
+```bash
+vendor/bin/phpmetrics --composer=false --report-json=/tmp/kilo/runit-phase0-20261109-phpmetrics.json --report-csv=/tmp/kilo/runit-phase0-20261109-phpmetrics.csv --report-summary-json=/tmp/kilo/runit-phase0-20261109-phpmetrics-summary.json src
+vendor/bin/phpa src -f xml -o /tmp/kilo/runit-phase0-20261109-phpa.xml
+```
+
+PhpMetrics reported 236 classes, 154 interfaces, 736 methods and average class
+cyclomatic complexity 4.06; it recorded 18 error, 22 warning and four
+informational violations. PHP Assumptions reported 75 assumptions among 485
+boolean expressions, including duplicate entries. These are review prompts,
+not verified defects; class metrics do not name every method above a threshold.
+Despite `--composer=false`, PhpMetrics printed a Packagist request message; the
+output does not establish whether a request succeeded. The reports in `/tmp/kilo`
+are temporary, cover production `src` only, and are not directly comparable to
+the older different-revision report. `docs/benchmarks.md` records the refreshed
+ten-subject benchmark and its limitations, including that `benchBuffering` does
+not measure the bounded buffer. `composer api:check` again exited 1 with ten
+additions and zero detected breaks. Other Phase 0 gates and evidence remain open.
 
 **High-priority evidence inventory:** The following links identify executable
 current-behavior characterizations. Their assertions intentionally describe the
@@ -222,6 +277,38 @@ The originally reported token break is approved, not erased, and coverage
 enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
+
+The original opaque-token compatibility expectation is no longer an unmet target:
+the `id(): int` break was explicitly approved. A failing test requiring the old
+contract would contradict that decision; migration and external-implementer
+verification remain Phase 1 work. Likewise, the synchronous default is explicitly
+retained, so a test requiring it to isolate interleaved Fibers would be invalid.
+The default-risk characterization exists, but a target test for misuse detection
+cannot be specified until the validation behavior is decided. This design gap is
+distinct from unavailable OpenSwoole and Swow environments. Coverage below 95%
+and the experimental attribution controls establish gaps, but do not yet provide
+a durable failing threshold or isolation gate. The separate no-callback health
+visibility target also needs a specified observable fallback; recursion evidence
+alone does not establish that target.
+
+At clean starting revision `bf42eddec1f382acc654987038c05a65ec8fcf24`, the
+PSR-15 `HttpAdaptersTest::testMiddlewareRecordsRequestFailureAndRethrows`
+was strengthened to verify the original handler exception is rethrown by
+identity and passed to the recorder with the expected severity, message,
+attributes and null diagnostic code. The focused suite passed on PHP 8.4 and
+8.5 (12 tests, 37 assertions each). This characterizes a successful recorder;
+it does not cover recorder failure, redaction or export, and does not complete
+Phase 0. Targeted PHPStan analysis passed on PHP 8.5.
+
+On PHP 8.5.12 with Composer 2.9.7, PCOV and Swoole loaded, the pre-change
+`composer test -- --silent` and `composer architecture` passed. `composer
+quality` stopped at Rector (exit 2): an unused `LoggerInterface` import in
+`ObservationRecordingLogger.php` and a coverage annotation conversion in
+`RequireInterfaceRuleTest.php`. The API check exited 1 for ten additions and
+reported zero detected breaks; no baseline was changed. The full audit script
+reported no advisories and the abandoned development dependency
+`doctrine/annotations`. OpenSwoole and Swow were not loaded. This partial
+baseline does not replace the remaining Phase 0 checks.
 
 At clean starting revision `109f0edf754ae53cdb09288c8c86f85c9a5430fd`,
 `php tests/target-policy-regressions.php` was added as an explicitly invoked
@@ -297,6 +384,78 @@ full `composer audit` reported no advisories but exited 1 for the abandoned
 development dependency `doctrine/annotations`.
 
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
+
+At clean starting revision `2acb93b5`, PHP 8.5.12 with PCOV and Swoole and
+Composer 2.9.7, `composer quality --quiet` and Unit-only `composer coverage --
+--silent` passed. The generated coverage XML reported 3,608/4,126 statements;
+it can be overwritten, PCOV does not provide branch coverage, and the aggregate
+does not prove per-test attribution. OpenSwoole and Swow were not loaded.
+`composer api:check` exited 1 for ten additions and reported no detected breaks;
+no baseline was updated. The focused runner resilience suite passed on PHP 8.4
+and 8.5 with 25 tests and 112 assertions each. The quality script
+does not run the standalone target-policy controls, coverage or API check.
+
+The separately invoked `tests/target-policy-terminal-publication-regressions.php`
+tests the approved independent terminal-publication policy with a throwing
+snapshot factory and both successful and failing operations. On PHP 8.4 and 8.5
+it exits 1 with six expected checks failing: the missing terminal execution
+causes the publication-order, count and status assertions to fail for each
+outcome. Result and exception identity, reporting, prior-context restoration,
+and nonthrowing-factory publication-order controls pass. This is a target
+regression, not a production fix; it does not cover publisher failures or a
+throwing health callback. Phase 0 and the Phase 4 implementation remain open.
+
+**Partial baseline refresh:** At starting revision
+`8fdbb0f19ea236c226f1ed82529c932bc0f3c6ee`, the worktree was initially clean,
+but concurrent edits appeared in `ObservationRecordingLogger.php`,
+`HttpAdaptersTest.php` and `RequireInterfaceRuleTest.php` during the checks.
+Consequently these results are mixed-worktree observations, not an attributable
+clean-revision baseline. On PHP 8.5.12 with PCOV and Swoole, Composer 2.9.7,
+`composer validate --strict`, `composer cs:check`, `composer architecture`,
+`composer lint:length`, `composer test -- --silent`, and Unit-only `composer
+coverage -- --silent` exited 0. The Unit XML in `tests/_output/coverage.xml`
+reported 3,608/4,126 statements; it is generated and can be overwritten. PCOV
+does not measure branches and this aggregate does not establish attribution.
+`composer analyse -- --no-progress` exited 1 with a leading-backslash rule
+diagnostic in the concurrently edited `RequireInterfaceRuleTest.php`;
+`composer refactor:dry` exited 2 with a change proposed in that same file.
+These results cannot be attributed to the starting revision. `composer
+api:check` exited 1 for ten additions with no detected breaks; the baseline
+was not changed. `composer audit` exited 0, found no advisories, and reported
+the abandoned development dependency `doctrine/annotations`.
+
+PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 generated reports under
+`/tmp/kilo/runit-8fdbb0-phpmetrics*` and `/tmp/kilo/runit-8fdbb0-phpa.xml`;
+the latter reports 75 heuristic assumptions, not verified defects. These
+temporary reports are not durable. This refresh leaves Phase 0 open.
+The byte-bound `DropOldest` overflow microbenchmark and its limitations are
+recorded in `benchmarks.md`; it supplements, but does not complete, the
+representative hot-path baseline.
+
+The separately invoked `tests/target-policy-swoole-http-regressions.php`
+exercises the Swoole HTTP middleware with a fake runner and a recorder that
+throws a distinct exception. On PHP 8.4 and 8.5 it exits 1 with two expected
+target failures: neither the successful handler's exact response nor the
+failing handler's original exception survives the recorder failure. Handler
+and recorder invocation and positional recorder arguments are checked as
+controls. This is a failing safety net, not a production fix; it does not
+exercise a live server, an actual runner's reporting, measurement failures or
+redaction. It requires no Swoole extension and is outside the normal suites.
+
+At clean starting revision `8dcb38a8`, the separately invoked
+`tests/target-policy-psr15-regressions.php` exercises PSR-15 request failure
+with a fake runner and a throwing observation recorder. On PHP 8.4 and 8.5 it
+exits 1 with one expected target failure: the recorder exception replaces the
+original handler exception. Invocation counts and the recorded message,
+severity, attributes, throwable identity and diagnostic code are controls.
+This is a safety net, not a production fix; it does not cover response-status
+recording, a real runner, reporting or redaction, and is outside normal suites.
+The test coverage attribute in `RequireInterfaceRuleTest.php` was also corrected
+to use its existing import after the clean baseline Rector check failed. On the
+resulting PHP 8.5 worktree `composer quality --quiet` and targeted PHPStan passed;
+the separate API check reported ten additions and no detected breaks but exited
+1. No baseline was updated. Quality does not run this standalone target control,
+coverage or the API check; these results do not complete Phase 0.
 
 **Current baseline and integer-boundary control (2026-11-08):** Starting clean
 at `133db4746e2c87c2e2ace6d803020412ce3d6ce8`, PHP 8.5.12 with PCOV and
