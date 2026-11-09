@@ -842,6 +842,15 @@ Historically AsyncIt's focused memory storage, Swoole storage and context-isolat
 
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
 
+The monorepo downstream compatibility workflow and runner described in
+`docs/QA.md` are intended to collect consumer-owned test evidence against the
+current RunIt checkout. Inspect each job's results, source verification, and
+skips before counting any scenario; the tooling alone does not complete the
+token migration, API check, runtime validation, or Phase 0.
+In the initial PHP 8.4.27 run, `RunItThirdPartySample` passed; `DeriveItRunit`
+could not install because the local `DeriveIt` requires PHP `^8.5`. See
+`docs/QA.md` for the lane and evidence limitations.
+
 `InterleavedSwooleContextIsolationTest` extends the preparatory concurrency
 coverage with native Swoole coroutines. It checks nested parent identity,
 interleaved scope isolation, original exception identity, restoration, and a

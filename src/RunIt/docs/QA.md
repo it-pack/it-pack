@@ -6,6 +6,49 @@ Milestone M13 ("Conformance Tooling and QA Completion") static-analysis work.
 
 ## Gate overview
 
+### Downstream compatibility
+
+The monorepo's `.github/workflows/runit-downstream-compat.yml` exercises RunIt
+consumers separately from RunIt's own suites. It tests `DeriveItRunit` and
+`RunItThirdPartySample` on PHP 8.4, and those packages plus `ConfigureItRunit`,
+`CommitItRunit`, and `AsyncIt` on PHP 8.5. Each job uploads its evidence as a
+separate artifact, including when a check fails. Extension-dependent skips must
+not be interpreted as passing extension coverage.
+
+From the monorepo root, select the PHP executable and consumer explicitly:
+
+```bash
+php8.4 tools/repo/downstream-test.php --package=RunItThirdPartySample --output=/tmp/runit-downstream-84.json
+php8.5 tools/repo/downstream-test.php --package=CommitItRunit --output=/tmp/runit-downstream-85.json
+```
+
+The runner resolves dependencies in an isolated consumer-root environment and
+checks that the installed RunIt points to this checkout before running tests.
+Its local path version is a test-only Composer resolution aid, not a statement
+about a released package version. In particular, it does not change the
+`CommitItRunit` manifest or its released `^1.1` requirement. Results establish
+only what each consumer's executed tests cover; they do not establish released
+package compatibility, replace RunIt's API check, or contribute to its Unit-only
+coverage. Dependency resolution requires Composer and access to the configured
+package repositories. Omit `--package` to run every consumer compatible with
+the selected PHP version, and omit `--output` to print JSON to standard output;
+an output path must not already exist. An explicitly selected consumer with an
+unsupported PHP version fails the command. Skip detection is based on test
+output and is not exhaustive; inspect the captured output and available runtime
+extensions. Run `php tools/repo/downstream-test-self-test.php` for offline tooling
+controls.
+
+At revision `61f11b10` with a dirty worktree on PHP 8.4.27, the sample passed
+four tests and 12 assertions after checkout verification. The `DeriveItRunit`
+install failed: its `^8.4` root constraint does not override the local
+`DeriveIt` dependency's PHP `^8.5` requirement. The PHP 8.4 CI job will therefore
+remain failing until that compatibility mismatch is resolved; do not bypass
+platform requirements or treat the bridge's own constraint as proof that its
+dependency graph supports PHP 8.4.
+On PHP 8.5.12 with the same starting revision and a dirty worktree, the
+isolated `CommitItRunit` test passed all 33 cases after checkout verification;
+these adapter tests do not establish coverage of every real execution path.
+
 ### Statement coverage (Phase 0, T0.4 of the 2026-08-25 plan)
 
 `composer coverage` measures the Unit suite only. The former combined-suite
