@@ -226,6 +226,9 @@ run the standalone target-policy regressions or complete Phase 0.
 The refreshed buffered drain and close stress measurements, including workload,
 variance and limitations, are in `docs/benchmarks.md`; they do not establish a
 controlled before/after comparison or complete the broader benchmark baseline.
+`benchmarks/BufferedAdmissionBench.php` adds a reproducible normal-admission
+workload with real byte estimation; its PHP 8.5 measurements and concurrent-load
+limitations are also recorded there. This is not an overflow or exporter test.
 
 At clean starting revision `d957578f4458c9cb26b76c317b4a922b5e12a2d9`,
 PhpMetrics 2.11.0 and PHP Assumptions 0.9.1 ran successfully on `src` with
@@ -287,9 +290,29 @@ The default-risk characterization exists, but a target test for misuse detection
 cannot be specified until the validation behavior is decided. This design gap is
 distinct from unavailable OpenSwoole and Swow environments. Coverage below 95%
 and the experimental attribution controls establish gaps, but do not yet provide
-a durable failing threshold or isolation gate. The separate no-callback health
+a CI threshold or isolation gate. The separate no-callback health
 visibility target also needs a specified observable fallback; recursion evidence
 alone does not establish that target.
+
+For redacted observations, the existing OpenTelemetry characterization proves
+the tested silent drop and unredacted delivery, but a policy-independent
+delivery-or-report target control cannot yet observe all valid reporting paths:
+`TelemetryPublisher` has no health-reporter injection. Requiring delivery alone
+would exclude the approved report-on-unsafe-mapping outcome, while choosing a
+particular reporting seam would prejudge the unresolved design. The standalone
+OpenTelemetry target control still exits 1 on PHP 8.4 and 8.5 for its three
+existing throwable-redaction checks; it does not close this observation gap.
+
+At starting revision `17303aca50509d9e1b3213230ae0ec5849f732c9`, the standalone
+`tests/target-policy-coverage.php` control was added to check an explicitly
+provided Clover project's statement counts against the 95% target. Its 17
+synthetic boundary and invalid-input controls passed under PHP 8.4 and 8.5;
+both versions returned the expected below-target exit 1 for the preserved Unit
+report (3,608/4,126, 87.45%). The control cannot prove report provenance or
+per-test attribution; the Unit-only CI gate and isolation work remain open.
+On PHP 8.5, `composer quality --quiet` passed after these additions, as did
+targeted Rector and PHPStan checks on both controls and the admission benchmark.
+The quality script does not execute these standalone controls or benchmarks.
 
 At clean starting revision `bf42eddec1f382acc654987038c05a65ec8fcf24`, the
 PSR-15 `HttpAdaptersTest::testMiddlewareRecordsRequestFailureAndRethrows`

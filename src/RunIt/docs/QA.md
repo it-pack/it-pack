@@ -28,6 +28,19 @@ control did not fail for an undeclared class. See `REFACTORING_PLAN.md` for the
 investigation and remaining enforcement work; do not treat a passing coverage
 command as proof that unintended coverage is rejected.
 
+The standalone preparatory threshold control accepts an explicit Clover report:
+
+```bash
+php tests/target-policy-coverage-regressions.php
+php tests/target-policy-coverage.php tests/_output/coverage.xml
+```
+
+The first command runs synthetic boundary and invalid-input checks. The second
+returns 0 at or above 95% statement coverage, 1 below it, and 2 for invalid or
+missing input. Generate the report with `composer coverage` first; the checker
+cannot verify its suite of origin or per-test attribution. It is not wired into
+CI or the normal test suites and does not replace the planned isolation gate.
+
 ### Target-policy regressions
 
 Run `php tests/target-policy-regressions.php` separately to check the approved

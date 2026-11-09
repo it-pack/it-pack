@@ -26,6 +26,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Filtering and sampling        | `benchRedaction` / sampling suites | Policy decisions per artifact                                       |
 | Redaction                     | `benchRedaction`                   | Secret masking of a snapshot payload                                |
 | In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
+| Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
 
 OTel and CloudEvents mapping benchmarks are planned for the adapter conformance suite.
 
@@ -87,6 +88,28 @@ measurements are not a comparison or a regression threshold; scheduling and
 concurrent work can affect them, and several ranges vary substantially. They
 do not cover PHP 8.4, concurrency, real export I/O or failure paths. See the
 separate byte-bound buffer and nested context baselines below for other workloads.
+
+## Buffered admission baseline (2026-11-09)
+
+At revision `17303aca50509d9e1b3213230ae0ec5849f732c9` plus the new benchmark,
+`vendor/bin/phpbench run benchmarks/BufferedAdmissionBench.php --config=phpbench.json --report=default`
+measured `BufferedArtifactPublisher::publish()` with the real
+`DefaultArtifactByteEstimator`. Preconstructed snapshots contain 2 or 64 nested
+items, each with a 64-character label. Each iteration starts with a fresh
+buffer; the item limit is 103, the byte limit is 103 times the estimated size,
+periodic flushing is disabled, and overflow fails. Setup and verification are
+outside timing; verification checks 102 admitted items, estimated-byte accounting
+and zero drops, including two warmup publications. The benchmark deliberately
+requires its configured two warmups and 100 revolutions; changing those values
+without changing its accounting check causes it to fail.
+
+PHPBench 1.7.0 used five iterations of 100 revolutions on PHP 8.5.12 CLI NTS,
+WSL2 x86-64, Intel Core i7-9700 with four virtual CPUs; Xdebug and CLI OPcache
+were off. Iteration-average ranges were **5.670-14.890 µs/publish** for the
+small snapshot and **22.480-26.870 µs/publish** for the large snapshot.
+Other checks ran concurrently and the small case has a substantial outlier.
+These measurements are not a regression threshold or controlled comparison and
+exclude overflow, drain, exporter I/O, concurrent publishers and PHP 8.4 timing.
 
 ## Buffered drain and close baseline (2026-11-09)
 
