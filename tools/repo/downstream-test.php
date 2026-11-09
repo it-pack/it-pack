@@ -35,7 +35,9 @@ function copyTree(string $source, string $target): void
         }
         if ($item->isDir()) {
             copyTree($from, $to);
-        } elseif (!copy($from, $to)) {
+            continue;
+        }
+        if (!copy($from, $to)) {
             throw new RuntimeException("Cannot copy $from");
         }
     }
@@ -89,19 +91,19 @@ function main(array $argv): int
     if (count($argv) !== 1 + count($options) || array_diff($packages, DOWNSTREAM_PACKAGES)) {
         throw new RuntimeException('Invalid arguments or package; use --help and --option=value');
     }
-    $handle = null;
-    if (isset($options['output'])) {
-        $handle = @fopen($options['output'], 'x');
-        if (!$handle) {
-            throw new RuntimeException('Cannot create output file');
-        }
-    }
     $repo = dirname(__DIR__, 2);
     $checkout = realpath($repo . '/src/RunIt');
     $git = command(['git', 'status', '--porcelain', '--untracked-files=all'], $repo);
     $revision = command(['git', 'rev-parse', 'HEAD'], $repo);
     if ($git['exit_code'] !== 0 || $revision['exit_code'] !== 0 || !$checkout) {
         throw new RuntimeException('Cannot determine checkout revision or dirty state');
+    }
+    $handle = null;
+    if (isset($options['output'])) {
+        $handle = @fopen($options['output'], 'x');
+        if (!$handle) {
+            throw new RuntimeException('Cannot create output file');
+        }
     }
     $composer = $options['composer'] ?? trim((string) shell_exec('command -v composer'));
     if (!is_file($composer)) {
@@ -195,18 +197,19 @@ function main(array $argv): int
     }
     $summary = ['php' => ['binary' => PHP_BINARY, 'version' => PHP_VERSION], 'checkout' => ['path' => $checkout, 'revision' => trim($revision['stdout']), 'dirty' => $git['stdout'] !== '', 'status' => $git['stdout']], 'results' => $results];
     $json = json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR) . "\n";
-    if ($handle !== null) {
-        $written = fwrite($handle, $json);
-        $closed = fclose($handle);
-        if ($written !== strlen($json) || !$closed) {
-            throw new RuntimeException('Cannot write output file');
-        }
-    } else {
-        fwrite(STDOUT, $json);
-    }
     $failures = array_filter($results, static fn ($result) => $result['status'] === 'failed' || (isset($options['package']) && $result['status'] === 'unsupported'));
     $executed = array_filter($results, static fn ($result) => $result['status'] !== 'unsupported');
-    return $failures || !$executed ? 1 : 0;
+    $exitCode = $failures || !$executed ? 1 : 0;
+    if ($handle === null) {
+        fwrite(STDOUT, $json);
+        return $exitCode;
+    }
+    $written = fwrite($handle, $json);
+    $closed = fclose($handle);
+    if ($written !== strlen($json) || !$closed) {
+        throw new RuntimeException('Cannot write output file');
+    }
+    return $exitCode;
 }
 
 if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {

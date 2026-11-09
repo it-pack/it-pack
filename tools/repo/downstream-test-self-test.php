@@ -64,6 +64,25 @@ PHP;
     if ($invalidUtf8['exit_code'] === 0 || !str_contains($summary['results'][0]['steps']['install']['stderr'] ?? '', "bad\u{FFFD}output")) {
         throw new RuntimeException('Invalid UTF-8 output was not preserved with substitution');
     }
+    $stdoutResult = command(array_slice($args, 0, 4), $temp);
+    $stdoutSummary = json_decode($stdoutResult['stdout'], true, 512, JSON_THROW_ON_ERROR);
+    if (($stdoutSummary['results'][0]['status'] ?? '') !== 'failed') {
+        throw new RuntimeException('JSON was not written to stdout without --output');
+    }
+    $repo = dirname(__DIR__, 2);
+    $repoOutput = $repo . '/.downstream-self-test-' . bin2hex(random_bytes(8)) . '.json';
+    try {
+        $args[4] = "--output=$repoOutput";
+        command($args, $temp);
+        $repoSummary = json_decode(file_get_contents($repoOutput), true, 512, JSON_THROW_ON_ERROR);
+        if (str_contains($repoSummary['checkout']['status'], basename($repoOutput))) {
+            throw new RuntimeException('Output file contaminated checkout status');
+        }
+    } finally {
+        if (is_file($repoOutput)) {
+            unlink($repoOutput);
+        }
+    }
     fwrite(STDOUT, "Downstream verification self-tests passed.\n");
 } finally {
     removeTree($temp);

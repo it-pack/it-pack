@@ -15,7 +15,8 @@ consumers separately from RunIt's own suites. It tests `DeriveItRunit` and
 separate artifact, including when a check fails. Extension-dependent skips must
 not be interpreted as passing extension coverage. The workflow currently marks
 `DeriveItRunit` on PHP 8.4 as experimental with `continue-on-error`, so that
-job does not block the workflow while the dependency mismatch remains open.
+job does not block the workflow while the dependency mismatch remains open. Each
+matrix job runs the offline runner self-tests before its compatibility check.
 
 From the monorepo root, select the PHP executable and consumer explicitly:
 

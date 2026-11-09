@@ -50,6 +50,9 @@ jobs:
           coverage: none
           extensions: mbstring, xml, curl, zip, grpc, protobuf
 
+      - name: Test downstream runner offline
+        run: php tools/repo/downstream-test-self-test.php
+
       - name: Run downstream compatibility checks
         run: php tools/repo/downstream-test.php --package=${{ matrix.package }} --output=downstream-compat.json
 
