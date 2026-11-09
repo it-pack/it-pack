@@ -317,6 +317,26 @@ development dependency `doctrine/annotations`.
 
 **Outstanding:** The historical baseline used revision `b777c0a4425de7d10db87c82e995913b46dda2b9` with unpreserved working-tree changes; current HEAD and worktree differ. Its Unit coverage XML and PhpMetrics/PHP Assumptions reports had been lost before the refreshed runs below. Remaining work includes diagnostic attribution, representative hot-path benchmarks, and high-priority failure-path reproductions. The historical coverage run used an isolated direct Unit command rather than the exact `composer coverage` command.
 
+At clean starting revision `2acb93b5`, PHP 8.5.12 with PCOV and Swoole and
+Composer 2.9.7, `composer quality --quiet` and Unit-only `composer coverage --
+--silent` passed. The generated coverage XML reported 3,608/4,126 statements;
+it can be overwritten, PCOV does not provide branch coverage, and the aggregate
+does not prove per-test attribution. OpenSwoole and Swow were not loaded.
+`composer api:check` exited 1 for ten additions and reported no detected breaks;
+no baseline was updated. The focused runner resilience suite passed on PHP 8.4
+and 8.5 with 25 tests and 112 assertions each. The quality script
+does not run the standalone target-policy controls, coverage or API check.
+
+The separately invoked `tests/target-policy-terminal-publication-regressions.php`
+tests the approved independent terminal-publication policy with a throwing
+snapshot factory and both successful and failing operations. On PHP 8.4 and 8.5
+it exits 1 with six expected checks failing: the missing terminal execution
+causes the publication-order, count and status assertions to fail for each
+outcome. Result and exception identity, reporting, prior-context restoration,
+and nonthrowing-factory publication-order controls pass. This is a target
+regression, not a production fix; it does not cover publisher failures or a
+throwing health callback. Phase 0 and the Phase 4 implementation remain open.
+
 **Partial baseline refresh:** At starting revision
 `8fdbb0f19ea236c226f1ed82529c932bc0f3c6ee`, the worktree was initially clean,
 but concurrent edits appeared in `ObservationRecordingLogger.php`,
