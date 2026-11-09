@@ -201,7 +201,9 @@ function main(array $argv): int
     $executed = array_filter($results, static fn ($result) => $result['status'] !== 'unsupported');
     $exitCode = $failures || !$executed ? 1 : 0;
     if ($handle === null) {
-        fwrite(STDOUT, $json);
+        if (fwrite(STDOUT, $json) !== strlen($json)) {
+            throw new RuntimeException('Cannot write output file');
+        }
         return $exitCode;
     }
     $written = fwrite($handle, $json);

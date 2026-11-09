@@ -69,6 +69,19 @@ PHP;
     if (($stdoutSummary['results'][0]['status'] ?? '') !== 'failed') {
         throw new RuntimeException('JSON was not written to stdout without --output');
     }
+    if (is_writable('/dev/full')) {
+        $stderr = tmpfile();
+        $process = proc_open(array_slice($args, 0, 4), [0 => ['file', '/dev/null', 'r'], 1 => ['file', '/dev/full', 'w'], 2 => $stderr], $pipes, $temp);
+        if (!is_resource($process)) {
+            throw new RuntimeException('Cannot start stdout failure control');
+        }
+        $exitCode = proc_close($process);
+        rewind($stderr);
+        if ($exitCode === 0 || !str_contains(stream_get_contents($stderr), 'Cannot write output file')) {
+            throw new RuntimeException('Failed stdout write was not reported');
+        }
+        fclose($stderr);
+    }
     $repo = dirname(__DIR__, 2);
     $repoOutput = $repo . '/.downstream-self-test-' . bin2hex(random_bytes(8)) . '.json';
     try {
