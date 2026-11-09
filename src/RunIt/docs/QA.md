@@ -28,6 +28,22 @@ control did not fail for an undeclared class. See `REFACTORING_PLAN.md` for the
 investigation and remaining enforcement work; do not treat a passing coverage
 command as proof that unintended coverage is rejected.
 
+The isolated diagnostic fixture in `tools/coverage-attribution/` makes this
+behavior reproducible without writing to the package coverage report. From that
+directory, run each Codeception control separately with PCOV enabled:
+
+```bash
+php -d pcov.enabled=1 -d pcov.directory=. ../../vendor/bin/codecept run Unit --filter testUndeclaredExecution --coverage --coverage-xml
+php -d pcov.enabled=1 -d pcov.directory=. direct.php leak
+php -d pcov.enabled=1 -d pcov.directory=. direct.php allowed
+```
+
+The first command currently exits 0 despite undeclared execution; inspect the
+fixture report under `/tmp/kilo/runit-attribution-output/coverage.xml`. The
+direct leak control exits 1 and the declared-collaborator control exits 0.
+The fixture requires PCOV and installed development dependencies. It is not a
+CI gate and does not demonstrate isolation for the real Unit suite.
+
 The standalone preparatory threshold control accepts an explicit Clover report:
 
 ```bash

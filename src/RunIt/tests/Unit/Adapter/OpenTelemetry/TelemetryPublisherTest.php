@@ -15,6 +15,12 @@ use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Domain\Activity\Activity;
+use ItPack\RunIt\Domain\Activity\ActivityDefinition;
+use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Activity\ActivityKind;
+use ItPack\RunIt\Domain\Activity\ActivityName;
+use ItPack\RunIt\Domain\Activity\ActivityStatus;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -222,6 +228,60 @@ final class TelemetryPublisherTest extends Unit
         }
 
         self::assertTrue($found);
+    }
+
+    /** Characterizes dispatch of changed activity and measurement projections. */
+    public function testRedactedActivityAndMeasurementComparedWithTypedControls(): void
+    {
+        $activity = Activity::start(
+            ActivityId::fromString('act-red'),
+            ExecutionId::fromString('exec-1'),
+            ActivityDefinition::create(ActivityName::fromString('parse'), ActivityKind::fromString('internal')),
+            Instant::of(1100),
+            attributes: AttributeCollection::fromArray(['password' => 'secret']),
+        )->complete(ActivityStatus::Succeeded, null, Instant::of(1200));
+        $measurement = RunItArtifactFactory::counter('exec-1', 'redacted-items', 7, ['password' => 'secret']);
+        $activityBefore = $activity->normalize();
+        $measurementBefore = $measurement->normalize();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']));
+        $redactedActivity = $redactor->redact($activity);
+        $redactedMeasurement = $redactor->redact($measurement);
+
+        foreach ([$redactedActivity, $redactedMeasurement] as $redacted) {
+            self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+            $normalized = $redacted->normalize();
+            self::assertIsArray($normalized['attributes']);
+            self::assertSame('[redacted]', $normalized['attributes']['password']);
+        }
+
+        $publisher = $this->publisher();
+        $publisher->publish($redactedActivity);
+        $publisher->publish($redactedMeasurement);
+        self::assertCount(0, $this->kit->spans());
+        self::assertCount(0, $this->kit->collectMetrics());
+        self::assertCount(0, $this->kit->logs());
+
+        $control = RunItArtifactFactory::activity('act-control', 'exec-1', 'control', 'internal', 'succeeded');
+        $publisher->publish($control);
+        $publisher->publish(RunItArtifactFactory::counter('exec-1', 'control-items', 7));
+        self::assertCount(1, $this->kit->spans());
+        self::assertSame('control', $this->kit->spans()[0]->getName());
+        $metrics = $this->kit->collectMetrics();
+        self::assertCount(1, $metrics);
+        self::assertSame('control-items', $metrics[0]->name);
+        self::assertCount(0, $this->kit->logs());
+        self::assertSame($activityBefore, $activity->normalize());
+        self::assertSame($measurementBefore, $measurement->normalize());
+
+        $disabled = TelemetryPublisher::fromConfig(BridgeConfig::default());
+        self::assertFalse($disabled->capability()->any());
+        $disabled->publish($redactedActivity);
+        $disabled->publish($redactedMeasurement);
+        $disabled->publish($activity);
+        $disabled->publish($measurement);
+        self::assertCount(1, $this->kit->spans());
+        self::assertCount(1, $this->kit->collectMetrics());
+        self::assertCount(0, $this->kit->logs());
     }
 
     public function testPublishesObservationAndOccurrenceAndSnapshotAsLogs(): void

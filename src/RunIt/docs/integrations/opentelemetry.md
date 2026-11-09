@@ -150,6 +150,11 @@ In a test with a configured sensitive attribute, an observation changed by the
 default redactor produces neither an OpenTelemetry log nor a span event, whereas
 an unredacted control produces both. This characterizes the tested paths, not all
 possible redacted artifact shapes.
+In a separate test with enabled providers, a redacted activity and measurement
+also produced no span or metric, while unchanged typed controls did. The tested
+redactor masked the configured attribute without mutating either original. Do
+not rely on this observation as a delivery guarantee or a comprehensive security
+assessment; routing and visible reporting for these projections remain open.
 
 ## Fiber considerations
 
