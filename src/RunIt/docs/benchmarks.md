@@ -452,10 +452,11 @@ bound, and a long-lived store with unique IDs can accumulate entries; overwrite,
 parent-lookup correctness, real SDK lifetimes, RSS and PHP 8.4 are not measured.
 No regression threshold or retention limit is selected from this baseline.
 
-The exact untracked harness and raw per-sample results are
+The exact untracked harness and raw per-sample results were stored at
 `/tmp/kilo/runit-span-store-baseline.php` and
-`/tmp/kilo/runit-span-store-results.json`. While available, rerun from the package
-directory with (the command overwrites the results file):
+`/tmp/kilo/runit-span-store-results.json`; neither was present on 2026-11-09.
+The table is therefore historical evidence, not currently reproducible with the
+original harness. The original command, which overwrote the results file, was:
 
 ```bash
 php -d memory_limit=-1 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-span-store-baseline.php

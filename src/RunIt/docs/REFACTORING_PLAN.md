@@ -158,6 +158,17 @@ when coverage was enabled, but accepted `Medium` leaks and `CoversNothing` and
 could not expand the Codeception data-provider attribute used by a real test.
 It is therefore not a drop-in replacement for this suite.
 
+At starting revision `409e3c500af055f2d854f9a371931f177b21f719`, the
+synthetic controls were recreated as the isolated `tools/coverage-attribution/`
+fixture; the prior temporary experiment was no longer available. On PHP 8.4 and
+8.5 with PCOV, Codeception credited the declared target, did not credit a declared
+collaborator, credited unrelated execution with no metadata, and exited 0 for
+undeclared execution while crediting neither class. Direct php-code-coverage
+exited 1 for the undeclared collaborator and 0 when it was allowed. Commands and
+report location are in `docs/QA.md`; run cases separately because they overwrite
+the temporary report. This diagnostic does not enforce Unit-only coverage,
+provider execution or real-suite attribution and is not a CI gate.
+
 ## Phase 0: Baseline and safety net
 
 **Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
@@ -827,6 +838,16 @@ not the approved target. A severity-policy check demonstrates why simply moving
 the generic redacted wrapper ahead of sampling changes the decision. The focused
 suite passed on PHP 8.5.12 and 8.4.27 (13 tests, 42 assertions); error override,
 execution-kind composition, and the redaction-first target remain open.
+
+At starting revision `409e3c500af055f2d854f9a371931f177b21f719`, a focused
+OpenTelemetry characterization used real activity and measurement artifacts
+with a configured sensitive attribute. The redactor masked each projection and
+left the source unchanged, but the enabled publisher exported neither redacted
+artifact; typed controls produced one span and one metric. The disabled-provider
+control produced no additional signals. This describes the tested dispatch paths,
+not an approved routing policy or a security fix. The focused suite passed on
+PHP 8.4 and 8.5 (16 tests, 146 assertions each); broader configurations and
+delivery-or-health-report behavior remain open.
 
 **Additional characterization (2026-11-06):** At baseline revision
 `91ab15a7567a75b713487acd0b51bc9d0249fbe6`, composed OpenTelemetry tests
