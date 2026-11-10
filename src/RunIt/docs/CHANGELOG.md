@@ -106,11 +106,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   with `@phpstan-ignore`. They are enumerated as a keep-list in `docs/qa.md`;
   `composer analyse` therefore still reports exactly 15 errors, matching the
   documented kept set.
-- Added `RunItBuilder::withConcurrencyValidator()` and the matching
-  `RunItBuilderInterface` seam: an opt-in assembly-boundary hook that receives
-  the engine capability and resolved context storage during `build()` and may
-  throw to reject the pairing. It is separate from `ContextStorageInterface` and
-  is not a required method for custom composition.
+- Added `SDK\Builder\ConcurrencyValidatableBuilderInterface`, a separate optional
+  opt-in seam declaring `withConcurrencyValidator(?Closure)`. `RunItBuilder`
+  implements it alongside `RunItBuilderInterface`, so custom builder
+  implementations are not required to add the method. The validator receives the
+  engine capability and resolved context storage during `build()` and may throw
+  to reject the pairing.
 - Added built-in concurrency validation at `RunItBuilder::build()`: a shared
   `StackContextStorage` paired with an engine that declares `concurrent: true`
   now throws `IncompatibleContextStorageException`, identifying the pairing and

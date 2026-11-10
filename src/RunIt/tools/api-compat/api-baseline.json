@@ -18933,23 +18933,45 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "withConcurrencyValidator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface",
+                "params": [
+                    {
+                        "name": "validator",
+                        "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder": {
         "kind": "class",
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface"
+            "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+            "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface"
         },
         "constants": [],
         "methods": {
             "create": {
                 "static": true,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": []
             },
             "withPublisher": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "publisher",
@@ -18960,7 +18982,7 @@
             },
             "withClock": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "clock",
@@ -18971,7 +18993,7 @@
             },
             "withSequenceAllocator": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "allocator",
@@ -18982,7 +19004,7 @@
             },
             "withSnapshotSerializer": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "serializer",
@@ -18993,7 +19015,7 @@
             },
             "withIdentifierGenerator": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "generator",
@@ -19004,7 +19026,7 @@
             },
             "withContextStorage": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "storage",
@@ -19015,7 +19037,7 @@
             },
             "withSnapshotStore": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "store",
@@ -19026,7 +19048,7 @@
             },
             "withThrowableMapper": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "mapper",
@@ -19037,7 +19059,7 @@
             },
             "withRedactor": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "redactor",
@@ -19048,7 +19070,7 @@
             },
             "withSamplingPolicy": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "policy",
@@ -19059,7 +19081,7 @@
             },
             "withNestedExecutionPolicy": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "policy",
@@ -19070,7 +19092,7 @@
             },
             "withCompletionPolicy": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "policy",
@@ -19081,7 +19103,7 @@
             },
             "withExecutionEngine": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "engine",
@@ -19092,7 +19114,7 @@
             },
             "withHashCalculator": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "hashCalculator",
@@ -19103,7 +19125,7 @@
             },
             "withExecutionFactory": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "executionFactory",
@@ -19114,7 +19136,7 @@
             },
             "withLifecycleCoordinator": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "coordinator",
@@ -19125,7 +19147,7 @@
             },
             "withSnapshotFactory": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "snapshotFactory",
@@ -19136,7 +19158,7 @@
             },
             "withSecurityLimits": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "limits",
@@ -19147,7 +19169,7 @@
             },
             "withPublicationFailureHandler": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "handler",
@@ -19158,7 +19180,7 @@
             },
             "withSnapshotStoreFailureHandler": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "handler",
@@ -19169,7 +19191,7 @@
             },
             "withPublisherStackFactory": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "factory",
@@ -19180,7 +19202,7 @@
             },
             "withConcurrencyValidator": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilder",
                 "params": [
                     {
                         "name": "validator",
@@ -19436,17 +19458,6 @@
                     {
                         "name": "factory",
                         "type": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "withConcurrencyValidator": {
-                "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
-                "params": [
-                    {
-                        "name": "validator",
-                        "type": "null|Closure",
                         "optional": false
                     }
                 ]
