@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Application\Publication\Policy\SeveritySamplePolicy;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactPredicateInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;

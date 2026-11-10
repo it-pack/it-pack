@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Tests\Conformance;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Application\Publication\AlwaysSamplePolicy;
+use ItPack\RunIt\Application\Publication\Policy\AlwaysSamplePolicy;
 use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\SamplingPolicyVerifier;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;

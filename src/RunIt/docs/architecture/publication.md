@@ -113,13 +113,7 @@ fallback reporting can never loop.
 ## Composition example
 
 ```php
-use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
-use ItPack\RunIt\Application\Publication\ArtifactTypeFilter;
-use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
-use ItPack\RunIt\Application\Publication\FailClosedPolicy;
-use ItPack\RunIt\Application\Publication\ObservationSeverityFilter;
-use ItPack\RunIt\Application\Publication\PublicationPipeline;
-use ItPack\RunIt\Contract\Domain\ObservationSeverity;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;use ItPack\RunIt\Application\Publication\ArtifactTypeFilter;use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;use ItPack\RunIt\Application\Publication\Policy\FailClosedPolicy;use ItPack\RunIt\Application\Publication\PublicationPipeline;use ItPack\RunIt\Contract\Domain\ObservationSeverity;
 
 $pipeline = (new PublicationPipeline($sink))
     ->filter(new ArtifactTypeFilter([Observation::class]))

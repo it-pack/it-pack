@@ -6,8 +6,8 @@ namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
+use ItPack\RunIt\Application\Publication\Policy\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\RecursivePublicationException;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
