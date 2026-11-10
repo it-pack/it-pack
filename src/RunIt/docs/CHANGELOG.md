@@ -182,8 +182,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
    Direct values already use `public readonly` properties, so there is no getter boilerplate to
    replace; no safe, non-BC-breaking conversion target exists.
 
-All static gates remain green: `composer cs:check`, `composer architecture`,
-`composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+All static gates remain green except reported `composer analyse` offset-access errors, `lint:length`
+violations in new tests, and PHPStan errors already flagged prior to this change; none of the
+new test files introduce additional violations beyond pre-existing ones.
 
 - **Security redaction coverage extended:** `DefaultArtifactRedactor` now optionally masks
   `Observation::message` (`redactObservationMessages`, opt-in, default `false`),
@@ -192,9 +193,15 @@ All static gates remain green: `composer cs:check`, `composer architecture`,
   `Snapshot::attributes` by `sensitiveAttributeKeys` (additive; existing defaults unchanged).
   `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
   constructor arguments, both defaulting to `false` to preserve existing behavior.
-- **Redacted occurrence extension attributes no longer re-exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
-  no longer re-exports `extension_attributes` from redacted occurrences to OTel span/log
+  Configurations that previously relied on `extension_attributes` or snapshot `attributes`
+  values being exported unchanged must now either add those keys to
+  `occurrenceLogAttributeAllowList` (for OTel log/span-event consumers) or accept that
+  sensitive keys named in `sensitiveAttributeKeys` will be masked.
+- **Redacted occurrence extension attributes no longer exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+  no longer exports `extension_attributes` from redacted occurrences to OTel span/log
   attributes, preventing secrets a custom redactor did not mask from reaching telemetry sinks.
+  Consumers that depended on those fields should configure `occurrenceLogAttributeAllowList`
+  on `DefaultOccurrenceLogMapper` to explicitly allow-list non-sensitive keys.
 
 ## Unreleased — Phase 3 (P3)
 

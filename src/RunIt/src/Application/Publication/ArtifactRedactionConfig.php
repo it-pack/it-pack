@@ -18,9 +18,14 @@ namespace ItPack\RunIt\Application\Publication;
 final readonly class ArtifactRedactionConfig
 {
     /**
-     * @param list<string> $sensitiveAttributeKeys attribute keys masked in `attributes`
+     * @param list<string> $sensitiveAttributeKeys attribute keys masked in `attributes`, occurrence `extension_attributes`, and snapshot `attributes`
      * @param list<string> $sensitiveDataKeys       keys masked recursively in occurrence `data` and snapshot `payload`
      * @param string       $marker                   value substituted for masked scalars
+     * @param bool         $redactThrowableMessages   mask throwable message and trace when throwing; recursive for `previous` causes
+     * @param bool         $redactOccurrenceData     mask occurrence `data` recursively when enabled
+     * @param bool         $redactSnapshotPayloads   mask snapshot `payload` recursively when enabled
+     * @param bool         $redactObservationMessages mask observation `message` when enabled (opt-in, default false)
+     * @param bool         $redactMeasurementValues  mask measurement `value` when enabled (opt-in, default false)
      */
     public function __construct(
         public array $sensitiveAttributeKeys = [],

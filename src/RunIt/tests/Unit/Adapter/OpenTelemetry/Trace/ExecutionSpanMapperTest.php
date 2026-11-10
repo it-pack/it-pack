@@ -9,6 +9,8 @@ use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -18,6 +20,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Trace\StatusCode;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
@@ -36,13 +39,15 @@ final class ExecutionSpanMapperTest extends Unit
 
     private InMemoryExecutionSpanStore $store;
 
+    private TracerProviderInterface $tracerProvider;
+
     protected function _before(): void
     {
         $this->spanExporter = new InMemoryExporter();
-        $tracerProvider = new TracerProvider(new SimpleSpanProcessor($this->spanExporter));
+        $this->tracerProvider = new TracerProvider(new SimpleSpanProcessor($this->spanExporter));
         $this->store = new InMemoryExecutionSpanStore();
         $this->mapper = new DefaultExecutionSpanMapper(
-            $tracerProvider,
+            $this->tracerProvider,
             $this->store,
             new SpanStatusMap(),
             new SpanKindMap()
@@ -148,8 +153,8 @@ final class ExecutionSpanMapperTest extends Unit
         self::assertCount(0, $this->spans());
     }
 
-    /** Characterizes the leak: execution result throwable secrets reach OTel span events when no redactor ran upstream. */
-    public function testExecutionResultThrowableSecretsReachSpanEvents(): void
+    /** Negative export assertion: execution result throwable secrets are masked before OpenTelemetry export. */
+    public function testExecutionResultThrowableSecretsMaskedInSpanEvents(): void
     {
         $execution = Execution::start(
             ExecutionId::fromString('exec-secret'),
@@ -160,7 +165,18 @@ final class ExecutionSpanMapperTest extends Unit
             Instant::of(1001),
         );
 
-        $this->mapper->map($execution);
+        // Default redaction policy is active: throwables under result.throwable are masked.
+        $redacted = new DefaultArtifactRedactor()->redact($execution);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $normalized = $redacted->normalize();
+
+        $mapper = new DefaultExecutionSpanMapper(
+            tracerProvider: $this->tracerProvider,
+            store: $this->store,
+            statusMap: new SpanStatusMap(),
+            kindMap: new SpanKindMap(),
+        );
+        $mapper->mapRedactedExecution($normalized);
 
         $span = $this->span(0);
         $events = $span->getEvents();
@@ -169,8 +185,34 @@ final class ExecutionSpanMapperTest extends Unit
         $attrs = $events[0]->getAttributes();
         $message = $attrs->get('exception.message');
         self::assertIsString($message);
-        // Only the outer cause's secret reaches the top-level span event message;
-        // nested causes are not flattened into separate span events.
-        self::assertStringContainsString(SensitiveExceptionChain::secrets()[1], $message);
+        // Nested causes are not flattened into separate span events; masked outer message contains no classified secret.
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringNotContainsString($secret, $message);
+        }
+
+        // Opt-out: disable throwable redaction and confirm secrets reach span events.
+        $mapperOptOut = new DefaultExecutionSpanMapper(
+            tracerProvider: $this->tracerProvider,
+            store: $this->store,
+            statusMap: new SpanStatusMap(),
+            kindMap: new SpanKindMap(),
+        );
+        $executionOptOut = Execution::start(
+            ExecutionId::fromString('exec-optout'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+        // No redactor applied upstream: secrets reach span events.
+        $mapperOptOut->map($executionOptOut);
+        $spanOptOut = $this->span(1);
+        $eventsOptOut = $spanOptOut->getEvents();
+        self::assertCount(1, $eventsOptOut);
+        $attrsOptOut = $eventsOptOut[0]->getAttributes();
+        $messageOptOut = $attrsOptOut->get('exception.message');
+        self::assertIsString($messageOptOut);
+        self::assertStringContainsString(SensitiveExceptionChain::secrets()[1], $messageOptOut);
     }
 }

@@ -137,6 +137,18 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
 
             if (array_key_exists('classification', $normalized)) {
                 $this->occurrenceMapper->mapRedactedSnapshot($normalized);
+
+                return;
+            }
+
+            if (array_key_exists('result', $normalized)) {
+                $this->executionMapper->mapRedactedExecution($normalized);
+
+                return;
+            }
+
+            if (array_key_exists('execution_id', $normalized) && !array_key_exists('unit', $normalized)) {
+                $this->activityMapper->mapRedactedActivity($normalized);
             }
         }
     }

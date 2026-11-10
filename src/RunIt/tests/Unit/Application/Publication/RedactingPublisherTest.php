@@ -149,7 +149,7 @@ final class RedactingPublisherTest extends Unit
         }
     }
 
-    public function testFailedExecutionThrowableIsMasked(): void
+    public function testFailedExecutionResultThrowableIsMasked(): void
     {
         $original = Execution::start(
             ExecutionId::fromString('exec-failed'),
@@ -168,10 +168,12 @@ final class RedactingPublisherTest extends Unit
         $result = $published['result'];
         /** @var array<string, mixed> $throwable */
         $throwable = $result['throwable'];
-        $encoded = json_encode($throwable, JSON_THROW_ON_ERROR);
         foreach (SensitiveExceptionChain::secrets() as $secret) {
-            self::assertStringContainsString($secret, $encoded);
+            self::assertStringNotContainsString($secret, json_encode($throwable, JSON_THROW_ON_ERROR));
         }
+
+        self::assertSame('[redacted]', $throwable['message']);
+        self::assertSame('[redacted]', $throwable['trace']);
 
         self::assertSame($before, $original->normalize());
     }
@@ -633,32 +635,5 @@ final class RedactingPublisherTest extends Unit
         $originalAttrs = $original->normalize()['attributes'];
         self::assertSame('snapshot-secret', $originalAttrs['password']);
         self::assertSame('prod', $originalAttrs['env']);
-    }
-
-    public function testFailedExecutionResultThrowableCurrentlyBypassesRedaction(): void
-    {
-        $original = Execution::start(
-            ExecutionId::fromString('exec-failed'),
-            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
-            Instant::of(1000),
-        )->complete(
-            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
-            Instant::of(1001),
-        );
-
-        /** @var array<string, mixed> $published */
-        $published = $this->publish($original)->normalize();
-
-        /** @var array<string, mixed> $result */
-        $result = $published['result'];
-        /** @var array<string, mixed> $throwable */
-        $throwable = $result['throwable'];
-        $encoded = json_encode($throwable, JSON_THROW_ON_ERROR);
-        foreach (SensitiveExceptionChain::secrets() as $secret) {
-            self::assertStringContainsString($secret, $encoded);
-        }
-
-        self::assertSame('RuntimeException', $throwable['class']);
-        self::assertSame(2, $throwable['code']);
     }
 }

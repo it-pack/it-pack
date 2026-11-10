@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
+use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
@@ -15,6 +16,7 @@ use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
 
@@ -68,6 +70,97 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         $span->end($endedAt->epochSeconds() * Duration::NANOS_PER_SECOND);
 
         $this->store->recordActivity($activity->id()->toString(), $span->getContext());
+    }
+
+    public function mapRedactedActivity(array $normalized): void
+    {
+        $tracerProvider = $this->tracerProvider;
+        if (!$tracerProvider instanceof TracerProviderInterface) {
+            return;
+        }
+
+        $tracer = $tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
+        $nameValue = $normalized['name'] ?? null;
+        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : 'activity';
+        $builder = $tracer->spanBuilder($name);
+        $span = $builder->startSpan();
+
+        $activityId = $normalized['id'] ?? null;
+        $kind = $normalized['kind'] ?? null;
+        $executionId = $normalized['execution_id'] ?? null;
+        $status = $normalized['status'] ?? null;
+
+        $attributes = [
+            AttributeKeys::ACTIVITY_ID => is_string($activityId) ? $activityId : '',
+            AttributeKeys::ACTIVITY_NAME => $name,
+            AttributeKeys::ACTIVITY_KIND => is_string($kind) ? $kind : '',
+            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
+            AttributeKeys::ACTIVITY_STATUS => is_string($status) ? $status : '',
+        ];
+
+        $parentActivityId = $normalized['parent_activity_id'] ?? null;
+        if (is_string($parentActivityId)) {
+            $attributes[AttributeKeys::ACTIVITY_PARENT_ID] = $parentActivityId;
+        }
+
+        $span->setAttributes($attributes);
+
+        $normalizedAttributes = $normalized['attributes'] ?? null;
+        if (is_array($normalizedAttributes)) {
+            $this->setRedactedAttributes($span, $normalizedAttributes);
+        }
+
+        $throwable = $normalized['throwable'] ?? null;
+        /** @var array<string, mixed>|null $throwable */
+        $throwable = is_array($throwable) ? $throwable : null;
+        $this->recordRedactedThrowable($span, $throwable);
+
+        if (is_string($activityId)) {
+            $this->store->recordActivity($activityId, $span->getContext());
+        }
+
+        $span->end();
+    }
+
+    /**
+     * @param array<array-key, mixed>|null $attributes
+     */
+    private function setRedactedAttributes(SpanInterface $span, ?array $attributes): void
+    {
+        if (!is_array($attributes)) {
+            return;
+        }
+
+        foreach ($attributes as $key => $value) {
+            $keyStr = (string) $key;
+            if ($keyStr === '') {
+                continue;
+            }
+
+            if (is_string($value) || is_int($value) || is_float($value) || is_bool($value)) {
+                $span->setAttribute($keyStr, $value);
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed>|null $throwable
+     */
+    private function recordRedactedThrowable(SpanInterface $span, ?array $throwable): void
+    {
+        if (!is_array($throwable)) {
+            return;
+        }
+
+        $throwableClass = is_string($throwable['class'] ?? null) ? $throwable['class'] : '';
+        $throwableMessage = is_string($throwable['message'] ?? null) ? $throwable['message'] : '';
+        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : '';
+
+        $span->addEvent('exception', [
+            'exception.type' => $throwableClass,
+            'exception.message' => $throwableMessage,
+            'exception.stacktrace' => $throwableTrace,
+        ]);
     }
 
     private function resolveParentContext(ActivityInterface|ExecutionInterface $activity): ?ContextInterface

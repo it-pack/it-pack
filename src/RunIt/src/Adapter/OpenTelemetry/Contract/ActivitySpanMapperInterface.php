@@ -16,4 +16,11 @@ use ItPack\RunIt\Contract\Domain\ActivityInterface;
 interface ActivitySpanMapperInterface
 {
     public function map(ActivityInterface $activity): void;
+
+    /**
+     * Maps a redacted activity's normalized projection to an OpenTelemetry span.
+     *
+     * @param array<string, mixed> $normalized redacted activity normalization
+     */
+    public function mapRedactedActivity(array $normalized): void;
 }

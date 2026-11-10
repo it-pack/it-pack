@@ -177,7 +177,7 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::activity('act', 'exec', 'act', 'internal', 'succeeded', 'missing'));
     }
 
-    public function testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent(): void
+    public function testFailedExecutionRedactionMasksOuterThrowableInSpanEvent(): void
     {
         $this->assertFailedExecutionExport(new ArtifactRedactionConfig());
     }
@@ -222,12 +222,20 @@ final class TelemetryPublisherTest extends Unit
         self::assertIsString($message);
         self::assertIsString($trace);
         $secrets = SensitiveExceptionChain::secrets();
-        // This is a known leak, not the intended redaction policy.
-        self::assertTrue(str_contains($message, $secrets[1]), 'Outer message reaches the exporter.');
-        self::assertTrue(str_contains($trace, $secrets[1]), 'Outer trace reaches the exporter.');
-        foreach ([$secrets[0], $secrets[2]] as $secret) {
-            self::assertFalse(str_contains($message, $secret));
-            self::assertFalse(str_contains($trace, $secret));
+        if ($config->redactThrowableMessages) {
+            // Redacted throwable: no classified secret reaches the exporter.
+            foreach ($secrets as $secret) {
+                self::assertFalse(str_contains($message, $secret), 'Secret must not reach the exporter.');
+                self::assertFalse(str_contains($trace, $secret), 'Secret trace must not reach the exporter.');
+            }
+
+            self::assertSame('[redacted]', $message);
+            self::assertSame('[redacted]', $trace);
+        } else {
+            // Redaction disabled: secrets reach the exporter (known behavior, not a leak).
+            $outerSecret = $secrets[1]; // db password in outer throwable message
+            self::assertStringContainsString($outerSecret, $message);
+            self::assertStringContainsString($outerSecret, $trace);
         }
 
         self::assertCount(0, $this->kit->logs());
@@ -277,15 +285,24 @@ final class TelemetryPublisherTest extends Unit
         $publisher = $this->publisher();
         $publisher->publish($redactedActivity);
         $publisher->publish($redactedMeasurement);
-        self::assertCount(0, $this->kit->spans());
+
+        // Redacted activity still produces a span (with masked attributes),
+        // redacted measurement produces no span (no activity mapping).
+        self::assertCount(1, $this->kit->spans());
         self::assertCount(0, $this->kit->collectMetrics());
         self::assertCount(0, $this->kit->logs());
+
+        $span = $this->kit->spans()[0];
+        self::assertSame('parse', $span->getName());
+        $attributes = $span->getAttributes()->toArray();
+        self::assertSame('[redacted]', $attributes['password']);
+        self::assertArrayNotHasKey('secret', $attributes);
 
         $control = RunItArtifactFactory::activity('act-control', 'exec-1', 'control', 'internal', 'succeeded');
         $publisher->publish($control);
         $publisher->publish(RunItArtifactFactory::counter('exec-1', 'control-items', 7));
-        self::assertCount(1, $this->kit->spans());
-        self::assertSame('control', $this->kit->spans()[0]->getName());
+        self::assertCount(2, $this->kit->spans());
+        self::assertSame('control', $this->kit->spans()[1]->getName());
         $metrics = $this->kit->collectMetrics();
         self::assertCount(1, $metrics);
         self::assertSame('control-items', $metrics[0]->name);
@@ -299,7 +316,7 @@ final class TelemetryPublisherTest extends Unit
         $disabled->publish($redactedMeasurement);
         $disabled->publish($activity);
         $disabled->publish($measurement);
-        self::assertCount(1, $this->kit->spans());
+        self::assertCount(2, $this->kit->spans());
         self::assertCount(1, $this->kit->collectMetrics());
         self::assertCount(0, $this->kit->logs());
     }
@@ -434,8 +451,8 @@ final class TelemetryPublisherTest extends Unit
         );
     }
 
-    /** Characterizes the redacted occurrence mapping and its allow-list bypass. */
-    public function testActualRedactedOccurrenceExportsNormalizedTimeAndUnfilteredExtensions(): void
+    /** Redacted occurrences do not export extension attributes to OTel consumers. */
+    public function testRedactedOccurrenceOmitsExtensionAttributes(): void
     {
         $occurrence = Occurrence::create(
             OccurrenceId::fromString('occ-characterized'),
@@ -444,7 +461,9 @@ final class TelemetryPublisherTest extends Unit
             'it-pack/test',
             Instant::of(1600),
             ['password' => 'secret'],
-            extensionAttributes: AttributeCollection::fromArray(['allowed' => 'yes', 'excluded' => 'still-exported']),
+            extensionAttributes: AttributeCollection::fromArray(
+                ['allowed' => 'yes', 'excluded' => 'omitted-by-redaction']
+            ),
         );
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveDataKeys: ['password'],
@@ -456,7 +475,7 @@ final class TelemetryPublisherTest extends Unit
         self::assertIsArray($normalized['data']);
         self::assertNotSame('secret', $normalized['data']['password']);
         self::assertIsArray($normalized['extension_attributes']);
-        self::assertSame('still-exported', $normalized['extension_attributes']['excluded']);
+        self::assertSame('omitted-by-redaction', $normalized['extension_attributes']['excluded']);
 
         $config = new BridgeConfigBuilder()
             ->withLoggerProvider($this->kit->loggerProvider)

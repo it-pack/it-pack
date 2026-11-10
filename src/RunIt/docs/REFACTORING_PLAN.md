@@ -934,7 +934,22 @@ misclassify or drop changed artifacts. The observation safe-field and health
 reporting decisions, bounded traversal, and compatible routing design remain open;
 none of the approved target policies should be assumed implemented.
 
-**Phase 2 progress (implemented):** `DefaultArtifactRedactor` now optionally masks `Observation::message` (`redactObservationMessages`, opt-in, default `false`), `Measurement::value` (`redactMeasurementValues`, opt-in, default `false`), `Occurrence::extension_attributes` by `sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`. `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues` constructor arguments (both default `false`). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()` no longer re-exports `extension_attributes` from redacted occurrences to OTel sinks. Negative tests added to `RedactingPublisherTest`, `ObservationLoggerPublisherTest`, and `ExecutionSpanMapperTest` characterize secrets in outer messages, throwable chains, multiple previous causes, trace values, and opt-out configurations. Composed pipeline coverage extends to PSR-3 and OpenTelemetry with in-memory sinks asserting secrets absent. All quality gates green (`composer quality`, `composer api:check`, `composer analyse`, `composer architecture`, `composer cs:check`, `composer lint:length`, all four test suites).
+**Phase 2 progress (implemented):** `DefaultArtifactRedactor` now optionally masks
+`Observation::message` (`redactObservationMessages`, opt-in, default `false`), `Measurement::value`
+(`redactMeasurementValues`, opt-in, default `false`), `Occurrence::extension_attributes` by
+`sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`.
+`ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
+constructor arguments (both default `false` — observation-message redaction is opt-in,
+and failed-execution `result.throwable` remains unmasked by default). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+no longer exports `extension_attributes` from redacted occurrences to OTel sinks.
+Negative tests added to `RedactingPublisherTest`, `ObservationLoggerPublisherTest`,
+and `ExecutionSpanMapperTest` characterize secrets in outer messages, throwable chains,
+multiple previous causes, trace values, and opt-out configurations. Composed pipeline
+coverage extends to PSR-3 and OpenTelemetry with in-memory sinks asserting secrets absent.
+`composer quality` passes: CS, Rector dry-run, PHPStan at level max, architecture,
+lint:length, security audit; `composer api:check` passes with both baseline snapshots
+regenerated. New test files contain no pre-existing PHPStan offset-access or lint:length
+violations beyond those already present in the codebase.
 
 Focused tests now cover nested observation throwable masking, preservation of
 class and code, original immutability, explicit opt-out, and PSR logger export
@@ -971,15 +986,28 @@ establish per-test attribution or the planned isolation guarantee.
 - `throwable.message` / `throwable.trace` — replaced with marker when `redactThrowableMessages`, recursive for `previous` causes
 - `Occurrence.data` — masked recursively by `sensitiveDataKeys` when `redactOccurrenceData`
 - `Snapshot.payload` — masked recursively by `sensitiveDataKeys` when `redactSnapshotPayloads`
-- NOT masked: `Observation::message`, `Measurement::value`, `Occurrence::extension_attributes`, `Snapshot::attributes`, unknown/non-array projection fields
+- `Observation.message` — masked by `redactObservationMessages` (opt-in, default `false`)
+- `Measurement.value` — masked by `redactMeasurementValues` (opt-in, default `false`)
+- `Occurrence.extension_attributes` — masked by `sensitiveAttributeKeys`
+- `Snapshot.attributes` — masked by `sensitiveAttributeKeys`
+- NOT masked: `result.throwable` under failed `Execution`, unknown/non-array projection fields
 
 **Consumer leak paths after redaction:**
-- `TelemetryPublisher::mapRedactedOccurrence()` exports `extension_attributes` from the redacted normalized array without re-masking — secrets in extension attributes reach OTel span events/logs.
-- `TelemetryPublisher::mapRedactedSnapshot()` exports `attributes` from redacted snapshot data without re-masking.
-- `DefaultActivitySpanMapper::recordThrowable()` exports `message`/`trace` directly to OTel span `exception` events — only masked upstream if a redactor ran.
-- `ObservationLoggerPublisher::extract()` uses direct `ObservationInterface` getters (`message()`, `attributes()`, `throwableDescription()`) when a live `Observation` reaches it; a standalone redactor upstream returns a `RedactedArtifact` (not instanceof `ObservationInterface`), falling through to the `normalize()` path.
-- `DefaultOccurrenceLogMapper::mapOccurrence()` exports `extension_attributes` directly from the live occurrence (not redacted, not normalized).
-- `DefaultOccurrenceLogMapper::mapSnapshot()` exports `attributes` directly and json-encodes `payload` under `SnapshotPayloadPolicy::Full`.
+- `DefaultOccurrenceLogMapper::mapRedactedOccurrence()` no longer exports `extension_attributes`
+  from redacted occurrences — extension attributes may be omitted for secret safety; they are
+  governed by `occurrenceLogAttributeAllowList` rather than upstream redaction.
+- `DefaultOccurrenceLogMapper::mapRedactedSnapshot()` does not export `attributes` from redacted
+  snapshots.
+- `DefaultActivitySpanMapper::recordThrowable()` exports `message`/`trace` directly to OTel span
+  `exception` events — only masked upstream if a redactor ran.
+- `ObservationLoggerPublisher::extract()` uses direct `ObservationInterface` getters
+  (`message()`, `attributes()`, `throwableDescription()`) when a live `Observation` reaches it;
+  a standalone redactor upstream returns a `RedactedArtifact` (not instanceof `ObservationInterface`),
+  falling through to the `normalize()` path.
+- `DefaultOccurrenceLogMapper::mapOccurrence()` exports `extension_attributes` directly from the
+  live occurrence (not redacted, not normalized).
+- `DefaultOccurrenceLogMapper::mapSnapshot()` exports `attributes` directly and json-encodes
+  `payload` under `SnapshotPayloadPolicy::Full`.
 
 **Bounded recursion and unknown fields:** `DefaultArtifactRedactor::maskKeysRecursive()` recurses into nested arrays/objects for `data`/`payload`, stops at scalars/nulls, and passes unknown projection fields through unchanged. Non-string `trace` values pass through untraversed. This preserves finite primitive projections but leaves non-`ThrowableDescription` projections with secrets intact.
 

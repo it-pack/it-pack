@@ -285,7 +285,7 @@ final class ObservationLoggerPublisherTest extends Unit
         $observation = Observation::error(
             ObservationId::fromString('o-msg-mask'),
             ExecutionId::fromString('exec-msg-mask'),
-            'token=sk-live-5f4dcc3b5aa765d61d8327deb882cf99 message-secret',
+            'token=FAKE-SK-LIVE-1234567890abcdef message-secret',
             attributes: AttributeCollection::fromArray(['password' => 'attribute-secret']),
             throwableDescription: ThrowableDescription::create(
                 'RuntimeException',

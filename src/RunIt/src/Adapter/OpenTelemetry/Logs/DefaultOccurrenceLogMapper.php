@@ -174,9 +174,10 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         // Extension attributes from redacted occurrences are intentionally not
-        // re-exported: they were already handled by the redactor upstream, and
-        // exporting them again would risk leaking secrets a custom redactor
-        // did not mask.
+        // re-exported: they may contain secrets, and export is governed by the
+        // configured occurrenceLogAttributeAllowList instead of upstream redaction.
+        // This is a breaking change versus previous versions that re-exported them;
+        // reconfigure the allow-list if those fields are needed.
 
         $this->emit(
             'runit.occurrence',

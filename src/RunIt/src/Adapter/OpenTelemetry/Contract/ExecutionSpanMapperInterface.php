@@ -16,4 +16,11 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 interface ExecutionSpanMapperInterface
 {
     public function map(ExecutionInterface $execution): void;
+
+    /**
+     * Maps a redacted execution's normalized projection to an OpenTelemetry span.
+     *
+     * @param array<string, mixed> $normalized redacted execution normalization
+     */
+    public function mapRedactedExecution(array $normalized): void;
 }

@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -50,7 +51,7 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
             && isset($normalized[ArtifactField::ATTRIBUTES])
             && is_array($normalized[ArtifactField::ATTRIBUTES])
         ) {
-            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskKeys(
+            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskAttributeKeys(
                 $normalized[ArtifactField::ATTRIBUTES],
                 $this->config->sensitiveAttributeKeys
             );
@@ -87,11 +88,26 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
             $changed = true;
         }
 
+        if ($this->config->redactThrowableMessages
+            && $artifact instanceof ExecutionInterface
+            && isset($normalized[ArtifactField::RESULT])
+            && is_array($normalized[ArtifactField::RESULT])
+            && isset($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
+            && is_array($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
+        ) {
+            [$normalized[ArtifactField::RESULT][ArtifactField::THROWABLE], $masked] = $this->maskThrowable(
+                $normalized[ArtifactField::RESULT][ArtifactField::THROWABLE],
+            );
+            if ($masked) {
+                $changed = true;
+            }
+        }
+
         if ($this->config->sensitiveAttributeKeys !== []
             && isset($normalized[ArtifactField::EXTENSION_ATTRIBUTES])
             && is_array($normalized[ArtifactField::EXTENSION_ATTRIBUTES])
         ) {
-            [$normalized[ArtifactField::EXTENSION_ATTRIBUTES], $masked] = $this->maskKeys(
+            [$normalized[ArtifactField::EXTENSION_ATTRIBUTES], $masked] = $this->maskAttributeKeys(
                 $normalized[ArtifactField::EXTENSION_ATTRIBUTES],
                 $this->config->sensitiveAttributeKeys
             );
@@ -105,7 +121,7 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
             && isset($normalized[ArtifactField::ATTRIBUTES])
             && is_array($normalized[ArtifactField::ATTRIBUTES])
         ) {
-            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskKeys(
+            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskAttributeKeys(
                 $normalized[ArtifactField::ATTRIBUTES],
                 $this->config->sensitiveAttributeKeys
             );
@@ -152,7 +168,7 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
      * @param list<string>            $keys
      * @return array{0: array<array-key, mixed>, 1: bool}
      */
-    private function maskKeys(array $data, array $keys): array
+    private function maskAttributeKeys(array $data, array $keys): array
     {
         $masked = false;
         $keySet = array_fill_keys($keys, value: true);
@@ -168,7 +184,7 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
     }
 
     /**
-     * @param  list<string> $keys
+     * @param list<string>         $keys
      * @return array{0: mixed, 1: bool}
      */
     private function maskKeysRecursive(mixed $data, array $keys): array

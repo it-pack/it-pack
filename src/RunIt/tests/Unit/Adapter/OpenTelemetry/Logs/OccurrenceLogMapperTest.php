@@ -295,6 +295,43 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertArrayNotHasKey('tenantflag', $attributes);
     }
 
+    public function testRedactedOccurrenceSpanEventOmitsExtensionAttributes(): void
+    {
+        $normalized = [
+            'id' => 'occ-span-event',
+            'type' => 'payment.captured.v1',
+            'subject' => 'user-42',
+            'activity_id' => 'act-9',
+            'extension_attributes' => ['tenantflag' => 'on', 'secret' => 'do-not-export'],
+            'time' => 1_600,
+        ];
+
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            mapOccurrencesToLogs: false,
+            mapOccurrencesToSpanEvents: true
+        );
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            $mapper->mapRedactedOccurrence($normalized);
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('runit.occurrence', $events[0]->getName());
+        $eventAttributes = $events[0]->getAttributes()->toArray();
+        self::assertSame('occ-span-event', $eventAttributes['runit.occurrence.id']);
+        self::assertSame('user-42', $eventAttributes['runit.occurrence.subject']);
+        self::assertSame('act-9', $eventAttributes['runit.activity.id']);
+        self::assertArrayNotHasKey('tenantflag', $eventAttributes);
+        self::assertArrayNotHasKey('secret', $eventAttributes);
+    }
+
     public function testRedactedSnapshotFallsBackWhenFieldsAreMissing(): void
     {
         $mapper = new DefaultOccurrenceLogMapper(
