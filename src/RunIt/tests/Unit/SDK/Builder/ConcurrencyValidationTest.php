@@ -11,7 +11,6 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Fiber\FiberContextStorage;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
@@ -23,6 +22,7 @@ use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\RunItInterface;
 use ReflectionClass;
+use RuntimeException;
 
 /**
  * Concurrency validation at builder assembly time.
@@ -111,17 +111,18 @@ final class ConcurrencyValidationTest extends Unit
             }
         };
 
-        $this->expectException(IncompatibleContextStorageException::class);
+        $distinctMessage = 'custom validator rejected the pairing';
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage($distinctMessage);
 
         $this->builder()
             ->withExecutionEngine($engine)
+            ->withContextStorage(new FiberContextStorage())
             ->withConcurrencyValidator(
                 static function (EngineCapabilityInterface $capability, ContextStorageInterface $storage): void {
-                    if ($capability instanceof EngineCapability
-                        && $capability->concurrent
-                        && $storage instanceof StackContextStorage
-                    ) {
-                        throw IncompatibleContextStorageException::sharedStackWithConcurrentEngine();
+                    if ($capability instanceof EngineCapability && $capability->concurrent) {
+                        throw new RuntimeException('custom validator rejected the pairing');
                     }
                 }
             )

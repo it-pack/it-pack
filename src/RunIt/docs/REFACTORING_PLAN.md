@@ -34,7 +34,7 @@ verification. The unchecked design details below must still be resolved where ap
 **Open design details:**
 - [ ] Define safe observation fields and classification, and the configurable drop/report mechanism.
 - [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
-- [ ] Determine the exact API for the opt-in concurrency validation hook in Phase 1.
+- [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
 - [ ] Choose the publication-health default destination and resolve nullable callback API compatibility in Phase 4.
@@ -862,7 +862,7 @@ control, isolation verification) remain open.
 - [x] Verify the approved break's changelog, baseline, versioning and migration documentation; run context storage conformance tests and `composer api:check` against the final tree.
 - [x] Document `StackContextStorage` as synchronous-only at the SDK builder and concurrency entry points; show configuration of Fiber/coroutine storage for persistent workers.
 - [x] Add interleaving tests that demonstrate the default risk and verify isolated current scopes, parent identity, LIFO detach, restoration after exceptions, and repeated requests with runtime-specific storage. Use the coroutine extension where available and report skips explicitly.
-- [x] Implement the [approved concurrency validation boundary](#decisions-required-before-dependent-changes) and its opt-in custom-composition hook; choose the hook's API without changing the storage contract or requiring a new builder-interface method.
+- [x] Implement the [approved concurrency validation boundary](#decisions-required-before-dependent-changes) and its opt-in custom-composition hook: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` without changing the storage contract or requiring a new builder-interface method.
 - [x] Test ordinary synchronous nesting and generic setup without a runtime declaration; reject declared overlap with shared stack storage at setup with the prescribed actionable error; accept matching isolated storage; exercise the opt-in hook with custom composition. Retain the interleaving reproduction as mismatch evidence.
 
 **Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
