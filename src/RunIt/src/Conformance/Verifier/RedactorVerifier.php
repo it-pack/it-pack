@@ -88,14 +88,6 @@ final class RedactorVerifier implements VerifierInterface
             return str_contains($data, $needle);
         }
 
-        if (is_array($data)) {
-            foreach ($data as $value) {
-                if ($this->contains($value, $needle)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return is_array($data) && array_any($data, fn ($value): bool => $this->contains($value, $needle));
     }
 }
