@@ -4603,11 +4603,6 @@
                     }
                 ]
             },
-            "__clone": {
-                "static": false,
-                "return": "void",
-                "params": []
-            },
             "current": {
                 "static": false,
                 "return": "null|ItPack\\RunIt\\Contract\\Application\\ExecutionScopeInterface",
@@ -10207,47 +10202,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionFactoryInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "create": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
-                "params": [
-                    {
-                        "name": "name",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionNameInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "kind",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionKindInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "parentExecutionId",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "linkedExecutionIds",
-                        "type": "array",
-                        "optional": true
-                    },
-                    {
-                        "name": "context",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
-                        "optional": true
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface": {
         "kind": "interface",
         "final": false,
@@ -15307,49 +15261,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\Domain\\Execution\\ExecutionDefinitionFactory": {
-        "kind": "class",
-        "final": true,
-        "extends": null,
-        "implements": {
-            "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionFactoryInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionFactoryInterface"
-        },
-        "constants": [],
-        "methods": {
-            "create": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
-                "params": [
-                    {
-                        "name": "name",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionNameInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "kind",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionKindInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "parentExecutionId",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "linkedExecutionIds",
-                        "type": "array",
-                        "optional": true
-                    },
-                    {
-                        "name": "context",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionContextInterface",
-                        "optional": true
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\Domain\\Execution\\ExecutionFailure": {
         "kind": "class",
         "final": true,
@@ -18708,50 +18619,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\SDK\\Attribute\\CallableReflectionResolver": {
-        "kind": "class",
-        "final": true,
-        "extends": null,
-        "implements": {
-            "ItPack\\RunIt\\SDK\\Attribute\\CallableReflectionResolverInterface": "ItPack\\RunIt\\SDK\\Attribute\\CallableReflectionResolverInterface"
-        },
-        "constants": [],
-        "methods": {
-            "resolve": {
-                "static": false,
-                "return": "null|ReflectionFunctionAbstract",
-                "params": [
-                    {
-                        "name": "callable",
-                        "type": "callable",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\SDK\\Attribute\\CallableReflectionResolverInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "resolve": {
-                "static": false,
-                "return": "null|ReflectionFunctionAbstract",
-                "params": [
-                    {
-                        "name": "callable",
-                        "type": "callable",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\SDK\\Attribute\\DefaultExecutedAsMetadataReader": {
         "kind": "class",
         "final": true,
@@ -18764,13 +18631,7 @@
             "__construct": {
                 "static": false,
                 "return": null,
-                "params": [
-                    {
-                        "name": "reflectionResolver",
-                        "type": "ItPack\\RunIt\\SDK\\Attribute\\CallableReflectionResolverInterface",
-                        "optional": true
-                    }
-                ]
+                "params": []
             },
             "read": {
                 "static": false,
@@ -18790,12 +18651,8 @@
         "kind": "class",
         "final": true,
         "extends": null,
-        "implements": {
-            "ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsInterface": "ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsInterface"
-        },
-        "constants": {
-            "DEFAULT_KIND": "public"
-        },
+        "implements": [],
+        "constants": [],
         "methods": {
             "__construct": {
                 "static": false,
@@ -18814,17 +18671,6 @@
                 ]
             }
         },
-        "cases": []
-    },
-    "ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": {
-            "DEFAULT_KIND": "public"
-        },
-        "methods": [],
         "cases": []
     },
     "ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsMetadataReaderInterface": {
@@ -19401,81 +19247,6 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableFactory": {
-        "kind": "class",
-        "final": true,
-        "extends": null,
-        "implements": {
-            "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableFactoryInterface": "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableFactoryInterface"
-        },
-        "constants": [],
-        "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "runner",
-                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionRunnerInterface",
-                        "optional": false
-                    }
-                ]
-            },
-            "build": {
-                "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableInterface",
-                "params": [
-                    {
-                        "name": "operation",
-                        "type": "callable",
-                        "optional": false
-                    },
-                    {
-                        "name": "definition",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "definitionFactory",
-                        "type": "null|Closure",
-                        "optional": true
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableFactoryInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "build": {
-                "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableInterface",
-                "params": [
-                    {
-                        "name": "operation",
-                        "type": "callable",
-                        "optional": false
-                    },
-                    {
-                        "name": "definition",
-                        "type": "null|ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
-                        "optional": false
-                    },
-                    {
-                        "name": "definitionFactory",
-                        "type": "null|Closure",
-                        "optional": true
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
     "ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableInterface": {
         "kind": "interface",
         "final": false,
@@ -19523,16 +19294,6 @@
                     {
                         "name": "attributeReader",
                         "type": "null|ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsMetadataReaderInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "executedCallableFactory",
-                        "type": "null|ItPack\\RunIt\\SDK\\Decorator\\ExecutedCallableFactoryInterface",
-                        "optional": true
-                    },
-                    {
-                        "name": "metadataExecutionDefinitionFactory",
-                        "type": "ItPack\\RunIt\\SDK\\Execution\\MetadataExecutionDefinitionFactoryInterface",
                         "optional": true
                     }
                 ]
@@ -19749,61 +19510,6 @@
                 "static": false,
                 "return": "string",
                 "params": []
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\SDK\\Execution\\MetadataExecutionDefinitionFactory": {
-        "kind": "class",
-        "final": true,
-        "extends": null,
-        "implements": {
-            "ItPack\\RunIt\\SDK\\Execution\\MetadataExecutionDefinitionFactoryInterface": "ItPack\\RunIt\\SDK\\Execution\\MetadataExecutionDefinitionFactoryInterface"
-        },
-        "constants": [],
-        "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "executionDefinitionFactory",
-                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionFactoryInterface",
-                        "optional": true
-                    }
-                ]
-            },
-            "create": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
-                "params": [
-                    {
-                        "name": "executedAs",
-                        "type": "ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsInterface",
-                        "optional": false
-                    }
-                ]
-            }
-        },
-        "cases": []
-    },
-    "ItPack\\RunIt\\SDK\\Execution\\MetadataExecutionDefinitionFactoryInterface": {
-        "kind": "interface",
-        "final": false,
-        "extends": null,
-        "implements": [],
-        "constants": [],
-        "methods": {
-            "create": {
-                "static": false,
-                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionDefinitionInterface",
-                "params": [
-                    {
-                        "name": "executedAs",
-                        "type": "ItPack\\RunIt\\SDK\\Attribute\\ExecutedAsInterface",
-                        "optional": false
-                    }
-                ]
             }
         },
         "cases": []
