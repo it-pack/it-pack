@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
+use DateTimeInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
@@ -12,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
@@ -19,6 +21,7 @@ use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
+use ValueError;
 
 /**
  * Maps a RunIt activity to an OpenTelemetry span.
@@ -82,21 +85,17 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         $tracer = $tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
         $nameValue = $normalized['name'] ?? null;
         $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : 'activity';
+
+        $parentContext = $this->resolveParentContextFromNormalized($normalized);
+
         $builder = $tracer->spanBuilder($name);
+        if ($parentContext instanceof ContextInterface) {
+            $builder = $builder->setParent($parentContext);
+        }
+
         $span = $builder->startSpan();
 
-        $activityId = $normalized['id'] ?? null;
-        $kind = $normalized['kind'] ?? null;
-        $executionId = $normalized['execution_id'] ?? null;
-        $status = $normalized['status'] ?? null;
-
-        $attributes = [
-            AttributeKeys::ACTIVITY_ID => is_string($activityId) ? $activityId : '',
-            AttributeKeys::ACTIVITY_NAME => $name,
-            AttributeKeys::ACTIVITY_KIND => is_string($kind) ? $kind : '',
-            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
-            AttributeKeys::ACTIVITY_STATUS => is_string($status) ? $status : '',
-        ];
+        $attributes = $this->buildRedactedActivityAttributes($normalized, $name);
 
         $parentActivityId = $normalized['parent_activity_id'] ?? null;
         if (is_string($parentActivityId)) {
@@ -105,18 +104,82 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
         $span->setAttributes($attributes);
 
-        $normalizedAttributes = $normalized['attributes'] ?? null;
-        if (is_array($normalizedAttributes)) {
-            $this->setRedactedAttributes($span, $normalizedAttributes);
+        if (is_string($normalized['status'] ?? null)) {
+            $this->setRedactedStatus($span, $normalized['status']);
         }
+
+        $snapshotAttributes = $normalized['attributes'] ?? null;
+        /** @var array<array-key, mixed>|null $snapshotAttributes */
+        $this->setRedactedAttributes($span, $snapshotAttributes);
 
         $throwable = $normalized['throwable'] ?? null;
         /** @var array<string, mixed>|null $throwable */
         $throwable = is_array($throwable) ? $throwable : null;
         $this->recordRedactedThrowable($span, $throwable);
 
+        $endedAt = $normalized['ended_at'] ?? ($normalized['started_at'] ?? null);
+        $this->endSpanAt($span, $endedAt);
+
+        $activityId = $normalized['id'] ?? null;
         if (is_string($activityId)) {
             $this->store->recordActivity($activityId, $span->getContext());
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<non-empty-string, string>
+     */
+    private function buildRedactedActivityAttributes(array $normalized, string $name): array
+    {
+        $activityId = $normalized['id'] ?? null;
+        $kind = $normalized['kind'] ?? null;
+        $executionId = $normalized['execution_id'] ?? null;
+        $status = $normalized['status'] ?? null;
+
+        return [
+            AttributeKeys::ACTIVITY_ID => is_string($activityId) ? $activityId : '',
+            AttributeKeys::ACTIVITY_NAME => $name,
+            AttributeKeys::ACTIVITY_KIND => is_string($kind) ? $kind : '',
+            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
+            AttributeKeys::ACTIVITY_STATUS => is_string($status) ? $status : '',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
+    {
+        $parentActivityId = $normalized['parent_activity_id'] ?? null;
+        if (is_string($parentActivityId)) {
+            $parentSpan = $this->store->activityContext($parentActivityId);
+            if ($parentSpan instanceof SpanContextInterface) {
+                return Context::getRoot()->withContextValue(Span::wrap($parentSpan));
+            }
+        }
+
+        $executionId = $normalized['execution_id'] ?? null;
+        if (is_string($executionId)) {
+            $executionSpan = $this->store->executionContext($executionId);
+            if ($executionSpan instanceof SpanContextInterface) {
+                return Context::getRoot()->withContextValue(Span::wrap($executionSpan));
+            }
+        }
+
+        return null;
+    }
+
+    private function endSpanAt(SpanInterface $span, mixed $endedAt): void
+    {
+        if ($endedAt instanceof DateTimeInterface) {
+            $span->end((int) $endedAt->format('U') * Duration::NANOS_PER_SECOND);
+            return;
+        }
+
+        if (is_int($endedAt)) {
+            $span->end($endedAt * Duration::NANOS_PER_SECOND);
+            return;
         }
 
         $span->end();
@@ -140,6 +203,16 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
             if (is_string($value) || is_int($value) || is_float($value) || is_bool($value)) {
                 $span->setAttribute($keyStr, $value);
             }
+        }
+    }
+
+    private function setRedactedStatus(SpanInterface $span, string $status): void
+    {
+        try {
+            $statusResult = $this->statusMap->map(ExecutionStatus::from($status));
+            $span->setStatus($statusResult['code'], $statusResult['description']);
+        } catch (ValueError) {
+            // Unknown status string; skip status mapping.
         }
     }
 

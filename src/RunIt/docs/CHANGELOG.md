@@ -194,14 +194,26 @@ new test files introduce additional violations beyond pre-existing ones.
   `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
   constructor arguments, both defaulting to `false` to preserve existing behavior.
   Configurations that previously relied on `extension_attributes` or snapshot `attributes`
-  values being exported unchanged must now either add those keys to
-  `occurrenceLogAttributeAllowList` (for OTel log/span-event consumers) or accept that
-  sensitive keys named in `sensitiveAttributeKeys` will be masked.
+  values being exported unchanged must now configure `DefaultArtifactRedactor` with
+  `sensitiveAttributeKeys` that exclude those keys, or accept that sensitive keys named
+  in `sensitiveAttributeKeys` will be masked. The OpenTelemetry
+  `occurrenceLogAttributeAllowList` on `DefaultOccurrenceLogMapper` controls which keys
+  are exported for unredacted occurrences; it does not restore extension attributes omitted
+  by `mapRedactedOccurrence()`.
 - **Redacted occurrence extension attributes no longer exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
   no longer exports `extension_attributes` from redacted occurrences to OTel span/log
   attributes, preventing secrets a custom redactor did not mask from reaching telemetry sinks.
-  Consumers that depended on those fields should configure `occurrenceLogAttributeAllowList`
-  on `DefaultOccurrenceLogMapper` to explicitly allow-list non-sensitive keys.
+  Consumers that depended on those fields should understand that `occurrenceLogAttributeAllowList`
+  on `DefaultOccurrenceLogMapper` applies to unredacted occurrences only and does not restore
+  extension attributes omitted by `mapRedactedOccurrence()`; redaction must be configured
+  through `DefaultArtifactRedactor` instead.
+
+- **OpenTelemetry mapper interfaces extended (breaking):** `ExecutionSpanMapperInterface`
+  and `ActivitySpanMapperInterface` now declare `mapRedactedExecution(array)` and
+  `mapRedactedActivity(array)` respectively. External implementations of either interface
+  must add these methods. `RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper`
+  and `DefaultActivitySpanMapper` already implement them; custom implementations should
+  delegate to those implementations or provide equivalent redacted-artifact mapping.
 
 ## Unreleased — Phase 3 (P3)
 

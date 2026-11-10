@@ -286,8 +286,8 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish($redactedActivity);
         $publisher->publish($redactedMeasurement);
 
-        // Redacted activity still produces a span (with masked attributes),
-        // redacted measurement produces no span (no activity mapping).
+        // Redacted activity still produces a span (with masked attributes);
+        // the publisher ignores unrouted redacted artifacts such as measurements.
         self::assertCount(1, $this->kit->spans());
         self::assertCount(0, $this->kit->collectMetrics());
         self::assertCount(0, $this->kit->logs());

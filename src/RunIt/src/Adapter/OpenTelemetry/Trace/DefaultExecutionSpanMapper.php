@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
+use DateTimeInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
@@ -83,7 +84,13 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         $nameValue = $normalized['name'] ?? null;
         $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : 'execution';
 
+        $parentContext = $this->resolveParentContextFromNormalized($normalized);
+
         $builder = $tracer->spanBuilder($name);
+        if ($parentContext instanceof ContextInterface) {
+            $builder = $builder->setParent($parentContext);
+        }
+
         $span = $builder->startSpan();
 
         $executionId = $normalized['id'] ?? null;
@@ -106,12 +113,7 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
         $statusValue = $normalized['status'] ?? null;
         if (is_string($statusValue)) {
-            try {
-                $statusResult = $this->statusMap->map(ExecutionStatus::from($statusValue));
-                $span->setStatus($statusResult['code'], $statusResult['description']);
-            } catch (ValueError) {
-                // Unknown status string; skip status mapping.
-            }
+            $this->setRedactedStatus($span, $statusValue);
         }
 
         $result = $normalized['result'] ?? null;
@@ -119,8 +121,52 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         $result = is_array($result) ? $result : null;
         $this->recordRedactedThrowable($span, $result);
 
+        $endedAt = $normalized['ended_at'] ?? ($normalized['started_at'] ?? null);
+        $this->endSpanAt($span, $endedAt);
+
         if (is_string($executionId)) {
             $this->store->recordExecution($executionId, $span->getContext());
+        }
+    }
+
+    private function setRedactedStatus(SpanInterface $span, string $status): void
+    {
+        try {
+            $statusResult = $this->statusMap->map(ExecutionStatus::from($status));
+            $span->setStatus($statusResult['code'], $statusResult['description']);
+        } catch (ValueError) {
+            // Unknown status string; skip status mapping.
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
+    {
+        $parentId = $normalized['parent_execution_id'] ?? null;
+        if (!is_string($parentId)) {
+            return null;
+        }
+
+        $parentSpan = $this->store->executionContext($parentId);
+        if (!$parentSpan instanceof SpanContextInterface) {
+            return null;
+        }
+
+        return Context::getRoot()->withContextValue(Span::wrap($parentSpan));
+    }
+
+    private function endSpanAt(SpanInterface $span, mixed $endedAt): void
+    {
+        if ($endedAt instanceof DateTimeInterface) {
+            $span->end((int) $endedAt->format('U') * Duration::NANOS_PER_SECOND);
+            return;
+        }
+
+        if (is_int($endedAt)) {
+            $span->end($endedAt * Duration::NANOS_PER_SECOND);
+            return;
         }
 
         $span->end();

@@ -9,6 +9,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
@@ -190,7 +191,7 @@ final class ExecutionSpanMapperTest extends Unit
             self::assertStringNotContainsString($secret, $message);
         }
 
-        // Opt-out: disable throwable redaction and confirm secrets reach span events.
+        // Opt-out: disable throwable redaction via config and confirm secrets reach span events.
         $mapperOptOut = new DefaultExecutionSpanMapper(
             tracerProvider: $this->tracerProvider,
             store: $this->store,
@@ -205,8 +206,14 @@ final class ExecutionSpanMapperTest extends Unit
             ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
             Instant::of(1001),
         );
-        // No redactor applied upstream: secrets reach span events.
-        $mapperOptOut->map($executionOptOut);
+        $redactorOptOut = new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(redactThrowableMessages: false)
+        );
+        $redactedOptOut = $redactorOptOut->redact($executionOptOut);
+        // With throwable redaction disabled, the original execution is returned unchanged.
+        $normalizedOptOut = $redactedOptOut->normalize();
+        // Redaction disabled: secrets reach span events.
+        $mapperOptOut->mapRedactedExecution($normalizedOptOut);
         $spanOptOut = $this->span(1);
         $eventsOptOut = $spanOptOut->getEvents();
         self::assertCount(1, $eventsOptOut);
