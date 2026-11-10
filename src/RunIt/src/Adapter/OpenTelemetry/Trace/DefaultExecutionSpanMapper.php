@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
+use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
@@ -15,6 +16,7 @@ use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
 
@@ -66,6 +68,121 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         $span->end($endedAt->epochSeconds() * Duration::NANOS_PER_SECOND);
 
         $this->store->recordExecution($execution->id()->toString(), $span->getContext());
+    }
+
+    public function mapRedactedExecution(array $normalized): void
+    {
+        $tracerProvider = $this->tracerProvider;
+        if (!$tracerProvider instanceof TracerProviderInterface) {
+            return;
+        }
+
+        $tracer = $tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
+        $nameValue = $normalized['name'] ?? null;
+        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : 'execution';
+
+        $parentContext = $this->resolveParentContextFromNormalized($normalized);
+
+        $builder = $tracer->spanBuilder($name);
+        if ($parentContext instanceof ContextInterface) {
+            $builder = $builder->setParent($parentContext);
+        }
+
+        $kind = $normalized['kind'] ?? null;
+        if (is_string($kind)) {
+            $builder = $builder->setSpanKind($this->kindMap->toSpanKind($kind));
+        }
+
+        $startedAt = $normalized['started_at'] ?? null;
+        if (is_int($startedAt)) {
+            $builder = $builder->setStartTimestamp($startedAt * Duration::NANOS_PER_SECOND);
+        }
+
+        $span = $builder->startSpan();
+
+        $attributes = $this->buildRedactedExecutionAttributes($normalized, $name);
+
+        $parentId = $normalized['parent_execution_id'] ?? null;
+        if (is_string($parentId)) {
+            $attributes[AttributeKeys::EXECUTION_PARENT_ID] = $parentId;
+        }
+
+        $span->setAttributes($attributes);
+
+        $statusValue = $normalized['status'] ?? null;
+        if (is_string($statusValue)) {
+            $this->setRedactedStatus($span, $statusValue);
+        }
+
+        $result = $normalized['result'] ?? null;
+        /** @var array<string, mixed>|null $result */
+        $result = is_array($result) ? $result : null;
+        $this->recordRedactedThrowable($span, $result);
+
+        $endedAt = $normalized['ended_at'] ?? ($normalized['started_at'] ?? null);
+        $this->endSpanAt($span, $endedAt);
+
+        $executionId = $normalized['id'] ?? null;
+        if (is_string($executionId)) {
+            $this->store->recordExecution($executionId, $span->getContext());
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<non-empty-string, string>
+     */
+    private function buildRedactedExecutionAttributes(array $normalized, string $name): array
+    {
+        $executionId = $normalized['id'] ?? null;
+        $kind = $normalized['kind'] ?? null;
+        $status = $normalized['status'] ?? null;
+
+        return [
+            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
+            AttributeKeys::EXECUTION_NAME => $name,
+            AttributeKeys::EXECUTION_KIND => is_string($kind) ? $kind : '',
+            AttributeKeys::EXECUTION_STATUS => is_string($status) ? $status : '',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $result
+     */
+    private function recordRedactedThrowable(SpanInterface $span, ?array $result): void
+    {
+        if (!is_array($result) || !isset($result['throwable']) || !is_array($result['throwable'])) {
+            return;
+        }
+
+        $throwable = $result['throwable'];
+        $throwableClass = is_string($throwable['class'] ?? null) ? $throwable['class'] : '';
+        $throwableMessage = is_string($throwable['message'] ?? null) ? $throwable['message'] : '';
+        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : '';
+
+        $span->addEvent('exception', [
+            'exception.type' => $throwableClass,
+            'exception.message' => $throwableMessage,
+            'exception.stacktrace' => $throwableTrace,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
+    {
+        $parentId = $normalized['parent_execution_id'] ?? null;
+        if (!is_string($parentId)) {
+            return null;
+        }
+
+        $parentSpan = $this->store->executionContext($parentId);
+        if (!$parentSpan instanceof SpanContextInterface) {
+            return null;
+        }
+
+        return Context::getRoot()->withContextValue(Span::wrap($parentSpan));
     }
 
     private function resolveParentContext(ExecutionInterface|ActivityInterface $execution): ?ContextInterface

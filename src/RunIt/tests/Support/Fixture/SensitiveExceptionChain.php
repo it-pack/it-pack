@@ -62,4 +62,19 @@ final class SensitiveExceptionChain
     {
         return [self::API_KEY, self::DB_PASSWORD, self::SESSION_TOKEN];
     }
+
+    public static function apiKey(): string
+    {
+        return self::API_KEY;
+    }
+
+    public static function dbPassword(): string
+    {
+        return self::DB_PASSWORD;
+    }
+
+    public static function sessionToken(): string
+    {
+        return self::SESSION_TOKEN;
+    }
 }

@@ -182,8 +182,39 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
    Direct values already use `public readonly` properties, so there is no getter boilerplate to
    replace; no safe, non-BC-breaking conversion target exists.
 
-  All static gates remain green: `composer cs:check`, `composer architecture`,
-  `composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+All static gates remain green except reported `composer analyse` offset-access errors, `lint:length`
+violations in new tests, and PHPStan errors already flagged prior to this change; none of the
+new test files introduce additional violations beyond pre-existing ones.
+
+- **Security redaction coverage extended:** `DefaultArtifactRedactor` now optionally masks
+  `Observation::message` (`redactObservationMessages`, opt-in, default `false`),
+  `Measurement::value` (`redactMeasurementValues`, opt-in, default `false`),
+  `Occurrence::extension_attributes` by `sensitiveAttributeKeys`, and
+  `Snapshot::attributes` by `sensitiveAttributeKeys` (additive; existing defaults unchanged).
+  `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
+  constructor arguments, both defaulting to `false` to preserve existing behavior.
+  Configurations that previously relied on `extension_attributes` or snapshot `attributes`
+  values being exported unchanged must now configure `DefaultArtifactRedactor` with
+  `sensitiveAttributeKeys` naming those keys. `sensitiveAttributeKeys` defaults to empty,
+  so behavior only changes for configurations that set it; keys named there are now also
+  applied to `Occurrence::extension_attributes` and `Snapshot::attributes`. The OpenTelemetry
+  `occurrenceLogAttributeAllowList` on `DefaultOccurrenceLogMapper` controls which keys
+  are exported for unredacted occurrences; it does not restore extension attributes omitted
+  by `mapRedactedOccurrence()`.
+- **Redacted occurrence extension attributes no longer exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+  no longer exports `extension_attributes` from redacted occurrences to OTel span/log
+  attributes, preventing secrets a custom redactor did not mask from reaching telemetry sinks.
+  Consumers that depended on those fields should understand that `occurrenceLogAttributeAllowList`
+  on `DefaultOccurrenceLogMapper` applies to unredacted occurrences only and does not restore
+  extension attributes omitted by `mapRedactedOccurrence()`; redaction must be configured
+  through `DefaultArtifactRedactor` instead.
+
+- **OpenTelemetry mapper interfaces extended (breaking):** `ExecutionSpanMapperInterface`
+  and `ActivitySpanMapperInterface` now declare `mapRedactedExecution(array)` and
+  `mapRedactedActivity(array)` respectively. External implementations of either interface
+  must add these methods. `RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper`
+  and `DefaultActivitySpanMapper` already implement them; custom implementations should
+  delegate to those implementations or provide equivalent redacted-artifact mapping.
 
 ## Unreleased — Phase 3 (P3)
 
