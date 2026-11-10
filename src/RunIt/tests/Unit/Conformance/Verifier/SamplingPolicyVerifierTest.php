@@ -68,6 +68,7 @@ final class SamplingPolicyVerifierTest extends Unit
         $result = new SamplingPolicyVerifier()->verify($policy, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
+        self::assertCount(4, $result->errors());
         self::assertSame('sample.not-deterministic', $result->errors()[0]->id);
     }
 }

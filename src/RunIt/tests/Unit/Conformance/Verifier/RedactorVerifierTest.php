@@ -26,7 +26,7 @@ final class RedactorVerifierTest extends Unit
         self::assertSame(RedactorInterface::class, new RedactorVerifier()->port());
     }
 
-    public function testConformantRedactorPasses(): void
+    public function testLeakedSecretArtifactIsRejected(): void
     {
         $redactor = new class () implements RedactorInterface {
             public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
@@ -39,6 +39,36 @@ final class RedactorVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertSame('redact.secret.leaks', $result->errors()[0]->id);
+    }
+
+    public function testRedactorRemovesSecretIsConformant(): void
+    {
+        $replacement = Observation::info(
+            ObservationId::fromString('obs-redacted'),
+            ExecutionId::fromString('exec-redacted'),
+            'Redacted',
+            attributes: AttributeCollection::fromArray([]),
+            instant: Instant::of(1_700_000_000),
+        );
+
+        $redactor = new readonly class ($replacement) implements RedactorInterface {
+            public function __construct(private ExecutionArtifactInterface $replacement)
+            {
+            }
+
+            public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
+            {
+                if ($artifact instanceof Observation && $artifact->message() === 'Connected to upstream') {
+                    return $this->replacement;
+                }
+
+                return $artifact;
+            }
+        };
+
+        $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
+
+        self::assertTrue($result->isConformant());
     }
 
     public function testRedactSafeThrowIsRecorded(): void

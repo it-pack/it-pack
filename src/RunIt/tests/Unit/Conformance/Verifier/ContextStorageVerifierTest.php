@@ -270,4 +270,49 @@ final class ContextStorageVerifierTest extends Unit
         self::assertFalse($result->isConformant());
         self::assertTrue($this->hasViolation($result, 'detach.incomplete'));
     }
+
+    public function testNonLifoAndWrongScopeAreRecorded(): void
+    {
+        $scope = $this->scope();
+        $other = $this->scope();
+        $storage = new class ($scope, $other) implements ContextStorageInterface {
+            private int $attaches = 0;
+
+            public function __construct(
+                private readonly ExecutionScopeInterface $scope,
+                private readonly ExecutionScopeInterface $other,
+            ) {
+            }
+
+            public function current(): ?ExecutionScopeInterface
+            {
+                if ($this->attaches === 0) {
+                    return null;
+                }
+
+                if ($this->attaches === 1) {
+                    return $this->scope;
+                }
+
+                return $this->other;
+            }
+
+            public function attach(ExecutionScopeInterface $scope): ContextTokenInterface
+            {
+                $this->attaches++;
+
+                return new FakeContextToken();
+            }
+
+            public function detach(ContextTokenInterface $token): void
+            {
+            }
+        };
+
+        $result = new ContextStorageVerifier()->verify($storage, $scope);
+
+        self::assertFalse($result->isConformant());
+        self::assertTrue($this->hasViolation($result, 'current.not-lifo'));
+        self::assertTrue($this->hasViolation($result, 'detach.wrong-scope'));
+    }
 }

@@ -228,15 +228,13 @@ final class DefaultExecutionRunnerTest extends Unit
 
         $kit = new RunItTestKit(coordinator: $coordinator);
 
-        try {
-            $kit->runner->run($this->definition(), static fn (): string => 'x');
-            self::fail('expected the startup fault to propagate');
-        } catch (RuntimeException $runtimeException) {
-            self::assertSame('start broken', $runtimeException->getMessage());
-        }
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('start broken');
+
+        $kit->runner->run($this->definition(), static fn (): string => 'x');
     }
 
-    public function testFailedCompletionMapsThroughFallbackWhenMapperThrows(): void
+    public function testBusinessExceptionIsRethrownWhenMapperThrows(): void
     {
         $mapper = new class () implements ThrowableMapperInterface {
             public function describe(Throwable $throwable): ThrowableDescriptionInterface
@@ -262,6 +260,7 @@ final class DefaultExecutionRunnerTest extends Unit
 
     public function testCompletionTransitionFaultDoesNotMaskBusinessException(): void
     {
+        $captured = null;
         $coordinator = new class () implements ExecutionLifecycleCoordinatorInterface {
             public function start(ExecutionInterface $execution): ExecutionInterface
             {
@@ -278,7 +277,12 @@ final class DefaultExecutionRunnerTest extends Unit
         };
 
         $thrown = new RuntimeException('business-error');
-        $kit = new RunItTestKit(coordinator: $coordinator);
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+            coordinator: $coordinator,
+        );
 
         $caught = null;
         try {
@@ -290,6 +294,9 @@ final class DefaultExecutionRunnerTest extends Unit
         }
 
         self::assertSame($thrown, $caught);
+        self::assertInstanceOf(RuntimeException::class, $captured);
+        self::assertSame('transition broken', $captured->getMessage());
+        self::assertCount(0, $this->executions($kit));
     }
 
     public function testSuccessfulCompletionTransitionFaultStillReturnsResult(): void

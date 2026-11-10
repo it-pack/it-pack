@@ -60,6 +60,8 @@ final class SnapshotStoreVerifierTest extends Unit
             {
                 $this->stores++;
 
+                // 2 stores for the original snapshot (execution + terminal) + 1
+                // for the patched snapshot.
                 if ($this->stores === 3) {
                     throw new RuntimeException('patched store broken');
                 }

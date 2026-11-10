@@ -87,6 +87,7 @@ final class IdentifierGeneratorVerifierTest extends Unit
         $result = new IdentifierGeneratorVerifier()->verify($generator, new RunItPortFixture());
 
         self::assertFalse($result->isConformant());
-        self::assertSame('generate.not-unique', $result->errors()[1]->id);
+        self::assertCount(199, $result->errors());
+        self::assertSame('generate.not-unique', $result->errors()[0]->id);
     }
 }
