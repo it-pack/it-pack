@@ -110,6 +110,25 @@ CI or the normal test suites and does not replace the planned isolation gate.
 
 ### Target-policy regressions
 
+The normal Unit file `tests/Unit/Application/Publication/RedactingPublisherTest.php`
+also characterizes a failed execution nested in a snapshot payload. At clean
+starting revision `b6677bb4`, configured `message` and `trace` data keys masked
+all three throwable levels, preserving class, code, source and original content
+hash; the payload opt-out preserved the entire original snapshot. The focused
+commands below passed on PHP 8.4.27 and 8.5.12 with 14 tests and 83 assertions
+each. PHP 8.5 `composer quality --quiet` and focused PHPStan also passed.
+
+```bash
+php8.4 vendor/bin/codecept run Unit tests/Unit/Application/Publication/RedactingPublisherTest.php
+php8.5 vendor/bin/codecept run Unit tests/Unit/Application/Publication/RedactingPublisherTest.php
+php8.5 vendor/bin/phpstan analyse tests/Unit/Application/Publication/RedactingPublisherTest.php --no-progress
+```
+
+This is a redactor projection test, not an export test or a security guarantee:
+default sensitive data keys are empty, traces are masked rather than omitted,
+and the unchanged content hash can itself be sensitive. It does not verify
+other fields, configurations, exporters or the complete PHP 8.4 suite matrix.
+
 Run `php tests/target-policy-regressions.php` separately to check the approved
 redaction, sampling, health-reporting and buffer byte-bound targets. It currently
 exits nonzero for known violations and is intentionally excluded from the normal

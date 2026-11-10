@@ -334,6 +334,58 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('[redacted]', $payload['password']);
     }
 
+    public function testFailedExecutionSnapshotPayloadMaskingAndOptOut(): void
+    {
+        $execution = Execution::start(
+            ExecutionId::fromString('snapshot-exec'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+        $snapshot = ExecutionSnapshot::create(
+            SnapshotId::fromString('snapshot-failed'),
+            ExecutionId::fromString('snapshot-exec'),
+            SnapshotType::fromString('execution.terminal'),
+            1,
+            $execution->normalize(),
+            new DeterministicHashCalculator(),
+        );
+        $before = $snapshot->normalize();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['message', 'trace'],
+        ));
+        $published = $redactor->redact($snapshot)->normalize();
+        $encoded = json_encode($published['payload'], JSON_THROW_ON_ERROR);
+
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringNotContainsString($secret, $encoded);
+        }
+
+        self::assertIsArray($published['payload']);
+        self::assertIsArray($published['payload']['result']);
+        $throwable = $published['payload']['result']['throwable'];
+        foreach ([['RuntimeException', 2], ['PDOException', 1], ['RuntimeException', 0]] as [$class, $code]) {
+            self::assertIsArray($throwable);
+            self::assertSame($class, $throwable['class']);
+            self::assertSame($code, $throwable['code']);
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertSame('[redacted]', $throwable['trace']);
+            $throwable = $throwable['previous'];
+        }
+
+        self::assertNull($throwable);
+        self::assertSame($before['content_hash'], $published['content_hash']);
+        self::assertSame($before, $snapshot->normalize());
+        $optOut = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['message', 'trace'],
+            redactSnapshotPayloads: false,
+        ));
+        self::assertSame($snapshot, $optOut->redact($snapshot));
+        self::assertSame($before, $optOut->redact($snapshot)->normalize());
+    }
+
     public function testRedactorAndNormalizeShareFieldVocabulary(): void
     {
         // Regression for S10: the redactor reaches into normalized keys that must

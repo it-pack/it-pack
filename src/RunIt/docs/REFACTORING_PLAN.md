@@ -1037,6 +1037,18 @@ at PHPStan with 147 diagnostics, without a full set comparison. Line-length
 checking reported 26 violations outside the new tests. Coverage and the full
 PHP 8.4 suite matrix were not rerun; no production behavior or API changed.
 
+At clean starting revision `b6677bb4`, a normal Unit characterization covers an
+execution snapshot whose payload is a failed execution's normalized projection.
+With `message` and `trace` configured as sensitive data keys, recursive payload
+masking replaces those fields in all three throwable levels and preserves class
+and code; the snapshot retains its original content hash and source projection.
+Disabling snapshot payload redaction returns the original snapshot unchanged even
+with those keys configured. The default key list is empty; this test does not
+establish default protection, trace omission, exporter behavior, or safety of the
+retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
+assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
+No production behavior or contract changed, and Phase 2 remains open.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
