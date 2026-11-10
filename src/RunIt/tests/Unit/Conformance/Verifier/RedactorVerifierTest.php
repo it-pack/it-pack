@@ -9,6 +9,8 @@ use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\RedactorVerifier;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -100,6 +102,57 @@ final class RedactorVerifierTest extends Unit
 
         self::assertFalse($result->isConformant());
         self::assertSame('redact.secret.reassigns-execution', $result->errors()[0]->id);
+    }
+
+    public function testRedactorEquivalentExecutionIdFromDifferentImplementationIsConformant(): void
+    {
+        $alternateId = new class ('exec-0001') implements ExecutionIdInterface {
+            public function __construct(private string $value)
+            {
+            }
+
+            public function __toString(): string
+            {
+                return $this->value;
+            }
+
+            public function toString(): string
+            {
+                return $this->value;
+            }
+
+            public function equals(StringIdentifierInterface $other): bool
+            {
+                return $this->toString() === $other->toString();
+            }
+        };
+
+        $replacement = Observation::info(
+            ObservationId::fromString('obs-secret'),
+            $alternateId,
+            'Redacted',
+            attributes: AttributeCollection::fromArray([]),
+            instant: Instant::of(1_700_000_000),
+        );
+
+        $redactor = new readonly class ($replacement) implements RedactorInterface {
+            public function __construct(private ExecutionArtifactInterface $replacement)
+            {
+            }
+
+            public function redact(ExecutionArtifactInterface $artifact): ExecutionArtifactInterface
+            {
+                if ($artifact instanceof Observation && $artifact->message() === 'Connected to upstream') {
+                    return $this->replacement;
+                }
+
+                return $artifact;
+            }
+        };
+
+        $result = new RedactorVerifier()->verify($redactor, new RunItPortFixture());
+
+        self::assertTrue($result->isConformant());
     }
 
     public function testRedactSafeThrowIsRecorded(): void

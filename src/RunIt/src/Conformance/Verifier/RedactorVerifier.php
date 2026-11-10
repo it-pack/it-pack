@@ -82,7 +82,7 @@ final class RedactorVerifier implements VerifierInterface
         }
 
         if ($redactedSecret instanceof ExecutionOwnedInterface
-            && !$secret->executionId()->equals($redactedSecret->executionId())) {
+            && $secret->executionId()->toString() !== $redactedSecret->executionId()->toString()) {
             $result = $result->add(new ConformanceViolation(
                 'redact.secret.reassigns-execution',
                 'redact() reassigned a sensitive observation to a different execution'
