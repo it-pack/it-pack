@@ -9,6 +9,7 @@ use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
 use Throwable;
 
 /**
@@ -76,6 +77,14 @@ final class RedactorVerifier implements VerifierInterface
             $result = $result->add(new ConformanceViolation(
                 'redact.secret.leaks',
                 'redact() left the sensitive value visible in the redacted artifact'
+            ));
+        }
+
+        if ($redactedSecret instanceof ExecutionOwnedInterface
+            && !$secret->executionId()->equals($redactedSecret->executionId())) {
+            $result = $result->add(new ConformanceViolation(
+                'redact.secret.reassigns-execution',
+                'redact() reassigned a sensitive observation to a different execution'
             ));
         }
 

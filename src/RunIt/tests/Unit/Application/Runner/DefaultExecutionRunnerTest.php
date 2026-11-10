@@ -211,6 +211,7 @@ final class DefaultExecutionRunnerTest extends Unit
 
     public function testStartupSetupFaultIsReportedAndRethrown(): void
     {
+        $captured = null;
         $coordinator = new class () implements ExecutionLifecycleCoordinatorInterface {
             public function start(ExecutionInterface $execution): ExecutionInterface
             {
@@ -226,12 +227,22 @@ final class DefaultExecutionRunnerTest extends Unit
             }
         };
 
-        $kit = new RunItTestKit(coordinator: $coordinator);
+        $kit = new RunItTestKit(
+            coordinator: $coordinator,
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+        );
 
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessage('start broken');
+        try {
+            $kit->runner->run($this->definition(), static fn (): string => 'x');
+            self::fail('expected the startup fault to propagate');
+        } catch (RuntimeException $thrown) {
+            self::assertSame('start broken', $thrown->getMessage());
+        }
 
-        $kit->runner->run($this->definition(), static fn (): string => 'x');
+        self::assertInstanceOf(RuntimeException::class, $captured);
+        self::assertSame('start broken', $captured->getMessage());
     }
 
     public function testBusinessExceptionIsRethrownWhenMapperThrows(): void
