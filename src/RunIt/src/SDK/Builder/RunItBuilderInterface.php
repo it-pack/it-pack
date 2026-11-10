@@ -46,23 +46,23 @@ use Throwable;
  */
 interface RunItBuilderInterface
 {
-    public static function create(): self;
+    public static function create(): RunItBuilderInterface;
 
-    public function withPublisher(ArtifactPublisherInterface $publisher): self;
+    public function withPublisher(ArtifactPublisherInterface $publisher): RunItBuilderInterface;
 
-    public function withClock(MonotonicClockInterface $clock): self;
+    public function withClock(MonotonicClockInterface $clock): RunItBuilderInterface;
 
-    public function withSequenceAllocator(SequenceAllocatorInterface $allocator): self;
+    public function withSequenceAllocator(SequenceAllocatorInterface $allocator): RunItBuilderInterface;
 
-    public function withSnapshotSerializer(SerializerInterface $serializer): self;
+    public function withSnapshotSerializer(SerializerInterface $serializer): RunItBuilderInterface;
 
-    public function withIdentifierGenerator(IdentifierGeneratorInterface $generator): self;
+    public function withIdentifierGenerator(IdentifierGeneratorInterface $generator): RunItBuilderInterface;
 
-    public function withContextStorage(ContextStorageInterface $storage): self;
+    public function withContextStorage(ContextStorageInterface $storage): RunItBuilderInterface;
 
-    public function withSnapshotStore(?SnapshotStoreInterface $store): self;
+    public function withSnapshotStore(?SnapshotStoreInterface $store): RunItBuilderInterface;
 
-    public function withThrowableMapper(ThrowableMapperInterface $mapper): self;
+    public function withThrowableMapper(ThrowableMapperInterface $mapper): RunItBuilderInterface;
 
     /**
      * Overrides the default redactor. When this method is never called, the
@@ -74,50 +74,50 @@ interface RunItBuilderInterface
      * masking — or `withRedactor(null)` to explicitly publish unredacted (the
      * choice is recorded, so null is an opt-out, not a reset to defaults).
      */
-    public function withRedactor(?RedactorInterface $redactor): self;
+    public function withRedactor(?RedactorInterface $redactor): RunItBuilderInterface;
 
-    public function withSamplingPolicy(?SamplingPolicyInterface $policy): self;
+    public function withSamplingPolicy(?SamplingPolicyInterface $policy): RunItBuilderInterface;
 
-    public function withNestedExecutionPolicy(NestedExecutionPolicyInterface $policy): self;
+    public function withNestedExecutionPolicy(NestedExecutionPolicyInterface $policy): RunItBuilderInterface;
 
-    public function withCompletionPolicy(ExecutionCompletionPolicyInterface $policy): self;
+    public function withCompletionPolicy(ExecutionCompletionPolicyInterface $policy): RunItBuilderInterface;
 
     /**
      * Runs consumer operations through the supplied engine (for example a Fiber engine) instead of
      * the default synchronous engine. The runner still owns execution semantics.
      */
-    public function withExecutionEngine(ExecutionEngineInterface $engine): self;
+    public function withExecutionEngine(ExecutionEngineInterface $engine): RunItBuilderInterface;
 
     /**
      * Overrides the hash calculator used for snapshot integrity and artifact fingerprints.
      * Replaces the default {@see \ItPack\RunIt\Domain\Shared\DeterministicHashCalculator} and is also
      * wired into the default snapshot factory.
      */
-    public function withHashCalculator(HashCalculatorInterface $hashCalculator): self;
+    public function withHashCalculator(HashCalculatorInterface $hashCalculator): RunItBuilderInterface;
 
     /**
      * Overrides the execution factory that materializes a domain execution from a definition.
      */
-    public function withExecutionFactory(ExecutionFactoryInterface $executionFactory): self;
+    public function withExecutionFactory(ExecutionFactoryInterface $executionFactory): RunItBuilderInterface;
 
     /**
      * Overrides the lifecycle coordinator that owns the execution state machine.
      */
     public function withLifecycleCoordinator(
         ExecutionLifecycleCoordinatorInterface $coordinator,
-    ): self;
+    ): RunItBuilderInterface;
 
     /**
      * Overrides the snapshot factory that builds execution snapshots.
      */
-    public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): self;
+    public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): RunItBuilderInterface;
 
     /**
      * Overrides the data-protection bounds enforced by the runner's bounded publisher and the
      * activity-depth gate. Replaces the conservative {@see SecurityLimits::default()}; limits are
      * never widened silently at any later stage.
      */
-    public function withSecurityLimits(SecurityLimits $limits): self;
+    public function withSecurityLimits(SecurityLimits $limits): RunItBuilderInterface;
 
     /**
      * Receives internal publication failures (adapter faults, terminal-publication faults, or
@@ -132,7 +132,7 @@ interface RunItBuilderInterface
      *
      * @param Closure(Throwable): void|null $handler
      */
-    public function withPublicationFailureHandler(?Closure $handler): self;
+    public function withPublicationFailureHandler(?Closure $handler): RunItBuilderInterface;
 
     /**
      * Receives snapshot-store failures so persistence problems stay observable without aborting
@@ -140,14 +140,14 @@ interface RunItBuilderInterface
      *
      * @param Closure(Throwable): void|null $handler
      */
-    public function withSnapshotStoreFailureHandler(?Closure $handler): self;
+    public function withSnapshotStoreFailureHandler(?Closure $handler): RunItBuilderInterface;
 
     /**
      * Overrides how the redaction/sampling stack is composed around the base publisher.
      * The default factory applies redaction closest to the sink and sampling outside it;
      * an override must preserve that security ordering.
      */
-    public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): self;
+    public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilderInterface;
 
     /**
      * Builds an interface-backed runtime facade, validating required dependencies first.

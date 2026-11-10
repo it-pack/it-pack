@@ -97,7 +97,7 @@ final class ConcurrencyValidationTest extends Unit
         self::assertInstanceOf(RunItInterface::class, $runtime);
     }
 
-    public function testConcurrentEngineWithDefaultStackAndRejectingValidatorIsRejected(): void
+    public function testConcurrentEngineWithIsolatedStorageAndRejectingValidatorIsRejected(): void
     {
         $engine = new class () implements ExecutionEngineInterface {
             public function run(ExecutionScopeInterface $scope, callable $operation): mixed
@@ -124,6 +124,34 @@ final class ConcurrencyValidationTest extends Unit
                     if ($capability instanceof EngineCapability && $capability->concurrent) {
                         throw new RuntimeException('custom validator rejected the pairing');
                     }
+                }
+            )
+            ->build()
+        ;
+    }
+
+    public function testConcurrentEngineWithSharedStackStorageAndAcceptingValidatorIsRejected(): void
+    {
+        $engine = new class () implements ExecutionEngineInterface {
+            public function run(ExecutionScopeInterface $scope, callable $operation): mixed
+            {
+                return $operation($scope);
+            }
+
+            public function capability(): EngineCapabilityInterface
+            {
+                return new EngineCapability(supportsFibers: false, supportsCoroutines: false, concurrent: true);
+            }
+        };
+
+        $this->expectException(IncompatibleContextStorageException::class);
+
+        $this->builder()
+            ->withExecutionEngine($engine)
+            ->withConcurrencyValidator(
+                static function (EngineCapabilityInterface $capability, ContextStorageInterface $storage): void {
+                    // The built-in shared-stack/concurrent rejection runs first
+                    // and cannot be overridden; this accepting validator never runs.
                 }
             )
             ->build()

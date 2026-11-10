@@ -104,7 +104,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return new self();
     }
 
-    public function withPublisher(ArtifactPublisherInterface $publisher): self
+    public function withPublisher(ArtifactPublisherInterface $publisher): RunItBuilder
     {
         $clone = clone $this;
         $clone->publisher = $publisher;
@@ -112,7 +112,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withClock(MonotonicClockInterface $clock): self
+    public function withClock(MonotonicClockInterface $clock): RunItBuilder
     {
         $clone = clone $this;
         $clone->clock = $clock;
@@ -120,7 +120,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSequenceAllocator(SequenceAllocatorInterface $allocator): self
+    public function withSequenceAllocator(SequenceAllocatorInterface $allocator): RunItBuilder
     {
         $clone = clone $this;
         $clone->allocator = $allocator;
@@ -128,7 +128,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSnapshotSerializer(SerializerInterface $serializer): self
+    public function withSnapshotSerializer(SerializerInterface $serializer): RunItBuilder
     {
         $clone = clone $this;
         $clone->serializer = $serializer;
@@ -136,7 +136,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withIdentifierGenerator(IdentifierGeneratorInterface $generator): self
+    public function withIdentifierGenerator(IdentifierGeneratorInterface $generator): RunItBuilder
     {
         $clone = clone $this;
         $clone->generator = $generator;
@@ -144,7 +144,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withContextStorage(ContextStorageInterface $storage): self
+    public function withContextStorage(ContextStorageInterface $storage): RunItBuilder
     {
         $clone = clone $this;
         $clone->contextStorage = $storage;
@@ -152,7 +152,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSnapshotStore(?SnapshotStoreInterface $store): self
+    public function withSnapshotStore(?SnapshotStoreInterface $store): RunItBuilder
     {
         $clone = clone $this;
         $clone->snapshotStore = $store;
@@ -160,7 +160,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withThrowableMapper(ThrowableMapperInterface $mapper): self
+    public function withThrowableMapper(ThrowableMapperInterface $mapper): RunItBuilder
     {
         $clone = clone $this;
         $clone->throwableMapper = $mapper;
@@ -168,7 +168,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withRedactor(?RedactorInterface $redactor): self
+    public function withRedactor(?RedactorInterface $redactor): RunItBuilder
     {
         // Recording the explicit call is what distinguishes an opt-out
         // (`withRedactor(null)`) from "never configured" (deny-by-default).
@@ -179,7 +179,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSamplingPolicy(?SamplingPolicyInterface $policy): self
+    public function withSamplingPolicy(?SamplingPolicyInterface $policy): RunItBuilder
     {
         $clone = clone $this;
         $clone->samplingPolicy = $policy;
@@ -187,7 +187,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withNestedExecutionPolicy(NestedExecutionPolicyInterface $policy): self
+    public function withNestedExecutionPolicy(NestedExecutionPolicyInterface $policy): RunItBuilder
     {
         $clone = clone $this;
         $clone->nestedPolicy = $policy;
@@ -195,7 +195,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withCompletionPolicy(ExecutionCompletionPolicyInterface $policy): self
+    public function withCompletionPolicy(ExecutionCompletionPolicyInterface $policy): RunItBuilder
     {
         $clone = clone $this;
         $clone->completionPolicy = $policy;
@@ -203,7 +203,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withExecutionEngine(ExecutionEngineInterface $engine): self
+    public function withExecutionEngine(ExecutionEngineInterface $engine): RunItBuilder
     {
         $clone = clone $this;
         $clone->engine = $engine;
@@ -211,7 +211,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withHashCalculator(HashCalculatorInterface $hashCalculator): self
+    public function withHashCalculator(HashCalculatorInterface $hashCalculator): RunItBuilder
     {
         $clone = clone $this;
         $clone->hashCalculator = $hashCalculator;
@@ -219,7 +219,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withExecutionFactory(ExecutionFactoryInterface $executionFactory): self
+    public function withExecutionFactory(ExecutionFactoryInterface $executionFactory): RunItBuilder
     {
         $clone = clone $this;
         $clone->executionFactory = $executionFactory;
@@ -227,7 +227,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withLifecycleCoordinator(ExecutionLifecycleCoordinatorInterface $coordinator): self
+    public function withLifecycleCoordinator(ExecutionLifecycleCoordinatorInterface $coordinator): RunItBuilder
     {
         $clone = clone $this;
         $clone->coordinator = $coordinator;
@@ -235,7 +235,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): self
+    public function withSnapshotFactory(ExecutionSnapshotFactoryInterface $snapshotFactory): RunItBuilder
     {
         $clone = clone $this;
         $clone->snapshotFactory = $snapshotFactory;
@@ -243,7 +243,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSecurityLimits(SecurityLimits $limits): self
+    public function withSecurityLimits(SecurityLimits $limits): RunItBuilder
     {
         $clone = clone $this;
         $clone->limits = $limits;
@@ -251,7 +251,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withPublicationFailureHandler(?Closure $handler): self
+    public function withPublicationFailureHandler(?Closure $handler): RunItBuilder
     {
         $clone = clone $this;
         $clone->onPublicationFailure = $handler;
@@ -259,7 +259,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withSnapshotStoreFailureHandler(?Closure $handler): self
+    public function withSnapshotStoreFailureHandler(?Closure $handler): RunItBuilder
     {
         $clone = clone $this;
         $clone->onSnapshotStoreFailure = $handler;
@@ -272,7 +272,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
      * publisher. The default factory applies redaction closest to the sink and
      * sampling outside it; overriding must preserve that security ordering.
      */
-    public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): self
+    public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilder
     {
         $clone = clone $this;
         $clone->publisherStackFactory = $factory;
@@ -280,7 +280,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
         return $clone;
     }
 
-    public function withConcurrencyValidator(?Closure $validator): self
+    public function withConcurrencyValidator(?Closure $validator): RunItBuilder
     {
         $clone = clone $this;
         $clone->concurrencyValidator = $validator;
