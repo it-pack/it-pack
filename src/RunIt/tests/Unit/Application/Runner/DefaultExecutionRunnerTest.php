@@ -228,17 +228,17 @@ final class DefaultExecutionRunnerTest extends Unit
         };
 
         $kit = new RunItTestKit(
-            coordinator: $coordinator,
             onPublicationFailure: static function (Throwable $e) use (&$captured): void {
                 $captured = $e;
             },
+            coordinator: $coordinator,
         );
 
         try {
             $kit->runner->run($this->definition(), static fn (): string => 'x');
             self::fail('expected the startup fault to propagate');
-        } catch (RuntimeException $thrown) {
-            self::assertSame('start broken', $thrown->getMessage());
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame('start broken', $runtimeException->getMessage());
         }
 
         self::assertInstanceOf(RuntimeException::class, $captured);

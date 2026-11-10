@@ -106,7 +106,7 @@ final class RedactorVerifierTest extends Unit
 
     public function testRedactorEquivalentExecutionIdFromDifferentImplementationIsConformant(): void
     {
-        $alternateId = new class ('exec-0001') implements ExecutionIdInterface {
+        $alternateId = new readonly class ('exec-0001') implements ExecutionIdInterface {
             public function __construct(private string $value)
             {
             }
