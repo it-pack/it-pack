@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Builder;
 
 use Closure;
+use ItPack\RunIt\Application\Engine\SynchronousExecutionEngine;
 use ItPack\RunIt\Application\Factory\ExecutionFactory;
 use ItPack\RunIt\Application\Factory\ExecutionSnapshotFactory;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
@@ -15,6 +16,7 @@ use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
@@ -34,6 +36,7 @@ use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Activity\ActivityId;
+use ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -92,6 +95,7 @@ final class RunItBuilder implements RunItBuilderInterface
         private ?Closure $onPublicationFailure = null,
         private ?Closure $onSnapshotStoreFailure = null,
         private ?PublisherStackFactoryInterface $publisherStackFactory = null,
+        private ?Closure $concurrencyValidator = null,
     ) {
     }
 
@@ -276,6 +280,14 @@ final class RunItBuilder implements RunItBuilderInterface
         return $clone;
     }
 
+    public function withConcurrencyValidator(?Closure $validator): RunItBuilderInterface
+    {
+        $clone = clone $this;
+        $clone->concurrencyValidator = $validator;
+
+        return $clone;
+    }
+
     public function build(): RunItInterface
     {
         $publisher = $this->requirePublisher();
@@ -301,6 +313,26 @@ final class RunItBuilder implements RunItBuilderInterface
         $snapshotFactory = $this->snapshotFactory ?? new ExecutionSnapshotFactory($snapshotIdFactory, $hashCalculator);
 
         $currentExecution = new CurrentExecution($contextStorage);
+
+        $engine = $this->engine ?? new SynchronousExecutionEngine();
+
+        $capability = $engine->capability();
+
+        // A shared synchronous stack must not be paired with an engine that
+        // declares concurrent execution: interleaved runs would share and
+        // corrupt ambient scope. Reject at setup, before any attach.
+        if ($capability instanceof EngineCapability
+            && $capability->concurrent
+            && $contextStorage instanceof StackContextStorage
+        ) {
+            throw IncompatibleContextStorageException::sharedStackWithConcurrentEngine();
+        }
+
+        // Opt-in assembly-boundary hook for custom composition. The built-in
+        // check above runs first and cannot be overridden.
+        if ($this->concurrencyValidator instanceof Closure) {
+            ($this->concurrencyValidator)($capability, $contextStorage);
+        }
 
         // Unless the consumer explicitly configured a redactor, including an
         // explicit `withRedactor(null)` opt-out,
@@ -337,7 +369,7 @@ final class RunItBuilder implements RunItBuilderInterface
             onPublicationFailure: $this->onPublicationFailure,
             snapshotStore: $this->snapshotStore,
             onSnapshotStoreFailure: $this->onSnapshotStoreFailure,
-            engine: $this->engine,
+            engine: $engine,
             limits: $this->limits ?? new SecurityLimits(),
         );
 

@@ -106,6 +106,21 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   with `@phpstan-ignore`. They are enumerated as a keep-list in `docs/qa.md`;
   `composer analyse` therefore still reports exactly 15 errors, matching the
   documented kept set.
+- Added `RunItBuilder::withConcurrencyValidator()` and the matching
+  `RunItBuilderInterface` seam: an opt-in assembly-boundary hook that receives
+  the engine capability and resolved context storage during `build()` and may
+  throw to reject the pairing. It is separate from `ContextStorageInterface` and
+  is not a required method for custom composition.
+- Added built-in concurrency validation at `RunItBuilder::build()`: a shared
+  `StackContextStorage` paired with an engine that declares `concurrent: true`
+  now throws `IncompatibleContextStorageException`, identifying the pairing and
+  directing the consumer to runtime-isolated storage (`FiberContextStorage`,
+  `CoroutineContextStorage`, or another isolated storage). The built-in check
+  runs before the opt-in validator and cannot be overridden.
+- Added `Domain\Exception\IncompatibleContextStorageException`, a `@api`
+  `LogicException` raised when a context storage is incompatible with the
+  declared concurrency model. Token ownership semantics are unchanged: all
+  `detach()` implementations use exact token reference, not `id()` alone.
 
 ## Unreleased — Phase 2 (P2)
 

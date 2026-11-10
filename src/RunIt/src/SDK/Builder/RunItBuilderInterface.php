@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\SDK\Builder;
 
 use Closure;
+use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionFactoryInterface;
@@ -23,6 +24,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
+use ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\SDK\Exception\MissingBuilderDependencyException;
 use ItPack\RunIt\SDK\RunItInterface;
@@ -150,9 +152,28 @@ interface RunItBuilderInterface
     public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilderInterface;
 
     /**
+     * Registers an optional assembly-boundary concurrency validator.
+     *
+     * The validator receives the engine capability and the resolved context storage
+     * during {@see self::build()}. It may throw (for example
+     * {@see \ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException}) to
+     * reject the pairing, or return normally to accept it. The built-in check that
+     * rejects a shared `StackContextStorage` paired with a concurrent engine runs
+     * first and cannot be overridden by this hook.
+     *
+     * This is opt-in: pass `null` (the default) to skip custom validation. It is
+     * separate from `ContextStorageInterface` and is not a required seam for
+     * custom composition.
+     *
+     * @param Closure(EngineCapabilityInterface, ContextStorageInterface): void|null $validator
+     */
+    public function withConcurrencyValidator(?Closure $validator): RunItBuilderInterface;
+
+    /**
      * Builds an interface-backed runtime facade, validating required dependencies first.
      *
      * @throws MissingBuilderDependencyException when a required dependency is missing
+     * @throws IncompatibleContextStorageException when a shared stack is paired with a concurrent engine
      */
     public function build(): RunItInterface;
 }
