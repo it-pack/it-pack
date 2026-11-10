@@ -40,11 +40,8 @@ final class BufferedArtifactPublisher implements
     CloseablePublisherInterface
 {
     private const string KEY_ATTRIBUTE = 'artifact';
-
     private const string KEY_ENQUEUED = 'enqueued';
-
     private const string KEY_BYTES = 'bytes';
-
     private const string KEY_PRIORITY = 'priority';
 
     private const int BLOCK_BUDGET_MICROSECONDS = 2000;

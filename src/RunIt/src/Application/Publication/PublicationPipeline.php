@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
-use ItPack\RunIt\Application\Publication\Policy\FailOpenPolicy;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;

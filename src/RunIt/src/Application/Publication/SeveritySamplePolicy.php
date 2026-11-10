@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Application\Publication\Policy;
+namespace ItPack\RunIt\Application\Publication;
 
-use ItPack\RunIt\Application\Publication\ObservationSeverityPredicate;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactPredicateInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;

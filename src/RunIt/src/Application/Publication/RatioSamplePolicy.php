@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Application\Publication\Policy;
+namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
@@ -32,7 +32,7 @@ final readonly class RatioSamplePolicy implements SamplingPolicyInterface
         ?Closure      $source = null,
     ) {
         // lcg_value has been DEPRECATED as of PHP 8.4.0.
-        $this->source = $source ?? static fn (): float => new Randomizer()->getFloat(
+        $this->source = $source ?? static fn() => (new Randomizer)->getFloat(
             1,
             1,
             IntervalBoundary::ClosedClosed
@@ -50,5 +50,10 @@ final readonly class RatioSamplePolicy implements SamplingPolicyInterface
         }
 
         return ($this->source)() < $this->ratio;
+    }
+
+    private function randomSource()
+    {
+
     }
 }

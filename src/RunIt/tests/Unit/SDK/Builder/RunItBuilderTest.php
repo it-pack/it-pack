@@ -17,7 +17,7 @@ use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
-use ItPack\RunIt\Application\Publication\Policy\NeverSamplePolicy;
+use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;

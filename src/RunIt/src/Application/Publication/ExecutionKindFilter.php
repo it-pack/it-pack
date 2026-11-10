@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use Closure;
-use ItPack\RunIt\Application\Publication\Policy\ExecutionKindSamplePolicy;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactFilterInterface;
 use ItPack\RunIt\Contract\Application\Publication\ArtifactPredicateInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
