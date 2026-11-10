@@ -7,6 +7,8 @@ namespace ItPack\RunIt\Application\Publication;
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use Random\IntervalBoundary;
+use Random\Randomizer;
 
 /**
  * Sampling policy that keeps an artifact with a fixed probability.
@@ -29,7 +31,12 @@ final readonly class RatioSamplePolicy implements SamplingPolicyInterface
         private float $ratio,
         ?Closure      $source = null,
     ) {
-        $this->source = $source ?? \lcg_value(...);
+        // lcg_value has been DEPRECATED as of PHP 8.4.0.
+        $this->source = $source ?? static fn() => (new Randomizer)->getFloat(
+            1,
+            1,
+            IntervalBoundary::ClosedClosed
+        );
     }
 
     public function sample(ExecutionArtifactInterface $artifact): bool
@@ -43,5 +50,10 @@ final readonly class RatioSamplePolicy implements SamplingPolicyInterface
         }
 
         return ($this->source)() < $this->ratio;
+    }
+
+    private function randomSource()
+    {
+
     }
 }
