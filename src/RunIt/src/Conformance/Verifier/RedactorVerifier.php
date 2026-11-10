@@ -9,7 +9,7 @@ use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Throwable;
 
 /**
@@ -80,8 +80,10 @@ final class RedactorVerifier implements VerifierInterface
             ));
         }
 
-        if ($redactedSecret instanceof ExecutionOwnedInterface
-            && !$secret->executionId()->equals($redactedSecret->executionId())) {
+        $redactedNormalized = $redactedSecret->normalize();
+
+        if (isset($redactedNormalized[ArtifactField::EXECUTION_ID])
+            && $redactedNormalized[ArtifactField::EXECUTION_ID] !== $secret->executionId()->toString()) {
             $result = $result->add(new ConformanceViolation(
                 'redact.secret.reassigns-execution',
                 'redact() reassigned a sensitive observation to a different execution'
