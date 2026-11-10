@@ -6,9 +6,14 @@ namespace Tests\Unit\Application\Runner;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
+use ItPack\RunIt\Contract\Application\ExecutionLifecycleCoordinatorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionDefinitionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionResultInterface;
+use ItPack\RunIt\Contract\Domain\InstantInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
@@ -202,5 +207,138 @@ final class DefaultExecutionRunnerTest extends Unit
         }
 
         return $snapshots;
+    }
+
+    public function testStartupSetupFaultIsReportedAndRethrown(): void
+    {
+        $captured = null;
+        $coordinator = new class () implements ExecutionLifecycleCoordinatorInterface {
+            public function start(ExecutionInterface $execution): ExecutionInterface
+            {
+                throw new RuntimeException('start broken');
+            }
+
+            public function transition(
+                ExecutionInterface $execution,
+                ExecutionResultInterface $result,
+                InstantInterface $endedAt
+            ): ExecutionInterface {
+                return $execution;
+            }
+        };
+
+        $kit = new RunItTestKit(
+            coordinator: $coordinator,
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+        );
+
+        try {
+            $kit->runner->run($this->definition(), static fn (): string => 'x');
+            self::fail('expected the startup fault to propagate');
+        } catch (RuntimeException $thrown) {
+            self::assertSame('start broken', $thrown->getMessage());
+        }
+
+        self::assertInstanceOf(RuntimeException::class, $captured);
+        self::assertSame('start broken', $captured->getMessage());
+    }
+
+    public function testBusinessExceptionIsRethrownWhenMapperThrows(): void
+    {
+        $mapper = new class () implements ThrowableMapperInterface {
+            public function describe(Throwable $throwable): ThrowableDescriptionInterface
+            {
+                throw new RuntimeException('map broken');
+            }
+        };
+
+        $thrown = new RuntimeException('business-error');
+        $kit = new RunItTestKit(throwableMapper: $mapper);
+
+        $caught = null;
+        try {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
+                throw $thrown;
+            });
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
+        }
+
+        self::assertSame($thrown, $caught);
+    }
+
+    public function testCompletionTransitionFaultDoesNotMaskBusinessException(): void
+    {
+        $captured = null;
+        $coordinator = new class () implements ExecutionLifecycleCoordinatorInterface {
+            public function start(ExecutionInterface $execution): ExecutionInterface
+            {
+                return $execution;
+            }
+
+            public function transition(
+                ExecutionInterface $execution,
+                ExecutionResultInterface $result,
+                InstantInterface $endedAt
+            ): ExecutionInterface {
+                throw new RuntimeException('transition broken');
+            }
+        };
+
+        $thrown = new RuntimeException('business-error');
+        $kit = new RunItTestKit(
+            onPublicationFailure: static function (Throwable $e) use (&$captured): void {
+                $captured = $e;
+            },
+            coordinator: $coordinator,
+        );
+
+        $caught = null;
+        try {
+            $kit->runner->run($this->definition(), static function () use ($thrown): never {
+                throw $thrown;
+            });
+        } catch (RuntimeException $runtimeException) {
+            $caught = $runtimeException;
+        }
+
+        self::assertSame($thrown, $caught);
+        self::assertInstanceOf(RuntimeException::class, $captured);
+        self::assertSame('transition broken', $captured->getMessage());
+        self::assertCount(0, $this->executions($kit));
+    }
+
+    public function testSuccessfulCompletionTransitionFaultStillReturnsResult(): void
+    {
+        $coordinator = new class () implements ExecutionLifecycleCoordinatorInterface {
+            private bool $started = false;
+
+            public function start(ExecutionInterface $execution): ExecutionInterface
+            {
+                $this->started = true;
+
+                return $execution;
+            }
+
+            public function transition(
+                ExecutionInterface $execution,
+                ExecutionResultInterface $result,
+                InstantInterface $endedAt
+            ): ExecutionInterface {
+                if (!$this->started) {
+                    throw new RuntimeException('unexpected');
+                }
+
+                throw new RuntimeException('transition broken');
+            }
+        };
+
+        $kit = new RunItTestKit(coordinator: $coordinator);
+
+        $result = $kit->runner->run($this->definition(), static fn (): string => 'value');
+
+        self::assertSame('value', $result);
     }
 }

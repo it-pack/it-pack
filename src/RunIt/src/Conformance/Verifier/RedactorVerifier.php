@@ -9,6 +9,8 @@ use ItPack\RunIt\Conformance\Contract\VerifierInterface;
 use ItPack\RunIt\Conformance\Result\ConformanceResult;
 use ItPack\RunIt\Conformance\Result\ConformanceViolation;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use Throwable;
 
 /**
@@ -79,6 +81,24 @@ final class RedactorVerifier implements VerifierInterface
             ));
         }
 
+        if ($redactedSecret instanceof ExecutionOwnedInterface
+            && $secret->executionId()->toString() !== $redactedSecret->executionId()->toString()) {
+            $result = $result->add(new ConformanceViolation(
+                'redact.secret.reassigns-execution',
+                'redact() reassigned a sensitive observation to a different execution'
+            ));
+        }
+
+        $redactedNormalized = $redactedSecret->normalize();
+
+        if (isset($redactedNormalized[ArtifactField::EXECUTION_ID])
+            && $redactedNormalized[ArtifactField::EXECUTION_ID] !== $secret->executionId()->toString()) {
+            $result = $result->add(new ConformanceViolation(
+                'redact.secret.reassigns-execution',
+                'redact() reassigned a sensitive observation to a different execution'
+            ));
+        }
+
         return $result;
     }
 
@@ -88,14 +108,6 @@ final class RedactorVerifier implements VerifierInterface
             return str_contains($data, $needle);
         }
 
-        if (is_array($data)) {
-            foreach ($data as $value) {
-                if ($this->contains($value, $needle)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return is_array($data) && array_any($data, fn ($value): bool => $this->contains($value, $needle));
     }
 }
