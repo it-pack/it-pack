@@ -102,13 +102,14 @@ final class ExecutionSpanMapperTest extends Unit
     /** Redacted execution span kind matches normalized kind via kindMap. */
     public function testRedactedExecutionSpanKindMatchesKindMap(): void
     {
-        $execution = RunItArtifactFactory::execution('exec-3', 'http-in', 'http.server.request', 'succeeded');
+        $execution = RunItArtifactFactory::execution('exec-3', 'internal', 'internal', 'succeeded');
 
         $redactor = new DefaultArtifactRedactor(
             new ArtifactRedactionConfig(sensitiveAttributeKeys: ['tenant.id'])
         );
-        $redacted = $redactor->redact($execution);
-        $normalized = $redacted->normalize();
+        $normalized = $redactor->redact($execution)->normalize();
+        // kind is not redacted by DefaultArtifactRedactor; simulate redaction changing it.
+        $normalized['kind'] = 'http.server.request';
 
         $mapper = new DefaultExecutionSpanMapper(
             tracerProvider: $this->tracerProvider,
@@ -212,14 +213,11 @@ final class ExecutionSpanMapperTest extends Unit
         foreach (SensitiveExceptionChain::secrets() as $secret) {
             self::assertStringNotContainsString($secret, $message);
         }
+    }
 
-        // Opt-out: disable throwable redaction via config and confirm secrets reach span events.
-        $mapperOptOut = new DefaultExecutionSpanMapper(
-            tracerProvider: $this->tracerProvider,
-            store: $this->store,
-            statusMap: new SpanStatusMap(),
-            kindMap: new SpanKindMap(),
-        );
+    /** Opt-out: throwable redaction disabled via config lets secrets reach span events. */
+    public function testExecutionResultThrowableSecretsReachSpanEventsWhenOptOut(): void
+    {
         $executionOptOut = Execution::start(
             ExecutionId::fromString('exec-optout'),
             ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
@@ -228,15 +226,24 @@ final class ExecutionSpanMapperTest extends Unit
             ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
             Instant::of(1001),
         );
+
+        // With redactThrowableMessages: false, DefaultArtifactRedactor returns the original execution unchanged.
         $redactorOptOut = new DefaultArtifactRedactor(
             new ArtifactRedactionConfig(redactThrowableMessages: false)
         );
         $redactedOptOut = $redactorOptOut->redact($executionOptOut);
         self::assertNotInstanceOf(RedactedArtifactInterface::class, $redactedOptOut);
         $normalizedOptOut = $redactedOptOut->normalize();
-        // Redaction disabled: secrets reach span events.
+
+        $mapperOptOut = new DefaultExecutionSpanMapper(
+            tracerProvider: $this->tracerProvider,
+            store: $this->store,
+            statusMap: new SpanStatusMap(),
+            kindMap: new SpanKindMap(),
+        );
         $mapperOptOut->mapRedactedExecution($normalizedOptOut);
-        $spanOptOut = $this->span(1);
+
+        $spanOptOut = $this->span(0);
         $eventsOptOut = $spanOptOut->getEvents();
         self::assertCount(1, $eventsOptOut);
         $attrsOptOut = $eventsOptOut[0]->getAttributes();
