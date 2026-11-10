@@ -19,22 +19,25 @@ Checked items record approved policy direction, not completed implementation or
 verification. The unchecked design details below must still be resolved where applicable.
 
 - [x] **API identity:** Retain `ContextTokenInterface::id(): int` as an explicitly approved breaking contract. Update the API baseline and changelog and migrate affected ItPack implementations. The storage-defined value is stable for the token lifetime but is not necessarily unique; detachment must not rely on it alone.
+- [x] **Compatibility baseline:** Keep the API checker strict and the committed API and normalization-schema snapshots as comparison points. A deliberate contract change requires maintainer approval and coordinated migration of affected consumers: review the contract diff, run relevant RunIt and downstream checks against the changed checkout, update snapshots only after approval, record the change in the changelog, and coordinate split releases where necessary.
 - [x] **Throwable redaction defaults:** Make redaction configurable. By default, mask throwable messages at every cause depth and omit traces; permit trace export only through explicit configuration. Preserve bounded processing and document the security implications of opting in.
 - [x] **Sampling and redaction order:** Make the order configurable, with redaction before sampling by default. Sampling first must be an explicit choice documented as exposing unredacted artifacts to samplers. Preserve built-in type-dependent sampling behavior when redaction happens first.
 - [x] **Throwable metadata:** Preserve throwable class names and error codes by default for diagnosis, with configuration to remove or mask them where required.
 - [x] **Redacted observations:** Make handling configurable: emit a sanitized observation by default, or allow explicit drop-and-report behavior. When safe mapping is impossible, report the drop through the health path. Specify safe fields and classification without exposing payloads during implementation.
 - [x] **Open-activity outcome:** Make the outcome configurable. By default, record a critical diagnostic without changing the operation-derived execution status; allow an explicit policy to mark the execution failed. Preserve the operation's returned value or original exception in either case.
 - [x] **Span-store retention:** Use a configurable finite default limit and evict oldest entries. Late lookups after eviction treat the parent as unavailable and must not change execution results. Choose and document the default limit with workload evidence; establish whether configuration can remain compatible with the frozen public API.
-- [x] **Concurrency default:** Retain the synchronous default and require explicit runtime-appropriate storage for interleaved executions. Document the limitation and add feasible configuration validation; do not silently switch storage or assume the default is concurrency-safe.
+- [x] **Concurrency default:** Keep `StackContextStorage` as the synchronous default; the generic SDK skips runtime compatibility validation when no concurrency model is declared. When a runtime-aware integration declares that executions can overlap on the same storage instance, reject a known incompatible shared stack pairing at setup with an error identifying the pairing and directing the consumer to runtime-isolated storage. Offer one opt-in assembly-boundary validation hook for custom composition, separate from `ContextStorageInterface` and without adding a required method to the existing public builder interface; Phase 1 determines its exact API. Use the declared concurrency model, not the mere presence of a Fiber or coroutine, as input. Any future runtime guard requires a separate decision and, if approved, must check before ambient scope lookup: `attach()` is too late to prevent incorrect parent selection.
 - [x] **Coverage attribution policy:** Collect coverage from Unit tests only and require an explicit class under test, while permitting justified real collaborators and practical documented exceptions. Define the enforcement mechanism and CI environment; aggregate coverage alone does not establish per-test attribution.
+- [x] **Publication health reporting:** The application layer exposes configurable health reporting: consumers may use a replaceable SDK default, provide their own reporter, or explicitly disable reporting. The fail-open runner preserves the exact returned value or original business exception, contains reporter failures and re-entry into the same publication path, and restores context. Report bounded, sanitized diagnostics independently of the failing publisher; transport, buffering, retries, acknowledgements and durability belong to consumers, adapters and bridges. Phase 4 must choose the default destination and resolve compatibility of the existing nullable callback API.
 - [x] **Coding standards principle:** Keep existing enforced conventions and adopt additional rules only when useful, with focused exceptions. Do not impose blanket factory-only construction or interface creation. Reconcile individual rules, including member ordering, with `docs/QA.md` before changing or adding enforcement; avoid unnecessary public API changes.
 
 **Open design details:**
 - [ ] Define safe observation fields and classification, and the configurable drop/report mechanism.
 - [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
-- [ ] Determine feasible concurrency configuration validation and its behavior without silently changing the default.
+- [ ] Determine the exact API for the opt-in concurrency validation hook in Phase 1.
 - [ ] Define coverage attribution enforcement, justified exceptions, negative controls, and the CI environment.
 - [ ] Reconcile individual coding rules and exceptions with the existing `docs/QA.md` standards.
+- [ ] Choose the publication-health default destination and resolve nullable callback API compatibility in Phase 4.
 
 **Observation design investigation:** A candidate sanitized representation
 would implement `ObservationInterface` without retaining the source artifact,
@@ -178,7 +181,7 @@ provider execution or real-suite attribution and is not a CI gate.
 - [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
 - [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
-- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Capture PHP version, workload, buffer sizes, and measurement variance.
+- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
 
 **Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
@@ -255,7 +258,9 @@ this test, benchmark and documentation work.
 
 **Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
 
-At starting revision `f1b49169387ea4e736b5a410084ed011c7c71711`, the
+### Phase 0 compatibility reference
+
+At starting revision [`f1b49169387ea4e736b5a410084ed011c7c71711`](https://github.com/it-pack/it-pack/commit/f1b49169387ea4e736b5a410084ed011c7c71711), the
 worktree was initially clean; this plan's documentation was edited during the
 checks, without production or test changes. PHP 8.5.12 CLI NTS, Composer 2.9.7,
 Codeception 5.3.7, PHPUnit 13.1.14, php-code-coverage 14.5.1, PCOV 1.0.12 and
@@ -335,28 +340,44 @@ failure-path coverage for other adapters or complete Phase 0.
 | Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php` | Broader exporter and configuration controls.                                            |
 | Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                    | Redaction-first implementation and broader typed routing tests.                         |
 | Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                   | Complete target-invariant matrix and approved edge semantics.                           |
-| Silent or recursive publication failures | `FailureHandlingTest`, runner `ResilienceTest`, and bounded recursive reporter target control                                                                                                                                                                                                                           | Other system-log configurations and recursion-safe implementation.                      |
+| Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                        | Phase 4 default destination, compatibility and regression matrix.                      |
 | Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                        | Final migration, versioning and API-check verification for external implementers.       |
 | Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                         | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
-| Synchronous context under concurrency    | `InterleavedFiberContextIsolationTest` and `InterleavedSwooleContextIsolationTest`                                                                                                                                                                                                                                      | Remaining runtime/configuration validation; OpenSwoole and Swow unavailable.            |
+| Synchronous context under concurrency    | [Shared stack reproduces Fiber B seeing Fiber A's scope and parent ID](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L33); [Fiber storage isolates interleaved scopes](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L66). See the [approved boundary](#decisions-required-before-dependent-changes). | Mismatch reproduced; setup validation and its tests belong to Phase 1. OpenSwoole and Swow unavailable. |
 
 The originally reported token break is approved, not erased, and coverage
 enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
 
+### Publication failure evidence
+
+With no reporter, [fail-open drops the publisher failure](../tests/Unit/Application/Publication/FailureHandlingTest.php#L62);
+the runner tests preserve the [result](../tests/Unit/Application/Runner/DefaultExecutionRunnerTest.php#L129)
+and [original exception](../tests/Unit/Application/Runner/DefaultExecutionRunnerTest.php#L138)
+when publication fails without a callback. The [bounded re-entry control](../tests/Unit/Application/Publication/FailureHandlingTest.php#L76)
+shows nested attempts do not reach the sink but repeatedly invoke the reporter;
+the [target control](../tests/target-policy-regressions.php#L234) requires one
+report and checks guard reset. The existing throwing-callback fix is supported by
+the [fallback-sink](../tests/Unit/Application/Publication/FailureHandlingTest.php#L139)
+and [normalization](../tests/Unit/Application/Publication/FailureHandlingTest.php#L206)
+failure checks, not proof of all runner reporting paths. The
+[approved boundary](#decisions-required-before-dependent-changes) and Phase 4
+matrix remain target behavior, not current behavior.
+
 The original opaque-token compatibility expectation is no longer an unmet target:
 the `id(): int` break was explicitly approved. A failing test requiring the old
 contract would contradict that decision; migration and external-implementer
 verification remain Phase 1 work. Likewise, the synchronous default is explicitly
 retained, so a test requiring it to isolate interleaved Fibers would be invalid.
-The default-risk characterization exists, but a target test for misuse detection
-cannot be specified until the validation behavior is decided. This design gap is
+The default-risk characterization reproduces the mismatch; setup validation and
+its regression tests are deferred to Phase 1 under the approved boundary. This is
 distinct from unavailable OpenSwoole and Swow environments. Coverage below 95%
 and the experimental attribution controls establish gaps, but do not yet provide
-a CI threshold or isolation gate. The separate no-callback health
-visibility target also needs a specified observable fallback; recursion evidence
-alone does not establish that target.
+a CI threshold or isolation gate. The current no-callback behavior is reproduced,
+and the recursion target already has a failing check. Verification of reporting
+with the SDK default is deferred to Phase 4, where the default destination and
+nullable callback compatibility will be decided.
 
 For redacted observations, the existing OpenTelemetry characterization proves
 the tested silent drop and unredacted delivery, but a policy-independent
@@ -709,7 +730,7 @@ count-bound overflow baseline exercised the actual buffering publisher at 256,
 other priority patterns, workload and limitations are in `benchmarks.md`. This
 does not isolate scanning from array costs or establish production throughput.
 
-Starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
+Before the later callback-reporter fix, starting from revision `91ab15a7567a75b713487acd0b51bc9d0249fbe6`,
 `FailureHandlingTest` additionally characterizes publication failure reporting.
 With no health reporter the fail-open publisher drops the failure. A throwing
 callback followed by a successful fallback logs both exception messages and the
@@ -820,7 +841,8 @@ The API identity and redaction policy directions above are now recorded; impleme
 - [ ] Verify the approved break's changelog, baseline, versioning and migration documentation; run context storage conformance tests and `composer api:check` against the final tree.
 - [x] Document `StackContextStorage` as synchronous-only at the SDK builder and concurrency entry points; show configuration of Fiber/coroutine storage for persistent workers.
 - [ ] Add interleaving tests that demonstrate the default risk and verify isolated current scopes, parent identity, LIFO detach, restoration after exceptions, and repeated requests with runtime-specific storage. Use the coroutine extension where available and report skips explicitly.
-- [ ] If runtime misuse detection is approved, add it without global mutable state or an undocumented default behavior change; test synchronous use and interleaving separately.
+- [ ] Implement the [approved concurrency validation boundary](#decisions-required-before-dependent-changes) and its opt-in custom-composition hook; choose the hook's API without changing the storage contract or requiring a new builder-interface method.
+- [ ] Test ordinary synchronous nesting and generic setup without a runtime declaration; reject declared overlap with shared stack storage at setup with the prescribed actionable error; accept matching isolated storage; exercise the opt-in hook with custom composition. Retain the interleaving reproduction as mismatch evidence.
 
 **Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
 
@@ -842,11 +864,13 @@ Historically AsyncIt's focused memory storage, Swoole storage and context-isolat
 
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
 
-The monorepo downstream compatibility workflow and runner described in
-`docs/QA.md` are intended to collect consumer-owned test evidence against the
-current RunIt checkout. Inspect each job's results, source verification, and
-skips before counting any scenario; the tooling alone does not complete the
-token migration, API check, runtime validation, or Phase 0.
+The [downstream compatibility workflow](../../../.github/workflows/runit-downstream-compat.yml)
+provides consumer-behavior evidence only for selected consumers and tests that
+actually ran against the verified checkout. Its offline self-test verifies the
+runner itself, not consumer compatibility. Inspect each job's results, source
+verification, and skips before counting any scenario; the tooling alone does not
+complete the token migration, API check, runtime validation, or Phase 0. See
+`docs/QA.md` for execution and evidence details.
 In the initial PHP 8.4.27 run, `RunItThirdPartySample` passed; `DeriveItRunit`
 could not install because the local `DeriveIt` requires PHP `^8.5`. See
 `docs/QA.md` for the lane and evidence limitations.
@@ -1058,15 +1082,14 @@ stopped at the existing Rector callable-fixture suggestion; the independent
 line-length check reported 26 violations outside these changes. Silent test runs
 do not establish coverage for unavailable OpenSwoole or Swow extensions.
 
-- [ ] Trace `DefaultExecutionRunner`, `FailSafeArtifactPublisher`, `FailOpenPolicy`, and existing fallback reporter behavior. Define a recursion-safe default health sink that does not send failures back through the failing publisher, expose secrets, or replace the business outcome.
-- [ ] Add failure-injection tests for no callback, successful callback, callback throwing, fallback sink throwing, inner publisher throwing, recursive publication, and artifact normalization throwing during failure reporting. Check bounded/sanitized reporting and verify no failure is silently discarded under the chosen policy.
-- [ ] Implement guarded fallback reporting for the default fail-open path and guard diagnostic extraction itself. Keep fail-closed behavior explicit and preserve the original throwable and context restoration in `finally`.
+- [ ] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
+- [ ] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
 - [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard artifact normalization and fallback reporting; verify runner outcomes and context restoration when either fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback retains its existing behavior.
 - [ ] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration.
 - [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
 - [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
 
-**Exit:** terminal outcomes and health failures remain observable without masking business results; lifecycle and failure-injection tests pass under the approved policy.
+**Exit:** terminal outcomes remain observable and health failures are reported unless explicitly disabled, without masking business results; lifecycle and failure-injection tests pass under the approved policy.
 
 The callback reporter fix is limited to its own secondary failure path. On PHP
 8.5.12, the focused publication and runner tests passed, as did `composer

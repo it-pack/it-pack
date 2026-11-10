@@ -39,6 +39,11 @@ final class BufferedArtifactPublisher implements
     FlushablePublisherInterface,
     CloseablePublisherInterface
 {
+    private const string KEY_ATTRIBUTE = 'artifact';
+    private const string KEY_ENQUEUED = 'enqueued';
+    private const string KEY_BYTES = 'bytes';
+    private const string KEY_PRIORITY = 'priority';
+
     private const int BLOCK_BUDGET_MICROSECONDS = 2000;
 
     /**
@@ -94,7 +99,7 @@ final class BufferedArtifactPublisher implements
         }
 
         $this->buffer[] = $item;
-        $this->estimatedBytes += $item['bytes'];
+        $this->estimatedBytes += $item[self::KEY_BYTES];
 
         $now = $this->clock->nowSeconds();
         if ($this->config->flushIntervalSeconds > 0
@@ -107,8 +112,7 @@ final class BufferedArtifactPublisher implements
     public function flush(): void
     {
         $start = $this->clock->monotonicNanoseconds();
-        $now = $this->clock->nowSeconds();
-        $this->lastFlushEpoch = $now;
+        $this->lastFlushEpoch = $this->clock->nowSeconds();
         $flushed = $this->drain($this->config->batchSize);
         $this->observe($flushed, $start);
     }
@@ -121,8 +125,8 @@ final class BufferedArtifactPublisher implements
         while ($this->buffer !== []) {
             /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $item */
             $item = array_shift($this->buffer);
-            $this->estimatedBytes -= $item['bytes'];
-            $this->reportDrop($item['artifact']);
+            $this->estimatedBytes -= $item[self::KEY_BYTES];
+            $this->reportDrop($item[self::KEY_ATTRIBUTE]);
         }
 
         $this->observe($flushed, $start);
@@ -152,10 +156,10 @@ final class BufferedArtifactPublisher implements
         $bytes = $this->byteEstimator->estimate($artifact);
 
         return [
-            'artifact' => $artifact,
-            'enqueued' => $enqueued,
-            'bytes' => $bytes,
-            'priority' => $this->priorityOf($artifact),
+            self::KEY_ATTRIBUTE => $artifact,
+            self::KEY_ENQUEUED => $enqueued,
+            self::KEY_BYTES => $bytes,
+            self::KEY_PRIORITY => $this->priorityOf($artifact),
         ];
     }
 
@@ -185,7 +189,7 @@ final class BufferedArtifactPublisher implements
     {
         match ($this->config->overflow) {
             OverflowStrategy::Fail => $this->failOverflow($incoming),
-            OverflowStrategy::DropNewest => $this->reportDrop($incoming['artifact']),
+            OverflowStrategy::DropNewest => $this->reportDrop($incoming[self::KEY_ATTRIBUTE]),
             OverflowStrategy::DropOldest => $this->dropOldestThenAppend($incoming),
             OverflowStrategy::DropLowPriority => $this->dropLowPriorityThenAppend($incoming),
             OverflowStrategy::BlockWithTimeout => $this->blockWithTimeoutThenAppend($incoming),
@@ -198,7 +202,7 @@ final class BufferedArtifactPublisher implements
     private function appendIncoming(array $incoming): void
     {
         $this->buffer[] = $incoming;
-        $this->estimatedBytes += $incoming['bytes'];
+        $this->estimatedBytes += $incoming[self::KEY_BYTES];
     }
 
     /**
@@ -206,7 +210,7 @@ final class BufferedArtifactPublisher implements
      */
     private function failOverflow(array $incoming): never
     {
-        $this->reportDrop($incoming['artifact']);
+        $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
 
         throw new BufferOverflowException('Artifact buffer is full.');
     }
@@ -225,8 +229,8 @@ final class BufferedArtifactPublisher implements
      */
     private function dropLowPriorityThenAppend(array $incoming): void
     {
-        if ($incoming['priority'] === self::PRIORITY_LOW) {
-            $this->reportDrop($incoming['artifact']);
+        if ($incoming[self::KEY_PRIORITY] === self::PRIORITY_LOW) {
+            $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
 
             return;
         }
@@ -257,7 +261,7 @@ final class BufferedArtifactPublisher implements
         }
 
         if ($this->isFull()) {
-            $this->reportDrop($incoming['artifact']);
+            $this->reportDrop($incoming[self::KEY_ATTRIBUTE]);
 
             return;
         }
@@ -271,8 +275,8 @@ final class BufferedArtifactPublisher implements
         $item = array_shift($this->buffer);
 
         if ($item !== null) {
-            $this->estimatedBytes -= $item['bytes'];
-            $this->reportDrop($item['artifact']);
+            $this->estimatedBytes -= $item[self::KEY_BYTES];
+            $this->reportDrop($item[self::KEY_ATTRIBUTE]);
         }
     }
 
@@ -282,13 +286,13 @@ final class BufferedArtifactPublisher implements
         $item = $this->buffer[$index];
         unset($this->buffer[$index]);
         $this->buffer = array_values($this->buffer);
-        $this->estimatedBytes -= $item['bytes'];
-        $this->reportDrop($item['artifact']);
+        $this->estimatedBytes -= $item[self::KEY_BYTES];
+        $this->reportDrop($item[self::KEY_ATTRIBUTE]);
     }
 
     private function oldestLowPriorityIndex(): ?int
     {
-        return array_find_key($this->buffer, fn ($item): bool => $item['priority'] === self::PRIORITY_LOW);
+        return array_find_key($this->buffer, fn ($item): bool => $item[self::KEY_PRIORITY] === self::PRIORITY_LOW);
 
     }
 
@@ -310,19 +314,18 @@ final class BufferedArtifactPublisher implements
         while ($this->buffer !== [] && $flushed < $limit) {
             /** @var array{artifact: ExecutionArtifactInterface, enqueued: int, bytes: int, priority: int} $item */
             $item = array_shift($this->buffer);
-            $this->estimatedBytes -= $item['bytes'];
+            $this->estimatedBytes -= $item[self::KEY_BYTES];
 
             /** @var int $enqueued */
-            $enqueued = $item['enqueued'];
-            $now = $this->clock->nowSeconds();
+            $enqueued = $item[self::KEY_ENQUEUED];
 
-            if ($now - $enqueued > $this->config->maxAgeSeconds) {
-                $this->reportDrop($item['artifact']);
+            if ($this->clock->nowSeconds() - $enqueued > $this->config->maxAgeSeconds) {
+                $this->reportDrop($item[self::KEY_ATTRIBUTE]);
 
                 continue;
             }
 
-            $this->inner->publish($item['artifact']);
+            $this->inner->publish($item[self::KEY_ATTRIBUTE]);
             $flushed++;
         }
 
