@@ -27,6 +27,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Buffered batch flush          | `BufferedFlushBench`               | One 256-item flush from a full 1,024-item buffer                    |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
+| Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach at two nesting depths             |
 
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
@@ -56,6 +57,46 @@ hardware, runtime and variance; the figures below are not automatic CI threshold
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## Synchronous context storage baseline (2026-11-10)
+
+At starting revision `a83eab95ab22172f4a8d8e56a937897e141c88e2`, with
+pre-existing plan edits and the new benchmark, run from the package directory:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/ContextStorageBench.php --config=phpbench.json --report=aggregate
+```
+
+Each timed operation attaches a reused real execution scope and immediately
+detaches its token, either directly through `StackContextStorage` or through
+`CompositeContextStorage` delegating to a stack with `FiberRuntimeDetector`.
+Outside timing, a fresh storage is prepared at depth 0 or 63, and after each
+iteration the current scope and LIFO cleanup to empty are checked; failures throw
+despite PHPBench reporting zero framework assertions. Scope creation and parent
+attachments, `current()` and cleanup are excluded. Each subject has two warmups
+and ten iterations of 10,000 pairs.
+
+PHPBench 1.7.0 on PHP 8.5.12 CLI NTS, WSL2 x86-64, four virtual CPUs on an
+Intel Core i7-9700, with CLI OPcache, JIT and PCOV disabled and Xdebug absent:
+
+| Workload | Mode (µs/pair) | Relative standard deviation |
+| --- | ---: | ---: |
+| Stack, depth 0 | 1.115 | 18.78% |
+| Stack, depth 63 | 1.097 | 5.06% |
+| Composite, depth 0 | 2.289 | 3.65% |
+| Composite, depth 63 | 2.267 | 3.55% |
+
+A separate PHP 8.4.27 invocation with the same flags and workload passed the
+checks, reporting modes of 1.130, 1.120, 2.283 and 2.336 µs/pair respectively,
+with relative standard deviations of 15.83%, 3.33%, 2.31% and 42.65%. It ran
+concurrently with graph extraction and is not a controlled PHP-version comparison.
+
+This unpinned synthetic run uses sequential cases, not a controlled comparison;
+other machine activity may affect it. The detector does not check coroutine
+runtime state. It excludes Fiber execution and interleaving, coroutine storage,
+scope construction, current-scope lookup timing, failures and memory profiling.
+It is not production throughput or a regression threshold and
+does not reproduce the earlier temporary Fiber harness. Phase 0 remains open.
 
 ## Buffered batch flush baseline (2026-11-09)
 
