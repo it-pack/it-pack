@@ -29,6 +29,8 @@ final readonly class ArtifactRedactionConfig
         public bool $redactThrowableMessages = true,
         public bool $redactOccurrenceData = true,
         public bool $redactSnapshotPayloads = true,
+        public bool $redactObservationMessages = false,
+        public bool $redactMeasurementValues = false,
     ) {
     }
 
@@ -44,6 +46,8 @@ final readonly class ArtifactRedactionConfig
             redactThrowableMessages: false,
             redactOccurrenceData: false,
             redactSnapshotPayloads: false,
+            redactObservationMessages: false,
+            redactMeasurementValues: false,
         );
     }
 }

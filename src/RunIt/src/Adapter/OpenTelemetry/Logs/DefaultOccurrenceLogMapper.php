@@ -173,11 +173,10 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
         }
 
-        /** @var array<string, mixed> $extensions */
-        $extensions = is_array($normalized['extension_attributes'] ?? null) ? $normalized['extension_attributes'] : [];
-        foreach ($extensions as $key => $value) {
-            $attributes[$key] = $value;
-        }
+        // Extension attributes from redacted occurrences are intentionally not
+        // re-exported: they were already handled by the redactor upstream, and
+        // exporting them again would risk leaking secrets a custom redactor
+        // did not mask.
 
         $this->emit(
             'runit.occurrence',

@@ -482,14 +482,14 @@ final class TelemetryPublisherTest extends Unit
         $attributes = $record->getAttributes()->toArray();
         self::assertSame('occ-characterized', $attributes['runit.occurrence.id']);
         self::assertTrue($attributes['runit.redacted']);
-        self::assertSame('yes', $attributes['allowed']);
-        self::assertSame('still-exported', $attributes['excluded']);
+        self::assertArrayNotHasKey('allowed', $attributes);
+        self::assertArrayNotHasKey('excluded', $attributes);
         self::assertArrayNotHasKey('runit.occurrence.content_type', $attributes);
         self::assertArrayNotHasKey('password', $attributes);
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(1, $events);
         self::assertSame('runit.occurrence', $events[0]->getName());
-        self::assertSame('still-exported', $events[0]->getAttributes()->get('excluded'));
+        self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
     }
 
     /** Characterizes redacted snapshot timestamp and hash handling. */

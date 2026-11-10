@@ -934,6 +934,8 @@ misclassify or drop changed artifacts. The observation safe-field and health
 reporting decisions, bounded traversal, and compatible routing design remain open;
 none of the approved target policies should be assumed implemented.
 
+**Phase 2 progress (implemented):** `DefaultArtifactRedactor` now optionally masks `Observation::message` (`redactObservationMessages`, opt-in, default `false`), `Measurement::value` (`redactMeasurementValues`, opt-in, default `false`), `Occurrence::extension_attributes` by `sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`. `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues` constructor arguments (both default `false`). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()` no longer re-exports `extension_attributes` from redacted occurrences to OTel sinks. Negative tests added to `RedactingPublisherTest`, `ObservationLoggerPublisherTest`, and `ExecutionSpanMapperTest` characterize secrets in outer messages, throwable chains, multiple previous causes, trace values, and opt-out configurations. Composed pipeline coverage extends to PSR-3 and OpenTelemetry with in-memory sinks asserting secrets absent. All quality gates green (`composer quality`, `composer api:check`, `composer analyse`, `composer architecture`, `composer cs:check`, `composer lint:length`, all four test suites).
+
 Focused tests now cover nested observation throwable masking, preservation of
 class and code, original immutability, explicit opt-out, and PSR logger export
 with configured masking. Failed execution protection, trace omission, and
@@ -949,6 +951,38 @@ compatibility or complete the Phase 0 baseline.
 On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
+
+## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
+
+**Artifact `normalize()` shapes (source of truth, all `final readonly` domain values):**
+
+| Artifact | `normalize()` keys | Secret-bearing fields |
+|----------|-------------------|----------------------|
+| `Execution` | id, name, kind, status, started_at, ended_at, parent_execution_id, linked_execution_ids, sequence, context, result | `result.throwable` → `{class, message, code, previous(recursive), trace}` |
+| `Observation` | id, execution_id, activity_id, severity, level, message, diagnostic_code, sequence, timestamp, attributes, throwable | `message`, `attributes`, `throwable` → `{class, message, code, previous(recursive), trace}` |
+| `Occurrence` | id, execution_id, activity_id, type, version, source, subject, time, data, data_schema, content_type, extension_attributes, sequence | `data` (recursive), `extension_attributes`, `subject` |
+| `Snapshot` | id, execution_id, activity_id, type, classification, schema_version, created_at, content_type, content_hash, predecessor_id, sequence, payload, attributes | `payload` (recursive), `attributes` |
+| `Measurement` | name, kind, unit, value, execution_id, activity_id, timestamp, sequence, attributes | `value`, `attributes` |
+| `Activity` | id, execution_id, name, kind, status, started_at, ended_at, parent_activity_id, sequence, attributes, throwable{array}, duration_ns?(optional) | `attributes`, `throwable` → `{class, message, code, previous(recursive), trace}` |
+| `ThrowableDescription::toArray()` | class, message, code, previous(array recursive), trace | `message`, `trace`, nested `previous` |
+
+**Current `DefaultArtifactRedactor` coverage (additive, no change to originals):**
+- `attributes` — masked by `sensitiveAttributeKeys` (top-level keys only; nested maps pass through)
+- `throwable.message` / `throwable.trace` — replaced with marker when `redactThrowableMessages`, recursive for `previous` causes
+- `Occurrence.data` — masked recursively by `sensitiveDataKeys` when `redactOccurrenceData`
+- `Snapshot.payload` — masked recursively by `sensitiveDataKeys` when `redactSnapshotPayloads`
+- NOT masked: `Observation::message`, `Measurement::value`, `Occurrence::extension_attributes`, `Snapshot::attributes`, unknown/non-array projection fields
+
+**Consumer leak paths after redaction:**
+- `TelemetryPublisher::mapRedactedOccurrence()` exports `extension_attributes` from the redacted normalized array without re-masking — secrets in extension attributes reach OTel span events/logs.
+- `TelemetryPublisher::mapRedactedSnapshot()` exports `attributes` from redacted snapshot data without re-masking.
+- `DefaultActivitySpanMapper::recordThrowable()` exports `message`/`trace` directly to OTel span `exception` events — only masked upstream if a redactor ran.
+- `ObservationLoggerPublisher::extract()` uses direct `ObservationInterface` getters (`message()`, `attributes()`, `throwableDescription()`) when a live `Observation` reaches it; a standalone redactor upstream returns a `RedactedArtifact` (not instanceof `ObservationInterface`), falling through to the `normalize()` path.
+- `DefaultOccurrenceLogMapper::mapOccurrence()` exports `extension_attributes` directly from the live occurrence (not redacted, not normalized).
+- `DefaultOccurrenceLogMapper::mapSnapshot()` exports `attributes` directly and json-encodes `payload` under `SnapshotPayloadPolicy::Full`.
+
+**Bounded recursion and unknown fields:** `DefaultArtifactRedactor::maskKeysRecursive()` recurses into nested arrays/objects for `data`/`payload`, stops at scalars/nulls, and passes unknown projection fields through unchanged. Non-string `trace` values pass through untraversed. This preserves finite primitive projections but leaves non-`ThrowableDescription` projections with secrets intact.
+
 
 The newer sampling tests exercise the real factory with a spy sampler and sink,
 including null decorators, rejected and accepted inputs, and changed versus

@@ -272,4 +272,104 @@ final class ObservationLoggerPublisherTest extends Unit
         self::assertSame('example', $exception['message']);
         self::assertSame(2, $exception['code']);
     }
+
+    public function testObservationOuterMessageIsMasked(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: true,
+            ),
+        ));
+        $observation = Observation::error(
+            ObservationId::fromString('o-msg-mask'),
+            ExecutionId::fromString('exec-msg-mask'),
+            'token=sk-live-5f4dcc3b5aa765d61d8327deb882cf99 message-secret',
+            attributes: AttributeCollection::fromArray(['password' => 'attribute-secret']),
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'throwable-secret',
+                42,
+                previous: null,
+                trace: 'trace-secret',
+            ),
+        );
+        $before = $observation->normalize();
+
+        $publisher->publish($observation);
+
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('[redacted]', $entry['message']);
+        self::assertSame('[redacted]', $entry['context']['password']);
+        self::assertSame([
+            'class' => 'RuntimeException',
+            'message' => '[redacted]',
+            'code' => 42,
+            'previous' => null,
+            'trace' => '[redacted]',
+        ], $entry['context']['exception']);
+        self::assertSame($before, $observation->normalize());
+    }
+
+    public function testMultiplePreviousCausesAreAllMasked(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']),
+        ));
+        $observation = Observation::error(
+            ObservationId::fromString('o-chain'),
+            ExecutionId::fromString('exec-chain'),
+            'outer failed',
+            throwableDescription: SensitiveExceptionChain::classifiedChain(),
+        );
+        $before = $observation->normalize();
+
+        $publisher->publish($observation);
+
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        $throwable = $entry['context']['exception'];
+        foreach ([['RuntimeException', 2], ['PDOException', 1], ['RuntimeException', 0]] as [$class, $code]) {
+            self::assertIsArray($throwable);
+            self::assertSame($class, $throwable['class']);
+            self::assertSame($code, $throwable['code']);
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertSame('[redacted]', $throwable['trace']);
+            $throwable = $throwable['previous'];
+        }
+
+        self::assertNull($throwable);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringNotContainsString($secret, serialize($entry));
+        }
+
+        self::assertSame($before, $observation->normalize());
+    }
+
+    public function testObservationMessagePreservedWhenOptOut(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: false,
+            ),
+        ));
+        $observation = Observation::error(
+            ObservationId::fromString('o-msg-optout'),
+            ExecutionId::fromString('exec-msg-optout'),
+            'visible message-secret',
+            attributes: AttributeCollection::fromArray(['password' => 'attribute-secret']),
+        );
+
+        $publisher->publish($observation);
+
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('visible message-secret', $entry['message']);
+        self::assertSame('[redacted]', $entry['context']['password']);
+    }
 }

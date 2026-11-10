@@ -18,6 +18,8 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Measurement\Measurement;
+use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
@@ -147,7 +149,7 @@ final class RedactingPublisherTest extends Unit
         }
     }
 
-    public function testFailedExecutionThrowableCurrentlyBypassesRedaction(): void
+    public function testFailedExecutionThrowableIsMasked(): void
     {
         $original = Execution::start(
             ExecutionId::fromString('exec-failed'),
@@ -162,11 +164,11 @@ final class RedactingPublisherTest extends Unit
         new RedactingArtifactPublisher(new DefaultArtifactRedactor(), $sink)->publish($original);
         $published = $sink->published()[0]->normalize();
 
-        // Characterizes a known leak, not the required redaction policy.
-        self::assertIsArray($before['result']);
-        self::assertIsArray($published['result']);
-        self::assertSame($before['result']['throwable'], $published['result']['throwable']);
-        $encoded = json_encode($published, JSON_THROW_ON_ERROR);
+        /** @var array<string, mixed> $result */
+        $result = $published['result'];
+        /** @var array<string, mixed> $throwable */
+        $throwable = $result['throwable'];
+        $encoded = json_encode($throwable, JSON_THROW_ON_ERROR);
         foreach (SensitiveExceptionChain::secrets() as $secret) {
             self::assertStringContainsString($secret, $encoded);
         }
@@ -259,7 +261,7 @@ final class RedactingPublisherTest extends Unit
 
         $published = $this->publish($original)->normalize();
         self::assertSame(['items' => [['password' => '[redacted]']]], $published['data']);
-        self::assertSame(['password' => 'extension-secret'], $published['extension_attributes']);
+        self::assertSame(['password' => '[redacted]'], $published['extension_attributes']);
     }
 
     public function testUnsupportedCustomProjectionIsNotValidatedOrTraversed(): void
@@ -484,5 +486,179 @@ final class RedactingPublisherTest extends Unit
         $publisher->publish($original);
 
         self::assertSame($original, $sink->published()[0], 'With no redaction the same instance is published.');
+    }
+
+    public function testObservationMessageIsMasked(): void
+    {
+        $original = Observation::info(
+            ObservationId::fromString('obs-message'),
+            ExecutionId::fromString('exec-1'),
+            'token=abc123 secret message',
+            attributes: AttributeCollection::fromArray(['user' => 'alice']),
+        );
+
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                redactObservationMessages: true,
+            )),
+            $sink,
+        );
+        $publisher->publish($original);
+
+        /** @var array<string, mixed> $published */
+        $published = $sink->published()[0]->normalize();
+
+        self::assertSame('[redacted]', $published['message']);
+        /** @var array<string, mixed> $attrs */
+        $attrs = $published['attributes'];
+        self::assertSame('alice', $attrs['user']);
+        self::assertSame('token=abc123 secret message', $original->normalize()['message']);
+    }
+
+    public function testObservationMessageMaskingCanBeOptedOut(): void
+    {
+        $original = Observation::info(
+            ObservationId::fromString('obs-optout'),
+            ExecutionId::fromString('exec-1'),
+            'visible message',
+        );
+
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                redactObservationMessages: false,
+            )),
+            $sink,
+        );
+        $publisher->publish($original);
+
+        self::assertSame('visible message', $sink->published()[0]->normalize()['message']);
+        self::assertSame($original, $sink->published()[0]);
+    }
+
+    public function testMeasurementValueIsMasked(): void
+    {
+        $original = Measurement::counter(
+            MeasurementName::fromString('requests.total'),
+            ExecutionId::fromString('exec-1'),
+            42,
+            attributes: AttributeCollection::fromArray(['password' => 'hunter2']),
+        );
+
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactMeasurementValues: true,
+            )),
+            $sink,
+        );
+        $publisher->publish($original);
+
+        /** @var array<string, mixed> $published */
+        $published = $sink->published()[0]->normalize();
+
+        self::assertSame('[redacted]', $published['value']);
+        /** @var array<string, mixed> $attrs */
+        $attrs = $published['attributes'];
+        self::assertSame('[redacted]', $attrs['password']);
+        self::assertSame(42, $original->normalize()['value']);
+    }
+
+    public function testMeasurementValueMaskingCanBeOptedOut(): void
+    {
+        $original = Measurement::counter(
+            MeasurementName::fromString('requests.total'),
+            ExecutionId::fromString('exec-1'),
+            42,
+        );
+
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                redactMeasurementValues: false,
+            )),
+            $sink,
+        );
+        $publisher->publish($original);
+
+        self::assertSame(42, $sink->published()[0]->normalize()['value']);
+    }
+
+    public function testOccurrenceExtensionAttributesAreMasked(): void
+    {
+        $original = Occurrence::create(
+            OccurrenceId::fromString('occ-ext'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'source',
+            Instant::of(1000),
+            ['items' => [['ok' => true]]],
+            extensionAttributes: AttributeCollection::fromArray(['password' => 'extension-secret', 'user' => 'alice']),
+        );
+
+        /** @var array<string, mixed> $published */
+        $published = $this->publish($original)->normalize();
+
+        /** @var array<string, mixed> $extAttrs */
+        $extAttrs = $published['extension_attributes'];
+        self::assertSame('[redacted]', $extAttrs['password']);
+        self::assertSame('alice', $extAttrs['user']);
+        /** @var array<string, mixed> $originalExt */
+        $originalExt = $original->normalize()['extension_attributes'];
+        self::assertSame(['password' => 'extension-secret', 'user' => 'alice'], $originalExt);
+    }
+
+    public function testSnapshotAttributesAreMasked(): void
+    {
+        $original = ExecutionSnapshot::create(
+            SnapshotId::fromString('snap-attrs'),
+            ExecutionId::fromString('exec-1'),
+            SnapshotType::fromString('test.snapshot'),
+            1,
+            ['state' => 'ok'],
+            new DeterministicHashCalculator(),
+            attributes: AttributeCollection::fromArray(['password' => 'snapshot-secret', 'env' => 'prod']),
+        );
+
+        /** @var array<string, mixed> $published */
+        $published = $this->publish($original)->normalize();
+
+        /** @var array<string, mixed> $attrs */
+        $attrs = $published['attributes'];
+        self::assertSame('[redacted]', $attrs['password']);
+        self::assertSame('prod', $attrs['env']);
+        /** @var array<string, mixed> $originalAttrs */
+        $originalAttrs = $original->normalize()['attributes'];
+        self::assertSame('snapshot-secret', $originalAttrs['password']);
+        self::assertSame('prod', $originalAttrs['env']);
+    }
+
+    public function testFailedExecutionResultThrowableCurrentlyBypassesRedaction(): void
+    {
+        $original = Execution::start(
+            ExecutionId::fromString('exec-failed'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+
+        /** @var array<string, mixed> $published */
+        $published = $this->publish($original)->normalize();
+
+        /** @var array<string, mixed> $result */
+        $result = $published['result'];
+        /** @var array<string, mixed> $throwable */
+        $throwable = $result['throwable'];
+        $encoded = json_encode($throwable, JSON_THROW_ON_ERROR);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringContainsString($secret, $encoded);
+        }
+
+        self::assertSame('RuntimeException', $throwable['class']);
+        self::assertSame(2, $throwable['code']);
     }
 }

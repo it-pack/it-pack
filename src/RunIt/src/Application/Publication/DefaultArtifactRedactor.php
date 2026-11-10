@@ -6,6 +6,8 @@ namespace ItPack\RunIt\Application\Publication;
 
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
@@ -21,9 +23,13 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
  *
  *  - attribute values whose key is in `sensitiveAttributeKeys` (the classified
  *    context surface carried by every artifact);
- *  - throwable messages, when enabled;
+ *  - observation extension attributes whose key is in `sensitiveAttributeKeys`;
+ *  - throwable messages and traces, when enabled;
+ *  - observation messages, when enabled;
+ *  - measurement values, when enabled;
  *  - occurrence `data`, recursively, when enabled;
- *  - snapshot `payload`, recursively, when enabled.
+ *  - snapshot `payload`, recursively, when enabled;
+ *  - snapshot attributes whose key is in `sensitiveAttributeKeys`.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -59,6 +65,49 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
         ) {
             [$normalized[ArtifactField::THROWABLE], $masked] = $this->maskThrowable(
                 $normalized[ArtifactField::THROWABLE],
+            );
+            if ($masked) {
+                $changed = true;
+            }
+        }
+
+        if ($this->config->redactObservationMessages
+            && $artifact instanceof ObservationInterface
+            && isset($normalized[ArtifactField::MESSAGE])
+            && is_string($normalized[ArtifactField::MESSAGE])
+        ) {
+            $normalized[ArtifactField::MESSAGE] = $this->config->marker;
+            $changed = true;
+        }
+
+        if ($this->config->redactMeasurementValues
+            && $artifact instanceof MeasurementInterface
+            && isset($normalized[ArtifactField::VALUE])) {
+            $normalized[ArtifactField::VALUE] = $this->config->marker;
+            $changed = true;
+        }
+
+        if ($this->config->sensitiveAttributeKeys !== []
+            && isset($normalized[ArtifactField::EXTENSION_ATTRIBUTES])
+            && is_array($normalized[ArtifactField::EXTENSION_ATTRIBUTES])
+        ) {
+            [$normalized[ArtifactField::EXTENSION_ATTRIBUTES], $masked] = $this->maskKeys(
+                $normalized[ArtifactField::EXTENSION_ATTRIBUTES],
+                $this->config->sensitiveAttributeKeys
+            );
+            if ($masked) {
+                $changed = true;
+            }
+        }
+
+        if ($this->config->sensitiveAttributeKeys !== []
+            && $artifact instanceof SnapshotInterface
+            && isset($normalized[ArtifactField::ATTRIBUTES])
+            && is_array($normalized[ArtifactField::ATTRIBUTES])
+        ) {
+            [$normalized[ArtifactField::ATTRIBUTES], $masked] = $this->maskKeys(
+                $normalized[ArtifactField::ATTRIBUTES],
+                $this->config->sensitiveAttributeKeys
             );
             if ($masked) {
                 $changed = true;

@@ -9,12 +9,21 @@ use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
+use ItPack\RunIt\Domain\Execution\Execution;
+use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
+use ItPack\RunIt\Domain\Execution\ExecutionFailure;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Execution\ExecutionName;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
+use ItPack\RunIt\Domain\Shared\Instant;
 use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Tests\Support\Fixture\SensitiveExceptionChain;
 
 /**
  * M9.2 — Execution to trace mapping.
@@ -137,5 +146,31 @@ final class ExecutionSpanMapperTest extends Unit
         $mapper->map($execution);
 
         self::assertCount(0, $this->spans());
+    }
+
+    /** Characterizes the leak: execution result throwable secrets reach OTel span events when no redactor ran upstream. */
+    public function testExecutionResultThrowableSecretsReachSpanEvents(): void
+    {
+        $execution = Execution::start(
+            ExecutionId::fromString('exec-secret'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+
+        $this->mapper->map($execution);
+
+        $span = $this->span(0);
+        $events = $span->getEvents();
+        self::assertCount(1, $events);
+        self::assertSame('exception', $events[0]->getName());
+        $attrs = $events[0]->getAttributes();
+        $message = $attrs->get('exception.message');
+        self::assertIsString($message);
+        // Only the outer cause's secret reaches the top-level span event message;
+        // nested causes are not flattened into separate span events.
+        self::assertStringContainsString(SensitiveExceptionChain::secrets()[1], $message);
     }
 }

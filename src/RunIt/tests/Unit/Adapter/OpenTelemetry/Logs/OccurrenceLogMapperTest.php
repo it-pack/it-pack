@@ -292,7 +292,7 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('payment.captured.v1', $attributes['runit.occurrence.type']);
         self::assertSame('user-42', $attributes['runit.occurrence.subject']);
         self::assertSame('act-9', $attributes['runit.activity.id']);
-        self::assertSame('on', $attributes['tenantflag']);
+        self::assertArrayNotHasKey('tenantflag', $attributes);
     }
 
     public function testRedactedSnapshotFallsBackWhenFieldsAreMissing(): void

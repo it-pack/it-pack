@@ -182,8 +182,19 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
    Direct values already use `public readonly` properties, so there is no getter boilerplate to
    replace; no safe, non-BC-breaking conversion target exists.
 
-  All static gates remain green: `composer cs:check`, `composer architecture`,
-  `composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+All static gates remain green: `composer cs:check`, `composer architecture`,
+`composer api:check`, and `composer analyse` (the 15 accepted `shipmonk.deadMethod` notices).
+
+- **Security redaction coverage extended:** `DefaultArtifactRedactor` now optionally masks
+  `Observation::message` (`redactObservationMessages`, opt-in, default `false`),
+  `Measurement::value` (`redactMeasurementValues`, opt-in, default `false`),
+  `Occurrence::extension_attributes` by `sensitiveAttributeKeys`, and
+  `Snapshot::attributes` by `sensitiveAttributeKeys` (additive; existing defaults unchanged).
+  `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
+  constructor arguments, both defaulting to `false` to preserve existing behavior.
+- **Redacted occurrence extension attributes no longer re-exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+  no longer re-exports `extension_attributes` from redacted occurrences to OTel span/log
+  attributes, preventing secrets a custom redactor did not mask from reaching telemetry sinks.
 
 ## Unreleased — Phase 3 (P3)
 
