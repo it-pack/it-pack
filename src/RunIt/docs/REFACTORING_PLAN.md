@@ -838,6 +838,20 @@ no advisories. Focused PHPStan checks passed for both new test files.
 
 The API identity and redaction policy directions above are now recorded; implementation details and regression evidence remain open. The approved token baseline change supersedes the historical API break result. An earlier `composer api:check` exited 1 for nine additive symbols and reported zero backward-compatibility breaks; the later ten-addition result is recorded above. This does not authorize a further baseline update. The characterizations above and in Phase 2 reproduce several of the previously outstanding paths, but do not exhaust all adapter, failure-reporting, concurrency, or ownership scenarios. Phase 0 is not complete.
 
+On 2026-11-10, focused Unit tests were added for the Conformance verifiers
+(ContextStorage, ArtifactPublisher, ExecutionEngine, IdentifierGenerator,
+MonotonicClock, Redactor, SamplingPolicy, Serializer, SnapshotStore), the
+RunItPortFixture, Domain and Contract exceptions, and DefaultExecutionRunner
+failure paths. Unit-only PCOV statement coverage rose from 88% to 97%
+(3,995/4,131 statements), exceeding the 95% floor. All configured suites
+passed (1018 tests, 6440 assertions); PHPStan, CS-Fixer, phparkitect and
+lint:length all pass. Production `src/Conformance/Verifier/RedactorVerifier.php`
+was also updated to compare normalized execution IDs across redaction results
+instead of requiring `ExecutionOwnedInterface`, so `RedactedArtifact` wrappers
+are checked for execution reassignment while generic wrappers without an
+execution ID remain accepted. Phase 0 exit criteria (95% CI gate, attribution
+control, isolation verification) remain open.
+
 ## Phase 1: Compatibility and context ownership
 
 **Completion depends on:** Phase 0 exit and the API identity decision; preparatory work may proceed earlier. **Review:** frozen interface break; concurrent context isolation.
