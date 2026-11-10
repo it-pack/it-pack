@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
-use DateTimeInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
@@ -13,7 +12,6 @@ use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
@@ -21,7 +19,6 @@ use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
-use ValueError;
 
 /**
  * Maps a RunIt activity to an OpenTelemetry span.
@@ -170,21 +167,6 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         return null;
     }
 
-    private function endSpanAt(SpanInterface $span, mixed $endedAt): void
-    {
-        if ($endedAt instanceof DateTimeInterface) {
-            $span->end((int) $endedAt->format('U') * Duration::NANOS_PER_SECOND);
-            return;
-        }
-
-        if (is_int($endedAt)) {
-            $span->end($endedAt * Duration::NANOS_PER_SECOND);
-            return;
-        }
-
-        $span->end();
-    }
-
     /**
      * @param array<array-key, mixed>|null $attributes
      */
@@ -203,16 +185,6 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
             if (is_string($value) || is_int($value) || is_float($value) || is_bool($value)) {
                 $span->setAttribute($keyStr, $value);
             }
-        }
-    }
-
-    private function setRedactedStatus(SpanInterface $span, string $status): void
-    {
-        try {
-            $statusResult = $this->statusMap->map(ExecutionStatus::from($status));
-            $span->setStatus($statusResult['code'], $statusResult['description']);
-        } catch (ValueError) {
-            // Unknown status string; skip status mapping.
         }
     }
 

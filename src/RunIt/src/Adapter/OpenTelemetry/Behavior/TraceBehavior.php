@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Behavior;
 
+use DateTimeInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanKindMapInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SpanStatusMapInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
+use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\ContextInterface;
+use ValueError;
 
 trait TraceBehavior
 {
@@ -52,4 +56,30 @@ trait TraceBehavior
     }
 
     abstract private function resolveParentContext(ActivityInterface|ExecutionInterface $artifact): ?ContextInterface;
+
+    private function setRedactedStatus(SpanInterface $span, string $status): void
+    {
+        try {
+            $statusResult = $this->statusMap->map(ExecutionStatus::from($status));
+            $span->setStatus($statusResult['code'], $statusResult['description']);
+        } catch (ValueError) {
+            // Unknown status string; surface as Error status to match mapper failure semantics.
+            $span->setStatus(StatusCode::STATUS_ERROR, 'unknown_status:' . $status);
+        }
+    }
+
+    private function endSpanAt(SpanInterface $span, mixed $endedAt): void
+    {
+        if ($endedAt instanceof DateTimeInterface) {
+            $span->end((int) $endedAt->format('U') * Duration::NANOS_PER_SECOND);
+            return;
+        }
+
+        if (is_int($endedAt)) {
+            $span->end($endedAt * Duration::NANOS_PER_SECOND);
+            return;
+        }
+
+        $span->end();
+    }
 }

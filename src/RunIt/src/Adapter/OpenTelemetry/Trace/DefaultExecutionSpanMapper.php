@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Trace;
 
-use DateTimeInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
@@ -13,7 +12,6 @@ use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
-use ItPack\RunIt\Domain\Execution\ExecutionStatus;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Trace\Span;
 use OpenTelemetry\API\Trace\SpanContextInterface;
@@ -21,7 +19,6 @@ use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ContextInterface;
-use ValueError;
 
 /**
  * Maps a RunIt execution to an OpenTelemetry span.
@@ -129,49 +126,6 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         }
     }
 
-    private function setRedactedStatus(SpanInterface $span, string $status): void
-    {
-        try {
-            $statusResult = $this->statusMap->map(ExecutionStatus::from($status));
-            $span->setStatus($statusResult['code'], $statusResult['description']);
-        } catch (ValueError) {
-            // Unknown status string; skip status mapping.
-        }
-    }
-
-    /**
-     * @param array<string, mixed> $normalized
-     */
-    private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
-    {
-        $parentId = $normalized['parent_execution_id'] ?? null;
-        if (!is_string($parentId)) {
-            return null;
-        }
-
-        $parentSpan = $this->store->executionContext($parentId);
-        if (!$parentSpan instanceof SpanContextInterface) {
-            return null;
-        }
-
-        return Context::getRoot()->withContextValue(Span::wrap($parentSpan));
-    }
-
-    private function endSpanAt(SpanInterface $span, mixed $endedAt): void
-    {
-        if ($endedAt instanceof DateTimeInterface) {
-            $span->end((int) $endedAt->format('U') * Duration::NANOS_PER_SECOND);
-            return;
-        }
-
-        if (is_int($endedAt)) {
-            $span->end($endedAt * Duration::NANOS_PER_SECOND);
-            return;
-        }
-
-        $span->end();
-    }
-
     /**
      * @param array<string, mixed>|null $result
      */
@@ -191,6 +145,24 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
             'exception.message' => $throwableMessage,
             'exception.stacktrace' => $throwableTrace,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function resolveParentContextFromNormalized(array $normalized): ?ContextInterface
+    {
+        $parentId = $normalized['parent_execution_id'] ?? null;
+        if (!is_string($parentId)) {
+            return null;
+        }
+
+        $parentSpan = $this->store->executionContext($parentId);
+        if (!$parentSpan instanceof SpanContextInterface) {
+            return null;
+        }
+
+        return Context::getRoot()->withContextValue(Span::wrap($parentSpan));
     }
 
     private function resolveParentContext(ExecutionInterface|ActivityInterface $execution): ?ContextInterface

@@ -210,7 +210,7 @@ final class ExecutionSpanMapperTest extends Unit
             new ArtifactRedactionConfig(redactThrowableMessages: false)
         );
         $redactedOptOut = $redactorOptOut->redact($executionOptOut);
-        // With throwable redaction disabled, the original execution is returned unchanged.
+        self::assertNotInstanceOf(RedactedArtifactInterface::class, $redactedOptOut);
         $normalizedOptOut = $redactedOptOut->normalize();
         // Redaction disabled: secrets reach span events.
         $mapperOptOut->mapRedactedExecution($normalizedOptOut);
@@ -220,6 +220,6 @@ final class ExecutionSpanMapperTest extends Unit
         $attrsOptOut = $eventsOptOut[0]->getAttributes();
         $messageOptOut = $attrsOptOut->get('exception.message');
         self::assertIsString($messageOptOut);
-        self::assertStringContainsString(SensitiveExceptionChain::secrets()[1], $messageOptOut);
+        self::assertStringContainsString(SensitiveExceptionChain::dbPassword(), $messageOptOut);
     }
 }

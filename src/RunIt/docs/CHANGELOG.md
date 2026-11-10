@@ -195,8 +195,9 @@ new test files introduce additional violations beyond pre-existing ones.
   constructor arguments, both defaulting to `false` to preserve existing behavior.
   Configurations that previously relied on `extension_attributes` or snapshot `attributes`
   values being exported unchanged must now configure `DefaultArtifactRedactor` with
-  `sensitiveAttributeKeys` that exclude those keys, or accept that sensitive keys named
-  in `sensitiveAttributeKeys` will be masked. The OpenTelemetry
+  `sensitiveAttributeKeys` naming those keys. `sensitiveAttributeKeys` defaults to empty,
+  so behavior only changes for configurations that set it; keys named there are now also
+  applied to `Occurrence::extension_attributes` and `Snapshot::attributes`. The OpenTelemetry
   `occurrenceLogAttributeAllowList` on `DefaultOccurrenceLogMapper` controls which keys
   are exported for unredacted occurrences; it does not restore extension attributes omitted
   by `mapRedactedOccurrence()`.
