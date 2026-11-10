@@ -108,6 +108,7 @@
             "@architecture",
             "@lint:length",
             "@test",
+            "@api:check",
             "@security:audit",
             "@security:audit:full"
         ],
