@@ -18933,16 +18933,18 @@
         },
         "cases": []
     },
-    "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface": {
+    "ItPack\\RunIt\\SDK\\Builder\\ExtendedRunItBuilderInterface": {
         "kind": "interface",
         "final": false,
         "extends": null,
-        "implements": [],
+        "implements": {
+            "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface"
+        },
         "constants": [],
         "methods": {
             "withConcurrencyValidator": {
                 "static": false,
-                "return": "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface",
+                "return": "ItPack\\RunIt\\SDK\\Builder\\ExtendedRunItBuilderInterface",
                 "params": [
                     {
                         "name": "validator",
@@ -18950,6 +18952,247 @@
                         "optional": false
                     }
                 ]
+            },
+            "create": {
+                "static": true,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": []
+            },
+            "withPublisher": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "publisher",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withClock": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "clock",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\MonotonicClockInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSequenceAllocator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "allocator",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SequenceAllocatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotSerializer": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "serializer",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\SerializerInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withIdentifierGenerator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "generator",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\IdentifierGeneratorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withContextStorage": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "storage",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ContextStorageInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotStore": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "store",
+                        "type": "null|ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withThrowableMapper": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "mapper",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ThrowableMapperInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withRedactor": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSamplingPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withNestedExecutionPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\NestedExecutionPolicyInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withCompletionPolicy": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "policy",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionCompletionPolicyInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withExecutionEngine": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "engine",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionEngineInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withHashCalculator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "hashCalculator",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\HashCalculatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withExecutionFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "executionFactory",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withLifecycleCoordinator": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "coordinator",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionLifecycleCoordinatorInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "snapshotFactory",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\ExecutionSnapshotFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSecurityLimits": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPublicationFailureHandler": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "handler",
+                        "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "withSnapshotStoreFailureHandler": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "handler",
+                        "type": "null|Closure",
+                        "optional": false
+                    }
+                ]
+            },
+            "withPublisherStackFactory": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
+                "params": [
+                    {
+                        "name": "factory",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "build": {
+                "static": false,
+                "return": "ItPack\\RunIt\\SDK\\RunItInterface",
+                "params": []
             }
         },
         "cases": []
@@ -18959,8 +19202,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface",
-            "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\ConcurrencyValidatableBuilderInterface"
+            "ItPack\\RunIt\\SDK\\Builder\\ExtendedRunItBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\ExtendedRunItBuilderInterface",
+            "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface": "ItPack\\RunIt\\SDK\\Builder\\RunItBuilderInterface"
         },
         "constants": [],
         "methods": {

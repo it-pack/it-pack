@@ -18,8 +18,11 @@ use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
 use ItPack\RunIt\Domain\Exception\IncompatibleContextStorageException;
+use ItPack\RunIt\SDK\Builder\ExtendedRunItBuilderInterface;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
+use ItPack\RunIt\SDK\Builder\RunItBuilderInterface;
 use ItPack\RunIt\SDK\RunItInterface;
+use ReflectionClass;
 
 /**
  * Concurrency validation at builder assembly time.
@@ -208,5 +211,30 @@ final class ConcurrencyValidationTest extends Unit
             self::assertStringContainsString('concurrent', $message);
             self::assertStringContainsString('withContextStorage', $message);
         }
+    }
+
+    public function testExtendedRunItBuilderInterfaceExtendsRunItBuilderInterface(): void
+    {
+        $reflection = new ReflectionClass(ExtendedRunItBuilderInterface::class);
+
+        self::assertTrue($reflection->isSubclassOf(RunItBuilderInterface::class));
+    }
+
+    public function testRunItBuilderImplementsExtendedRunItBuilderInterface(): void
+    {
+        $builder = RunItBuilder::create();
+
+        self::assertInstanceOf(ExtendedRunItBuilderInterface::class, $builder);
+    }
+
+    public function testRunItBuilderInterfaceDoesNotDeclareConcurrencyValidator(): void
+    {
+        $reflection = new ReflectionClass(RunItBuilderInterface::class);
+
+        self::assertFalse($reflection->hasMethod('withConcurrencyValidator'));
+
+        $extendedReflection = new ReflectionClass(ExtendedRunItBuilderInterface::class);
+
+        self::assertTrue($extendedReflection->hasMethod('withConcurrencyValidator'));
     }
 }

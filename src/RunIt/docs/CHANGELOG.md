@@ -106,12 +106,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   with `@phpstan-ignore`. They are enumerated as a keep-list in `docs/qa.md`;
   `composer analyse` therefore still reports exactly 15 errors, matching the
   documented kept set.
-- Added `SDK\Builder\ConcurrencyValidatableBuilderInterface`, a separate optional
-  opt-in seam declaring `withConcurrencyValidator(?Closure)`. `RunItBuilder`
-  implements it alongside `RunItBuilderInterface`, so custom builder
-  implementations are not required to add the method. The validator receives the
-  engine capability and resolved context storage during `build()` and may throw
-  to reject the pairing.
+- Added `SDK\Builder\ExtendedRunItBuilderInterface`, an optional opt-in seam extending
+  `RunItBuilderInterface` with `withConcurrencyValidator(?Closure)`. `RunItBuilder`
+  implements it, so custom builder implementations are not required to add the method.
+  The validator receives the engine capability and resolved context storage during
+  `build()` and may throw to reject the pairing. `RunItBuilderInterface` itself does
+  not declare `withConcurrencyValidator`, so external implementations are unaffected.
 - Added built-in concurrency validation at `RunItBuilder::build()`: a shared
   `StackContextStorage` paired with an engine that declares `concurrent: true`
   now throws `IncompatibleContextStorageException`, identifying the pairing and
@@ -122,6 +122,34 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   `LogicException` raised when a context storage is incompatible with the
   declared concurrency model. Token ownership semantics are unchanged: all
   `detach()` implementations use exact token reference, not `id()` alone.
+- Added interface-backed execution definition factories and callable-wrapping
+  components (additive, no backward-compatibility impact):
+  - `Contract\Domain\ExecutionDefinitionFactoryInterface` and
+    `Domain\Execution\ExecutionDefinitionFactory`: create domain executions
+    from name, kind, optional parent, linked IDs, and context.
+  - `SDK\Execution\MetadataExecutionDefinitionFactoryInterface` and
+    `SDK\Execution\MetadataExecutionDefinitionFactory`: build an execution
+    definition from an `ExecutedAsInterface` attribute, delegating to the
+    domain factory (default-constructed when not injected).
+  - `SDK\Attribute\CallableReflectionResolverInterface` and
+    `SDK\Attribute\CallableReflectionResolver`: resolve a callable to its
+    `ReflectionFunctionAbstract` for metadata reading; used by the default
+    attribute reader, never on the invocation hot path.
+  - `SDK\Attribute\ExecutedAsInterface`: interface-backed metadata carrier
+    with `name` and `kind` read-only properties and a `DEFAULT_KIND`
+    constant.
+  - `SDK\Decorator\ExecutedCallableFactoryInterface` and
+    `SDK\Decorator\ExecutedCallableFactory`: build `ExecutedCallableInterface`
+    instances wrapping an operation with an optional definition and factory.
+  - `SDK\Attribute\DefaultExecutedAsMetadataReader` now accepts an optional
+    `CallableReflectionResolverInterface` constructor argument (defaults to
+    `CallableReflectionResolver`); `SDK\DefaultRunIt` now accepts optional
+    `ExecutedAsMetadataReaderInterface`, `ExecutedCallableFactoryInterface`,
+    and `MetadataExecutionDefinitionFactoryInterface` constructor arguments
+    (all defaulted).
+- `CompositeContextStorage` now declares `__clone()`: cloning resets the
+  issued-token WeakMap so token ownership stays local while the configured
+  synchronous/Fiber/coroutine storages are shared.
 
 ## Unreleased — Phase 2 (P2)
 
