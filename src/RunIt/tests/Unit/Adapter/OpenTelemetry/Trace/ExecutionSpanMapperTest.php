@@ -99,6 +99,28 @@ final class ExecutionSpanMapperTest extends Unit
         self::assertSame(2, $this->span(0)->getKind());
     }
 
+    /** Redacted execution span kind matches normalized kind via kindMap. */
+    public function testRedactedExecutionSpanKindMatchesKindMap(): void
+    {
+        $execution = RunItArtifactFactory::execution('exec-3', 'http-in', 'http.server.request', 'succeeded');
+
+        $redactor = new DefaultArtifactRedactor(
+            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['tenant.id'])
+        );
+        $redacted = $redactor->redact($execution);
+        $normalized = $redacted->normalize();
+
+        $mapper = new DefaultExecutionSpanMapper(
+            tracerProvider: $this->tracerProvider,
+            store: $this->store,
+            statusMap: new SpanStatusMap(),
+            kindMap: new SpanKindMap(),
+        );
+        $mapper->mapRedactedExecution($normalized);
+
+        self::assertSame(2, $this->span(0)->getKind());
+    }
+
     public function testRecordsExceptionEventForFailedExecution(): void
     {
         $execution = RunItArtifactFactory::execution('exec-3', 'import', 'queue.consumer.process', 'failed');

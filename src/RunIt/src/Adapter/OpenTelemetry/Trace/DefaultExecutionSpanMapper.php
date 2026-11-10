@@ -88,18 +88,19 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
             $builder = $builder->setParent($parentContext);
         }
 
+        $kind = $normalized['kind'] ?? null;
+        if (is_string($kind)) {
+            $builder = $builder->setSpanKind($this->kindMap->toSpanKind($kind));
+        }
+
+        $startedAt = $normalized['started_at'] ?? null;
+        if (is_int($startedAt)) {
+            $builder = $builder->setStartTimestamp($startedAt * Duration::NANOS_PER_SECOND);
+        }
+
         $span = $builder->startSpan();
 
-        $executionId = $normalized['id'] ?? null;
-        $kind = $normalized['kind'] ?? null;
-        $status = $normalized['status'] ?? null;
-
-        $attributes = [
-            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
-            AttributeKeys::EXECUTION_NAME => $name,
-            AttributeKeys::EXECUTION_KIND => is_string($kind) ? $kind : '',
-            AttributeKeys::EXECUTION_STATUS => is_string($status) ? $status : '',
-        ];
+        $attributes = $this->buildRedactedExecutionAttributes($normalized, $name);
 
         $parentId = $normalized['parent_execution_id'] ?? null;
         if (is_string($parentId)) {
@@ -121,9 +122,28 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         $endedAt = $normalized['ended_at'] ?? ($normalized['started_at'] ?? null);
         $this->endSpanAt($span, $endedAt);
 
+        $executionId = $normalized['id'] ?? null;
         if (is_string($executionId)) {
             $this->store->recordExecution($executionId, $span->getContext());
         }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     * @return array<non-empty-string, string>
+     */
+    private function buildRedactedExecutionAttributes(array $normalized, string $name): array
+    {
+        $executionId = $normalized['id'] ?? null;
+        $kind = $normalized['kind'] ?? null;
+        $status = $normalized['status'] ?? null;
+
+        return [
+            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
+            AttributeKeys::EXECUTION_NAME => $name,
+            AttributeKeys::EXECUTION_KIND => is_string($kind) ? $kind : '',
+            AttributeKeys::EXECUTION_STATUS => is_string($status) ? $status : '',
+        ];
     }
 
     /**

@@ -90,6 +90,16 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
             $builder = $builder->setParent($parentContext);
         }
 
+        $kind = $normalized['kind'] ?? null;
+        if (is_string($kind)) {
+            $builder = $builder->setSpanKind($this->kindMap->toSpanKind($kind));
+        }
+
+        $startedAt = $normalized['started_at'] ?? null;
+        if (is_int($startedAt)) {
+            $builder = $builder->setStartTimestamp($startedAt * Duration::NANOS_PER_SECOND);
+        }
+
         $span = $builder->startSpan();
 
         $attributes = $this->buildRedactedActivityAttributes($normalized, $name);
