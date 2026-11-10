@@ -314,6 +314,45 @@ final class RedactingPublisherTest extends Unit
         self::assertSame($before, $artifact->normalize());
     }
 
+    public function testCustomThrowableUnknownFieldsAndNonArrayCausePassThrough(): void
+    {
+        $artifact = new readonly class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                return [
+                    'throwable' => [
+                        'class' => 'Outer', 'code' => 42, 'message' => 'outer-secret', 'trace' => 'trace-secret',
+                        'detail' => ['message' => 'unknown-secret'],
+                        'previous' => [
+                            'class' => 'Inner', 'code' => 7, 'message' => 'inner-secret',
+                            'trace' => null, 'previous' => 'unsupported-cause-secret',
+                        ],
+                    ],
+                ];
+            }
+        };
+        $before = $artifact->normalize();
+        $published = $this->publish($artifact)->normalize();
+        $throwable = $published['throwable'];
+
+        self::assertIsArray($throwable);
+        self::assertSame('Outer', $throwable['class']);
+        self::assertSame(42, $throwable['code']);
+        self::assertSame('[redacted]', $throwable['message']);
+        self::assertSame('[redacted]', $throwable['trace']);
+        self::assertSame(['message' => 'unknown-secret'], $throwable['detail']);
+        self::assertIsArray($throwable['previous']);
+        self::assertSame('Inner', $throwable['previous']['class']);
+        self::assertSame(7, $throwable['previous']['code']);
+        self::assertSame('[redacted]', $throwable['previous']['message']);
+        self::assertNull($throwable['previous']['trace']);
+        self::assertSame('unsupported-cause-secret', $throwable['previous']['previous']);
+        self::assertSame($before, $artifact->normalize());
+        $disabled = new DefaultArtifactRedactor(ArtifactRedactionConfig::disabled());
+        self::assertSame($artifact, $disabled->redact($artifact));
+        self::assertSame($before, $disabled->redact($artifact)->normalize());
+    }
+
     public function testSnapshotPayloadIsMasked(): void
     {
         $original = ExecutionSnapshot::create(
@@ -332,6 +371,58 @@ final class RedactingPublisherTest extends Unit
 
         self::assertSame('ok', $payload['state']);
         self::assertSame('[redacted]', $payload['password']);
+    }
+
+    public function testFailedExecutionSnapshotPayloadMaskingAndOptOut(): void
+    {
+        $execution = Execution::start(
+            ExecutionId::fromString('snapshot-exec'),
+            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            Instant::of(1000),
+        )->complete(
+            ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
+            Instant::of(1001),
+        );
+        $snapshot = ExecutionSnapshot::create(
+            SnapshotId::fromString('snapshot-failed'),
+            ExecutionId::fromString('snapshot-exec'),
+            SnapshotType::fromString('execution.terminal'),
+            1,
+            $execution->normalize(),
+            new DeterministicHashCalculator(),
+        );
+        $before = $snapshot->normalize();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['message', 'trace'],
+        ));
+        $published = $redactor->redact($snapshot)->normalize();
+        $encoded = json_encode($published['payload'], JSON_THROW_ON_ERROR);
+
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringNotContainsString($secret, $encoded);
+        }
+
+        self::assertIsArray($published['payload']);
+        self::assertIsArray($published['payload']['result']);
+        $throwable = $published['payload']['result']['throwable'];
+        foreach ([['RuntimeException', 2], ['PDOException', 1], ['RuntimeException', 0]] as [$class, $code]) {
+            self::assertIsArray($throwable);
+            self::assertSame($class, $throwable['class']);
+            self::assertSame($code, $throwable['code']);
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertSame('[redacted]', $throwable['trace']);
+            $throwable = $throwable['previous'];
+        }
+
+        self::assertNull($throwable);
+        self::assertSame($before['content_hash'], $published['content_hash']);
+        self::assertSame($before, $snapshot->normalize());
+        $optOut = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveDataKeys: ['message', 'trace'],
+            redactSnapshotPayloads: false,
+        ));
+        self::assertSame($snapshot, $optOut->redact($snapshot));
+        self::assertSame($before, $optOut->redact($snapshot)->normalize());
     }
 
     public function testRedactorAndNormalizeShareFieldVocabulary(): void

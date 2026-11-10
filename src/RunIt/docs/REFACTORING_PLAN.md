@@ -200,6 +200,13 @@ provider execution or real-suite attribution and is not a CI gate.
 
 **Phase 0 additions:**
 
+The checked-in synchronous stack and composite context-storage benchmark covers
+attach/detach at two nesting depths. A separate durable benchmark exercises real
+Fiber storage with two interleaved Fibers at depths 1 and 63, including switching
+cost. Both workloads, measurements, variance and limitations are recorded in
+`docs/benchmarks.md`. Coroutine storage, failures and memory profiling remain
+outside these measurements, and the broader Phase 0 baseline remains open.
+
 At clean starting revision `919a75c80fa944b3b2164d0c70f47350d0846b80`, the
 Swoole HTTP target harness gained post-handler clock-failure cases for successful
 and failing handlers. PHP 8.4.27 and 8.5.12 each exited 1 with four target
@@ -335,14 +342,14 @@ call. The default runner and affected test calls also use positional arguments.
 This protects the tested recorder compatibility paths; it does not establish
 failure-path coverage for other adapters or complete Phase 0.
 
-| Review issue                             | Existing reproduction                                                                                                                                                                                                                                                                                                   | Remaining evidence                                                                      |
-|------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php` | Broader exporter and configuration controls.                                            |
-| Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                    | Redaction-first implementation and broader typed routing tests.                         |
-| Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                   | Complete target-invariant matrix and approved edge semantics.                           |
-| Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                        | Phase 4 default destination, compatibility and regression matrix.                      |
-| Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                        | Final migration, versioning and API-check verification for external implementers.       |
-| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                         | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work. |
+| Review issue                             | Existing reproduction                                                                                                                                                                                                                                                                                                                 | Remaining evidence                                                                                      |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php`               | Broader exporter and configuration controls.                                                            |
+| Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                                  | Redaction-first implementation and broader typed routing tests.                                         |
+| Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                                 | Complete target-invariant matrix and approved edge semantics.                                           |
+| Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                                       | Phase 4 default destination, compatibility and regression matrix.                                       |
+| Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                                      | Final migration, versioning and API-check verification for external implementers.                       |
+| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work.                 |
 | Synchronous context under concurrency    | [Shared stack reproduces Fiber B seeing Fiber A's scope and parent ID](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L33); [Fiber storage isolates interleaved scopes](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L66). See the [approved boundary](#decisions-required-before-dependent-changes). | Mismatch reproduced; setup validation and its tests belong to Phase 1. OpenSwoole and Swow unavailable. |
 
 The originally reported token break is approved, not erased, and coverage
@@ -862,6 +869,8 @@ The API identity and redaction policy directions above are now recorded; impleme
 
 Historically AsyncIt's focused memory storage, Swoole storage and context-isolation verifier tests passed (12 tests total); RunItThirdPartySample's `composer test` passed (4 tests, 12 assertions). The later AsyncIt ownership regression covers the foreign-token collision separately.
 
+**Phase 1 ownership audit (verified):** `ContextTokenInterface::id()` is storage-defined and explicitly non-unique. All four `detach()` implementations use exact token reference (`$top === $token`) as the final authority, so `id()` alone never authorizes detachment or infers equality: `StackContextStorage` requires `instanceof ContextToken` plus an issued-id pre-check plus reference equality; `FiberContextStorage` requires matching anchor plus reference equality; `CoroutineContextStorage` requires matching coroutine key plus reference equality; `CompositeContextStorage` requires `instanceof CompositeContextToken` plus WeakMap-issued reference membership before delegating to the owning sub-storage. `CompositeContextToken::id()` delegates to its inner token, so colliding ids across storages do not affect detachment. Existing tests cover cross-storage foreign-token rejection (`StackContextStorageTest::testForeignTokenIsRejected`), intentional id collision with distinct references (`CompositeContextStorageTest::testCollidingTokensRetryOutOfOrderAndRejectRepeatedDetach`), shared-child composite rejection (`testForeignCompositeTokenIsRejectedEvenWithSharedChild`), clone independence (`testCloneHasIndependentTokenOwnership`), and forged-wrapper rejection (`testForgedWrapperIsRejectedWithoutDetachingInnerToken`). `DefaultExecutionRunner::detachSafely()` reports but never rethrows detach failures, preserving fail-open behavior. Remaining verification: no source change is required; context-storage conformance and the full `composer api:check` against the final tree remain Phase 1 completion items.
+
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
 
 The [downstream compatibility workflow](../../../.github/workflows/runit-downstream-compat.yml)
@@ -1029,6 +1038,32 @@ architecture and focused PHPStan checks passed; `composer quality` stopped
 at PHPStan with 147 diagnostics, without a full set comparison. Line-length
 checking reported 26 violations outside the new tests. Coverage and the full
 PHP 8.4 suite matrix were not rerun; no production behavior or API changed.
+
+At clean starting revision `b6677bb4`, a normal Unit characterization covers an
+execution snapshot whose payload is a failed execution's normalized projection.
+With `message` and `trace` configured as sensitive data keys, recursive payload
+masking replaces those fields in all three throwable levels and preserves class
+and code; the snapshot retains its original content hash and source projection.
+Disabling snapshot payload redaction returns the original snapshot unchanged even
+with those keys configured. The default key list is empty; this test does not
+establish default protection, trace omission, exporter behavior, or safety of the
+retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
+assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
+No production behavior or contract changed, and Phase 2 remains open.
+
+At starting revision `7e7652a7`, a finite custom primitive throwable projection
+characterizes another traversal boundary: recognized string messages and trace
+are masked through an array-valued `previous`, while an unknown nested `detail`
+and a scalar `previous` retain synthetic secrets. Class, code and null trace are
+preserved; disabling redaction returns the original and the source is unchanged.
+These unsupported throwable shapes are not asserted to be produced by built-in
+descriptions. They demonstrate exposure to a normalized-projection sink, not
+an exporter guarantee or a decision about how to handle unknown fields. The
+focused file passed on PHP 8.4.27 and 8.5.12 (15 tests, 98 assertions each).
+PHP 8.5.12 `composer quality` and focused PHPStan also passed; the full audit
+reported abandoned `doctrine/annotations`, with no security advisories. The full
+PHP 8.4 suite and downstream exports were not tested in this run. Bounded
+traversal, unsupported values and consumer routing remain open.
 
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
