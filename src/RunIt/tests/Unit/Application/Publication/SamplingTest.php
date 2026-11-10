@@ -110,7 +110,7 @@ final class SamplingTest extends Unit
 
     public function testRatioApproximatesOverVolume(): void
     {
-        $policy = new RatioSamplePolicy(0.5, static fn (): float => (float) (mt_rand() / mt_getrandmax()));
+        $policy = new RatioSamplePolicy(0.5);
         $kept = 0;
         $total = 4000;
 
