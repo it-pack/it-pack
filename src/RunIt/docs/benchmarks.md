@@ -28,6 +28,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
 | Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach at two nesting depths             |
+| Interleaved Fiber storage     | `FiberContextStorageBench`         | Two Fiber switches and attach/detach pairs at two nesting depths     |
 
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
@@ -57,6 +58,48 @@ hardware, runtime and variance; the figures below are not automatic CI threshold
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## Interleaved Fiber context storage baseline (2026-11-10)
+
+At clean starting revision `f5c960515f998162f6b86460b25ea6dd6f332554`, plus
+the new benchmark and documentation, run from the package directory, separately
+for each installed PHP version:
+
+```bash
+php8.5 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/FiberContextStorageBench.php --config=phpbench.json --report=aggregate
+php8.4 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/FiberContextStorageBench.php --config=phpbench.json --report=aggregate
+```
+
+Two persistent Fibers share a real `FiberContextStorage`, each with a distinct
+reused real scope and 1 or 63 pre-attached parent tokens. One timed revolution
+resumes each Fiber in turn; each attaches and detaches its own scope and suspends.
+Thus the unit is **two pairs and two resume/suspend switches**, not one pair.
+Construction and parent setup are outside timing. Initial checks reject inherited
+context and main-stack leakage; after each iteration, each Fiber verifies its
+own restored scope, detaches its parents in LIFO order and checks empty, while
+the main stack is also checked. The first Fiber is checked while the second is
+still suspended. Hooks throw on failure despite zero PHPBench assertions. Two
+warmups precede ten iterations of 10,000 revolutions per subject.
+
+PHPBench 1.7.0, CLI NTS, WSL2 x86-64, four virtual CPUs on Intel Core i7-9700;
+CLI OPcache, JIT and PCOV disabled, Xdebug absent. Runs were sequential and no
+other checks were deliberately run concurrently; the host was not isolated or
+CPU-pinned. Modes and relative standard deviations per revolution:
+
+| Existing depth per Fiber | PHP 8.5.12 | PHP 8.4.27 |
+| --- | ---: | ---: |
+| 1 | 3.770740 µs (3.57%) | 3.748208 µs (15.04%) |
+| 63 | 4.690875 µs (8.46%) | 4.648044 µs (3.38%) |
+
+This fixed-order synthetic workload includes Fiber switching and loop machinery;
+it does not isolate storage cost or reproduce the earlier temporary Fiber harness.
+Parent scopes remain attached across switches, but the timed child scope does not.
+It excludes scope creation, timed `current()`, new Fiber creation, realistic
+scheduling and I/O, composite and coroutine storage, failures, other concurrency
+levels and memory profiling. PHPBench's process peak is not a storage memory
+measurement. These unpinned measurements are not a controlled version or
+before/after comparison, production throughput, or regression thresholds.
+Phase 0 remains open.
 
 ## Synchronous context storage baseline (2026-11-10)
 

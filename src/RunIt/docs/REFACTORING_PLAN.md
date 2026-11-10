@@ -201,9 +201,11 @@ provider execution or real-suite attribution and is not a CI gate.
 **Phase 0 additions:**
 
 The checked-in synchronous stack and composite context-storage benchmark covers
-attach/detach at two nesting depths; its workload, measurements, variance and
-limitations are recorded in `docs/benchmarks.md`. Fiber and coroutine execution
-remain outside this measurement, and the broader Phase 0 baseline remains open.
+attach/detach at two nesting depths. A separate durable benchmark exercises real
+Fiber storage with two interleaved Fibers at depths 1 and 63, including switching
+cost. Both workloads, measurements, variance and limitations are recorded in
+`docs/benchmarks.md`. Coroutine storage, failures and memory profiling remain
+outside these measurements, and the broader Phase 0 baseline remains open.
 
 At clean starting revision `919a75c80fa944b3b2164d0c70f47350d0846b80`, the
 Swoole HTTP target harness gained post-handler clock-failure cases for successful
