@@ -129,6 +129,17 @@ default sensitive data keys are empty, traces are masked rather than omitted,
 and the unchanged content hash can itself be sensitive. It does not verify
 other fields, configurations, exporters or the complete PHP 8.4 suite matrix.
 
+At starting revision `7e7652a7`, the same focused commands passed on PHP 8.4.27
+and 8.5.12 (15 tests, 98 assertions each) with an additional finite custom
+throwable projection. The test confirms recognized string fields are masked,
+but an unknown nested field and a scalar cause retain synthetic secrets. It
+checks metadata, null trace, source immutability and disabled-redactor controls.
+This characterizes current behavior at the in-memory sink, not a safe handling
+policy, a built-in throwable shape, or coverage of downstream exporters.
+PHP 8.5.12 `composer quality` and focused PHPStan passed; the full audit reported
+abandoned `doctrine/annotations` and no security advisories. The full PHP 8.4
+suite was not rerun.
+
 Run `php tests/target-policy-regressions.php` separately to check the approved
 redaction, sampling, health-reporting and buffer byte-bound targets. It currently
 exits nonzero for known violations and is intentionally excluded from the normal

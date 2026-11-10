@@ -1049,6 +1049,20 @@ retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
 assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
 No production behavior or contract changed, and Phase 2 remains open.
 
+At starting revision `7e7652a7`, a finite custom primitive throwable projection
+characterizes another traversal boundary: recognized string messages and trace
+are masked through an array-valued `previous`, while an unknown nested `detail`
+and a scalar `previous` retain synthetic secrets. Class, code and null trace are
+preserved; disabling redaction returns the original and the source is unchanged.
+These unsupported throwable shapes are not asserted to be produced by built-in
+descriptions. They demonstrate exposure to a normalized-projection sink, not
+an exporter guarantee or a decision about how to handle unknown fields. The
+focused file passed on PHP 8.4.27 and 8.5.12 (15 tests, 98 assertions each).
+PHP 8.5.12 `composer quality` and focused PHPStan also passed; the full audit
+reported abandoned `doctrine/annotations`, with no security advisories. The full
+PHP 8.4 suite and downstream exports were not tested in this run. Bounded
+traversal, unsupported values and consumer routing remain open.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
