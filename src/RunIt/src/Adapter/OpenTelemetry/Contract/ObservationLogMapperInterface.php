@@ -17,8 +17,4 @@ interface ObservationLogMapperInterface
 {
     public function map(ObservationInterface $observation): void;
 
-    /**
-     * @param array<string, mixed> $normalized
-     */
-    public function mapRedactedObservation(array $normalized): void;
 }

@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\SDK\Trace\SpanDataInterface;
@@ -72,6 +73,17 @@ final class ObservationLogMapperTest extends Unit
         $this->kit->logs();
         self::assertSame(Severity::FATAL->value, $this->kit->log(0)->getSeverityNumber());
         self::assertSame(Severity::DEBUG->value, $this->kit->log(1)->getSeverityNumber());
+    }
+
+    /** Redacted projections use the same severity bands as typed observations. */
+    public function testRedactedSeverityMatchesTypedSeverity(): void
+    {
+        $mapper = new DefaultObservationLogMapper($this->kit->loggerProvider, new SeverityMap());
+        foreach (ObservationSeverity::cases() as $index => $severity) {
+            $mapper->mapRedactedObservation(['level' => $severity->level(), 'message' => 'safe']);
+            self::assertSame(new SeverityMap()->toNumber($severity), $this->kit->log($index)->getSeverityNumber());
+            self::assertSame($severity->label(), $this->kit->log($index)->getSeverityText());
+        }
     }
 
     public function testMapsThrowableUnderExceptionAttributes(): void

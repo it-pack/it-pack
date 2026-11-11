@@ -275,28 +275,29 @@ final class RedactingPublisherTest extends Unit
         );
 
         $data = $this->publish($original)->normalize()['data'];
+        self::assertIsArray($data);
         self::assertSame(['class' => 'Order', 'name' => 'book', 'password' => '[redacted]'], $data['item']);
         self::assertSame(['class' => 'RuntimeException', 'message' => '[redacted]'], $data['throwable']);
     }
 
     public function testRecursiveNodeBudgetAccumulatesAndSignalsTruncation(): void
     {
-        $original = Occurrence::create(
-            OccurrenceId::fromString('occ-budget'),
-            ExecutionId::fromString('exec-1'),
-            OccurrenceType::fromString('itpack.test.event.v1'),
-            'source',
-            Instant::of(1000),
-            ['first' => array_fill(0, 600, 'safe'), 'second' => array_fill(0, 600, 'safe'),
-                'password' => 'secret'],
-        );
+        $payload = ['first' => array_fill(0, 600, 'safe'), 'second' => array_fill(0, 600, 'safe'),
+            'password' => 'secret', 'later' => 'another-secret'];
+        $original = self::createStub(SnapshotInterface::class);
+        $original->method('normalize')->willReturn(['payload' => $payload]);
 
-        $data = $this->publish($original)->normalize()['data'];
+        $data = $this->publish($original)->normalize()['payload'];
+        self::assertIsArray($data);
+        self::assertIsArray($data['first']);
+        self::assertIsArray($data['second']);
         self::assertCount(600, $data['first']);
         self::assertLessThan(600, count($data['second']));
         self::assertSame('[redacted]', end($data['second']));
         self::assertSame('[redacted]', $data['password']);
+        self::assertArrayNotHasKey('later', $data);
         self::assertStringNotContainsString('secret', json_encode($data, JSON_THROW_ON_ERROR));
+        self::assertSame($payload, $original->normalize()['payload']);
     }
 
     public function testOccurrenceExtensionAttributesAreNotCoveredByConfiguredKeys(): void

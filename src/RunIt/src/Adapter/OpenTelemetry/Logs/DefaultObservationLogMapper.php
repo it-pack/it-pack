@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
@@ -27,7 +28,9 @@ use OpenTelemetry\API\Trace\Span;
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
-final readonly class DefaultObservationLogMapper implements ObservationLogMapperInterface
+final readonly class DefaultObservationLogMapper implements
+    ObservationLogMapperInterface,
+    RedactedObservationLogMapperInterface
 {
     public function __construct(
         private ?LoggerProviderInterface $loggerProvider,
@@ -38,19 +41,9 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
 
     public function map(ObservationInterface $observation): void
     {
-        if (!$this->loggerProvider instanceof LoggerProviderInterface) {
+        if (!$this->loggerProvider instanceof LoggerProviderInterface && !$this->mapToSpanEvents) {
             return;
         }
-
-        $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
-
-        $builder = $logger
-            ->logRecordBuilder()
-            ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
-            ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
-            ->setSeverityText($this->severityMap->toText($observation->severity()))
-            ->setBody($observation->message())
-        ;
 
         $attributes = $this->buildObservationAttributes(
             $observation->id()->toString(),
@@ -70,8 +63,17 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
             }
         }
 
-        $builder->setAttributes($attributes);
-        $builder->emit();
+        if ($this->loggerProvider instanceof LoggerProviderInterface) {
+            $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE)
+                ->logRecordBuilder()
+                ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
+                ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
+                ->setSeverityText($this->severityMap->toText($observation->severity()))
+                ->setBody($observation->message())
+                ->setAttributes($attributes)
+                ->emit()
+            ;
+        }
 
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $attributes);
@@ -83,30 +85,29 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
      */
     public function mapRedactedObservation(array $normalized): void
     {
-        if (!$this->loggerProvider instanceof LoggerProviderInterface) {
+        if (!$this->loggerProvider instanceof LoggerProviderInterface && !$this->mapToSpanEvents) {
             return;
         }
-
-        $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
 
         $message = $normalized[ArtifactField::MESSAGE] ?? $normalized[ArtifactField::NAME] ?? '';
         $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? 0;
         $timestamp = $normalized[ArtifactField::TIMESTAMP] ?? 0;
 
-        $builder = $logger
-            ->logRecordBuilder()
-            ->setTimestamp(is_int($timestamp) ? $timestamp * Duration::NANOS_PER_SECOND : 0)
-            ->setSeverityNumber($this->severityLevelToNumber(is_int($level) ? $level : 0))
-            ->setSeverityText($this->severityLevelToText(is_int($level) ? $level : 0))
-            ->setBody(is_string($message) ? $message : '')
-        ;
-
         $otelAttributes = $this->buildOtelAttributes($normalized);
 
         $this->appendThrowableAttributes($otelAttributes, $normalized[ArtifactField::THROWABLE] ?? null);
 
-        $builder->setAttributes($otelAttributes);
-        $builder->emit();
+        if ($this->loggerProvider instanceof LoggerProviderInterface) {
+            $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE)
+                ->logRecordBuilder()
+                ->setTimestamp(is_int($timestamp) ? $timestamp * Duration::NANOS_PER_SECOND : 0)
+                ->setSeverityNumber($this->severityLevelToNumber(is_int($level) ? $level : 0))
+                ->setSeverityText($this->severityLevelToText(is_int($level) ? $level : 0))
+                ->setBody(is_string($message) ? $message : '')
+                ->setAttributes($otelAttributes)
+                ->emit()
+            ;
+        }
 
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $otelAttributes);
@@ -200,12 +201,12 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
     private function severityLevelToNumber(int $level): int
     {
         return match (true) {
-            $level >= 600 => 26,
-            $level >= 550 => 25,
-            $level >= 500 => 23,
-            $level >= 400 => 21,
-            $level >= 300 => 17,
-            $level >= 250 => 13,
+            $level >= 600 => 23,
+            $level >= 550 => 22,
+            $level >= 500 => 21,
+            $level >= 400 => 17,
+            $level >= 300 => 13,
+            $level >= 250 => 10,
             $level >= 200 => 9,
             $level >= 100 => 5,
             default => 1,

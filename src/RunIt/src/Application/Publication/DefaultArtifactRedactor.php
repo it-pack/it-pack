@@ -22,18 +22,18 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
  *
  * Masking covers:
  *
- *  - attribute values whose key is in `sensitiveAttributeKeys` (the classified
- *    context surface carried by every artifact);
- *  - observation extension attributes whose key is in `sensitiveAttributeKeys`;
+ *  - top-level attribute and extension attribute values whose key is in
+ *    `sensitiveAttributeKeys`;
  *  - observation `message` when `redactObservationMessages` is enabled (default true);
- *  - throwable messages and traces, when enabled;
+ *  - throwable messages and causes, and omission of traces, when enabled;
  *  - measurement values, when enabled;
- *  - occurrence `data`, recursively, when enabled;
- *  - snapshot `payload`, recursively, when enabled;
- *  - snapshot attributes whose key is in `sensitiveAttributeKeys`.
+ *  - configured keys and throwable fields in occurrence `data` and snapshot
+ *    `payload`, recursively, when their respective options are enabled.
  *
  * Only configured fields and keys are masked; other normalized fields are not
- * validated or classified. Recursive traversal is bounded and may truncate data.
+ * validated or classified. Only arrays are traversed; recursive traversal is
+ * bounded and may replace or truncate data. A nested array named `throwable`
+ * is treated as a throwable projection regardless of its contents.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -244,9 +244,12 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
             return [$normalized, false];
         }
 
+        $nodes = 0;
         [$normalized[ArtifactField::DATA], $masked] = $this->maskKeysRecursive(
             $normalized[ArtifactField::DATA],
             $this->config->sensitiveDataKeys,
+            0,
+            $nodes,
             maskThrowables: $this->config->redactThrowableMessages,
         );
 
@@ -267,9 +270,12 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
             return [$normalized, false];
         }
 
+        $nodes = 0;
         [$normalized[ArtifactField::PAYLOAD], $masked] = $this->maskKeysRecursive(
             $normalized[ArtifactField::PAYLOAD],
             $this->config->sensitiveDataKeys,
+            0,
+            $nodes,
             maskThrowables: $this->config->redactThrowableMessages,
         );
 
@@ -300,17 +306,16 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
      * @param array<mixed, mixed> $data
      * @param list<string>        $keys
      * @param bool                $maskThrowables also mask nested throwable fields
-     * @param-out int             $nodes
+     * @param int                 $nodes cumulative traversal count
      * @return array{0: array<mixed, mixed>|string, 1: bool}
      */
     private function maskKeysRecursive(
         array $data,
         array $keys,
-        int $depth = 0,
-        ?int &$nodes = null,
+        int $depth,
+        int &$nodes,
         bool $maskThrowables = false
     ): array {
-        $nodes ??= 0;
         if ($depth >= self::MAX_MASKING_DEPTH || ++$nodes > self::MAX_MASKING_NODES) {
             return [$this->config->marker, true];
         }

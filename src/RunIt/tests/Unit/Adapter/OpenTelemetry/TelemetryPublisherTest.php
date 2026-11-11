@@ -7,7 +7,12 @@ namespace Tests\Unit\Adapter\OpenTelemetry;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
@@ -333,6 +338,64 @@ final class TelemetryPublisherTest extends Unit
         $publisher->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['ok' => true]));
 
         self::assertCount(3, $this->kit->logs());
+    }
+
+    /** Disabling observation logs does not disable span events or occurrence logs. */
+    public function testObservationLoggingCanBeDisabledIndependently(): void
+    {
+        $config = new BridgeConfigBuilder()
+            ->withLoggerProvider($this->kit->loggerProvider)
+            ->withObservationLogging(false)
+            ->withObservationSpanEvents(true)
+            ->withOccurrenceSpanEvents(false)
+            ->build()
+        ;
+        $publisher = TelemetryPublisher::fromConfig($config);
+        $observation = RunItArtifactFactory::observation(
+            'obs',
+            'exec',
+            'warning',
+            'secret',
+            attributes: ['password' => 'secret'],
+        );
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']))
+            ->redact($observation)
+        ;
+        $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
+        $scope = $span->activate();
+        try {
+            $publisher->publish($observation);
+            $publisher->publish($redacted);
+            $publisher->publish(RunItArtifactFactory::occurrence('occ', 'exec', 'execution.started.v1'));
+        } finally {
+            $scope->detach();
+            $span->end();
+        }
+
+        self::assertCount(1, $this->kit->logs());
+        $events = $this->kit->spans()[0]->getEvents();
+        self::assertCount(2, $events);
+        self::assertSame('[redacted]', $events[1]->getAttributes()->get('password'));
+    }
+
+    /** Legacy mappers receive typed observations but never unredacted fallback data. */
+    public function testLegacyObservationMapperDropsRedactedProjection(): void
+    {
+        $mapper = $this->createMock(ObservationLogMapperInterface::class);
+        $mapper->expects($this->once())->method('map');
+        $publisher = new TelemetryPublisher(
+            BridgeConfig::default(),
+            $this->createMock(ExecutionSpanMapperInterface::class),
+            $this->createMock(ActivitySpanMapperInterface::class),
+            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $mapper,
+            $this->createMock(OccurrenceLogMapperInterface::class),
+        );
+        $observation = RunItArtifactFactory::observation('obs', 'exec', 'info', 'secret');
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig())->redact($observation);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+        $publisher->publish($redacted);
+        $publisher->publish($observation);
     }
 
     /** Redacted observations are delivered as sanitized OpenTelemetry log records. */

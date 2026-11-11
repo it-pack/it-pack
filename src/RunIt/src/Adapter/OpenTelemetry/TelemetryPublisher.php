@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
@@ -69,7 +70,7 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
                 $config->metricAttributeAllowList,
             ),
             new DefaultObservationLogMapper(
-                $config->loggerProvider,
+                $config->mapObservationsToLogs ? $config->loggerProvider : null,
                 new SeverityMap(),
                 $config->mapObservationsToSpanEvents,
             ),
@@ -148,7 +149,9 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
             }
 
             if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
-                $this->observationMapper->mapRedactedObservation($normalized);
+                if ($this->observationMapper instanceof RedactedObservationLogMapperInterface) {
+                    $this->observationMapper->mapRedactedObservation($normalized);
+                }
 
                 return;
             }
