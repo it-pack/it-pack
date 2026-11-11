@@ -164,7 +164,12 @@ measurement-recorder failures, initial clock failures, failure reporting, a real
 runner or HTTP server. It is outside the normal suites and does not fix behavior.
 
 Run `php tests/target-policy-terminal-publication-regressions.php` separately
-for terminal publication failure injection. At starting revision `01cd9371`
+for terminal publication failure injection. On the worktree based on `0b072d80`,
+the harness passed on PHP 8.4.27 and 8.5.12 after terminal execution publication
+was moved before snapshot creation. It exercises fail-open cases and intentionally
+logs fallback notices for throwing health callbacks; it is not part of
+`composer quality` and does not establish delivery after publisher failures.
+Historically, at starting revision `01cd9371`
 with a clean worktree, PHP 8.4.27 and 8.5.12 each exited 1 with the same six
 existing target failures: a throwing snapshot factory prevents publication of
 the terminal execution, for both successful and failing operations. The new

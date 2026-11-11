@@ -60,8 +60,9 @@ data-exfiltration paths and applies defense-in-depth:
 
 The SDK builder installs `DefaultArtifactRedactor` unless explicitly overridden,
 but it does not currently protect every sensitive path. The default redactor
-examines a top-level `throwable`; failed executions normalize their throwable under
-`result.throwable`, which is not masked by that check. Configured payload-key
+examines a top-level `throwable` and a failed execution's `result.throwable`.
+It masks recognized string messages and traces, rather than omitting traces.
+Configured payload-key
 masking is deny-list based and the default key lists are empty. The default stack
 also invokes a configured sampler before the redactor, so samplers can see the
 original artifact. A changed artifact is represented by a generic projection,
@@ -74,16 +75,15 @@ attribute reaches the logger unchanged. Do not put secrets in nested attributes
 and rely on these key settings to remove them. A separate composed PSR-3 test
 shows that the observation's own message reaches the logger unchanged even
 when a configured attribute and its throwable message and trace are masked.
-These settings do not sanitize free-form observation messages.
+Message redaction is separately configurable and disabled by default.
 
 The current redactor matches configured keys exactly and case-sensitively. It
 walks arrays recursively only in occurrence `data` and snapshot `payload`, and
-only when the artifact implements the corresponding interface. Occurrence
-`extension_attributes`, other unknown fields, messages, identifiers, and values
-under unconfigured keys are not covered by that traversal. A unit characterization
-confirms that a matching key in occurrence extensions remains visible even when
-the same key in nested data is masked. Snapshot `content_hash` also remains the
-hash of the original payload after masking.
+only when the artifact implements the corresponding interface. Configured
+attribute keys also mask matching top-level occurrence extension and snapshot
+attributes, not nested entries. Unknown fields, identifiers, and values under
+unconfigured keys are not covered by that traversal. Snapshot `content_hash`
+also remains the hash of the original payload after masking.
 
 Built-in occurrence and snapshot constructors normally validate payload values;
 custom implementations must honor the bounded, recursively primitive
@@ -97,10 +97,9 @@ Even a finite, primitive custom projection can use an array-valued throwable
 trace: the current redactor masks string traces but leaves that array unchanged.
 The built-in throwable shape is not a validation guarantee for custom artifacts.
 
-A composed OpenTelemetry test confirms that the outer exception message and
-trace of a failed execution reach the exported span event with default redaction.
-The test's nested-cause markers did not appear in those two event fields; this
-does not establish that other fields or exporters are safe.
+A composed OpenTelemetry test checks that classified markers in a failed
+execution's throwable do not reach the tested span event under default redaction.
+This does not establish that other fields, custom projections, or exporters are safe.
 
 A separate OpenTelemetry characterization shows that an observation changed by
 the default redactor is silently dropped by the tested log and span-event paths,

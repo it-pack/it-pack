@@ -940,15 +940,17 @@ none of the approved target policies should be assumed implemented.
 `sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`.
 `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
 constructor arguments (both default `false` — observation-message redaction is opt-in,
-and failed-execution `result.throwable` remains unmasked by default). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+and failed-execution `result.throwable` is masked by default). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
 no longer exports `extension_attributes` from redacted occurrences to OTel sinks.
 Negative tests added to `RedactingPublisherTest`, `ObservationLoggerPublisherTest`,
 and `ExecutionSpanMapperTest` characterize secrets in outer messages, throwable chains,
 multiple previous causes, trace values, and opt-out configurations. Composed pipeline
 coverage extends to PSR-3 and OpenTelemetry with in-memory sinks asserting secrets absent.
 `composer quality` passes: CS, Rector dry-run, PHPStan at level max, architecture,
-lint:length, security audit; `composer api:check` passes with both baseline snapshots
-regenerated. New test files contain no pre-existing PHPStan offset-access or lint:length
+lint:length, security audit. On the later worktree based on `0b072d80`,
+`composer api:check` instead reports two added OpenTelemetry interface methods as
+breaking changes, along with their concrete implementations as additions; the
+baselines were not changed in that run. New test files contain no pre-existing PHPStan offset-access or lint:length
 violations beyond those already present in the codebase.
 
 Focused tests now cover nested observation throwable masking, preservation of
@@ -1198,7 +1200,11 @@ do not establish coverage for unavailable OpenSwoole or Swow extensions.
 - [ ] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
 - [ ] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
 - [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard artifact normalization and fallback reporting; verify runner outcomes and context restoration when either fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback retains its existing behavior.
-- [ ] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration.
+- [x] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration. On the worktree based on `0b072d80`, the focused suite passed on PHP 8.5.12 (25 tests, 116 assertions), and the separate target-policy harness passed on PHP 8.4.27 and 8.5.12. Execution publication now also precedes snapshot factory invocation; failing publishers cannot guarantee delivery.
+- On that worktree, `composer quality --quiet` passed on PHP 8.5.12. It does not
+  include the standalone target-policy harness, API checks, coverage, or benchmarks.
+  The API checker still reports the previously committed OpenTelemetry interface
+  additions as breaks; no baseline was changed.
 - [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
 - [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
 

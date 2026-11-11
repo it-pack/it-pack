@@ -109,8 +109,8 @@ enforced structurally by the aggregate:
 - **Default redactor:** `RunItBuilder::build()` now installs a default
   redactor unless `withRedactor()` was explicitly called — including the
   explicit opt-out `withRedactor(null)`. Matching top-level throwable messages
-  are masked on export, but failed execution `result.throwable` is not currently
-  covered, and configured sampling runs before redaction. Occurrence/snapshot
+  and failed execution `result.throwable` are masked, and configured sampling
+  runs before redaction. Occurrence/snapshot
   payload masking is key-driven via a custom redactor. See `SECURITY.md` for
   current limitations before relying on this behavior.
 - `BridgeConfig`/`BridgeConfigBuilder` gained

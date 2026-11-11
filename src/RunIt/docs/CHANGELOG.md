@@ -28,6 +28,10 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Publish the completed execution before creating its terminal snapshot, so a
+  snapshot factory failure no longer suppresses the terminal execution. A failed
+  execution publication prevents the terminal snapshot attempt. Consumers may
+  observe execution publication before the snapshot factory is invoked.
 - Swoole HTTP request reporting passes observation arguments positionally, so
   custom recorders may use different parameter names without breaking requests.
 - `CallbackHealthReporter` contains failures while extracting an artifact ID or
