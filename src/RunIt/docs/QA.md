@@ -110,6 +110,21 @@ success means the known observations were reproduced, not that isolation was
 enforced. Bootstrap and module initialization, exception cleanup, and interference
 between collectors sharing PCOV state remain unverified.
 
+At starting revision `630c14ca2447548108e585439c9780c222a0c80f`, the
+diagnostic was extended with marker-backed setup, teardown and `CoversNothing`
+controls. On PHP 8.5.12, `php tools/coverage-attribution/controls.php` exited 0
+because all ten expected observations were reproduced, not because isolation
+passed. Undeclared execution in setup and teardown still exited 0; their reports
+credited neither subject nor collaborator, despite the subject executing. A
+`CoversNothing` control credited one collaborator statement. Provider discovery
+and test-body leaks also exited 0, while the direct collector rejected its leak
+and accepted its declared collaborator. Reports were written under
+`/tmp/runit-attribution-a185e83ab1780cb0` and are temporary. No candidate has
+demonstrated the required discovery boundary and complete Unit-only isolation;
+bootstrap, modules, autoload, generators, failure cleanup, skips, subprocesses,
+missing-driver handling and collector interference remain incompletely tested.
+No attribution or threshold gate was installed.
+
 At revision `f1debe4a`, a separate temporary provider control executed an
 undeclared production collaborator during discovery; a marker confirmed the
 execution, but the strict Codeception coverage run exited 0. Per-test collection
@@ -153,6 +168,32 @@ invoking the aggregate `composer test` script. Respectively they passed 1,043,
 The threshold checker regression command passed 17 synthetic controls. None of
 these results proves per-test attribution or report provenance.
 
+At starting revision `630c14ca2447548108e585439c9780c222a0c80f`, initially
+clean, PHP 8.5.12 with PCOV 1.0.12 produced a Unit-only report of 4,127/4,346
+statements (94.96%); `tests/target-policy-coverage.php` exited 1. The command was
+`composer coverage -- --no-rebuild --override 'paths: {output: /tmp/kilo/runit-baseline-630c14ca}'`.
+The aggregate `composer test` exited 0: Unit 1,043 tests/6,528 assertions,
+Integration 3/21, Conformance 52/111 and Concurrency 8/172. Concurrent edits
+and overlapping quality runs mean these results are not an immutable-checkout
+baseline. The temporary report is not a CI artifact and does not prove
+attribution, isolation or branch coverage. PHP 8.4 was not included in this
+coverage run.
+
+Separately, `php8.4 vendor/bin/codecept run Unit --no-rebuild --silent` and
+the corresponding `Concurrency` command exited 0 on PHP 8.4.27. The silent
+mode does not supply suite counts here and these runs did not measure coverage.
+The expanded attribution diagnostic reproduced all ten observations on both
+PHP 8.4.27 and 8.5.12; its exit 0 remains diagnostic, not an enforcement pass.
+
+On that run, validation, Rector dry-run before style, PHPStan, architecture,
+line-length, and both configured security audits passed. The full audit reported
+abandoned development dependency `doctrine/annotations` and no vulnerability
+advisories. Global PhpMetrics 2.10.0 ran on `src`; PHP Assumptions was unavailable.
+The recorded `composer api:check` exited 1 with two interface breaks and two
+concrete additions, not a passing compatibility result. Neither snapshot was
+regenerated. Results and logs under `/tmp/kilo/runit-baseline-630c14ca/` are
+temporary; OpenSwoole and Swow were not loaded.
+
 ### Target-policy regressions
 
 At starting revision `22f51cfd17fed90f1a78af9d87b3662c8928a4ce`,
@@ -174,6 +215,15 @@ the approved report-on-unsafe-mapping outcome. The health-report destination,
 nullable-callback compatibility, invalid-estimate and oversized-item policies
 are not settled by these controls. Runtime integration, exporter, configuration
 and adapter failure-path evidence remains incomplete.
+
+The same standalone commands were rerun against starting revision `630c14ca`
+on PHP 8.4.27 and 8.5.12 with the same failure counts. The core 40 comprise
+six trace-omission, six sampling/routing, one recursive-reporting, and 27 buffer
+bound/accounting checks. Token ownership controls and declared-concurrency
+validation pass their focused tests; neither proves external-token migration or
+every integration/storage pairing. The retained synchronous default is not
+required to isolate interleaved Fibers. Missing reporting seams and unresolved
+policy decisions above must not be replaced with invented target behavior.
 
 The normal Unit file `tests/Unit/Application/Publication/RedactingPublisherTest.php`
 also characterizes a failed execution nested in a snapshot payload. At clean

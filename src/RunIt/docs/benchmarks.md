@@ -43,17 +43,48 @@ their different fixtures and methods do not support direct comparisons.
 | --- | --- | --- |
 | Synchronous attach/detach and lookup | `ContextStorageBench`, stack and composite, depths 0 and 63 | No coroutine detector or realistic scheduling |
 | Fiber attach/detach | `FiberContextStorageBench`, two interleaved Fibers at depths 1 and 63 | Switches included; other scheduling not covered |
-| Fiber lookup | `tools/runtime-context-benchmark.php`, depths 0 and 63 | No interleaved lookup |
+| Fiber lookup | `tools/runtime-context-benchmark.php`; `FiberContextStorageBench` interleaved at depths 1 and 63 | Checks only the last lookup in each Fiber |
 | Swoole attach/detach and lookup | `tools/runtime-context-benchmark.php`, depths 0 and 63 | No interleaving, OpenSwoole or Swow measurement |
 | Buffer admission | `BufferedAdmissionBench`, two nested snapshot sizes, real estimator | No concurrent traffic |
 | Count and byte overflow | `BufferedOverflowBench`, equal-sized snapshots and real estimator; historical priority harness below | Priority cases not durable; limited strategies and fixture sizes; projected byte admission unmeasured |
-| Drain and close | `BufferedFlushBench` times one 256-item batch and full-budget close; historical temporary harness also times limited close | Repeated flush and limited-budget close lack durable timed workloads |
-| Publication, sampling and redaction | `ExecutionBench::benchRedaction`; `NestedSnapshotBench` measures configured masking separately | Sampling uses always-sample; no sampled-out or realistic traffic mix |
+| Drain and close | `BufferedFlushBench` times single and repeated flush, full- and limited-budget close | Synthetic in-memory sink, no concurrent traffic |
+| Publication, sampling and redaction | `ExecutionBench::benchRedaction`; `NestedSnapshotBench`; `SampledOutBench` | No representative mixed traffic |
 | Serialization, nested artifacts | `NestedSnapshotBench` and `CloudEventBench` | No real export I/O or broad artifact distribution |
 
 Memory profiling and real traffic are unmeasured for this matrix. Historical
 temporary scripts are not guaranteed to exist; missing durable cases remain open.
 Phase 0 is not complete merely because this inventory exists.
+
+### Additional durable workloads (2026-11-11)
+
+At revision `630c14ca2447548108e585439c9780c222a0c80f` with benchmark changes,
+PHPBench 1.7.0 ran on PHP 8.5.12 CLI NTS, x86-64 WSL2 with four virtual CPUs.
+CLI OPcache, JIT and PCOV were disabled; Xdebug was absent. Run from this package:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedFlushBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/FiberContextStorageBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/SampledOutBench.php --config=phpbench.json --report=aggregate
+```
+
+| Workload | Mode | Relative standard deviation |
+| --- | ---: | ---: |
+| Four 256-item flushes | 2,828.501 µs/batch | 70.62% |
+| Limited-budget close, 1,024 items | 1,918.221 µs/close | 14.80% |
+| Two interleaved Fiber lookups, depth 1 | 2.262 µs/pair | 34.67% |
+| Two interleaved Fiber lookups, depth 63 | 2.635 µs/pair | 34.33% |
+| 128 sampled-out publications | 48.182 µs/batch | 10.51% |
+
+Buffer and sampled-out workloads used ten one-revolution iterations without
+warmups; Fiber used ten iterations of 10,000 revolutions after two warmups.
+Untimed checks verify delivery, drops and accounting, Fiber cleanup and the last
+lookup, and sampled-out sink behavior with a sampled-in positive control. The
+shared host was unpinned and unisolated; the sampled-out repeat overlapped other
+checks. Approximate process peaks were 10.5, 9.0 and 8.5 MB respectively, not
+per-operation memory profiles. These synthetic, variable measurements are not
+thresholds, production throughput or controlled comparisons. Durable mixed-size
+priority and projected-byte overflow, representative mixed publication, real
+export I/O and additional runtime adapters remain unmeasured; Phase 0 stays open.
 
 ### Full-budget close measurement (2026-11-11)
 

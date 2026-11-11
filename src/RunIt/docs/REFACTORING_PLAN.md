@@ -340,6 +340,22 @@ Unit-only CI gate and verified per-test attribution and isolation must be blocki
 and demonstrated. These coverage requirements are brought forward from Phase 6;
 delivering them here does not complete Phase 6.
 
+**Status at `630c14ca` (work in progress):** Phase 0 remains open. The expanded
+attribution diagnostic confirms that Codeception accepts undeclared setup and
+teardown execution and credits a collaborator in a `CoversNothing` case. Its
+successful exit reproduces these defects; it is not a gate. A safe discovery
+boundary and per-test isolation have not been demonstrated. The threshold
+checker alone cannot establish provenance, and no blocking 95% Unit-only CI gate
+has been installed. See `docs/QA.md` for commands and limitations.
+
+The separate `composer api:check` at this revision exits 1: adding
+`ActivitySpanMapperInterface::mapRedactedActivity()` and
+`ExecutionSpanMapperInterface::mapRedactedExecution()` breaks third-party
+implementers, and both corresponding default mapper methods are additions.
+The API and normalization-schema snapshots exist and were not regenerated.
+Remediation requires the documented contract review and consumer migration;
+this discrepancy is not itself a literal Phase 0 exit criterion.
+
 ### Phase 0 compatibility reference
 
 At starting revision [`f1b49169387ea4e736b5a410084ed011c7c71711`](https://github.com/it-pack/it-pack/commit/f1b49169387ea4e736b5a410084ed011c7c71711), the
@@ -431,6 +447,24 @@ The originally reported token break is approved, not erased. Coverage enforcemen
 is required for Phase 0 exit as well as tracked in Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
+
+At starting revision `630c14ca`, the standalone targets in `docs/QA.md` were
+rerun on PHP 8.4.27 and 8.5.12. The core, PSR-3 and OpenTelemetry targets
+independently demonstrate default trace-omission failures; sampling and routing
+targets demonstrate unredacted input reaching sampling; buffer targets cover
+oversized, projected and integer-boundary admission; the recursive-reporting
+target fails while the terminal-publication control passes. The separate PSR-15
+and Swoole HTTP targets expose business-outcome failures with controlled fakes,
+not live I/O. These are target failures rather than normal-suite assertions.
+
+The token interface break and synchronous default are approved, so a target
+requiring the old interface or Fiber isolation from the synchronous stack would
+assert the wrong policy. Focused ownership and validation tests pass, but external
+consumer migration and actual runtime/storage pairings still require evidence.
+The redacted-observation delivery-or-report target cannot yet be isolated without
+a reporting seam; forcing delivery would exclude the approved report alternative.
+Export configuration, typed routing, priority/disposition combinations, other
+adapters and verified coverage provenance remain incomplete.
 
 ### Publication failure evidence
 

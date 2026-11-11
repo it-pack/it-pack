@@ -46,10 +46,14 @@ foreach ([
     'testMissingMetadata' => [0, 1],
     'testUndeclaredExecution' => [0, 0],
     'testProviderDiscovery' => [1, 0],
+    'testSetupLeak' => [0, 0],
+    'testTeardownLeak' => [0, 0],
+    'testCoversNothingExecution' => [0, 1],
 ] as $test => $expectedCoverage) {
     $report = $temporary . '/' . $test . '.xml';
     $marker = $temporary . '/' . $test . '-provider-marker';
     $environment['ATTRIBUTION_PROVIDER_MARKER'] = $marker;
+    $environment['ATTRIBUTION_LIFECYCLE_MARKER'] = $marker;
     $command = [
         ...$runner, '--override', 'paths: output: ' . $temporary, '--filter', $test,
         '--coverage', '--coverage-xml=' . $report, '--no-colors',
@@ -60,6 +64,15 @@ foreach ([
         }
         if ($test === 'testProviderDiscovery'
             && (!is_file($marker) || file_get_contents($marker) !== "provider executed\n")) {
+            return false;
+        }
+        $lifecycleMarkers = [
+            'testSetupLeak' => 'setup',
+            'testTeardownLeak' => 'teardown',
+            'testCoversNothingExecution' => 'covers-nothing',
+        ];
+        if (isset($lifecycleMarkers[$test])
+            && (!is_file($marker) || file_get_contents($marker) !== $lifecycleMarkers[$test])) {
             return false;
         }
         $xml = simplexml_load_file($report);
@@ -85,4 +98,5 @@ foreach (['leak' => 1, 'allowed' => 0] as $case => $expected) {
 fwrite(STDOUT, "Reports and provider marker retained in $temporary\n");
 fwrite(STDOUT, "Codeception accepting the leak and provider controls is an observed enforcement failure, "
     . "not proof of isolation.\n");
+fwrite(STDOUT, "Lifecycle leaks discard subject coverage; CoversNothing credits the collaborator.\n");
 exit($failures === 0 ? 0 : 1);

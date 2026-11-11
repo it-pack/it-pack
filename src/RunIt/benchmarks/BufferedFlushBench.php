@@ -47,7 +47,7 @@ final class BufferedFlushBench
 
     private int $remainingBytes;
 
-    private bool $closed;
+    private string $operation;
 
     public function setUp(): void
     {
@@ -61,7 +61,7 @@ final class BufferedFlushBench
         );
         $this->items = [];
         $this->remainingBytes = 0;
-        $this->closed = false;
+        $this->operation = 'flush';
         $hash = new DeterministicHashCalculator();
         for ($i = 0; $i < self::ITEMS; ++$i) {
             $item = Snapshot::create(
@@ -92,12 +92,57 @@ final class BufferedFlushBench
     public function benchClose(): void
     {
         $this->publisher->close();
-        $this->closed = true;
+        $this->operation = 'close';
+    }
+
+    /** Drain the entire buffer in four bounded batches. */
+    #[Subject]
+    public function benchRepeatedFlush(): void
+    {
+        for ($i = 0; $i < self::ITEMS / self::BATCH; ++$i) {
+            $this->publisher->flush();
+        }
+        $this->operation = 'close';
+    }
+
+    /** Prepare the same buffer with a limited shutdown delivery budget. */
+    public function limitedSetup(): void
+    {
+        $this->setUp();
+        $estimator = new DefaultArtifactByteEstimator();
+        $this->sink = new InMemoryArtifactPublisher();
+        $this->publisher = new BufferedArtifactPublisher(
+            new BufferConfiguration(self::ITEMS, 8 * 1024 * 1024, 3600, self::BATCH, 0, self::BATCH, OverflowStrategy::Fail),
+            $this->sink,
+            new SystemMonotonicClock(),
+            $estimator,
+        );
+        foreach ($this->items as $item) {
+            $this->publisher->publish($item);
+        }
+    }
+
+    /** Close and drop items beyond the limited shutdown budget. */
+    #[Subject, BeforeMethods('limitedSetup')]
+    public function benchLimitedClose(): void
+    {
+        $this->publisher->close();
+        $this->operation = 'limited';
     }
 
     public function verify(): void
     {
-        if (!$this->closed) {
+        if ($this->operation === 'limited') {
+            if ($this->sink->published() !== array_slice($this->items, 0, self::BATCH)
+                || $this->publisher->bufferedCount() !== 0 || $this->publisher->estimatedBytes() !== 0
+                || $this->publisher->droppedCount() !== self::ITEMS - self::BATCH
+            ) {
+                throw new RuntimeException('Limited close delivery or accounting mismatch.');
+            }
+
+            return;
+        }
+        if ($this->operation === 'flush') {
             if ($this->sink->published() !== array_slice($this->items, 0, self::BATCH)
                 || $this->publisher->bufferedCount() !== self::ITEMS - self::BATCH
                 || $this->publisher->estimatedBytes() !== $this->remainingBytes
