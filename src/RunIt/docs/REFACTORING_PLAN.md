@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 incomplete; dependent phases pending).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; dependent phases pending).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -174,24 +174,35 @@ provider execution or real-suite attribution and is not a CI gate.
 
 ## Phase 0: Baseline and safety net
 
-**Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
+**Depends on:** none. **Outcome:** documented baseline and isolated regression targets. **Status: Complete** (2026-11-11), with limitations and follow-ups below.
 
-**Current exit blockers:** Per-test attribution is not enforced: a discovery-time
-provider can execute production code before per-test collection without failing
-the tested strict-coverage control. The real-suite metadata audit and blocking
-Unit-only 95% CI gate are consequently not established; the fresh Unit report
-measured 4,127/4,346 statements (94.96%), below 95%. The benchmark matrix
-also has non-durable or unavailable workloads; see `benchmarks.md`. The separate
-OpenTelemetry mapper contract breaks remain unapproved and the API check fails;
-no snapshot update is implied by recording that failure. See `QA.md` for the
-attribution controls and limitations.
+**Completion and follow-ups:** Coverage enforcement, attribution, discovery
+isolation and the 95% Unit-only CI gate belong to Phase 6, not Phase 0. The
+recorded Unit result is 4,127/4,346 statements (94.96%); it is not an enforced
+gate or immutable-checkout evidence. The benchmark matrix records available
+measurements and explicit gaps, not a complete or production-representative
+performance model. Missing workloads remain follow-ups for the affected phases.
+The OpenTelemetry mapper contract breaks remain unapproved and the API check
+fails; closing Phase 0 does not approve a contract or snapshot change.
+
+Before comparing or changing an affected hot path in Phases 2-5, capture its
+missing baseline where practical: mixed-size and priority/projected-byte buffer
+overflow, representative publication mixes, real export I/O, runtime-specific
+interleaving and dedicated memory profiles. Record unavailable adapters and host
+variance rather than extrapolating from the existing synthetic measurements.
+The redacted-observation reporting seam and remaining integration pairings stay
+open in their respective phases.
 
 - [x] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
 - [x] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
 - [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
 - [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
-- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
+- [x] Record baseline compatibility and available hot-path benchmarks before further changes. The [compatibility reference](#phase-0-compatibility-reference) and `docs/benchmarks.md` record workload, environment, variance and missing cases; see the follow-ups below before drawing comparisons for unmeasured workloads.
+
+**Historical evidence:** The dated entries below describe the status at the time
+of each run. Statements in those entries that Phase 0 remained open are historical
+and do not supersede the completion and follow-ups recorded above.
 
 On 2026-11-11, baseline checks started from clean revision
 `22f51cfd17fed90f1a78af9d87b3662c8928a4ce` using PHP 8.5.12, Composer 2.9.7,
@@ -333,12 +344,12 @@ this test, benchmark and documentation work.
 - The current `RedactingPublisherTest::testNestedThrowableSecretsAreRedacted` checks that classified markers are absent from a published observation; it passed on 2026-11-06 (7 tests in the focused suite). This does not verify failed-execution or adapter export paths.
 - Other available fixtures include `DeterministicMonotonicClock`, `ThrowingArtifactPublisher`, throwing health callbacks in `ResilienceTest`, and the independent `RunItThirdPartySample` token. Full custom-token ownership regression coverage remains a Phase 1 task.
 
-**Exit:** baseline commands and limitations are recorded; each high-priority issue
-has a reproducible failing target or an evidence-based reason it cannot yet be
-constructed. The representative benchmark matrix must be recorded, and the 95%
-Unit-only CI gate and verified per-test attribution and isolation must be blocking
-and demonstrated. These coverage requirements are brought forward from Phase 6;
-delivering them here does not complete Phase 6.
+**Exit:** baseline commands, available benchmark matrix and limitations are
+recorded; each high-priority issue has a reproducible target or an evidence-based
+reason it cannot yet be constructed. The recorded matrix is accepted as the
+Phase 0 baseline with its explicitly documented gaps, not as proof of complete
+or representative performance. Coverage enforcement and isolation are Phase 6
+exit requirements.
 
 **Status at `630c14ca` (work in progress):** Phase 0 remains open. The expanded
 attribution diagnostic confirms that Codeception accepts undeclared setup and
@@ -440,11 +451,11 @@ failure-path coverage for other adapters or complete Phase 0.
 | Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                                 | Complete target-invariant matrix and approved edge semantics.                                           |
 | Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                                       | Phase 4 default destination, compatibility and regression matrix.                                       |
 | Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                                      | Final migration, versioning and API-check verification for external implementers.                       |
-| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate are required for Phase 0 exit.        |
+| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate are required for Phase 6 exit.        |
 | Synchronous context under concurrency    | [Shared stack reproduces Fiber B seeing Fiber A's scope and parent ID](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L33); [Fiber storage isolates interleaved scopes](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L66). See the [approved boundary](#decisions-required-before-dependent-changes). | Builder validation has focused tests; all integration pairings are not verified. OpenSwoole and Swow unavailable. |
 
 The originally reported token break is approved, not erased. Coverage enforcement
-is required for Phase 0 exit as well as tracked in Phase 6. Neither a nonzero baseline gate nor aggregate
+is tracked in Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
 
@@ -1014,7 +1025,7 @@ lint:length all pass. Production `src/Conformance/Verifier/RedactorVerifier.php`
 was also updated to compare normalized execution IDs across redaction results
 instead of requiring `ExecutionOwnedInterface`, so `RedactedArtifact` wrappers
 are checked for execution reassignment while generic wrappers without an
-execution ID remain accepted. Phase 0 exit criteria (95% CI gate, attribution
+execution ID remain accepted. Phase 6 exit criteria (95% CI gate, attribution
 control, isolation verification) remain open.
 
 ## Phase 1: Compatibility and context ownership
@@ -1032,7 +1043,7 @@ control, isolation verification) remain open.
 
 **Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
 
-**Progress:** The builder and integration guides explain the synchronous default and explicit Fiber/coroutine storage. The Swoole example retains the immutable builder returned by `withContextStorage()`. The Fiber concurrency suite demonstrates default-stack interleaving, verifies nested parent identity and failure restoration, and covers a second execution on the same Fiber while another Fiber is suspended. Remaining runtime-specific cases are tracked below. The Fiber engine does not automatically propagate caller-local ambient scope into its new Fiber; the operation receives the explicit scope instead. Phase 0 remains open. The approved `id()` break is recorded in the changelog and API baseline; current RunIt, AsyncIt and RunItThirdPartySample token implementations already declare the method. Composite-token tests exercise delegation and ownership with custom tokens.
+**Progress:** The builder and integration guides explain the synchronous default and explicit Fiber/coroutine storage. The Swoole example retains the immutable builder returned by `withContextStorage()`. The Fiber concurrency suite demonstrates default-stack interleaving, verifies nested parent identity and failure restoration, and covers a second execution on the same Fiber while another Fiber is suspended. Remaining runtime-specific cases are tracked below. The Fiber engine does not automatically propagate caller-local ambient scope into its new Fiber; the operation receives the explicit scope instead. Phase 0 is complete with documented limitations. The approved `id()` break is recorded in the changelog and API baseline; current RunIt, AsyncIt and RunItThirdPartySample token implementations already declare the method. Composite-token tests exercise delegation and ownership with custom tokens.
 
 **Concurrency validation boundary (implemented):** `RunItBuilder::build()` now rejects a shared `StackContextStorage` paired with an engine whose `EngineCapability::concurrent` is `true`, throwing `IncompatibleContextStorageException` with an actionable message directing the consumer to runtime-isolated storage. The check runs before any attach and cannot be overridden. An opt-in `withConcurrencyValidator(?Closure)` seam is declared on `ExtendedRunItBuilderInterface` (which extends `RunItBuilderInterface`) and implemented by `RunItBuilder`, so custom builder implementations are not required to add the method. Tests cover: non-concurrent engine with default stack (accepted), concurrent engine with shared stack (rejected by built-in check), concurrent engine with `FiberContextStorage` (accepted), concurrent engine with isolated storage + rejecting validator (rejected by custom validator), concurrent engine with shared stack + accepting validator (rejected — built-in check runs first and cannot be overridden), validator receiving capability and storage, exception message content identifying the pairing, and the interface hierarchy (`ExtendedRunItBuilderInterface extends RunItBuilderInterface`; `RunItBuilderInterface` does not declare `withConcurrencyValidator`). `composer api:check` passes with both baseline snapshots regenerated; `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, and all four test suites pass.
 
@@ -1078,11 +1089,11 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 - [#40: Context ownership and runtime validation](issues/phase-1-runtime-validation.md) — Phase 0 evidence, supported runtime coverage, remaining isolation cases and configuration validation.
 - [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — reproduce and resolve outstanding quality and API-check results.
 
-**Next work:** Proceed with Phase 2 preparatory mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 and the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done; keep the tracked follow-ups open until their acceptance criteria are met.
+**Next work:** Proceed with Phase 2 mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 is complete; the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done. Keep the tracked follow-ups open until their acceptance criteria are met.
 
 ## Phase 2: Publication security and artifact routing
 
-**Depends on:** Phase 0 and the redaction/routing decisions; preparatory mapping and regression tests may proceed while the tracked Phase 0/1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
+**Depends on:** Phase 0 and the redaction/routing decisions; mapping and regression tests may proceed while tracked Phase 1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
 
 **Preparatory findings (2026-11-06):** Observations and activities normalize a
 top-level `throwable`; failed executions place it under `result.throwable`.
@@ -1126,7 +1137,8 @@ with configured masking. Failed execution protection, trace omission, and
 composed OpenTelemetry export remain unverified or known not to meet the target.
 At revision `4ed686910a41005d2df3b2bd9d430181f4cf6240` on PHP 8.5.12, the
 Unit suite passed (839 tests, 5747 assertions); `composer api:check` reported no
-breaks but exited nonzero for ten existing additions. Phase 0 remains incomplete.
+breaks but exited nonzero for ten existing additions. This is a historical result;
+the later mapper-interface breaks and Phase 0 completion are recorded above.
 The subsequent `composer quality` stopped at Rector's existing callable-fixture
 suggestion; `composer cs:check` passed, `composer analyse` reported 147 errors,
 and `composer lint:length` reported 26 violations. Both focused redaction test
@@ -1439,6 +1451,17 @@ open.
 ## Phase 6: Coverage, QA, architecture, and dependency maintenance
 
 **Depends on:** Phase 0; security/lifecycle tests from Phases 1-5 contribute to the floor. **Review:** unit coverage, attribution, failed gates, architecture scope, and abandoned dependency.
+
+**Coverage handoff:** The 95% Unit-only gate, per-test attribution, isolation,
+report provenance and discovery-time prohibition are deferred here in full.
+The current diagnostic intentionally succeeds when it reproduces leaks; it is
+not a passing isolation gate. Production execution during Unit provider discovery
+remains prohibited: providers may supply data and deferred factories, with
+production construction and calls performed in the test. Verify enforcement
+across provider attributes, named datasets, bootstrap, modules, autoload,
+generators and failures, and fail closed when the coverage driver is unavailable.
+Do not install a CI gate until negative controls, correct suite selection, source
+filtering, collector cleanup and isolation from other suites are demonstrated.
 
 - [ ] Re-run `composer coverage` with PCOV against Unit only; parse the resulting statement numerator and denominator. Prioritize uncovered security, lifecycle, error handling, boundary, and adapter code rather than padding tests for a percentage.
 - [ ] Add focused Unit tests until statement coverage is **at least 95%** over the agreed production source set. Keep integration, conformance, and concurrency tests in their own suites; document environment-dependent unreachable branches and do not silently exclude them to make the floor pass.

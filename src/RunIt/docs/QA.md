@@ -54,7 +54,7 @@ On PHP 8.5.12 with the same starting revision and a dirty worktree, the
 isolated `CommitItRunit` test passed all 33 cases after checkout verification;
 these adapter tests do not establish coverage of every real execution path.
 
-### Statement coverage (Phase 0, T0.4 of the 2026-08-25 plan)
+### Statement coverage (Phase 6; formerly Phase 0, T0.4)
 
 `composer coverage` measures the Unit suite only. The former combined-suite
 95.24% figure from 2026-08-25 is historical and does not establish Unit-only
@@ -135,7 +135,7 @@ direct control. These experiments used `/tmp/kilo/runit-attribution-experiment/`
 and are not durable CI controls; they do not establish complete source filtering,
 failure-path cleanup or suite isolation. A gate must observe provider execution
 or enforce a tested prohibition on production execution there before adoption.
-The 95% threshold and per-test attribution remain required for Phase 0, not
+The 95% threshold and per-test attribution remain required for Phase 6, not
 currently enforced CI guarantees.
 
 The standalone preparatory threshold control accepts an explicit Clover report:

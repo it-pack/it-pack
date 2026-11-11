@@ -53,7 +53,10 @@ their different fixtures and methods do not support direct comparisons.
 
 Memory profiling and real traffic are unmeasured for this matrix. Historical
 temporary scripts are not guaranteed to exist; missing durable cases remain open.
-Phase 0 is not complete merely because this inventory exists.
+Phase 0 accepts this documented baseline with its gaps; missing measurements
+remain follow-ups and must not be presented as completed or representative.
+Later statements about Phase 0 remaining open describe the historical status at
+the time of those measurements and are superseded by the refactoring plan.
 
 ### Additional durable workloads (2026-11-11)
 
