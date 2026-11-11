@@ -273,6 +273,36 @@ foreach (OverflowStrategy::cases() as $strategy) {
     }
 }
 
+foreach ([OverflowStrategy::DropOldest, OverflowStrategy::DropLowPriority] as $strategy) {
+    $buffer = new BufferedArtifactPublisher(
+        new BufferConfiguration(
+            maxItems: 10,
+            maxEstimatedBytes: 100,
+            maxAgeSeconds: 60,
+            batchSize: 10,
+            flushIntervalSeconds: 5,
+            shutdownFlushBudget: 10,
+            overflow: $strategy,
+        ),
+        new InMemoryArtifactPublisher(),
+        new DeterministicMonotonicClock(1000, 0),
+        new DeterministicArtifactByteEstimator(30, ['large' => 80]),
+    );
+    foreach (['first', 'second', 'large'] as $itemId) {
+        try {
+            $buffer->publish(Observation::info(ObservationId::fromString($itemId), $id, 'synthetic'));
+        } catch (BufferOverflowException) {
+            // Rejection or dropping is permitted as long as the bound holds.
+        }
+
+        $check($buffer->estimatedBytes() <= 100, "{$strategy->name} multiple-eviction bound after $itemId");
+    }
+
+    $buffer->flush();
+    $check($buffer->bufferedCount() === 0, "{$strategy->name} multiple-eviction buffer clears after flush");
+    $check($buffer->estimatedBytes() === 0, "{$strategy->name} multiple-eviction accounting clears after flush");
+}
+
 foreach (OverflowStrategy::cases() as $strategy) {
     $sink = new InMemoryArtifactPublisher();
     $buffer = new BufferedArtifactPublisher(

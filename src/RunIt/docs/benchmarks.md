@@ -25,7 +25,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 | Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
 | Buffered overflow             | `BufferedOverflowBench`            | Count- and byte-triggered DropOldest batches                        |
-| Buffered batch flush          | `BufferedFlushBench`               | One 256-item flush from a full 1,024-item buffer                    |
+| Buffered flush and close      | `BufferedFlushBench`               | One 256-item flush or full-budget close of 1,024 items              |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
 | Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach and lookup at two depths          |
@@ -47,13 +47,45 @@ their different fixtures and methods do not support direct comparisons.
 | Swoole attach/detach and lookup | `tools/runtime-context-benchmark.php`, depths 0 and 63 | No interleaving, OpenSwoole or Swow measurement |
 | Buffer admission | `BufferedAdmissionBench`, two nested snapshot sizes, real estimator | No concurrent traffic |
 | Count and byte overflow | `BufferedOverflowBench`, equal-sized snapshots and real estimator; historical priority harness below | Priority cases not durable; limited strategies and fixture sizes; projected byte admission unmeasured |
-| Drain and close | `BufferedFlushBench` times one 256-item batch; historical temporary harness times full and limited close | Close and full drain lack durable timed workloads |
+| Drain and close | `BufferedFlushBench` times one 256-item batch and full-budget close; historical temporary harness also times limited close | Repeated flush and limited-budget close lack durable timed workloads |
 | Publication, sampling and redaction | `ExecutionBench::benchRedaction`; `NestedSnapshotBench` measures configured masking separately | Sampling uses always-sample; no sampled-out or realistic traffic mix |
 | Serialization, nested artifacts | `NestedSnapshotBench` and `CloudEventBench` | No real export I/O or broad artifact distribution |
 
 Memory profiling and real traffic are unmeasured for this matrix. Historical
 temporary scripts are not guaranteed to exist; missing durable cases remain open.
 Phase 0 is not complete merely because this inventory exists.
+
+### Full-budget close measurement (2026-11-11)
+
+At clean starting revision `22f51cfd17fed90f1a78af9d87b3662c8928a4ce`,
+with the benchmark change in the worktree, run from the package directory:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedFlushBench.php --config=phpbench.json --report=aggregate
+```
+
+PHPBench 1.7.0 used PHP 8.5.12 CLI NTS, with Xdebug absent and CLI OPcache,
+JIT and PCOV disabled, on an x86-64 Microsoft-hypervisor guest with four virtual
+CPUs on an Intel Core i7-9700. The existing fixture pre-fills 1,024 distinct small
+snapshots using the real byte estimator, a system clock, 8 MiB byte limit,
+256-item batch and in-memory sink; setup is outside timing. The close subject
+times one `close()` with a 1,024-item shutdown budget. Its verification hook
+checks exact FIFO delivery, zero buffered items and bytes, and zero drops.
+The flush subject times one batch and checks its remaining accounting before an
+untimed close. Ten iterations with one revolution and no warmups ran in fixed
+subject order; both hooks passed, although PHPBench reports zero assertions.
+
+| Operation | Mode per operation | Relative standard deviation |
+| --- | ---: | ---: |
+| Flush 256 items | 808.777 µs | 166.10% |
+| Full-budget close, 1,024 items | 2,117.933 µs | 42.17% |
+
+The shared host was not pinned or isolated. These highly variable synthetic
+measurements include clock and in-memory delivery, not actual export I/O, and
+exclude admission, overflow, expiration, concurrency, failure paths, memory
+profiling and limited-budget close. They are not thresholds, production
+throughput or controlled comparisons with historical temporary workloads. The
+broader benchmark matrix and Phase 0 remain open.
 
 ### Durable overflow and runtime workloads (2026-11-11)
 

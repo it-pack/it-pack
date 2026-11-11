@@ -25,7 +25,7 @@ use PhpBench\Attributes\Subject;
 use PhpBench\Attributes\Warmup;
 use RuntimeException;
 
-/** Measures one bounded flush from a full buffer. */
+/** Measures a bounded flush and full-budget close from a full buffer. */
 #[OutputTimeUnit('microseconds')]
 #[Warmup(0)]
 #[Iterations(10)]
@@ -47,6 +47,8 @@ final class BufferedFlushBench
 
     private int $remainingBytes;
 
+    private bool $closed;
+
     public function setUp(): void
     {
         $estimator = new DefaultArtifactByteEstimator();
@@ -59,6 +61,7 @@ final class BufferedFlushBench
         );
         $this->items = [];
         $this->remainingBytes = 0;
+        $this->closed = false;
         $hash = new DeterministicHashCalculator();
         for ($i = 0; $i < self::ITEMS; ++$i) {
             $item = Snapshot::create(
@@ -84,17 +87,27 @@ final class BufferedFlushBench
         $this->publisher->flush();
     }
 
+    #[Subject]
+    /** Closes the prefilled buffer with a full delivery budget. */
+    public function benchClose(): void
+    {
+        $this->publisher->close();
+        $this->closed = true;
+    }
+
     public function verify(): void
     {
-        if ($this->sink->published() !== array_slice($this->items, 0, self::BATCH)
-            || $this->publisher->bufferedCount() !== self::ITEMS - self::BATCH
-            || $this->publisher->estimatedBytes() !== $this->remainingBytes
-            || $this->publisher->droppedCount() !== 0
-        ) {
-            throw new RuntimeException('Buffered flush batch or accounting mismatch.');
-        }
+        if (!$this->closed) {
+            if ($this->sink->published() !== array_slice($this->items, 0, self::BATCH)
+                || $this->publisher->bufferedCount() !== self::ITEMS - self::BATCH
+                || $this->publisher->estimatedBytes() !== $this->remainingBytes
+                || $this->publisher->droppedCount() !== 0
+            ) {
+                throw new RuntimeException('Buffered flush batch or accounting mismatch.');
+            }
 
-        $this->publisher->close();
+            $this->publisher->close();
+        }
         if ($this->sink->published() !== $this->items || $this->publisher->bufferedCount() !== 0
             || $this->publisher->estimatedBytes() !== 0 || $this->publisher->droppedCount() !== 0
         ) {

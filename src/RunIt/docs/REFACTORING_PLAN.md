@@ -193,6 +193,19 @@ attribution controls and limitations.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
 - [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
 
+On 2026-11-11, baseline checks started from clean revision
+`22f51cfd17fed90f1a78af9d87b3662c8928a4ce` using PHP 8.5.12, Composer 2.9.7,
+Codeception 5.3.7 and PCOV 1.0.12. Concurrent diagnostic and benchmark edits mean
+the runs do not establish an immutable-checkout baseline. Validation, analysis,
+Rector dry-run, style, architecture and line-length checks exited 0. The four
+suite scripts passed separately; the aggregate `composer test` command was not
+used. Unit-only coverage was 4,127/4,346 (94.96%); the threshold checker exited
+1. Logs and Clover output are in `/tmp/kilo/runit-baseline-20261111-1407/`, a
+temporary location. `composer audit` exited 2 for abandoned
+`doctrine/annotations` with no security advisories; `composer audit --no-dev`
+exited 0. Global PhpMetrics 2.10.0 ran; the documented package-local binary and
+PHP Assumptions were unavailable. PHP 8.4 was not covered by this baseline run.
+
 At clean revision `6129e47c`, the nested snapshot benchmark also ran on PHP
 8.4.27. Its redaction and publication measurements had high variance; workload,
 results and limitations are recorded in `docs/benchmarks.md`. This partial
@@ -214,6 +227,20 @@ define how those implementations handle redacted spans; dropping or rerouting th
 could change telemetry and parentage. No in-repository downstream implementation
 was found, but external consumers and the released package were not verified.
 The changelog documents the break; it does not itself approve a baseline update.
+
+At starting revision `22f51cfd17fed90f1a78af9d87b3662c8928a4ce`,
+`composer api:check` again exited 1 with the same two breaks and two additions.
+Both configured snapshots existed. The public split repository's 1.1.2 and
+1.1.5 tags declare only `map()` on both mapper interfaces; 1.1.5 also lacks
+the new default-mapper methods and redacted span dispatch. This comparison is
+limited to those contracts and behavior, not the complete released API or schema.
+An optional redacted-mapping capability could preserve the base interfaces, but
+the legacy mapper fallback and resulting span parentage require a decision. The
+1.1.5 behavior skips those spans; using a default mapper instead could change
+mapping and parentage. Passing unredacted data is not a safe fallback. New public
+capabilities would themselves be checker additions. No external consumer search
+or downstream compatibility run established the absence of affected consumers;
+no contract or baseline change is approved by this investigation.
 
 The Swoole HTTP target harness now also exercises initial clock failure for
 successful and failing handlers. On PHP 8.4.27 and 8.5.12, four new target

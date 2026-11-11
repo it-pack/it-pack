@@ -95,6 +95,21 @@ direct leak control exits 1 and the declared-collaborator control exits 0.
 The fixture requires PCOV and installed development dependencies. It is not a
 CI gate and does not demonstrate isolation for the real Unit suite.
 
+The durable diagnostic subprocess harness can also be run from the package root:
+
+```bash
+php tools/coverage-attribution/controls.php
+```
+
+On PHP 8.5.12 with PCOV it reproduced all seven expected observations, including
+a Codeception data-provider attribute with a named dataset and a marker written
+after production execution. Both that provider run and the undeclared test-body
+run exited 0; the direct leak exited 1. The harness checks Clover statement
+credit in separate reports and retains them in a unique temporary directory. Its
+success means the known observations were reproduced, not that isolation was
+enforced. Bootstrap and module initialization, exception cleanup, and interference
+between collectors sharing PCOV state remain unverified.
+
 At revision `f1debe4a`, a separate temporary provider control executed an
 undeclared production collaborator during discovery; a marker confirmed the
 execution, but the strict Codeception coverage run exited 0. Per-test collection
@@ -125,7 +140,40 @@ On the worktree based on `f1debe4a`, the PHP 8.5 Unit-only report at
 of 4,346 statements (94.96%); the threshold checker exited 1. The report is
 temporary and PCOV supplies no branch coverage.
 
+On 2026-11-11, a fresh run beginning at clean revision
+`22f51cfd17fed90f1a78af9d87b3662c8928a4ce` again produced 4,127 covered of
+4,346 statements (94.96%) with PHP 8.5.12 and PCOV 1.0.12. The Unit-only
+report and command logs are under `/tmp/kilo/runit-baseline-20261111-1407/`;
+this temporary location is not a durable CI artifact. Independent changes to
+benchmark and diagnostic fixtures were made during the checks, so the results
+are not evidence from an immutable checkout. Unit, Integration, Conformance and
+Concurrency were run separately with external output and `--no-rebuild`, not by
+invoking the aggregate `composer test` script. Respectively they passed 1,043,
+3, 52 and 8 tests; no skips were reported. PHP 8.4 was not tested in this run.
+The threshold checker regression command passed 17 synthetic controls. None of
+these results proves per-test attribution or report provenance.
+
 ### Target-policy regressions
+
+At starting revision `22f51cfd17fed90f1a78af9d87b3662c8928a4ce`,
+with a new mixed-size buffer target in the worktree, the separate target
+harnesses were run on PHP 8.4.27 and 8.5.12. For each PHP version,
+`php tests/target-policy-regressions.php` exited 1 with 40 failed checks,
+including two new byte-bound failures: after two 30-byte items, an 80-byte
+admission exceeds a 100-byte buffer under both DropOldest and DropLowPriority.
+Its post-flush accounting controls passed. The PSR-3, OpenTelemetry, PSR-15
+and Swoole HTTP target scripts exited 1 with respectively 3, 1, 3 and 8
+failures. The Swoole harness uses a fake runner, not real HTTP I/O. The
+terminal-publication target script exited 0 with four synthetic fallback
+diagnostics. These isolated target failures are expected evidence of current
+defects, not failures of the normal test suites.
+
+The redacted-observation delivery-or-report target remains blocked by the lack
+of an injectable health-reporting seam; requiring delivery alone would exclude
+the approved report-on-unsafe-mapping outcome. The health-report destination,
+nullable-callback compatibility, invalid-estimate and oversized-item policies
+are not settled by these controls. Runtime integration, exporter, configuration
+and adapter failure-path evidence remains incomplete.
 
 The normal Unit file `tests/Unit/Application/Publication/RedactingPublisherTest.php`
 also characterizes a failed execution nested in a snapshot payload. At clean
