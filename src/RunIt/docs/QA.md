@@ -95,6 +95,19 @@ direct leak control exits 1 and the declared-collaborator control exits 0.
 The fixture requires PCOV and installed development dependencies. It is not a
 CI gate and does not demonstrate isolation for the real Unit suite.
 
+At revision `f1debe4a`, a separate temporary provider control executed an
+undeclared production collaborator during discovery; a marker confirmed the
+execution, but the strict Codeception coverage run exited 0. Per-test collection
+starts too late to attribute that execution. Direct php-code-coverage rejected a
+small test's undeclared collaborator, but accepted controls with missing targets,
+`CoversNothing`, a large test, or discarded coverage. Driver absence failed the
+direct control. These experiments used `/tmp/kilo/runit-attribution-experiment/`
+and are not durable CI controls; they do not establish complete source filtering,
+failure-path cleanup or suite isolation. A gate must observe provider execution
+or enforce a tested prohibition on production execution there before adoption.
+The 95% threshold and per-test attribution remain required for Phase 0, not
+currently enforced CI guarantees.
+
 The standalone preparatory threshold control accepts an explicit Clover report:
 
 ```bash
@@ -107,6 +120,10 @@ returns 0 at or above 95% statement coverage, 1 below it, and 2 for invalid or
 missing input. Generate the report with `composer coverage` first; the checker
 cannot verify its suite of origin or per-test attribution. It is not wired into
 CI or the normal test suites and does not replace the planned isolation gate.
+On the worktree based on `f1debe4a`, the PHP 8.5 Unit-only report at
+`/tmp/kilo/runit-phase0-checks-20261111/coverage.xml` contained 4,127 covered
+of 4,346 statements (94.96%); the threshold checker exited 1. The report is
+temporary and PCOV supplies no branch coverage.
 
 ### Target-policy regressions
 

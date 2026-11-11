@@ -24,6 +24,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Sampling and redaction        | `benchRedaction`                   | Sampling, redaction and in-memory publication of a snapshot         |
 | In-memory publication         | `benchBuffering`                   | 200 writes to `InMemoryArtifactPublisher`, not the bounded buffer    |
 | Buffered admission            | `BufferedAdmissionBench`           | Normal buffered publish with real byte estimation                   |
+| Buffered overflow             | `BufferedOverflowBench`            | Count- and byte-triggered DropOldest batches                        |
 | Buffered batch flush          | `BufferedFlushBench`               | One 256-item flush from a full 1,024-item buffer                    |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
@@ -32,6 +33,149 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
+
+## Phase 0 Matrix (2026-11-11)
+
+This inventory distinguishes durable workloads from historical temporary harnesses;
+their different fixtures and methods do not support direct comparisons.
+
+| Matrix cell | Evidence | Remaining gap |
+| --- | --- | --- |
+| Synchronous attach/detach and lookup | `ContextStorageBench`, stack and composite, depths 0 and 63 | No coroutine detector or realistic scheduling |
+| Fiber attach/detach | `FiberContextStorageBench`, two interleaved Fibers at depths 1 and 63 | Switches included; other scheduling not covered |
+| Fiber lookup | `tools/runtime-context-benchmark.php`, depths 0 and 63 | No interleaved lookup |
+| Swoole attach/detach and lookup | `tools/runtime-context-benchmark.php`, depths 0 and 63 | No interleaving, OpenSwoole or Swow measurement |
+| Buffer admission | `BufferedAdmissionBench`, two nested snapshot sizes, real estimator | No concurrent traffic |
+| Count and byte overflow | `BufferedOverflowBench`, equal-sized snapshots and real estimator; historical priority harness below | Priority cases not durable; limited strategies and fixture sizes; projected byte admission unmeasured |
+| Drain and close | `BufferedFlushBench` times one 256-item batch; historical temporary harness times full and limited close | Close and full drain lack durable timed workloads |
+| Publication, sampling and redaction | `ExecutionBench::benchRedaction`; `NestedSnapshotBench` measures configured masking separately | Sampling uses always-sample; no sampled-out or realistic traffic mix |
+| Serialization, nested artifacts | `NestedSnapshotBench` and `CloudEventBench` | No real export I/O or broad artifact distribution |
+
+Memory profiling and real traffic are unmeasured for this matrix. Historical
+temporary scripts are not guaranteed to exist; missing durable cases remain open.
+Phase 0 is not complete merely because this inventory exists.
+
+### Durable overflow and runtime workloads (2026-11-11)
+
+At revision `f1debe4a61aa15f0ba755dbbde64ff3ab42b8918`, with pre-existing
+documentation and generated test-support changes and the new workloads, PHP
+8.5.12 CLI NTS and PHPBench 1.7.0 ran on the unpinned x86-64 Microsoft-hypervisor
+guest described below. CLI OPcache, JIT and PCOV were disabled; Xdebug was absent.
+Swoole 6.2.3 was loaded. Commands, run sequentially:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedOverflowBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 tools/runtime-context-benchmark.php
+```
+
+Each overflow iteration pre-fills 1,024 equal-estimated-size snapshots with the
+real estimator, then times 128 `DropOldest` publishes. For count overflow the
+item limit is 1,024 and byte limit twice the filled size; for byte overflow the
+item limit is 2,048 and byte limit exactly the filled size. The 3,600-second age,
+disabled periodic flush, real clock, in-memory sink and 1,024-item shutdown budget
+are identical. Setup, accounting checks and close are outside timing; checks
+verify 128 drops, retained count and bytes, exact survivor order and empty
+buffer after close. Two distinct reused snapshots have equal estimated sizes.
+Ten iterations use one batch per revolution and zero warmups; values are modes
+in microseconds **per 128-publish batch**, with relative standard deviation:
+
+| Trigger | First run | Repeat run |
+| --- | ---: | ---: |
+| Count | 1,224.233 (16.53%) | 1,124.450 (9.65%) |
+| Bytes | 1,318.041 (131.45%) | 1,210.945 (136.48%) |
+
+All verification hooks passed, though PHPBench reports zero assertions. The
+first attempted run rejected unequal fixture sizes before timing; the fixture was
+corrected before the measurements above. A separate PHP 8.4.27 run passed the
+same hooks, with modes of 1,482.200 microseconds per count batch (46.21% relative
+standard deviation) and 1,406.407 per byte batch (148.08%). These results are not comparable to the
+historical constant-estimator harnesses, nor do they demonstrate enforcement of
+projected byte admission with differing artifact sizes. The high variability,
+especially in the byte case, rules out regression thresholds.
+
+The standalone runtime harness runs inside one Fiber, then one Swoole or
+OpenSwoole coroutine. It times 10,000 lookups or attach/detach pairs per sample,
+after two warmup samples, with ten recorded samples at each depth. Scope
+construction, parent attachments, last-result checks and LIFO cleanup are
+outside timing. It verifies the active coroutine ID, restored scope and empty
+storage, but does not check every lookup or exercise interleaving. Missing
+runtimes emit `SKIP` rather than synthetic timing; `php -n` verified the
+coroutine skip. A PHP 8.4.27 invocation also completed with Swoole; OpenSwoole
+and Swow were not available for verification. The PHP 8.5 run reported median
+and full range in microseconds per operation:
+
+| Runtime | Operation | Depth 0 | Depth 63 |
+| --- | --- | ---: | ---: |
+| Fiber | Lookup | 0.249 (0.234-0.472) | 1.054 (0.487-1.564) |
+| Fiber | Attach/detach | 2.065 (0.953-2.990) | 2.683 (1.767-4.744) |
+| Swoole | Lookup | 0.434 (0.384-2.141) | 1.103 (0.672-1.435) |
+| Swoole | Attach/detach | 1.858 (1.597-4.256) | 4.104 (2.337-5.439) |
+
+These fixed-order, unpinned synthetic samples include loop overhead and have
+large outliers. They exclude scheduling, concurrency, real I/O, failure paths
+and memory profiling. They do not establish thresholds, production throughput,
+or controlled comparisons with the earlier temporary or other-version runs.
+
+### Current representative measurements
+
+At revision `f1debe4a61aa15f0ba755dbbde64ff3ab42b8918`, initially clean,
+PHP 8.5.12 CLI NTS, PHPBench 1.7.0, Swoole 6.2.3, x86-64 Microsoft-hypervisor
+guest, four virtual CPUs on Intel Core i7-9700; CLI OPcache, JIT and PCOV were
+disabled and Xdebug absent. The host was unpinned and not isolated. Two PHPBench
+commands ran concurrently, so their results are especially unsuitable for
+thresholds or comparison:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/BufferedFlushBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/ExecutionBench.php --config=phpbench.json --filter=benchRedaction --report=aggregate
+```
+
+The flush mode was 738.822 microseconds per 256-item batch, relative standard
+deviation 21.86%, ten iterations, one revolution and no warmups. Its fresh
+1,024-item buffer, real estimator, 8 MiB limit, prefill and post-flush FIFO,
+accounting and close checks are described in the earlier flush baseline below;
+setup and close are outside timing. The sampling-to-redaction publication mode
+was 4.346 microseconds per snapshot, relative standard deviation 63.67%, five
+iterations of 100 revolutions after two warmups. It uses `AlwaysSamplePolicy`,
+the default redactor and an in-memory sink, with a prebuilt two-field snapshot;
+setup is outside timing and there is no timed-output verification. Both commands
+completed without errors; neither result establishes a performance threshold.
+
+### Temporary runtime context workloads
+
+`/tmp/kilo/runit-phase0-context.php` (SHA-256
+`6bbd8462ac5be101d550b66c5934df510e1e0c4f921aad9268c8b4e350bfc7eb`)
+is a temporary, untracked harness, not a durable suite addition. While present:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 /tmp/kilo/runit-phase0-context.php
+```
+
+It runs one Fiber and one Swoole coroutine sequentially with real storage and a
+reused real scope. At depths 0 and 63, it times either `current()` plus result
+assignment or an immediate attach/detach pair. Per case there are two warmup
+rounds and ten samples of 10,000 operations. Construction and parent attachment,
+the last lookup result check and LIFO cleanup are outside timing. Cleanup checks
+empty storage; it does not verify every timed lookup or exercise interleaving.
+The second invocation overlapped extension inspection and hashing. Median and
+full sample range in microseconds per operation, first and repeat invocation:
+
+| Runtime and operation | Depth | First median (range) | Repeat median (range) |
+| --- | ---: | ---: | ---: |
+| Fiber lookup | 0 | 0.222 (0.205-1.213) | 0.234 (0.225-0.265) |
+| Fiber pair | 0 | 1.085 (0.941-1.954) | 2.062 (1.005-3.616) |
+| Fiber lookup | 63 | 0.547 (0.494-0.564) | 0.545 (0.525-2.484) |
+| Fiber pair | 63 | 1.610 (1.533-4.274) | 1.917 (1.571-2.565) |
+| Swoole lookup | 0 | 0.388 (0.358-0.546) | 0.466 (0.373-2.372) |
+| Swoole pair | 0 | 1.693 (1.411-2.452) | 1.904 (1.492-3.426) |
+| Swoole lookup | 63 | 0.727 (0.669-2.765) | 0.830 (0.714-1.056) |
+| Swoole pair | 63 | 3.622 (2.243-8.152) | 4.066 (2.968-5.303) |
+
+Both runs passed their checks. Fixed case order, scheduler noise, loop and result
+assignment costs, and substantial outliers preclude thresholds or controlled
+runtime/depth comparisons. Scope construction, coroutine switches, concurrency,
+failure paths and memory profiling are excluded. OpenSwoole and Swow were not
+loaded in the measured PHP runtime. These are not production throughput figures.
 
 ## Targets
 
