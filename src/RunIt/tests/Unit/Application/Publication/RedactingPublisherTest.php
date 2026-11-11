@@ -11,6 +11,7 @@ use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -173,7 +174,7 @@ final class RedactingPublisherTest extends Unit
         }
 
         self::assertSame('[redacted]', $throwable['message']);
-        self::assertSame('[redacted]', $throwable['trace']);
+        self::assertNull($throwable['trace']);
 
         self::assertSame($before, $original->normalize());
     }
@@ -195,7 +196,7 @@ final class RedactingPublisherTest extends Unit
             self::assertSame($class, $throwable['class']);
             self::assertSame($code, $throwable['code']);
             self::assertSame('[redacted]', $throwable['message']);
-            self::assertSame('[redacted]', $throwable['trace']);
+            self::assertNull($throwable['trace']);
             $throwable = $throwable['previous'];
         }
 
@@ -293,7 +294,7 @@ final class RedactingPublisherTest extends Unit
         self::assertSame($object, $published['object']);
     }
 
-    public function testArrayValuedThrowableTracePassesThroughInCustomProjection(): void
+    public function testArrayValuedThrowableTraceIsOmittedInCustomProjection(): void
     {
         $artifact = new readonly class () implements ExecutionArtifactInterface {
             public function normalize(): array
@@ -311,14 +312,13 @@ final class RedactingPublisherTest extends Unit
         $before = $artifact->normalize();
         $published = $this->publish($artifact)->normalize();
 
-        // The projection is primitive and finite, but its trace is not a string.
         self::assertIsArray($published['throwable']);
         self::assertSame('[redacted]', $published['throwable']['message']);
-        self::assertSame([['password' => 'trace-secret']], $published['throwable']['trace']);
+        self::assertNull($published['throwable']['trace']);
         self::assertSame($before, $artifact->normalize());
     }
 
-    public function testCustomThrowableUnknownFieldsAndNonArrayCausePassThrough(): void
+    public function testCustomThrowableUnknownFieldsAndNonArrayCauseAreOmitted(): void
     {
         $artifact = new readonly class () implements ExecutionArtifactInterface {
             public function normalize(): array
@@ -343,14 +343,14 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('Outer', $throwable['class']);
         self::assertSame(42, $throwable['code']);
         self::assertSame('[redacted]', $throwable['message']);
-        self::assertSame('[redacted]', $throwable['trace']);
-        self::assertSame(['message' => 'unknown-secret'], $throwable['detail']);
+        self::assertNull($throwable['trace']);
+        self::assertArrayNotHasKey('detail', $throwable);
         self::assertIsArray($throwable['previous']);
         self::assertSame('Inner', $throwable['previous']['class']);
         self::assertSame(7, $throwable['previous']['code']);
         self::assertSame('[redacted]', $throwable['previous']['message']);
         self::assertNull($throwable['previous']['trace']);
-        self::assertSame('unsupported-cause-secret', $throwable['previous']['previous']);
+        self::assertNull($throwable['previous']['previous']);
         self::assertSame($before, $artifact->normalize());
         $disabled = new DefaultArtifactRedactor(ArtifactRedactionConfig::disabled());
         self::assertSame($artifact, $disabled->redact($artifact));
@@ -435,6 +435,45 @@ final class RedactingPublisherTest extends Unit
         ));
         self::assertSame($snapshot, $optOut->redact($snapshot));
         self::assertSame($before, $optOut->redact($snapshot)->normalize());
+    }
+
+    public function testCyclicThrowableCauseIsBoundedAndUnknownFieldsAreOmitted(): void
+    {
+        $artifact = new readonly class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                $cause = ['class' => 'RuntimeException', 'message' => 'secret', 'detail' => 'secret'];
+                $cause['previous'] = &$cause;
+
+                return ['throwable' => $cause];
+            }
+        };
+
+        $throwable = $this->publish($artifact)->normalize()['throwable'];
+        $depth = 0;
+        while ($throwable !== null) {
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertArrayNotHasKey('detail', $throwable);
+            $throwable = $throwable['previous'];
+            ++$depth;
+        }
+        self::assertSame(16, $depth);
+    }
+
+    public function testCyclicSnapshotDataTraversalIsBoundedWithoutMutation(): void
+    {
+        $payload = ['password' => 'secret'];
+        $payload['next'] = &$payload;
+        $snapshot = $this->createStub(SnapshotInterface::class);
+        $snapshot->method('normalize')->willReturn(['payload' => $payload]);
+
+        $result = $this->publish($snapshot)->normalize()['payload'];
+        for ($depth = 0; $depth < 16; ++$depth) {
+            self::assertSame('[redacted]', $result['password']);
+            $result = $result['next'];
+        }
+        self::assertSame('[redacted]', $result);
+        self::assertSame('secret', $payload['password']);
     }
 
     public function testRedactorAndNormalizeShareFieldVocabulary(): void

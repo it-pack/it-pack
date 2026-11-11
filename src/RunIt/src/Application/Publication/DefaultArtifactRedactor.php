@@ -187,64 +187,75 @@ final readonly class DefaultArtifactRedactor implements RedactorInterface
      * @param list<string>         $keys
      * @return array{0: mixed, 1: bool}
      */
-    private function maskKeysRecursive(mixed $data, array $keys): array
+    private function maskKeysRecursive(mixed $data, array $keys, int $depth = 0, ?int &$nodes = null): array
     {
         if (!is_array($data) || $keys === []) {
             return [$data, false];
         }
 
+        $nodes ??= 0;
+        if ($depth >= 16 || ++$nodes > 1024) {
+            return [$this->config->marker, true];
+        }
+
         $masked = false;
         $keySet = array_fill_keys($keys, value: true);
+        $result = [];
 
         foreach ($data as $key => $value) {
+            if (++$nodes > 1024) {
+                $masked = true;
+
+                break;
+            }
             if (isset($keySet[$key])) {
-                $data[$key] = $this->config->marker;
+                $result[$key] = $this->config->marker;
                 $masked = true;
 
                 continue;
             }
 
             if (is_array($value)) {
-                [$data[$key], $innerMasked] = $this->maskKeysRecursive($value, $keys);
+                [$result[$key], $innerMasked] = $this->maskKeysRecursive($value, $keys, $depth + 1, $nodes);
                 if ($innerMasked) {
                     $masked = true;
                 }
+            } else {
+                $result[$key] = $value;
             }
         }
 
-        return [$data, $masked];
+        return [$result, $masked];
     }
 
     /**
      * @param array<array-key, mixed> $throwable
      * @return array{0: array<array-key, mixed>, 1: bool}
      */
-    private function maskThrowable(array $throwable): array
+    private function maskThrowable(array $throwable, int $depth = 0): array
     {
-        $masked = false;
-
-        if (array_key_exists(ArtifactField::MESSAGE, $throwable)
-            && is_string($throwable[ArtifactField::MESSAGE])) {
-            $throwable[ArtifactField::MESSAGE] = $this->config->marker;
-            $masked = true;
+        $safe = [];
+        $class = $throwable[ArtifactField::THROWABLE_CLASS] ?? null;
+        $code = $throwable[ArtifactField::CODE] ?? null;
+        if (is_string($class) && strlen($class) <= 256
+            && preg_match('/\A[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff\\\\]*\z/', $class) === 1) {
+            $safe[ArtifactField::THROWABLE_CLASS] = $class;
+        }
+        if (is_int($code)) {
+            $safe[ArtifactField::CODE] = $code;
+        }
+        if (array_key_exists(ArtifactField::MESSAGE, $throwable)) {
+            $safe[ArtifactField::MESSAGE] = $this->config->marker;
+        }
+        if (array_key_exists(ArtifactField::TRACE, $throwable)) {
+            $safe[ArtifactField::TRACE] = null;
+        }
+        if (array_key_exists(ArtifactField::PREVIOUS, $throwable)) {
+            $previous = $throwable[ArtifactField::PREVIOUS];
+            $safe[ArtifactField::PREVIOUS] = is_array($previous) && $depth < 15
+                ? $this->maskThrowable($previous, $depth + 1)[0] : null;
         }
 
-        if (array_key_exists(ArtifactField::TRACE, $throwable)
-            && is_string($throwable[ArtifactField::TRACE])) {
-            $throwable[ArtifactField::TRACE] = $this->config->marker;
-            $masked = true;
-        }
-
-        if (array_key_exists(ArtifactField::PREVIOUS, $throwable)
-            && is_array($throwable[ArtifactField::PREVIOUS])) {
-            [$throwable[ArtifactField::PREVIOUS], $innerMasked] = $this->maskThrowable(
-                $throwable[ArtifactField::PREVIOUS]
-            );
-            if ($innerMasked) {
-                $masked = true;
-            }
-        }
-
-        return [$throwable, $masked];
+        return [$safe, true];
     }
 }

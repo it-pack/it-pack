@@ -23,19 +23,15 @@ use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 
 final class TerminalSnapshotRedactionTest extends Unit
 {
-    /** Characterizes exposure under Full export, not a security guarantee. */
-    public function testDefaultRedactionExposesFailedExecutionMessageInFullSnapshotExport(): void
+    /** Default redaction protects all causes in a Full terminal snapshot export. */
+    public function testDefaultRedactionProtectsFailedExecutionInFullSnapshotExport(): void
     {
         $attributes = $this->exportFailedSnapshot(false);
 
-        self::assertArrayHasKey('runit.snapshot.payload', $attributes);
-        self::assertIsString($attributes['runit.snapshot.payload']);
-        $payload = json_decode($attributes['runit.snapshot.payload'], true, 512, JSON_THROW_ON_ERROR);
-        self::assertIsArray($payload);
-        self::assertIsArray($payload['result']);
-        self::assertIsArray($payload['result']['throwable']);
-        self::assertSame('characterization-secret', $payload['result']['throwable']['message']);
-        self::assertArrayNotHasKey('runit.redacted', $attributes);
+        $export = json_encode($attributes, JSON_THROW_ON_ERROR);
+        foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
+            self::assertStringNotContainsString($secret, $export);
+        }
     }
 
     /** Configured message and trace keys route the snapshot through redacted export. */
@@ -45,7 +41,10 @@ final class TerminalSnapshotRedactionTest extends Unit
 
         self::assertTrue($attributes['runit.redacted']);
         self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
-        self::assertStringNotContainsString('characterization-secret', json_encode($attributes, JSON_THROW_ON_ERROR));
+        $export = json_encode($attributes, JSON_THROW_ON_ERROR);
+        foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
+            self::assertStringNotContainsString($secret, $export);
+        }
     }
 
     /** @return array<array-key, mixed> */
@@ -71,7 +70,11 @@ final class TerminalSnapshotRedactionTest extends Unit
             )));
         }
 
-        $exception = new RuntimeException('characterization-secret');
+        $exception = new RuntimeException('outer-snapshot-secret', 3, new RuntimeException(
+            'middle-snapshot-secret',
+            2,
+            new RuntimeException('inner-snapshot-secret', 1),
+        ));
         try {
             $builder->build()->run(
                 ExecutionDefinition::create(ExecutionName::fromString('redaction'), ExecutionKind::fromString('test')),

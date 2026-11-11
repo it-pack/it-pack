@@ -28,6 +28,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Bound redacted throwable cause traversal to 16 levels, replace traces with
+  null, and omit unrecognized throwable fields and invalid class or code values.
+  Consumers of redacted projections may observe these changed values. This does
+  not yet secure arbitrary snapshot payloads or establish Phase 2 completion.
+- Limit configured-key payload masking to 16 levels and 1,024 visited nodes;
+  deeper or excess data is replaced or omitted without a health report for now.
 - Use existing normalized artifact field constants in redacted OpenTelemetry
   occurrence and snapshot mapping; normalized keys and exported schemas are unchanged.
 - Correct redacted OpenTelemetry snapshot log timestamps to use the snapshot's

@@ -32,6 +32,16 @@ verification. The unchecked design details below must still be resolved where ap
 - [x] **Coding standards principle:** Keep existing enforced conventions and adopt additional rules only when useful, with focused exceptions. Do not impose blanket factory-only construction or interface creation. Reconcile individual rules, including member ordering, with `docs/QA.md` before changing or adding enforcement; avoid unnecessary public API changes.
 
 **Open design details:**
+- [x] For Phase 2 unsafe-mapping drops, use a guarded, payload-free error-log
+  fallback when no health callback is configured; contain reporter failures.
+  Execution IDs that cannot be established safe must cause a reported drop,
+  even when this loses the original sampling decision. This does not settle the
+  general Phase 4 health API or nullable callback compatibility.
+- [ ] Resolve the Phase 2 representation and delivery trade-off before changing
+  the stack: the current redactor can return original artifacts or projections
+  with unclassified fields. Dropping all unsafe artifacts could suppress most
+  telemetry; removing required fields can change normalized contracts. Neither
+  outcome is approved solely by the execution-ID decision above.
 - [ ] Define safe observation fields and classification, and the configurable drop/report mechanism.
 - [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
 - [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
