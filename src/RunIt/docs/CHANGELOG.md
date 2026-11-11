@@ -28,6 +28,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Use existing normalized artifact field constants in redacted OpenTelemetry
+  occurrence and snapshot mapping; normalized keys and exported schemas are unchanged.
 - Correct redacted OpenTelemetry snapshot log timestamps to use the snapshot's
   `created_at` rather than the publication time when it is available as an integer.
 - OpenTelemetry redacted snapshot logs and span events now honor

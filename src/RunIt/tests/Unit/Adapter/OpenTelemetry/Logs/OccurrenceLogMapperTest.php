@@ -273,6 +273,8 @@ final class OccurrenceLogMapperTest extends Unit
         $normalized = [
             'id' => 'occ-red',
             'type' => 'payment.captured.v1',
+            'source' => 'test/source',
+            'execution_id' => 'exec-9',
             'subject' => 'user-42',
             'activity_id' => 'act-9',
             'extension_attributes' => ['tenantflag' => 'on'],
@@ -287,12 +289,18 @@ final class OccurrenceLogMapperTest extends Unit
         );
         $mapper->mapRedactedOccurrence($normalized);
 
-        $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('occ-red', $attributes['runit.occurrence.id']);
-        self::assertSame('payment.captured.v1', $attributes['runit.occurrence.type']);
-        self::assertSame('user-42', $attributes['runit.occurrence.subject']);
-        self::assertSame('act-9', $attributes['runit.activity.id']);
-        self::assertArrayNotHasKey('tenantflag', $attributes);
+        $record = $this->kit->log(0);
+        self::assertSame('payment.captured.v1', $record->getBody());
+        self::assertSame(1_600_000_000_000, $record->getTimestamp());
+        self::assertSame([
+            'runit.occurrence.id' => 'occ-red',
+            'runit.occurrence.type' => 'payment.captured.v1',
+            'runit.occurrence.source' => 'test/source',
+            'runit.execution.id' => 'exec-9',
+            'runit.redacted' => true,
+            'runit.occurrence.subject' => 'user-42',
+            'runit.activity.id' => 'act-9',
+        ], $record->getAttributes()->toArray());
     }
 
     public function testRedactedOccurrenceSpanEventOmitsExtensionAttributes(): void
@@ -348,6 +356,39 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('terminal', $attributes['runit.snapshot.classification']);
         self::assertSame('sha-256:abc', $attributes['runit.snapshot.hash']);
         self::assertTrue($attributes['runit.redacted']);
+    }
+
+    public function testRedactedSnapshotMapsNormalizedFieldsWithoutPayload(): void
+    {
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::Full,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
+        $mapper->mapRedactedSnapshot([
+            'id' => 'snap-red',
+            'type' => 'execution.snapshot.v1',
+            'classification' => 'terminal',
+            'execution_id' => 'exec-9',
+            'activity_id' => 'act-9',
+            'content_hash' => 'sha-256:abc',
+            'created_at' => 1700,
+            'payload' => ['secret' => 'not exported'],
+        ]);
+
+        $record = $this->kit->log(0);
+        self::assertSame('execution.snapshot.v1', $record->getBody());
+        self::assertSame(1_700_000_000_000, $record->getTimestamp());
+        self::assertSame([
+            'runit.snapshot.id' => 'snap-red',
+            'runit.snapshot.type' => 'execution.snapshot.v1',
+            'runit.snapshot.classification' => 'terminal',
+            'runit.execution.id' => 'exec-9',
+            'runit.redacted' => true,
+            'runit.activity.id' => 'act-9',
+            'runit.snapshot.hash' => 'sha-256:abc',
+        ], $record->getAttributes()->toArray());
     }
 
     public function testRedactedSnapshotUsesCreatedAtLikeTypedSnapshot(): void

@@ -87,6 +87,9 @@ also remains the hash of the original payload after masking.
 In particular, default settings do not remove throwable messages or traces from
 a failed execution's normalized projection embedded in a snapshot payload.
 Do not assume direct execution throwable redaction also protects snapshot payloads.
+An integration test confirms that an explicitly configured OpenTelemetry `Full`
+snapshot export can emit the failed execution's exception message under default
+redaction. The default OpenTelemetry snapshot policy is `HashOnly`, not `Full`.
 
 Built-in occurrence and snapshot constructors normally validate payload values;
 custom implementations must honor the bounded, recursively primitive

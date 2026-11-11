@@ -1353,6 +1353,14 @@ snapshot payload protection. The focused file passed on PHP 8.4.27 and 8.5.12
 (21 tests, 117 assertions each); this is an exposure characterization, not an
 approved security guarantee or an exporter test.
 
+An integration characterization now runs a failed execution through the SDK
+and an in-memory OpenTelemetry logger with explicit `Full` snapshot export.
+The default redactor permits the exception message in the terminal snapshot
+payload. Configuring `message` and `trace` as sensitive data keys produces a
+redacted snapshot whose current OpenTelemetry mapping omits the payload; this
+control does not establish safe payload export or resolve the remaining policy.
+Both paths preserve the original business exception.
+
 At starting revision `7e7652a7`, a finite custom primitive throwable projection
 characterizes another traversal boundary: recognized string messages and trace
 are masked through an array-valued `previous`, while an unknown nested `detail`
@@ -1502,7 +1510,7 @@ filtering, collector cleanup and isolation from other suites are demonstrated.
 
 **Depends on:** approved coding standards and passing behavior tests. **Review:** duplication, assembly complexity, factories/interfaces, coding rules, PhpMetrics and PHPA.
 
-- [ ] Replace paired literal reads with existing `ArtifactField` constants in `DefaultOccurrenceLogMapper` where they represent the same keys. Add mapping tests for redacted occurrences and snapshots; assert normalized keys and public schemas do not change.
+- [x] Replace paired literal reads with existing `ArtifactField` constants in `DefaultOccurrenceLogMapper` where they represent the same keys. Mapping tests cover literal normalized keys and exact redacted occurrence and snapshot exports; public schemas remain unchanged.
 - [ ] Inventory repeated mapping/validation logic and repeated literals across adapters; classify each as shared semantics, intentional adapter-specific behavior, or unrelated coincidence. Extract a focused shared abstraction only when it removes real divergence without coupling layers or obscuring behavior. Retain before/after contract tests.
 - [ ] Examine `DefaultExecutionRunner` constructor and builder assembly; map collaborators to responsibilities and identify whether an internal scope-creation seam reduces change propagation. Prototype only if it preserves constructor/API compatibility; avoid generic dependency bags and unnecessary public factories.
 - [ ] Audit DI services for interface-backed seams and direct instantiations in services, distinguishing replaceable dependencies from value objects, tokens, exceptions, and composition-root construction. Record actual violations against the approved rule and remediate only with compatibility-safe, meaningful seams.
