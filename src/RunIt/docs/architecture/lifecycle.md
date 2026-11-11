@@ -74,10 +74,12 @@ prior ambient context in a `finally` block:
 
 Terminal execution publication is attempted before creating the terminal
 snapshot. A snapshot factory failure is reported through `onPublicationFailure`
-(if a callback is configured) without suppressing that execution; a failed
-execution publication prevents the snapshot attempt. These guarantees concern
-attempts, not successful delivery by a failing publisher. When no
-`onPublicationFailure` callback is configured, failures are not reported at all.
+(if a callback is configured) without suppressing that execution; only an error
+escaping execution publication prevents the snapshot attempt. Under the default
+`FailOpenPolicy`, an inner publisher error is swallowed and does not prevent
+the snapshot attempt. These guarantees concern attempts, not successful
+delivery by a failing publisher. When no `onPublicationFailure` callback is
+configured, failures are not reported at all.
 
 Publication failures never replace the business result or exception: the runner
 publishes through `FailSafeArtifactPublisher` (configured with the fail-open default

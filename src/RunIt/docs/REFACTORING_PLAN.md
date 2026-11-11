@@ -183,6 +183,18 @@ provider execution or real-suite attribution and is not a CI gate.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
 - [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
 
+At clean revision `6129e47c`, the nested snapshot benchmark also ran on PHP
+8.4.27. Its redaction and publication measurements had high variance; workload,
+results and limitations are recorded in `docs/benchmarks.md`. This partial
+measurement does not close the performance baseline.
+
+At the same starting revision, `composer api:check` reported two interface breaks
+(`ActivitySpanMapperInterface::mapRedactedActivity()` and
+`ExecutionSpanMapperInterface::mapRedactedExecution()`) and two corresponding
+concrete method additions. The check exited 1. These require contract-diff review
+and the approved compatibility process; no baseline was changed. In particular,
+the planned monorepo API gate must not be represented as passing on this checkout.
+
 **Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
 | Check                        | Result                                                                                   |
@@ -924,9 +936,11 @@ top-level `throwable`; failed executions place it under `result.throwable`.
 Throwable projections contain `class`, `message`, `code`, `previous`, and `trace`.
 Observation `message` is separate from its throwable. Occurrence `data` and
 snapshot `payload` are key-masked only when keys are configured. The default
-redactor currently handles only the top-level throwable, masks rather than omits
-string traces, and has no explicit recursion bound of its own. Unknown keys and
-non-array values pass through. Changed artifacts become generic projections,
+redactor masks the top-level throwable, and when `redactThrowableMessages` is
+enabled masks `Execution.result.throwable.message` and
+`Execution.result.throwable.trace` string values recursively through array-valued
+`previous` causes. It masks rather than omits string traces, and has no explicit
+recursion bound of its own. Unknown keys and non-array values pass through. Changed artifacts become generic projections,
 which do not retain the original typed sampling or adapter interfaces.
 `PublisherStackFactory` currently calls sampling before redaction. Simply
 reversing it would cause type-dependent sampling and OpenTelemetry dispatch to
@@ -971,7 +985,7 @@ establish per-test attribution or the planned isolation guarantee.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
-**Artifact `normalize()` shapes (source of truth, all `final readonly` domain values):**
+**Artifact `normalize()` shapes (built-in domain values):**
 
 | Artifact | `normalize()` keys | Secret-bearing fields |
 |----------|-------------------|----------------------|
@@ -992,7 +1006,10 @@ establish per-test attribution or the planned isolation guarantee.
 - `Measurement.value` — masked by `redactMeasurementValues` (opt-in, default `false`)
 - `Occurrence.extension_attributes` — masked by `sensitiveAttributeKeys`
 - `Snapshot.attributes` — masked by `sensitiveAttributeKeys`
-- NOT masked: `result.throwable` under failed `Execution`, unknown/non-array projection fields
+- `Execution.result.throwable.message` / `Execution.result.throwable.trace` —
+  string values are masked when `redactThrowableMessages` is enabled; recursive
+  through array-valued `previous` causes
+- NOT masked: unknown throwable fields and unsupported/non-array projection values
 
 **Consumer leak paths after redaction:**
 - `DefaultOccurrenceLogMapper::mapRedactedOccurrence()` no longer exports `extension_attributes`
@@ -1011,7 +1028,25 @@ establish per-test attribution or the planned isolation guarantee.
 - `DefaultOccurrenceLogMapper::mapSnapshot()` exports `attributes` directly and json-encodes
   `payload` under `SnapshotPayloadPolicy::Full`.
 
-**Bounded recursion and unknown fields:** `DefaultArtifactRedactor::maskKeysRecursive()` recurses into nested arrays/objects for `data`/`payload`, stops at scalars/nulls, and passes unknown projection fields through unchanged. Non-string `trace` values pass through untraversed. This preserves finite primitive projections but leaves non-`ThrowableDescription` projections with secrets intact.
+**Recursion and unknown fields:** `DefaultArtifactRedactor::maskKeysRecursive()`
+traverses nested arrays only for occurrence `data` and snapshot `payload`;
+objects and other non-array values pass through. Neither it nor throwable
+traversal imposes a depth, node, or cycle limit. Unknown throwable fields,
+non-array `previous` values and non-string `trace` values also pass through.
+The normalizable contract requires bounded primitive projections, but the
+redactor does not validate that contract. The built-in throwable mapper's capture
+limits and the separate snapshot serializer's limits are not redactor bounds.
+The disposition of unsupported values and exhausted limits remains open.
+
+Current redaction replaces recognized string traces with the marker, rather
+than implementing the approved default trace omission or a separate trace-export
+option. Changed projections use a generic `RedactedArtifact` without the original
+typed interface; OpenTelemetry currently dispatches such projections using field
+heuristics, including an `execution_id` branch that can receive an observation.
+These paths are not evidence of safe classification or delivery. Terminal
+snapshot payloads can contain a complete execution projection, while payload key
+masking depends on the configured data-key list; the retained content hash still
+describes the original payload. The mapping and target-policy work remain open.
 
 
 The newer sampling tests exercise the real factory with a spy sampler and sink,
