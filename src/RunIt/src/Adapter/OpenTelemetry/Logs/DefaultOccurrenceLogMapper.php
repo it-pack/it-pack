@@ -212,7 +212,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         $hash = $normalized['content_hash'] ?? null;
-        if (is_string($hash)) {
+        if ($this->snapshotPayloadPolicy !== SnapshotPayloadPolicy::None && is_string($hash)) {
             $attributes[AttributeKeys::SNAPSHOT_HASH] = $hash;
         }
 

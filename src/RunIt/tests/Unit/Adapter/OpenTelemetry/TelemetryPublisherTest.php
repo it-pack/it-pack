@@ -511,8 +511,8 @@ final class TelemetryPublisherTest extends Unit
         self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
     }
 
-    /** Characterizes redacted snapshot timestamp and hash handling. */
-    public function testActualRedactedSnapshotExportsHashDespiteNonePolicyAndUsesCurrentTime(): void
+    /** Verifies the None policy and characterizes the redacted snapshot timestamp. */
+    public function testActualRedactedSnapshotOmitsHashWithNonePolicyAndUsesCurrentTime(): void
     {
         $snapshot = RunItArtifactFactory::snapshot('snap-characterized', 'exec-1', ['secret' => 'value'], 'act-1');
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
@@ -555,14 +555,14 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('snap-characterized', $attributes['runit.snapshot.id']);
         self::assertSame('act-1', $attributes['runit.activity.id']);
         self::assertTrue($attributes['runit.redacted']);
-        self::assertSame($snapshot->contentHash(), $attributes['runit.snapshot.hash']);
+        self::assertArrayNotHasKey('runit.snapshot.hash', $attributes);
         self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
         self::assertArrayNotHasKey('runit.snapshot.schema_version', $attributes);
         self::assertArrayNotHasKey('runit.snapshot.content_type', $attributes);
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(1, $events);
         self::assertSame('runit.snapshot', $events[0]->getName());
-        self::assertSame($snapshot->contentHash(), $events[0]->getAttributes()->get('runit.snapshot.hash'));
+        self::assertArrayNotHasKey('runit.snapshot.hash', $events[0]->getAttributes()->toArray());
     }
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void

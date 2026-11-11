@@ -28,6 +28,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- OpenTelemetry redacted snapshot logs and span events now honor
+  `SnapshotPayloadPolicy::None` and omit the original content hash. Consumers
+  relying on the previously leaked hash must explicitly choose a hash-enabled policy.
 - Publish the completed execution before creating its terminal snapshot, so a
   snapshot factory failure no longer suppresses the terminal execution. Only an
   error escaping execution publication prevents the terminal snapshot attempt;

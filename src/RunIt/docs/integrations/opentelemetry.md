@@ -112,7 +112,9 @@ Evicting a context in a custom store can consequently alter linkage for late chi
   the unrestricted copy, which is bounded upstream by occurrence validation; a
   non-empty list exports only the listed keys.
 - `withSnapshotPayloadPolicy(...)` — snapshots export identity, type, and content hash
-  by default; the full payload is exported only under `SnapshotPayloadPolicy::Full`.
+  by default; `None` omits the hash, including for redacted snapshots. Hash-enabled
+  policies export the original hash, which may reveal information about the payload.
+  The full payload is exported only under `SnapshotPayloadPolicy::Full` for typed snapshots.
 - Instrument objects are cached by a stable identity and the cache is bounded
   (`withMaxInstrumentCacheSize`).
 
@@ -121,9 +123,9 @@ Evicting a context in a custom store can consequently alter linkage for late chi
 The bridge receives the artifact supplied by its publisher. `RunItBuilder`
 installs a default redactor unless you opt out with `withRedactor(null)` or
 supply a custom strategy, but the default is not a comprehensive sanitizer.
-In particular, it does not mask failed-execution throwables nested under
-`result.throwable`; free-form messages and unconfigured payload keys can also
-contain sensitive data. Apply and verify independent sanitization before data
+In particular, free-form messages and unconfigured payload keys can contain
+sensitive data, and custom throwable projections can bypass recognized fields.
+Apply and verify independent sanitization before data
 reaches the bridge or a sampler. See [current publication limitations](../SECURITY.md#current-publication-limitations).
 
 Payload-key masking for occurrence `data` and snapshot `payload` can be

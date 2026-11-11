@@ -20,10 +20,10 @@ unless anonymity is requested. Security fixes take priority over feature work.
 
 ## Supported versions
 
-| Version line | Supported |
-|---|---|
-| `1.0.x` (after stable release) | Yes |
-| `0.x` / pre-release | Best effort; upgrade to the latest commit |
+| Version line                   | Supported                                 |
+|--------------------------------|-------------------------------------------|
+| `1.0.x` (after stable release) | Yes                                       |
+| `0.x` / pre-release            | Best effort; upgrade to the latest commit |
 
 Before `1.0.0`, RunIt may introduce breaking changes; treat the `main` branch as
 the supported line. After `1.0.0`, RunIt follows semantic versioning and the
@@ -106,12 +106,11 @@ the default redactor is silently dropped by the tested log and span-event paths,
 while an unredacted control reaches both. This is an observability loss, not a
 guarantee that other redacted projections are dropped or safe to export.
 
-For redacted occurrences, the tested OpenTelemetry log and span-event paths
-export extension attributes even when they are excluded by the configured
-occurrence allow-list. For redacted snapshots, the tested paths export the
-original content hash even with `SnapshotPayloadPolicy::None`. Do not rely on
-these controls to suppress those fields on redacted projections until the adapter
-behavior is corrected; hashes can also disclose information about their inputs.
+The OpenTelemetry redacted snapshot mapper omits the content hash under
+`SnapshotPayloadPolicy::None` for logs and span events. `HashOnly` and `Full`
+still export the original content hash, which can disclose information about its
+inputs even when the payload was redacted. Redacted occurrences do not export
+extension attributes in the default mapper.
 
 When a publication health callback fails, the fallback reporter can log both
 exception messages and the artifact ID. Those diagnostics may contain sensitive
