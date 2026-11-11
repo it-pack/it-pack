@@ -183,6 +183,18 @@ provider execution or real-suite attribution and is not a CI gate.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
 - [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
 
+At clean revision `6129e47c`, the nested snapshot benchmark also ran on PHP
+8.4.27. Its redaction and publication measurements had high variance; workload,
+results and limitations are recorded in `docs/benchmarks.md`. This partial
+measurement does not close the performance baseline.
+
+At the same starting revision, `composer api:check` reported two interface breaks
+(`ActivitySpanMapperInterface::mapRedactedActivity()` and
+`ExecutionSpanMapperInterface::mapRedactedExecution()`) and two corresponding
+concrete method additions. The check exited 1. These require contract-diff review
+and the approved compatibility process; no baseline was changed. In particular,
+the planned monorepo API gate must not be represented as passing on this checkout.
+
 **Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
 | Check                        | Result                                                                                   |
@@ -924,9 +936,11 @@ top-level `throwable`; failed executions place it under `result.throwable`.
 Throwable projections contain `class`, `message`, `code`, `previous`, and `trace`.
 Observation `message` is separate from its throwable. Occurrence `data` and
 snapshot `payload` are key-masked only when keys are configured. The default
-redactor currently handles only the top-level throwable, masks rather than omits
-string traces, and has no explicit recursion bound of its own. Unknown keys and
-non-array values pass through. Changed artifacts become generic projections,
+redactor masks the top-level throwable, and when `redactThrowableMessages` is
+enabled masks `Execution.result.throwable.message` and
+`Execution.result.throwable.trace` string values recursively through array-valued
+`previous` causes. It masks rather than omits string traces, and has no explicit
+recursion bound of its own. Unknown keys and non-array values pass through. Changed artifacts become generic projections,
 which do not retain the original typed sampling or adapter interfaces.
 `PublisherStackFactory` currently calls sampling before redaction. Simply
 reversing it would cause type-dependent sampling and OpenTelemetry dispatch to
@@ -940,15 +954,17 @@ none of the approved target policies should be assumed implemented.
 `sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`.
 `ArtifactRedactionConfig` gained `redactObservationMessages` and `redactMeasurementValues`
 constructor arguments (both default `false` — observation-message redaction is opt-in,
-and failed-execution `result.throwable` remains unmasked by default). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+and failed-execution `result.throwable` is masked by default). `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
 no longer exports `extension_attributes` from redacted occurrences to OTel sinks.
 Negative tests added to `RedactingPublisherTest`, `ObservationLoggerPublisherTest`,
 and `ExecutionSpanMapperTest` characterize secrets in outer messages, throwable chains,
 multiple previous causes, trace values, and opt-out configurations. Composed pipeline
 coverage extends to PSR-3 and OpenTelemetry with in-memory sinks asserting secrets absent.
 `composer quality` passes: CS, Rector dry-run, PHPStan at level max, architecture,
-lint:length, security audit; `composer api:check` passes with both baseline snapshots
-regenerated. New test files contain no pre-existing PHPStan offset-access or lint:length
+lint:length, security audit. On the later worktree based on `0b072d80`,
+`composer api:check` instead reports two added OpenTelemetry interface methods as
+breaking changes, along with their concrete implementations as additions; the
+baselines were not changed in that run. New test files contain no pre-existing PHPStan offset-access or lint:length
 violations beyond those already present in the codebase.
 
 Focused tests now cover nested observation throwable masking, preservation of
@@ -969,7 +985,7 @@ establish per-test attribution or the planned isolation guarantee.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
-**Artifact `normalize()` shapes (source of truth, all `final readonly` domain values):**
+**Artifact `normalize()` shapes (built-in domain values):**
 
 | Artifact | `normalize()` keys | Secret-bearing fields |
 |----------|-------------------|----------------------|
@@ -990,7 +1006,10 @@ establish per-test attribution or the planned isolation guarantee.
 - `Measurement.value` — masked by `redactMeasurementValues` (opt-in, default `false`)
 - `Occurrence.extension_attributes` — masked by `sensitiveAttributeKeys`
 - `Snapshot.attributes` — masked by `sensitiveAttributeKeys`
-- NOT masked: `result.throwable` under failed `Execution`, unknown/non-array projection fields
+- `Execution.result.throwable.message` / `Execution.result.throwable.trace` —
+  string values are masked when `redactThrowableMessages` is enabled; recursive
+  through array-valued `previous` causes
+- NOT masked: unknown throwable fields and unsupported/non-array projection values
 
 **Consumer leak paths after redaction:**
 - `DefaultOccurrenceLogMapper::mapRedactedOccurrence()` no longer exports `extension_attributes`
@@ -1009,7 +1028,25 @@ establish per-test attribution or the planned isolation guarantee.
 - `DefaultOccurrenceLogMapper::mapSnapshot()` exports `attributes` directly and json-encodes
   `payload` under `SnapshotPayloadPolicy::Full`.
 
-**Bounded recursion and unknown fields:** `DefaultArtifactRedactor::maskKeysRecursive()` recurses into nested arrays/objects for `data`/`payload`, stops at scalars/nulls, and passes unknown projection fields through unchanged. Non-string `trace` values pass through untraversed. This preserves finite primitive projections but leaves non-`ThrowableDescription` projections with secrets intact.
+**Recursion and unknown fields:** `DefaultArtifactRedactor::maskKeysRecursive()`
+traverses nested arrays only for occurrence `data` and snapshot `payload`;
+objects and other non-array values pass through. Neither it nor throwable
+traversal imposes a depth, node, or cycle limit. Unknown throwable fields,
+non-array `previous` values and non-string `trace` values also pass through.
+The normalizable contract requires bounded primitive projections, but the
+redactor does not validate that contract. The built-in throwable mapper's capture
+limits and the separate snapshot serializer's limits are not redactor bounds.
+The disposition of unsupported values and exhausted limits remains open.
+
+Current redaction replaces recognized string traces with the marker, rather
+than implementing the approved default trace omission or a separate trace-export
+option. Changed projections use a generic `RedactedArtifact` without the original
+typed interface; OpenTelemetry currently dispatches such projections using field
+heuristics, including an `execution_id` branch that can receive an observation.
+These paths are not evidence of safe classification or delivery. Terminal
+snapshot payloads can contain a complete execution projection, while payload key
+masking depends on the configured data-key list; the retained content hash still
+describes the original payload. The mapping and target-policy work remain open.
 
 
 The newer sampling tests exercise the real factory with a spy sampler and sink,
@@ -1198,7 +1235,11 @@ do not establish coverage for unavailable OpenSwoole or Swow extensions.
 - [ ] Implement the [publication health reporting decision](#decisions-required-before-dependent-changes), including the replaceable SDK default, custom reporter, explicit silence, independent bounded/sanitized diagnostics and recursion guard. Decide the default destination and nullable callback compatibility; guard diagnostic extraction and keep fail-closed behavior explicit.
 - [ ] With an injected destination rather than PHP's error log, test a throwing publisher with no custom callback, a working custom reporter, explicit silence, a throwing reporter, and a reporter re-entering publication. For each, cover successful and throwing business operations, assert the expected diagnostic or silence, exact result or original exception, and context restoration. Also cover fallback-sink and artifact-normalization failures.
 - [x] Fix the `CallbackHealthReporter::report()` fail-open hole: guard artifact normalization and fallback reporting; verify runner outcomes and context restoration when either fails. Secondary failures go to a bounded, payload-free system-log notice; a throwing last-resort sink is contained. The normal fallback retains its existing behavior.
-- [ ] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration.
+- [x] In `DefaultExecutionRunner::publishTerminal()`, publish the completed execution independently from snapshot creation and publication; preserve normal execution-before-snapshot ordering unless explicitly changed. Extend `tests/Unit/Application/Runner/ResilienceTest.php` for successful and failing business operations, snapshot factory failure, execution publication failure, snapshot publication failure, original exception identity, and context restoration. On the worktree based on `0b072d80`, the focused suite passed on PHP 8.5.12 (25 tests, 116 assertions), and the separate target-policy harness passed on PHP 8.4.27 and 8.5.12. Execution publication now also precedes snapshot factory invocation; failing publishers cannot guarantee delivery.
+- On that worktree, `composer quality --quiet` passed on PHP 8.5.12. It does not
+  include the standalone target-policy harness, API checks, coverage, or benchmarks.
+  The API checker still reports the previously committed OpenTelemetry interface
+  additions as breaks; no baseline was changed.
 - [ ] For `FailExecutionOnOpenActivitiesPolicy`, first add a test to `tests/Unit/Application/Policy/OpenActivityPolicyTest.php` asserting the current observation, terminal status, and original result. Implement only the approved outcome/message semantics; update lifecycle documentation and compatibility notes if status behavior changes.
 - [ ] Test nested executions, open activities, repeated completion, and adapter/health failures together at the appropriate suite level. Document the chosen publication and completion failure guarantees.
 

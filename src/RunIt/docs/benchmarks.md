@@ -589,6 +589,30 @@ regression thresholds or production throughput estimates. They exclude creation
 and hashing, real I/O, buffering, concurrency, failure paths and PHP 8.4 timing.
 The broader Phase 0 benchmark baseline remains open.
 
+#### PHP 8.4 snapshot measurement (2026-11-11)
+
+At clean starting revision `6129e47c`, the same benchmark ran with PHP 8.4.27
+CLI and PHPBench 1.7.0 on a Microsoft-hypervisor x86-64 guest with four virtual
+CPUs on an Intel Core i7-9700. CLI OPcache, JIT and PCOV were disabled; Xdebug
+was absent. The command above was run with `php8.4` in place of `php`. Each
+subject used two warmups and five iterations of 100 operations; all eight
+subjects completed without errors. Values are modes in microseconds per
+operation, with relative standard deviations in parentheses.
+
+| Workload | 8 rows | 64 rows |
+| --- | ---: | ---: |
+| Snapshot projection | 1.497 (8.54%) | 1.358 (7.11%) |
+| Configured redaction | 42.632 (70.78%) | 238.531 (38.71%) |
+| JSON normalization | 66.778 (13.94%) | 556.602 (10.31%) |
+| Redacting publisher | 39.542 (60.46%) | 240.389 (42.44%) |
+
+Execution was unpinned and other investigation was in progress. The especially
+high redaction and publication variance makes these results unsuitable for a
+regression threshold or a controlled comparison with the earlier PHP 8.5 run.
+The synthetic workload uses an in-memory sink, no buffer, and excludes real I/O,
+concurrency, failure paths, creation and hashing; reported process peaks are not
+per-operation memory measurements. Phase 0 remains open.
+
 Phase 2 (T2.4) replaced the bounded publisher's per-publish
 `strlen(json_encode(...))` sizing — which encoded every occurrence/snapshot
 payload just to measure it — with the native

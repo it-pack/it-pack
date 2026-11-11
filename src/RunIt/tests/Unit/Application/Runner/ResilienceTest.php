@@ -207,7 +207,7 @@ final class ResilienceTest extends Unit
         }
     }
 
-    public function testTerminalSnapshotFactoryFailureSuppressesTerminalPublication(): void
+    public function testTerminalSnapshotFactoryFailureStillPublishesTerminalExecution(): void
     {
         foreach ([false, true] as $businessFails) {
             $factoryFailure = new RuntimeException('snapshot factory failed');
@@ -229,15 +229,16 @@ final class ResilienceTest extends Unit
                 snapshotFactory: $factory,
             );
             $original = new RuntimeException('business failure');
+            $value = new stdClass();
             $caught = null;
             $result = null;
             try {
-                $operation = static function () use ($businessFails, $original): int {
+                $operation = static function () use ($businessFails, $original, $value): object {
                     if ($businessFails) {
                         throw $original;
                     }
 
-                    return 42;
+                    return $value;
                 };
                 $result = $kit->runner->run($this->definition(), $operation);
             } catch (Throwable $failure) {
@@ -245,14 +246,19 @@ final class ResilienceTest extends Unit
             }
 
             self::assertSame($businessFails ? $original : null, $caught);
-            self::assertSame($businessFails ? null : 42, $result);
+            self::assertSame($businessFails ? null : $value, $result);
             self::assertSame([$factoryFailure], $failures);
             $terminal = array_values(array_filter(
                 $kit->artifacts(),
                 static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface
                     || ($artifact instanceof ExecutionInterface && $artifact->endedAt() instanceof InstantInterface),
             ));
-            self::assertSame([], $terminal);
+            self::assertCount(1, $terminal);
+            self::assertInstanceOf(ExecutionInterface::class, $terminal[0]);
+            self::assertSame(
+                $businessFails ? ExecutionStatus::Failed : ExecutionStatus::Succeeded,
+                $terminal[0]->status(),
+            );
             self::assertCount(1, array_filter(
                 $kit->artifacts(),
                 static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface
@@ -303,15 +309,16 @@ final class ResilienceTest extends Unit
                     },
                 );
                 $original = new RuntimeException('business failure');
+                $value = new stdClass();
                 $caught = null;
                 $result = null;
                 try {
-                    $operation = static function () use ($businessFails, $original): int {
+                    $operation = static function () use ($businessFails, $original, $value): object {
                         if ($businessFails) {
                             throw $original;
                         }
 
-                        return 42;
+                        return $value;
                     };
                     $result = $kit->runner->run($this->definition(), $operation);
                 } catch (Throwable $failure) {
@@ -319,7 +326,7 @@ final class ResilienceTest extends Unit
                 }
 
                 self::assertSame($businessFails ? $original : null, $caught);
-                self::assertSame($businessFails ? null : 42, $result);
+                self::assertSame($businessFails ? null : $value, $result);
                 self::assertSame(['execution', 'snapshot'], $publisher->attempts);
                 self::assertSame($failureTarget === 'none' ? [] : [$publicationFailure], $failures);
                 self::assertNull($kit->storage->current());

@@ -351,7 +351,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
     private function publishTerminal(ExecutionInterface $completed): void
     {
         try {
-            $snapshot = $this->snapshotFactory->terminal($completed);
+            $this->safePublish($completed);
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
 
@@ -359,7 +359,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
 
         try {
-            $this->safePublish($completed);
+            $snapshot = $this->snapshotFactory->terminal($completed);
             $this->safePublish($snapshot);
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);

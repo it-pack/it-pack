@@ -56,11 +56,14 @@ buffering, or the adapter, so volume costs are paid as late as possible.
 `RedactingArtifactPublisher` forwards the result of `RedactorInterface::redact()`.
 The default redactor returns the original instance when nothing matches and a generic
 `RedactedArtifact` projection otherwise; it does not mutate the original. Its current
-throwable masking only inspects a top-level `throwable`, not the `result.throwable`
-of a failed execution. Occurrence data and snapshot payload masking only covers
-configured key names, and the default lists are empty. Generic projections can also
-miss typed adapter dispatch. These limitations are tracked in Phase 2; do not treat
-this pipeline as a complete security boundary for arbitrary artifact contents.
+throwable masking covers a top-level `throwable` and a failed execution's
+`result.throwable`, including recognized previous causes. It masks recognized
+string traces rather than omitting them. Occurrence data and snapshot payload
+masking only covers configured key names, and the default lists are empty.
+Unknown throwable fields and unsupported shapes are not necessarily masked;
+generic projections can also miss typed adapter dispatch. These limitations are
+tracked in Phase 2; do not treat this pipeline as a complete security boundary for
+arbitrary artifact contents.
 
 ## Failure policies
 
