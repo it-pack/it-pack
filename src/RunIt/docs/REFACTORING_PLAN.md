@@ -1136,8 +1136,14 @@ violations beyond those already present in the codebase.
 The redacted OpenTelemetry snapshot mapper now honors `SnapshotPayloadPolicy::None`
 by omitting the original content hash from logs and span events. A composed
 regression covers both outputs, and mapper tests cover `HashOnly`. Hash-enabled
-policies still expose the original hash; redacted snapshot timestamp handling
-remains open. This does not complete the broader Phase 2 redaction work.
+policies still expose the original hash. Redacted snapshot log timestamps now
+use the normalized `created_at`; missing or non-integer values fall back to the
+current time. This does not complete the broader Phase 2 redaction work.
+At starting revision `9015b4d8`, focused mapper and composed publisher tests
+passed on PHP 8.4.27 and 8.5.12, and `composer quality --quiet` passed on PHP
+8.5.12. The separate API check still reports the two previously recorded mapper
+interface breaks; no API baseline or schema was changed. No benchmark comparison
+or full PHP 8.4 suite was run for this correction.
 
 Focused tests now cover nested observation throwable masking, preservation of
 class and code, original immutability, explicit opt-out, and PSR logger export
@@ -1261,7 +1267,7 @@ support; running the three files sequentially passed. A subsequent direct
 evidence of a full configured run: the later explicit suite runs and Functional
 bootstrap failure are documented in the refreshed Phase 0 results above.
 
-Further composed OpenTelemetry characterizations use real redacted artifacts and
+Earlier composed OpenTelemetry characterizations used real redacted artifacts and
 in-memory exporters. In the tested occurrence configuration, an extension excluded
 by the occurrence allow-list is still exported in both log and span-event fields;
 the normalized occurrence time is used. For a redacted snapshot, the normalized
@@ -1269,8 +1275,9 @@ the normalized occurrence time is used. For a redacted snapshot, the normalized
 clock. The original content hash is exported to both signals even with
 `SnapshotPayloadPolicy::None`. The tested mappings omit occurrence data and
 snapshot payload; these cases do not establish safety for other configurations or
-exporters. Routing, extension filtering, timestamp handling, and hash exposure
-remain open security and correctness work.
+exporters. Subsequent fixes omit redacted occurrence extensions and the snapshot
+hash under `None`, and use `created_at` for redacted snapshot logs. Other routing
+and hash exposure concerns remain open security and correctness work.
 
 A PSR-3 observation logger characterization additionally shows that a configured
 sensitive attribute key is masked at the top level but remains visible when it
@@ -1338,6 +1345,13 @@ establish default protection, trace omission, exporter behavior, or safety of th
 retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
 assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
 No production behavior or contract changed, and Phase 2 remains open.
+
+At starting revision `9015b4d8`, the same snapshot test also characterizes the
+default redactor: it returns the original snapshot and its payload retains every
+synthetic throwable secret. Direct execution throwable masking does not imply
+snapshot payload protection. The focused file passed on PHP 8.4.27 and 8.5.12
+(21 tests, 117 assertions each); this is an exposure characterization, not an
+approved security guarantee or an exporter test.
 
 At starting revision `7e7652a7`, a finite custom primitive throwable projection
 characterizes another traversal boundary: recognized string messages and trace

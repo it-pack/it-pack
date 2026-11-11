@@ -220,7 +220,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             'runit.snapshot',
             is_string($normalized[ArtifactField::TYPE] ?? null) ? $normalized['type'] : 'runit.artifact.redacted',
             $attributes,
-            is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized['time'] : null
+            is_int($normalized[ArtifactField::CREATED_AT] ?? null) ? $normalized[ArtifactField::CREATED_AT] : null
         );
     }
 

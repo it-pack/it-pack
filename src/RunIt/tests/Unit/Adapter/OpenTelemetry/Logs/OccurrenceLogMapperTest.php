@@ -350,6 +350,40 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertTrue($attributes['runit.redacted']);
     }
 
+    public function testRedactedSnapshotUsesCreatedAtLikeTypedSnapshot(): void
+    {
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
+        $snapshot = RunItArtifactFactory::snapshot('snap-time', 'exec-1', ['key' => 'value']);
+        $mapper->mapSnapshot($snapshot);
+        $mapper->mapRedactedSnapshot(['created_at' => 1700, 'time' => 1600]);
+
+        self::assertSame(1_700_000_000_000, $this->kit->log(0)->getTimestamp());
+        self::assertSame($this->kit->log(0)->getTimestamp(), $this->kit->log(1)->getTimestamp());
+    }
+
+    public function testRedactedSnapshotUsesCurrentTimeForMissingOrInvalidCreatedAt(): void
+    {
+        $mapper = new DefaultOccurrenceLogMapper(
+            $this->kit->loggerProvider,
+            SnapshotPayloadPolicy::HashOnly,
+            mapOccurrencesToLogs: true,
+            mapOccurrencesToSpanEvents: false,
+        );
+        foreach ([[], ['created_at' => '1700'], ['created_at' => null]] as $normalized) {
+            $before = (int) (microtime(true) * 1_000_000_000);
+            $mapper->mapRedactedSnapshot($normalized + ['time' => 1600]);
+            $after = (int) (microtime(true) * 1_000_000_000);
+            $timestamp = $this->kit->log($this->kit->logs()->count() - 1)->getTimestamp();
+            self::assertGreaterThanOrEqual($before, $timestamp);
+            self::assertLessThanOrEqual($after, $timestamp);
+        }
+    }
+
     public function testSnapshotActivityAndAttributesAreExported(): void
     {
         $snapshot = RunItArtifactFactory::snapshot('snap-act', 'exec-1', ['key' => 'value']);

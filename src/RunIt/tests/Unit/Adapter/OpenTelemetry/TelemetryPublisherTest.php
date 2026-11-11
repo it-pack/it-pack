@@ -511,8 +511,8 @@ final class TelemetryPublisherTest extends Unit
         self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
     }
 
-    /** Verifies the None policy and characterizes the redacted snapshot timestamp. */
-    public function testActualRedactedSnapshotOmitsHashWithNonePolicyAndUsesCurrentTime(): void
+    /** Verifies the None policy and the redacted snapshot timestamp. */
+    public function testActualRedactedSnapshotOmitsHashWithNonePolicyAndUsesCreatedAt(): void
     {
         $snapshot = RunItArtifactFactory::snapshot('snap-characterized', 'exec-1', ['secret' => 'value'], 'act-1');
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
@@ -537,9 +537,7 @@ final class TelemetryPublisherTest extends Unit
         $span = $this->kit->tracerProvider->getTracer('test')->spanBuilder('current')->startSpan();
         $scope = $span->activate();
         try {
-            $before = (int) (microtime(true) * 1_000_000_000);
             TelemetryPublisher::fromConfig($config)->publish($redacted);
-            $after = (int) (microtime(true) * 1_000_000_000);
         } finally {
             $scope->detach();
             $span->end();
@@ -549,8 +547,7 @@ final class TelemetryPublisherTest extends Unit
         $record = $this->kit->log(0);
         self::assertSame('runit.snapshot', $record->getEventName());
         self::assertSame('execution.snapshot', $record->getBody());
-        self::assertGreaterThanOrEqual($before, $record->getTimestamp());
-        self::assertLessThanOrEqual($after, $record->getTimestamp());
+        self::assertSame(1_700_000_000_000, $record->getTimestamp());
         $attributes = $record->getAttributes()->toArray();
         self::assertSame('snap-characterized', $attributes['runit.snapshot.id']);
         self::assertSame('act-1', $attributes['runit.activity.id']);

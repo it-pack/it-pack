@@ -396,6 +396,14 @@ final class RedactingPublisherTest extends Unit
             new DeterministicHashCalculator(),
         );
         $before = $snapshot->normalize();
+        // Characterize the current default exposure, not an approved security guarantee.
+        $default = new DefaultArtifactRedactor()->redact($snapshot);
+        self::assertSame($snapshot, $default);
+        $defaultPayload = json_encode($default->normalize()['payload'], JSON_THROW_ON_ERROR);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringContainsString($secret, $defaultPayload);
+        }
+
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveDataKeys: ['message', 'trace'],
         ));

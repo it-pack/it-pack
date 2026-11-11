@@ -28,6 +28,8 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Correct redacted OpenTelemetry snapshot log timestamps to use the snapshot's
+  `created_at` rather than the publication time when it is available as an integer.
 - OpenTelemetry redacted snapshot logs and span events now honor
   `SnapshotPayloadPolicy::None` and omit the original content hash. Consumers
   relying on the previously leaked hash must explicitly choose a hash-enabled policy.

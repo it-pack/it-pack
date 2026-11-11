@@ -84,6 +84,9 @@ attribute keys also mask matching top-level occurrence extension and snapshot
 attributes, not nested entries. Unknown fields, identifiers, and values under
 unconfigured keys are not covered by that traversal. Snapshot `content_hash`
 also remains the hash of the original payload after masking.
+In particular, default settings do not remove throwable messages or traces from
+a failed execution's normalized projection embedded in a snapshot payload.
+Do not assume direct execution throwable redaction also protects snapshot payloads.
 
 Built-in occurrence and snapshot constructors normally validate payload values;
 custom implementations must honor the bounded, recursively primitive

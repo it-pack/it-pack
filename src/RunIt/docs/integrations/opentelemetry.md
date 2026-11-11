@@ -115,6 +115,8 @@ Evicting a context in a custom store can consequently alter linkage for late chi
   by default; `None` omits the hash, including for redacted snapshots. Hash-enabled
   policies export the original hash, which may reveal information about the payload.
   The full payload is exported only under `SnapshotPayloadPolicy::Full` for typed snapshots.
+  Redacted snapshot logs use the normalized `created_at` timestamp; missing or
+  non-integer values fall back to the current time.
 - Instrument objects are cached by a stable identity and the cache is bounded
   (`withMaxInstrumentCacheSize`).
 
