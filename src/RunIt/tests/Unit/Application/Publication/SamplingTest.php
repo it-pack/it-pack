@@ -96,8 +96,10 @@ final class SamplingTest extends Unit
 
     public function testAlwaysAndNever(): void
     {
-        self::assertTrue(new AlwaysSamplePolicy()->sample($this->observation()));
-        self::assertFalse(new NeverSamplePolicy()->sample($this->observation()));
+        $alwaysResult = new AlwaysSamplePolicy()->sample($this->observation());
+        $neverResult = new NeverSamplePolicy()->sample($this->observation());
+        self::assertSame(true, $alwaysResult);
+        self::assertSame(false, $neverResult);
     }
 
     public function testRatioIsDeterministic(): void
@@ -227,7 +229,7 @@ final class SamplingTest extends Unit
         self::assertCount(1, $keepSink->published());
     }
 
-    public function testFactoryCurrentlySamplesOriginalArtifactsBeforeRedaction(): void
+    public function testFactorySamplesRedactedArtifactsAfterRedaction(): void
     {
         $policy = new class () implements SamplingPolicyInterface {
             /** @var list<ExecutionArtifactInterface> */
@@ -237,7 +239,7 @@ final class SamplingTest extends Unit
             {
                 $this->seen[] = $artifact;
 
-                return $artifact->normalize()['message'] !== 'reject';
+                return true;
             }
         };
         $sink = new InMemoryArtifactPublisher();
@@ -253,14 +255,20 @@ final class SamplingTest extends Unit
         $publisher->publish($rejected);
         $publisher->publish($unchanged);
 
-        // Characterizes current exposure to the policy, not an approved security ordering.
-        self::assertSame([$changed, $rejected, $unchanged], $policy->seen);
-        self::assertSame(['secret' => 'sensitive'], $policy->seen[0]->normalize()['attributes']);
-        self::assertSame(['secret' => 'sensitive'], $policy->seen[1]->normalize()['attributes']);
-        self::assertCount(2, $sink->published());
+        // The sampler sees redacted artifacts, not originals.
+        self::assertCount(3, $policy->seen);
+        self::assertSame(['secret' => '[redacted]'], $policy->seen[0]->normalize()['attributes']);
+        self::assertSame(['secret' => '[redacted]'], $policy->seen[1]->normalize()['attributes']);
+        self::assertSame([], $policy->seen[2]->normalize()['attributes']);
+        self::assertSame('[redacted]', $policy->seen[2]->normalize()['message']);
+
+        // The sink receives redacted artifacts.
+        self::assertCount(3, $sink->published());
         self::assertNotSame($changed, $sink->published()[0]);
         self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
-        self::assertSame($unchanged, $sink->published()[1]);
+        self::assertSame('[redacted]', $sink->published()[0]->normalize()['message']);
+        self::assertNotSame($rejected, $sink->published()[1]);
+        self::assertNotSame($unchanged, $sink->published()[2]);
     }
 
     public function testFactoryHandlesNullDecorators(): void
@@ -299,7 +307,7 @@ final class SamplingTest extends Unit
         self::assertSame(['secret' => '[redacted]'], $redactedSink->published()[0]->normalize()['attributes']);
     }
 
-    public function testFactorySamplesObservationSeverityBeforeRedactionChangesItsType(): void
+    public function testFactorySamplesObservationSeverityAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
@@ -310,16 +318,19 @@ final class SamplingTest extends Unit
         $low = Observation::info(ObservationId::fromString('low'), $id, 'low', attributes: $attributes);
         $high = Observation::warning(ObservationId::fromString('high'), $id, 'high', attributes: $attributes);
 
-        self::assertTrue($policy->sample($redactor->redact($low)), 'A redacted wrapper is not an observation.');
+        // A redacted observation carries its level in normalized data, so the
+        // severity floor applies to redacted artifacts as well.
+        self::assertFalse($policy->sample($redactor->redact($low)), 'Redacted info is below the warning floor.');
+        self::assertTrue($policy->sample($redactor->redact($high)), 'Redacted warning meets the warning floor.');
         $publisher->publish($low);
         $publisher->publish($high);
 
         self::assertCount(1, $sink->published());
-        self::assertSame('high', $sink->published()[0]->normalize()['message']);
+        self::assertSame('[redacted]', $sink->published()[0]->normalize()['message']);
         self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
     }
 
-    public function testFactorySamplesErrorOverrideBeforeRedactionChangesItsType(): void
+    public function testFactorySamplesErrorOverrideAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
@@ -332,9 +343,11 @@ final class SamplingTest extends Unit
         $unchanged = $this->observation('error');
         $redacted = $redactor->redact($error);
 
+        // Error override applies to redacted observations via normalized level.
         self::assertTrue($policy->sample($error));
-        self::assertFalse($policy->sample($redacted));
-        self::assertSame($unchanged, $redactor->redact($unchanged));
+        self::assertTrue($policy->sample($redacted));
+        self::assertNotSame($unchanged, $redactor->redact($unchanged));
+        self::assertSame('[redacted]', $redactor->redact($unchanged)->normalize()['message']);
         $publisher->publish($error);
         $publisher->publish($info);
         $publisher->publish($unchanged);
@@ -342,10 +355,11 @@ final class SamplingTest extends Unit
         self::assertCount(2, $sink->published());
         self::assertNotSame($error, $sink->published()[0]);
         self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
-        self::assertSame($unchanged, $sink->published()[1]);
+        self::assertNotSame($unchanged, $sink->published()[1]);
+        self::assertSame('[redacted]', $sink->published()[1]->normalize()['message']);
     }
 
-    public function testFactorySamplesExecutionKindBeforeRedactionChangesItsType(): void
+    public function testFactorySamplesExecutionKindAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
@@ -374,9 +388,12 @@ final class SamplingTest extends Unit
         $unknown = $this->observation('info', 'exec-3');
         $unchanged = $this->observation();
 
+        // Execution kind resolves from redacted normalized execution_id.
         self::assertTrue($policy->sample($kept));
-        self::assertFalse($policy->sample($redactor->redact($kept)));
-        self::assertSame($unchanged, $redactor->redact($unchanged));
+        self::assertTrue($policy->sample($redactor->redact($kept)));
+        self::assertFalse($policy->sample($redactor->redact($dropped)));
+        self::assertNotSame($unchanged, $redactor->redact($unchanged));
+        self::assertSame('[redacted]', $redactor->redact($unchanged)->normalize()['message']);
         $publisher->publish($kept);
         $publisher->publish($dropped);
         $publisher->publish($unknown);
@@ -385,6 +402,7 @@ final class SamplingTest extends Unit
         self::assertCount(2, $sink->published());
         self::assertNotSame($kept, $sink->published()[0]);
         self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
-        self::assertSame($unchanged, $sink->published()[1]);
+        self::assertNotSame($unchanged, $sink->published()[1]);
+        self::assertSame('[redacted]', $sink->published()[1]->normalize()['message']);
     }
 }

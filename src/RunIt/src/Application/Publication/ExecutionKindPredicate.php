@@ -10,6 +10,10 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionKindInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionOwnedInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Domain\Exception\InvalidIdentifierException;
+use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * Shared execution-kind predicate.
@@ -38,16 +42,36 @@ final readonly class ExecutionKindPredicate implements ArtifactPredicateInterfac
 
     public function test(ExecutionArtifactInterface $artifact): bool
     {
-        if (!$artifact instanceof ExecutionOwnedInterface) {
-            return false;
+        if ($artifact instanceof ExecutionOwnedInterface) {
+            $kind = ($this->resolver)($artifact->executionId());
+
+            if (!$kind instanceof ExecutionKindInterface) {
+                return false;
+            }
+
+            return ($this->decide)($kind);
         }
 
-        $kind = ($this->resolver)($artifact->executionId());
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $normalized = $artifact->normalize();
+            $executionId = $normalized[ArtifactField::EXECUTION_ID] ?? null;
+            if (!is_string($executionId)) {
+                return false;
+            }
 
-        if (!$kind instanceof ExecutionKindInterface) {
-            return false;
+            try {
+                $kind = ($this->resolver)(ExecutionId::fromString($executionId));
+            } catch (InvalidIdentifierException) {
+                return false;
+            }
+
+            if (!$kind instanceof ExecutionKindInterface) {
+                return false;
+            }
+
+            return ($this->decide)($kind);
         }
 
-        return ($this->decide)($kind);
+        return false;
     }
 }

@@ -21,11 +21,13 @@ use RuntimeException;
  */
 final class BoundDropException extends RuntimeException implements RunItExceptionInterface
 {
+    private const string REASON_TEMPLATE = 'Artifact dropped by data-protection bound "%s".';
+
     public static function forReason(string $reason): self
     {
         return new self(
             sprintf(
-                'Artifact dropped by data-protection bound "%s".',
+                self::REASON_TEMPLATE,
                 $reason,
             ),
         );

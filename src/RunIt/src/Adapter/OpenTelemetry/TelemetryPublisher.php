@@ -147,6 +147,20 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
                 return;
             }
 
+            if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
+                $this->observationMapper->mapRedactedObservation($normalized);
+
+                return;
+            }
+
+            if (array_key_exists('unit', $normalized)) {
+                // Redacted measurements have no typed redacted mapper on the
+                // MeasurementInstrumentMapperInterface contract; they are
+                // dropped here rather than misrouted through activity heuristics.
+
+                return;
+            }
+
             if (array_key_exists('execution_id', $normalized) && !array_key_exists('unit', $normalized)) {
                 $this->activityMapper->mapRedactedActivity($normalized);
             }

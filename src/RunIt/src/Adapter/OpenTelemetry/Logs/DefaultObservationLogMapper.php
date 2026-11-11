@@ -11,6 +11,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Trace\Span;
@@ -51,25 +52,13 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
             ->setBody($observation->message())
         ;
 
-        /** @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes */
-        $attributes = [
-            AttributeKeys::OBSERVATION_ID => $observation->id()->toString(),
-            AttributeKeys::EXECUTION_ID => $observation->executionId()->toString(),
-        ];
-
-        $activityId = $observation->activityId();
-        if ($activityId instanceof StringIdentifierInterface) {
-            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId->toString();
-        }
-
-        $diagnosticCode = $observation->diagnosticCode();
-        if ($diagnosticCode !== null) {
-            $attributes[AttributeKeys::DIAGNOSTIC_CODE] = $diagnosticCode;
-        }
-
-        foreach ($observation->attributes() as $key => $value) {
-            $attributes[$key] = $value;
-        }
+        $attributes = $this->buildObservationAttributes(
+            $observation->id()->toString(),
+            $observation->executionId()->toString(),
+            $observation->activityId(),
+            $observation->diagnosticCode(),
+            $observation->attributes(),
+        );
 
         $throwable = $observation->throwableDescription();
         if ($throwable instanceof ThrowableDescriptionInterface) {
@@ -87,5 +76,154 @@ final readonly class DefaultObservationLogMapper implements ObservationLogMapper
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $attributes);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    public function mapRedactedObservation(array $normalized): void
+    {
+        if (!$this->loggerProvider instanceof LoggerProviderInterface) {
+            return;
+        }
+
+        $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
+
+        $message = $normalized[ArtifactField::MESSAGE] ?? $normalized[ArtifactField::NAME] ?? '';
+        $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? 0;
+        $timestamp = $normalized[ArtifactField::TIMESTAMP] ?? 0;
+
+        $builder = $logger
+            ->logRecordBuilder()
+            ->setTimestamp(is_int($timestamp) ? $timestamp * Duration::NANOS_PER_SECOND : 0)
+            ->setSeverityNumber($this->severityLevelToNumber(is_int($level) ? $level : 0))
+            ->setSeverityText($this->severityLevelToText(is_int($level) ? $level : 0))
+            ->setBody(is_string($message) ? $message : '')
+        ;
+
+        $otelAttributes = $this->buildOtelAttributes($normalized);
+
+        $this->appendThrowableAttributes($otelAttributes, $normalized[ArtifactField::THROWABLE] ?? null);
+
+        $builder->setAttributes($otelAttributes);
+        $builder->emit();
+
+        if ($this->mapToSpanEvents) {
+            Span::getCurrent()->addEvent('runit.observation', $otelAttributes);
+        }
+    }
+
+    /**
+     * @param array<mixed, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    private function buildOtelAttributes(array $normalized): array
+    {
+        $idValue = $normalized[ArtifactField::ID] ?? '';
+        $observationId = is_string($idValue) ? $idValue : '';
+        $execValue = $normalized[ArtifactField::EXECUTION_ID] ?? '';
+        $executionId = is_string($execValue) ? $execValue : '';
+
+        return $this->buildObservationAttributes(
+            $observationId,
+            $executionId,
+            $normalized[ArtifactField::ACTIVITY_ID] ?? null,
+            $normalized[ArtifactField::DIAGNOSTIC_CODE] ?? null,
+            is_array($normalized[ArtifactField::ATTRIBUTES] ?? null) ? $normalized[ArtifactField::ATTRIBUTES] : [],
+        );
+    }
+
+    /**
+     * @param iterable<mixed, mixed> $attributes
+     * @return array<string, mixed>
+     */
+    private function buildObservationAttributes(
+        string $observationId,
+        string $executionId,
+        mixed $activityId,
+        mixed $diagnosticCode,
+        iterable $attributes,
+    ): array {
+        $otelAttributes = [
+            AttributeKeys::OBSERVATION_ID => $observationId,
+            AttributeKeys::EXECUTION_ID => $executionId,
+        ];
+
+        if ($activityId instanceof StringIdentifierInterface) {
+            $otelAttributes[AttributeKeys::ACTIVITY_ID] = $activityId->toString();
+        }
+
+        if (is_string($activityId)) {
+            $otelAttributes[AttributeKeys::ACTIVITY_ID] = $activityId;
+        }
+
+        if ($diagnosticCode !== null) {
+            $otelAttributes[AttributeKeys::DIAGNOSTIC_CODE] = $diagnosticCode;
+        }
+
+        foreach ($attributes as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            $otelAttributes[$key] = $value;
+        }
+
+        return $otelAttributes;
+    }
+
+    /**
+     * @param array<string, mixed> $otelAttributes
+     */
+    private function appendThrowableAttributes(array &$otelAttributes, mixed $throwable): void
+    {
+        if (!is_array($throwable)) {
+            return;
+        }
+
+        $throwableClass = $throwable[ArtifactField::THROWABLE_CLASS] ?? null;
+        $throwableMessage = $throwable[ArtifactField::MESSAGE] ?? null;
+        if (is_string($throwableClass)) {
+            $otelAttributes['exception.type'] = $throwableClass;
+        }
+
+        if (is_string($throwableMessage)) {
+            $otelAttributes['exception.message'] = $throwableMessage;
+        }
+
+        $trace = $throwable[ArtifactField::TRACE] ?? null;
+        if (is_string($trace) && $trace !== '') {
+            $otelAttributes['exception.stacktrace'] = $trace;
+        }
+    }
+
+    private function severityLevelToNumber(int $level): int
+    {
+        return match (true) {
+            $level >= 600 => 26,
+            $level >= 550 => 25,
+            $level >= 500 => 23,
+            $level >= 400 => 21,
+            $level >= 300 => 17,
+            $level >= 250 => 13,
+            $level >= 200 => 9,
+            $level >= 100 => 5,
+            default => 1,
+        };
+    }
+
+    private function severityLevelToText(int $level): string
+    {
+        return match (true) {
+            $level >= 600 => 'emergency',
+            $level >= 550 => 'alert',
+            $level >= 500 => 'critical',
+            $level >= 400 => 'error',
+            $level >= 300 => 'warning',
+            $level >= 250 => 'notice',
+            $level >= 200 => 'info',
+            $level >= 100 => 'debug',
+            default => 'trace',
+        };
     }
 }

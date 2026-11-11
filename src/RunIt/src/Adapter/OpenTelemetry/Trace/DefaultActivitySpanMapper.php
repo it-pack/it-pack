@@ -209,13 +209,26 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
         $throwableClass = is_string($throwable['class'] ?? null) ? $throwable['class'] : '';
         $throwableMessage = is_string($throwable['message'] ?? null) ? $throwable['message'] : '';
-        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : '';
+        $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
 
-        $span->addEvent('exception', [
+        $attributes = [
             'exception.type' => $throwableClass,
             'exception.message' => $throwableMessage,
-            'exception.stacktrace' => $throwableTrace,
-        ]);
+        ];
+
+        $this->appendStacktraceIfNonEmpty($attributes, $throwableTrace);
+
+        $span->addEvent('exception', $attributes);
+    }
+
+    /**
+     * @param array<string, mixed> &$attributes
+     */
+    private function appendStacktraceIfNonEmpty(array &$attributes, ?string $trace): void
+    {
+        if ($trace !== null && $trace !== '') {
+            $attributes['exception.stacktrace'] = $trace;
+        }
     }
 
     private function resolveParentContext(ActivityInterface|ExecutionInterface $activity): ?ContextInterface

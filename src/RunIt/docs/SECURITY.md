@@ -86,25 +86,25 @@ attribute keys also mask matching top-level occurrence extension and snapshot
 attributes, not nested entries. Unknown fields, identifiers, and values under
 unconfigured keys are not covered by that traversal. Snapshot `content_hash`
 also remains the hash of the original payload after masking.
-In particular, default settings do not remove throwable messages or traces from
-a failed execution's normalized projection embedded in a snapshot payload.
-Do not assume direct execution throwable redaction also protects snapshot payloads.
-An integration test confirms that an explicitly configured OpenTelemetry `Full`
-snapshot export can emit the failed execution's exception message under default
-redaction. The default OpenTelemetry snapshot policy is `HashOnly`, not `Full`.
+In particular, default redaction masks throwable messages and traces inside a
+failed execution's normalized projection embedded in a snapshot payload, and
+traverses array payloads to find throwable-shaped arrays even without configured
+sensitive keys. Direct execution throwable redaction therefore also protects
+snapshot payloads under the default configuration. Snapshot `content_hash`
+also remains the hash of the original payload after masking.
 
 Built-in occurrence and snapshot constructors normally validate payload values;
 custom implementations must honor the bounded, recursively primitive
 `NormalizableInterface` contract. The redactor itself neither validates that
 contract. Configured-key payload traversal is limited to 16 levels and 1,024
-visited nodes; without configured keys it does not traverse the payload at all.
-Truncation is not yet reported through the health path. A test
-using a deliberately nonconforming custom artifact confirms that an object and
-unknown fields pass through unchanged, including when another field is masked.
-Such projections can expose data or exhaust resources; do not treat the redactor
-as a validator or sanitizer for untrusted artifact implementations.
-Array-valued throwable traces are also replaced with null. The built-in throwable
-shape is not a validation guarantee for other fields of custom artifacts.
+visited nodes; throwable-shaped arrays inside payloads are also traversed under
+the default throwable-masking policy. Truncation is not yet reported through the
+health path. A test using a deliberately nonconforming custom artifact confirms
+that an object and unknown fields pass through unchanged, including when another
+field is masked. Such projections can expose data or exhaust resources; do not
+treat the redactor as a validator or sanitizer for untrusted artifact
+implementations. The built-in throwable shape is not a validation guarantee for
+other fields of custom artifacts.
 
 A composed OpenTelemetry test checks that classified markers in a failed
 execution's throwable do not reach the tested span event under default redaction.

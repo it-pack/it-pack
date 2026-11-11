@@ -14,10 +14,11 @@ use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 /**
  * Default {@see PublisherStackFactoryInterface}.
  *
- * Mirrors the publisher-stack wiring previously inlined in
- * {@see \ItPack\RunIt\SDK\Builder\RunItBuilder::build()}: the redactor (when
- * configured) wraps the base publisher, and the sampler (when configured) wraps
- * the result. Publish calls therefore reach the sampler before the redactor.
+ * The redactor (when configured) wraps the sampling layer, so publish calls
+ * reach the redactor before the sampler. The default redactor masks observation
+ * messages and throwable details as well as explicitly configured sensitive keys.
+ * Other fields can pass through unchanged, so this order alone does not make
+ * every sampler input safe.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -30,12 +31,12 @@ final class PublisherStackFactory implements PublisherStackFactoryInterface
     ): ArtifactPublisherInterface {
         $composed = $base;
 
-        if ($redactor instanceof RedactorInterface) {
-            $composed = new RedactingArtifactPublisher($redactor, $composed);
-        }
-
         if ($samplingPolicy instanceof SamplingPolicyInterface) {
             $composed = new SamplingArtifactPublisher($samplingPolicy, $composed);
+        }
+
+        if ($redactor instanceof RedactorInterface) {
+            $composed = new RedactingArtifactPublisher($redactor, $composed);
         }
 
         return $composed;

@@ -53,9 +53,10 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
                 return $artifact->executionId()->toString();
             }
 
-            $id = $artifact->normalize()[ArtifactField::ID] ?? '';
+            $normalized = $artifact->normalize();
+            $executionId = $normalized[ArtifactField::EXECUTION_ID] ?? $normalized[ArtifactField::ID] ?? '';
 
-            return is_string($id) ? $id : '';
+            return is_string($executionId) ? $executionId : '';
         };
         $this->maxTrackedExecutions = ($limits ?? SecurityLimits::default())->maxTrackedExecutions;
     }
@@ -68,7 +69,7 @@ final class HeadBasedSamplingPolicy implements SamplingPolicyInterface
             if (count($this->decisions) >= $this->maxTrackedExecutions) {
                 $oldest = array_key_first($this->decisions);
 
-                if (is_string($oldest)) {
+                if ($oldest !== null) {
                     unset($this->decisions[$oldest]);
                 }
             }

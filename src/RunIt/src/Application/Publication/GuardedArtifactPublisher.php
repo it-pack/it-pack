@@ -43,7 +43,10 @@ final readonly class GuardedArtifactPublisher implements
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         if ($this->guard->isActive()) {
-            $this->health?->report(new RecursivePublicationException('Recursive publication suppressed.'), $artifact);
+            $this->health?->report(
+                new RecursivePublicationException('Recursive publication suppressed.'),
+                $artifact,
+            );
 
             return;
         }

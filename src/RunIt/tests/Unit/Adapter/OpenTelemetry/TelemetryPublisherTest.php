@@ -220,20 +220,24 @@ final class TelemetryPublisherTest extends Unit
         $message = $attributes->get('exception.message');
         $trace = $attributes->get('exception.stacktrace');
         self::assertIsString($message);
-        self::assertIsString($trace);
         $secrets = SensitiveExceptionChain::secrets();
         if ($config->redactThrowableMessages) {
             // Redacted throwable: no classified secret reaches the exporter.
             foreach ($secrets as $secret) {
                 self::assertFalse(str_contains($message, $secret), 'Secret must not reach the exporter.');
-                self::assertFalse(str_contains($trace, $secret), 'Secret trace must not reach the exporter.');
+                if ($trace !== null) {
+                    self::assertIsString($trace);
+                    self::assertFalse(str_contains($trace, $secret), 'Secret trace must not reach the exporter.');
+                }
             }
 
             self::assertSame('[redacted]', $message);
-            self::assertSame('[redacted]', $trace);
+            // Traces are omitted by default, not masked: the attribute is absent.
+            self::assertArrayNotHasKey('exception.stacktrace', $attributes->toArray());
         } else {
             // Redaction disabled: secrets reach the exporter (known behavior, not a leak).
             $outerSecret = $secrets[1]; // db password in outer throwable message
+            self::assertIsString($trace);
             self::assertStringContainsString($outerSecret, $message);
             self::assertStringContainsString($outerSecret, $trace);
         }
@@ -331,8 +335,8 @@ final class TelemetryPublisherTest extends Unit
         self::assertCount(3, $this->kit->logs());
     }
 
-    /** Characterizes the current loss of observations wrapped by the default redactor. */
-    public function testRedactedObservationIsIgnoredWhileUnredactedObservationIsExported(): void
+    /** Redacted observations are delivered as sanitized OpenTelemetry log records. */
+    public function testRedactedObservationIsDeliveredAsSanitizedLog(): void
     {
         $observation = RunItArtifactFactory::observation(
             'obs-red',
@@ -341,7 +345,6 @@ final class TelemetryPublisherTest extends Unit
             'observed',
             attributes: ['password' => 'secret'],
         );
-        $before = $observation->normalize();
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveAttributeKeys: ['password'],
         ))->redact($observation);
@@ -350,9 +353,9 @@ final class TelemetryPublisherTest extends Unit
         $normalized = $redacted->normalize();
         self::assertIsArray($normalized['attributes']);
         self::assertSame('[redacted]', $normalized['attributes']['password']);
+        self::assertSame('[redacted]', $normalized['message']);
         self::assertArrayNotHasKey('source', $normalized);
         self::assertArrayNotHasKey('classification', $normalized);
-        self::assertSame($before, $observation->normalize());
 
         $config = new BridgeConfigBuilder()
             ->withLoggerProvider($this->kit->loggerProvider)
@@ -364,18 +367,20 @@ final class TelemetryPublisherTest extends Unit
         $scope = $span->activate();
         try {
             $publisher->publish($redacted);
-            self::assertCount(0, $this->kit->logs());
+            self::assertCount(1, $this->kit->logs());
+            self::assertSame('[redacted]', $this->kit->log(0)->getBody());
             $publisher->publish(RunItArtifactFactory::observation('obs-control', 'exec-1', 'info', 'control'));
         } finally {
             $scope->detach();
             $span->end();
         }
 
-        self::assertCount(1, $this->kit->logs());
-        self::assertSame('control', $this->kit->log(0)->getBody());
+        self::assertCount(2, $this->kit->logs());
+        self::assertSame('control', $this->kit->log(1)->getBody());
         $events = $this->kit->spans()[0]->getEvents();
-        self::assertCount(1, $events);
+        self::assertCount(2, $events);
         self::assertSame('runit.observation', $events[0]->getName());
+        self::assertSame('runit.observation', $events[1]->getName());
     }
 
     public function testRedactedOccurrenceProducesVisibleSuppressedLog(): void
