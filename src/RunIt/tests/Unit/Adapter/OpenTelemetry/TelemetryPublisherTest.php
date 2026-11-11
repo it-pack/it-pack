@@ -18,7 +18,10 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\FailOpenPolicy;
+use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -45,9 +48,11 @@ use OpenTelemetry\SDK\Metrics\Data\Sum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use ReflectionProperty;
+use RuntimeException;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 use Tests\Support\Fixture\SensitiveExceptionChain;
+use Throwable;
 
 /**
  * M9 — Telemetry publisher end-to-end dispatch.
@@ -378,8 +383,8 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('[redacted]', $events[1]->getAttributes()->get('password'));
     }
 
-    /** Legacy mappers receive typed observations but never unredacted fallback data. */
-    public function testLegacyObservationMapperDropsRedactedProjection(): void
+    /** Unsupported redacted observations reach health reporting without unredacted fallback. */
+    public function testLegacyObservationMapperReportsRedactedProjection(): void
     {
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
         $mapper->expects($this->once())->method('map');
@@ -394,7 +399,18 @@ final class TelemetryPublisherTest extends Unit
         $observation = RunItArtifactFactory::observation('obs', 'exec', 'info', 'secret');
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig())->redact($observation);
         self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
-        $publisher->publish($redacted);
+        $errors = [];
+        $safePublisher = new FailSafeArtifactPublisher(
+            $publisher,
+            new FailOpenPolicy(),
+            new CallbackHealthReporter(static function (Throwable $error) use (&$errors): void {
+                $errors[] = $error;
+            }),
+        );
+        $safePublisher->publish($redacted);
+        self::assertCount(1, $errors);
+        self::assertInstanceOf(RuntimeException::class, $errors[0]);
+        self::assertSame('Observation mapper does not support redacted observations.', $errors[0]->getMessage());
         $publisher->publish($observation);
     }
 

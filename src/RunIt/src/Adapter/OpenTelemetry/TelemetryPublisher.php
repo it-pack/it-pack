@@ -29,6 +29,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use RuntimeException;
 
 /**
  * OpenTelemetry bridge publisher.
@@ -41,6 +42,8 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  *
  * The publisher never configures global OpenTelemetry providers; every provider is
  * supplied through {@see BridgeConfig}. Build it with {@see self::fromConfig()}.
+ * A custom observation mapper without redacted-observation support causes a
+ * publication exception for redacted observations, reported by the fail-safe stack.
  *
  * @see https://opentelemetry.io/
  */
@@ -151,6 +154,8 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
             if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
                 if ($this->observationMapper instanceof RedactedObservationLogMapperInterface) {
                     $this->observationMapper->mapRedactedObservation($normalized);
+                } else {
+                    throw new RuntimeException('Observation mapper does not support redacted observations.');
                 }
 
                 return;
