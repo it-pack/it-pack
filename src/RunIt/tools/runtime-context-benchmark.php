@@ -39,10 +39,10 @@ $measure = static function (string $runtime, ContextStorageInterface $storage) u
                 for ($i = 0; $i < 10000; ++$i) {
                     if ($operation === 'lookup') {
                         $result = $storage->current();
-                    } else {
-                        $token = $storage->attach($scope);
-                        $storage->detach($token);
+                        continue;
                     }
+                    $token = $storage->attach($scope);
+                    $storage->detach($token);
                 }
                 $elapsed = (hrtime(true) - $start) / 10000 / 1000;
                 if ($operation === 'lookup' && $result !== ($depth === 0 ? null : $scope)) {
@@ -75,6 +75,9 @@ $measure = static function (string $runtime, ContextStorageInterface $storage) u
     }
 };
 
+if (!class_exists(Fiber::class)) {
+    fwrite(STDERR, "SKIP Fiber: runtime unavailable\n");
+}
 if (class_exists(Fiber::class)) {
     $fiber = new Fiber(static function () use ($measure): void {
         $measure('Fiber', new FiberContextStorage());
@@ -83,15 +86,14 @@ if (class_exists(Fiber::class)) {
     if (!$fiber->isTerminated()) {
         throw new RuntimeException('Fiber benchmark did not finish.');
     }
-} else {
-    fwrite(STDERR, "SKIP Fiber: runtime unavailable\n");
 }
 
 $run = function_exists('Swoole\\Coroutine\\run') ? 'Swoole\\Coroutine\\run'
     : (function_exists('OpenSwoole\\Coroutine\\run') ? 'OpenSwoole\\Coroutine\\run' : null);
 if ($run === null) {
     fwrite(STDERR, "SKIP coroutine: Swoole/OpenSwoole runtime unavailable\n");
-} else {
+}
+if ($run !== null) {
     $completed = false;
     $run(static function () use ($measure, &$completed): void {
         $provider = new SwooleCoroutineIdProvider();

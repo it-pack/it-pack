@@ -303,6 +303,31 @@ foreach ([OverflowStrategy::DropOldest, OverflowStrategy::DropLowPriority] as $s
     $check($buffer->estimatedBytes() === 0, "{$strategy->name} multiple-eviction accounting clears after flush");
 }
 
+$buffer = new BufferedArtifactPublisher(
+    new BufferConfiguration(
+        maxItems: 2,
+        maxEstimatedBytes: 100,
+        maxAgeSeconds: 60,
+        batchSize: 10,
+        flushIntervalSeconds: 5,
+        shutdownFlushBudget: 10,
+        overflow: OverflowStrategy::DropLowPriority,
+    ),
+    new InMemoryArtifactPublisher(),
+    new DeterministicMonotonicClock(1000, 0),
+    new DeterministicArtifactByteEstimator(30, ['large' => 80]),
+);
+foreach (['first', 'second'] as $itemId) {
+    $buffer->publish(Observation::info(ObservationId::fromString($itemId), $id, 'synthetic'));
+}
+
+$buffer->publish(Observation::error(ObservationId::fromString('large'), $id, 'synthetic'));
+$check($buffer->droppedCount() >= 1, 'DropLowPriority high-priority admission reports a drop');
+$check($buffer->estimatedBytes() <= 100, 'DropLowPriority high-priority multiple-eviction byte bound');
+$buffer->flush();
+$check($buffer->bufferedCount() === 0, 'DropLowPriority high-priority buffer clears after flush');
+$check($buffer->estimatedBytes() === 0, 'DropLowPriority high-priority accounting clears after flush');
+
 foreach (OverflowStrategy::cases() as $strategy) {
     $sink = new InMemoryArtifactPublisher();
     $buffer = new BufferedArtifactPublisher(
