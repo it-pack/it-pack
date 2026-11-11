@@ -195,6 +195,26 @@ concrete method additions. The check exited 1. These require contract-diff revie
 and the approved compatibility process; no baseline was changed. In particular,
 the planned monorepo API gate must not be represented as passing on this checkout.
 
+At clean starting revision `135c0e703774067060a16cfd610a64ba54e49a9d`, the
+API check again reported those two breaks and two concrete additions. The baseline
+interfaces declare only `map()`, whereas `TelemetryPublisher` calls the new
+redacted mapping methods on injected implementations. Older custom implementations
+can therefore fail to load. Removing the interface requirements alone would not
+define how those implementations handle redacted spans; dropping or rerouting them
+could change telemetry and parentage. No in-repository downstream implementation
+was found, but external consumers and the released package were not verified.
+The changelog documents the break; it does not itself approve a baseline update.
+
+The Swoole HTTP target harness now also exercises initial clock failure for
+successful and failing handlers. On PHP 8.4.27 and 8.5.12, four new target
+checks fail because neither handler is invoked; the four earlier failures remain.
+The clock-attempt controls pass. See `docs/QA.md` for scope and limitations. This
+is a safety net, not a production fix, and does not complete Phase 0.
+The synchronous stack and composite `current()` lookup benchmark now covers
+empty and depth-63 storage on PHP 8.4 and 8.5. Most measurements were highly
+variable and are not regression thresholds; workload and results are in
+`docs/benchmarks.md`. The broader performance baseline remains open.
+
 **Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
 | Check                        | Result                                                                                   |
@@ -226,8 +246,9 @@ failures: the two existing recorder failures and both new business-outcome
 identity checks. Handler invocation and the second clock reading passed as
 controls. The fake runner and nonthrowing observation recorder isolate this path;
 measurement-recorder and initial clock failures, reporting, and real HTTP I/O
-remain untested. This is a safety net, not a production fix or completion of
-Phase 0; see `docs/QA.md` for the command.
+were not tested in that run. Later initial-clock controls are recorded above.
+This is a safety net, not a production fix or completion of Phase 0; see
+`docs/QA.md` for the command.
 
 At clean starting revision `01cd9371f9707d6ab6adbeab2edbb27473b0c928`,
 `composer validate --strict` and both runtime and full security audits passed

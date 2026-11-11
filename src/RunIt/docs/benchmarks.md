@@ -27,7 +27,7 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 | Buffered batch flush          | `BufferedFlushBench`               | One 256-item flush from a full 1,024-item buffer                    |
 | Nested snapshots              | `NestedSnapshotBench`              | Projection, key masking, JSON normalization and publication        |
 | CloudEvents mapping and JSON  | `CloudEventBench`                  | Occurrence mapping and structured JSON serialization separately    |
-| Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach at two nesting depths             |
+| Synchronous context storage   | `ContextStorageBench`              | Stack and composite attach/detach and lookup at two depths          |
 | Interleaved Fiber storage     | `FiberContextStorageBench`         | Two Fiber switches and attach/detach pairs at two nesting depths     |
 
 Additional adapter and context workloads are discussed below; some use temporary
@@ -58,6 +58,45 @@ hardware, runtime and variance; the figures below are not automatic CI threshold
 > start due to a configuration/schema incompatibility unrelated to the benchmark code
 > (`phpbench.json` used an invalid top-level `runner` key). Fixed on 2026-08-23 (Phase 2, T2.4):
 > the file now only pins the bootstrap; iteration/revs/warmup settings live with the subjects.
+
+## Synchronous context lookup baseline (2026-11-11)
+
+At clean starting revision `135c0e703774067060a16cfd610a64ba54e49a9d`, plus
+the benchmark and documentation changes, run sequentially from the package
+directory:
+
+```bash
+php8.5 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/ContextStorageBench.php --config=phpbench.json --filter='Current' --report=aggregate
+php8.4 -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/ContextStorageBench.php --config=phpbench.json --filter='Current' --report=aggregate
+```
+
+Each operation calls `current()` and stores its result, on a direct stack or a
+composite using `FiberRuntimeDetector` and a stack, with zero or 63 pre-attached
+scopes. Each nested entry uses the same real scope. Setup, the final lookup
+result check and LIFO cleanup are outside timing. Cleanup checks the current scope
+and then emptiness; hooks throw on failure even though PHPBench reports zero
+framework assertions. Each subject uses two warmups and ten iterations of 10,000
+lookups. All four subjects completed on both versions without errors.
+
+PHPBench 1.7.0, PHP CLI NTS, x86-64 Microsoft-hypervisor guest, four virtual
+CPUs on Intel Core i7-9700; CLI OPcache, JIT and PCOV disabled and Xdebug absent.
+Values are modes in microseconds per lookup, with relative standard deviations:
+
+| Workload | PHP 8.5.12 | PHP 8.4.27 |
+| --- | ---: | ---: |
+| Stack, depth 0 | 0.323709 (135.11%) | 0.311564 (5.91%) |
+| Stack, depth 63 | 0.442937 (68.16%) | 0.348178 (65.97%) |
+| Composite, depth 0 | 0.821923 (50.22%) | 0.722870 (40.55%) |
+| Composite, depth 63 | 0.747100 (14.38%) | 0.795883 (59.89%) |
+
+The host was unpinned and not isolated; subjects ran in fixed order. These short
+operations include benchmark dispatch and result assignment, and the last result
+alone is checked. The composite detector does not check coroutine runtime state.
+The workload excludes attach/detach timing, Fiber or coroutine execution,
+interleaving, scope construction, failures, real traffic and memory profiling.
+Process peaks are not per-lookup memory costs. High variance precludes using these
+results as regression thresholds or as a controlled version or depth comparison;
+they are not production throughput. Phase 0 remains open.
 
 ## Interleaved Fiber context storage baseline (2026-11-10)
 

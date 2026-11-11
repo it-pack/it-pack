@@ -160,8 +160,17 @@ outcome checks and two new post-handler clock-failure outcome checks. In the
 new cases the handler runs once and the second clock reading is reached, but the
 exact response or original handler exception is not preserved. A nonthrowing
 observation recorder and fake runner isolate the clock path. This does not test
-measurement-recorder failures, initial clock failures, failure reporting, a real
-runner or HTTP server. It is outside the normal suites and does not fix behavior.
+measurement-recorder failures, failure reporting, a real runner or HTTP server.
+It is outside the normal suites and does not fix behavior.
+
+The harness also tests an initial clock reading that throws, with both a successful
+and a throwing handler, a fake runner and a nonthrowing observation recorder.
+On PHP 8.4.27 and 8.5.12, each invocation exited 1 with eight failed checks:
+the four earlier failures plus handler invocation and outcome identity for each
+initial-clock case. The clock-attempt controls passed; neither handler ran.
+`vendor/bin/phpstan analyse tests/target-policy-swoole-http-regressions.php
+--no-progress` passed on PHP 8.5.12. These targets do not establish reporting,
+recovery, actual HTTP behavior or complete Phase 0; no production fix was made.
 
 Run `php tests/target-policy-terminal-publication-regressions.php` separately
 for terminal publication failure injection. On the worktree based on `0b072d80`,
