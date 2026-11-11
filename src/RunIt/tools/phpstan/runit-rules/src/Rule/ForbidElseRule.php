@@ -53,7 +53,7 @@ final class ForbidElseRule extends AbstractSrcRule implements Rule
         }
 
         return [RuleErrorBuilder::message(
-            'Avoid `else` / `elseif`; use an early return, a separate `if`, or a `match` (RunIt T3.1).',
+            'Avoid `else` / `elseif`; use an early return, a separate `if`, a `match` or a ternary operator (RunIt T3.1).',
         )->identifier('runit.forbidElse')->build()];
     }
 }
