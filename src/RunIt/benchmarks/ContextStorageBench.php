@@ -27,7 +27,7 @@ use PhpBench\Attributes\Warmup;
 use RuntimeException;
 use Tests\Support\Fixture\RunItTestKit;
 
-/** Measures synchronous attach/detach with and without composite delegation. */
+/** Measures synchronous context operations with and without composite delegation. */
 #[OutputTimeUnit('microseconds')]
 #[Warmup(2)]
 #[Iterations(10)]
@@ -37,6 +37,8 @@ final class ContextStorageBench
 {
     private ContextStorageInterface $storage;
     private ExecutionScopeInterface $scope;
+    private ?ExecutionScopeInterface $lookedUp;
+    private ?ExecutionScopeInterface $expectedLookup;
     /** @var list<ContextTokenInterface> */
     private array $parents;
 
@@ -68,6 +70,42 @@ final class ContextStorageBench
         $this->storage->detach($token);
     }
 
+    /** Measure an empty stack lookup. */
+    #[Subject, BeforeMethods('stackEmpty'), AfterMethods('verifyLookup')]
+    public function benchStackCurrentEmpty(): void
+    {
+        $this->lookedUp = $this->storage->current();
+    }
+
+    /** Measure a nested stack lookup. */
+    #[Subject, BeforeMethods('stackNested'), AfterMethods('verifyLookup')]
+    public function benchStackCurrentNested(): void
+    {
+        $this->lookedUp = $this->storage->current();
+    }
+
+    /** Measure an empty composite lookup. */
+    #[Subject, BeforeMethods('compositeEmpty'), AfterMethods('verifyLookup')]
+    public function benchCompositeCurrentEmpty(): void
+    {
+        $this->lookedUp = $this->storage->current();
+    }
+
+    /** Measure a nested composite lookup. */
+    #[Subject, BeforeMethods('compositeNested'), AfterMethods('verifyLookup')]
+    public function benchCompositeCurrentNested(): void
+    {
+        $this->lookedUp = $this->storage->current();
+    }
+
+    /** Validate the last lookup outside the timed operation. */
+    public function verifyLookup(): void
+    {
+        if ($this->lookedUp !== $this->expectedLookup) {
+            throw new RuntimeException('Lookup returned an unexpected context.');
+        }
+    }
+
     public function stackEmpty(): void
     {
         $this->setUp(false, 0);
@@ -97,6 +135,7 @@ final class ContextStorageBench
             Instant::of(1),
         );
         $this->scope = new RunItTestKit()->buildScope($execution, ExecutionContext::empty());
+        $this->expectedLookup = $depth === 0 ? null : $this->scope;
         $this->parents = [];
         for ($i = 0; $i < $depth; ++$i) {
             $this->parents[] = $this->storage->attach($this->scope);

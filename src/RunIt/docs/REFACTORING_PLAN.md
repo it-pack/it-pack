@@ -1,6 +1,6 @@
 # RunIt Refactoring Plan
 
-**Status:** Implementation in progress (Phase 0 incomplete; dependent phases pending).
+**Status:** Implementation in progress (Phase 0 complete as a documented baseline; dependent phases pending).
 
 **Source:** [`REVIEW.md`](REVIEW.md), reviewed 2026-11-05. Paths below are relative to the RunIt package unless stated otherwise.
 
@@ -174,14 +174,48 @@ provider execution or real-suite attribution and is not a CI gate.
 
 ## Phase 0: Baseline and safety net
 
-**Depends on:** none. **Outcome:** reproducible current state and isolated regression targets. **Status: In progress** (2026-11-05).
+**Depends on:** none. **Outcome:** documented baseline and isolated regression targets. **Status: Complete** (2026-11-11), with limitations and follow-ups below.
+
+**Completion and follow-ups:** Coverage enforcement, attribution, discovery
+isolation and the 95% Unit-only CI gate belong to Phase 6, not Phase 0. The
+recorded Unit result is 4,127/4,346 statements (94.96%); it is not an enforced
+gate or immutable-checkout evidence. The benchmark matrix records available
+measurements and explicit gaps, not a complete or production-representative
+performance model. Missing workloads remain follow-ups for the affected phases.
+The OpenTelemetry mapper contract breaks remain unapproved and the API check
+fails; closing Phase 0 does not approve a contract or snapshot change.
+
+Before comparing or changing an affected hot path in Phases 2-5, capture its
+missing baseline where practical: mixed-size and priority/projected-byte buffer
+overflow, representative publication mixes, real export I/O, runtime-specific
+interleaving and dedicated memory profiles. Record unavailable adapters and host
+variance rather than extrapolating from the existing synthetic measurements.
+The redacted-observation reporting seam and remaining integration pairings stay
+open in their respective phases.
 
 - [x] Record revision, dirty state, PHP version and extensions, Composer dependency state, and relevant runtime adapters. Do not overwrite or revert existing changes.
 - [x] Run `composer validate --strict`, `composer api:check`, `composer analyse`, `composer refactor:dry`, `composer cs:check`, `composer architecture`, `composer lint:length`, `composer test`, `composer coverage`, and `composer audit`; capture exit codes and distinguish pre-existing failures from new ones. Run Rector before PHP-CS-Fixer. Inspect scripts in `composer.json` before changing commands.
 - [x] Preserve coverage XML and denominator from the Unit-only run; do not merge results from Integration, Conformance, or Concurrency. Record branch-coverage and extension limitations.
 - [x] Run the existing PhpMetrics and PHP Assumptions commands in `docs/REVIEW.md`, retain reports outside tracked source, and confirm which tools and versions are available after the update. Treat assumption reports as hypotheses.
 - [x] Add or identify narrowly scoped fixtures for sensitive exception chains, fake clocks and byte estimators, failing publishers/reporters, interleaved Fibers, and third-party tokens. Put cross-layer tests in the appropriate non-Unit suite.
-- [ ] Record baseline compatibility and representative hot-path benchmarks before altering publication, buffering, context storage, or serialization. Compatibility is accounted for by the [accepted reference run](#phase-0-compatibility-reference); performance remains open. Capture PHP version, workload, buffer sizes, and measurement variance.
+- [x] Record baseline compatibility and available hot-path benchmarks before further changes. The [compatibility reference](#phase-0-compatibility-reference) and `docs/benchmarks.md` record workload, environment, variance and missing cases; see the follow-ups below before drawing comparisons for unmeasured workloads.
+
+**Historical evidence:** The dated entries below describe the status at the time
+of each run. Statements in those entries that Phase 0 remained open are historical
+and do not supersede the completion and follow-ups recorded above.
+
+On 2026-11-11, baseline checks started from clean revision
+`22f51cfd17fed90f1a78af9d87b3662c8928a4ce` using PHP 8.5.12, Composer 2.9.7,
+Codeception 5.3.7 and PCOV 1.0.12. Concurrent diagnostic and benchmark edits mean
+the runs do not establish an immutable-checkout baseline. Validation, analysis,
+Rector dry-run, style, architecture and line-length checks exited 0. The four
+suite scripts passed separately; the aggregate `composer test` command was not
+used. Unit-only coverage was 4,127/4,346 (94.96%); the threshold checker exited
+1. Logs and Clover output are in `/tmp/kilo/runit-baseline-20261111-1407/`, a
+temporary location. `composer audit` exited 2 for abandoned
+`doctrine/annotations` with no security advisories; `composer audit --no-dev`
+exited 0. Global PhpMetrics 2.10.0 ran; the documented package-local binary and
+PHP Assumptions were unavailable. PHP 8.4 was not covered by this baseline run.
 
 At clean revision `6129e47c`, the nested snapshot benchmark also ran on PHP
 8.4.27. Its redaction and publication measurements had high variance; workload,
@@ -194,6 +228,40 @@ At the same starting revision, `composer api:check` reported two interface break
 concrete method additions. The check exited 1. These require contract-diff review
 and the approved compatibility process; no baseline was changed. In particular,
 the planned monorepo API gate must not be represented as passing on this checkout.
+
+At clean starting revision `135c0e703774067060a16cfd610a64ba54e49a9d`, the
+API check again reported those two breaks and two concrete additions. The baseline
+interfaces declare only `map()`, whereas `TelemetryPublisher` calls the new
+redacted mapping methods on injected implementations. Older custom implementations
+can therefore fail to load. Removing the interface requirements alone would not
+define how those implementations handle redacted spans; dropping or rerouting them
+could change telemetry and parentage. No in-repository downstream implementation
+was found, but external consumers and the released package were not verified.
+The changelog documents the break; it does not itself approve a baseline update.
+
+At starting revision `22f51cfd17fed90f1a78af9d87b3662c8928a4ce`,
+`composer api:check` again exited 1 with the same two breaks and two additions.
+Both configured snapshots existed. The public split repository's 1.1.2 and
+1.1.5 tags declare only `map()` on both mapper interfaces; 1.1.5 also lacks
+the new default-mapper methods and redacted span dispatch. This comparison is
+limited to those contracts and behavior, not the complete released API or schema.
+An optional redacted-mapping capability could preserve the base interfaces, but
+the legacy mapper fallback and resulting span parentage require a decision. The
+1.1.5 behavior skips those spans; using a default mapper instead could change
+mapping and parentage. Passing unredacted data is not a safe fallback. New public
+capabilities would themselves be checker additions. No external consumer search
+or downstream compatibility run established the absence of affected consumers;
+no contract or baseline change is approved by this investigation.
+
+The Swoole HTTP target harness now also exercises initial clock failure for
+successful and failing handlers. On PHP 8.4.27 and 8.5.12, four new target
+checks fail because neither handler is invoked; the four earlier failures remain.
+The clock-attempt controls pass. See `docs/QA.md` for scope and limitations. This
+is a safety net, not a production fix, and does not complete Phase 0.
+The synchronous stack and composite `current()` lookup benchmark now covers
+empty and depth-63 storage on PHP 8.4 and 8.5. Most measurements were highly
+variable and are not regression thresholds; workload and results are in
+`docs/benchmarks.md`. The broader performance baseline remains open.
 
 **Historical Phase 0 results**, recorded in `docs/REVIEW.md` before the approved API baseline update; these do not establish the current worktree's quality-gate status:
 
@@ -226,8 +294,9 @@ failures: the two existing recorder failures and both new business-outcome
 identity checks. Handler invocation and the second clock reading passed as
 controls. The fake runner and nonthrowing observation recorder isolate this path;
 measurement-recorder and initial clock failures, reporting, and real HTTP I/O
-remain untested. This is a safety net, not a production fix or completion of
-Phase 0; see `docs/QA.md` for the command.
+were not tested in that run. Later initial-clock controls are recorded above.
+This is a safety net, not a production fix or completion of Phase 0; see
+`docs/QA.md` for the command.
 
 At clean starting revision `01cd9371f9707d6ab6adbeab2edbb27473b0c928`,
 `composer validate --strict` and both runtime and full security audits passed
@@ -275,7 +344,28 @@ this test, benchmark and documentation work.
 - The current `RedactingPublisherTest::testNestedThrowableSecretsAreRedacted` checks that classified markers are absent from a published observation; it passed on 2026-11-06 (7 tests in the focused suite). This does not verify failed-execution or adapter export paths.
 - Other available fixtures include `DeterministicMonotonicClock`, `ThrowingArtifactPublisher`, throwing health callbacks in `ResilienceTest`, and the independent `RunItThirdPartySample` token. Full custom-token ownership regression coverage remains a Phase 1 task.
 
-**Exit:** baseline commands and limitations are recorded; each high-priority issue has a reproducible failing test or a documented reason it cannot yet be reproduced.
+**Exit:** baseline commands, available benchmark matrix and limitations are
+recorded; each high-priority issue has a reproducible target or an evidence-based
+reason it cannot yet be constructed. The recorded matrix is accepted as the
+Phase 0 baseline with its explicitly documented gaps, not as proof of complete
+or representative performance. Coverage enforcement and isolation are Phase 6
+exit requirements.
+
+**Status at `630c14ca` (work in progress):** Phase 0 remains open. The expanded
+attribution diagnostic confirms that Codeception accepts undeclared setup and
+teardown execution and credits a collaborator in a `CoversNothing` case. Its
+successful exit reproduces these defects; it is not a gate. A safe discovery
+boundary and per-test isolation have not been demonstrated. The threshold
+checker alone cannot establish provenance, and no blocking 95% Unit-only CI gate
+has been installed. See `docs/QA.md` for commands and limitations.
+
+The separate `composer api:check` at this revision exits 1: adding
+`ActivitySpanMapperInterface::mapRedactedActivity()` and
+`ExecutionSpanMapperInterface::mapRedactedExecution()` breaks third-party
+implementers, and both corresponding default mapper methods are additions.
+The API and normalization-schema snapshots exist and were not regenerated.
+Remediation requires the documented contract review and consumer migration;
+this discrepancy is not itself a literal Phase 0 exit criterion.
 
 ### Phase 0 compatibility reference
 
@@ -361,13 +451,31 @@ failure-path coverage for other adapters or complete Phase 0.
 | Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                                 | Complete target-invariant matrix and approved edge semantics.                                           |
 | Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                                       | Phase 4 default destination, compatibility and regression matrix.                                       |
 | Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                                      | Final migration, versioning and API-check verification for external implementers.                       |
-| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate remain Phase 6 work.                 |
-| Synchronous context under concurrency    | [Shared stack reproduces Fiber B seeing Fiber A's scope and parent ID](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L33); [Fiber storage isolates interleaved scopes](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L66). See the [approved boundary](#decisions-required-before-dependent-changes). | Mismatch reproduced; setup validation and its tests belong to Phase 1. OpenSwoole and Swow unavailable. |
+| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate are required for Phase 6 exit.        |
+| Synchronous context under concurrency    | [Shared stack reproduces Fiber B seeing Fiber A's scope and parent ID](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L33); [Fiber storage isolates interleaved scopes](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L66). See the [approved boundary](#decisions-required-before-dependent-changes). | Builder validation has focused tests; all integration pairings are not verified. OpenSwoole and Swow unavailable. |
 
-The originally reported token break is approved, not erased, and coverage
-enforcement belongs to Phase 6. Neither a nonzero baseline gate nor aggregate
+The originally reported token break is approved, not erased. Coverage enforcement
+is tracked in Phase 6. Neither a nonzero baseline gate nor aggregate
 coverage alone establishes whether Phase 0's reproduction exit is met. A
 per-finding target-failure or documented inability is still required.
+
+At starting revision `630c14ca`, the standalone targets in `docs/QA.md` were
+rerun on PHP 8.4.27 and 8.5.12. The core, PSR-3 and OpenTelemetry targets
+independently demonstrate default trace-omission failures; sampling and routing
+targets demonstrate unredacted input reaching sampling; buffer targets cover
+oversized, projected and integer-boundary admission; the recursive-reporting
+target fails while the terminal-publication control passes. The separate PSR-15
+and Swoole HTTP targets expose business-outcome failures with controlled fakes,
+not live I/O. These are target failures rather than normal-suite assertions.
+
+The token interface break and synchronous default are approved, so a target
+requiring the old interface or Fiber isolation from the synchronous stack would
+assert the wrong policy. Focused ownership and validation tests pass, but external
+consumer migration and actual runtime/storage pairings still require evidence.
+The redacted-observation delivery-or-report target cannot yet be isolated without
+a reporting seam; forcing delivery would exclude the approved report alternative.
+Export configuration, typed routing, priority/disposition combinations, other
+adapters and verified coverage provenance remain incomplete.
 
 ### Publication failure evidence
 
@@ -389,14 +497,70 @@ the `id(): int` break was explicitly approved. A failing test requiring the old
 contract would contradict that decision; migration and external-implementer
 verification remain Phase 1 work. Likewise, the synchronous default is explicitly
 retained, so a test requiring it to isolate interleaved Fibers would be invalid.
-The default-risk characterization reproduces the mismatch; setup validation and
-its regression tests are deferred to Phase 1 under the approved boundary. This is
+The default-risk characterization reproduces the mismatch; the builder now
+validates the declared concurrent/shared-stack pairing, with focused tests. This is
 distinct from unavailable OpenSwoole and Swow environments. Coverage below 95%
 and the experimental attribution controls establish gaps, but do not yet provide
 a CI threshold or isolation gate. The current no-callback behavior is reproduced,
 and the recursion target already has a failing check. Verification of reporting
 with the SDK default is deferred to Phase 4, where the default destination and
 nullable callback compatibility will be decided.
+
+At starting revision `f1debe4a61aa15f0ba755dbbde64ff3ab42b8918`, PHP
+8.5.12 ran the standalone targets separately. `php
+tests/target-policy-regressions.php` exited 1 with 38 failed checks spanning
+trace omission, sampling, recursive reporting and byte bounds, including integer
+boundary failures. The PSR-3 and OpenTelemetry target harnesses each exited 1
+for trace omission; the PSR-15 and Swoole HTTP targets exited 1 for business
+outcome isolation. `php tests/target-policy-terminal-publication-regressions.php`
+exited 0, with four synthetic fallback diagnostics. These harnesses are outside
+the normal suites and do not establish every exporter or failure path.
+On PHP 8.4.27, the core, OpenTelemetry and Swoole HTTP harnesses likewise
+exited 1 with 38, one and eight failed checks respectively. The PSR-3 and
+PSR-15 harnesses each exited 1 with three failed checks, while terminal
+publication exited 0 with four synthetic fallback diagnostics.
+
+Focused PHP 8.5 controls passed for composite-token ownership (9 tests),
+interleaved Fiber context (3 tests), concurrency validation (11 tests), and
+OpenTelemetry publication (16 tests). The latter characterizes a silent
+redacted-observation drop; it is not a delivery-or-report target. Its safe fields
+and reporting seam remain unresolved. The approved token contract does not
+authorize ownership based on ID alone. Neither the retained synchronous stack nor
+the approved token break should be turned into a contradictory failing target.
+
+On the documentation-dirty worktree based on `f1debe4a`, all four configured
+suites also exited 0 under PHP 8.4.27, with separate temporary output paths. The
+isolated downstream runner verified this checkout and passed the third-party
+sample on PHP 8.4.27 and CommitItRunit on PHP 8.5.12; reports are temporary at
+`/tmp/kilo/runit-phase0-f1debe4a-sample84.json` and
+`/tmp/kilo/runit-phase0-f1debe4a-commit85.json`. ConfigureItRunit also passed on
+PHP 8.5.12, with temporary report
+`/tmp/kilo/runit-phase0-f1debe4a-configure85.json`. AsyncIt passed with skips
+on PHP 8.5.12 (`/tmp/kilo/runit-phase0-f1debe4a-async85.json`); skipped cases
+are not passing extension coverage. DeriveItRunit passed on PHP 8.5.12
+(`/tmp/kilo/runit-phase0-f1debe4a-derive85.json`). These consumer tests do not
+establish compatibility with external mapper implementations or a released API.
+The PHP 8.4 DeriveItRunit install failed because its local DeriveIt dependency
+requires PHP `^8.5`; report: `/tmp/kilo/runit-phase0-f1debe4a-derive84.json`.
+
+During the same work, PHP 8.5.12 `composer validate --strict`, `refactor:dry`,
+`cs:check`, `analyse`, `architecture`, `lint:length`, `test`, `security:audit`
+and `security:audit:full` passed. The full audit reported the abandoned
+development dependency `doctrine/annotations`, with no vulnerability advisories.
+The four suites reported 1,043/6,528 Unit tests/assertions, 3/19 Integration,
+52/111 Conformance, and 8/172 Concurrency. Rector preceded the style check.
+The separate fresh Unit-only coverage test run passed, but its threshold control
+failed at 4,127/4,346 (94.96%). The XML is retained temporarily at
+`/tmp/kilo/runit-phase0-checks-20261111/coverage.xml`; PCOV does not measure
+branches and aggregate coverage does not establish attribution. Checks ran while
+documentation and benchmark tooling changed, not on a frozen final worktree.
+
+The API checker exited 1 with two interface breaks and two concrete additions:
+`ActivitySpanMapperInterface::mapRedactedActivity()`,
+`ExecutionSpanMapperInterface::mapRedactedExecution()`, and the corresponding
+methods on `DefaultActivitySpanMapper` and `DefaultExecutionSpanMapper`. No
+baseline was updated. Existing custom implementations of those interfaces may
+fail to load; tested downstream consumers do not establish external compatibility.
 
 For redacted observations, the existing OpenTelemetry characterization proves
 the tested silent drop and unredacted delivery, but a policy-independent
@@ -861,7 +1025,7 @@ lint:length all pass. Production `src/Conformance/Verifier/RedactorVerifier.php`
 was also updated to compare normalized execution IDs across redaction results
 instead of requiring `ExecutionOwnedInterface`, so `RedactedArtifact` wrappers
 are checked for execution reassignment while generic wrappers without an
-execution ID remain accepted. Phase 0 exit criteria (95% CI gate, attribution
+execution ID remain accepted. Phase 6 exit criteria (95% CI gate, attribution
 control, isolation verification) remain open.
 
 ## Phase 1: Compatibility and context ownership
@@ -879,7 +1043,7 @@ control, isolation verification) remain open.
 
 **Exit:** token implementations conform to the approved breaking contract; affected internal consumers are migrated; API check and relevant conformance/concurrency tests pass; concurrency configuration is explicit.
 
-**Progress:** The builder and integration guides explain the synchronous default and explicit Fiber/coroutine storage. The Swoole example retains the immutable builder returned by `withContextStorage()`. The Fiber concurrency suite demonstrates default-stack interleaving, verifies nested parent identity and failure restoration, and covers a second execution on the same Fiber while another Fiber is suspended. Remaining runtime-specific cases are tracked below. The Fiber engine does not automatically propagate caller-local ambient scope into its new Fiber; the operation receives the explicit scope instead. Phase 0 remains open. The approved `id()` break is recorded in the changelog and API baseline; current RunIt, AsyncIt and RunItThirdPartySample token implementations already declare the method. Composite-token tests exercise delegation and ownership with custom tokens.
+**Progress:** The builder and integration guides explain the synchronous default and explicit Fiber/coroutine storage. The Swoole example retains the immutable builder returned by `withContextStorage()`. The Fiber concurrency suite demonstrates default-stack interleaving, verifies nested parent identity and failure restoration, and covers a second execution on the same Fiber while another Fiber is suspended. Remaining runtime-specific cases are tracked below. The Fiber engine does not automatically propagate caller-local ambient scope into its new Fiber; the operation receives the explicit scope instead. Phase 0 is complete with documented limitations. The approved `id()` break is recorded in the changelog and API baseline; current RunIt, AsyncIt and RunItThirdPartySample token implementations already declare the method. Composite-token tests exercise delegation and ownership with custom tokens.
 
 **Concurrency validation boundary (implemented):** `RunItBuilder::build()` now rejects a shared `StackContextStorage` paired with an engine whose `EngineCapability::concurrent` is `true`, throwing `IncompatibleContextStorageException` with an actionable message directing the consumer to runtime-isolated storage. The check runs before any attach and cannot be overridden. An opt-in `withConcurrencyValidator(?Closure)` seam is declared on `ExtendedRunItBuilderInterface` (which extends `RunItBuilderInterface`) and implemented by `RunItBuilder`, so custom builder implementations are not required to add the method. Tests cover: non-concurrent engine with default stack (accepted), concurrent engine with shared stack (rejected by built-in check), concurrent engine with `FiberContextStorage` (accepted), concurrent engine with isolated storage + rejecting validator (rejected by custom validator), concurrent engine with shared stack + accepting validator (rejected — built-in check runs first and cannot be overridden), validator receiving capability and storage, exception message content identifying the pairing, and the interface hierarchy (`ExtendedRunItBuilderInterface extends RunItBuilderInterface`; `RunItBuilderInterface` does not declare `withConcurrencyValidator`). `composer api:check` passes with both baseline snapshots regenerated; `composer analyse`, `composer cs:check`, `composer architecture`, `composer lint:length`, and all four test suites pass.
 
@@ -925,11 +1089,11 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 - [#40: Context ownership and runtime validation](issues/phase-1-runtime-validation.md) — Phase 0 evidence, supported runtime coverage, remaining isolation cases and configuration validation.
 - [#39: Context refactoring quality gate failures](issues/context-refactoring-quality-gates.md) — reproduce and resolve outstanding quality and API-check results.
 
-**Next work:** Proceed with Phase 2 preparatory mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 and the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done; keep the tracked follow-ups open until their acceptance criteria are met.
+**Next work:** Proceed with Phase 2 mapping and focused regression tests, starting with the actual normalized artifact shapes and sensitive export paths. Phase 0 is complete; the relevant Phase 2 design details remain prerequisites for completing dependent implementation and declaring the phase done. Keep the tracked follow-ups open until their acceptance criteria are met.
 
 ## Phase 2: Publication security and artifact routing
 
-**Depends on:** Phase 0 and the redaction/routing decisions; preparatory mapping and regression tests may proceed while the tracked Phase 0/1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
+**Depends on:** Phase 0 and the redaction/routing decisions; mapping and regression tests may proceed while tracked Phase 1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
 
 **Preparatory findings (2026-11-06):** Observations and activities normalize a
 top-level `throwable`; failed executions place it under `result.throwable`.
@@ -973,7 +1137,8 @@ with configured masking. Failed execution protection, trace omission, and
 composed OpenTelemetry export remain unverified or known not to meet the target.
 At revision `4ed686910a41005d2df3b2bd9d430181f4cf6240` on PHP 8.5.12, the
 Unit suite passed (839 tests, 5747 assertions); `composer api:check` reported no
-breaks but exited nonzero for ten existing additions. Phase 0 remains incomplete.
+breaks but exited nonzero for ten existing additions. This is a historical result;
+the later mapper-interface breaks and Phase 0 completion are recorded above.
 The subsequent `composer quality` stopped at Rector's existing callable-fixture
 suggestion; `composer cs:check` passed, `composer analyse` reported 147 errors,
 and `composer lint:length` reported 26 violations. Both focused redaction test
@@ -1286,6 +1451,17 @@ open.
 ## Phase 6: Coverage, QA, architecture, and dependency maintenance
 
 **Depends on:** Phase 0; security/lifecycle tests from Phases 1-5 contribute to the floor. **Review:** unit coverage, attribution, failed gates, architecture scope, and abandoned dependency.
+
+**Coverage handoff:** The 95% Unit-only gate, per-test attribution, isolation,
+report provenance and discovery-time prohibition are deferred here in full.
+The current diagnostic intentionally succeeds when it reproduces leaks; it is
+not a passing isolation gate. Production execution during Unit provider discovery
+remains prohibited: providers may supply data and deferred factories, with
+production construction and calls performed in the test. Verify enforcement
+across provider attributes, named datasets, bootstrap, modules, autoload,
+generators and failures, and fail closed when the coverage driver is unavailable.
+Do not install a CI gate until negative controls, correct suite selection, source
+filtering, collector cleanup and isolation from other suites are demonstrated.
 
 - [ ] Re-run `composer coverage` with PCOV against Unit only; parse the resulting statement numerator and denominator. Prioritize uncovered security, lifecycle, error handling, boundary, and adapter code rather than padding tests for a percentage.
 - [ ] Add focused Unit tests until statement coverage is **at least 95%** over the agreed production source set. Keep integration, conformance, and concurrency tests in their own suites; document environment-dependent unreachable branches and do not silently exclude them to make the floor pass.

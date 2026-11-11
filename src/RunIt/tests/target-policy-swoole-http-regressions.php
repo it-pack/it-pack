@@ -199,6 +199,70 @@ foreach ([false, true] as $handlerFails) {
     );
 }
 
+foreach ([false, true] as $handlerFails) {
+    $clock = new class () implements MonotonicClockInterface {
+        public int $calls = 0;
+
+        /** Fail the initial clock reading. */
+        public function nowSeconds(): int
+        {
+            ++$this->calls;
+
+            throw new RuntimeException('synthetic initial clock failure');
+        }
+
+        /** This middleware does not use monotonic nanoseconds. */
+        public function monotonicNanoseconds(): int
+        {
+            throw new LogicException('unexpected monotonic clock call');
+        }
+
+        /** This middleware does not use the clock duration method. */
+        public function measure(int $fromInclusive, int $toInclusive): DurationInterface
+        {
+            throw new LogicException('unexpected duration calculation');
+        }
+    };
+    $safeScope = new FakeExecutionScope($scope->execution(), $scope->context(), new RecordingObservationRecorder());
+    $safeRunner = new readonly class ($safeScope) implements ExecutionRunnerInterface {
+        /** Keep the scope passed to the operation. */
+        public function __construct(private ExecutionScopeInterface $scope)
+        {
+        }
+
+        /** Run the operation with the configured scope. */
+        public function run(ExecutionDefinitionInterface $definition, callable $operation): mixed
+        {
+            return $operation($this->scope);
+        }
+    };
+    $initialClockMiddleware = new ServerExecutionMiddleware($safeRunner, $name, $kind, clock: $clock);
+    $calls = 0;
+    $result = null;
+    $caught = null;
+    try {
+        $result = $initialClockMiddleware->handle($request, /** Return or throw the business outcome. */
+            static function () use ($handlerFails, $handlerError, $response, &$calls): object {
+                ++$calls;
+                if ($handlerFails) {
+                    throw $handlerError;
+                }
+
+                return $response;
+            });
+    } catch (Throwable $throwable) {
+        $caught = $throwable;
+    }
+
+    $label = $handlerFails ? 'failing' : 'successful';
+    $check($clock->calls >= 1, "$label case attempts the initial clock reading");
+    $check($calls === 1, "$label handler runs once despite the initial clock failure");
+    $check(
+        $handlerFails ? $caught === $handlerError : !$caught instanceof Throwable && $result === $response,
+        "$label handler outcome survives the initial clock failure",
+    );
+}
+
 foreach ($failures as $failure) {
     fwrite(STDERR, "FAIL: $failure\n");
 }

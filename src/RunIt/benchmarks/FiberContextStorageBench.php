@@ -36,6 +36,7 @@ final class FiberContextStorageBench
     private Fiber $first;
     /** @var Fiber<mixed, mixed, mixed, mixed> */
     private Fiber $second;
+    private bool $lookup = false;
 
     #[Subject, BeforeMethods('shallow')]
     public function benchShallow(): void
@@ -51,13 +52,43 @@ final class FiberContextStorageBench
         $this->second->resume();
     }
 
+    /** Perform one lookup in each interleaved Fiber, including switches. */
+    #[Subject, BeforeMethods('lookupShallow')]
+    public function benchLookupShallow(): void
+    {
+        $this->first->resume();
+        $this->second->resume();
+    }
+
+    /** Perform one lookup in each deeply nested interleaved Fiber. */
+    #[Subject, BeforeMethods('lookupNested')]
+    public function benchLookupNested(): void
+    {
+        $this->first->resume();
+        $this->second->resume();
+    }
+
+    public function lookupShallow(): void
+    {
+        $this->lookup = true;
+        $this->setUp(1);
+    }
+
+    public function lookupNested(): void
+    {
+        $this->lookup = true;
+        $this->setUp(63);
+    }
+
     public function shallow(): void
     {
+        $this->lookup = false;
         $this->setUp(1);
     }
 
     public function nested(): void
     {
+        $this->lookup = false;
         $this->setUp(63);
     }
 
@@ -91,9 +122,17 @@ final class FiberContextStorageBench
             for ($i = 0; $i < $depth; ++$i) {
                 $parents[] = $this->storage->attach($scope);
             }
+            $last = null;
             while (Fiber::suspend() !== 'verify') {
-                $token = $this->storage->attach($scope);
-                $this->storage->detach($token);
+                if ($this->lookup) {
+                    $last = $this->storage->current();
+                } else {
+                    $token = $this->storage->attach($scope);
+                    $this->storage->detach($token);
+                }
+            }
+            if ($this->lookup && $last !== $scope) {
+                throw new RuntimeException('Interleaved lookup returned the wrong scope.');
             }
             if ($this->storage->current() !== $scope) {
                 throw new RuntimeException('Fiber context was not restored.');
