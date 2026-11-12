@@ -24,6 +24,7 @@
     },
     "require": {
         "php": "^8.4",
+        "ext-mbstring": "*",
         "just-bases/php-obs-base": "^1.0"
     },
     "require-dev": {
