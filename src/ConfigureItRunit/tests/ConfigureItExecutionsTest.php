@@ -39,17 +39,12 @@ final class ConfigureItExecutionsTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->publisher = new InMemoryArtifactPublisher();
-        $this->dir = sys_get_temp_dir() . '/configure-it-runit-' . uniqid('', true);
-        mkdir($this->dir);
-        $config = "<?php\nreturn ['app' => ['name' => 'base'], 'db' => ['host' => 'local-host']];\n";
-        file_put_contents($this->dir . '/config.php', $config);
+        $this->dir = __DIR__.'/Support/Fixture/Config';
     }
 
     protected function tearDown(): void
     {
-        array_map('unlink', glob($this->dir . '/*') ?: []);
-        rmdir($this->dir);
+
     }
 
     private function runtime(): \ItPack\RunIt\SDK\RunItInterface
