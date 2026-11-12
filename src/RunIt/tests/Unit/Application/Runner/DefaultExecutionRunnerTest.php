@@ -39,6 +39,19 @@ final class DefaultExecutionRunnerTest extends Unit
         self::assertSame('value', $result);
     }
 
+    public function testReadsInputDefinitionOnceDuringExecutionSetup(): void
+    {
+        $source = $this->definition();
+        $definition = $this->createMock(ExecutionDefinitionInterface::class);
+        $definition->expects(self::once())->method('name')->willReturn($source->name());
+        $definition->expects(self::once())->method('kind')->willReturn($source->kind());
+        $definition->expects(self::once())->method('context')->willReturn($source->context());
+
+        $kit = new RunItTestKit();
+
+        self::assertSame('value', $kit->runner->run($definition, static fn (): string => 'value'));
+    }
+
     public function testActivityOnlyModeWithoutCurrentExecutionRunsAFullExecution(): void
     {
         $kit = new RunItTestKit(nestedPolicy: new ActivityOnlyPolicy());

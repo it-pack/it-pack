@@ -1821,6 +1821,27 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedMeasurementInstrumentMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "mapRedactedMeasurement": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedObservationLogMapperInterface": {
         "kind": "interface",
         "final": false,
@@ -2141,7 +2162,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface"
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface",
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedMeasurementInstrumentMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedMeasurementInstrumentMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -2173,6 +2195,17 @@
                     {
                         "name": "measurement",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\MeasurementInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedMeasurement": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
                         "optional": false
                     }
                 ]
@@ -4323,7 +4356,7 @@
                     },
                     {
                         "name": "authority",
-                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "type": "null|ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
                     }
                 ]
@@ -4347,10 +4380,37 @@
         "final": true,
         "extends": null,
         "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\HealthAwarePublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\HealthAwarePublisherStackFactoryInterface",
             "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface"
         },
         "constants": [],
         "methods": {
+            "composeWithHealth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "compose": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
@@ -12466,6 +12526,65 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Contract\\Port\\HealthAwarePublisherStackFactoryInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface"
+        },
+        "constants": [],
+        "methods": {
+            "composeWithHealth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "compose": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Contract\\Port\\IdentifierGeneratorInterface": {
         "kind": "interface",
         "final": false,
@@ -12542,11 +12661,6 @@
                         "name": "samplingPolicy",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
                         "optional": false
-                    },
-                    {
-                        "name": "health",
-                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
-                        "optional": true
                     }
                 ]
             }

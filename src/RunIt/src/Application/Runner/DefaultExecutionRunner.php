@@ -12,6 +12,7 @@ use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\FailOpenPolicy;
 use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\CurrentExecutionInterface;
@@ -55,6 +56,7 @@ use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -134,6 +136,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         private ?Closure                               $onSnapshotStoreFailure = null,
         ?ExecutionEngineInterface                     $engine = null,
         private SecurityLimits                         $limits = new SecurityLimits(),
+        private ProvenanceAuthority                   $authority = new ProvenanceAuthority(),
     ) {
         $health = $this->onPublicationFailure instanceof Closure
             ? new CallbackHealthReporter($this->onPublicationFailure)
@@ -198,6 +201,9 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         // assembly, attach) are genuine configuration errors and still surface to
         // the caller — but they are always reported first, so no execution can
         // fail to materialize silently (Phase 0, T0.2).
+        $id = null;
+        $exportId = null;
+
         try {
             $parentId =
                 ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface)
@@ -218,8 +224,56 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
 
             $rawId = $this->executionIdFactory->build();
             $id = ExecutionId::fromString($rawId->toString());
+
+            // Reject a repeated execution ID before any provenance record is
+            // issued, so two live executions can never share an ID and releasing
+            // one cannot drop the other's export bindings.
+            if ($this->authority->hasLiveRecords($id->toString())) {
+                throw new RuntimeException(
+                    'Execution ID ' . $id->toString()
+                    . ' already has live provenance records; duplicate execution ID rejected.'
+                );
+            }
+
             $startedAt = $this->now();
             $sequence = $this->sequenceAllocator->allocate($id);
+
+            // Issue an SDK-controlled export ID bound to this execution. Business
+            // IDs (from the caller's generator) are preserved but never trusted as
+            // provenance; only the export ID verified against this authority counts.
+            $exportId = $this->authority->issueExportId(
+                'execution',
+                'execution',
+                $id->toString(),
+                $rawId->toString(),
+            );
+
+            // Register verified parent/link edges. A parent supplied in an activity
+            // definition is an unverified claim; only an edge recorded by this
+            // authority establishes trust.
+            $parentExportId = null;
+            $linkedExportIds = [];
+
+            if ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface) {
+                $parentBusinessId = $current->execution()->id()->toString();
+                $parentExportId = $this->findExportIdForBusinessId($parentBusinessId, $id->toString());
+                if ($parentExportId !== null) {
+                    $this->authority->registerRelationship($parentExportId, $exportId, 'parent');
+                }
+            }
+
+            $linkedExportIds = [];
+
+            if ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface) {
+                $linkedBusinessId = $current->execution()->id()->toString();
+                $linkedExportId = $this->findExportIdForBusinessId($linkedBusinessId, $id->toString());
+                if ($linkedExportId !== null) {
+                    $this->authority->registerRelationship($linkedExportId, $exportId, 'link');
+                }
+
+                $linkedExportIds[] = ExecutionId::fromString($linkedExportId ?? $linkedBusinessId);
+            }
+
             $created = $this->executionFactory->create($effectiveDefinition, $id, $startedAt, $sequence);
             $execution = $this->coordinator->start($created);
 
@@ -240,10 +294,18 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
                 $this->snapshotStore,
                 $this->onSnapshotStoreFailure,
                 $this->limits,
+                null,
+                $this->authority,
             );
 
             $token = $this->contextStorage->attach($scope);
         } catch (Throwable $throwable) {
+            // Release the export record on setup failure so it cannot be reused
+            // by a later execution through exportIdForBusinessIdExcluding().
+            if (isset($exportId) && $id instanceof ExecutionId) {
+                $this->authority->releaseExecution($id->toString());
+            }
+
             $this->reportFailure($throwable);
 
             throw $throwable;
@@ -269,6 +331,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             throw $throwable;
         } finally {
             $this->detachSafely($token);
+            $this->authority->releaseExecution($id->toString());
         }
     }
 
@@ -377,6 +440,17 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         } catch (Throwable $throwable) {
             $this->reportFailure($throwable);
         }
+    }
+
+    /**
+     * Finds the export ID bound to a business ID for the given execution context.
+     *
+     * Returns null when the business ID has no verified binding, which means the
+     * parent/linked relationship is unverified and must not be trusted.
+     */
+    private function findExportIdForBusinessId(string $businessId, string $currentExecutionId): ?string
+    {
+        return $this->authority->exportIdForBusinessIdExcluding($businessId, $currentExecutionId);
     }
 
     private function reportFailure(Throwable $failure, ?ExecutionArtifactInterface $artifact = null): void

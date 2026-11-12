@@ -165,6 +165,10 @@ final class ApiCompat
                 $issues[] = $this->break("Symbol kind changed for {$fqn}: {$old['kind']} -> {$new['kind']}", $fqn);
             }
 
+            foreach (array_diff($old['implements'], $new['implements']) as $interface) {
+                $issues[] = $this->break("Removed implemented or extended interface {$interface} from {$fqn}", $fqn);
+            }
+
             foreach ($old['methods'] as $name => $oldMethod) {
                 if (!isset($new['methods'][$name])) {
                     $issues[] = $this->break("Removed method {$fqn}::{$name}()", $fqn);

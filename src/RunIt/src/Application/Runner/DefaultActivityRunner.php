@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Runner;
 
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Scope\ActivityScope;
 use ItPack\RunIt\Application\Scope\ExecutionScope;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
@@ -50,6 +51,7 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         /** @var StringIdentifierFactoryInterface<ActivityIdInterface> */
         private StringIdentifierFactoryInterface $activityIdFactory,
         private SecurityLimits                   $limits = new SecurityLimits(),
+        private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
     ) {
     }
 
@@ -65,6 +67,19 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
         $startedAt = $this->now();
         $startedAtMonotonic = $this->clock->monotonicNanoseconds();
         $sequence = $this->sequenceAllocator->allocate($this->executionId);
+
+        // Issue an SDK-controlled export ID for the activity, bound to the owning
+        // execution. Register the execution→activity relationship edge so it can be
+        // verified at publication; an activity definition's parent ID alone is not
+        // trusted without a recorded edge.
+        $this->authority->bindArtifact(
+            'activity',
+            'activity',
+            $this->executionId->toString(),
+            $activityId->toString(),
+            'execution-activity',
+        );
+
         $activity = Activity::start($activityId, $this->executionId, $definition, $startedAt, $sequence);
 
         $this->scope->trackOpenActivity($activity);

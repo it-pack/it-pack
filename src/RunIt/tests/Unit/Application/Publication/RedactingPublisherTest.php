@@ -434,6 +434,29 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('[redacted]', $payload['password']);
     }
 
+    public function testPreviouslyRedactedSnapshotPayloadIsMasked(): void
+    {
+        $original = new RedactedArtifact([
+            'id' => 'snapshot',
+            'payload' => ['nested' => ['password' => 'payload-secret'], 'throwable' => [
+                'message' => 'throwable-secret', 'trace' => 'trace-secret',
+            ]],
+        ], 'snapshot');
+        $published = $this->redactor()->redact($original)->normalize();
+        $payload = $published['payload'];
+        self::assertIsArray($payload);
+        self::assertIsArray($payload['nested']);
+        self::assertIsArray($payload['throwable']);
+        self::assertSame('[redacted]', $payload['nested']['password']);
+        self::assertSame('[redacted]', $payload['throwable']['message']);
+        self::assertNull($payload['throwable']['trace']);
+        self::assertStringNotContainsString('secret', json_encode($published, JSON_THROW_ON_ERROR));
+        $originalPayload = $original->normalize()['payload'];
+        self::assertIsArray($originalPayload);
+        self::assertIsArray($originalPayload['nested']);
+        self::assertSame('payload-secret', $originalPayload['nested']['password']);
+    }
+
     public function testFailedExecutionSnapshotPayloadMaskingAndOptOut(): void
     {
         $execution = Execution::start(
@@ -491,7 +514,7 @@ final class RedactingPublisherTest extends Unit
         }
 
         self::assertNull($throwable);
-        self::assertSame($before['content_hash'], $published['content_hash']);
+        self::assertArrayNotHasKey('content_hash', $published);
         self::assertSame($before, $snapshot->normalize());
         $optOut = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveDataKeys: ['message', 'trace'],

@@ -50,15 +50,24 @@ verification. The unchecked design details below must still be resolved where ap
   fall back to a fixed error-log message without a reporter. Explicit observation
   drop reporting has a synchronous re-entry guard; comprehensive fallback and
   concurrent-interleaving review remain open.
-- [ ] **Phase 2 identifier provenance candidate (unapproved):** Introduce an
-  SDK-owned issuance authority that generates fresh opaque identifiers using its
-  own controlled randomness and records their kind and an unforgeable in-process
-  issuance handle. A value's spelling, concrete class, generator interface, or a
-  caller's assertion does not establish provenance. At publication, a trusted
-  projection consults the authority using the handle and verifies that the
-  identifier and its role match the issuance record; copying a string into a new
-  identifier does not transfer trust. The handle is not serialized or exported.
-  The exact encapsulation and compatibility-safe API require review.
+- [x] **Phase 2 identifier provenance (approved):** Preserve business-facing IDs
+  and issue separate SDK-controlled export IDs via controlled randomness. Bind
+  each locally created artifact and relationship to non-exported, unforgeable
+  in-process issuance evidence. Existing caller-provided generators remain
+  business-identity generators, not proof of export provenance. Imported
+  artifacts without a verified binding to a locally issued execution are dropped
+  with a payload-free report. A future explicit import API may establish a
+  verified local binding and issue a new export ID; authenticated cross-process
+  identity continuity is outside Phase 2.
+
+  Introduce an SDK-owned issuance authority that generates fresh opaque export
+  identifiers using its own controlled randomness and records their kind and an
+  unforgeable in-process issuance handle. A value's spelling, concrete class,
+  generator interface, or a caller's assertion does not establish provenance. At
+  publication, a trusted projection consults the authority using the handle and
+  verifies that the identifier and its role match the issuance record; copying a
+  string into a new identifier does not transfer trust. The handle is not
+  serialized or exported.
 
   Record execution, parent, activity and other relationship bindings when the SDK
   creates them, against issued handles and their expected roles. Only export a
@@ -84,14 +93,12 @@ verification. The unchecked design details below must still be resolved where ap
   omit, remap or drop-and-report decision, subject to required contracts; never
   silently pass them to a sampler or sink in the proposed safe path.
 
-  This is a design candidate, not an approved policy or a description of current
-  behavior. Existing delivery and interfaces remain unchanged pending maintainer
-  approval. Before adoption, measure delivery loss and retention costs on
-  representative workloads, review custom-generator and import migration and
-  required schema/API changes, and run the contract-diff and downstream checks
-  required by the compatibility decision above. Update snapshots only after
-  approval, document migration and coordinate releases; test forgery, role and
-  relationship substitution, expiry, concurrency, sampling and failure paths.
+  Before adoption, measure delivery loss and retention costs on representative
+  workloads, review custom-generator and import migration and required
+  schema/API changes, and run the contract-diff and downstream checks required
+  by the compatibility decision. Update snapshots only after approval, document
+  migration and coordinate releases; test forgery, role and relationship
+  substitution, expiry, concurrency, sampling and failure paths.
 - [x] For Phase 2 unsafe-mapping drops, use a guarded, payload-free error-log
   fallback when no health callback is configured; contain reporter failures.
   Execution IDs that cannot be established safe must cause a reported drop,

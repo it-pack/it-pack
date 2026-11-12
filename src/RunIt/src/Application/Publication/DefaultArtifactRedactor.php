@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
 use Throwable;
@@ -34,6 +35,7 @@ use Throwable;
  *  - measurement values, when enabled;
  *  - configured keys and throwable fields in occurrence `data` and snapshot
  *    `payload`, recursively, when their respective options are enabled.
+ *    A changed snapshot payload omits its original content hash.
  *
  * Only configured fields and keys are masked; other normalized fields are not
  * validated or classified. Only arrays are traversed; recursive traversal is
@@ -124,6 +126,8 @@ final class DefaultArtifactRedactor implements RedactorInterface
         [$normalized, $masked, $truncated] = $this->maskSnapshotPayload($normalized, $artifact, $truncated);
         if ($masked) {
             $changed = true;
+            // The original hash no longer describes the redacted payload.
+            unset($normalized[ArtifactField::CONTENT_HASH]);
         }
 
         if (!$changed) {
@@ -189,8 +193,17 @@ final class DefaultArtifactRedactor implements RedactorInterface
         ExecutionArtifactInterface $artifact,
         bool $truncated,
     ): array {
-        if (!$this->config->redactObservationMessages
-            || !$artifact instanceof ObservationInterface
+        if (!$this->config->redactObservationMessages) {
+            return [$normalized, false, $truncated];
+        }
+
+        $isObservation = $artifact instanceof ObservationInterface
+            || ($artifact instanceof TrustedArtifactProjectionInterface
+                && $artifact->artifactType() === 'observation')
+            || ($artifact instanceof RedactedArtifactInterface
+                && $artifact->artifactType() === 'observation');
+
+        if (!$isObservation
             || !isset($normalized[ArtifactField::MESSAGE])
             || !is_string($normalized[ArtifactField::MESSAGE])
         ) {
@@ -212,7 +225,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactMeasurementValues
-            || !$artifact instanceof MeasurementInterface
+            || !$this->isTypeOf($artifact, 'measurement')
             || !isset($normalized[ArtifactField::VALUE])
         ) {
             return [$normalized, false, $truncated];
@@ -233,7 +246,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactThrowableMessages
-            || !$artifact instanceof ExecutionInterface
+            || !$this->isTypeOf($artifact, 'execution')
             || !is_array($normalized[ArtifactField::RESULT])
             || !isset($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
             || !is_array($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
@@ -260,7 +273,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if ($this->config->sensitiveAttributeKeys === []
-            || !$artifact instanceof SnapshotInterface
+            || !$this->isTypeOf($artifact, 'snapshot')
             || !isset($normalized[ArtifactField::ATTRIBUTES])
             || !is_array($normalized[ArtifactField::ATTRIBUTES])
         ) {
@@ -282,7 +295,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
     private function maskOccurrenceData(array $normalized, ExecutionArtifactInterface $artifact, bool $truncated): array
     {
         if (!$this->config->redactOccurrenceData
-            || !$artifact instanceof OccurrenceInterface
+            || !$this->isTypeOf($artifact, 'occurrence')
             || !isset($normalized[ArtifactField::DATA])
             || !is_array($normalized[ArtifactField::DATA])
         ) {
@@ -312,7 +325,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         bool $truncated,
     ): array {
         if (!$this->config->redactSnapshotPayloads
-            || !$artifact instanceof SnapshotInterface
+            || !$this->isTypeOf($artifact, 'snapshot')
             || !isset($normalized[ArtifactField::PAYLOAD])
             || !is_array($normalized[ArtifactField::PAYLOAD])
         ) {
@@ -526,6 +539,38 @@ final class DefaultArtifactRedactor implements RedactorInterface
             $artifact instanceof SnapshotInterface => 'snapshot',
             default => 'unknown',
         };
+    }
+
+    /**
+     * Determine whether an artifact is of the given type, considering direct
+     * instanceof checks, SDK-classified projections (TrustedArtifactProjectionInterface),
+     * and redacted artifacts produced by this redactor (RedactedArtifactInterface).
+     *
+     * RedactedArtifact::artifactType() is trustworthy here because
+     * DefaultArtifactRedactor::artifactType() resolves it through instanceof checks,
+     * not user-controlled fields.
+     */
+    private function isTypeOf(ExecutionArtifactInterface $artifact, string $type): bool
+    {
+        if (match (true) {
+            $artifact instanceof ExecutionInterface => 'execution',
+            $artifact instanceof ObservationInterface => 'observation',
+            $artifact instanceof ActivityInterface => 'activity',
+            $artifact instanceof MeasurementInterface => 'measurement',
+            $artifact instanceof OccurrenceInterface => 'occurrence',
+            $artifact instanceof SnapshotInterface => 'snapshot',
+            default => 'unknown',
+        } === $type) {
+            return true;
+        }
+
+        if ($artifact instanceof TrustedArtifactProjectionInterface
+            && $artifact->artifactType() === $type) {
+            return true;
+        }
+
+        return $artifact instanceof RedactedArtifactInterface
+            && $artifact->artifactType() === $type;
     }
 
     /**

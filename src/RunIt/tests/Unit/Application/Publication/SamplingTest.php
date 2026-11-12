@@ -9,6 +9,8 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\AlwaysSamplePolicy;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
+use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\ErrorOverrideSamplePolicy;
 use ItPack\RunIt\Application\Publication\ExecutionKindSamplePolicy;
@@ -35,6 +37,7 @@ use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
+use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
 use Throwable;
 
 /**
@@ -63,6 +66,54 @@ use Throwable;
 #[UsesClass(SecurityLimits::class)]
 final class SamplingTest extends Unit
 {
+    public function testClassifierDropsSnapshotsWhenPayloadOrHashChanges(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $health = $this->createMock(InternalHealthReporterInterface::class);
+        $health->expects(self::exactly(2))->method('report');
+        $classifier = new ClassifyingArtifactPublisher($sink, $health);
+        $classifier->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['safe' => 'value']));
+        $classifier->publish(new RedactedArtifact([
+            'id' => 'snap-2', 'execution_id' => 'exec-1', 'content_hash' => 'hash',
+            'payload' => ['large' => str_repeat('x', 4097)],
+        ], 'snapshot'));
+        $snapshot = RunItArtifactFactory::snapshot('snap-3', 'exec-1', ['password' => 'secret']);
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveDataKeys: ['password']));
+        $classifier->publish($redactor->redact($snapshot));
+
+        self::assertCount(1, $sink->published());
+        self::assertSame($snapshot->normalize()['content_hash'], $snapshot->contentHash());
+    }
+
+    public function testClassifierPreservesRequiredFieldsAndBoundsNestedMaps(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new ClassifyingArtifactPublisher($sink, limits: new SecurityLimits(maxAttributeCount: 1));
+        $fields = [
+            'attributes' => ['first' => 'kept', 'second' => 'omitted'],
+            'message' => 'message',
+            'id' => 'obs-1',
+            'execution_id' => 'exec-1',
+        ];
+        $classifier->publish(new RedactedArtifact($fields, 'observation'));
+        $classifier->publish(new RedactedArtifact([
+            'id' => 'obs-1',
+            'attributes' => $fields['attributes'],
+            'execution_id' => 'exec-1',
+            'message' => 'message',
+        ], 'observation'));
+
+        self::assertCount(2, $sink->published());
+        foreach ($sink->published() as $artifact) {
+            $projection = $artifact->normalize();
+            self::assertSame('obs-1', $projection['id']);
+            self::assertSame('exec-1', $projection['execution_id']);
+            self::assertSame(['first' => 'kept'], $projection['attributes']);
+            self::assertArrayNotHasKey('message', $projection);
+            self::assertCount(3, $projection);
+        }
+    }
+
     public function testHeadBasedSamplingFallsBackToAnEmptyKeyWhenTheArtifactHasNoStringId(): void
     {
         $inner = new NeverSamplePolicy();
@@ -199,6 +250,26 @@ final class SamplingTest extends Unit
         self::assertSame(1, $inner->calls, 'The wrapped policy is consulted only once per execution.');
     }
 
+    public function testHeadBasedPinsRedactedExecutionAndItsChildrenToOneDecision(): void
+    {
+        $inner = new class () implements SamplingPolicyInterface {
+            public int $calls = 0;
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                return ++$this->calls === 1;
+            }
+        };
+        $policy = new HeadBasedSamplingPolicy($inner);
+
+        self::assertTrue($policy->sample(new RedactedArtifact(['id' => 'exec-1'], 'execution')));
+        self::assertTrue($policy->sample(new RedactedArtifact(['execution_id' => 'exec-1'], 'observation')));
+        self::assertTrue($policy->sample(new RedactedArtifact(['id' => 'exec-1'], 'execution')));
+        self::assertFalse($policy->sample(new RedactedArtifact(['id' => 'exec-2'], 'execution')));
+        self::assertFalse($policy->sample(new RedactedArtifact(['execution_id' => 'exec-2'], 'snapshot')));
+        self::assertSame(2, $inner->calls);
+    }
+
     public function testDecisionCacheIsBoundedAndOldestKeyIsReDecided(): void
     {
         $inner = new class () implements SamplingPolicyInterface {
@@ -316,6 +387,25 @@ final class SamplingTest extends Unit
         self::assertSame([], $sink->published());
     }
 
+    public function testHealthAwareFactoryReportsSamplingDrops(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new PublisherStackFactory()->composeWithHealth($sink, null, new NeverSamplePolicy(), $health);
+
+        $publisher->publish($this->observation());
+
+        self::assertSame(1, $health->calls);
+        self::assertSame([], $sink->published());
+    }
+
     /**
      * @throws Throwable
      */
@@ -383,8 +473,12 @@ final class SamplingTest extends Unit
             }
         };
         $factory->compose($sink, null, $sampling)->publish($artifact);
-        self::assertSame([$artifact], $sampling->seen);
-        self::assertSame([$artifact], $sink->published());
+        self::assertCount(1, $sampling->seen);
+        self::assertInstanceOf(Observation::class, $sampling->seen[0]);
+        self::assertSame($artifact->normalize(), $sampling->seen[0]->normalize());
+        self::assertCount(1, $sink->published());
+        self::assertInstanceOf(ClassifiedArtifact::class, $sink->published()[0]);
+        self::assertSame($artifact->normalize(), $sink->published()[0]->normalize());
 
         $changed = Observation::info(
             ObservationId::fromString('secret'),

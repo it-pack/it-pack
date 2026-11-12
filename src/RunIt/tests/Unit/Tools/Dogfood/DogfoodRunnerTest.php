@@ -13,6 +13,7 @@ use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\BufferConfiguration;
 use ItPack\RunIt\Application\Publication\BufferedArtifactPublisher;
+use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -118,9 +119,20 @@ final class DogfoodRunnerTest extends Unit
     private function countArtifacts(string $type): int
     {
         $count = 0;
+        $kindMap = [
+            ExecutionInterface::class => 'execution',
+            MeasurementInterface::class => 'measurement',
+            OccurrenceInterface::class => 'occurrence',
+            SnapshotInterface::class => 'snapshot',
+        ];
+        $kind = $kindMap[$type] ?? null;
 
         foreach ($this->recorder->published() as $artifact) {
             if ($artifact instanceof $type) {
+                $count++;
+            } elseif ($kind !== null
+                && $artifact instanceof ClassifiedArtifact
+                && $artifact->artifactType() === $kind) {
                 $count++;
             }
         }
@@ -152,6 +164,8 @@ final class DogfoodRunnerTest extends Unit
 
         foreach ($this->recorder->published() as $artifact) {
             if ($artifact instanceof OccurrenceInterface) {
+                $failed = $artifact;
+            } elseif ($artifact instanceof ClassifiedArtifact && $artifact->artifactType() === 'occurrence') {
                 $failed = $artifact;
             }
         }

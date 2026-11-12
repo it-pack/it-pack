@@ -17,18 +17,21 @@ use ItPack\RunIt\Application\Policy\ActivityOnlyPolicy;
 use ItPack\RunIt\Application\Policy\AutoFailOpenActivitiesPolicy;
 use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\ClassifiedArtifact;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\EngineCapabilityInterface;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use ItPack\RunIt\Contract\Application\ExecutionScopeInterface;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -325,6 +328,16 @@ final class RunItBuilderTest extends TestCase
             $factory->called,
             'build() must compose the publisher stack through the configured factory'
         );
+        self::assertSame(3, $factory->argumentCount);
+    }
+
+    public function testHealthAwarePublisherStackFactoryReceivesReporter(): void
+    {
+        $factory = new SpyHealthAwarePublisherStackFactory();
+
+        $this->builder()->withPublisherStackFactory($factory)->build();
+
+        self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
     }
 
     public function testBoundExceededDropIsObservableThroughPublicationHandler(): void
@@ -399,12 +412,25 @@ final class RunItBuilderTest extends TestCase
 
         $redacted = array_filter(
             $spy->published,
-            static fn (ExecutionArtifactInterface $a): bool => $a instanceof RedactedArtifact
+            static fn (ExecutionArtifactInterface $a): bool => $a instanceof ClassifiedArtifact
         );
         self::assertNotEmpty(
             $redacted,
             'without withRedactor() the default redactor must mask throwable messages'
         );
+
+        // Negative test: the published projection must exclude the secret.
+        // ClassifiedArtifact proves classification ran, not that redaction ran.
+        foreach ($redacted as $artifact) {
+            $normalized = $artifact->normalize();
+            $encoded = json_encode($normalized);
+            self::assertFalse($encoded === false);
+            self::assertStringNotContainsString(
+                'secret failure detail',
+                $encoded,
+                'secret throwable detail must not reach the published projection'
+            );
+        }
     }
 
     public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
@@ -479,6 +505,24 @@ final class RunItBuilderTest extends TestCase
                 'depth 2 must exceed the configured limit of 1'
             );
         }
+    }
+
+    public function testSecurityLimitsPropagateToDefaultPublisherClassifier(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $runtime = $this->builder()
+            ->withPublisher($sink)
+            ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
+            ->build()
+        ;
+
+        $runtime->run($this->definition(), static fn (): int => 1);
+
+        $published = $sink->published();
+        self::assertNotEmpty($published);
+        $execution = $published[0]->normalize();
+        self::assertArrayHasKey('id', $execution);
+        self::assertCount(2, $execution);
     }
 
     public function testPublicationFailureHandlerReceivesAdapterFailure(): void
@@ -592,6 +636,8 @@ final class SpyPublisherStackFactory implements PublisherStackFactoryInterface
 {
     public bool $called = false;
 
+    public int $argumentCount = 0;
+
     public function __construct(private readonly ?ArtifactPublisherInterface $override = null)
     {
     }
@@ -602,8 +648,33 @@ final class SpyPublisherStackFactory implements PublisherStackFactoryInterface
         ?SamplingPolicyInterface $samplingPolicy,
     ): ArtifactPublisherInterface {
         $this->called = true;
+        $this->argumentCount = func_num_args();
 
         return $this->override ?? $base;
+    }
+}
+
+final class SpyHealthAwarePublisherStackFactory implements HealthAwarePublisherStackFactoryInterface
+{
+    public ?InternalHealthReporterInterface $health = null;
+
+    public function compose(
+        ArtifactPublisherInterface $base,
+        ?RedactorInterface $redactor,
+        ?SamplingPolicyInterface $samplingPolicy,
+    ): ArtifactPublisherInterface {
+        return $base;
+    }
+
+    public function composeWithHealth(
+        ArtifactPublisherInterface $base,
+        ?RedactorInterface $redactor,
+        ?SamplingPolicyInterface $samplingPolicy,
+        InternalHealthReporterInterface $health,
+    ): ArtifactPublisherInterface {
+        $this->health = $health;
+
+        return $base;
     }
 }
 

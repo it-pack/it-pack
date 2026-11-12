@@ -8,6 +8,7 @@ use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 
@@ -18,6 +19,12 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
  * unconditionally, so failures are never lost to sampling. All other artifacts defer
  * to the wrapped policy. This is the canonical way to combine a ratio or severity policy
  * with a "keep all errors" guarantee.
+ *
+ * Genuine {@see ObservationInterface} instances are subject to the error override.
+ * Trusted projections and all {@see RedactedArtifactInterface} instances reporting
+ * an observation type use their normalized level or severity. An integer at or above
+ * error overrides the inner policy; other values defer to it. User-supplied redacted
+ * artifacts can control their type and normalized fields.
  *
  * @see https://w3id.org/itpack/runit#Observation
  */
@@ -36,7 +43,16 @@ final readonly class ErrorOverrideSamplePolicy implements SamplingPolicyInterfac
             return $level >= ObservationSeverity::Error->level() || $this->inner->sample($artifact);
         }
 
-        if ($artifact instanceof RedactedArtifactInterface && $artifact->artifactType() === 'observation') {
+        if ($artifact instanceof TrustedArtifactProjectionInterface
+            && $artifact->artifactType() === 'observation') {
+            $normalized = $artifact->normalize();
+            $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
+
+            return (is_int($level) && $level >= ObservationSeverity::Error->level()) || $this->inner->sample($artifact);
+        }
+
+        if ($artifact instanceof RedactedArtifactInterface
+            && $artifact->artifactType() === 'observation') {
             $normalized = $artifact->normalize();
             $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
 

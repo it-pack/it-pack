@@ -58,8 +58,18 @@ final class SamplingArtifactPublisher implements
                 ArtifactField::ID => 'redacted',
                 ArtifactField::TYPE => 'runit.artifact.redacted',
             ]));
-        } catch (Throwable) {
-            // Health reporting must not expose the original artifact through failure recovery.
+        } catch (Throwable $throwable) {
+            // Preserve fail-open containment: contain the reporter fault and attempt
+            // an independent, bounded, payload-free fallback notice so the sampling
+            // drop is not silently lost. Contain fallback failures too.
+            try {
+                new FallbackErrorLogReporter()->report(
+                    SamplingDropException::forArtifact(),
+                    $throwable,
+                );
+            } catch (Throwable) {
+                // No further independent sink remains; preserve the business outcome.
+            }
         } finally {
             $this->publishingHealthReport = false;
         }

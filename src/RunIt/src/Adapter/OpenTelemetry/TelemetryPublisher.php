@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedMeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
@@ -163,6 +164,16 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
                 $this->activityMapper->mapRedactedActivity($normalized);
 
                 return;
+            case 'measurement':
+                if ($this->measurementMapper instanceof RedactedMeasurementInstrumentMapperInterface) {
+                    $this->measurementMapper->mapRedactedMeasurement($normalized);
+
+                    return;
+                }
+
+                $this->reportRedactedDrop('Measurement mapper does not support redacted measurements.');
+
+                return;
             case 'occurrence':
                 $this->occurrenceMapper->mapRedactedOccurrence($normalized);
 
@@ -172,9 +183,7 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
 
                 return;
             default:
-                // Redacted measurements have no typed redacted mapper on the
-                // MeasurementInstrumentMapperInterface contract; unknown kinds
-                // cannot be classified safely. Report the drop and suppress delivery.
+                // Unknown artifact kinds cannot be classified safely.
                 $this->reportRedactedDrop(
                     'Redacted measurement or unknown artifact kind is not delivered.',
                 );

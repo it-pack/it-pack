@@ -15,6 +15,8 @@ use ItPack\RunIt\Application\Policy\ChildExecutionPolicy;
 use ItPack\RunIt\Application\Propagation\CurrentExecution;
 use ItPack\RunIt\Application\Propagation\StackContextStorage;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Application\Publication\ErrorLogHealthReporter;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Runner\DefaultExecutionRunner;
 use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\ExecutionCompletionPolicyInterface;
@@ -30,6 +32,7 @@ use ItPack\RunIt\Contract\Domain\SequenceAllocatorInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableMapperInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\ContextStorageInterface;
+use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
@@ -310,7 +313,17 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
 
         $executionFactory = $this->executionFactory ?? new ExecutionFactory();
         $coordinator = $this->coordinator ?? new ExecutionLifecycleCoordinator();
-        $snapshotFactory = $this->snapshotFactory ?? new ExecutionSnapshotFactory($snapshotIdFactory, $hashCalculator);
+
+        $health = new ErrorLogHealthReporter();
+        $authority = new ProvenanceAuthority($health);
+
+        $snapshotFactory = $this->snapshotFactory
+            ?? new ExecutionSnapshotFactory(
+                $snapshotIdFactory,
+                $hashCalculator,
+                null,
+                $authority,
+            );
 
         $currentExecution = new CurrentExecution($contextStorage);
 
@@ -343,9 +356,18 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
 
         $publisherStackFactory = $this->publisherStackFactory ?? new PublisherStackFactory();
 
-        $composedPublisher = $publisherStackFactory
-            ->compose($publisher, $redactor, $this->samplingPolicy)
-        ;
+        $composedPublisher = match (true) {
+            $publisherStackFactory instanceof PublisherStackFactory => $publisherStackFactory->compose(
+                $publisher,
+                $redactor,
+                $this->samplingPolicy,
+                $health,
+                $this->limits,
+            ),
+            $publisherStackFactory instanceof HealthAwarePublisherStackFactoryInterface =>
+                $publisherStackFactory->composeWithHealth($publisher, $redactor, $this->samplingPolicy, $health),
+            default => $publisherStackFactory->compose($publisher, $redactor, $this->samplingPolicy),
+        };
 
         $runner = new DefaultExecutionRunner(
             currentExecution: $currentExecution,
@@ -371,6 +393,7 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
             onSnapshotStoreFailure: $this->onSnapshotStoreFailure,
             engine: $engine,
             limits: $this->limits ?? new SecurityLimits(),
+            authority: $authority,
         );
 
         return new DefaultRunIt($runner, $currentExecution);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
@@ -49,6 +50,7 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
         private ThrowableMapperInterface         $throwableMapper,
         /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
         private StringIdentifierFactoryInterface $observationIdFactory,
+        private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
     ) {
     }
 
@@ -70,6 +72,16 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
             $diagnosticCode,
             $attributes,
             $description
+        );
+
+        // Issue an SDK-controlled export ID for the observation and register the
+        // execution→observation edge so provenance can be verified at publication.
+        $this->authority->bindArtifact(
+            'observation',
+            'observation',
+            $this->executionId->toString(),
+            $id->toString(),
+            'execution-observation',
         );
 
         $this->publisher->publish($observation);

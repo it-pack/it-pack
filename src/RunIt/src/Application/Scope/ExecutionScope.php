@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Scope;
 
 use Closure;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Recorder\DefaultMeasurementRecorder;
 use ItPack\RunIt\Application\Recorder\DefaultObservationRecorder;
 use ItPack\RunIt\Application\Recorder\DefaultOccurrenceRecorder;
@@ -87,6 +88,7 @@ final class ExecutionScope implements ExecutionScopeInterface
         private readonly ?Closure $onSnapshotStoreFailure = null,
         private readonly SecurityLimits $limits = new SecurityLimits(),
         ?Closure $currentActivityId = null,
+        private readonly ProvenanceAuthority $authority = new ProvenanceAuthority(),
     ) {
         $activityId = $currentActivityId ?? $this->currentActivityId(...);
 
@@ -95,7 +97,8 @@ final class ExecutionScope implements ExecutionScopeInterface
             $activityId,
             $this->sequenceAllocator,
             $this->clock,
-            $this->publisher
+            $this->publisher,
+            $this->authority
         );
         $this->observationRecorder = new DefaultObservationRecorder(
             $executionId,
@@ -104,7 +107,8 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->clock,
             $this->publisher,
             $this->throwableMapper,
-            $this->observationIdFactory
+            $this->observationIdFactory,
+            $this->authority
         );
         $this->occurrenceRecorder = new DefaultOccurrenceRecorder(
             $executionId,
@@ -112,7 +116,8 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->sequenceAllocator,
             $this->clock,
             $this->publisher,
-            $this->occurrenceIdFactory
+            $this->occurrenceIdFactory,
+            $this->authority
         );
         $this->snapshotRecorder = new DefaultSnapshotRecorder(
             $executionId,
@@ -124,7 +129,8 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->snapshotIdFactory,
             $this->hashCalculator,
             $this->snapshotStore,
-            $this->onSnapshotStoreFailure
+            $this->onSnapshotStoreFailure,
+            $this->authority
         );
         $this->activityRunner = new DefaultActivityRunner(
             $this,
@@ -134,7 +140,8 @@ final class ExecutionScope implements ExecutionScopeInterface
             $this->publisher,
             $this->throwableMapper,
             $this->activityIdFactory,
-            $this->limits
+            $this->limits,
+            $this->authority
         );
     }
 

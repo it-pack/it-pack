@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Factory;
 
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
@@ -34,6 +35,7 @@ final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterfac
         private readonly StringIdentifierFactoryInterface $snapshotIdFactory,
         private readonly HashCalculatorInterface          $hashCalculator,
         private ?SnapshotTypeInterface                    $type = null,
+        private readonly ?ProvenanceAuthority                      $authority = null,
     ) {
     }
 
@@ -45,7 +47,7 @@ final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterfac
         $id = $this->snapshotIdFactory->build();
         $this->type ??= SnapshotType::executionTerminal();
 
-        return ExecutionSnapshot::create(
+        $snapshot = ExecutionSnapshot::create(
             $id,
             $execution->executionId(),
             $this->type,
@@ -54,5 +56,21 @@ final class ExecutionSnapshotFactory implements ExecutionSnapshotFactoryInterfac
             $this->hashCalculator,
             classification: SnapshotClassification::Terminal,
         );
+
+        // Issue an SDK-controlled export ID for the terminal snapshot and register
+        // the execution→snapshot edge so provenance can be verified at publication.
+        // Only when an authority is supplied (the SDK shares its own); custom
+        // factories constructed without one never accumulate unreleased records.
+        if ($this->authority instanceof ProvenanceAuthority) {
+            $this->authority->bindArtifact(
+                'snapshot',
+                'terminal-snapshot',
+                $execution->executionId()->toString(),
+                $id->toString(),
+                'execution-terminal-snapshot',
+            );
+        }
+
+        return $snapshot;
     }
 }
