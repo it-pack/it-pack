@@ -18,6 +18,11 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Measurement\Measurement;
+use ItPack\RunIt\Domain\Measurement\MeasurementName;
+use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
+use ItPack\RunIt\Domain\Observation\Observation;
+use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
@@ -170,11 +175,12 @@ final class ClassifyingArtifactPublisher implements
 
         if ($kind === 'snapshot'
             && (!array_key_exists('payload', $normalized)
-                || !isset($normalized['content_hash'])
                 || !array_key_exists('payload', $projected)
-                || !isset($projected['content_hash'])
-                || $normalized['payload'] !== $projected['payload']
-                || $normalized['content_hash'] !== $projected['content_hash'])) {
+                || (isset($normalized['content_hash'])
+                    && (!isset($projected['content_hash'])
+                        || $normalized['payload'] !== $projected['payload']
+                        || $normalized['content_hash'] !== $projected['content_hash']))
+                || (!isset($normalized['content_hash']) && !$artifact instanceof RedactedArtifactInterface))) {
             $this->reportMissingRequiredField('snapshot', 'unchanged payload and content_hash');
             return;
         }
@@ -188,9 +194,13 @@ final class ClassifyingArtifactPublisher implements
             }
         }
 
-        $classified = $kind === 'occurrence'
-            ? ($this->typedOccurrence($projected) ?? new ClassifiedArtifact($projected, $kind))
-            : new ClassifiedArtifact($projected, $kind);
+        $classified = match ($kind) {
+            'measurement' => $this->typedMeasurement($projected),
+            'occurrence' => $this->typedOccurrence($projected),
+            'observation' => $this->typedObservation($projected),
+            default => null,
+        };
+        $classified ??= new ClassifiedArtifact($projected, $kind);
         $this->inner->publish($classified);
     }
 
@@ -205,6 +215,139 @@ final class ClassifyingArtifactPublisher implements
     {
         if ($this->inner instanceof CloseablePublisherInterface) {
             $this->inner->close();
+        }
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function typedMeasurement(array $fields): ?MeasurementInterface
+    {
+        foreach (['name', 'kind', 'unit', 'value', 'execution_id', 'activity_id',
+            'timestamp', 'sequence', 'attributes'] as $key) {
+            if (!array_key_exists($key, $fields)) {
+                return null;
+            }
+        }
+
+        if (!is_string($fields['name']) || !is_string($fields['kind']) || !is_string($fields['unit'])
+            || !is_string($fields['execution_id']) || !is_int($fields['timestamp'])
+            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
+            || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)) {
+            return null;
+        }
+
+        $factory = match ($fields['kind']) {
+            'counter' => Measurement::counter(...),
+            'size' => Measurement::size(...),
+            'gauge' => Measurement::gauge(...),
+            'duration' => Measurement::duration(...),
+            'ratio' => Measurement::ratio(...),
+            default => null,
+        };
+        $value = $fields['value'];
+        $unit = MeasurementUnit::tryFrom($fields['unit']);
+        if ($factory === null || $unit === null || (!is_int($value) && !is_float($value))
+            || (in_array($fields['kind'], ['counter', 'size'], true) ? !is_int($value) : !is_float($value))) {
+            return null;
+        }
+
+        $attributes = [];
+        foreach ($fields['attributes'] as $key => $attribute) {
+            if (!is_string($key) || !(is_scalar($attribute) || is_array($attribute) || $attribute === null)) {
+                return null;
+            }
+
+            $attributes[$key] = $attribute;
+        }
+
+        try {
+            $measurement = $factory(
+                MeasurementName::fromString($fields['name']),
+                ExecutionId::fromString($fields['execution_id']),
+                $value,
+                $fields['activity_id'] === null ? null : ActivityId::fromString($fields['activity_id']),
+                Instant::of($fields['timestamp']),
+                ArtifactSequence::of($fields['sequence']),
+                AttributeCollection::fromArray($attributes),
+                $unit,
+            );
+            $normalized = $measurement->normalize();
+            ksort($normalized);
+            ksort($fields);
+
+            return $normalized === $fields ? $measurement : null;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /** @param array<string, mixed> $fields */
+    private function typedObservation(array $fields): ?ObservationInterface
+    {
+        $keys = ['id', 'execution_id', 'activity_id', 'severity', 'level', 'message', 'diagnostic_code',
+            'sequence', 'timestamp', 'attributes', 'throwable'];
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $fields)) {
+                return null;
+            }
+        }
+
+        if (!is_string($fields['execution_id']) || !is_int($fields['timestamp'])
+            || !is_int($fields['sequence']) || !is_array($fields['attributes'])
+            || (!is_string($fields['activity_id']) && $fields['activity_id'] !== null)) {
+            return null;
+        }
+
+        $attributes = [];
+        foreach ($fields['attributes'] as $key => $value) {
+            if (!is_string($key) || !(is_scalar($value) || is_array($value) || $value === null)) {
+                return null;
+            }
+
+            $attributes[$key] = $value;
+        }
+
+        try {
+            $executionId = ExecutionId::fromString($fields['execution_id']);
+            $activityId = $fields['activity_id'] === null ? null : ActivityId::fromString($fields['activity_id']);
+            $instant = Instant::of($fields['timestamp']);
+            $sequence = ArtifactSequence::of($fields['sequence']);
+            $attributes = AttributeCollection::fromArray($attributes);
+            if (!is_string($fields['id']) || !is_string($fields['message'])
+                || !is_string($fields['severity']) || $fields['throwable'] !== null
+                || (!is_string($fields['diagnostic_code']) && $fields['diagnostic_code'] !== null)
+                || !in_array($fields['severity'], ['debug', 'info', 'notice', 'warning', 'error',
+                    'critical', 'alert', 'emergency'], true)) {
+                return null;
+            }
+
+            $factory = match ($fields['severity']) {
+                'debug' => Observation::debug(...),
+                'info' => Observation::info(...),
+                'notice' => Observation::notice(...),
+                'warning' => Observation::warning(...),
+                'error' => Observation::error(...),
+                'critical' => Observation::critical(...),
+                'alert' => Observation::alert(...),
+                'emergency' => Observation::emergency(...),
+            };
+            $artifact = $factory(
+                ObservationId::fromString($fields['id']),
+                $executionId,
+                $fields['message'],
+                $activityId,
+                $fields['diagnostic_code'],
+                $attributes,
+                null,
+                $instant,
+                $sequence,
+            );
+            $normalized = $artifact->normalize();
+            ksort($normalized);
+            ksort($fields);
+
+            return $normalized === $fields ? $artifact : null;
+        } catch (Throwable) {
+            return null;
         }
     }
 

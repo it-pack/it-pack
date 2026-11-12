@@ -35,8 +35,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   the interface: consumers passing it directly must use the health-aware interface
   instead. The API baseline update was approved; downstream migration is pending.
 - A snapshot whose payload is redacted no longer exposes the original content
-  hash. Classification drops and reports snapshots when it cannot preserve both
-  payload and hash unchanged; consumers must tolerate missing snapshot deliveries.
+  hash. Classification can publish the redacted payload without a hash, but drops
+  and reports a snapshot if it cannot preserve an accompanying hash and payload
+  unchanged. Consumers must tolerate hashless redacted snapshots.
 - Explicit redacted-observation drop reporting now suppresses recursive reports
   from the same publisher and resets its guard after reporter failures. The
   publisher is no longer declared `readonly`; reflection-based consumers may
@@ -50,21 +51,22 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 - `TelemetryPublisher` now delivers redacted measurements through
   the optional `RedactedMeasurementInstrumentMapperInterface`. Custom mappers
   without this capability drop redacted measurements with a payload-free health
-  report; their existing `MeasurementInstrumentMapperInterface` remains unchanged. Classified
-  measurement projections bypass the typed `MeasurementInterface` dispatch, so
-  the OpenTelemetry adapter gains an explicit redacted-measurement mapping
-  instead. The classified publisher stack reconstructs typed occurrences only
-  when their complete projected fields can be represented without change. Other
-  classified artifacts and incomplete occurrences remain generic projections;
-  consumers relying on typed dispatch must account for those cases.
+  report; their existing `MeasurementInstrumentMapperInterface` remains unchanged.
+  The classified publisher stack reconstructs typed occurrences, measurements,
+  and observations without throwables when their projected fields can be
+  represented without change. Other classified artifacts and incomplete
+  projections remain generic; consumers relying on typed dispatch must account
+  for those cases.
 - `ExecutionSnapshotFactory` no longer constructs a default
   `ProvenanceAuthority`. The SDK shares its own authority with the factory;
   custom factories constructed without an authority never accumulate
   unreleased snapshot records.
 - `ProvenanceAuthority::releaseExecution()` removes each record from the
   `byBusinessExecution` index directly via the record's business ID/execution
-  ID key instead of scanning every bucket, reducing release cost from
-  O(execution bucket × all buckets) to O(execution bucket).
+  ID key instead of scanning every bucket.
+- Releasing provenance records also removes incoming relationship edges held by
+  live executions. This does not provide a global retention bound or establish
+  publication-time provenance verification.
 - `DefaultExecutionRunner` rejects a repeated execution ID before any
   provenance record is issued via `hasLiveRecords()`, so two live executions
   can never share an ID and releasing one cannot drop the other's export

@@ -30,6 +30,7 @@ final class TerminalSnapshotRedactionTest extends Unit
     {
         $attributes = $this->exportFailedSnapshot(false);
 
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
         $export = json_encode($attributes, JSON_THROW_ON_ERROR);
         foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
             self::assertStringNotContainsString($secret, $export);
@@ -43,6 +44,7 @@ final class TerminalSnapshotRedactionTest extends Unit
 
         self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
         self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
         $export = json_encode($attributes, JSON_THROW_ON_ERROR);
         foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
             self::assertStringNotContainsString($secret, $export);

@@ -380,6 +380,22 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             }
 
             unset($this->byExecution[$executionId]);
+
+            // Edges are stored on their source, which may belong to a longer-lived
+            // execution. Remove references to the records just released as well.
+            if ($candidates !== []) {
+                $released = array_fill_keys($candidates, true);
+                foreach ($this->records as $key => $liveRecord) {
+                    $this->records[$key]['relationships'] = array_values(array_filter(
+                        $liveRecord['relationships'],
+                        static function (string $relationship) use ($released): bool {
+                            $separator = strpos($relationship, ':');
+
+                            return $separator === false || !isset($released[substr($relationship, $separator + 1)]);
+                        },
+                    ));
+                }
+            }
         } finally {
             $this->releasing = false;
         }

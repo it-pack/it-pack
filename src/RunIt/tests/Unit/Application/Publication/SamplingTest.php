@@ -26,9 +26,13 @@ use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterfac
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
+use ItPack\RunIt\Domain\Measurement\Measurement;
+use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
@@ -66,11 +70,64 @@ use Throwable;
 #[UsesClass(SecurityLimits::class)]
 final class SamplingTest extends Unit
 {
+    public function testClassifierReconstructsMeasurementsFromSanitizedFields(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $classifier = new ClassifyingArtifactPublisher($sink);
+        $original = Measurement::counter(
+            MeasurementName::fromString('requests'),
+            ExecutionId::fromString('exec-1'),
+            7,
+            attributes: AttributeCollection::fromArray(['secret' => 'sensitive']),
+        );
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $classifier->publish($redactor->redact($original));
+        $published = $sink->published()[0];
+        self::assertInstanceOf(MeasurementInterface::class, $published);
+        self::assertNotSame($original, $published);
+        self::assertSame('[redacted]', $published->attributes()['secret']);
+        self::assertSame(7, $published->value());
+
+        $fields = $original->normalize();
+        unset($fields['unit']);
+        $classifier->publish(new RedactedArtifact($fields, 'measurement'));
+        self::assertInstanceOf(ClassifiedArtifact::class, $sink->published()[1]);
+        self::assertArrayNotHasKey('unit', $sink->published()[1]->normalize());
+    }
+
+    public function testClassifierDeliversTypedObservationOnlyFromRedactedFields(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new PublisherStackFactory()->compose(
+            $sink,
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret'])),
+            null,
+        );
+        $original = Observation::warning(
+            ObservationId::fromString('obs-typed'),
+            ExecutionId::fromString('exec-typed'),
+            'sensitive-message',
+            attributes: AttributeCollection::fromArray(['secret' => 'sensitive-attribute']),
+        );
+        $publisher->publish($original);
+
+        self::assertCount(1, $sink->published());
+        $published = $sink->published()[0];
+        self::assertInstanceOf(ObservationInterface::class, $published);
+        self::assertNotSame($original, $published);
+        self::assertStringNotContainsString('sensitive-message', $published->message());
+        self::assertSame('[redacted]', $published->attributes()['secret']);
+        self::assertStringNotContainsString(
+            'sensitive-attribute',
+            json_encode($published->normalize(), JSON_THROW_ON_ERROR),
+        );
+    }
+
     public function testClassifierDropsSnapshotsWhenPayloadOrHashChanges(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $health = $this->createMock(InternalHealthReporterInterface::class);
-        $health->expects(self::exactly(2))->method('report');
+        $health->expects(self::once())->method('report');
         $classifier = new ClassifyingArtifactPublisher($sink, $health);
         $classifier->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['safe' => 'value']));
         $classifier->publish(new RedactedArtifact([
@@ -81,7 +138,9 @@ final class SamplingTest extends Unit
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveDataKeys: ['password']));
         $classifier->publish($redactor->redact($snapshot));
 
-        self::assertCount(1, $sink->published());
+        self::assertCount(2, $sink->published());
+        self::assertArrayNotHasKey('content_hash', $sink->published()[1]->normalize());
+        self::assertSame(['password' => '[redacted]'], $sink->published()[1]->normalize()['payload']);
         self::assertSame($snapshot->normalize()['content_hash'], $snapshot->contentHash());
     }
 
@@ -477,7 +536,7 @@ final class SamplingTest extends Unit
         self::assertInstanceOf(Observation::class, $sampling->seen[0]);
         self::assertSame($artifact->normalize(), $sampling->seen[0]->normalize());
         self::assertCount(1, $sink->published());
-        self::assertInstanceOf(ClassifiedArtifact::class, $sink->published()[0]);
+        self::assertInstanceOf(ObservationInterface::class, $sink->published()[0]);
         self::assertSame($artifact->normalize(), $sink->published()[0]->normalize());
 
         $changed = Observation::info(

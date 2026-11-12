@@ -87,4 +87,35 @@ final class ProvenanceAuthorityTest extends Unit
             'execution-observation:' . $second,
         ], $authority->allRecords()[$execution]['relationships']);
     }
+
+    public function testReleasePrunesIncomingEdgesWithoutRemovingOtherEdges(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $parent = $authority->issueExportId('execution', 'execution', 'parent', 'parent');
+        $child = $authority->issueExportId('execution', 'execution', 'child', 'child');
+        $other = $authority->issueExportId('execution', 'execution', 'other', 'other');
+        self::assertTrue($authority->registerRelationship($parent, $child, 'parent'));
+        self::assertTrue($authority->registerRelationship($parent, $other, 'link'));
+
+        $authority->releaseExecution('child');
+
+        self::assertSame(['link:' . $other], $authority->allRecords()[$parent]['relationships']);
+        self::assertFalse($authority->verifyExportId($child, 'execution', 'child'));
+    }
+
+    public function testRepeatedChildReleaseDoesNotAccumulateParentEdges(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $parent = $authority->issueExportId('execution', 'execution', 'parent', 'parent');
+
+        for ($i = 0; $i < 100; $i++) {
+            $id = 'child-' . $i;
+            $child = $authority->issueExportId('execution', 'execution', $id, $id);
+            self::assertTrue($authority->registerRelationship($parent, $child, 'parent'));
+            $authority->releaseExecution($id);
+        }
+
+        self::assertCount(1, $authority->allRecords());
+        self::assertSame([], $authority->allRecords()[$parent]['relationships']);
+    }
 }

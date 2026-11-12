@@ -5,11 +5,17 @@ declare(strict_types=1);
 namespace Tests\Unit\Tools\ApiCompat;
 
 use Codeception\Test\Unit;
+use JsonException;
+use ReflectionException;
 use ReflectionMethod;
 use Tools\ApiCompat\ApiCompat;
 
 final class ApiCompatTest extends Unit
 {
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     public function testRemovedImplementedAndExtendedInterfacesAreBreaks(): void
     {
         $class = $this->entry('class', ['OldInterface' => 'OldInterface']);
@@ -30,6 +36,10 @@ final class ApiCompatTest extends Unit
         ], $issues);
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws JsonException
+     */
     public function testRetainedAndAddedInterfacesAreNotReportedAsRemoved(): void
     {
         $baseline = ['Example' => $this->entry('class', ['OldInterface' => 'OldInterface'])];
@@ -58,6 +68,7 @@ final class ApiCompatTest extends Unit
      * @param array<string, array<string, mixed>> $current
      * @param array<string, array<string, mixed>> $baseline
      * @return array<array-key, mixed>
+     * @throws ReflectionException|JsonException
      */
     private function compare(array $current, array $baseline): array
     {
