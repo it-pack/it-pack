@@ -112,6 +112,9 @@ final class BufferedArtifactPublisher implements
         }
     }
 
+    /**
+     * @throws Throwable
+     */
     public function flush(): void
     {
         $start = $this->clock->monotonicNanoseconds();
@@ -120,6 +123,9 @@ final class BufferedArtifactPublisher implements
         $this->observe($flushed, $start);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function close(): void
     {
         $start = $this->clock->monotonicNanoseconds();

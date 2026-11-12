@@ -7,6 +7,9 @@ namespace ItPack\RunIt\Application\Publication;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * Sampling policy that lets errors override an ordinary decision.
@@ -27,8 +30,17 @@ final readonly class ErrorOverrideSamplePolicy implements SamplingPolicyInterfac
 
     public function sample(ExecutionArtifactInterface $artifact): bool
     {
-        if ($artifact instanceof ObservationInterface && $artifact->severity()->isError()) {
-            return true;
+        if ($artifact instanceof ObservationInterface) {
+            $level = $artifact->severity()->level();
+
+            return $level >= ObservationSeverity::Error->level() || $this->inner->sample($artifact);
+        }
+
+        if ($artifact instanceof RedactedArtifactInterface) {
+            $normalized = $artifact->normalize();
+            $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
+
+            return (is_int($level) && $level >= ObservationSeverity::Error->level()) || $this->inner->sample($artifact);
         }
 
         return $this->inner->sample($artifact);

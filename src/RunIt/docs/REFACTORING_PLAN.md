@@ -32,6 +32,16 @@ verification. The unchecked design details below must still be resolved where ap
 - [x] **Coding standards principle:** Keep existing enforced conventions and adopt additional rules only when useful, with focused exceptions. Do not impose blanket factory-only construction or interface creation. Reconcile individual rules, including member ordering, with `docs/QA.md` before changing or adding enforcement; avoid unnecessary public API changes.
 
 **Open design details:**
+- [x] For Phase 2 unsafe-mapping drops, use a guarded, payload-free error-log
+  fallback when no health callback is configured; contain reporter failures.
+  Execution IDs that cannot be established safe must cause a reported drop,
+  even when this loses the original sampling decision. This does not settle the
+  general Phase 4 health API or nullable callback compatibility.
+- [ ] Resolve the Phase 2 representation and delivery trade-off before changing
+  the stack: the current redactor can return original artifacts or projections
+  with unclassified fields. Dropping all unsafe artifacts could suppress most
+  telemetry; removing required fields can change normalized contracts. Neither
+  outcome is approved solely by the execution-ID decision above.
 - [ ] Define safe observation fields and classification, and the configurable drop/report mechanism.
 - [ ] Choose an evidence-backed span-store limit and specify eviction scope, duplicate-ID ordering, and compatibility-safe configuration.
 - [x] Determine the exact API for the opt-in concurrency validation hook in Phase 1: `ExtendedRunItBuilderInterface::withConcurrencyValidator(?Closure)` (extends `RunItBuilderInterface`; implemented by `RunItBuilder`). Separate from `ContextStorageInterface`, not required on the public builder interface. The built-in shared-stack/concurrent rejection runs first and cannot be overridden.
@@ -444,14 +454,14 @@ call. The default runner and affected test calls also use positional arguments.
 This protects the tested recorder compatibility paths; it does not establish
 failure-path coverage for other adapters or complete Phase 0.
 
-| Review issue                             | Existing reproduction                                                                                                                                                                                                                                                                                                                 | Remaining evidence                                                                                      |
-|------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php`               | Broader exporter and configuration controls.                                                            |
-| Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                                  | Redaction-first implementation and broader typed routing tests.                                         |
-| Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                                 | Complete target-invariant matrix and approved edge semantics.                                           |
-| Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                                       | Phase 4 default destination, compatibility and regression matrix.                                       |
-| Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                                      | Final migration, versioning and API-check verification for external implementers.                       |
-| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate are required for Phase 6 exit.        |
+| Review issue                             | Existing reproduction                                                                                                                                                                                                                                                                                                                 | Remaining evidence                                                                                                |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|
+| Throwable redaction                      | `RedactingPublisherTest::testFailedExecutionThrowableCurrentlyBypassesRedaction`; composed `TelemetryPublisherTest::testFailedExecutionRedactionCurrentlyLeaksOuterThrowableToSpanEvent`; `tests/target-policy-regressions.php`; `tests/target-policy-psr3-regressions.php`; `tests/target-policy-otel-regressions.php`               | Broader exporter and configuration controls.                                                                      |
+| Sampling before redaction                | Factory-composed spy and typed-policy cases in `SamplingTest`; `tests/target-policy-regressions.php`                                                                                                                                                                                                                                  | Redaction-first implementation and broader typed routing tests.                                                   |
+| Buffer byte limit                        | `BufferingTest`; oversized and projected byte-bound controls in `tests/target-policy-regressions.php`                                                                                                                                                                                                                                 | Complete target-invariant matrix and approved edge semantics.                                                     |
+| Silent or recursive publication failures | [Evidence and target control](#publication-failure-evidence); [approved boundary](#decisions-required-before-dependent-changes)                                                                                                                                                                                                       | Phase 4 default destination, compatibility and regression matrix.                                                 |
+| Token interface compatibility            | Custom-token/composite ownership tests; approved `id(): int` break in changelog and API baseline                                                                                                                                                                                                                                      | Final migration, versioning and API-check verification for external implementers.                                 |
+| Unit coverage and attribution            | Unit-only XML and synthetic attribution controls recorded below                                                                                                                                                                                                                                                                       | Real-suite attribution, verified isolation control and 95% CI gate are required for Phase 6 exit.                 |
 | Synchronous context under concurrency    | [Shared stack reproduces Fiber B seeing Fiber A's scope and parent ID](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L33); [Fiber storage isolates interleaved scopes](../tests/Concurrency/InterleavedFiberContextIsolationTest.php#L66). See the [approved boundary](#decisions-required-before-dependent-changes). | Builder validation has focused tests; all integration pairings are not verified. OpenSwoole and Swow unavailable. |
 
 The originally reported token break is approved, not erased. Coverage enforcement
@@ -1063,6 +1073,8 @@ Historically AsyncIt's focused memory storage, Swoole storage and context-isolat
 
 **Phase 1 ownership audit (verified):** `ContextTokenInterface::id()` is storage-defined and explicitly non-unique. All four `detach()` implementations use exact token reference (`$top === $token`) as the final authority, so `id()` alone never authorizes detachment or infers equality: `StackContextStorage` requires `instanceof ContextToken` plus an issued-id pre-check plus reference equality; `FiberContextStorage` requires matching anchor plus reference equality; `CoroutineContextStorage` requires matching coroutine key plus reference equality; `CompositeContextStorage` requires `instanceof CompositeContextToken` plus WeakMap-issued reference membership before delegating to the owning sub-storage. `CompositeContextToken::id()` delegates to its inner token, so colliding ids across storages do not affect detachment. Existing tests cover cross-storage foreign-token rejection (`StackContextStorageTest::testForeignTokenIsRejected`), intentional id collision with distinct references (`CompositeContextStorageTest::testCollidingTokensRetryOutOfOrderAndRejectRepeatedDetach`), shared-child composite rejection (`testForeignCompositeTokenIsRejectedEvenWithSharedChild`), clone independence (`testCloneHasIndependentTokenOwnership`), and forged-wrapper rejection (`testForgedWrapperIsRejectedWithoutDetachingInnerToken`). `DefaultExecutionRunner::detachSafely()` reports but never rethrows detach failures, preserving fail-open behavior. Remaining verification: no source change is required; context-storage conformance and the full `composer api:check` against the final tree remain Phase 1 completion items.
 
+**Coroutine ownership regression (2026-11-11):** `CoroutineContextStorageTest::testCollidingCoroutineTokensAndOutOfOrderDetachAllowRetry` verifies that a token from another storage with the same coroutine ID and an out-of-order token are rejected without changing the active scope, and that both stacks can then be detached normally. On PHP 8.5.12 with Swoole loaded, the focused storage test passed (5 tests, 21 assertions) and `composer test:concurrency` passed (8 tests, 172 assertions); the changed test passed a focused PHP-CS-Fixer dry run. The collision test uses a fixed ID provider, not native coroutine scheduling. PHP 8.4, OpenSwoole and Swow were not tested in this run; this evidence does not close the tracked follow-ups or Phase 1 exit gates.
+
 **Tracked follow-ups:** The following issues record deferred work; linking them does not satisfy Phase 0 or Phase 1 exit criteria, resolve failed gates, or authorize a baseline update.
 
 The [downstream compatibility workflow](../../../.github/workflows/runit-downstream-compat.yml)
@@ -1131,6 +1143,18 @@ breaking changes, along with their concrete implementations as additions; the
 baselines were not changed in that run. New test files contain no pre-existing PHPStan offset-access or lint:length
 violations beyond those already present in the codebase.
 
+The redacted OpenTelemetry snapshot mapper now honors `SnapshotPayloadPolicy::None`
+by omitting the original content hash from logs and span events. A composed
+regression covers both outputs, and mapper tests cover `HashOnly`. Hash-enabled
+policies still expose the original hash. Redacted snapshot log timestamps now
+use the normalized `created_at`; missing or non-integer values fall back to the
+current time. This does not complete the broader Phase 2 redaction work.
+At starting revision `9015b4d8`, focused mapper and composed publisher tests
+passed on PHP 8.4.27 and 8.5.12, and `composer quality --quiet` passed on PHP
+8.5.12. The separate API check still reports the two previously recorded mapper
+interface breaks; no API baseline or schema was changed. No benchmark comparison
+or full PHP 8.4 suite was run for this correction.
+
 Focused tests now cover nested observation throwable masking, preservation of
 class and code, original immutability, explicit opt-out, and PSR logger export
 with configured masking. Failed execution protection, trace omission, and
@@ -1152,15 +1176,15 @@ establish per-test attribution or the planned isolation guarantee.
 
 **Artifact `normalize()` shapes (built-in domain values):**
 
-| Artifact | `normalize()` keys | Secret-bearing fields |
-|----------|-------------------|----------------------|
-| `Execution` | id, name, kind, status, started_at, ended_at, parent_execution_id, linked_execution_ids, sequence, context, result | `result.throwable` → `{class, message, code, previous(recursive), trace}` |
-| `Observation` | id, execution_id, activity_id, severity, level, message, diagnostic_code, sequence, timestamp, attributes, throwable | `message`, `attributes`, `throwable` → `{class, message, code, previous(recursive), trace}` |
-| `Occurrence` | id, execution_id, activity_id, type, version, source, subject, time, data, data_schema, content_type, extension_attributes, sequence | `data` (recursive), `extension_attributes`, `subject` |
-| `Snapshot` | id, execution_id, activity_id, type, classification, schema_version, created_at, content_type, content_hash, predecessor_id, sequence, payload, attributes | `payload` (recursive), `attributes` |
-| `Measurement` | name, kind, unit, value, execution_id, activity_id, timestamp, sequence, attributes | `value`, `attributes` |
-| `Activity` | id, execution_id, name, kind, status, started_at, ended_at, parent_activity_id, sequence, attributes, throwable{array}, duration_ns?(optional) | `attributes`, `throwable` → `{class, message, code, previous(recursive), trace}` |
-| `ThrowableDescription::toArray()` | class, message, code, previous(array recursive), trace | `message`, `trace`, nested `previous` |
+| Artifact                          | `normalize()` keys                                                                                                                                         | Secret-bearing fields                                                                       |
+|-----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `Execution`                       | id, name, kind, status, started_at, ended_at, parent_execution_id, linked_execution_ids, sequence, context, result                                         | `result.throwable` → `{class, message, code, previous(recursive), trace}`                   |
+| `Observation`                     | id, execution_id, activity_id, severity, level, message, diagnostic_code, sequence, timestamp, attributes, throwable                                       | `message`, `attributes`, `throwable` → `{class, message, code, previous(recursive), trace}` |
+| `Occurrence`                      | id, execution_id, activity_id, type, version, source, subject, time, data, data_schema, content_type, extension_attributes, sequence                       | `data` (recursive), `extension_attributes`, `subject`                                       |
+| `Snapshot`                        | id, execution_id, activity_id, type, classification, schema_version, created_at, content_type, content_hash, predecessor_id, sequence, payload, attributes | `payload` (recursive), `attributes`                                                         |
+| `Measurement`                     | name, kind, unit, value, execution_id, activity_id, timestamp, sequence, attributes                                                                        | `value`, `attributes`                                                                       |
+| `Activity`                        | id, execution_id, name, kind, status, started_at, ended_at, parent_activity_id, sequence, attributes, throwable{array}, duration_ns?(optional)             | `attributes`, `throwable` → `{class, message, code, previous(recursive), trace}`            |
+| `ThrowableDescription::toArray()` | class, message, code, previous(array recursive), trace                                                                                                     | `message`, `trace`, nested `previous`                                                       |
 
 **Current `DefaultArtifactRedactor` coverage (additive, no change to originals):**
 - `attributes` — masked by `sensitiveAttributeKeys` (top-level keys only; nested maps pass through)
@@ -1253,7 +1277,7 @@ support; running the three files sequentially passed. A subsequent direct
 evidence of a full configured run: the later explicit suite runs and Functional
 bootstrap failure are documented in the refreshed Phase 0 results above.
 
-Further composed OpenTelemetry characterizations use real redacted artifacts and
+Earlier composed OpenTelemetry characterizations used real redacted artifacts and
 in-memory exporters. In the tested occurrence configuration, an extension excluded
 by the occurrence allow-list is still exported in both log and span-event fields;
 the normalized occurrence time is used. For a redacted snapshot, the normalized
@@ -1261,8 +1285,9 @@ the normalized occurrence time is used. For a redacted snapshot, the normalized
 clock. The original content hash is exported to both signals even with
 `SnapshotPayloadPolicy::None`. The tested mappings omit occurrence data and
 snapshot payload; these cases do not establish safety for other configurations or
-exporters. Routing, extension filtering, timestamp handling, and hash exposure
-remain open security and correctness work.
+exporters. Subsequent fixes omit redacted occurrence extensions and the snapshot
+hash under `None`, and use `created_at` for redacted snapshot logs. Other routing
+and hash exposure concerns remain open security and correctness work.
 
 A PSR-3 observation logger characterization additionally shows that a configured
 sensitive attribute key is masked at the top level but remains visible when it
@@ -1330,6 +1355,21 @@ establish default protection, trace omission, exporter behavior, or safety of th
 retained hash. On PHP 8.4.27 and 8.5.12 the focused file passed (14 tests, 83
 assertions each); PHP 8.5 `composer quality --quiet` and focused PHPStan passed.
 No production behavior or contract changed, and Phase 2 remains open.
+
+At starting revision `9015b4d8`, the same snapshot test also characterizes the
+default redactor: it returns the original snapshot and its payload retains every
+synthetic throwable secret. Direct execution throwable masking does not imply
+snapshot payload protection. The focused file passed on PHP 8.4.27 and 8.5.12
+(21 tests, 117 assertions each); this is an exposure characterization, not an
+approved security guarantee or an exporter test.
+
+An integration characterization now runs a failed execution through the SDK
+and an in-memory OpenTelemetry logger with explicit `Full` snapshot export.
+The default redactor permits the exception message in the terminal snapshot
+payload. Configuring `message` and `trace` as sensitive data keys produces a
+redacted snapshot whose current OpenTelemetry mapping omits the payload; this
+control does not establish safe payload export or resolve the remaining policy.
+Both paths preserve the original business exception.
 
 At starting revision `7e7652a7`, a finite custom primitive throwable projection
 characterizes another traversal boundary: recognized string messages and trace
@@ -1480,7 +1520,7 @@ filtering, collector cleanup and isolation from other suites are demonstrated.
 
 **Depends on:** approved coding standards and passing behavior tests. **Review:** duplication, assembly complexity, factories/interfaces, coding rules, PhpMetrics and PHPA.
 
-- [ ] Replace paired literal reads with existing `ArtifactField` constants in `DefaultOccurrenceLogMapper` where they represent the same keys. Add mapping tests for redacted occurrences and snapshots; assert normalized keys and public schemas do not change.
+- [x] Replace paired literal reads with existing `ArtifactField` constants in `DefaultOccurrenceLogMapper` where they represent the same keys. Mapping tests cover literal normalized keys and exact redacted occurrence and snapshot exports; public schemas remain unchanged.
 - [ ] Inventory repeated mapping/validation logic and repeated literals across adapters; classify each as shared semantics, intentional adapter-specific behavior, or unrelated coincidence. Extract a focused shared abstraction only when it removes real divergence without coupling layers or obscuring behavior. Retain before/after contract tests.
 - [ ] Examine `DefaultExecutionRunner` constructor and builder assembly; map collaborators to responsibilities and identify whether an internal scope-creation seam reduces change propagation. Prototype only if it preserves constructor/API compatibility; avoid generic dependency bags and unnecessary public factories.
 - [ ] Audit DI services for interface-backed seams and direct instantiations in services, distinguishing replaceable dependencies from value objects, tokens, exceptions, and composition-root construction. Record actual violations against the approved rule and remediate only with compatibility-safe, meaningful seams.

@@ -16,4 +16,5 @@ use ItPack\RunIt\Contract\Domain\ObservationInterface;
 interface ObservationLogMapperInterface
 {
     public function map(ObservationInterface $observation): void;
+
 }

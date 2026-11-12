@@ -10,6 +10,7 @@ use ItPack\AsyncIt\Application\Scope\ReferenceExecutionScope;
 use ItPack\AsyncIt\SDK\AsyncRuntime;
 use ItPack\AsyncIt\SDK\Factory\AsyncRuntimeFactory;
 use ItPack\AsyncIt\SDK\Support\LazyTelemetryBridge;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use ItPack\RunIt\Contract\Application\ExecutionEngineInterface;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -42,6 +43,7 @@ final class AsyncRuntimeFactoryTest extends TestCase
         $capability = $runtime->capability();
 
         // Swoole is installed: negotiate() selects the Swoole branch.
+        self::assertInstanceOf(EngineCapability::class, $capability);
         self::assertTrue($capability->supportsFibers);
         self::assertTrue($capability->supportsCoroutines);
         self::assertTrue($capability->concurrent);
@@ -115,6 +117,7 @@ final class AsyncRuntimeFactoryTest extends TestCase
         $runtime = AsyncRuntimeFactory::create();
         $capability = $runtime->capability();
 
+        self::assertInstanceOf(EngineCapability::class, $capability);
         self::assertTrue($capability->supportsFibers);
         self::assertTrue($capability->supportsCoroutines);
     }

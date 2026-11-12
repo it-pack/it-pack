@@ -17,6 +17,7 @@ use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Measurement\MeasurementKind;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
 use ItPack\RunIt\Domain\Observation\Observation;
@@ -39,15 +40,17 @@ final class DerivationExecutionFunctionalTest extends TestCase
         $this->publisher = new InMemoryArtifactPublisher();
     }
 
-    private function runtime(): \ItPack\RunIt\SDK\RunItInterface
+    private function runtime(bool $useDefaultRedaction = false): \ItPack\RunIt\SDK\RunItInterface
     {
-        return RunItBuilder::create()
+        $builder = RunItBuilder::create()
             ->withPublisher($this->publisher)
             ->withClock(new SystemMonotonicClock())
             ->withSequenceAllocator(new InMemorySequenceAllocator())
             ->withSnapshotSerializer(new JsonSnapshotSerializer())
-            ->withIdentifierGenerator(new RandomIdentifierGenerator())
-            ->build();
+            ->withIdentifierGenerator(new RandomIdentifierGenerator());
+
+        // Most tests inspect the original messages and concrete artifacts.
+        return ($useDefaultRedaction ? $builder : $builder->withRedactor(null))->build();
     }
 
     /**
@@ -132,6 +135,37 @@ final class DerivationExecutionFunctionalTest extends TestCase
         self::assertStringContainsString('reExposeOwnedInterfaces entry', (string) $warnings[0]->message());
         self::assertStringContainsString('skipped', (string) $warnings[0]->message());
         self::assertSame('Missing\\NeverImplemented', $warnings[0]->attributes()['interface'] ?? null);
+    }
+
+    /** Default redaction protects bridge observations before publication. */
+    public function testDefaultRedactionMasksBridgeObservationMessage(): void
+    {
+        $message = 'sensitive bridge observation secret';
+        DeriveItExecutions::run(
+            $this->runtime(true),
+            'derive.redaction',
+            static fn (DeriveEventSinkInterface $sink) => $sink->observed(
+                $message,
+                DeriveObservationSeverity::WARNING,
+                ['component' => 'derivation'],
+            ),
+        );
+
+        $published = $this->publisher->published();
+        $redacted = array_values(array_filter(
+            $published,
+            static fn ($artifact): bool => $artifact instanceof RedactedArtifactInterface,
+        ));
+        self::assertCount(1, $redacted);
+        $observation = $redacted[0]->normalize();
+        self::assertSame('[redacted]', $observation['message']);
+        self::assertSame('warning', $observation['severity']);
+        self::assertSame(['component' => 'derivation'], $observation['attributes']);
+        self::assertNotEmpty($observation['id']);
+        self::assertNotEmpty($observation['execution_id']);
+        foreach ($published as $artifact) {
+            self::assertStringNotContainsString($message, json_encode($artifact->normalize(), JSON_THROW_ON_ERROR));
+        }
     }
 
     public function testDriftDetectionEmitsDetectedOccurrenceOnTheExecution(): void

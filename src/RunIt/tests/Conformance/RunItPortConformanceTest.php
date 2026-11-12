@@ -112,7 +112,10 @@ final class RunItPortConformanceTest extends Unit
 
     public function testRedactorConforms(): void
     {
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['password'],
+            redactObservationMessages: false,
+        ));
         $result = new RedactorVerifier()->verify($redactor, $this->fixture);
 
         self::assertTrue($result->isConformant(), $this->describe($result));

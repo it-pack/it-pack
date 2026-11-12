@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanStoreInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
+use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
@@ -28,6 +29,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use RuntimeException;
 
 /**
  * OpenTelemetry bridge publisher.
@@ -40,6 +42,8 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
  *
  * The publisher never configures global OpenTelemetry providers; every provider is
  * supplied through {@see BridgeConfig}. Build it with {@see self::fromConfig()}.
+ * A custom observation mapper without redacted-observation support causes a
+ * publication exception for redacted observations, reported by the fail-safe stack.
  *
  * @see https://opentelemetry.io/
  */
@@ -69,7 +73,7 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
                 $config->metricAttributeAllowList,
             ),
             new DefaultObservationLogMapper(
-                $config->loggerProvider,
+                $config->mapObservationsToLogs ? $config->loggerProvider : null,
                 new SeverityMap(),
                 $config->mapObservationsToSpanEvents,
             ),
@@ -143,6 +147,24 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
 
             if (array_key_exists('result', $normalized)) {
                 $this->executionMapper->mapRedactedExecution($normalized);
+
+                return;
+            }
+
+            if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
+                if (!$this->observationMapper instanceof RedactedObservationLogMapperInterface) {
+                    throw new RuntimeException('Observation mapper does not support redacted observations.');
+                }
+
+                $this->observationMapper->mapRedactedObservation($normalized);
+
+                return;
+            }
+
+            if (array_key_exists('unit', $normalized)) {
+                // Redacted measurements have no typed redacted mapper on the
+                // MeasurementInstrumentMapperInterface contract; they are
+                // dropped here rather than misrouted through activity heuristics.
 
                 return;
             }

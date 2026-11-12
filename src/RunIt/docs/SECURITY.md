@@ -20,10 +20,10 @@ unless anonymity is requested. Security fixes take priority over feature work.
 
 ## Supported versions
 
-| Version line | Supported |
-|---|---|
-| `1.0.x` (after stable release) | Yes |
-| `0.x` / pre-release | Best effort; upgrade to the latest commit |
+| Version line                   | Supported                                 |
+|--------------------------------|-------------------------------------------|
+| `1.0.x` (after stable release) | Yes                                       |
+| `0.x` / pre-release            | Best effort; upgrade to the latest commit |
 
 Before `1.0.0`, RunIt may introduce breaking changes; treat the `main` branch as
 the supported line. After `1.0.0`, RunIt follows semantic versioning and the
@@ -61,7 +61,9 @@ data-exfiltration paths and applies defense-in-depth:
 The SDK builder installs `DefaultArtifactRedactor` unless explicitly overridden,
 but it does not currently protect every sensitive path. The default redactor
 examines a top-level `throwable` and a failed execution's `result.throwable`.
-It masks recognized string messages and traces, rather than omitting traces.
+It masks throwable messages, replaces traces with null, omits unknown throwable
+fields, and limits throwable cause traversal to 16 levels. This is not yet the
+planned configurable trace policy or independent truncation reporting.
 Configured payload-key
 masking is deny-list based and the default key lists are empty. The default stack
 also invokes a configured sampler before the redactor, so samplers can see the
@@ -84,18 +86,25 @@ attribute keys also mask matching top-level occurrence extension and snapshot
 attributes, not nested entries. Unknown fields, identifiers, and values under
 unconfigured keys are not covered by that traversal. Snapshot `content_hash`
 also remains the hash of the original payload after masking.
+In particular, default redaction masks throwable messages and traces inside a
+failed execution's normalized projection embedded in a snapshot payload, and
+traverses array payloads to find throwable-shaped arrays even without configured
+sensitive keys. Direct execution throwable redaction therefore also protects
+snapshot payloads under the default configuration. Snapshot `content_hash`
+also remains the hash of the original payload after masking.
 
 Built-in occurrence and snapshot constructors normally validate payload values;
 custom implementations must honor the bounded, recursively primitive
 `NormalizableInterface` contract. The redactor itself neither validates that
-contract nor bounds recursion or detects cycles in custom projections. A test
-using a deliberately nonconforming custom artifact confirms that an object and
-unknown fields pass through unchanged, including when another field is masked.
-Such projections can expose data or exhaust resources; do not treat the redactor
-as a validator or sanitizer for untrusted artifact implementations.
-Even a finite, primitive custom projection can use an array-valued throwable
-trace: the current redactor masks string traces but leaves that array unchanged.
-The built-in throwable shape is not a validation guarantee for custom artifacts.
+contract. Configured-key payload traversal is limited to 16 levels and 1,024
+visited nodes; throwable-shaped arrays inside payloads are also traversed under
+the default throwable-masking policy. Truncation is not yet reported through the
+health path. A test using a deliberately nonconforming custom artifact confirms
+that an object and unknown fields pass through unchanged, including when another
+field is masked. Such projections can expose data or exhaust resources; do not
+treat the redactor as a validator or sanitizer for untrusted artifact
+implementations. The built-in throwable shape is not a validation guarantee for
+other fields of custom artifacts.
 
 A composed OpenTelemetry test checks that classified markers in a failed
 execution's throwable do not reach the tested span event under default redaction.
@@ -106,12 +115,11 @@ the default redactor is silently dropped by the tested log and span-event paths,
 while an unredacted control reaches both. This is an observability loss, not a
 guarantee that other redacted projections are dropped or safe to export.
 
-For redacted occurrences, the tested OpenTelemetry log and span-event paths
-export extension attributes even when they are excluded by the configured
-occurrence allow-list. For redacted snapshots, the tested paths export the
-original content hash even with `SnapshotPayloadPolicy::None`. Do not rely on
-these controls to suppress those fields on redacted projections until the adapter
-behavior is corrected; hashes can also disclose information about their inputs.
+The OpenTelemetry redacted snapshot mapper omits the content hash under
+`SnapshotPayloadPolicy::None` for logs and span events. `HashOnly` and `Full`
+still export the original content hash, which can disclose information about its
+inputs even when the payload was redacted. Redacted occurrences do not export
+extension attributes in the default mapper.
 
 When a publication health callback fails, the fallback reporter can log both
 exception messages and the artifact ID. Those diagnostics may contain sensitive

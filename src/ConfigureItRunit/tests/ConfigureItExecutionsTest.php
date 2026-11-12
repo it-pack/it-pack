@@ -24,7 +24,6 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Occurrence\Occurrence as RunItOccurrence;
-use ItPack\RunIt\Domain\Observation\Observation as RunItObservation;
 use ItPack\RunIt\SDK\Builder\RunItBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -210,11 +209,12 @@ final class ConfigureItExecutionsTest extends TestCase
 
         $warnings = array_values(array_filter(
             $this->publisher->published(),
-            static fn ($artifact): bool => $artifact instanceof RunItObservation
-                && $artifact->severity()->label() === 'warning',
+            static fn ($artifact): bool => ($artifact->normalize()['severity'] ?? null) === 'warning',
         ));
         self::assertCount(1, $warnings);
-        self::assertStringContainsString('db.host', $warnings[0]->message());
+        $warning = $warnings[0]->normalize();
+        self::assertSame('[redacted]', $warning['message']);
+        self::assertSame('db.host', $warning['attributes']['path']);
 
         $snapshots = $this->configSnapshots();
         self::assertCount(1, $snapshots);
@@ -244,7 +244,7 @@ final class ConfigureItExecutionsTest extends TestCase
 
         $observations = array_values(array_filter(
             $this->publisher->published(),
-            static fn ($artifact): bool => $artifact instanceof RunItObservation,
+            static fn ($artifact): bool => isset($artifact->normalize()['severity']),
         ));
         self::assertSame([], $observations);
     }

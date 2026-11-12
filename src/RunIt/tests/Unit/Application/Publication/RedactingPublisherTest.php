@@ -10,7 +10,13 @@ use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
+use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\SnapshotTypeInterface;
 use ItPack\RunIt\Domain\Execution\Execution;
 use ItPack\RunIt\Domain\Execution\ExecutionDefinition;
 use ItPack\RunIt\Domain\Execution\ExecutionFailure;
@@ -31,6 +37,7 @@ use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use ItPack\RunIt\Domain\Snapshot\SnapshotId;
 use ItPack\RunIt\Domain\Snapshot\SnapshotType;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -153,7 +160,10 @@ final class RedactingPublisherTest extends Unit
     {
         $original = Execution::start(
             ExecutionId::fromString('exec-failed'),
-            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('import'),
+                ExecutionKind::fromString('batch')
+            ),
             Instant::of(1000),
         )->complete(
             ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
@@ -173,7 +183,7 @@ final class RedactingPublisherTest extends Unit
         }
 
         self::assertSame('[redacted]', $throwable['message']);
-        self::assertSame('[redacted]', $throwable['trace']);
+        self::assertNull($throwable['trace']);
 
         self::assertSame($before, $original->normalize());
     }
@@ -195,7 +205,7 @@ final class RedactingPublisherTest extends Unit
             self::assertSame($class, $throwable['class']);
             self::assertSame($code, $throwable['code']);
             self::assertSame('[redacted]', $throwable['message']);
-            self::assertSame('[redacted]', $throwable['trace']);
+            self::assertNull($throwable['trace']);
             $throwable = $throwable['previous'];
         }
 
@@ -213,7 +223,10 @@ final class RedactingPublisherTest extends Unit
         );
         $sink = new InMemoryArtifactPublisher();
         $publisher = new RedactingArtifactPublisher(
-            new DefaultArtifactRedactor(new ArtifactRedactionConfig(redactThrowableMessages: false)),
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                redactThrowableMessages: false,
+                redactObservationMessages: false,
+            )),
             $sink,
         );
         $publisher->publish($original);
@@ -247,6 +260,44 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('alice', $data['user']);
         self::assertSame('[redacted]', $nested['ssn']);
         self::assertSame('123-45-6789', $originalNested['ssn']);
+    }
+
+    public function testNestedClassDataIsNotMistakenForThrowable(): void
+    {
+        $original = Occurrence::create(
+            OccurrenceId::fromString('occ-class'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'source',
+            Instant::of(1000),
+            ['item' => ['class' => 'Order', 'name' => 'book', 'password' => 'secret'],
+                'throwable' => ['class' => 'RuntimeException', 'message' => 'secret']],
+        );
+
+        $data = $this->publish($original)->normalize()['data'];
+        self::assertIsArray($data);
+        self::assertSame(['class' => 'Order', 'name' => 'book', 'password' => '[redacted]'], $data['item']);
+        self::assertSame(['class' => 'RuntimeException', 'message' => '[redacted]'], $data['throwable']);
+    }
+
+    public function testRecursiveNodeBudgetAccumulatesAndSignalsTruncation(): void
+    {
+        $payload = ['first' => array_fill(0, 600, 'safe'), 'second' => array_fill(0, 600, 'safe'),
+            'password' => 'secret', 'later' => 'another-secret'];
+        $original = self::createStub(SnapshotInterface::class);
+        $original->method('normalize')->willReturn(['payload' => $payload]);
+
+        $data = $this->publish($original)->normalize()['payload'];
+        self::assertIsArray($data);
+        self::assertIsArray($data['first']);
+        self::assertIsArray($data['second']);
+        self::assertCount(600, $data['first']);
+        self::assertLessThan(600, count($data['second']));
+        self::assertSame('[redacted]', end($data['second']));
+        self::assertSame('[redacted]', $data['password']);
+        self::assertArrayNotHasKey('later', $data);
+        self::assertStringNotContainsString('secret', json_encode($data, JSON_THROW_ON_ERROR));
+        self::assertSame($payload, $original->normalize()['payload']);
     }
 
     public function testOccurrenceExtensionAttributesAreNotCoveredByConfiguredKeys(): void
@@ -293,7 +344,7 @@ final class RedactingPublisherTest extends Unit
         self::assertSame($object, $published['object']);
     }
 
-    public function testArrayValuedThrowableTracePassesThroughInCustomProjection(): void
+    public function testArrayValuedThrowableTraceIsOmittedInCustomProjection(): void
     {
         $artifact = new readonly class () implements ExecutionArtifactInterface {
             public function normalize(): array
@@ -311,14 +362,13 @@ final class RedactingPublisherTest extends Unit
         $before = $artifact->normalize();
         $published = $this->publish($artifact)->normalize();
 
-        // The projection is primitive and finite, but its trace is not a string.
         self::assertIsArray($published['throwable']);
         self::assertSame('[redacted]', $published['throwable']['message']);
-        self::assertSame([['password' => 'trace-secret']], $published['throwable']['trace']);
+        self::assertNull($published['throwable']['trace']);
         self::assertSame($before, $artifact->normalize());
     }
 
-    public function testCustomThrowableUnknownFieldsAndNonArrayCausePassThrough(): void
+    public function testCustomThrowableUnknownFieldsAndNonArrayCauseAreOmitted(): void
     {
         $artifact = new readonly class () implements ExecutionArtifactInterface {
             public function normalize(): array
@@ -343,14 +393,14 @@ final class RedactingPublisherTest extends Unit
         self::assertSame('Outer', $throwable['class']);
         self::assertSame(42, $throwable['code']);
         self::assertSame('[redacted]', $throwable['message']);
-        self::assertSame('[redacted]', $throwable['trace']);
-        self::assertSame(['message' => 'unknown-secret'], $throwable['detail']);
+        self::assertNull($throwable['trace']);
+        self::assertArrayNotHasKey('detail', $throwable);
         self::assertIsArray($throwable['previous']);
         self::assertSame('Inner', $throwable['previous']['class']);
         self::assertSame(7, $throwable['previous']['code']);
         self::assertSame('[redacted]', $throwable['previous']['message']);
         self::assertNull($throwable['previous']['trace']);
-        self::assertSame('unsupported-cause-secret', $throwable['previous']['previous']);
+        self::assertNull($throwable['previous']['previous']);
         self::assertSame($before, $artifact->normalize());
         $disabled = new DefaultArtifactRedactor(ArtifactRedactionConfig::disabled());
         self::assertSame($artifact, $disabled->redact($artifact));
@@ -381,7 +431,10 @@ final class RedactingPublisherTest extends Unit
     {
         $execution = Execution::start(
             ExecutionId::fromString('snapshot-exec'),
-            ExecutionDefinition::create(ExecutionName::fromString('import'), ExecutionKind::fromString('batch')),
+            ExecutionDefinition::create(
+                ExecutionName::fromString('import'),
+                ExecutionKind::fromString('batch')
+            ),
             Instant::of(1000),
         )->complete(
             ExecutionFailure::of(ExecutionStatus::Failed, SensitiveExceptionChain::classifiedChain()),
@@ -396,6 +449,18 @@ final class RedactingPublisherTest extends Unit
             new DeterministicHashCalculator(),
         );
         $before = $snapshot->normalize();
+        // Default redaction masks throwables inside snapshot payloads even without sensitiveDataKeys.
+        $default = new DefaultArtifactRedactor()->redact($snapshot);
+        self::assertNotSame($snapshot, $default);
+        $defaultPayload = json_encode($default->normalize()['payload'], JSON_THROW_ON_ERROR);
+        foreach (SensitiveExceptionChain::secrets() as $secret) {
+            self::assertStringNotContainsString(
+                $secret,
+                $defaultPayload,
+                'Default redaction must mask throwable secrets inside snapshot payloads.'
+            );
+        }
+
         $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveDataKeys: ['message', 'trace'],
         ));
@@ -414,7 +479,7 @@ final class RedactingPublisherTest extends Unit
             self::assertSame($class, $throwable['class']);
             self::assertSame($code, $throwable['code']);
             self::assertSame('[redacted]', $throwable['message']);
-            self::assertSame('[redacted]', $throwable['trace']);
+            self::assertNull($throwable['trace']);
             $throwable = $throwable['previous'];
         }
 
@@ -427,6 +492,130 @@ final class RedactingPublisherTest extends Unit
         ));
         self::assertSame($snapshot, $optOut->redact($snapshot));
         self::assertSame($before, $optOut->redact($snapshot)->normalize());
+    }
+
+    public function testCyclicThrowableCauseIsBoundedAndUnknownFieldsAreOmitted(): void
+    {
+        $artifact = new readonly class () implements ExecutionArtifactInterface {
+            public function normalize(): array
+            {
+                $cause = ['class' => 'RuntimeException', 'message' => 'secret', 'detail' => 'secret'];
+                $cause['previous'] = &$cause;
+
+                return ['throwable' => $cause];
+            }
+        };
+
+        $throwable = $this->publish($artifact)->normalize()['throwable'];
+        $depth = 0;
+        while ($throwable !== null && is_array($throwable)) {
+            self::assertSame('[redacted]', $throwable['message']);
+            self::assertArrayNotHasKey('detail', $throwable);
+            $throwable = $throwable['previous'];
+            ++$depth;
+        }
+
+        self::assertSame(16, $depth);
+    }
+
+    public function testCyclicSnapshotDataTraversalIsBoundedWithoutMutation(): void
+    {
+        $payload = ['password' => 'secret'];
+        $payload['next'] = &$payload;
+        $snapshot = new readonly class (['payload' => $payload]) implements SnapshotInterface {
+            /** @param array<array-key, mixed> $normalized */
+            public function __construct(
+                private array $normalized,
+            ) {
+            }
+
+            public function id(): SnapshotIdInterface
+            {
+                return SnapshotId::fromString('snapshot-cyclic');
+            }
+
+            public function type(): SnapshotTypeInterface
+            {
+                return SnapshotType::fromString('snapshot.cyclic');
+            }
+
+            public function classification(): SnapshotClassificationInterface
+            {
+                return SnapshotClassification::Checkpoint;
+            }
+
+            public function schemaVersion(): int
+            {
+                return 1;
+            }
+
+            public function payload(): mixed
+            {
+                return $this->normalized;
+            }
+
+            public function contentType(): string
+            {
+                return 'application/json';
+            }
+
+            public function contentHash(): string
+            {
+                return 'hash';
+            }
+
+            public function predecessorId(): ?SnapshotIdInterface
+            {
+                return null;
+            }
+
+            public function normalize(): array
+            {
+                return ['payload' => $this->normalized];
+            }
+
+            public function executionId(): ExecutionIdInterface
+            {
+                return ExecutionId::fromString('exec-cyclic');
+            }
+
+            public function activityId(): ?ActivityIdInterface
+            {
+                return null;
+            }
+
+            public function timestamp(): int
+            {
+                return 1000;
+            }
+
+            public function count(): int
+            {
+                return 0;
+            }
+
+            public function attributes(): array
+            {
+                return [];
+            }
+        };
+
+        /** @var array<string, mixed> $normalized */
+        $normalized = $this->publish($snapshot)->normalize();
+        /** @var array<string, mixed> $published */
+        $published = $normalized['payload'];
+        /** @var array<string, mixed> $result */
+        $result = $published['payload'];
+        $depth = 0;
+        while (is_array($result) && $depth < 16) {
+            self::assertArrayHasKey('password', $result);
+            self::assertSame('[redacted]', $result['password']);
+            $result = $result['next'];
+            ++$depth;
+        }
+
+        self::assertSame('[redacted]', $result);
+        self::assertSame('secret', $payload['password']);
     }
 
     public function testRedactorAndNormalizeShareFieldVocabulary(): void

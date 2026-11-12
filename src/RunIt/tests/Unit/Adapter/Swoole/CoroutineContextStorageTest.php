@@ -80,6 +80,35 @@ final class CoroutineContextStorageTest extends Unit
         unset($foreign);
     }
 
+    /** Rejected foreign and out-of-order tokens must not disturb the active stack. */
+    public function testCollidingCoroutineTokensAndOutOfOrderDetachAllowRetry(): void
+    {
+        $storage = new CoroutineContextStorage(new FixedCoroutineIdProvider(1));
+        $other = new CoroutineContextStorage(new FixedCoroutineIdProvider(1));
+        $outer = $this->captureScope();
+        $inner = $this->captureScope();
+        $outerToken = $storage->attach($outer);
+        $innerToken = $storage->attach($inner);
+        $foreignToken = $other->attach($inner);
+
+        foreach ([$foreignToken, $outerToken] as $invalidToken) {
+            try {
+                $storage->detach($invalidToken);
+                self::fail('Invalid token was accepted.');
+            } catch (InvalidContextTokenException) {
+                self::assertSame($inner, $storage->current());
+            }
+        }
+
+        $storage->detach($innerToken);
+        self::assertSame($outer, $storage->current());
+        $storage->detach($outerToken);
+        self::assertNull($storage->current());
+        self::assertSame($inner, $other->current());
+        $other->detach($foreignToken);
+        self::assertNull($other->current());
+    }
+
     public function testSequentialCoroutinesStayIsolated(): void
     {
         if (!function_exists('Swoole\Coroutine\run')) {

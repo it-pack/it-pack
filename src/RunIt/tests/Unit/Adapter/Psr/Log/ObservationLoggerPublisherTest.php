@@ -103,7 +103,10 @@ final class ObservationLoggerPublisherTest extends Unit
     {
         $logger = new InMemoryLogger();
         $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
-            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']),
+            new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: false,
+            ),
         ));
         $observation = Observation::error(
             ObservationId::fromString('o-mask'),
@@ -144,16 +147,16 @@ final class ObservationLoggerPublisherTest extends Unit
         self::assertSame('error', $entry['context']['severity']);
         self::assertSame([
             'class' => 'RuntimeException',
-            'message' => '[redacted]',
             'code' => 42,
+            'message' => '[redacted]',
             'previous' => [
                 'class' => 'Exception',
-                'message' => '[redacted]',
                 'code' => 7,
+                'message' => '[redacted]',
                 'previous' => null,
-                'trace' => '[redacted]',
+                'trace' => null,
             ],
-            'trace' => '[redacted]',
+            'trace' => null,
         ], $entry['context']['exception']);
         self::assertSame('private-value', $observation->attributes()['password']);
     }
@@ -190,7 +193,7 @@ final class ObservationLoggerPublisherTest extends Unit
             self::assertSame($class, $throwable['class']);
             self::assertSame($code, $throwable['code']);
             self::assertSame('[redacted]', $throwable['message']);
-            self::assertSame('[redacted]', $throwable['trace']);
+            self::assertNull($throwable['trace']);
             $throwable = $throwable['previous'];
         }
 
@@ -207,7 +210,10 @@ final class ObservationLoggerPublisherTest extends Unit
     {
         $logger = new InMemoryLogger();
         $publisher = new ObservationLoggerPublisher($logger, new DefaultArtifactRedactor(
-            new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']),
+            new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: false,
+            ),
         ));
         $observation = Observation::error(
             ObservationId::fromString('o-message'),
@@ -234,10 +240,10 @@ final class ObservationLoggerPublisherTest extends Unit
         self::assertSame('[redacted]', $entry['context']['password']);
         self::assertSame([
             'class' => 'RuntimeException',
-            'message' => '[redacted]',
             'code' => 42,
+            'message' => '[redacted]',
             'previous' => null,
-            'trace' => '[redacted]',
+            'trace' => null,
         ], $entry['context']['exception']);
         self::assertSame('exec-message', $entry['context']['execution_id']);
         self::assertSame($before, $observation->normalize());
@@ -305,10 +311,10 @@ final class ObservationLoggerPublisherTest extends Unit
         self::assertSame('[redacted]', $entry['context']['password']);
         self::assertSame([
             'class' => 'RuntimeException',
-            'message' => '[redacted]',
             'code' => 42,
+            'message' => '[redacted]',
             'previous' => null,
-            'trace' => '[redacted]',
+            'trace' => null,
         ], $entry['context']['exception']);
         self::assertSame($before, $observation->normalize());
     }
@@ -337,7 +343,7 @@ final class ObservationLoggerPublisherTest extends Unit
             self::assertSame($class, $throwable['class']);
             self::assertSame($code, $throwable['code']);
             self::assertSame('[redacted]', $throwable['message']);
-            self::assertSame('[redacted]', $throwable['trace']);
+            self::assertNull($throwable['trace']);
             $throwable = $throwable['previous'];
         }
 
