@@ -7,6 +7,9 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Logs;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
+use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
@@ -154,5 +157,105 @@ final class ObservationLogMapperTest extends Unit
         $mapper->map(RunItArtifactFactory::observation('obs-6', 'exec-1', 'info', 'hello'));
 
         self::assertCount(0, $this->kit->logs());
+    }
+
+    public function testRedactedObservationExportsOnlyClassifiedFields(): void
+    {
+        $mapper = new DefaultObservationLogMapper(
+            $this->kit->loggerProvider,
+            new SeverityMap(),
+            mapToSpanEvents: false,
+        );
+        $mapper->mapRedactedObservation([
+            'id' => 'obs-red',
+            'execution_id' => 'exec-9',
+            'activity_id' => 'act-9',
+            'diagnostic_code' => 'NETWORK',
+            'level' => 400,
+            'message' => 'safe message',
+            'timestamp' => 1_800,
+            'attributes' => ['password' => 'secret', 'step' => 'init'],
+            'throwable' => [
+                'class' => 'RuntimeException',
+                'code' => 7,
+                'message' => '[redacted]',
+                'trace' => null,
+                'previous' => null,
+            ],
+            'unclassified_field' => 'must-not-export',
+        ]);
+
+        $record = $this->kit->log(0);
+        self::assertSame('safe message', $record->getBody());
+        self::assertSame(Severity::ERROR->value, $record->getSeverityNumber());
+        self::assertSame('error', $record->getSeverityText());
+        self::assertSame(1_800_000_000_000, $record->getTimestamp());
+        self::assertSame([
+            'runit.observation.id' => 'obs-red',
+            'runit.execution.id' => 'exec-9',
+            'runit.activity.id' => 'act-9',
+            'runit.diagnostic.code' => 'NETWORK',
+            'exception.type' => 'RuntimeException',
+            'exception.message' => '[redacted]',
+        ], $record->getAttributes()->toArray());
+        self::assertArrayNotHasKey('password', $record->getAttributes()->toArray());
+        self::assertArrayNotHasKey('step', $record->getAttributes()->toArray());
+        self::assertArrayNotHasKey('unclassified_field', $record->getAttributes()->toArray());
+        self::assertArrayNotHasKey('exception.stacktrace', $record->getAttributes()->toArray());
+    }
+
+    public function testRedactedObservationOmitsUnsafeIdentifiers(): void
+    {
+        $mapper = new DefaultObservationLogMapper(
+            $this->kit->loggerProvider,
+            new SeverityMap(),
+            mapToSpanEvents: false,
+        );
+        $mapper->mapRedactedObservation([
+            'id' => 12345,
+            'execution_id' => null,
+            'diagnostic_code' => null,
+            'level' => 400,
+            'message' => 'safe',
+        ]);
+
+        $record = $this->kit->log(0);
+        self::assertSame('safe', $record->getBody());
+        $attributes = $record->getAttributes()->toArray();
+        self::assertArrayNotHasKey('runit.observation.id', $attributes, 'A non-string observation id is suppressed.');
+        self::assertArrayNotHasKey('runit.execution.id', $attributes, 'A missing execution id is suppressed.');
+        self::assertArrayNotHasKey('runit.diagnostic.code', $attributes);
+    }
+
+    public function testRedactedObservationFromRedactorExportsClassifiedFieldsOnly(): void
+    {
+        $observation = RunItArtifactFactory::observation(
+            'obs-red',
+            'exec-1',
+            'error',
+            'token=abc123 failed',
+            'act-1',
+            ['password' => 'secret', 'step' => 'init'],
+        );
+        $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['password'],
+        ))->redact($observation);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
+
+        $mapper = new DefaultObservationLogMapper(
+            $this->kit->loggerProvider,
+            new SeverityMap(),
+            mapToSpanEvents: false,
+        );
+        $mapper->mapRedactedObservation($redacted->normalize());
+
+        $record = $this->kit->log(0);
+        self::assertSame('[redacted]', $record->getBody(), 'The observation message is redacted before mapping.');
+        $attributes = $record->getAttributes()->toArray();
+        self::assertSame('obs-red', $attributes['runit.observation.id']);
+        self::assertSame('exec-1', $attributes['runit.execution.id']);
+        self::assertSame('act-1', $attributes['runit.activity.id']);
+        self::assertArrayNotHasKey('password', $attributes, 'Free-form attributes are suppressed.');
+        self::assertArrayNotHasKey('step', $attributes, 'Free-form attributes are suppressed.');
     }
 }

@@ -20,6 +20,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultActivitySpanMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -29,7 +30,9 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use RuntimeException;
+use Throwable;
 
 /**
  * OpenTelemetry bridge publisher.
@@ -43,24 +46,30 @@ use RuntimeException;
  * The publisher never configures global OpenTelemetry providers; every provider is
  * supplied through {@see BridgeConfig}. Build it with {@see self::fromConfig()}.
  * A custom observation mapper without redacted-observation support causes a
- * publication exception for redacted observations, reported by the fail-safe stack.
+ * redacted observation to be reported through the internal health reporter and
+ * dropped (fail-open); no publication exception escapes.
  *
  * @see https://opentelemetry.io/
  */
-final readonly class TelemetryPublisher implements ArtifactPublisherInterface
+final class TelemetryPublisher implements ArtifactPublisherInterface
 {
     public function __construct(
-        public BridgeConfig                          $config,
-        private ExecutionSpanMapperInterface         $executionMapper,
-        private ActivitySpanMapperInterface          $activityMapper,
-        private MeasurementInstrumentMapperInterface $measurementMapper,
-        private ObservationLogMapperInterface        $observationMapper,
-        private OccurrenceLogMapperInterface         $occurrenceMapper,
+        public readonly BridgeConfig                          $config,
+        private readonly ExecutionSpanMapperInterface         $executionMapper,
+        private readonly ActivitySpanMapperInterface          $activityMapper,
+        private readonly MeasurementInstrumentMapperInterface $measurementMapper,
+        private readonly ObservationLogMapperInterface        $observationMapper,
+        private readonly OccurrenceLogMapperInterface         $occurrenceMapper,
+        private readonly ?InternalHealthReporterInterface $health = null,
+        private bool                             $publishingHealthReport = false,
     ) {
     }
 
-    public static function fromConfig(BridgeConfig $config, ?ExecutionSpanStoreInterface $store = null): self
-    {
+    public static function fromConfig(
+        BridgeConfig $config,
+        ?ExecutionSpanStoreInterface $store = null,
+        ?InternalHealthReporterInterface $health = null,
+    ): self {
         $store ??= new InMemoryExecutionSpanStore();
 
         return new self(
@@ -84,6 +93,7 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
                 $config->mapOccurrencesToSpanEvents,
                 $config->occurrenceLogAttributeAllowList,
             ),
+            $health,
         );
     }
 
@@ -131,47 +141,110 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
         }
 
         if ($artifact instanceof RedactedArtifactInterface) {
-            $normalized = $artifact->normalize();
+            $this->publishRedactedArtifact($artifact);
 
-            if (isset($normalized['source'])) {
-                $this->occurrenceMapper->mapRedactedOccurrence($normalized);
+            return;
+        }
+    }
 
-                return;
-            }
+    private function publishRedactedArtifact(RedactedArtifactInterface $artifact): void
+    {
+        $normalized = $artifact->normalize();
 
-            if (array_key_exists('classification', $normalized)) {
-                $this->occurrenceMapper->mapRedactedSnapshot($normalized);
+        if (isset($normalized['source'])) {
+            $this->occurrenceMapper->mapRedactedOccurrence($normalized);
 
-                return;
-            }
+            return;
+        }
 
-            if (array_key_exists('result', $normalized)) {
-                $this->executionMapper->mapRedactedExecution($normalized);
+        if (array_key_exists('classification', $normalized)) {
+            $this->occurrenceMapper->mapRedactedSnapshot($normalized);
 
-                return;
-            }
+            return;
+        }
 
-            if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
-                if (!$this->observationMapper instanceof RedactedObservationLogMapperInterface) {
-                    throw new RuntimeException('Observation mapper does not support redacted observations.');
-                }
+        if (array_key_exists('result', $normalized)) {
+            $this->executionMapper->mapRedactedExecution($normalized);
 
-                $this->observationMapper->mapRedactedObservation($normalized);
+            return;
+        }
 
-                return;
-            }
+        if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
+            $this->publishRedactedObservation($normalized);
 
-            if (array_key_exists('unit', $normalized)) {
-                // Redacted measurements have no typed redacted mapper on the
-                // MeasurementInstrumentMapperInterface contract; they are
-                // dropped here rather than misrouted through activity heuristics.
+            return;
+        }
 
-                return;
-            }
+        if (array_key_exists('unit', $normalized)) {
+            // Redacted measurements have no typed redacted mapper on the
+            // MeasurementInstrumentMapperInterface contract; they are
+            // dropped here rather than misrouted through activity heuristics.
 
-            if (array_key_exists('execution_id', $normalized) && !array_key_exists('unit', $normalized)) {
-                $this->activityMapper->mapRedactedActivity($normalized);
-            }
+            return;
+        }
+
+        if (array_key_exists('execution_id', $normalized) && !array_key_exists('unit', $normalized)) {
+            $this->activityMapper->mapRedactedActivity($normalized);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function publishRedactedObservation(array $normalized): void
+    {
+        if ($this->observationMapper instanceof RedactedObservationLogMapperInterface) {
+            $this->observationMapper->mapRedactedObservation($normalized);
+
+            return;
+        }
+
+        // Fail-open: report the unsupported redacted observation through
+        // the health channel and drop it instead of throwing, so no
+        // publication exception escapes and the business result is preserved.
+        // Only a bounded identity projection is sent to the health reporter
+        // so no unredacted attribute payload leaks through the health channel.
+        // When no health reporter is supplied, the observation is dropped
+        // without a health report.
+        $id = is_string($normalized['id'] ?? null)
+            ? $normalized['id']
+            : 'redacted';
+        if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
+            $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
+        }
+
+        if ($this->publishingHealthReport) {
+            // Re-entry guard: health reporting must not re-enter the same
+            // publication path. Skip the health notice and drop the redacted
+            // observation fail-open.
+            return;
+        }
+
+        try {
+            $this->publishingHealthReport = true;
+            $this->health?->report(
+                new RuntimeException('Observation mapper does not support redacted observations.'),
+                new readonly class ($id) implements ExecutionArtifactInterface {
+                    public function __construct(
+                        private string $id,
+                    ) {
+                    }
+
+                    public function normalize(): array
+                    {
+                        return [
+                            'id' => $this->id,
+                            'type' => 'runit.artifact.redacted',
+                        ];
+                    }
+                },
+            );
+        } catch (Throwable) {
+            // Contain health reporter failures so the drop path stays
+            // fail-open: a throwing reporter must not change the business
+            // result or let a publication exception escape.
+        } finally {
+            $this->publishingHealthReport = false;
         }
     }
 }

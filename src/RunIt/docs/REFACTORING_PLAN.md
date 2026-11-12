@@ -1385,13 +1385,22 @@ reported abandoned `doctrine/annotations`, with no security advisories. The full
 PHP 8.4 suite and downstream exports were not tested in this run. Bounded
 traversal, unsupported values and consumer routing remain open.
 
+A composed OpenTelemetry characterization now verifies that masking an
+occurrence's configured sensitive data key does not mask its subject: the
+subject is deliberately omitted from both the redacted-occurrence log record
+and the active-span event, while the source data is unchanged. This omission
+is an approved safe-field policy; it does not establish behavior for other
+fields or exporters. The focused `TelemetryPublisherTest` passed on PHP 8.5
+(18 tests, 166 assertions).
+The representation and delivery decisions remain open.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
 - [ ] Exercise actual composed pipelines to PSR-3 and OpenTelemetry with in-memory sinks, asserting secrets are absent in exported fields and throwable arrays. Include a failed execution and a redacted observation, not only a unit-level normalized array.
 - [ ] In `src/Application/Factory/PublisherStackFactory.php`, align the execution order with the approved contract. Extend `tests/Unit/Application/Publication/SamplingTest.php` with a spy `SamplingPolicyInterface` and sink to prove what each receives. Test severity-floor, error-override, execution-kind, unchanged artifacts, and null-decorator combinations: `ErrorOverrideSamplePolicy` depends on `ObservationInterface`, which a generic redacted wrapper does not retain. Measure serialization costs before deployment.
 - [ ] Implement the approved safe handling for redacted observations in `src/Adapter/OpenTelemetry/TelemetryPublisher.php` and its mapper path, or make a deliberate drop visible via the health path. Check changed executions, activities, and measurements as well as occurrences and snapshots, because generic wrappers may bypass typed dispatch. Avoid inferring type from an ambiguous user-controlled field or exposing the original unredacted artifact through a wrapper.
-  - [ ] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary.
+- [ ] Test malformed/unknown redacted projections, mapped and dropped artifacts, no-provider configurations, recursive publication, original business exceptions, and third-party publishers. Keep redaction before every externally observable boundary.
 - [ ] Update relevant security, publication, adapter, and configuration documentation and changelog; update schemas or public contracts only after an explicit compatibility decision.
 
 **Exit:** sensitive marker strings do not reach the sampler or sinks except where an explicitly approved policy permits them; routing and negative tests pass, including failure paths.

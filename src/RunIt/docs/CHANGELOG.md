@@ -228,6 +228,47 @@ new test files introduce additional violations beyond pre-existing ones.
   extension attributes omitted by `mapRedactedOccurrence()`; redaction must be configured
   through `DefaultArtifactRedactor` instead.
 
+- **Redacted occurrence extension attributes no longer exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+  no longer exports `extension_attributes` from redacted occurrences to OTel span/log
+  attributes, preventing secrets a custom redactor did not mask from reaching telemetry sinks.
+  Consumers that depended on those fields should understand that `occurrenceLogAttributeAllowList`
+  on `DefaultOccurrenceLogMapper` applies to unredacted occurrences only and does not restore
+  extension attributes omitted by `mapRedactedOccurrence()`; redaction must be configured
+  through `DefaultArtifactRedactor` instead.
+
+- **Redacted occurrence subject no longer exported:** `DefaultOccurrenceLogMapper::mapRedactedOccurrence()`
+  no longer exports the unclassified `subject` (`ArtifactField::SUBJECT`) from redacted
+  occurrences to OTel log records or span events. The subject is a caller-controlled,
+  unclassified string and is deliberately omitted from the suppressed delivery.
+  Consumers that depended on `runit.occurrence.subject` must not rely on it for redacted
+  occurrences.
+
+- **Redacted observations restricted to classified fields:** `DefaultObservationLogMapper::mapRedactedObservation()`
+  now exports only identity and correlation fields (observation ID, execution ID, activity ID,
+  diagnostic code) plus severity/message/throwable class. Free-form attributes are suppressed
+  entirely, as they cannot be classified safe without redaction config. Consumers that
+  depended on custom attributes in redacted observations will find them absent.
+
+- **Drop-and-report for redacted observations:** `RedactingArtifactPublisher` gained an optional
+  `InternalHealthReporterInterface` and a `dropRedactedObservations` constructor flag (default
+  `false`). When enabled and redaction produces a `RedactedArtifactInterface` from an observation,
+  the redacted observation is dropped and a bounded, payload-free identity notice is reported
+  through the health channel instead of being published. A health reporter is required when
+  dropping is enabled; the constructor throws otherwise. `ArtifactRedactionConfig` no longer
+  carries a `dropRedactedObservations` property; the publisher's own constructor parameter
+  is the control. `PublisherStackFactory` composition is unchanged.
+
+- **Health reporter injection in TelemetryPublisher:** `TelemetryPublisher` and
+  `TelemetryPublisher::fromConfig()` gained an optional `InternalHealthReporterInterface`
+  parameter (default `null`, preserving compatible construction). When a redacted observation
+  reaches an observation mapper without `RedactedObservationLogMapperInterface`, the
+  observation is reported through the health channel and dropped (fail-open) instead of
+  throwing `RuntimeException`. Only a bounded identity artifact (redacted `id` + `type`) is
+  sent to the health reporter, capped at `StringIdentifierValidator::MAX_LENGTH` bytes, so
+   no unredacted attribute payload leaks through the health channel. Health reporter failures
+  are contained so the drop path stays fail-open. When no health reporter is supplied, the
+  observation is dropped without a health report.
+
 - **OpenTelemetry mapper interfaces extended (breaking):** `ExecutionSpanMapperInterface`
   and `ActivitySpanMapperInterface` now declare `mapRedactedExecution(array)` and
   `mapRedactedActivity(array)` respectively. External implementations of either interface

@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
+use ItPack\RunIt\Application\Publication\BoundDropException;
+use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotClassificationInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotIdInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
@@ -44,6 +48,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\SensitiveExceptionChain;
+use Throwable;
 
 /**
  * @group application
@@ -57,6 +62,8 @@ use Tests\Support\Fixture\SensitiveExceptionChain;
 #[UsesClass(InMemoryArtifactPublisher::class)]
 #[UsesClass(ArtifactRedactionConfig::class)]
 #[UsesClass(RedactedArtifact::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(BoundDropException::class)]
 #[UsesClass(Execution::class)]
 #[UsesClass(ExecutionDefinition::class)]
 #[UsesClass(ExecutionFailure::class)]
@@ -824,5 +831,165 @@ final class RedactingPublisherTest extends Unit
         $originalAttrs = $original->normalize()['attributes'];
         self::assertSame('snapshot-secret', $originalAttrs['password']);
         self::assertSame('prod', $originalAttrs['env']);
+    }
+
+    public function testDropRedactedObservationRequiresAHealthReporter(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('dropRedactedObservations requires a health reporter.');
+
+        new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: true,
+            )),
+            new InMemoryArtifactPublisher(),
+            dropRedactedObservations: true,
+        );
+    }
+
+    public function testRedactedObservationIsDroppedAndReportedWhenDropRedactedObservationsIsEnabled(): void
+    {
+        /** @var list<array{0: Throwable, 1: ExecutionArtifactInterface}> $reports */
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+                $reports[] = [$error, $artifact];
+            },
+        );
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: true,
+            )),
+            $sink,
+            $health,
+            dropRedactedObservations: true,
+        );
+
+        $original = Observation::info(
+            ObservationId::fromString('obs-drop'),
+            ExecutionId::fromString('exec-1'),
+            'token=abc123 message',
+            attributes: AttributeCollection::fromArray(['password' => 'hunter2']),
+        );
+        $before = $original->normalize();
+
+        $publisher->publish($original);
+
+        self::assertCount(0, $sink->published(), 'A redacted observation must not reach the sink.');
+        self::assertCount(1, $reports);
+        self::assertInstanceOf(BoundDropException::class, $reports[0][0]);
+        $expectedMessage = 'Artifact dropped by data-protection bound "drop-redacted-observation".';
+        self::assertSame($expectedMessage, $reports[0][0]->getMessage());
+        $reportedArtifact = $reports[0][1];
+        self::assertInstanceOf(RedactedArtifact::class, $reportedArtifact);
+        $reportedNormalized = $reportedArtifact->normalize();
+        // The health notice carries only a bounded identity projection, not the full
+        // redacted payload, so no attribute secrets can leak through the health channel.
+        self::assertSame('obs-drop', $reportedNormalized['id']);
+        self::assertSame('runit.artifact.redacted', $reportedNormalized['type']);
+        self::assertArrayNotHasKey('message', $reportedNormalized);
+        self::assertArrayNotHasKey('attributes', $reportedNormalized);
+        self::assertSame($before, $original->normalize(), 'The original observation is unchanged.');
+    }
+
+    public function testRedactedObservationIsPublishedWhenDropRedactedObservationsIsDisabled(): void
+    {
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                sensitiveAttributeKeys: ['password'],
+            )),
+            $sink,
+            dropRedactedObservations: false,
+        );
+
+        $original = Observation::info(
+            ObservationId::fromString('obs-publish'),
+            ExecutionId::fromString('exec-1'),
+            'token=abc123 message',
+            attributes: AttributeCollection::fromArray(['password' => 'hunter2']),
+        );
+
+        $publisher->publish($original);
+
+        $published = $sink->published();
+        self::assertCount(1, $published, 'A redacted observation is published when dropping is disabled.');
+        self::assertInstanceOf(RedactedArtifact::class, $published[0]);
+        $normalized = $published[0]->normalize();
+        $attributes = $normalized['attributes'] ?? null;
+        self::assertIsArray($attributes);
+        self::assertSame('[redacted]', $attributes['password']);
+        self::assertSame('[redacted]', $normalized['message']);
+    }
+
+    public function testOnlyObservationRedactedArtifactsAreDroppedWhenDropRedactedObservationsIsEnabled(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error) use (&$reports): void {
+                $reports[] = $error;
+            },
+        );
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveDataKeys: ['password'])),
+            $sink,
+            $health,
+            dropRedactedObservations: true,
+        );
+
+        $occurrence = Occurrence::create(
+            OccurrenceId::fromString('occ-drop'),
+            ExecutionId::fromString('exec-1'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'source',
+            Instant::of(1000),
+            ['password' => 'secret'],
+        );
+
+        $publisher->publish($occurrence);
+
+        self::assertCount(1, $sink->published(), 'Redacted non-observation artifacts are still published.');
+        self::assertCount(0, $reports, 'No health report for non-observation drops.');
+        $published = $sink->published()[0];
+        self::assertInstanceOf(RedactedArtifactInterface::class, $published);
+        $normalized = $published->normalize();
+        $data = $normalized['data'] ?? null;
+        self::assertIsArray($data);
+        self::assertSame('[redacted]', $data['password'] ?? null, 'The occurrence data value must be masked.');
+    }
+
+    public function testRedactedObservationIsPublishedWhenNothingWasRedactedEvenWithDropEnabled(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error) use (&$reports): void {
+                $reports[] = $error;
+            },
+        );
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher(
+            new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+                redactObservationMessages: false,
+            )),
+            $sink,
+            $health,
+            dropRedactedObservations: true,
+        );
+
+        $original = Observation::info(
+            ObservationId::fromString('obs-clean'),
+            ExecutionId::fromString('exec-1'),
+            'hello',
+        );
+
+        $publisher->publish($original);
+
+        self::assertCount(1, $sink->published(), 'An observation that needed no redaction is still published.');
+        self::assertCount(0, $reports, 'No health report when nothing was redacted.');
+        self::assertSame($original, $sink->published()[0], 'The unmodified instance is passed through.');
     }
 }
