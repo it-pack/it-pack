@@ -218,6 +218,7 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
         try {
             $this->publishingHealthReport = true;
             if (!$this->health instanceof InternalHealthReporterInterface) {
+                /** @noinspection ForgottenDebugOutputInspection */
                 error_log('[runit] publication health: ' . $reason);
 
                 return;
