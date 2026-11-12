@@ -26,6 +26,8 @@ interface ArtifactField
 
     public const string ATTRIBUTES = 'attributes';
 
+    public const string EXCEPTION = 'exception';
+
     public const string THROWABLE = 'throwable';
 
     public const string DATA = 'data';
@@ -34,11 +36,15 @@ interface ArtifactField
 
     public const string MESSAGE = 'message';
 
+    public const string CORRELATION = 'correlation';
+
     // Identity and relationships
 
     public const string EXECUTION_ID = 'execution_id';
 
     public const string ACTIVITY_ID = 'activity_id';
+
+    public const string OBSERVATION_ID = 'observation_id';
 
     public const string PARENT_EXECUTION_ID = 'parent_execution_id';
 

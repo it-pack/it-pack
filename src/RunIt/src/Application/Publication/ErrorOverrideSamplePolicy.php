@@ -36,7 +36,7 @@ final readonly class ErrorOverrideSamplePolicy implements SamplingPolicyInterfac
             return $level >= ObservationSeverity::Error->level() || $this->inner->sample($artifact);
         }
 
-        if ($artifact instanceof RedactedArtifactInterface) {
+        if ($artifact instanceof RedactedArtifactInterface && $artifact->artifactType() === 'observation') {
             $normalized = $artifact->normalize();
             $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
 

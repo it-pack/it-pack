@@ -71,7 +71,6 @@ final class MemberOrderRule extends AbstractSrcRule implements Rule
                     . 'Expected order: trait use → constants → properties → constructor → static '
                     . 'methods → instance methods, '
                     . 'with public before protected/private within each group (RunIt T2.1).',
-
                     $this->describe($member),
                     $rank,
                     $previousRank,

@@ -34,7 +34,7 @@ final readonly class ObservationSeverityPredicate implements ArtifactPredicateIn
             return $artifact->severity()->level() >= $this->minLevel;
         }
 
-        if ($artifact instanceof RedactedArtifactInterface) {
+        if ($artifact instanceof RedactedArtifactInterface && $artifact->artifactType() === 'observation') {
             $normalized = $artifact->normalize();
             $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? null;
 

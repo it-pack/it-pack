@@ -11,7 +11,7 @@ if (!extension_loaded('pcov')) {
 
 $directory = __DIR__;
 $temporary = sys_get_temp_dir() . '/runit-attribution-' . bin2hex(random_bytes(8));
-if (!mkdir($temporary, 0700)) {
+if (!mkdir($temporary, 0o700) && !is_dir($temporary)) {
     throw new RuntimeException('Could not create temporary directory');
 }
 $failures = 0;
@@ -75,7 +75,7 @@ foreach ([
             && (!is_file($marker) || file_get_contents($marker) !== $lifecycleMarkers[$test])) {
             return false;
         }
-        $xml = simplexml_load_file($report);
+        $xml = simplexml_load_string(file_get_contents($report));
         if ($xml === false) {
             return false;
         }
@@ -96,7 +96,7 @@ foreach (['leak' => 1, 'allowed' => 0] as $case => $expected) {
 }
 
 fwrite(STDOUT, "Reports and provider marker retained in $temporary\n");
-fwrite(STDOUT, "Codeception accepting the leak and provider controls is an observed enforcement failure, "
+fwrite(STDOUT, 'Codeception accepting the leak and provider controls is an observed enforcement failure, '
     . "not proof of isolation.\n");
 fwrite(STDOUT, "Lifecycle leaks discard subject coverage; CoversNothing credits the collaborator.\n");
 exit($failures === 0 ? 0 : 1);

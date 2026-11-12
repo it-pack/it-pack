@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tools\Dogfood\Report;
 
-use Tools\Dogfood\Tool\DevTool;
-
 /**
  * Aggregates dogfood tool outcomes into a single report.
  *

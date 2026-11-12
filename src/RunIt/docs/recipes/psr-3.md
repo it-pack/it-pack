@@ -6,6 +6,13 @@ level, stable message template → message, attributes → context). Redaction r
 before logging when a `RedactorInterface` is supplied. Requires `psr/log`. See
 [`../integrations/psr.md`](../integrations/psr.md).
 
+The publisher reserves `execution_id`, `activity_id`, `observation_id`,
+`diagnostic_code`, `sequence`, `timestamp`, `severity`, and its configured
+exception key (default `exception`). Attributes with those names are discarded;
+the corresponding artifact value is used when present. If the exception key is
+also a correlation key, the correlation value takes precedence. These values are
+not proof of identifier provenance.
+
 ```php
 <?php
 

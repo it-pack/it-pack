@@ -15,7 +15,6 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
-use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use Throwable;
 
 /**
@@ -28,7 +27,7 @@ use Throwable;
  *
  * When `dropRedactedObservations` is enabled and redaction produces a
  * {@see RedactedArtifact} from an observation, the redacted observation is not
- * published: a bounded, payload-free notice (carrying only identity) is reported
+ * published: a constant, payload-free notice is reported
  * through the injected internal health reporter instead. This keeps redacted
  * observations out of every sink while remaining observable through the health
  * channel. A health reporter is required when dropping is enabled; otherwise the
@@ -36,18 +35,20 @@ use Throwable;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class RedactingArtifactPublisher implements
+final class RedactingArtifactPublisher implements
     ArtifactPublisherInterface,
     FlushablePublisherInterface,
     CloseablePublisherInterface
 {
     use DelegatesPublisherLifecycleBehavior;
 
+    private bool $publishingHealthReport = false;
+
     public function __construct(
-        private RedactorInterface          $redactor,
-        private ArtifactPublisherInterface $inner,
-        private ?InternalHealthReporterInterface $health = null,
-        private bool                       $dropRedactedObservations = false,
+        private readonly RedactorInterface          $redactor,
+        private readonly ArtifactPublisherInterface $inner,
+        private readonly ?InternalHealthReporterInterface $health = null,
+        private readonly bool                       $dropRedactedObservations = false,
     ) {
         if ($dropRedactedObservations && !$health instanceof InternalHealthReporterInterface) {
             throw new InvalidArgumentException('dropRedactedObservations requires a health reporter.');
@@ -62,19 +63,18 @@ final readonly class RedactingArtifactPublisher implements
             && $redacted instanceof RedactedArtifactInterface
             && $artifact instanceof ObservationInterface
         ) {
-            $redactedNormalized = $redacted->normalize();
-            $id = is_string($redactedNormalized[ArtifactField::ID] ?? null)
-                ? $redactedNormalized[ArtifactField::ID]
-                : 'redacted';
-            if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
-                $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
+            if ($this->publishingHealthReport) {
+                // Re-entry guard: health reporting must not re-enter the same
+                // publication path. Drop the notice fail-open.
+                return;
             }
 
             try {
+                $this->publishingHealthReport = true;
                 $this->health?->report(
                     BoundDropException::forReason('drop-redacted-observation'),
                     new RedactedArtifact([
-                        ArtifactField::ID => $id,
+                        ArtifactField::ID => 'redacted',
                         ArtifactField::TYPE => 'runit.artifact.redacted',
                     ]),
                 );
@@ -83,6 +83,8 @@ final readonly class RedactingArtifactPublisher implements
                 // a throwing reporter must not change the business result or let a
                 // publication exception escape to enclosing failure recovery, which
                 // could receive the original observation instead of this identity-only notice.
+            } finally {
+                $this->publishingHealthReport = false;
             }
 
             return;

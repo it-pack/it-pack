@@ -41,17 +41,17 @@ use Tools\Dogfood\Tool\DevTool;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final class DogfoodRunner
+final readonly class DogfoodRunner
 {
     /**
      * @param Closure(string): void|null $emit status-line sink (defaults to STDERR)
      */
     public function __construct(
-        private readonly RunItInterface $runIt,
-        private readonly ProcessRunnerInterface $processRunner,
-        private readonly ArtifactPublisherInterface $publisher,
-        private readonly string $workingDirectory,
-        private readonly ?Closure $emit = null,
+        private RunItInterface             $runIt,
+        private ProcessRunnerInterface     $processRunner,
+        private ArtifactPublisherInterface $publisher,
+        private string                     $workingDirectory,
+        private ?Closure                   $emit = null,
     ) {
     }
 

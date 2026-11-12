@@ -34,12 +34,19 @@ use Psr\Log\LoggerInterface;
  */
 final readonly class ObservationLoggerPublisher implements ArtifactPublisherInterface
 {
+    private const string KEY_ARTIFACT = 'artifact';
+
+    private const int DEFAULT_LEVEL = 200;
+
+    private ObservationToPsr3LevelMapperInterface $levelMapper;
+
     public function __construct(
         private LoggerInterface                        $logger,
         private ?RedactorInterface                     $redactor = null,
-        private ?ObservationToPsr3LevelMapperInterface $levelMapper = null,
-        private string                                 $exceptionKey = 'exception',
+        ?ObservationToPsr3LevelMapperInterface         $levelMapper = null,
+        private string                                 $exceptionKey = ArtifactField::EXCEPTION,
     ) {
+        $this->levelMapper = $levelMapper ?? new DefaultObservationToPsr3LevelMapper();
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void
@@ -50,19 +57,23 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
 
         $extracted = $this->extract($artifact);
 
-        $context = $extracted['attributes'];
+        $context = $extracted[ArtifactField::ATTRIBUTES];
 
-        foreach ($extracted['correlation'] as $key => $value) {
-            if ($value !== null && !array_key_exists($key, $context)) {
+        foreach ($extracted[ArtifactField::CORRELATION] as $key => $value) {
+            unset($context[$key]);
+            if ($value !== null) {
                 $context[$key] = $value;
             }
         }
 
-        if ($extracted['throwable'] !== null && !array_key_exists($this->exceptionKey, $context)) {
-            $context[$this->exceptionKey] = $extracted['throwable'];
+        if (!array_key_exists($this->exceptionKey, $extracted[ArtifactField::CORRELATION])) {
+            unset($context[$this->exceptionKey]);
+            if ($extracted[ArtifactField::THROWABLE] !== null) {
+                $context[$this->exceptionKey] = $extracted[ArtifactField::THROWABLE];
+            }
         }
 
-        $this->logger->log($extracted['level'], $extracted['message'], $context);
+        $this->logger->log($extracted[ArtifactField::LEVEL], $extracted[ArtifactField::MESSAGE], $context);
     }
 
     /**
@@ -70,55 +81,73 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
      */
     private function extract(ExecutionArtifactInterface $artifact): array
     {
-        if ($artifact instanceof ObservationInterface) {
-            return [
-                'message' => $artifact->message(),
-                'level' => $this->mapLevel($artifact->severity()->level()),
-                'attributes' => $artifact->attributes(),
-                'correlation' => [
-                    ArtifactField::EXECUTION_ID => $artifact->executionId()->toString(),
-                    ArtifactField::ACTIVITY_ID => $artifact->activityId()?->toString(),
-                    'observation_id' => $artifact->id()->toString(),
-                    ArtifactField::DIAGNOSTIC_CODE => $artifact->diagnosticCode(),
-                    'sequence' => $artifact->sequence(),
-                    'timestamp' => $artifact->timestamp(),
-                    'severity' => $artifact->severity()->label(),
-                ],
-                'throwable' => $artifact->throwableDescription()?->toArray(),
-            ];
-        }
-
-        $normalized = $artifact->normalize();
-
-        $message = $normalized[ArtifactField::MESSAGE] ?? null;
-        $message = is_string($message)
-            ? $message
-            : (is_string($normalized['kind'] ?? null) ? $normalized['kind'] : 'artifact');
-        $level = $normalized['level'] ?? null;
-        $level = is_int($level) ? $level : 200;
-
-        $attributes = $normalized[ArtifactField::ATTRIBUTES] ?? null;
-        $attributes = is_array($attributes) ? $attributes : [];
-
-        return [
-            'message' => $message,
-            'level' => $this->mapLevel($level),
-            'attributes' => $attributes,
-            'correlation' => [
-                ArtifactField::EXECUTION_ID => $normalized[ArtifactField::EXECUTION_ID] ?? null,
-                ArtifactField::ACTIVITY_ID => $normalized[ArtifactField::ACTIVITY_ID] ?? null,
-                'observation_id' => $normalized[ArtifactField::ID] ?? null,
-                ArtifactField::DIAGNOSTIC_CODE => $normalized[ArtifactField::DIAGNOSTIC_CODE] ?? null,
-                'sequence' => $normalized['sequence'] ?? null,
-                'timestamp' => $normalized['timestamp'] ?? null,
-                'severity' => $normalized['severity'] ?? null,
-            ],
-            'throwable' => $normalized[ArtifactField::THROWABLE] ?? null,
-        ];
+        return $artifact instanceof ObservationInterface
+            ? $this->extractObservation($artifact)
+            : $this->extractDefault($artifact);
     }
 
     private function mapLevel(int $level): string
     {
-        return ($this->levelMapper ?? new DefaultObservationToPsr3LevelMapper())->toLevelFromNumeric($level);
+        return $this->levelMapper->toLevelFromNumeric($level);
+    }
+
+    /**
+     * @return array{message: string, level: string, attributes: array<array-key, mixed>, correlation: array<string, mixed>, throwable: mixed}
+     */
+    private function extractObservation(ObservationInterface $artifact): array
+    {
+        return [
+            ArtifactField::MESSAGE => $artifact->message(),
+            ArtifactField::LEVEL => $this->mapLevel($artifact->severity()->level()),
+            ArtifactField::ATTRIBUTES => $artifact->attributes(),
+            ArtifactField::CORRELATION => [
+                ArtifactField::EXECUTION_ID => $artifact->executionId()->toString(),
+                ArtifactField::ACTIVITY_ID => $artifact->activityId()?->toString(),
+                ArtifactField::OBSERVATION_ID => $artifact->id()->toString(),
+                ArtifactField::DIAGNOSTIC_CODE => $artifact->diagnosticCode(),
+                ArtifactField::SEQUENCE => $artifact->sequence(),
+                ArtifactField::TIMESTAMP => $artifact->timestamp(),
+                ArtifactField::SEVERITY => $artifact->severity()->label(),
+            ],
+            ArtifactField::THROWABLE => $artifact->throwableDescription()?->toArray(),
+        ];
+    }
+
+    /**
+     * @return array{message: string, level: string, attributes: array<array-key, mixed>, correlation: array<string, mixed>, throwable: mixed}
+     */
+    private function extractDefault(ExecutionArtifactInterface $artifact): array
+    {
+        $normalized = $artifact->normalize();
+
+        $message = match (true) {
+            is_string($normalized[ArtifactField::MESSAGE] ?? null) => $normalized[ArtifactField::MESSAGE],
+            is_string($normalized[ArtifactField::KIND] ?? null) => $normalized[ArtifactField::KIND],
+            default => self::KEY_ARTIFACT,
+        };
+
+        $level = is_int($normalized[ArtifactField::LEVEL] ?? null)
+            ? $normalized[ArtifactField::LEVEL]
+            : self::DEFAULT_LEVEL;
+
+        $attributes = is_array($normalized[ArtifactField::ATTRIBUTES] ?? null)
+            ? $normalized[ArtifactField::ATTRIBUTES]
+            : [];
+
+        return [
+            ArtifactField::MESSAGE => $message,
+            ArtifactField::LEVEL => $this->mapLevel($level),
+            ArtifactField::ATTRIBUTES => $attributes,
+            ArtifactField::CORRELATION => [
+                ArtifactField::EXECUTION_ID => $normalized[ArtifactField::EXECUTION_ID] ?? null,
+                ArtifactField::ACTIVITY_ID => $normalized[ArtifactField::ACTIVITY_ID] ?? null,
+                ArtifactField::OBSERVATION_ID => $normalized[ArtifactField::ID] ?? null,
+                ArtifactField::DIAGNOSTIC_CODE => $normalized[ArtifactField::DIAGNOSTIC_CODE] ?? null,
+                ArtifactField::SEQUENCE => $normalized[ArtifactField::SEQUENCE] ?? null,
+                ArtifactField::TIMESTAMP => $normalized[ArtifactField::TIMESTAMP] ?? null,
+                ArtifactField::SEVERITY => $normalized[ArtifactField::SEVERITY] ?? null,
+            ],
+            ArtifactField::THROWABLE => $normalized[ArtifactField::THROWABLE] ?? null,
+        ];
     }
 }

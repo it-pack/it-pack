@@ -470,8 +470,8 @@ final class TelemetryPublisherTest extends Unit
     {
         $reports = [];
         $health = new CallbackHealthReporter(
-            static function (Throwable $error) use (&$reports): void {
-                $reports[] = $error;
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+                $reports[] = [$error, $artifact->normalize()];
             },
         );
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
@@ -487,14 +487,18 @@ final class TelemetryPublisherTest extends Unit
             $health,
         );
 
-        $redacted = new RedactedArtifact(['id' => 'unknown-1'], 'unknown');
+        $redacted = new RedactedArtifact(['id' => 'secret-id', 'message' => 'secret-payload'], 'unknown');
         self::assertSame('unknown', $redacted->artifactType());
 
         $publisher->publish($redacted);
 
         self::assertCount(1, $reports);
-        self::assertInstanceOf(RuntimeException::class, $reports[0]);
-        self::assertSame('Redacted measurement or unknown artifact kind is not delivered.', $reports[0]->getMessage());
+        self::assertInstanceOf(RuntimeException::class, $reports[0][0]);
+        self::assertSame(
+            'Redacted measurement or unknown artifact kind is not delivered.',
+            $reports[0][0]->getMessage(),
+        );
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0][1]);
         self::assertCount(0, $this->kit->logs(), 'No unknown redacted artifact is exported.');
     }
 
