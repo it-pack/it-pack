@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Fiber;
 use Codeception\Test\Unit;
 use Fiber;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use OpenTelemetry\Context\Context;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
@@ -57,7 +58,7 @@ final class FiberAwareIntegrationTest extends Unit
         $activities = [];
         foreach ($spans as $span) {
             $attributes = $span->getAttributes();
-            if ($attributes->get('runit.activity.id') !== null) {
+            if ($attributes->get(AttributeKeys::ACTIVITY_ID) !== null) {
                 $activities[] = $span;
 
                 continue;
@@ -70,9 +71,9 @@ final class FiberAwareIntegrationTest extends Unit
         self::assertCount(2, $activities);
 
         foreach ($activities as $activity) {
-            $activityExecId = $activity->getAttributes()->get('runit.execution.id');
+            $activityExecId = $activity->getAttributes()->get(AttributeKeys::EXECUTION_ID);
             foreach ($executions as $execution) {
-                if ($execution->getAttributes()->get('runit.execution.id') === $activityExecId) {
+                if ($execution->getAttributes()->get(AttributeKeys::EXECUTION_ID) === $activityExecId) {
                     self::assertSame(
                         $execution->getContext()->getSpanId(),
                         $activity->getParentSpanId(),

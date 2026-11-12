@@ -6,6 +6,7 @@ namespace ItPack\RunIt\Adapter\Psr\Log;
 
 use ItPack\RunIt\Adapter\Psr\Contract\ObservationToPsr3LevelMapperInterface;
 use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 
 /**
  * Maps RunIt observation severities to PSR-3 log levels by numeric threshold.
@@ -25,15 +26,14 @@ final class DefaultObservationToPsr3LevelMapper implements ObservationToPsr3Leve
     public function toLevelFromNumeric(int $level): string
     {
         return match (true) {
-            $level >= 600 => 'emergency',
-            $level >= 550 => 'alert',
-            $level >= 500 => 'critical',
-            $level >= 400 => 'error',
-            $level >= 300 => 'warning',
-            $level >= 250 => 'notice',
-            $level >= 200 => 'info',
-            $level >= 100 => 'debug',
-            default => 'debug',
+            $level >= ObservationSeverity::Emergency->level() => ObservationSeverity::Emergency->value,
+            $level >= ObservationSeverity::Alert->level() => ObservationSeverity::Alert->value,
+            $level >= ObservationSeverity::Critical->level() => ObservationSeverity::Critical->value,
+            $level >= ObservationSeverity::Error->level() => ObservationSeverity::Error->value,
+            $level >= ObservationSeverity::Warning->level() => ObservationSeverity::Warning->value,
+            $level >= ObservationSeverity::Notice->level() => ObservationSeverity::Notice->value,
+            $level >= ObservationSeverity::Info->level() => ObservationSeverity::Info->value,
+            default => ObservationSeverity::Debug->value,
         };
     }
 }

@@ -68,7 +68,11 @@ unknown throwable fields, and limits throwable cause traversal to 16 levels.
 
 A redacted artifact carries a trusted `artifactType()` signal set by the redactor,
 so adapters route it by signal instead of inferring kind from user-controlled
-normalized fields. OpenTelemetry delivers redacted executions, activities,
+normalized fields. `artifactType()` is a routing assertion, not validation or
+sanitization of the artifact's contents: a recognized delivery kind does not make
+the projection safe to export or free of sensitive data. Adapters must still apply
+their own redaction policy before delivery.
+OpenTelemetry delivers redacted executions, activities,
 occurrences, and snapshots through their redacted mappers, and redacted observations
 through the redacted observation mapper (suppressing free-form attributes) or, when
 the mapper lacks that capability, reports the drop through the health channel and

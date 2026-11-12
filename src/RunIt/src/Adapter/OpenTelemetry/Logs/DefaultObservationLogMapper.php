@@ -12,6 +12,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Contract\Domain\ThrowableDescriptionInterface;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
@@ -235,14 +236,14 @@ final readonly class DefaultObservationLogMapper implements
     private function severityLevelToNumber(int $level): int
     {
         return match (true) {
-            $level >= 600 => 23,
-            $level >= 550 => 22,
-            $level >= 500 => 21,
-            $level >= 400 => 17,
-            $level >= 300 => 13,
-            $level >= 250 => 10,
-            $level >= 200 => 9,
-            $level >= 100 => 5,
+            $level >= ObservationSeverity::Emergency->level() => 23,
+            $level >= ObservationSeverity::Alert->level() => 22,
+            $level >= ObservationSeverity::Critical->level() => 21,
+            $level >= ObservationSeverity::Error->level() => 17,
+            $level >= ObservationSeverity::Warning->level() => 13,
+            $level >= ObservationSeverity::Notice->level() => 10,
+            $level >= ObservationSeverity::Info->level() => 9,
+            $level >= ObservationSeverity::Debug->level() => 5,
             default => 1,
         };
     }
@@ -250,15 +251,15 @@ final readonly class DefaultObservationLogMapper implements
     private function severityLevelToText(int $level): string
     {
         return match (true) {
-            $level >= 600 => 'emergency',
-            $level >= 550 => 'alert',
-            $level >= 500 => 'critical',
-            $level >= 400 => 'error',
-            $level >= 300 => 'warning',
-            $level >= 250 => 'notice',
-            $level >= 200 => 'info',
-            $level >= 100 => 'debug',
-            default => 'trace',
+            $level >= ObservationSeverity::Emergency->level() => ObservationSeverity::Emergency->value,
+            $level >= ObservationSeverity::Alert->level() => ObservationSeverity::Alert->value,
+            $level >= ObservationSeverity::Critical->level() => ObservationSeverity::Critical->value,
+            $level >= ObservationSeverity::Error->level() => ObservationSeverity::Error->value,
+            $level >= ObservationSeverity::Warning->level() => ObservationSeverity::Warning->value,
+            $level >= ObservationSeverity::Notice->level() => ObservationSeverity::Notice->value,
+            $level >= ObservationSeverity::Info->level() => ObservationSeverity::Info->value,
+            $level >= ObservationSeverity::Debug->level() => ObservationSeverity::Debug->value,
+            default => ObservationSeverity::Trace->value,
         };
     }
 }

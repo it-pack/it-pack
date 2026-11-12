@@ -14,6 +14,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\MeasurementInstrumentMapperInter
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
@@ -221,8 +222,8 @@ final class TelemetryPublisherTest extends Unit
         $span = $spans[0];
         self::assertSame('import', $span->getName());
         self::assertSame(StatusCode::STATUS_ERROR, $span->getStatus()->getCode());
-        self::assertSame('exec-sensitive', $span->getAttributes()->get('runit.execution.id'));
-        self::assertSame('failed', $span->getAttributes()->get('runit.execution.status'));
+        self::assertSame('exec-sensitive', $span->getAttributes()->get(AttributeKeys::EXECUTION_ID));
+        self::assertSame('failed', $span->getAttributes()->get(AttributeKeys::EXECUTION_STATUS));
         $events = $span->getEvents();
         self::assertCount(1, $events);
         self::assertSame('exception', $events[0]->getName());
@@ -532,7 +533,7 @@ final class TelemetryPublisherTest extends Unit
         $health = new CallbackHealthReporter(
             static function (Throwable $error) use (&$reports, $box): void {
                 $reports[] = $error;
-                if ($box->publisher !== null) {
+                if ($box->publisher instanceof TelemetryPublisher) {
                     $box->publisher->publish(new RedactedArtifact(['id' => 'nested'], 'unknown'));
                 }
             },
@@ -636,7 +637,7 @@ final class TelemetryPublisherTest extends Unit
         $redactedLogged = false;
         foreach ($this->kit->logs() as $record) {
             foreach ($record->getAttributes() as $name => $value) {
-                if ($name === 'runit.redacted' && $value === true) {
+                if ($name === AttributeKeys::REDACTED && $value === true) {
                     $redactedLogged = true;
                 }
             }
@@ -729,17 +730,17 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('payment.captured.v1', $record->getBody());
         self::assertSame(1_600_000_000_000, $record->getTimestamp());
         $attributes = $record->getAttributes()->toArray();
-        self::assertSame('occ-characterized', $attributes['runit.occurrence.id']);
-        self::assertTrue($attributes['runit.redacted']);
-        self::assertArrayNotHasKey('runit.occurrence.subject', $attributes);
+        self::assertSame('occ-characterized', $attributes[AttributeKeys::OCCURRENCE_ID]);
+        self::assertTrue($attributes[AttributeKeys::REDACTED]);
+        self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_SUBJECT, $attributes);
         self::assertArrayNotHasKey('allowed', $attributes);
         self::assertArrayNotHasKey('excluded', $attributes);
-        self::assertArrayNotHasKey('runit.occurrence.content_type', $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_CONTENT_TYPE, $attributes);
         self::assertArrayNotHasKey('password', $attributes);
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(1, $events);
         self::assertSame('runit.occurrence', $events[0]->getName());
-        self::assertArrayNotHasKey('runit.occurrence.subject', $events[0]->getAttributes()->toArray());
+        self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_SUBJECT, $events[0]->getAttributes()->toArray());
         self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
     }
 
@@ -781,17 +782,17 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame('execution.snapshot', $record->getBody());
         self::assertSame(1_700_000_000_000, $record->getTimestamp());
         $attributes = $record->getAttributes()->toArray();
-        self::assertSame('snap-characterized', $attributes['runit.snapshot.id']);
-        self::assertSame('act-1', $attributes['runit.activity.id']);
-        self::assertTrue($attributes['runit.redacted']);
-        self::assertArrayNotHasKey('runit.snapshot.hash', $attributes);
-        self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
-        self::assertArrayNotHasKey('runit.snapshot.schema_version', $attributes);
-        self::assertArrayNotHasKey('runit.snapshot.content_type', $attributes);
+        self::assertSame('snap-characterized', $attributes[AttributeKeys::SNAPSHOT_ID]);
+        self::assertSame('act-1', $attributes[AttributeKeys::ACTIVITY_ID]);
+        self::assertTrue($attributes[AttributeKeys::REDACTED]);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_SCHEMA_VERSION, $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_CONTENT_TYPE, $attributes);
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(1, $events);
         self::assertSame('runit.snapshot', $events[0]->getName());
-        self::assertArrayNotHasKey('runit.snapshot.hash', $events[0]->getAttributes()->toArray());
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $events[0]->getAttributes()->toArray());
     }
 
     public function testDefaultConfigExportsNothingAndHasNoCapability(): void

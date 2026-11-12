@@ -52,15 +52,18 @@ use Throwable;
 final class DefaultArtifactRedactor implements RedactorInterface
 {
     private const int MAX_MASKING_DEPTH = 16;
+
     private const int MAX_MASKING_NODES = 1024;
+
     private const int MAX_THROWABLE_CLASS_LENGTH = 256;
 
     private bool $publishingHealthReport = false;
+
     private bool $truncationReported = false;
 
     public function __construct(
-        private ArtifactRedactionConfig $config = new ArtifactRedactionConfig(),
-        private ?InternalHealthReporterInterface $health = null,
+        private readonly ArtifactRedactionConfig $config = new ArtifactRedactionConfig(),
+        private readonly ?InternalHealthReporterInterface $health = null,
     ) {
     }
 
@@ -468,16 +471,19 @@ final class DefaultArtifactRedactor implements RedactorInterface
                 // Chain ends normally: previous is null, not a traversal-limit event.
                 $safe[ArtifactField::PREVIOUS] = null;
             }
+
             if ($previous !== null && is_array($previous) && $depth < 15) {
                 $maskedPrevious = $this->maskThrowable($previous, $depth + 1, $truncated);
                 $safe[ArtifactField::PREVIOUS] = $maskedPrevious[0];
                 if ($maskedPrevious[1] || $safe[ArtifactField::PREVIOUS] !== $previous) {
                     $changed = true;
                 }
+
                 if ($maskedPrevious[2]) {
                     $truncated = true;
                 }
             }
+
             if ($previous !== null && (!is_array($previous) || $depth >= 15)) {
                 // Beyond depth limit or unsupported shape: truncated.
                 $safe[ArtifactField::PREVIOUS] = null;

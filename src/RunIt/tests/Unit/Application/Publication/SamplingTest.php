@@ -32,6 +32,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use Throwable;
 
 /**
  * @group application
@@ -212,7 +213,7 @@ final class SamplingTest extends Unit
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function testSamplingPublisherDropsRejectedArtifacts(): void
     {
@@ -233,7 +234,7 @@ final class SamplingTest extends Unit
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function testFactorySamplesRedactedArtifactsAfterRedaction(): void
     {
@@ -320,7 +321,7 @@ final class SamplingTest extends Unit
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function testFactorySamplesObservationSeverityAfterRedaction(): void
     {
@@ -349,7 +350,7 @@ final class SamplingTest extends Unit
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function testFactorySamplesErrorOverrideAfterRedaction(): void
     {
@@ -384,7 +385,7 @@ final class SamplingTest extends Unit
     }
 
     /**
-     * @throws \Throwable
+     * @throws Throwable
      */
     public function testFactorySamplesExecutionKindAfterRedaction(): void
     {

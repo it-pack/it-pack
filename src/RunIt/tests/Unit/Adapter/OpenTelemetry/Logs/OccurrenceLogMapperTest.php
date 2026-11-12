@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Logs;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -60,9 +61,9 @@ final class OccurrenceLogMapperTest extends Unit
         $record = $this->kit->log(0);
         self::assertSame('execution.started.v1', $record->getBody());
         self::assertSame('runit.occurrence', $record->getEventName());
-        self::assertSame('occ-1', $record->getAttributes()->get('runit.occurrence.id'));
-        self::assertSame('execution.started.v1', $record->getAttributes()->get('runit.occurrence.type'));
-        self::assertSame('it-pack/test', $record->getAttributes()->get('runit.occurrence.source'));
+        self::assertSame('occ-1', $record->getAttributes()->get(AttributeKeys::OCCURRENCE_ID));
+        self::assertSame('execution.started.v1', $record->getAttributes()->get(AttributeKeys::OCCURRENCE_TYPE));
+        self::assertSame('it-pack/test', $record->getAttributes()->get(AttributeKeys::OCCURRENCE_SOURCE));
 
         $spans = $spanExporter->getSpans();
         /** @var SpanDataInterface $spanData */
@@ -97,9 +98,9 @@ final class OccurrenceLogMapperTest extends Unit
 
         $record = $this->kit->log(0);
         $attributes = $record->getAttributes()->toArray();
-        self::assertArrayHasKey('runit.snapshot.id', $attributes);
-        self::assertArrayHasKey('runit.snapshot.hash', $attributes);
-        self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_ID, $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
     }
 
     public function testSnapshotPayloadExportIsOptIn(): void
@@ -113,8 +114,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-2', 'exec-1', ['key' => 'value']));
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertArrayHasKey('runit.snapshot.payload', $attributes);
-        self::assertArrayHasKey('runit.snapshot.hash', $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
     }
 
     public function testSnapshotNonePolicyExportsNoHash(): void
@@ -128,8 +129,8 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapSnapshot(RunItArtifactFactory::snapshot('snap-3', 'exec-1', ['key' => 'value']));
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertArrayNotHasKey('runit.snapshot.hash', $attributes);
-        self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
     }
 
     public function testMissingLoggerProviderEmitsNothing(): void
@@ -195,7 +196,11 @@ final class OccurrenceLogMapperTest extends Unit
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
         self::assertSame('on', $attributes['tenantflag'], 'listed keys pass the allow-list');
         self::assertArrayNotHasKey('cardinality_heavy', $attributes, 'unlisted keys are suppressed');
-        self::assertSame('occ-ext', $attributes['runit.occurrence.id'], 'structural identity attributes always export');
+        self::assertSame(
+            'occ-ext',
+            $attributes[AttributeKeys::OCCURRENCE_ID],
+            'structural identity attributes always export'
+        );
     }
 
     public function testOccurrenceSubjectAndActivityAreExportedToLogAndSpanEvent(): void
@@ -234,8 +239,8 @@ final class OccurrenceLogMapperTest extends Unit
         }
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('user-42', $attributes['runit.occurrence.subject']);
-        self::assertSame('act-7', $attributes['runit.activity.id']);
+        self::assertSame('user-42', $attributes[AttributeKeys::OCCURRENCE_SUBJECT]);
+        self::assertSame('act-7', $attributes[AttributeKeys::ACTIVITY_ID]);
         self::assertSame('on', $attributes['tenantflag']);
 
         $spans = $spanExporter->getSpans();
@@ -245,8 +250,8 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertCount(1, $events);
 
         $event = $events[0];
-        self::assertSame('user-42', $event->getAttributes()->get('runit.occurrence.subject'));
-        self::assertSame('act-7', $event->getAttributes()->get('runit.activity.id'));
+        self::assertSame('user-42', $event->getAttributes()->get(AttributeKeys::OCCURRENCE_SUBJECT));
+        self::assertSame('act-7', $event->getAttributes()->get(AttributeKeys::ACTIVITY_ID));
         self::assertSame('on', $event->getAttributes()->get('tenantflag'));
     }
 
@@ -261,11 +266,11 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapRedactedOccurrence([]);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('redacted', $attributes['runit.occurrence.id']);
-        self::assertSame('runit.artifact.redacted', $attributes['runit.occurrence.type']);
-        self::assertSame('runit://redacted', $attributes['runit.occurrence.source']);
-        self::assertSame('', $attributes['runit.execution.id']);
-        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame('redacted', $attributes[AttributeKeys::OCCURRENCE_ID]);
+        self::assertSame('runit.artifact.redacted', $attributes[AttributeKeys::OCCURRENCE_TYPE]);
+        self::assertSame('runit://redacted', $attributes[AttributeKeys::OCCURRENCE_SOURCE]);
+        self::assertSame('', $attributes[AttributeKeys::EXECUTION_ID]);
+        self::assertTrue($attributes[AttributeKeys::REDACTED]);
     }
 
     public function testRedactedOccurrenceExportsProvidedFieldsOnly(): void
@@ -292,12 +297,12 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('payment.captured.v1', $record->getBody());
         self::assertSame(1_600_000_000_000, $record->getTimestamp());
         self::assertSame([
-            'runit.occurrence.id' => 'occ-red',
-            'runit.occurrence.type' => 'payment.captured.v1',
-            'runit.occurrence.source' => 'test/source',
-            'runit.execution.id' => 'exec-9',
-            'runit.redacted' => true,
-            'runit.activity.id' => 'act-9',
+            AttributeKeys::OCCURRENCE_ID => 'occ-red',
+            AttributeKeys::OCCURRENCE_TYPE => 'payment.captured.v1',
+            AttributeKeys::OCCURRENCE_SOURCE => 'test/source',
+            AttributeKeys::EXECUTION_ID => 'exec-9',
+            AttributeKeys::REDACTED => true,
+            AttributeKeys::ACTIVITY_ID => 'act-9',
         ], $record->getAttributes()->toArray());
     }
 
@@ -331,9 +336,9 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertCount(1, $events);
         self::assertSame('runit.occurrence', $events[0]->getName());
         $eventAttributes = $events[0]->getAttributes()->toArray();
-        self::assertSame('occ-span-event', $eventAttributes['runit.occurrence.id']);
-        self::assertArrayNotHasKey('runit.occurrence.subject', $eventAttributes);
-        self::assertSame('act-9', $eventAttributes['runit.activity.id']);
+        self::assertSame('occ-span-event', $eventAttributes[AttributeKeys::OCCURRENCE_ID]);
+        self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_SUBJECT, $eventAttributes);
+        self::assertSame('act-9', $eventAttributes[AttributeKeys::ACTIVITY_ID]);
         self::assertArrayNotHasKey('tenantflag', $eventAttributes);
         self::assertArrayNotHasKey('secret', $eventAttributes);
     }
@@ -349,11 +354,11 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapRedactedSnapshot(['classification' => 'terminal', 'content_hash' => 'sha-256:abc']);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('redacted', $attributes['runit.snapshot.id']);
-        self::assertSame('runit.artifact.redacted', $attributes['runit.snapshot.type']);
-        self::assertSame('terminal', $attributes['runit.snapshot.classification']);
-        self::assertSame('sha-256:abc', $attributes['runit.snapshot.hash']);
-        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame('redacted', $attributes[AttributeKeys::SNAPSHOT_ID]);
+        self::assertSame('runit.artifact.redacted', $attributes[AttributeKeys::SNAPSHOT_TYPE]);
+        self::assertSame('terminal', $attributes[AttributeKeys::SNAPSHOT_CLASSIFICATION]);
+        self::assertSame('sha-256:abc', $attributes[AttributeKeys::SNAPSHOT_HASH]);
+        self::assertTrue($attributes[AttributeKeys::REDACTED]);
     }
 
     public function testRedactedSnapshotMapsNormalizedFieldsWithoutPayload(): void
@@ -379,13 +384,13 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('execution.snapshot.v1', $record->getBody());
         self::assertSame(1_700_000_000_000, $record->getTimestamp());
         self::assertSame([
-            'runit.snapshot.id' => 'snap-red',
-            'runit.snapshot.type' => 'execution.snapshot.v1',
-            'runit.snapshot.classification' => 'terminal',
-            'runit.execution.id' => 'exec-9',
-            'runit.redacted' => true,
-            'runit.activity.id' => 'act-9',
-            'runit.snapshot.hash' => 'sha-256:abc',
+            AttributeKeys::SNAPSHOT_ID => 'snap-red',
+            AttributeKeys::SNAPSHOT_TYPE => 'execution.snapshot.v1',
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => 'terminal',
+            AttributeKeys::EXECUTION_ID => 'exec-9',
+            AttributeKeys::REDACTED => true,
+            AttributeKeys::ACTIVITY_ID => 'act-9',
+            AttributeKeys::SNAPSHOT_HASH => 'sha-256:abc',
         ], $record->getAttributes()->toArray());
     }
 
@@ -436,7 +441,7 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapSnapshot($snapshot);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('snap-act', $attributes['runit.snapshot.id']);
-        self::assertArrayHasKey('runit.snapshot.classification', $attributes);
+        self::assertSame('snap-act', $attributes[AttributeKeys::SNAPSHOT_ID]);
+        self::assertArrayHasKey(AttributeKeys::SNAPSHOT_CLASSIFICATION, $attributes);
     }
 }

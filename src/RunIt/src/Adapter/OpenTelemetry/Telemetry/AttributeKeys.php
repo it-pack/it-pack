@@ -12,8 +12,12 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Telemetry;
  * values (execution id, activity id, correlation id) are recorded for
  * correlation but are deliberately excluded from metric dimensions by default.
  *
- * @see https://opentelemetry.io/
- */
+     * @see https://opentelemetry.io/
+     *
+     * Caller-provided attributes may use the same `runit.` names as structural
+     * keys; the prefix alone does not prevent collisions. Copy precedence is
+     * therefore defined by each mapper and documented on its behavior.
+     */
 interface AttributeKeys
 {
     public const string EXECUTION_ID = 'runit.execution.id';
@@ -48,6 +52,8 @@ interface AttributeKeys
 
     public const string OCCURRENCE_SUBJECT = 'runit.occurrence.subject';
 
+    public const string OCCURRENCE_CONTENT_TYPE = 'runit.occurrence.content_type';
+
     public const string SNAPSHOT_ID = 'runit.snapshot.id';
 
     public const string SNAPSHOT_TYPE = 'runit.snapshot.type';
@@ -55,4 +61,12 @@ interface AttributeKeys
     public const string SNAPSHOT_CLASSIFICATION = 'runit.snapshot.classification';
 
     public const string SNAPSHOT_HASH = 'runit.snapshot.hash';
+
+    public const string SNAPSHOT_SCHEMA_VERSION = 'runit.snapshot.schema_version';
+
+    public const string SNAPSHOT_CONTENT_TYPE = 'runit.snapshot.content_type';
+
+    public const string SNAPSHOT_PAYLOAD = 'runit.snapshot.payload';
+
+    public const string REDACTED = 'runit.redacted';
 }

@@ -19,6 +19,24 @@ use ItPack\RunIt\Contract\Domain\ObservationSeverityInterface;
  */
 enum ObservationSeverity: string implements ObservationSeverityInterface
 {
+    public const int LEVEL_TRACE = 50;
+
+    public const int LEVEL_DEBUG = 100;
+
+    public const int LEVEL_INFO = 200;
+
+    public const int LEVEL_NOTICE = 250;
+
+    public const int LEVEL_WARNING = 300;
+
+    public const int LEVEL_ERROR = 400;
+
+    public const int LEVEL_CRITICAL = 500;
+
+    public const int LEVEL_ALERT = 550;
+
+    public const int LEVEL_EMERGENCY = 600;
+
     /**
      * PSR-3/monolog-compatible numeric levels; `trace` extends below `debug`.
      */
@@ -39,24 +57,6 @@ enum ObservationSeverity: string implements ObservationSeverityInterface
     case Alert = 'alert';
 
     case Emergency = 'emergency';
-
-    private const int LEVEL_TRACE = 50;
-
-    private const int LEVEL_DEBUG = 100;
-
-    private const int LEVEL_INFO = 200;
-
-    private const int LEVEL_NOTICE = 250;
-
-    private const int LEVEL_WARNING = 300;
-
-    private const int LEVEL_ERROR = 400;
-
-    private const int LEVEL_CRITICAL = 500;
-
-    private const int LEVEL_ALERT = 550;
-
-    private const int LEVEL_EMERGENCY = 600;
 
     public function label(): string
     {

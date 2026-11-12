@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Logs;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
@@ -57,9 +58,9 @@ final class ObservationLogMapperTest extends Unit
         $record = $this->kit->log(0);
         self::assertSame('starting', $record->getBody());
         self::assertSame(Severity::INFO->value, $record->getSeverityNumber());
-        self::assertSame('obs-1', $record->getAttributes()->get('runit.observation.id'));
-        self::assertSame('exec-1', $record->getAttributes()->get('runit.execution.id'));
-        self::assertSame('act-1', $record->getAttributes()->get('runit.activity.id'));
+        self::assertSame('obs-1', $record->getAttributes()->get(AttributeKeys::OBSERVATION_ID));
+        self::assertSame('exec-1', $record->getAttributes()->get(AttributeKeys::EXECUTION_ID));
+        self::assertSame('act-1', $record->getAttributes()->get(AttributeKeys::ACTIVITY_ID));
         self::assertSame('init', $record->getAttributes()->get('step'));
     }
 
@@ -171,7 +172,7 @@ final class ObservationLogMapperTest extends Unit
             'execution_id' => 'exec-9',
             'activity_id' => 'act-9',
             'diagnostic_code' => 'NETWORK',
-            'level' => 400,
+            'level' => ObservationSeverity::Error->level(),
             'message' => 'safe message',
             'timestamp' => 1_800,
             'attributes' => ['password' => 'secret', 'step' => 'init'],
@@ -191,10 +192,10 @@ final class ObservationLogMapperTest extends Unit
         self::assertSame('error', $record->getSeverityText());
         self::assertSame(1_800_000_000_000, $record->getTimestamp());
         self::assertSame([
-            'runit.observation.id' => 'obs-red',
-            'runit.execution.id' => 'exec-9',
-            'runit.activity.id' => 'act-9',
-            'runit.diagnostic.code' => 'NETWORK',
+            AttributeKeys::OBSERVATION_ID => 'obs-red',
+            AttributeKeys::EXECUTION_ID => 'exec-9',
+            AttributeKeys::ACTIVITY_ID => 'act-9',
+            AttributeKeys::DIAGNOSTIC_CODE => 'NETWORK',
             'exception.type' => 'RuntimeException',
             'exception.message' => '[redacted]',
         ], $record->getAttributes()->toArray());
@@ -215,16 +216,20 @@ final class ObservationLogMapperTest extends Unit
             'id' => 12345,
             'execution_id' => null,
             'diagnostic_code' => null,
-            'level' => 400,
+            'level' => ObservationSeverity::Error->level(),
             'message' => 'safe',
         ]);
 
         $record = $this->kit->log(0);
         self::assertSame('safe', $record->getBody());
         $attributes = $record->getAttributes()->toArray();
-        self::assertArrayNotHasKey('runit.observation.id', $attributes, 'A non-string observation id is suppressed.');
-        self::assertArrayNotHasKey('runit.execution.id', $attributes, 'A missing execution id is suppressed.');
-        self::assertArrayNotHasKey('runit.diagnostic.code', $attributes);
+        self::assertArrayNotHasKey(
+            AttributeKeys::OBSERVATION_ID,
+            $attributes,
+            'A non-string observation id is suppressed.'
+        );
+        self::assertArrayNotHasKey(AttributeKeys::EXECUTION_ID, $attributes, 'A missing execution id is suppressed.');
+        self::assertArrayNotHasKey(AttributeKeys::DIAGNOSTIC_CODE, $attributes);
     }
 
     public function testRedactedObservationFromRedactorExportsClassifiedFieldsOnly(): void

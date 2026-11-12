@@ -13,6 +13,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
+use JsonException;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\API\Trace\Span;
@@ -51,7 +52,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             AttributeKeys::OCCURRENCE_TYPE => $occurrence->type()->toString(),
             AttributeKeys::OCCURRENCE_SOURCE => $occurrence->source(),
             AttributeKeys::EXECUTION_ID => $occurrence->executionId()->toString(),
-            'runit.occurrence.content_type' => $occurrence->contentType(),
+            AttributeKeys::OCCURRENCE_CONTENT_TYPE => $occurrence->contentType(),
         ];
 
         $subject = $occurrence->subject();
@@ -93,6 +94,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
     }
 
+    /**
+     * @throws JsonException
+     */
     public function mapSnapshot(SnapshotInterface $snapshot): void
     {
         /** @var array<string, int|float|string|bool|null|array<int|string, int|float|string|bool|null>> $attributes */
@@ -101,8 +105,8 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             AttributeKeys::SNAPSHOT_TYPE => $snapshot->type()->toString(),
             AttributeKeys::SNAPSHOT_CLASSIFICATION => $snapshot->classification()->label(),
             AttributeKeys::EXECUTION_ID => $snapshot->executionId()->toString(),
-            'runit.snapshot.schema_version' => $snapshot->schemaVersion(),
-            'runit.snapshot.content_type' => $snapshot->contentType(),
+            AttributeKeys::SNAPSHOT_SCHEMA_VERSION => $snapshot->schemaVersion(),
+            AttributeKeys::SNAPSHOT_CONTENT_TYPE => $snapshot->contentType(),
         ];
 
         $activityId = $snapshot->activityId();
@@ -119,9 +123,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
 
         if ($this->snapshotPayloadPolicy === SnapshotPayloadPolicy::Full) {
-            $attributes['runit.snapshot.payload'] = (string) json_encode(
+            $attributes[AttributeKeys::SNAPSHOT_PAYLOAD] = json_encode(
                 $snapshot->payload(),
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
+                JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
             );
         }
 
@@ -160,7 +164,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
                 ? $normalized[ArtifactField::EXECUTION_ID]
                 : '',
-            'runit.redacted' => true,
+            AttributeKeys::REDACTED => true,
         ];
 
         $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
@@ -201,7 +205,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
                 ? $normalized[ArtifactField::EXECUTION_ID]
                 : '',
-            'runit.redacted' => true,
+            AttributeKeys::REDACTED => true,
         ];
 
         $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
@@ -219,7 +223,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             is_string($normalized[ArtifactField::TYPE] ?? null)
                 ? $normalized[ArtifactField::TYPE] : 'runit.artifact.redacted',
             $attributes,
-            is_int($normalized[ArtifactField::CREATED_AT] ?? null) ? $normalized[ArtifactField::CREATED_AT] : null
+            is_int($normalized[ArtifactField::CREATED_AT] ?? null)
+                ? $normalized[ArtifactField::CREATED_AT]
+                : null
         );
     }
 
