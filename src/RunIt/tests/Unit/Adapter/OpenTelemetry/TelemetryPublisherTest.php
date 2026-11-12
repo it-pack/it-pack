@@ -535,7 +535,7 @@ final class TelemetryPublisherTest extends Unit
         );
     }
 
-    /** Redacted occurrences do not export extension attributes to OTel consumers. */
+    /** Characterizes extension omission and subject exposure on redacted occurrences. */
     public function testRedactedOccurrenceOmitsExtensionAttributes(): void
     {
         $occurrence = Occurrence::create(
@@ -545,6 +545,7 @@ final class TelemetryPublisherTest extends Unit
             'it-pack/test',
             Instant::of(1600),
             ['password' => 'secret'],
+            subject: 'synthetic-subject-secret',
             extensionAttributes: AttributeCollection::fromArray(
                 ['allowed' => 'yes', 'excluded' => 'omitted-by-redaction']
             ),
@@ -558,6 +559,10 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame(1600, $normalized['time']);
         self::assertIsArray($normalized['data']);
         self::assertNotSame('secret', $normalized['data']['password']);
+        $originalData = $occurrence->normalize()['data'];
+        self::assertIsArray($originalData);
+        self::assertSame('secret', $originalData['password']);
+        self::assertSame('synthetic-subject-secret', $normalized['subject']);
         self::assertIsArray($normalized['extension_attributes']);
         self::assertSame('omitted-by-redaction', $normalized['extension_attributes']['excluded']);
 
@@ -585,6 +590,7 @@ final class TelemetryPublisherTest extends Unit
         $attributes = $record->getAttributes()->toArray();
         self::assertSame('occ-characterized', $attributes['runit.occurrence.id']);
         self::assertTrue($attributes['runit.redacted']);
+        self::assertSame('synthetic-subject-secret', $attributes['runit.occurrence.subject']);
         self::assertArrayNotHasKey('allowed', $attributes);
         self::assertArrayNotHasKey('excluded', $attributes);
         self::assertArrayNotHasKey('runit.occurrence.content_type', $attributes);
@@ -592,6 +598,10 @@ final class TelemetryPublisherTest extends Unit
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(1, $events);
         self::assertSame('runit.occurrence', $events[0]->getName());
+        self::assertSame(
+            'synthetic-subject-secret',
+            $events[0]->getAttributes()->toArray()['runit.occurrence.subject'],
+        );
         self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
     }
 

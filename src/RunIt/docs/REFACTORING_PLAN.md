@@ -1385,6 +1385,14 @@ reported abandoned `doctrine/annotations`, with no security advisories. The full
 PHP 8.4 suite and downstream exports were not tested in this run. Bounded
 traversal, unsupported values and consumer routing remain open.
 
+A composed OpenTelemetry characterization now verifies that masking an
+occurrence's configured sensitive data key does not mask its subject: the
+subject reaches both the log and active-span event, while the source data is
+unchanged. This is an exposure characterization, not an approved safe-field
+policy; it does not establish behavior for other fields or exporters. The
+focused `TelemetryPublisherTest` passed on PHP 8.5 (18 tests, 166 assertions).
+The representation and delivery decisions remain open.
+
 - [ ] Map the actual `normalize()` shapes for execution results, observations, causes, and snapshots; inspect `DefaultArtifactRedactor`, `ArtifactRedactionConfig`, `RedactedArtifact`, and consumers before selecting an implementation. Establish bounded recursion and how unknown fields and unsupported values are treated.
 - [ ] Add negative tests in `tests/Unit/Application/Publication/RedactingPublisherTest.php`, `tests/Unit/Adapter/Psr/Log/ObservationLoggerPublisherTest.php`, and `tests/Unit/Adapter/OpenTelemetry/Trace/ExecutionSpanMapperTest.php` for secrets in the outer message, execution `result.throwable`, multiple previous causes, and trace. Assert both intended masking and preservation of non-sensitive metadata; cover disabled/explicit opt-out configurations.
 - [ ] Implement the approved recursive masking and trace policy for all applicable artifact shapes. Ensure no mutation of original immutable artifacts, no unrestricted serialization, and no secret-bearing fallback/error logs.
