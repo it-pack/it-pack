@@ -80,7 +80,8 @@ signal are likewise reported and dropped rather than routed by heuristic.
 Configured payload-key masking is deny-list based and the default key lists are
 empty. Configured sensitive observation-attribute keys are masked at the top level
 only; nested attribute entries are not masked. Message redaction is separately
-configurable and disabled by default (opt-in via `redactObservationMessages`).
+configurable and enabled by default; setting
+`redactObservationMessages` to `false` opts out of masking observation messages.
 
 The current redactor matches configured keys exactly and case-sensitively. It
 walks arrays recursively only in occurrence `data` and snapshot `payload`, and

@@ -25,7 +25,7 @@ final readonly class ArtifactRedactionConfig
      * @param bool         $redactThrowableMessages   mask throwable message and trace when throwing; recursive for `previous` causes
      * @param bool         $redactOccurrenceData     mask occurrence `data` recursively when enabled
      * @param bool         $redactSnapshotPayloads   mask snapshot `payload` recursively when enabled
-     * @param bool         $redactObservationMessages mask observation `message` when enabled (opt-in, default false)
+     * @param bool         $redactObservationMessages mask observation `message` when enabled (default true; setting `false` opts out of masking observation messages)
      * @param bool         $redactMeasurementValues  mask measurement `value` when enabled (opt-in, default false)
      */
     public function __construct(

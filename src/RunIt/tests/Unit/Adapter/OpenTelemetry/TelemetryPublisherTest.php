@@ -21,6 +21,8 @@ use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -431,15 +433,18 @@ final class TelemetryPublisherTest extends Unit
             },
         );
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
+        $measurementMapper = $this->createMock(MeasurementInstrumentMapperInterface::class);
+        $measurementMapper->expects($this->never())->method('record');
         $publisher = new TelemetryPublisher(
             BridgeConfig::default(),
             $this->createMock(ExecutionSpanMapperInterface::class),
             $this->createMock(ActivitySpanMapperInterface::class),
-            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $measurementMapper,
             $mapper,
             $this->createMock(OccurrenceLogMapperInterface::class),
             $health,
         );
+
         $measurement = RunItArtifactFactory::counter('exec-1', 'redacted-items', 7, ['password' => 'secret']);
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveAttributeKeys: ['password'],
@@ -456,7 +461,9 @@ final class TelemetryPublisherTest extends Unit
         self::assertCount(0, $this->kit->collectMetrics(), 'No redacted measurement metric is exported.');
     }
 
-    /** Unknown redacted artifact types are reported via health and dropped, never delivered. */
+    /** Unknown redacted artifact types are reported via health and dropped, never delivered.
+     * @throws Throwable
+     */
     public function testUnknownRedactedArtifactTypeReportsViaHealthAndDrops(): void
     {
         $reports = [];
@@ -466,17 +473,19 @@ final class TelemetryPublisherTest extends Unit
             },
         );
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
+        $measurementMapper = $this->createMock(MeasurementInstrumentMapperInterface::class);
+        $measurementMapper->expects($this->never())->method('record');
         $publisher = new TelemetryPublisher(
             BridgeConfig::default(),
             $this->createMock(ExecutionSpanMapperInterface::class),
             $this->createMock(ActivitySpanMapperInterface::class),
-            $this->createMock(MeasurementInstrumentMapperInterface::class),
+            $measurementMapper,
             $mapper,
             $this->createMock(OccurrenceLogMapperInterface::class),
             $health,
         );
+
         $redacted = new RedactedArtifact(['id' => 'unknown-1'], 'unknown');
-        self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
         self::assertSame('unknown', $redacted->artifactType());
 
         $publisher->publish($redacted);
@@ -490,11 +499,12 @@ final class TelemetryPublisherTest extends Unit
     /** A throwing health reporter is contained; publish() returns normally and the business result is unchanged. */
     public function testThrowingHealthReporterDoesNotChangeBusinessResult(): void
     {
-        $health = new CallbackHealthReporter(
-            static function (Throwable $error): void {
+        $health = new class () implements InternalHealthReporterInterface {
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
                 throw new RuntimeException('health reporter failure');
-            },
-        );
+            }
+        };
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
         $publisher = new TelemetryPublisher(
             BridgeConfig::default(),
@@ -516,9 +526,15 @@ final class TelemetryPublisherTest extends Unit
     public function testReEntryGuardSkipsNestedHealthReport(): void
     {
         $reports = [];
+        $box = new class () {
+            public ?TelemetryPublisher $publisher = null;
+        };
         $health = new CallbackHealthReporter(
-            static function (Throwable $error) use (&$reports): void {
+            static function (Throwable $error) use (&$reports, $box): void {
                 $reports[] = $error;
+                if ($box->publisher !== null) {
+                    $box->publisher->publish(new RedactedArtifact(['id' => 'nested'], 'unknown'));
+                }
             },
         );
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
@@ -531,15 +547,11 @@ final class TelemetryPublisherTest extends Unit
             $this->createMock(OccurrenceLogMapperInterface::class),
             $health,
         );
+        $box->publisher = $publisher;
 
-        // Simulate re-entry: health reporting is already in progress.
-        $reflection = new ReflectionProperty($publisher, 'publishingHealthReport');
-        $reflection->setAccessible(true);
-        $reflection->setValue($publisher, true);
+        $publisher->publish(new RedactedArtifact(['id' => 'outer'], 'unknown'));
 
-        $publisher->publish(new RedactedArtifact(['id' => 'nested'], 'unknown'));
-
-        self::assertCount(0, $reports, 'The re-entry guard skips the health report.');
+        self::assertCount(1, $reports, 'Only one report is sent; the nested report is skipped.');
     }
 
     /** Redacted observations are delivered as sanitized OpenTelemetry log records. */

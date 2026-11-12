@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
@@ -29,7 +30,7 @@ use Throwable;
  *
  *  - top-level attribute and extension attribute values whose key is in
  *    `sensitiveAttributeKeys`;
- *  - observation `message` when `redactObservationMessages` is enabled (default false);
+ *  - observation `message` when `redactObservationMessages` is enabled (default true; setting `false` opts out of masking observation messages);
  *  - throwable messages and causes, and omission of traces, when enabled;
  *  - measurement values, when enabled;
  *  - configured keys and throwable fields in occurrence `data` and snapshot
@@ -505,6 +506,12 @@ final class DefaultArtifactRedactor implements RedactorInterface
 
     private function artifactType(ExecutionArtifactInterface $artifact): string
     {
+        if ($artifact instanceof RedactedArtifactInterface) {
+            // A redacted artifact already carries its trusted type from the
+            // redactor that produced it; preserve it through redaction.
+            return $artifact->artifactType();
+        }
+
         return match (true) {
             $artifact instanceof ExecutionInterface => 'execution',
             $artifact instanceof ObservationInterface => 'observation',
