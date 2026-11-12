@@ -16,6 +16,7 @@ use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
+use Throwable;
 
 /**
  * Artifact publisher that redacts before delegating to the inner publisher.
@@ -69,13 +70,20 @@ final readonly class RedactingArtifactPublisher implements
                 $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
             }
 
-            $this->health?->report(
-                BoundDropException::forReason('drop-redacted-observation'),
-                new RedactedArtifact([
-                    ArtifactField::ID => $id,
-                    ArtifactField::TYPE => 'runit.artifact.redacted',
-                ]),
-            );
+            try {
+                $this->health?->report(
+                    BoundDropException::forReason('drop-redacted-observation'),
+                    new RedactedArtifact([
+                        ArtifactField::ID => $id,
+                        ArtifactField::TYPE => 'runit.artifact.redacted',
+                    ]),
+                );
+            } catch (Throwable) {
+                // Contain health reporter failures so the drop path stays fail-open:
+                // a throwing reporter must not change the business result or let a
+                // publication exception escape to enclosing failure recovery, which
+                // could receive the original observation instead of this identity-only notice.
+            }
 
             return;
         }
