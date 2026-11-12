@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Application\Publication;
 
+use Closure;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -12,6 +13,7 @@ use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
 use ItPack\RunIt\Application\Publication\NeverSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
@@ -27,6 +29,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\UsesClass;
 use RuntimeException;
 use Tests\Support\Fixture\SensitiveExceptionChain;
 use Throwable;
@@ -45,6 +48,9 @@ use Throwable;
 #[CoversClass(DefaultArtifactRedactor::class)]
 #[CoversClass(RedactingArtifactPublisher::class)]
 #[CoversClass(SamplingArtifactPublisher::class)]
+#[UsesClass(ArtifactRedactionConfig::class)]
+#[UsesClass(CallbackHealthReporter::class)]
+#[UsesClass(InMemoryArtifactPublisher::class)]
 final class RedactionSecurityCharacterizationTest extends Unit
 {
     /** @param list<string>|null $sensitiveAttributeKeys */
@@ -379,12 +385,19 @@ final class RedactionSecurityCharacterizationTest extends Unit
     public function testRedactedObservationHealthGuardResetsAfterReporterThrows(): void
     {
         $entered = 0;
-        $health = new CallbackHealthReporter(
-            static function () use (&$entered): never {
-                ++$entered;
-                throw new RuntimeException('health failure');
-            },
-        );
+        $health = new readonly class (function () use (&$entered): never {
+            $entered++;
+            throw new RuntimeException('health failure');
+        }) implements InternalHealthReporterInterface {
+            public function __construct(private Closure $callback)
+            {
+            }
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ($this->callback)();
+            }
+        };
         $sink = new InMemoryArtifactPublisher();
         $publisher = new RedactingArtifactPublisher($this->redactor([]), $sink, $health, true);
         $original = Observation::info(
