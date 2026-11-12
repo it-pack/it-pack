@@ -38,12 +38,15 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
 
     private const int DEFAULT_LEVEL = 200;
 
+    private ObservationToPsr3LevelMapperInterface $levelMapper;
+
     public function __construct(
         private LoggerInterface                        $logger,
         private ?RedactorInterface                     $redactor = null,
-        private ObservationToPsr3LevelMapperInterface  $levelMapper = new DefaultObservationToPsr3LevelMapper(),
+        ?ObservationToPsr3LevelMapperInterface         $levelMapper = null,
         private string                                 $exceptionKey = ArtifactField::EXCEPTION,
     ) {
+        $this->levelMapper = $levelMapper ?? new DefaultObservationToPsr3LevelMapper();
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void
