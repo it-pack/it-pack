@@ -36,10 +36,12 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
 {
     private const string KEY_ARTIFACT = 'artifact';
 
+    private const int DEFAULT_LEVEL = 200;
+
     public function __construct(
         private LoggerInterface                        $logger,
         private ?RedactorInterface                     $redactor = null,
-        private ?ObservationToPsr3LevelMapperInterface $levelMapper = null,
+        private ObservationToPsr3LevelMapperInterface  $levelMapper = new DefaultObservationToPsr3LevelMapper(),
         private string                                 $exceptionKey = ArtifactField::EXCEPTION,
     ) {
     }
@@ -76,24 +78,43 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
      */
     private function extract(ExecutionArtifactInterface $artifact): array
     {
-        if ($artifact instanceof ObservationInterface) {
-            return [
-                ArtifactField::MESSAGE => $artifact->message(),
-                ArtifactField::LEVEL => $this->mapLevel($artifact->severity()->level()),
-                ArtifactField::ATTRIBUTES => $artifact->attributes(),
-                ArtifactField::CORRELATION => [
-                    ArtifactField::EXECUTION_ID => $artifact->executionId()->toString(),
-                    ArtifactField::ACTIVITY_ID => $artifact->activityId()?->toString(),
-                    ArtifactField::OBSERVATION_ID => $artifact->id()->toString(),
-                    ArtifactField::DIAGNOSTIC_CODE => $artifact->diagnosticCode(),
-                    ArtifactField::SEQUENCE => $artifact->sequence(),
-                    ArtifactField::TIMESTAMP => $artifact->timestamp(),
-                    ArtifactField::SEVERITY => $artifact->severity()->label(),
-                ],
-                ArtifactField::THROWABLE => $artifact->throwableDescription()?->toArray(),
-            ];
-        }
+        return $artifact instanceof ObservationInterface
+            ? $this->extractObservation($artifact)
+            : $this->extractDefault($artifact);
+    }
 
+    private function mapLevel(int $level): string
+    {
+        return $this->levelMapper->toLevelFromNumeric($level);
+    }
+
+    /**
+     * @return array{message: string, level: string, attributes: array<array-key, mixed>, correlation: array<string, mixed>, throwable: mixed}
+     */
+    private function extractObservation(ObservationInterface $artifact): array
+    {
+        return [
+            ArtifactField::MESSAGE => $artifact->message(),
+            ArtifactField::LEVEL => $this->mapLevel($artifact->severity()->level()),
+            ArtifactField::ATTRIBUTES => $artifact->attributes(),
+            ArtifactField::CORRELATION => [
+                ArtifactField::EXECUTION_ID => $artifact->executionId()->toString(),
+                ArtifactField::ACTIVITY_ID => $artifact->activityId()?->toString(),
+                ArtifactField::OBSERVATION_ID => $artifact->id()->toString(),
+                ArtifactField::DIAGNOSTIC_CODE => $artifact->diagnosticCode(),
+                ArtifactField::SEQUENCE => $artifact->sequence(),
+                ArtifactField::TIMESTAMP => $artifact->timestamp(),
+                ArtifactField::SEVERITY => $artifact->severity()->label(),
+            ],
+            ArtifactField::THROWABLE => $artifact->throwableDescription()?->toArray(),
+        ];
+    }
+
+    /**
+     * @return array{message: string, level: string, attributes: array<array-key, mixed>, correlation: array<string, mixed>, throwable: mixed}
+     */
+    private function extractDefault(ExecutionArtifactInterface $artifact): array
+    {
         $normalized = $artifact->normalize();
 
         $message = match (true) {
@@ -102,11 +123,13 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
             default => self::KEY_ARTIFACT,
         };
 
-        $level = $normalized[ArtifactField::LEVEL] ?? null;
-        $level = is_int($level) ? $level : 200;
+        $level = is_int($normalized[ArtifactField::LEVEL] ?? null)
+            ? $normalized[ArtifactField::LEVEL]
+            : self::DEFAULT_LEVEL;
 
-        $attributes = $normalized[ArtifactField::ATTRIBUTES] ?? null;
-        $attributes = is_array($attributes) ? $attributes : [];
+        $attributes = is_array($normalized[ArtifactField::ATTRIBUTES] ?? null)
+            ? $normalized[ArtifactField::ATTRIBUTES]
+            : [];
 
         return [
             ArtifactField::MESSAGE => $message,
@@ -123,10 +146,5 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
             ],
             ArtifactField::THROWABLE => $normalized[ArtifactField::THROWABLE] ?? null,
         ];
-    }
-
-    private function mapLevel(int $level): string
-    {
-        return ($this->levelMapper ?? new DefaultObservationToPsr3LevelMapper())->toLevelFromNumeric($level);
     }
 }
