@@ -467,10 +467,12 @@ final class ApiCompat
                     continue;
                 }
 
-                if ($m->isStatic() === false
-                    && $m->getDeclaringClass()->getName() !== $fqn
-                    && $m->getDeclaringClass()->isInternal() === false) {
-                    // skip inherited from non-internal parents to keep the surface focused on the declared API
+                // Skip methods inherited from internal PHP classes (e.g. Exception,
+                // stdClass) since they are part of PHP's API, not this project's.
+                // Methods inherited from project interfaces/classes ARE part of this
+                // project's public API surface and must be recorded so that removing
+                // them from a parent is detected as a compatibility break.
+                if ($m->getDeclaringClass()->isInternal()) {
                     continue;
                 }
                 $params = [];
