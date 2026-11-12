@@ -79,7 +79,7 @@ final class SchedulerEventTest extends TestCase
 
         $event = SchedulerEvent::cancellationObserved($task);
 
-        self::assertSame(SchedulerEventType::Completed, $event->type);
+        self::assertSame(SchedulerEventType::CancellationObserved, $event->type);
         self::assertSame(TaskStatus::Cancelled, $event->status);
     }
 }

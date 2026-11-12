@@ -55,6 +55,6 @@ final readonly class SchedulerEvent implements SchedulerEventInterface
 
     public static function cancellationObserved(TaskInterface $task): self
     {
-        return new self($task, SchedulerEventType::Completed, TaskStatus::Cancelled);
+        return new self($task, SchedulerEventType::CancellationObserved, TaskStatus::Cancelled);
     }
 }
