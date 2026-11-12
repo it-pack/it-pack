@@ -15,7 +15,6 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
-use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
@@ -31,8 +30,6 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
-use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use RuntimeException;
 use Throwable;
 
@@ -179,7 +176,6 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
                 // MeasurementInstrumentMapperInterface contract; unknown kinds
                 // cannot be classified safely. Report the drop and suppress delivery.
                 $this->reportRedactedDrop(
-                    $normalized,
                     'Redacted measurement or unknown artifact kind is not delivered.',
                 );
 
@@ -200,27 +196,18 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
 
         // Fail-open: report the unsupported redacted observation through the
         // health channel and drop it instead of throwing.
-        $this->reportRedactedDrop($normalized, 'Observation mapper does not support redacted observations.');
+        $this->reportRedactedDrop('Observation mapper does not support redacted observations.');
     }
 
     /**
      * Reports a suppressed redacted artifact through the health channel and drops it.
      *
-     * Only a bounded, payload-free identity projection is sent to the health
-     * reporter so no redacted attribute payload leaks through the health channel.
+     * Only a constant, payload-free notice is sent to the health reporter.
      * Health reporter failures are contained so the drop path stays fail-open.
      *
-     * @param array<string, mixed> $normalized
      */
-    private function reportRedactedDrop(array $normalized, string $reason): void
+    private function reportRedactedDrop(string $reason): void
     {
-        $id = is_string($normalized[ArtifactField::ID] ?? null)
-            ? $normalized[ArtifactField::ID]
-            : AttributeValues::REDACTED_ID;
-        if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
-            $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
-        }
-
         if ($this->publishingHealthReport) {
             // Re-entry guard: health reporting must not re-enter the same
             // publication path. Skip the health notice and drop the redacted
@@ -230,20 +217,18 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
 
         try {
             $this->publishingHealthReport = true;
-            $this->health?->report(
-                new RuntimeException($reason),
-                new readonly class ($id) implements ExecutionArtifactInterface {
-                    public function __construct(
-                        private string $id,
-                    ) {
-                    }
+            if (!$this->health instanceof InternalHealthReporterInterface) {
+                error_log('[runit] publication health: ' . $reason);
 
+                return;
+            }
+
+            $this->health->report(
+                new RuntimeException($reason),
+                new readonly class () implements ExecutionArtifactInterface {
                     public function normalize(): array
                     {
-                        return [
-                            'id' => $this->id,
-                            'type' => 'runit.artifact.redacted',
-                        ];
+                        return ['id' => 'redacted', 'type' => 'runit.artifact.redacted'];
                     }
                 },
             );

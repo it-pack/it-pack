@@ -15,7 +15,6 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
-use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use Throwable;
 
 /**
@@ -28,7 +27,7 @@ use Throwable;
  *
  * When `dropRedactedObservations` is enabled and redaction produces a
  * {@see RedactedArtifact} from an observation, the redacted observation is not
- * published: a bounded, payload-free notice (carrying only identity) is reported
+ * published: a constant, payload-free notice is reported
  * through the injected internal health reporter instead. This keeps redacted
  * observations out of every sink while remaining observable through the health
  * channel. A health reporter is required when dropping is enabled; otherwise the
@@ -62,19 +61,11 @@ final readonly class RedactingArtifactPublisher implements
             && $redacted instanceof RedactedArtifactInterface
             && $artifact instanceof ObservationInterface
         ) {
-            $redactedNormalized = $redacted->normalize();
-            $id = is_string($redactedNormalized[ArtifactField::ID] ?? null)
-                ? $redactedNormalized[ArtifactField::ID]
-                : 'redacted';
-            if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
-                $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
-            }
-
             try {
                 $this->health?->report(
                     BoundDropException::forReason('drop-redacted-observation'),
                     new RedactedArtifact([
-                        ArtifactField::ID => $id,
+                        ArtifactField::ID => 'redacted',
                         ArtifactField::TYPE => 'runit.artifact.redacted',
                     ]),
                 );

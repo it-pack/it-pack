@@ -886,9 +886,8 @@ final class RedactingPublisherTest extends Unit
         $reportedArtifact = $reports[0][1];
         self::assertInstanceOf(RedactedArtifact::class, $reportedArtifact);
         $reportedNormalized = $reportedArtifact->normalize();
-        // The health notice carries only a bounded identity projection, not the full
-        // redacted payload, so no attribute secrets can leak through the health channel.
-        self::assertSame('obs-drop', $reportedNormalized['id']);
+        // The notice must not contain an untrusted identifier or artifact payload.
+        self::assertSame('redacted', $reportedNormalized['id']);
         self::assertSame('runit.artifact.redacted', $reportedNormalized['type']);
         self::assertArrayNotHasKey('message', $reportedNormalized);
         self::assertArrayNotHasKey('attributes', $reportedNormalized);

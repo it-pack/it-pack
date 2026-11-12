@@ -28,6 +28,14 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- The maintainer approved the recent API changes and regenerated the API baseline
+  on 2026-11-12. This includes the redacted-artifact type contract and redacted
+  OpenTelemetry span mapper interface methods. Third-party implementations still
+  need migration; approval does not establish downstream compatibility.
+- Redaction truncation, explicit observation drops and OpenTelemetry unsafe-drop
+  health notices no longer include artifact identifiers. OpenTelemetry unsafe
+  drops also emit a fixed error-log message when no health reporter is configured.
+  Health consumers can no longer correlate these notices using the original ID.
 - Redacted artifacts now carry a trusted `artifactType()` signal set by the
   redactor (`RedactedArtifactInterface::artifactType()`), and the OpenTelemetry
   publisher routes redacted artifacts by that signal instead of inferring kind from

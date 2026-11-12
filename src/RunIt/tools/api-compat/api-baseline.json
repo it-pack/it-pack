@@ -2374,6 +2374,11 @@
                         "name": "health",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
                         "optional": true
+                    },
+                    {
+                        "name": "publishingHealthReport",
+                        "type": "bool",
+                        "optional": true
                     }
                 ]
             },
@@ -2439,10 +2444,35 @@
             "OCCURRENCE_TYPE": "public",
             "OCCURRENCE_SOURCE": "public",
             "OCCURRENCE_SUBJECT": "public",
+            "OCCURRENCE_CONTENT_TYPE": "public",
             "SNAPSHOT_ID": "public",
             "SNAPSHOT_TYPE": "public",
             "SNAPSHOT_CLASSIFICATION": "public",
-            "SNAPSHOT_HASH": "public"
+            "SNAPSHOT_HASH": "public",
+            "SNAPSHOT_SCHEMA_VERSION": "public",
+            "SNAPSHOT_CONTENT_TYPE": "public",
+            "SNAPSHOT_PAYLOAD": "public",
+            "REDACTED": "public"
+        },
+        "methods": [],
+        "cases": []
+    },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\AttributeValues": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": {
+            "REDACTED_ID": "public",
+            "REDACTED_TYPE": "public",
+            "REDACTED_SOURCE": "public",
+            "UNKNOWN_CLASSIFICATION": "public",
+            "REDACTED_MARKER": "public",
+            "EMPTY_IDENTITY": "public",
+            "EMPTY_KIND_STATUS": "public",
+            "EMPTY_EXCEPTION_DETAIL": "public",
+            "DEFAULT_EXECUTION_NAME": "public",
+            "DEFAULT_ACTIVITY_NAME": "public"
         },
         "methods": [],
         "cases": []
@@ -5624,6 +5654,11 @@
                         "name": "config",
                         "type": "ItPack\\RunIt\\Application\\Publication\\ArtifactRedactionConfig",
                         "optional": true
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -6733,12 +6768,22 @@
                         "name": "normalized",
                         "type": "array",
                         "optional": false
+                    },
+                    {
+                        "name": "artifactType",
+                        "type": "string",
+                        "optional": true
                     }
                 ]
             },
             "normalize": {
                 "static": false,
                 "return": "array",
+                "params": []
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
                 "params": []
             }
         },
@@ -11319,6 +11364,11 @@
         },
         "constants": [],
         "methods": {
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
             "normalize": {
                 "static": false,
                 "return": "array",
@@ -16980,6 +17030,15 @@
             "BackedEnum": "BackedEnum"
         },
         "constants": {
+            "LEVEL_TRACE": "public",
+            "LEVEL_DEBUG": "public",
+            "LEVEL_INFO": "public",
+            "LEVEL_NOTICE": "public",
+            "LEVEL_WARNING": "public",
+            "LEVEL_ERROR": "public",
+            "LEVEL_CRITICAL": "public",
+            "LEVEL_ALERT": "public",
+            "LEVEL_EMERGENCY": "public",
             "Trace": "public",
             "Debug": "public",
             "Info": "public",

@@ -15,7 +15,6 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
-use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use RuntimeException;
 use Throwable;
 
@@ -132,7 +131,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
         }
 
         if ($truncated && $this->health instanceof InternalHealthReporterInterface) {
-            $this->reportTruncation($normalized);
+            $this->reportTruncation();
         }
 
         return new RedactedArtifact($normalized, $this->artifactType($artifact));
@@ -537,9 +536,8 @@ final class DefaultArtifactRedactor implements RedactorInterface
      * reporter failures are contained so truncation reporting never changes the
      * business result.
      *
-     * @param array<string, mixed> $normalized
      */
-    private function reportTruncation(array $normalized): void
+    private function reportTruncation(): void
     {
         if ($this->publishingHealthReport) {
             // Re-entry guard: health reporting must not re-enter the same
@@ -554,20 +552,13 @@ final class DefaultArtifactRedactor implements RedactorInterface
             return;
         }
 
-        $id = is_string($normalized[ArtifactField::ID] ?? null)
-            ? $normalized[ArtifactField::ID]
-            : 'redacted';
-        if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
-            $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
-        }
-
         try {
             $this->publishingHealthReport = true;
             $this->truncationReported = true;
             $this->health?->report(
                 new RuntimeException('Artifact redaction traversal limits exceeded; sensitive data was truncated.'),
                 new RedactedArtifact([
-                    ArtifactField::ID => $id,
+                    ArtifactField::ID => 'redacted',
                     ArtifactField::TYPE => 'runit.artifact.redacted',
                 ]),
             );

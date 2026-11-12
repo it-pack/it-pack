@@ -470,8 +470,8 @@ final class TelemetryPublisherTest extends Unit
     {
         $reports = [];
         $health = new CallbackHealthReporter(
-            static function (Throwable $error) use (&$reports): void {
-                $reports[] = $error;
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+                $reports[] = [$error, $artifact->normalize()];
             },
         );
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
@@ -487,15 +487,46 @@ final class TelemetryPublisherTest extends Unit
             $health,
         );
 
-        $redacted = new RedactedArtifact(['id' => 'unknown-1'], 'unknown');
+        $redacted = new RedactedArtifact(['id' => 'secret-id', 'message' => 'secret-payload'], 'unknown');
         self::assertSame('unknown', $redacted->artifactType());
 
         $publisher->publish($redacted);
 
         self::assertCount(1, $reports);
-        self::assertInstanceOf(RuntimeException::class, $reports[0]);
-        self::assertSame('Redacted measurement or unknown artifact kind is not delivered.', $reports[0]->getMessage());
+        self::assertInstanceOf(RuntimeException::class, $reports[0][0]);
+        self::assertSame(
+            'Redacted measurement or unknown artifact kind is not delivered.',
+            $reports[0][0]->getMessage(),
+        );
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0][1]);
         self::assertCount(0, $this->kit->logs(), 'No unknown redacted artifact is exported.');
+    }
+
+    /** Unsafe drops without a health reporter are visible without logging artifact data. */
+    public function testUnsafeDropFallsBackToErrorLogWithoutPayload(): void
+    {
+        $log = tempnam(sys_get_temp_dir(), 'runit-health-');
+        self::assertNotFalse($log);
+        $previous = ini_set('error_log', $log);
+        try {
+            TelemetryPublisher::fromConfig(BridgeConfig::default())
+                ->publish(new RedactedArtifact(['id' => 'secret-id', 'message' => 'secret-payload'], 'unknown'))
+            ;
+            $contents = file_get_contents($log);
+            self::assertIsString($contents);
+            self::assertStringContainsString(
+                'Redacted measurement or unknown artifact kind is not delivered.',
+                $contents,
+            );
+            self::assertStringNotContainsString('secret-id', $contents);
+            self::assertStringNotContainsString('secret-payload', $contents);
+        } finally {
+            if ($previous !== false) {
+                ini_set('error_log', $previous);
+            }
+
+            unlink($log);
+        }
     }
 
     /** A throwing health reporter is contained; publish() returns normally and the business result is unchanged. */

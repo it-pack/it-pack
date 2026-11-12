@@ -20,6 +20,12 @@ verification. The unchecked design details below must still be resolved where ap
 
 - [x] **API identity:** Retain `ContextTokenInterface::id(): int` as an explicitly approved breaking contract. Update the API baseline and changelog and migrate affected ItPack implementations. The storage-defined value is stable for the token lifetime but is not necessarily unique; detachment must not rely on it alone.
 - [x] **Compatibility baseline:** Keep the API checker strict and the committed API and normalization-schema snapshots as comparison points. A deliberate contract change requires maintainer approval and coordinated migration of affected consumers: review the contract diff, run relevant RunIt and downstream checks against the changed checkout, update snapshots only after approval, record the change in the changelog, and coordinate split releases where necessary.
+- [x] **Recent API changes:** The maintainer approved the recent API changes and
+  regenerated the API baseline on 2026-11-12, including the redacted-artifact
+  type contract and the OpenTelemetry redacted span mapper interface methods.
+  The regenerated baseline also records the additive API changes in its diff.
+  Approval does not establish downstream compatibility or approve future changes;
+  affected consumers still require migration and relevant downstream checks.
 - [x] **Throwable redaction defaults:** Make redaction configurable. By default, mask throwable messages at every cause depth and omit traces; permit trace export only through explicit configuration. Preserve bounded processing and document the security implications of opting in.
 - [x] **Sampling and redaction order:** Make the order configurable, with redaction before sampling by default. Sampling first must be an explicit choice documented as exposing unredacted artifacts to samplers. Preserve built-in type-dependent sampling behavior when redaction happens first.
 - [x] **Throwable metadata:** Preserve throwable class names and error codes by default for diagnosis, with configuration to remove or mask them where required.
@@ -32,6 +38,59 @@ verification. The unchecked design details below must still be resolved where ap
 - [x] **Coding standards principle:** Keep existing enforced conventions and adopt additional rules only when useful, with focused exceptions. Do not impose blanket factory-only construction or interface creation. Reconcile individual rules, including member ordering, with `docs/QA.md` before changing or adding enforcement; avoid unnecessary public API changes.
 
 **Open design details:**
+- Current Phase 2 provenance investigation: built-in identifiers accept arbitrary
+  caller-provided strings, and the SDK requires a caller-provided identifier
+  generator. Even built-in ID and artifact classes therefore do not establish a
+  safe source; CloudEvents imports external identifiers into those same classes.
+  A UUID-shaped value is not proof of origin. No compatible end-to-end provenance
+  mechanism or representative delivery-loss measurement has been established.
+  Preserve existing delivery pending an approved identity and migration policy;
+  current redaction does not guarantee unclassified data is excluded from samplers
+  or sinks. OpenTelemetry unsafe-drop notices now use a constant placeholder and
+  fall back to a fixed error-log message without a reporter. Explicit observation
+  drop reporting still needs a re-entry guard and comprehensive fallback review.
+- [ ] **Phase 2 identifier provenance candidate (unapproved):** Introduce an
+  SDK-owned issuance authority that generates fresh opaque identifiers using its
+  own controlled randomness and records their kind and an unforgeable in-process
+  issuance handle. A value's spelling, concrete class, generator interface, or a
+  caller's assertion does not establish provenance. At publication, a trusted
+  projection consults the authority using the handle and verifies that the
+  identifier and its role match the issuance record; copying a string into a new
+  identifier does not transfer trust. The handle is not serialized or exported.
+  The exact encapsulation and compatibility-safe API require review.
+
+  Record execution, parent, activity and other relationship bindings when the SDK
+  creates them, against issued handles and their expected roles. Only export a
+  relationship after verifying both endpoints and the recorded binding; a safe
+  identifier alone does not prove a claimed relationship. External artifacts and
+  identifiers, including CloudEvents imports, start unknown. Custom generators
+  remain supported for existing behavior but their output is not trusted merely
+  because they implement the port. A candidate import boundary may instead issue
+  new local identifiers and record locally verified bindings; it must not export
+  or derive those identifiers from unclassified external values. Cross-process
+  continuity would require a separately approved authenticated import protocol.
+
+  Scope records to an execution and its outstanding publication work, retain
+  them through asynchronous delivery, and release them after completion or
+  bounded expiry; cap storage and treat missing, expired, conflicting or
+  unverifiable records as unknown rather than trusting a reused value. Define
+  ownership, concurrency and overflow behavior before implementation. Use the
+  same issued execution identity for its artifacts and sampling decisions so
+  redaction-first sampling remains correlated; do not fall back to hashing an
+  unknown raw identifier. Under the already approved execution-ID rule, report
+  and drop when that identity is unknown, even if the sampling decision is lost.
+  Other unknown identifiers or relationships require an explicit field-specific
+  omit, remap or drop-and-report decision, subject to required contracts; never
+  silently pass them to a sampler or sink in the proposed safe path.
+
+  This is a design candidate, not an approved policy or a description of current
+  behavior. Existing delivery and interfaces remain unchanged pending maintainer
+  approval. Before adoption, measure delivery loss and retention costs on
+  representative workloads, review custom-generator and import migration and
+  required schema/API changes, and run the contract-diff and downstream checks
+  required by the compatibility decision above. Update snapshots only after
+  approval, document migration and coordinate releases; test forgery, role and
+  relationship substitution, expiry, concurrency, sampling and failure paths.
 - [x] For Phase 2 unsafe-mapping drops, use a guarded, payload-free error-log
   fallback when no health callback is configured; contain reporter failures.
   Execution IDs that cannot be established safe must cause a reported drop,
