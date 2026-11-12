@@ -36,7 +36,12 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 - **Breaking:** `RedactedArtifactInterface` now requires `artifactType(): string`.
   Third-party implementations of the interface must add the method before upgrading
   or they will fatal-error. Adapters must route redacted artifacts by this trusted
-  signal rather than inferring type from user-controlled normalized fields.
+  signal rather than inferring type from user-controlled normalized fields. Custom
+  redactors constructing `RedactedArtifact` must pass an explicit artifact type:
+  one-argument construction defaults to `'unknown'`, and OpenTelemetry reports and
+  drops redacted artifacts whose type is not one of the recognized kinds rather
+  than delivering them. Trusted-type dispatch is preserved; field-based inference
+  is not reintroduced.
 - Redacted measurements are reported through the health channel and dropped, where
   previously they were dropped without a report, since there is no typed redacted
   measurement mapper. Third-party redacted projections with no trusted type signal
