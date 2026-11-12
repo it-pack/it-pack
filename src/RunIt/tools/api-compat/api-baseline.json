@@ -1213,6 +1213,29 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\Null\\NullSnapshotStore": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface": "ItPack\\RunIt\\Contract\\Port\\SnapshotStoreInterface"
+        },
+        "constants": [],
+        "methods": {
+            "store": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "snapshot",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\SnapshotInterface",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\OpenTelemetry\\BridgeCapability": {
         "kind": "class",
         "final": true,
@@ -1512,6 +1535,17 @@
                         "optional": false
                     }
                 ]
+            },
+            "mapRedactedActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -1572,6 +1606,17 @@
                     {
                         "name": "execution",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedExecution": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
                         "optional": false
                     }
                 ]
@@ -1776,6 +1821,27 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedObservationLogMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "mapRedactedObservation": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\SeverityMapInterface": {
         "kind": "interface",
         "final": false,
@@ -1932,7 +1998,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ObservationLogMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ObservationLogMapperInterface"
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ObservationLogMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ObservationLogMapperInterface",
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedObservationLogMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedObservationLogMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -1964,6 +2031,17 @@
                     {
                         "name": "observation",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedObservation": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
                         "optional": false
                     }
                 ]
@@ -2291,6 +2369,11 @@
                         "name": "occurrenceMapper",
                         "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\OccurrenceLogMapperInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -2306,6 +2389,11 @@
                     {
                         "name": "store",
                         "type": "null|ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\ExecutionSpanStoreInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
                         "optional": true
                     }
                 ]
@@ -2518,6 +2606,17 @@
                     }
                 ]
             },
+            "mapRedactedActivity": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
             "__construct": {
                 "static": false,
                 "return": null,
@@ -2563,6 +2662,17 @@
                     {
                         "name": "execution",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedExecution": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
                         "optional": false
                     }
                 ]
@@ -4839,6 +4949,16 @@
                         "name": "redactSnapshotPayloads",
                         "type": "bool",
                         "optional": true
+                    },
+                    {
+                        "name": "redactObservationMessages",
+                        "type": "bool",
+                        "optional": true
+                    },
+                    {
+                        "name": "redactMeasurementValues",
+                        "type": "bool",
+                        "optional": true
                     }
                 ]
             },
@@ -6648,6 +6768,16 @@
                         "name": "inner",
                         "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "dropRedactedObservations",
+                        "type": "bool",
+                        "optional": true
                     }
                 ]
             },

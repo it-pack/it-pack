@@ -89,21 +89,38 @@ final readonly class DefaultObservationLogMapper implements
             return;
         }
 
-        $message = $normalized[ArtifactField::MESSAGE] ?? $normalized[ArtifactField::NAME] ?? '';
-        $level = $normalized[ArtifactField::LEVEL] ?? $normalized[ArtifactField::SEVERITY] ?? 0;
-        $timestamp = $normalized[ArtifactField::TIMESTAMP] ?? 0;
+        $message = match (true) {
+            is_string($normalized[ArtifactField::MESSAGE]) => $normalized[ArtifactField::MESSAGE],
+            is_string($normalized[ArtifactField::NAME]) => $normalized[ArtifactField::NAME],
+            default => '',
+        };
 
-        $otelAttributes = $this->buildOtelAttributes($normalized);
+        $level = match (true) {
+            is_int($normalized[ArtifactField::LEVEL]) => $normalized[ArtifactField::LEVEL],
+            is_int($normalized[ArtifactField::SEVERITY] ?? null) => $normalized[ArtifactField::SEVERITY],
+            default => 0,
+        };
+
+        $timestamp = is_int($normalized[ArtifactField::TIMESTAMP] ?? null)
+            ? $normalized[ArtifactField::TIMESTAMP]
+            : 0;
+
+        /** @var array<string, mixed> $otelAttributes */
+        $otelAttributes = $this->buildRedactedObservationAttributes($normalized);
+
+        // Free-form attributes are suppressed entirely in redacted observations: they
+        // are caller-controlled and cannot be classified safe without redaction config.
+        // Only the validated identity/correlation fields above are exported.
 
         $this->appendThrowableAttributes($otelAttributes, $normalized[ArtifactField::THROWABLE] ?? null);
 
         if ($this->loggerProvider instanceof LoggerProviderInterface) {
             $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE)
                 ->logRecordBuilder()
-                ->setTimestamp(is_int($timestamp) ? $timestamp * Duration::NANOS_PER_SECOND : 0)
-                ->setSeverityNumber($this->severityLevelToNumber(is_int($level) ? $level : 0))
-                ->setSeverityText($this->severityLevelToText(is_int($level) ? $level : 0))
-                ->setBody(is_string($message) ? $message : '')
+                ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
+                ->setSeverityNumber($this->severityLevelToNumber($level))
+                ->setSeverityText($this->severityLevelToText($level))
+                ->setBody($message)
                 ->setAttributes($otelAttributes)
                 ->emit()
             ;
@@ -115,23 +132,40 @@ final readonly class DefaultObservationLogMapper implements
     }
 
     /**
-     * @param array<mixed, mixed> $normalized
+     * Builds the classified, safe attribute set for a redacted observation projection.
+     *
+     * Only identity and correlation fields that can be established safe are exported;
+     * free-form attributes are suppressed entirely.
+     *
+     * @param array<string, mixed> $normalized
      * @return array<string, mixed>
      */
-    private function buildOtelAttributes(array $normalized): array
+    private function buildRedactedObservationAttributes(array $normalized): array
     {
-        $idValue = $normalized[ArtifactField::ID] ?? '';
-        $observationId = is_string($idValue) ? $idValue : '';
-        $execValue = $normalized[ArtifactField::EXECUTION_ID] ?? '';
-        $executionId = is_string($execValue) ? $execValue : '';
+        /** @var array<string, mixed> $attributes */
+        $attributes = [];
 
-        return $this->buildObservationAttributes(
-            $observationId,
-            $executionId,
-            $normalized[ArtifactField::ACTIVITY_ID] ?? null,
-            $normalized[ArtifactField::DIAGNOSTIC_CODE] ?? null,
-            is_array($normalized[ArtifactField::ATTRIBUTES] ?? null) ? $normalized[ArtifactField::ATTRIBUTES] : [],
-        );
+        $id = $normalized[ArtifactField::ID] ?? null;
+        if (is_string($id)) {
+            $attributes[AttributeKeys::OBSERVATION_ID] = $id;
+        }
+
+        $executionId = $normalized[ArtifactField::EXECUTION_ID] ?? null;
+        if (is_string($executionId)) {
+            $attributes[AttributeKeys::EXECUTION_ID] = $executionId;
+        }
+
+        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
+        if (is_string($activityId)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
+        }
+
+        $diagnosticCode = $normalized[ArtifactField::DIAGNOSTIC_CODE] ?? null;
+        if (is_string($diagnosticCode)) {
+            $attributes[AttributeKeys::DIAGNOSTIC_CODE] = $diagnosticCode;
+        }
+
+        return $attributes;
     }
 
     /**

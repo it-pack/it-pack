@@ -275,7 +275,6 @@ final class OccurrenceLogMapperTest extends Unit
             'type' => 'payment.captured.v1',
             'source' => 'test/source',
             'execution_id' => 'exec-9',
-            'subject' => 'user-42',
             'activity_id' => 'act-9',
             'extension_attributes' => ['tenantflag' => 'on'],
             'time' => 1_600,
@@ -298,7 +297,6 @@ final class OccurrenceLogMapperTest extends Unit
             'runit.occurrence.source' => 'test/source',
             'runit.execution.id' => 'exec-9',
             'runit.redacted' => true,
-            'runit.occurrence.subject' => 'user-42',
             'runit.activity.id' => 'act-9',
         ], $record->getAttributes()->toArray());
     }
@@ -334,7 +332,7 @@ final class OccurrenceLogMapperTest extends Unit
         self::assertSame('runit.occurrence', $events[0]->getName());
         $eventAttributes = $events[0]->getAttributes()->toArray();
         self::assertSame('occ-span-event', $eventAttributes['runit.occurrence.id']);
-        self::assertSame('user-42', $eventAttributes['runit.occurrence.subject']);
+        self::assertArrayNotHasKey('runit.occurrence.subject', $eventAttributes);
         self::assertSame('act-9', $eventAttributes['runit.activity.id']);
         self::assertArrayNotHasKey('tenantflag', $eventAttributes);
         self::assertArrayNotHasKey('secret', $eventAttributes);

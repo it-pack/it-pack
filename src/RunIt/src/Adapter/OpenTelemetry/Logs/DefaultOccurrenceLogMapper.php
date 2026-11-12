@@ -163,21 +163,18 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             'runit.redacted' => true,
         ];
 
-        $subject = $normalized[ArtifactField::SUBJECT] ?? null;
-        if (is_string($subject)) {
-            $attributes[AttributeKeys::OCCURRENCE_SUBJECT] = $subject;
-        }
-
         $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
         if (is_string($activityId)) {
             $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
         }
 
-        // Extension attributes from redacted occurrences are intentionally not
-        // re-exported: they may contain secrets, and export is governed by the
-        // configured occurrenceLogAttributeAllowList instead of upstream redaction.
-        // This is a breaking change versus previous versions that re-exported them;
-        // reconfigure the allow-list if those fields are needed.
+        // The subject of a redacted occurrence is an unclassified, caller-controlled
+        // string and is deliberately omitted from the suppressed delivery. Extension
+        // attributes from redacted occurrences are intentionally not re-exported:
+        // they may contain secrets. Unlike mapOccurrence(), mapRedactedOccurrence()
+        // does not consult occurrenceLogAttributeAllowList, so redacted extension
+        // attributes cannot be restored through that setting.
+        // This is a breaking change versus previous versions that re-exported them.
 
         $this->emit(
             'runit.occurrence',

@@ -20,8 +20,6 @@ use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
-use ItPack\RunIt\Application\Publication\FailOpenPolicy;
-use ItPack\RunIt\Application\Publication\FailSafeArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Activity\Activity;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
@@ -380,12 +378,21 @@ final class TelemetryPublisherTest extends Unit
         self::assertCount(1, $this->kit->logs());
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(2, $events);
-        self::assertSame('[redacted]', $events[1]->getAttributes()->get('password'));
+        // The typed observation passes its attributes through; the redacted
+        // observation suppresses its free-form attribute map entirely.
+        self::assertSame('secret', $events[0]->getAttributes()->get('password'));
+        self::assertArrayNotHasKey('password', $events[1]->getAttributes()->toArray());
     }
 
-    /** Unsupported redacted observations reach health reporting without unredacted fallback. */
-    public function testLegacyObservationMapperReportsRedactedProjection(): void
+    /** Unsupported redacted observations are reported via health and dropped, never thrown. */
+    public function testUnsupportedRedactedObservationReportsViaHealthAndDrops(): void
     {
+        $reports = [];
+        $health = new CallbackHealthReporter(
+            static function (Throwable $error) use (&$reports): void {
+                $reports[] = $error;
+            },
+        );
         $mapper = $this->createMock(ObservationLogMapperInterface::class);
         $mapper->expects($this->once())->method('map');
         $publisher = new TelemetryPublisher(
@@ -395,22 +402,19 @@ final class TelemetryPublisherTest extends Unit
             $this->createMock(MeasurementInstrumentMapperInterface::class),
             $mapper,
             $this->createMock(OccurrenceLogMapperInterface::class),
+            $health,
         );
         $observation = RunItArtifactFactory::observation('obs', 'exec', 'info', 'secret');
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig())->redact($observation);
         self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
-        $errors = [];
-        $safePublisher = new FailSafeArtifactPublisher(
-            $publisher,
-            new FailOpenPolicy(),
-            new CallbackHealthReporter(static function (Throwable $error) use (&$errors): void {
-                $errors[] = $error;
-            }),
-        );
-        $safePublisher->publish($redacted);
-        self::assertCount(1, $errors);
-        self::assertInstanceOf(RuntimeException::class, $errors[0]);
-        self::assertSame('Observation mapper does not support redacted observations.', $errors[0]->getMessage());
+
+        $publisher->publish($redacted);
+
+        self::assertCount(1, $reports);
+        self::assertInstanceOf(RuntimeException::class, $reports[0]);
+        self::assertSame('Observation mapper does not support redacted observations.', $reports[0]->getMessage());
+        self::assertCount(0, $this->kit->logs(), 'No redacted observation is exported.');
+
         $publisher->publish($observation);
     }
 
@@ -590,7 +594,7 @@ final class TelemetryPublisherTest extends Unit
         $attributes = $record->getAttributes()->toArray();
         self::assertSame('occ-characterized', $attributes['runit.occurrence.id']);
         self::assertTrue($attributes['runit.redacted']);
-        self::assertSame('synthetic-subject-secret', $attributes['runit.occurrence.subject']);
+        self::assertArrayNotHasKey('runit.occurrence.subject', $attributes);
         self::assertArrayNotHasKey('allowed', $attributes);
         self::assertArrayNotHasKey('excluded', $attributes);
         self::assertArrayNotHasKey('runit.occurrence.content_type', $attributes);
@@ -598,10 +602,7 @@ final class TelemetryPublisherTest extends Unit
         $events = $this->kit->spans()[0]->getEvents();
         self::assertCount(1, $events);
         self::assertSame('runit.occurrence', $events[0]->getName());
-        self::assertSame(
-            'synthetic-subject-secret',
-            $events[0]->getAttributes()->toArray()['runit.occurrence.subject'],
-        );
+        self::assertArrayNotHasKey('runit.occurrence.subject', $events[0]->getAttributes()->toArray());
         self::assertArrayNotHasKey('excluded', $events[0]->getAttributes()->toArray());
     }
 
