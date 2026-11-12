@@ -85,6 +85,7 @@ final class AsyncRuntimeTest extends TestCase
     {
         $capability = $this->runtime()->capability();
 
+        self::assertInstanceOf(EngineCapability::class, $capability);
         self::assertTrue($capability->supportsFibers);
         // Swoole is available: BlockingHook = AdapterOnly → supportsCoroutines = true
         self::assertTrue($capability->supportsCoroutines);

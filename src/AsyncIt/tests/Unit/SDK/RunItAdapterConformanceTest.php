@@ -16,6 +16,7 @@ use ItPack\RunIt\Conformance\Fixture\RunItPortFixture;
 use ItPack\RunIt\Conformance\Verifier\ArtifactPublisherVerifier;
 use ItPack\RunIt\Conformance\Verifier\ContextStorageVerifier;
 use ItPack\RunIt\Conformance\Verifier\MonotonicClockVerifier;
+use ItPack\RunIt\Contract\Application\EngineCapability;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -68,6 +69,8 @@ final class RunItAdapterConformanceTest extends TestCase
         $value = $runtime->run(new ReferenceExecutionScope('e'), static fn (): int => 99);
 
         self::assertSame(99, $value);
-        self::assertTrue($runtime->capability()->supportsFibers);
+        $capability = $runtime->capability();
+        self::assertInstanceOf(EngineCapability::class, $capability);
+        self::assertTrue($capability->supportsFibers);
     }
 }

@@ -152,11 +152,11 @@ final readonly class TelemetryPublisher implements ArtifactPublisherInterface
             }
 
             if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
-                if ($this->observationMapper instanceof RedactedObservationLogMapperInterface) {
-                    $this->observationMapper->mapRedactedObservation($normalized);
-                } else {
+                if (!$this->observationMapper instanceof RedactedObservationLogMapperInterface) {
                     throw new RuntimeException('Observation mapper does not support redacted observations.');
                 }
+
+                $this->observationMapper->mapRedactedObservation($normalized);
 
                 return;
             }
