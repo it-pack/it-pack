@@ -4,17 +4,6 @@ declare(strict_types=1);
 
 namespace Tools\ApiCompat;
 
-
-use FilesystemIterator;
-use JsonException;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use ReflectionEnum;
-use ReflectionException;
-use ReflectionMethod;
-use ReflectionNamedType;
-use ReflectionType;
-use ReflectionUnionType;
 use function array_diff;
 use function array_keys;
 use function array_map;
@@ -26,16 +15,30 @@ use function explode;
 use const false;
 
 use function file_get_contents;
+
+use FilesystemIterator;
+
 use function implode;
 use function in_array;
 use function interface_exists;
 use function is_a;
 use function is_subclass_of;
 use function json_encode;
+
+use JsonException;
+
 use function ksort;
 
 use const PHP_EOL;
 
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ReflectionEnum;
+use ReflectionException;
+use ReflectionMethod;
+use ReflectionNamedType;
+use ReflectionType;
+use ReflectionUnionType;
 use RuntimeException;
 
 use function sort;
@@ -437,7 +440,11 @@ final class ApiCompat
             }
 
             $entry = [
-                'kind' => $rc->isInterface() ? 'interface' : ($rc->isEnum() ? 'enum' : 'class'),
+                'kind' => match (true) {
+                    $rc->isInterface() => 'interface',
+                    $rc->isEnum() => 'enum',
+                    default => 'class',
+                },
                 'final' => $rc->isFinal(),
                 'extends' => $rc->getParentClass() !== false ? $rc->getParentClass()->getName() : null,
                 'implements' => array_map(
@@ -464,8 +471,8 @@ final class ApiCompat
                     && $m->getDeclaringClass()->getName() !== $fqn
                     && $m->getDeclaringClass()->isInternal() === false) {
                     // skip inherited from non-internal parents to keep the surface focused on the declared API
+                    continue;
                 }
-
                 $params = [];
 
                 foreach ($m->getParameters() as $p) {

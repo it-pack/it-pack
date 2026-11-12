@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Tool\ApiCompat;
 
-use Tools\ApiCompat\ApiCompat;
-
 use function dirname;
+
+use Tools\ApiCompat\ApiCompat;
 
 $autoloader = dirname(__DIR__, 2) . '/vendor/autoload.php';
 

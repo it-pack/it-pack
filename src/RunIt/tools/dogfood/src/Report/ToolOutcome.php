@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tools\Dogfood\Report;
 
-use Tools\Dogfood\Tool\DevTool;
 use Tools\Dogfood\Process\ProcessResult;
+use Tools\Dogfood\Tool\DevTool;
 
 /**
  * The recorded outcome of one dogfood tool run.
