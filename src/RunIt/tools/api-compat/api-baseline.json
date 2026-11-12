@@ -3683,7 +3683,7 @@
                     },
                     {
                         "name": "levelMapper",
-                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface",
+                        "type": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface",
                         "optional": true
                     },
                     {
@@ -17376,12 +17376,15 @@
             "ID": "public",
             "CONTEXT": "public",
             "ATTRIBUTES": "public",
+            "EXCEPTION": "public",
             "THROWABLE": "public",
             "DATA": "public",
             "PAYLOAD": "public",
             "MESSAGE": "public",
+            "CORRELATION": "public",
             "EXECUTION_ID": "public",
             "ACTIVITY_ID": "public",
+            "OBSERVATION_ID": "public",
             "PARENT_EXECUTION_ID": "public",
             "LINKED_EXECUTION_IDS": "public",
             "PARENT_ACTIVITY_ID": "public",
