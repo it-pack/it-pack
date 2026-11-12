@@ -11,6 +11,8 @@ use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
+use Throwable;
 
 /**
  * Artifact publisher that drops artifacts the sampling policy rejects.
@@ -22,17 +24,19 @@ use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class SamplingArtifactPublisher implements
+final class SamplingArtifactPublisher implements
     ArtifactPublisherInterface,
     FlushablePublisherInterface,
     CloseablePublisherInterface
 {
     use DelegatesPublisherLifecycleBehavior;
 
+    private bool $publishingHealthReport = false;
+
     public function __construct(
-        private SamplingPolicyInterface          $policy,
-        private ArtifactPublisherInterface       $inner,
-        private ?InternalHealthReporterInterface $health = null,
+        private readonly SamplingPolicyInterface          $policy,
+        private readonly ArtifactPublisherInterface       $inner,
+        private readonly ?InternalHealthReporterInterface $health = null,
     ) {
     }
 
@@ -44,7 +48,21 @@ final readonly class SamplingArtifactPublisher implements
             return;
         }
 
-        $this->health?->report(SamplingDropException::forArtifact(), $artifact);
+        if (!$this->health instanceof InternalHealthReporterInterface || $this->publishingHealthReport) {
+            return;
+        }
+
+        try {
+            $this->publishingHealthReport = true;
+            $this->health->report(SamplingDropException::forArtifact(), new RedactedArtifact([
+                ArtifactField::ID => 'redacted',
+                ArtifactField::TYPE => 'runit.artifact.redacted',
+            ]));
+        } catch (Throwable) {
+            // Health reporting must not expose the original artifact through failure recovery.
+        } finally {
+            $this->publishingHealthReport = false;
+        }
     }
 
 }

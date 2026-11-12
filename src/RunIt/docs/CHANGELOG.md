@@ -28,6 +28,16 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Explicit redacted-observation drop reporting now suppresses recursive reports
+  from the same publisher and resets its guard after reporter failures. The
+  publisher is no longer declared `readonly`; reflection-based consumers may
+  observe this change. Concurrent interleaving can suppress an independent
+  report while another report is in progress.
+- Sampling-drop health reports now contain a fixed, payload-free placeholder
+  rather than the rejected artifact; reporters relying on its identity or fields
+  must migrate. Recursive and throwing reporters are contained. The sampling
+  publisher is also no longer `readonly`, and its per-instance guard has the
+  same concurrent-interleaving limitation.
 - The maintainer approved the recent API changes and regenerated the API baseline
   on 2026-11-12. This includes the redacted-artifact type contract and redacted
   OpenTelemetry span mapper interface methods. Third-party implementations still

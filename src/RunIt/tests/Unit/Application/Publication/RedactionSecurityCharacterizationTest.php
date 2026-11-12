@@ -6,7 +6,6 @@ namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
-use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
@@ -28,7 +27,9 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\Instant;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use PHPUnit\Framework\Attributes\CoversClass;
+use RuntimeException;
 use Tests\Support\Fixture\SensitiveExceptionChain;
+use Throwable;
 
 /**
  * Characterizes the current publication security boundary.
@@ -46,8 +47,11 @@ use Tests\Support\Fixture\SensitiveExceptionChain;
 #[CoversClass(SamplingArtifactPublisher::class)]
 final class RedactionSecurityCharacterizationTest extends Unit
 {
-    private function redactor(?array $sensitiveAttributeKeys = null, bool $redactObservationMessages = true): DefaultArtifactRedactor
-    {
+    /** @param list<string>|null $sensitiveAttributeKeys */
+    private function redactor(
+        ?array $sensitiveAttributeKeys = null,
+        bool $redactObservationMessages = true,
+    ): DefaultArtifactRedactor {
         return new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveAttributeKeys: $sensitiveAttributeKeys ?? [],
             redactThrowableMessages: true,
@@ -76,6 +80,7 @@ final class RedactionSecurityCharacterizationTest extends Unit
 
         /** @var array<string, mixed> $normalized */
         $normalized = $sink->published()[0]->normalize();
+        self::assertIsArray($normalized['attributes']);
         // 'api_key' is not a configured sensitive key, so it is not classified
         // and reaches the sink unchanged.
         self::assertSame('sk-live-secret', $normalized['attributes']['api_key']);
@@ -124,6 +129,7 @@ final class RedactionSecurityCharacterizationTest extends Unit
 
         /** @var array<string, mixed> $normalized */
         $normalized = $sink->published()[0]->normalize();
+        self::assertIsArray($normalized['data']);
         self::assertSame('4111-1111-1111-1111', $normalized['data']['credit_card']);
         self::assertSame('alice', $normalized['data']['user']);
         self::assertSame($before, $original->normalize(), 'The original occurrence is unchanged.');
@@ -144,17 +150,18 @@ final class RedactionSecurityCharacterizationTest extends Unit
 
         /** @var array<string, mixed> $normalized */
         $normalized = $sink->published()[0]->normalize();
+        self::assertIsArray($normalized['attributes']);
         // Measurement values are opt-in (redactMeasurementValues defaults false),
         // so the value and unclassified attributes reach the sink unchanged.
         self::assertSame(42, $normalized['value']);
         self::assertSame('sk-live-secret', $normalized['attributes']['api_key']);
     }
 
-    public function testSamplingDropReportsTheArtifactToHealthStandalone(): void
+    public function testSamplingDropReportsPayloadFreeNoticeToHealthStandalone(): void
     {
         $reports = [];
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
                 $reports[] = [$error, $artifact];
             },
         );
@@ -172,14 +179,15 @@ final class RedactionSecurityCharacterizationTest extends Unit
 
         self::assertCount(0, $sink->published(), 'The dropped artifact never reaches the sink.');
         self::assertCount(1, $reports, 'The sampling drop is reported through the health channel.');
-        self::assertSame($original, $reports[0][1], 'Standalone sampling reports the original artifact to health.');
+        self::assertNotSame($original, $reports[0][1]);
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0][1]->normalize());
     }
 
-    public function testComposedStackSamplingDropReportsRedactedNotOriginal(): void
+    public function testComposedStackSamplingDropReportsPayloadFreeNotice(): void
     {
         $reports = [];
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
                 $reports[] = [$error, $artifact];
             },
         );
@@ -209,19 +217,15 @@ final class RedactionSecurityCharacterizationTest extends Unit
 
         self::assertCount(0, $sink->published(), 'Nothing reaches the sink when sampling drops everything.');
         self::assertCount(1, $reports, 'The sampling drop is reported through the health channel.');
-        /** @var array<string, mixed> $reported */
-        $reported = $reports[0][1]->normalize();
-        // In the composed stack the sampler sees the redacted artifact, so the
-        // health report carries the masked attributes, not the original secrets.
-        self::assertSame('[redacted]', $reported['attributes']['password']);
-        self::assertSame('alice', $reported['attributes']['user']);
+        self::assertNotSame($original, $reports[0][1]);
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0][1]->normalize());
     }
 
     public function testDropRedactedObservationReportsPayloadFreeIdentityOnly(): void
     {
         $reports = [];
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (&$reports): void {
                 $reports[] = [$error, $artifact];
             },
         );
@@ -258,7 +262,7 @@ final class RedactionSecurityCharacterizationTest extends Unit
     {
         $reports = [];
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error) use (&$reports): void {
+            static function (Throwable $error) use (&$reports): void {
                 $reports[] = $error;
             },
         );
@@ -328,15 +332,29 @@ final class RedactionSecurityCharacterizationTest extends Unit
         self::assertSame($original, $sink->published()[0], 'With no redaction the same instance is published.');
     }
 
-    public function testRedactedObservationPublisherDoesNotGuardHealthReEntry(): void
+    public function testRedactedObservationHealthReEntryIsDroppedAndGuardResets(): void
     {
-        // Characterizes that RedactingArtifactPublisher's drop path reports to
-        // health without a re-entry guard (unlike reportTruncation / reportRedactedDrop).
-        $entered = 0;
+        $reports = [];
+        $holder = new class () {
+            public ?RedactingArtifactPublisher $publisher = null;
+        };
+        $original = Observation::info(
+            ObservationId::fromString('obs-reentry'),
+            ExecutionId::fromString('exec-1'),
+            'token=abc123 message',
+            attributes: AttributeCollection::fromArray(['password' => 'hunter2']),
+        );
         $health = new CallbackHealthReporter(
-            static function (\Throwable $error, ExecutionArtifactInterface $artifact) use (&$entered): void {
-                ++$entered;
-                // A re-entrant reporter would call back into publication here.
+            static function (Throwable $error, ExecutionArtifactInterface $artifact) use (
+                &$reports,
+                $holder,
+                $original,
+            ): void {
+                $reports[] = $artifact->normalize();
+                // Bound recursion so a missing guard fails the assertion rather than exhausting the stack.
+                if (count($reports) < 3 && $holder->publisher instanceof RedactingArtifactPublisher) {
+                    $holder->publisher->publish($original);
+                }
             },
         );
         $sink = new InMemoryArtifactPublisher();
@@ -346,17 +364,39 @@ final class RedactionSecurityCharacterizationTest extends Unit
             $health,
             dropRedactedObservations: true,
         );
+        $holder->publisher = $publisher;
 
+        $publisher->publish($original);
+        self::assertCount(1, $reports, 'Re-entry must not trigger another health report.');
+        $publisher->publish($original);
+
+        self::assertCount(2, $reports, 'A later independent drop must still be reported.');
+        self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $reports[0]);
+        self::assertSame($reports[0], $reports[1]);
+        self::assertCount(0, $sink->published(), 'Neither original nor re-entrant observations reach the sink.');
+    }
+
+    public function testRedactedObservationHealthGuardResetsAfterReporterThrows(): void
+    {
+        $entered = 0;
+        $health = new CallbackHealthReporter(
+            static function () use (&$entered): never {
+                ++$entered;
+                throw new RuntimeException('health failure');
+            },
+        );
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new RedactingArtifactPublisher($this->redactor([]), $sink, $health, true);
         $original = Observation::info(
-            ObservationId::fromString('obs-reentry'),
+            ObservationId::fromString('obs-throwing-health'),
             ExecutionId::fromString('exec-1'),
-            'token=abc123 message',
-            attributes: AttributeCollection::fromArray(['password' => 'hunter2']),
+            'secret',
         );
 
         $publisher->publish($original);
+        $publisher->publish($original);
 
-        self::assertCount(0, $sink->published(), 'The redacted observation is dropped, not published.');
-        self::assertSame(1, $entered, 'The health reporter is invoked exactly once for the drop.');
+        self::assertSame(2, $entered, 'A reporter failure must not suppress subsequent reports.');
+        self::assertCount(0, $sink->published());
     }
 }

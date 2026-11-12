@@ -18,7 +18,9 @@ use ItPack\RunIt\Application\Publication\RatioSamplePolicy;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Application\Publication\RedactingArtifactPublisher;
 use ItPack\RunIt\Application\Publication\SamplingArtifactPublisher;
+use ItPack\RunIt\Application\Publication\SamplingDropException;
 use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
@@ -32,6 +34,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -231,6 +234,72 @@ final class SamplingTest extends Unit
         $keep->publish($this->observation('info'));
 
         self::assertCount(1, $keepSink->published());
+    }
+
+    public function testSamplingHealthReportIsPayloadFreeAndGuardsReentry(): void
+    {
+        $artifact = Observation::info(
+            ObservationId::fromString('secret-id'),
+            ExecutionId::fromString('secret-execution'),
+            'secret-message',
+            attributes: AttributeCollection::fromArray(['secret' => 'secret-value']),
+        );
+        $health = new class ($artifact) implements InternalHealthReporterInterface {
+            public ?SamplingArtifactPublisher $publisher = null;
+
+            /** @var list<array{Throwable, ExecutionArtifactInterface}> */
+            public array $reports = [];
+
+            public function __construct(private readonly ExecutionArtifactInterface $original)
+            {
+            }
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                $this->reports[] = [$error, $artifact];
+                if (count($this->reports) < 3) {
+                    $this->publisher?->publish($this->original);
+                }
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new SamplingArtifactPublisher(new NeverSamplePolicy(), $sink, $health);
+        $health->publisher = $publisher;
+
+        $publisher->publish($artifact);
+        self::assertCount(1, $health->reports);
+        $publisher->publish($artifact);
+
+        self::assertCount(2, $health->reports);
+        foreach ($health->reports as [$error, $notice]) {
+            self::assertInstanceOf(SamplingDropException::class, $error);
+            self::assertSame('Artifact dropped by sampling policy.', $error->getMessage());
+            self::assertNotSame($artifact, $notice);
+            self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $notice->normalize());
+        }
+
+        self::assertSame([], $sink->published());
+    }
+
+    public function testSamplingHealthReporterFailureIsContainedAndGuardResets(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+                throw new RuntimeException('health failure');
+            }
+        };
+        $sink = new InMemoryArtifactPublisher();
+        $publisher = new SamplingArtifactPublisher(new NeverSamplePolicy(), $sink, $health);
+
+        $publisher->publish($this->observation());
+        $publisher->publish($this->observation());
+
+        self::assertSame(2, $health->calls);
+        self::assertSame([], $sink->published());
     }
 
     /**

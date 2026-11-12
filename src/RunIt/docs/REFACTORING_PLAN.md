@@ -48,7 +48,8 @@ verification. The unchecked design details below must still be resolved where ap
   current redaction does not guarantee unclassified data is excluded from samplers
   or sinks. OpenTelemetry unsafe-drop notices now use a constant placeholder and
   fall back to a fixed error-log message without a reporter. Explicit observation
-  drop reporting still needs a re-entry guard and comprehensive fallback review.
+  drop reporting has a synchronous re-entry guard; comprehensive fallback and
+  concurrent-interleaving review remain open.
 - [ ] **Phase 2 identifier provenance candidate (unapproved):** Introduce an
   SDK-owned issuance authority that generates fresh opaque identifiers using its
   own controlled randomness and records their kind and an unforgeable in-process
