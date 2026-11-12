@@ -28,12 +28,37 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Redacted artifacts now carry a trusted `artifactType()` signal set by the
+  redactor (`RedactedArtifactInterface::artifactType()`), and the OpenTelemetry
+  publisher routes redacted artifacts by that signal instead of inferring kind from
+  user-controlled normalized fields. This is a deliberate contract addition; the
+  regenerated API baseline records it.
+- **Breaking:** `RedactedArtifactInterface` now requires `artifactType(): string`.
+  Third-party implementations of the interface must add the method before upgrading
+  or they will fatal-error. Adapters must route redacted artifacts by this trusted
+  signal rather than inferring type from user-controlled normalized fields.
+- Redacted measurements are reported through the health channel and dropped, where
+  previously they were dropped without a report, since there is no typed redacted
+  measurement mapper. Third-party redacted projections with no trusted type signal
+  are likewise reported and dropped rather than routed by heuristic.
+- Redaction traversal limits (16 levels, 1,024 nodes) that exceed the budget now
+  report truncation through the health path as a bounded, payload-free notice.
+- `ArtifactRedactionConfig::$redactObservationMessages` defaults to `true` (deny-by-default
+  redaction: observation messages are masked unless explicitly opted out). Set
+  `redactObservationMessages: false` as the explicit opt-in to publish raw observation
+  messages; this is a breaking default change for consumers that previously relied on
+  raw messages being exposed, since observation messages can carry secrets or PII.
+- The publication stack applies redaction before sampling, so samplers and adapters
+  see redacted artifacts unless the redactor returns the original instance unchanged
+  (when no masking stage modifies any field).
+
 - Bound redacted throwable cause traversal to 16 levels, replace traces with
   null, and omit unrecognized throwable fields and invalid class or code values.
   Consumers of redacted projections may observe these changed values. This does
   not yet secure arbitrary snapshot payloads or establish Phase 2 completion.
 - Limit configured-key payload masking to 16 levels and 1,024 visited nodes;
-  deeper or excess data is replaced or omitted without a health report for now.
+  deeper or excess data is replaced or omitted, and truncation is reported through
+  the health path as a bounded payload-free notice.
 - Use existing normalized artifact field constants in redacted OpenTelemetry
   occurrence and snapshot mapping; normalized keys and exported schemas are unchanged.
 - Correct redacted OpenTelemetry snapshot log timestamps to use the snapshot's

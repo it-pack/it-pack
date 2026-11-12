@@ -59,67 +59,53 @@ data-exfiltration paths and applies defense-in-depth:
 ### Current publication limitations
 
 The SDK builder installs `DefaultArtifactRedactor` unless explicitly overridden,
-but it does not currently protect every sensitive path. The default redactor
-examines a top-level `throwable` and a failed execution's `result.throwable`.
-It masks throwable messages, replaces traces with null, omits unknown throwable
-fields, and limits throwable cause traversal to 16 levels. This is not yet the
-planned configurable trace policy or independent truncation reporting.
-Configured payload-key
-masking is deny-list based and the default key lists are empty. The default stack
-also invokes a configured sampler before the redactor, so samplers can see the
-original artifact. A changed artifact is represented by a generic projection,
-which not all typed adapter paths accept. Directly configured publishers and
-`withRedactor(null)` can bypass redaction altogether.
+and the publication stack applies redaction before sampling, so samplers and
+downstream adapters see redacted artifacts unless the redactor returns the
+original instance unchanged (when no masking stage modifies any field). The default
+redactor examines a top-level `throwable` and a failed execution's
+`result.throwable`. It masks throwable messages, replaces traces with null, omits
+unknown throwable fields, and limits throwable cause traversal to 16 levels.
 
-Configured sensitive observation-attribute keys are only masked at the top
-level. A composed PSR-3 logger test confirms that the same key inside a nested
-attribute reaches the logger unchanged. Do not put secrets in nested attributes
-and rely on these key settings to remove them. A separate composed PSR-3 test
-shows that the observation's own message reaches the logger unchanged even
-when a configured attribute and its throwable message and trace are masked.
-Message redaction is separately configurable and disabled by default.
+A redacted artifact carries a trusted `artifactType()` signal set by the redactor,
+so adapters route it by signal instead of inferring kind from user-controlled
+normalized fields. OpenTelemetry delivers redacted executions, activities,
+occurrences, and snapshots through their redacted mappers, and redacted observations
+through the redacted observation mapper (suppressing free-form attributes) or, when
+the mapper lacks that capability, reports the drop through the health channel and
+drops the artifact fail-open. Redacted measurements are not delivered: they are
+reported through the health channel and dropped, since there is no typed redacted
+measurement mapper. Third-party redacted projections that carry no trusted type
+signal are likewise reported and dropped rather than routed by heuristic.
+
+Configured payload-key masking is deny-list based and the default key lists are
+empty. Configured sensitive observation-attribute keys are masked at the top level
+only; nested attribute entries are not masked. Message redaction is separately
+configurable and disabled by default (opt-in via `redactObservationMessages`).
 
 The current redactor matches configured keys exactly and case-sensitively. It
 walks arrays recursively only in occurrence `data` and snapshot `payload`, and
-only when the artifact implements the corresponding interface. Configured
-attribute keys also mask matching top-level occurrence extension and snapshot
-attributes, not nested entries. Unknown fields, identifiers, and values under
-unconfigured keys are not covered by that traversal. Snapshot `content_hash`
-also remains the hash of the original payload after masking.
-In particular, default redaction masks throwable messages and traces inside a
-failed execution's normalized projection embedded in a snapshot payload, and
-traverses array payloads to find throwable-shaped arrays even without configured
-sensitive keys. Direct execution throwable redaction therefore also protects
-snapshot payloads under the default configuration. Snapshot `content_hash`
-also remains the hash of the original payload after masking.
+only when the artifact implements the corresponding interface. Configured attribute
+keys also mask matching top-level occurrence extension and snapshot attributes, not
+nested entries. Unknown fields, identifiers, and values under unconfigured keys are
+not covered by that traversal. Snapshot `content_hash` also remains the hash of the
+original payload after masking: `SnapshotPayloadPolicy::HashOnly` and `Full` export
+that hash, while `None` omits it.
 
-Built-in occurrence and snapshot constructors normally validate payload values;
-custom implementations must honor the bounded, recursively primitive
-`NormalizableInterface` contract. The redactor itself neither validates that
-contract. Configured-key payload traversal is limited to 16 levels and 1,024
-visited nodes; throwable-shaped arrays inside payloads are also traversed under
-the default throwable-masking policy. Truncation is not yet reported through the
-health path. A test using a deliberately nonconforming custom artifact confirms
-that an object and unknown fields pass through unchanged, including when another
-field is masked. Such projections can expose data or exhaust resources; do not
-treat the redactor as a validator or sanitizer for untrusted artifact
-implementations. The built-in throwable shape is not a validation guarantee for
-other fields of custom artifacts.
+Configured-key payload traversal is limited to 16 levels and 1,024 visited nodes;
+when those limits are hit the excess is replaced by the marker and truncation is
+reported through the health path as a bounded, payload-free notice. Throwable-shaped
+arrays inside payloads are also traversed under the default throwable-masking
+policy. The redactor itself neither validates the `NormalizableInterface` contract
+nor treats custom artifacts as sanitized: an object and unknown fields pass through
+unchanged, including when another field is masked. Such projections can expose data
+or exhaust resources; do not rely on the redactor as a validator or sanitizer for
+untrusted artifact implementations. Built-in occurrence and snapshot constructors
+validate payload values; custom implementations must honor the bounded, recursively
+primitive `NormalizableInterface` contract.
 
-A composed OpenTelemetry test checks that classified markers in a failed
-execution's throwable do not reach the tested span event under default redaction.
-This does not establish that other fields, custom projections, or exporters are safe.
-
-A separate OpenTelemetry characterization shows that an observation changed by
-the default redactor is silently dropped by the tested log and span-event paths,
-while an unredacted control reaches both. This is an observability loss, not a
-guarantee that other redacted projections are dropped or safe to export.
-
-The OpenTelemetry redacted snapshot mapper omits the content hash under
-`SnapshotPayloadPolicy::None` for logs and span events. `HashOnly` and `Full`
-still export the original content hash, which can disclose information about its
-inputs even when the payload was redacted. Redacted occurrences do not export
-extension attributes in the default mapper.
+Direct execution throwable redaction therefore also protects snapshot payloads under
+the default configuration: the redactor traverses array payloads to find
+throwable-shaped arrays even without configured sensitive keys.
 
 When a publication health callback fails, the fallback reporter can log both
 exception messages and the artifact ID. Those diagnostics may contain sensitive
@@ -131,10 +117,8 @@ The recursion guard reports each nested attempt through that reporter, which can
 reenter it repeatedly. A bounded test demonstrates repeated reporter invocation;
 it does not establish a safe recursion limit for an unbounded callback.
 
-Until the Phase 2 work in `docs/REFACTORING_PLAN.md` is complete, do not rely on
-the built-in publisher stack to remove secrets from all artifact fields or from
-sampler inputs. Apply and verify an appropriate independent sanitization policy
-before data reaches a sampler or external sink.
+Apply and verify an appropriate independent sanitization policy before data
+reaches a sampler or external sink.
 
 ## Threat model and supply chain
 

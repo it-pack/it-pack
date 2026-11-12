@@ -239,6 +239,7 @@ final class ObservationLogMapperTest extends Unit
         );
         $redacted = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
             sensitiveAttributeKeys: ['password'],
+            redactObservationMessages: true,
         ))->redact($observation);
         self::assertInstanceOf(RedactedArtifactInterface::class, $redacted);
 

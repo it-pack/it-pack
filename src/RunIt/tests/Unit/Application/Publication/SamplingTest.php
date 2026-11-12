@@ -243,7 +243,10 @@ final class SamplingTest extends Unit
             }
         };
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $id = ExecutionId::fromString('exec-1');
@@ -299,7 +302,10 @@ final class SamplingTest extends Unit
             'message',
             attributes: AttributeCollection::fromArray(['secret' => 'sensitive']),
         );
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $redactedSink = new InMemoryArtifactPublisher();
         $factory->compose($redactedSink, $redactor, null)->publish($changed);
         self::assertCount(1, $redactedSink->published());
@@ -310,7 +316,10 @@ final class SamplingTest extends Unit
     public function testFactorySamplesObservationSeverityAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $policy = new SeveritySamplePolicy(ObservationSeverity::Warning->level());
         $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
@@ -333,7 +342,10 @@ final class SamplingTest extends Unit
     public function testFactorySamplesErrorOverrideAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $policy = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
         $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
         $id = ExecutionId::fromString('exec-1');
@@ -362,7 +374,10 @@ final class SamplingTest extends Unit
     public function testFactorySamplesExecutionKindAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $policy = new ExecutionKindSamplePolicy(
             static fn (ExecutionIdInterface $id): ?ExecutionKind => match ($id->toString()) {
                 'exec-1' => ExecutionKind::fromString('http.request'),

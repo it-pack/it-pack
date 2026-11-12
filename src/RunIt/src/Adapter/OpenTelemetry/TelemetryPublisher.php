@@ -30,6 +30,7 @@ use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 use RuntimeException;
 use Throwable;
@@ -151,40 +152,37 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
     {
         $normalized = $artifact->normalize();
 
-        if (isset($normalized['source'])) {
-            $this->occurrenceMapper->mapRedactedOccurrence($normalized);
+        switch ($artifact->artifactType()) {
+            case 'observation':
+                $this->publishRedactedObservation($normalized);
 
-            return;
-        }
+                return;
+            case 'execution':
+                $this->executionMapper->mapRedactedExecution($normalized);
 
-        if (array_key_exists('classification', $normalized)) {
-            $this->occurrenceMapper->mapRedactedSnapshot($normalized);
+                return;
+            case 'activity':
+                $this->activityMapper->mapRedactedActivity($normalized);
 
-            return;
-        }
+                return;
+            case 'occurrence':
+                $this->occurrenceMapper->mapRedactedOccurrence($normalized);
 
-        if (array_key_exists('result', $normalized)) {
-            $this->executionMapper->mapRedactedExecution($normalized);
+                return;
+            case 'snapshot':
+                $this->occurrenceMapper->mapRedactedSnapshot($normalized);
 
-            return;
-        }
+                return;
+            default:
+                // Redacted measurements have no typed redacted mapper on the
+                // MeasurementInstrumentMapperInterface contract; unknown kinds
+                // cannot be classified safely. Report the drop and suppress delivery.
+                $this->reportRedactedDrop(
+                    $normalized,
+                    'Redacted measurement or unknown artifact kind is not delivered.',
+                );
 
-        if (array_key_exists('severity', $normalized) || array_key_exists('level', $normalized)) {
-            $this->publishRedactedObservation($normalized);
-
-            return;
-        }
-
-        if (array_key_exists('unit', $normalized)) {
-            // Redacted measurements have no typed redacted mapper on the
-            // MeasurementInstrumentMapperInterface contract; they are
-            // dropped here rather than misrouted through activity heuristics.
-
-            return;
-        }
-
-        if (array_key_exists('execution_id', $normalized) && !array_key_exists('unit', $normalized)) {
-            $this->activityMapper->mapRedactedActivity($normalized);
+                return;
         }
     }
 
@@ -199,15 +197,24 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
             return;
         }
 
-        // Fail-open: report the unsupported redacted observation through
-        // the health channel and drop it instead of throwing, so no
-        // publication exception escapes and the business result is preserved.
-        // Only a bounded identity projection is sent to the health reporter
-        // so no unredacted attribute payload leaks through the health channel.
-        // When no health reporter is supplied, the observation is dropped
-        // without a health report.
-        $id = is_string($normalized['id'] ?? null)
-            ? $normalized['id']
+        // Fail-open: report the unsupported redacted observation through the
+        // health channel and drop it instead of throwing.
+        $this->reportRedactedDrop($normalized, 'Observation mapper does not support redacted observations.');
+    }
+
+    /**
+     * Reports a suppressed redacted artifact through the health channel and drops it.
+     *
+     * Only a bounded, payload-free identity projection is sent to the health
+     * reporter so no redacted attribute payload leaks through the health channel.
+     * Health reporter failures are contained so the drop path stays fail-open.
+     *
+     * @param array<string, mixed> $normalized
+     */
+    private function reportRedactedDrop(array $normalized, string $reason): void
+    {
+        $id = is_string($normalized[ArtifactField::ID] ?? null)
+            ? $normalized[ArtifactField::ID]
             : 'redacted';
         if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
             $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
@@ -216,14 +223,14 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
         if ($this->publishingHealthReport) {
             // Re-entry guard: health reporting must not re-enter the same
             // publication path. Skip the health notice and drop the redacted
-            // observation fail-open.
+            // artifact fail-open.
             return;
         }
 
         try {
             $this->publishingHealthReport = true;
             $this->health?->report(
-                new RuntimeException('Observation mapper does not support redacted observations.'),
+                new RuntimeException($reason),
                 new readonly class ($id) implements ExecutionArtifactInterface {
                     public function __construct(
                         private string $id,
