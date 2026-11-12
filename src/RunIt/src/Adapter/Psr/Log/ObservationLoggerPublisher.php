@@ -53,13 +53,17 @@ final readonly class ObservationLoggerPublisher implements ArtifactPublisherInte
         $context = $extracted['attributes'];
 
         foreach ($extracted['correlation'] as $key => $value) {
-            if ($value !== null && !array_key_exists($key, $context)) {
+            unset($context[$key]);
+            if ($value !== null) {
                 $context[$key] = $value;
             }
         }
 
-        if ($extracted['throwable'] !== null && !array_key_exists($this->exceptionKey, $context)) {
-            $context[$this->exceptionKey] = $extracted['throwable'];
+        if (!array_key_exists($this->exceptionKey, $extracted['correlation'])) {
+            unset($context[$this->exceptionKey]);
+            if ($extracted['throwable'] !== null) {
+                $context[$this->exceptionKey] = $extracted['throwable'];
+            }
         }
 
         $this->logger->log($extracted['level'], $extracted['message'], $context);

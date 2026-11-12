@@ -162,6 +162,20 @@ final class SamplingTest extends Unit
         self::assertFalse($policy->sample($this->observation('info')));
     }
 
+    public function testGenericNonObservationCannotUseSeveritySampling(): void
+    {
+        $severity = new SeveritySamplePolicy(ObservationSeverity::Warning->level());
+        $override = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
+
+        foreach (['unknown', 'measurement', 'execution', 'occurrence', 'snapshot', 'activity'] as $type) {
+            foreach ([ObservationSeverity::Debug->level(), ObservationSeverity::Error->level()] as $level) {
+                $artifact = new RedactedArtifact(['level' => $level], $type);
+                self::assertTrue($severity->sample($artifact), $type);
+                self::assertFalse($override->sample($artifact), $type);
+            }
+        }
+    }
+
     public function testHeadBasedPinsDecisionPerExecution(): void
     {
         $inner = new class () implements SamplingPolicyInterface {

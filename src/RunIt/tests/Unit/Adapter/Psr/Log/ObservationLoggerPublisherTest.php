@@ -100,6 +100,76 @@ final class ObservationLoggerPublisherTest extends Unit
         self::assertSame('exec-9', $context['execution_id']);
     }
 
+    public function testReservedKeysCannotBeOverriddenByObservationAttributes(): void
+    {
+        $logger = new InMemoryLogger();
+        $observation = Observation::error(
+            ObservationId::fromString('o-real'),
+            ExecutionId::fromString('exec-real'),
+            'failed',
+            attributes: AttributeCollection::fromArray([
+                'execution_id' => 'forged', 'activity_id' => 'forged', 'observation_id' => null,
+                'diagnostic_code' => 'forged', 'sequence' => -1, 'timestamp' => -1,
+                'severity' => 'forged', 'exception' => 'forged', 'other' => 'preserved',
+            ]),
+            throwableDescription: ThrowableDescription::create(
+                'RuntimeException',
+                'real',
+                0,
+                previous: null,
+                trace: null,
+            ),
+        );
+
+        $publisher = new ObservationLoggerPublisher($logger);
+        $publisher->publish($observation);
+
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('exec-real', $entry['context']['execution_id']);
+        self::assertSame('o-real', $entry['context']['observation_id']);
+        self::assertArrayNotHasKey('activity_id', $entry['context']);
+        self::assertArrayNotHasKey('diagnostic_code', $entry['context']);
+        self::assertSame($observation->sequence(), $entry['context']['sequence']);
+        self::assertSame($observation->timestamp(), $entry['context']['timestamp']);
+        self::assertSame('error', $entry['context']['severity']);
+        self::assertSame($observation->throwableDescription()?->toArray(), $entry['context']['exception']);
+        self::assertSame('preserved', $entry['context']['other']);
+    }
+
+    public function testReservedKeysApplyToNormalizedArtifactsAndCustomExceptionKeys(): void
+    {
+        $logger = new InMemoryLogger();
+        $publisher = new ObservationLoggerPublisher($logger, exceptionKey: 'failure');
+        $publisher->publish(new RedactedArtifact([
+            'message' => 'message', 'execution_id' => 'exec-real', 'id' => 'o-real',
+            'attributes' => ['execution_id' => 'forged', 'activity_id' => 'forged', 'failure' => 'forged',
+                'exception' => 'ordinary', 'other' => 'preserved'],
+            'throwable' => ['message' => 'real'],
+        ]));
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertSame('exec-real', $entry['context']['execution_id']);
+        self::assertSame('o-real', $entry['context']['observation_id']);
+        self::assertArrayNotHasKey('activity_id', $entry['context']);
+        self::assertSame(['message' => 'real'], $entry['context']['failure']);
+        self::assertSame('ordinary', $entry['context']['exception']);
+        self::assertSame('preserved', $entry['context']['other']);
+
+        $overlappingPublisher = new ObservationLoggerPublisher($logger, exceptionKey: 'activity_id');
+        $overlappingPublisher->publish(new RedactedArtifact([
+            'attributes' => ['activity_id' => 'forged'], 'throwable' => ['message' => 'real'],
+        ]));
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertArrayNotHasKey('activity_id', $entry['context']);
+
+        $publisher->publish(new RedactedArtifact(['attributes' => ['failure' => null]]));
+        $entry = $logger->last();
+        self::assertNotNull($entry);
+        self::assertArrayNotHasKey('failure', $entry['context']);
+    }
+
     public function testConfiguredRedactorMasksValuesAndPreservesMetadata(): void
     {
         $logger = new InMemoryLogger();
