@@ -39,6 +39,7 @@ final class ConfigureItExecutionsTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->publisher = new InMemoryArtifactPublisher();
         $this->dir = __DIR__.'/Support/Fixture/Config';
     }
 
