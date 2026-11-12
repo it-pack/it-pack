@@ -15,6 +15,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use ItPack\RunIt\Domain\Shared\StringIdentifierValidator;
 
 /**
  * Artifact publisher that redacts before delegating to the inner publisher.
@@ -64,6 +65,9 @@ final readonly class RedactingArtifactPublisher implements
             $id = is_string($redactedNormalized[ArtifactField::ID] ?? null)
                 ? $redactedNormalized[ArtifactField::ID]
                 : 'redacted';
+            if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
+                $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
+            }
 
             $this->health?->report(
                 BoundDropException::forReason('drop-redacted-observation'),
