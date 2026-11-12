@@ -90,13 +90,13 @@ final readonly class DefaultObservationLogMapper implements
         }
 
         $message = match (true) {
-            is_string($normalized[ArtifactField::MESSAGE]) => $normalized[ArtifactField::MESSAGE],
-            is_string($normalized[ArtifactField::NAME]) => $normalized[ArtifactField::NAME],
+            is_string($normalized[ArtifactField::MESSAGE] ?? null) => $normalized[ArtifactField::MESSAGE],
+            is_string($normalized[ArtifactField::NAME] ?? null) => $normalized[ArtifactField::NAME],
             default => '',
         };
 
         $level = match (true) {
-            is_int($normalized[ArtifactField::LEVEL]) => $normalized[ArtifactField::LEVEL],
+            is_int($normalized[ArtifactField::LEVEL] ?? null) => $normalized[ArtifactField::LEVEL],
             is_int($normalized[ArtifactField::SEVERITY] ?? null) => $normalized[ArtifactField::SEVERITY],
             default => 0,
         };
