@@ -515,7 +515,7 @@ final class RedactingPublisherTest extends Unit
 
         $throwable = $this->publish($artifact)->normalize()['throwable'];
         $depth = 0;
-        while ($throwable !== null && is_array($throwable)) {
+        while (is_array($throwable)) {
             self::assertSame('[redacted]', $throwable['message']);
             self::assertArrayNotHasKey('detail', $throwable);
             $throwable = $throwable['previous'];
@@ -901,6 +901,7 @@ final class RedactingPublisherTest extends Unit
         $publisher = new RedactingArtifactPublisher(
             new DefaultArtifactRedactor(new ArtifactRedactionConfig(
                 sensitiveAttributeKeys: ['password'],
+                redactObservationMessages: true,
             )),
             $sink,
             dropRedactedObservations: false,

@@ -15,6 +15,7 @@ use ItPack\RunIt\Domain\Activity\ActivityId;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\ThrowableDescription;
 use Tests\Support\Fixture\Psr\InMemoryLogger;
@@ -67,8 +68,8 @@ final class ObservationLoggerPublisherTest extends Unit
                 return new RedactedArtifact([
                     'kind' => 'observation',
                     'message' => 'secret action',
-                    'level' => 400,
-                    'severity' => 'error',
+                    'level' => ObservationSeverity::Error->level(),
+                    'severity' => ObservationSeverity::Error->label(),
                     'attributes' => ['password' => '***'],
                     'execution_id' => 'exec-9',
                     'activity_id' => null,

@@ -99,7 +99,7 @@ final class ObservationTest extends Unit
             'execution_id' => 'exec-1',
             'activity_id' => null,
             'severity' => 'notice',
-            'level' => 250,
+            'level' => ObservationSeverity::Notice->level(),
             'message' => 'cached',
             'diagnostic_code' => null,
             'sequence' => 0,

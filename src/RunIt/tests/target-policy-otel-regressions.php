@@ -7,6 +7,7 @@ declare(strict_types=1);
 require __DIR__ . '/../vendor/autoload.php';
 
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -62,8 +63,11 @@ foreach (['default', 'opt-out'] as $mode) {
     $span = $spans[0];
     $check($span->getName() === 'import', "$mode preserves span name");
     $check($span->getStatus()->getCode() === StatusCode::STATUS_ERROR, "$mode preserves error status");
-    $check($span->getAttributes()->get('runit.execution.id') === 'otel-target', "$mode preserves execution id");
-    $check($span->getAttributes()->get('runit.execution.status') === 'failed', "$mode preserves execution status");
+    $check($span->getAttributes()->get(AttributeKeys::EXECUTION_ID) === 'otel-target', "$mode preserves execution id");
+    $check(
+        $span->getAttributes()->get(AttributeKeys::EXECUTION_STATUS) === 'failed',
+        "$mode preserves execution status"
+    );
     $events = $span->getEvents();
     $check(count($events) === 1 && $events[0]->getName() === 'exception', "$mode exports an exception event");
     if (count($events) !== 1) {

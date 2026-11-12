@@ -22,6 +22,7 @@ use ItPack\RunIt\Application\Publication\SeveritySamplePolicy;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
+use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Observation\Observation;
@@ -31,6 +32,7 @@ use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use Throwable;
 
 /**
  * @group application
@@ -83,7 +85,6 @@ final class SamplingTest extends Unit
 
         return match ($severity) {
             'debug' => Observation::debug($id, $executionId, 'msg'),
-            'info' => Observation::info($id, $executionId, 'msg'),
             'notice' => Observation::notice($id, $executionId, 'msg'),
             'warning' => Observation::warning($id, $executionId, 'msg'),
             'error' => Observation::error($id, $executionId, 'msg'),
@@ -98,8 +99,8 @@ final class SamplingTest extends Unit
     {
         $alwaysResult = new AlwaysSamplePolicy()->sample($this->observation());
         $neverResult = new NeverSamplePolicy()->sample($this->observation());
-        self::assertSame(true, $alwaysResult);
-        self::assertSame(false, $neverResult);
+        self::assertTrue($alwaysResult);
+        self::assertFalse($neverResult);
     }
 
     public function testRatioIsDeterministic(): void
@@ -211,6 +212,9 @@ final class SamplingTest extends Unit
         self::assertSame(3, $inner->calls, 'an evicted execution key must be re-decided through the wrapped policy');
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testSamplingPublisherDropsRejectedArtifacts(): void
     {
         $sink = new InMemoryArtifactPublisher();
@@ -229,6 +233,9 @@ final class SamplingTest extends Unit
         self::assertCount(1, $keepSink->published());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testFactorySamplesRedactedArtifactsAfterRedaction(): void
     {
         $policy = new class () implements SamplingPolicyInterface {
@@ -243,7 +250,10 @@ final class SamplingTest extends Unit
             }
         };
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
         $id = ExecutionId::fromString('exec-1');
@@ -299,7 +309,10 @@ final class SamplingTest extends Unit
             'message',
             attributes: AttributeCollection::fromArray(['secret' => 'sensitive']),
         );
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $redactedSink = new InMemoryArtifactPublisher();
         $factory->compose($redactedSink, $redactor, null)->publish($changed);
         self::assertCount(1, $redactedSink->published());
@@ -307,10 +320,16 @@ final class SamplingTest extends Unit
         self::assertSame(['secret' => '[redacted]'], $redactedSink->published()[0]->normalize()['attributes']);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testFactorySamplesObservationSeverityAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $policy = new SeveritySamplePolicy(ObservationSeverity::Warning->level());
         $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
         $attributes = AttributeCollection::fromArray(['secret' => 'sensitive']);
@@ -330,10 +349,16 @@ final class SamplingTest extends Unit
         self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testFactorySamplesErrorOverrideAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $policy = new ErrorOverrideSamplePolicy(new NeverSamplePolicy());
         $publisher = new PublisherStackFactory()->compose($sink, $redactor, $policy);
         $id = ExecutionId::fromString('exec-1');
@@ -359,10 +384,16 @@ final class SamplingTest extends Unit
         self::assertSame('[redacted]', $sink->published()[1]->normalize()['message']);
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testFactorySamplesExecutionKindAfterRedaction(): void
     {
         $sink = new InMemoryArtifactPublisher();
-        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['secret']));
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+            redactObservationMessages: true,
+        ));
         $policy = new ExecutionKindSamplePolicy(
             static fn (ExecutionIdInterface $id): ?ExecutionKind => match ($id->toString()) {
                 'exec-1' => ExecutionKind::fromString('http.request'),
@@ -404,5 +435,28 @@ final class SamplingTest extends Unit
         self::assertSame(['secret' => '[redacted]'], $sink->published()[0]->normalize()['attributes']);
         self::assertNotSame($unchanged, $sink->published()[1]);
         self::assertSame('[redacted]', $sink->published()[1]->normalize()['message']);
+    }
+
+    /** Redacting an already-redacted artifact preserves the first projection's trusted artifact type. */
+    public function testRedactingRedactedArtifactPreservesArtifactType(): void
+    {
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(
+            sensitiveAttributeKeys: ['secret'],
+        ));
+        $observation = Observation::info(
+            ObservationId::fromString('obs-1'),
+            ExecutionId::fromString('exec-1'),
+            'kept',
+            attributes: AttributeCollection::fromArray(['secret' => 'sensitive']),
+        );
+
+        $first = $redactor->redact($observation);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $first);
+        self::assertSame('observation', $first->artifactType());
+
+        $second = $redactor->redact($first);
+        self::assertInstanceOf(RedactedArtifactInterface::class, $second);
+        self::assertSame($first->artifactType(), $second->artifactType());
+        self::assertSame('observation', $second->artifactType());
     }
 }

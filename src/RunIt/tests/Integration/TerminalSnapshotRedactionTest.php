@@ -10,6 +10,8 @@ use ItPack\RunIt\Adapter\Common\JsonSnapshotSerializer;
 use ItPack\RunIt\Adapter\Common\RandomIdentifierGenerator;
 use ItPack\RunIt\Adapter\Common\SystemMonotonicClock;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfigBuilder;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
@@ -39,7 +41,7 @@ final class TerminalSnapshotRedactionTest extends Unit
     {
         $attributes = $this->exportFailedSnapshot(true);
 
-        self::assertTrue($attributes['runit.redacted']);
+        self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
         self::assertArrayNotHasKey('runit.snapshot.payload', $attributes);
         $export = json_encode($attributes, JSON_THROW_ON_ERROR);
         foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {

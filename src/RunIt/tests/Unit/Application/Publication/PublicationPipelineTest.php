@@ -35,6 +35,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationId;
+use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceId;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
@@ -205,7 +206,7 @@ final class PublicationPipelineTest extends Unit
             sink: $sink,
             clock: $this->clock,
             byteEstimator: $this->estimator,
-            filter: new ObservationSeverityFilter(400),
+            filter: new ObservationSeverityFilter(ObservationSeverity::Error->level()),
         )->build();
 
         $pipeline->publish(Observation::debug(

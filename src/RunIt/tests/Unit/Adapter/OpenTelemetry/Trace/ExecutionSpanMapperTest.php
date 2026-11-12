@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Trace;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultExecutionSpanMapper;
@@ -82,10 +83,10 @@ final class ExecutionSpanMapperTest extends Unit
         $span = $spans[0];
         self::assertSame('import', $span->getName());
         self::assertSame(StatusCode::STATUS_OK, $span->getStatus()->getCode());
-        self::assertSame('exec-1', $span->getAttributes()->get('runit.execution.id'));
-        self::assertSame('import', $span->getAttributes()->get('runit.execution.name'));
-        self::assertSame('queue.consumer.process', $span->getAttributes()->get('runit.execution.kind'));
-        self::assertSame('succeeded', $span->getAttributes()->get('runit.execution.status'));
+        self::assertSame('exec-1', $span->getAttributes()->get(AttributeKeys::EXECUTION_ID));
+        self::assertSame('import', $span->getAttributes()->get(AttributeKeys::EXECUTION_NAME));
+        self::assertSame('queue.consumer.process', $span->getAttributes()->get(AttributeKeys::EXECUTION_KIND));
+        self::assertSame('succeeded', $span->getAttributes()->get(AttributeKeys::EXECUTION_STATUS));
         self::assertSame(1_000_000_000_000, $span->getStartEpochNanos());
         self::assertSame(2_000_000_000_000, $span->getEndEpochNanos());
     }
@@ -150,7 +151,7 @@ final class ExecutionSpanMapperTest extends Unit
         self::assertCount(2, $spans);
         $childSpan = $spans[1];
         self::assertSame($spans[0]->getContext()->getSpanId(), $childSpan->getParentSpanId());
-        self::assertSame('exec-parent', $childSpan->getAttributes()->get('runit.execution.parent_id'));
+        self::assertSame('exec-parent', $childSpan->getAttributes()->get(AttributeKeys::EXECUTION_PARENT_ID));
     }
 
     public function testStoresSpanContextForParenting(): void

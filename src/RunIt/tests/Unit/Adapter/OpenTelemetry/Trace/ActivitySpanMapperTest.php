@@ -6,6 +6,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Trace;
 
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Trace\DefaultActivitySpanMapper;
@@ -78,9 +79,9 @@ final class ActivitySpanMapperTest extends Unit
 
         $span = $this->span(0);
         self::assertSame('parse', $span->getName());
-        self::assertSame('act-1', $span->getAttributes()->get('runit.activity.id'));
-        self::assertSame('exec-1', $span->getAttributes()->get('runit.execution.id'));
-        self::assertSame('succeeded', $span->getAttributes()->get('runit.activity.status'));
+        self::assertSame('act-1', $span->getAttributes()->get(AttributeKeys::ACTIVITY_ID));
+        self::assertSame('exec-1', $span->getAttributes()->get(AttributeKeys::EXECUTION_ID));
+        self::assertSame('succeeded', $span->getAttributes()->get(AttributeKeys::ACTIVITY_STATUS));
         self::assertSame(StatusCode::STATUS_OK, $span->getStatus()->getCode());
     }
 
@@ -106,7 +107,7 @@ final class ActivitySpanMapperTest extends Unit
 
         $spans = $this->spans();
         self::assertSame($spans[1]->getContext()->getSpanId(), $spans[2]->getParentSpanId());
-        self::assertSame('act-parent', $spans[2]->getAttributes()->get('runit.activity.parent_id'));
+        self::assertSame('act-parent', $spans[2]->getAttributes()->get(AttributeKeys::ACTIVITY_PARENT_ID));
     }
 
     public function testFailedActivityRecordsException(): void
