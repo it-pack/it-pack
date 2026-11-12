@@ -7,6 +7,7 @@ namespace Tests\Unit\Adapter\OpenTelemetry\Logs;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Activity\ActivityId;
@@ -266,11 +267,11 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapRedactedOccurrence([]);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('redacted', $attributes[AttributeKeys::OCCURRENCE_ID]);
-        self::assertSame('runit.artifact.redacted', $attributes[AttributeKeys::OCCURRENCE_TYPE]);
-        self::assertSame('runit://redacted', $attributes[AttributeKeys::OCCURRENCE_SOURCE]);
-        self::assertSame('', $attributes[AttributeKeys::EXECUTION_ID]);
-        self::assertTrue($attributes[AttributeKeys::REDACTED]);
+        self::assertSame(AttributeValues::REDACTED_ID, $attributes[AttributeKeys::OCCURRENCE_ID]);
+        self::assertSame(AttributeValues::REDACTED_TYPE, $attributes[AttributeKeys::OCCURRENCE_TYPE]);
+        self::assertSame(AttributeValues::REDACTED_SOURCE, $attributes[AttributeKeys::OCCURRENCE_SOURCE]);
+        self::assertSame(AttributeValues::EMPTY_IDENTITY, $attributes[AttributeKeys::EXECUTION_ID]);
+        self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
     }
 
     public function testRedactedOccurrenceExportsProvidedFieldsOnly(): void
@@ -301,7 +302,7 @@ final class OccurrenceLogMapperTest extends Unit
             AttributeKeys::OCCURRENCE_TYPE => 'payment.captured.v1',
             AttributeKeys::OCCURRENCE_SOURCE => 'test/source',
             AttributeKeys::EXECUTION_ID => 'exec-9',
-            AttributeKeys::REDACTED => true,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
             AttributeKeys::ACTIVITY_ID => 'act-9',
         ], $record->getAttributes()->toArray());
     }
@@ -354,11 +355,11 @@ final class OccurrenceLogMapperTest extends Unit
         $mapper->mapRedactedSnapshot(['classification' => 'terminal', 'content_hash' => 'sha-256:abc']);
 
         $attributes = $this->kit->log(0)->getAttributes()->toArray();
-        self::assertSame('redacted', $attributes[AttributeKeys::SNAPSHOT_ID]);
-        self::assertSame('runit.artifact.redacted', $attributes[AttributeKeys::SNAPSHOT_TYPE]);
+        self::assertSame(AttributeValues::REDACTED_ID, $attributes[AttributeKeys::SNAPSHOT_ID]);
+        self::assertSame(AttributeValues::REDACTED_TYPE, $attributes[AttributeKeys::SNAPSHOT_TYPE]);
         self::assertSame('terminal', $attributes[AttributeKeys::SNAPSHOT_CLASSIFICATION]);
         self::assertSame('sha-256:abc', $attributes[AttributeKeys::SNAPSHOT_HASH]);
-        self::assertTrue($attributes[AttributeKeys::REDACTED]);
+        self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
     }
 
     public function testRedactedSnapshotMapsNormalizedFieldsWithoutPayload(): void
@@ -388,7 +389,7 @@ final class OccurrenceLogMapperTest extends Unit
             AttributeKeys::SNAPSHOT_TYPE => 'execution.snapshot.v1',
             AttributeKeys::SNAPSHOT_CLASSIFICATION => 'terminal',
             AttributeKeys::EXECUTION_ID => 'exec-9',
-            AttributeKeys::REDACTED => true,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
             AttributeKeys::ACTIVITY_ID => 'act-9',
             AttributeKeys::SNAPSHOT_HASH => 'sha-256:abc',
         ], $record->getAttributes()->toArray());

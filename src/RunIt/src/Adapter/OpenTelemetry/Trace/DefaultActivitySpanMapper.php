@@ -8,6 +8,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ActivitySpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -81,7 +82,7 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
 
         $tracer = $tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
         $nameValue = $normalized['name'] ?? null;
-        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : 'activity';
+        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : AttributeValues::DEFAULT_ACTIVITY_NAME;
 
         $parentContext = $this->resolveParentContextFromNormalized($normalized);
 
@@ -145,11 +146,11 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
         $status = $normalized['status'] ?? null;
 
         return [
-            AttributeKeys::ACTIVITY_ID => is_string($activityId) ? $activityId : '',
+            AttributeKeys::ACTIVITY_ID => is_string($activityId) ? $activityId : AttributeValues::EMPTY_IDENTITY,
             AttributeKeys::ACTIVITY_NAME => $name,
-            AttributeKeys::ACTIVITY_KIND => is_string($kind) ? $kind : '',
-            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
-            AttributeKeys::ACTIVITY_STATUS => is_string($status) ? $status : '',
+            AttributeKeys::ACTIVITY_KIND => is_string($kind) ? $kind : AttributeValues::EMPTY_KIND_STATUS,
+            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::ACTIVITY_STATUS => is_string($status) ? $status : AttributeValues::EMPTY_KIND_STATUS,
         ];
     }
 
@@ -207,8 +208,12 @@ final readonly class DefaultActivitySpanMapper implements ActivitySpanMapperInte
             return;
         }
 
-        $throwableClass = is_string($throwable['class'] ?? null) ? $throwable['class'] : '';
-        $throwableMessage = is_string($throwable['message'] ?? null) ? $throwable['message'] : '';
+        $throwableClass = is_string($throwable['class'] ?? null)
+            ? $throwable['class']
+            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
+        $throwableMessage = is_string($throwable['message'] ?? null)
+            ? $throwable['message']
+            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
         $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
 
         $attributes = [

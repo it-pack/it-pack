@@ -15,6 +15,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultObservationLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Logs\DefaultOccurrenceLogMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SeverityMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanKindMap;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SpanStatusMap;
@@ -215,7 +216,7 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
     {
         $id = is_string($normalized[ArtifactField::ID] ?? null)
             ? $normalized[ArtifactField::ID]
-            : 'redacted';
+            : AttributeValues::REDACTED_ID;
         if (strlen($id) > StringIdentifierValidator::MAX_LENGTH) {
             $id = substr($id, 0, StringIdentifierValidator::MAX_LENGTH - 3) . '...';
         }

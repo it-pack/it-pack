@@ -7,6 +7,7 @@ namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
@@ -154,17 +155,17 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         $attributes = [
             AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null)
                 ? $normalized[ArtifactField::ID]
-                : 'redacted',
+                : AttributeValues::REDACTED_ID,
             AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
                 ? $normalized[ArtifactField::TYPE]
-                : 'runit.artifact.redacted',
+                : AttributeValues::REDACTED_TYPE,
             AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized[ArtifactField::SOURCE] ?? null)
                 ? $normalized[ArtifactField::SOURCE]
-                : 'runit://redacted',
+                : AttributeValues::REDACTED_SOURCE,
             AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
                 ? $normalized[ArtifactField::EXECUTION_ID]
-                : '',
-            AttributeKeys::REDACTED => true,
+                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
         ];
 
         $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
@@ -183,7 +184,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         $this->emit(
             'runit.occurrence',
             is_string($normalized[ArtifactField::TYPE] ?? null)
-                ? $normalized[ArtifactField::TYPE] : 'runit.artifact.redacted',
+                ? $normalized[ArtifactField::TYPE] : AttributeValues::REDACTED_TYPE,
             $attributes,
             is_int($normalized[ArtifactField::TIME] ?? null) ? $normalized[ArtifactField::TIME] : null
         );
@@ -195,17 +196,17 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         $attributes = [
             AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
                 ? $normalized[ArtifactField::ID]
-                : 'redacted',
+                : AttributeValues::REDACTED_ID,
             AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
                 ? $normalized[ArtifactField::TYPE]
-                : 'runit.artifact.redacted',
+                : AttributeValues::REDACTED_TYPE,
             AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized[ArtifactField::CLASSIFICATION] ?? null)
                 ? $normalized[ArtifactField::CLASSIFICATION]
-                : 'unknown',
+                : AttributeValues::UNKNOWN_CLASSIFICATION,
             AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
                 ? $normalized[ArtifactField::EXECUTION_ID]
-                : '',
-            AttributeKeys::REDACTED => true,
+                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
         ];
 
         $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
@@ -221,7 +222,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         $this->emit(
             'runit.snapshot',
             is_string($normalized[ArtifactField::TYPE] ?? null)
-                ? $normalized[ArtifactField::TYPE] : 'runit.artifact.redacted',
+                ? $normalized[ArtifactField::TYPE] : AttributeValues::REDACTED_TYPE,
             $attributes,
             is_int($normalized[ArtifactField::CREATED_AT] ?? null)
                 ? $normalized[ArtifactField::CREATED_AT]

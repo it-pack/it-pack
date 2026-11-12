@@ -8,6 +8,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\TraceBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ExecutionSpanMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionIdInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
@@ -79,7 +80,7 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
 
         $tracer = $tracerProvider->getTracer(BridgeConfig::INSTRUMENTATION_SCOPE);
         $nameValue = $normalized['name'] ?? null;
-        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : 'execution';
+        $name = is_string($nameValue) && $nameValue !== '' ? $nameValue : AttributeValues::DEFAULT_EXECUTION_NAME;
 
         $parentContext = $this->resolveParentContextFromNormalized($normalized);
 
@@ -139,10 +140,10 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         $status = $normalized['status'] ?? null;
 
         return [
-            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : '',
+            AttributeKeys::EXECUTION_ID => is_string($executionId) ? $executionId : AttributeValues::EMPTY_IDENTITY,
             AttributeKeys::EXECUTION_NAME => $name,
-            AttributeKeys::EXECUTION_KIND => is_string($kind) ? $kind : '',
-            AttributeKeys::EXECUTION_STATUS => is_string($status) ? $status : '',
+            AttributeKeys::EXECUTION_KIND => is_string($kind) ? $kind : AttributeValues::EMPTY_KIND_STATUS,
+            AttributeKeys::EXECUTION_STATUS => is_string($status) ? $status : AttributeValues::EMPTY_KIND_STATUS,
         ];
     }
 
@@ -156,8 +157,12 @@ final readonly class DefaultExecutionSpanMapper implements ExecutionSpanMapperIn
         }
 
         $throwable = $result['throwable'];
-        $throwableClass = is_string($throwable['class'] ?? null) ? $throwable['class'] : '';
-        $throwableMessage = is_string($throwable['message'] ?? null) ? $throwable['message'] : '';
+        $throwableClass = is_string($throwable['class'] ?? null)
+            ? $throwable['class']
+            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
+        $throwableMessage = is_string($throwable['message'] ?? null)
+            ? $throwable['message']
+            : AttributeValues::EMPTY_EXCEPTION_DETAIL;
         $throwableTrace = is_string($throwable['trace'] ?? null) ? $throwable['trace'] : null;
 
         $attributes = [

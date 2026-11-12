@@ -15,6 +15,7 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\InMemoryExecutionSpanStore;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
+use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
 use ItPack\RunIt\Application\Factory\PublisherStackFactory;
@@ -637,7 +638,7 @@ final class TelemetryPublisherTest extends Unit
         $redactedLogged = false;
         foreach ($this->kit->logs() as $record) {
             foreach ($record->getAttributes() as $name => $value) {
-                if ($name === AttributeKeys::REDACTED && $value === true) {
+                if ($name === AttributeKeys::REDACTED && $value === AttributeValues::REDACTED_MARKER) {
                     $redactedLogged = true;
                 }
             }
@@ -731,7 +732,7 @@ final class TelemetryPublisherTest extends Unit
         self::assertSame(1_600_000_000_000, $record->getTimestamp());
         $attributes = $record->getAttributes()->toArray();
         self::assertSame('occ-characterized', $attributes[AttributeKeys::OCCURRENCE_ID]);
-        self::assertTrue($attributes[AttributeKeys::REDACTED]);
+        self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
         self::assertArrayNotHasKey(AttributeKeys::OCCURRENCE_SUBJECT, $attributes);
         self::assertArrayNotHasKey('allowed', $attributes);
         self::assertArrayNotHasKey('excluded', $attributes);
@@ -784,7 +785,7 @@ final class TelemetryPublisherTest extends Unit
         $attributes = $record->getAttributes()->toArray();
         self::assertSame('snap-characterized', $attributes[AttributeKeys::SNAPSHOT_ID]);
         self::assertSame('act-1', $attributes[AttributeKeys::ACTIVITY_ID]);
-        self::assertTrue($attributes[AttributeKeys::REDACTED]);
+        self::assertSame(AttributeValues::REDACTED_MARKER, $attributes[AttributeKeys::REDACTED]);
         self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
         self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
         self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_SCHEMA_VERSION, $attributes);
