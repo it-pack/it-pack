@@ -46,8 +46,8 @@
         "symfony/http-client": "^8.1"
     },
     "suggest": {
-        "ext-opentelemetry": "OpenTelemetry Extension",
         "ext-openswoole": "OpenSwoole coroutine execution adapter",
+        "ext-opentelemetry": "OpenTelemetry Extension",
         "ext-swoole": "Swoole coroutine execution adapter",
         "cloudevents/sdk-php": "CloudEvents occurrence mapping",
         "open-telemetry/api": "OpenTelemetry mapping",
@@ -94,19 +94,19 @@
         "coverage": "vendor/bin/codecept run Unit --coverage --coverage-xml --coverage-html",
         "cs:check": "vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs:fix": "vendor/bin/php-cs-fixer fix",
-        "format": "@cs:fix",
         "dogfood": "php tools/dogfood/run-dogfood.php",
         "examples": "bash scripts/examples.sh",
+        "format": "@cs:fix",
         "lint:length": "php tools/lint/line-length.php",
         "mutation": "vendor/bin/infection --configuration=infection.json5 --only-covering-test-cases --no-interaction",
         "mutation:changed": "vendor/bin/infection --configuration=infection.json5 --git-diff-lines --ignore-msi-with-no-mutations --only-covering-test-cases --no-interaction",
         "mutation:p0": "vendor/bin/infection --configuration=infection.s1s6.json5 --only-covering-test-cases --no-interaction",
         "polish": [
+            "@composer normalize",
             "@refactor",
             "@format"
         ],
         "quality": [
-            "@composer update",
             "@composer validate --strict",
             "@refactor:dry",
             "@cs:check",
