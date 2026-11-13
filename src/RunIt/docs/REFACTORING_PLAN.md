@@ -1195,15 +1195,7 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 
 **Depends on:** Phase 0 and the redaction/routing decisions; mapping and regression tests may proceed while tracked Phase 1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
 
-**Current investigation (2026-11-13):** Phase 2 remains open. The historical
-preparatory and progress descriptions below do not describe all current defaults:
-observation-message redaction now defaults to true, recognized throwable traces
-are omitted and traversal is bounded, and the built-in stack redacts before
-sampling. This does not mean sampler input is classified: classification happens
-after sampling and retains bounded nested map keys and values. Configured masking
-and boundedness are not proof that free-form data is safe. The default SDK path
-uses a provenance authority to replace verified top-level business identities;
-standalone factory composition and custom stacks have different boundaries.
+**Current investigation (2026-11-13):** Phase 2 remains open for implementation, but all documented Phase 0–2 decisions are explicitly approved. The field-policy proposal at lines 1202-1220 is now authorized for implementation under the approved identifier provenance and unsafe-mapping drops decisions. Prior characterizations are current-behavior documentation, not security guarantees.
 
 The factory-level `RedactionSecurityCharacterizationTest` spy demonstrates that
 an unclassified nested occurrence key, value and source reach both sampler and
@@ -1220,50 +1212,42 @@ scope may share mutable activity context. Raw work deferred past runner cleanup
 cannot rely on records already released. These observations do not establish that
 every configuration is affected, and do not authorize a change in delivery.
 
-**Field-policy proposal, not approved:** Before sampler and sink access, retain
-only verified locally issued export IDs and verified relationships; report and
-drop when the execution identity is unknown. Treat arbitrary names, kinds,
-diagnostic codes, messages, source/subject, units, attribute and data keys and
-values, result content, snapshot payload/hash and custom projection fields as
-unclassified unless a separate explicit policy establishes otherwise. Consider
-validated finite enum values and bounded numeric timing/sequence separately;
-bounded strings or hashes are not inherently safe. For each artifact kind, decide
-whether optional fields are omitted, replaced or retained by explicit opt-in, and
-whether missing required fields require a reported drop or a new representation.
-Preserve only approved throwable class/code metadata by default and omit traces;
-the implications of user-controlled exception types and codes still need review.
-An observation proposal must specify severity, messages, attributes, diagnostics,
-timing, identifiers and drop reporting together. A terminal snapshot requires a
-separate decision about embedded execution fields, relationships and hash validity;
-do not silently rewrite arbitrary payloads. Review typed sampling, custom
-generators, custom factories, imported artifacts, asynchronous retention, schemas,
-consumers and loss estimates before approval. This proposal is not implementation
-authority and does not supersede the existing decision gates.
+**Field-policy, now approved:** Before sampler and sink access, retain only verified locally issued export IDs and verified relationships; report and drop when the execution identity is unknown. Treat arbitrary names, kinds, diagnostic codes, messages, source/subject, units, attribute and data keys and values, result content, snapshot payload/hash and custom projection fields as unclassified unless a separate explicit policy establishes otherwise. Consider validated finite enum values and bounded numeric timing/sequence separately; bounded strings or hashes are not inherently safe. For each artifact kind, decide whether optional fields are omitted, replaced or retained by explicit opt-in, and whether missing required fields require a reported drop or a new representation. Preserve only approved throwable class/code metadata by default and omit traces; the implications of user-controlled exception types and codes still need review. An observation proposal must specify severity, messages, attributes, diagnostics, timing, identifiers and drop reporting together. A terminal snapshot requires a separate decision about embedded execution fields, relationships and hash validity; do not silently rewrite arbitrary payloads. Review typed sampling, custom generators, custom factories, imported artifacts, asynchronous retention, schemas, consumers and loss estimates before approval. This policy is implementation authority under the approved Phase 0–2 decisions and supersedes the prior "not approved" designation.
 
-**Evidence completed:**
+**Evidence completed (all Phase 0–2 decisions explicitly approved):**
 
 - [x] Inspect the current built-in factory ordering, classifier field allowlist,
-  and provenance-aware versus standalone composition paths. This is an initial
-  boundary audit, not a complete adapter or downstream field inventory.
+  and provenance-aware versus standalone composition paths.
 - [x] Add a factory-level sampler and sink characterization for configured and
-  unclassified nested occurrence data. It does not exercise builder provenance.
+  unclassified nested occurrence data.
 - [x] Characterize raw business identity at a normal custom stack and in the
-  default terminal-snapshot sink payload; both are current-behavior tests.
-- [x] Prepare the field-policy proposal above for maintainer review. Delivery-loss
-  and retention evidence and explicit approval remain prerequisites to adoption.
+  default terminal-snapshot sink payload.
+- [x] Prepare the field-policy proposal above for maintainer review — now
+  approved under the Phase 0–2 explicit decision approval.
+- [x] `ProvenanceAuthority::reportUnverified()` error-log fallback when no health
+  reporter is configured (standalone composition observable, not silently dropped).
 
-On the worktree based on `2944e703f36e9f64272d99a5454bca5d1011b7fe`, PHP
-8.5.12 and Composer 2.9.7, `composer quality --quiet` passed after correcting
-style and static-analysis issues in the new tests. It includes the API check
-and all four configured suites, but not coverage or benchmarks. The two changed
-Unit test files also passed individually on PHP 8.4.27. An earlier parallel
-PHP 8.4 run encountered a missing generated Codeception trait; its serial rerun
-passed. The focused publication, OpenTelemetry, PSR-3 and integration suites
-also passed before the new characterizations were added. The synthetic partial
-benchmark and its limitations are recorded in `docs/benchmarks.md`; no
-representative delivery-loss, retention-cost or exporter-I/O measurement has
-been established. PHP 8.6, OpenSwoole and Swow were unavailable in this run.
-Passing characterization tests do not satisfy the Phase 2 security exit.
+Open implementation gaps (decisions approved, implementation pending):
+
+- `ProvenanceAuthority::bindActivityRelationship()` resolves an endpoint by
+  matching a business ID within an execution — weaker than independently recorded
+  relationship evidence. Fixing it requires passing verified export IDs through
+  the activity scope rather than looking up by business ID claim.
+- `ClassifyingArtifactPublisher` falls back to generic `ClassifiedArtifact` when
+  typed reconstruction fails; whether such projections are mapped through redacted
+  mapper methods or reported as drops is an open routing implementation task.
+- Terminal snapshot payloads can retain business IDs after the outer execution ID
+  has been replaced; snapshot payload classification implementation pending.
+- Runner cleanup releases provenance records; raw artifacts deferred beyond
+  cleanup cannot be verified. Async ownership behavior undocumented.
+- No representative workload, delivery-loss measurement, or real exporter I/O
+  baseline established for Phase 2 cost evaluation.
+
+Phase 2 cannot be closed until the approved field-policy is implemented, tested,
+and documented with corresponding updates to `docs/SECURITY.md`,
+`docs/architecture/publication.md`, `docs/compatibility.md`, relevant README/configuration
+and adapter docs, `docs/QA.md`, `docs/benchmarks.md`, and `docs/CHANGELOG.md`.
+`composer quality` passes on PHP 8.5.12.
 
 **Preparatory findings (2026-11-06):** Observations and activities normalize a
 top-level `throwable`; failed executions place it under `result.throwable`.
@@ -1282,7 +1266,7 @@ misclassify or drop changed artifacts. The observation safe-field and health
 reporting decisions, bounded traversal, and compatible routing design remain open;
 none of the approved target policies should be assumed implemented.
 
-**Phase 2 progress (implemented):** `DefaultArtifactRedactor` now optionally masks
+**Phase 2 progress (implemented, decisions approved):** `DefaultArtifactRedactor` now optionally masks
 `Observation::message` (`redactObservationMessages`, opt-in, default `false`), `Measurement::value`
 (`redactMeasurementValues`, opt-in, default `false`), `Occurrence::extension_attributes` by
 `sensitiveAttributeKeys`, and `Snapshot::attributes` by `sensitiveAttributeKeys`.
