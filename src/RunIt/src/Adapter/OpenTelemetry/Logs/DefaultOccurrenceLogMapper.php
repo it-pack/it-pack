@@ -44,7 +44,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         private bool                     $mapOccurrencesToSpanEvents = false,
         private array                    $occurrenceLogAttributeAllowList = [],
     ) {
-        $this->initLoggerProvider($loggerProvider);
+        $this->loggerProvider = $loggerProvider;
     }
 
     public function mapOccurrence(OccurrenceInterface $occurrence): void
@@ -145,7 +145,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
 
     public function mapRedactedOccurrence(array $normalized): void
     {
-        $attributes = $this->getAttributes($normalized);
+        $attributes = $this->buildRedactedOccurrenceAttributes($normalized);
 
         // The subject of a redacted occurrence is an unclassified, caller-controlled
         // string and is deliberately omitted from the suppressed delivery. Extension
@@ -185,6 +185,36 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     }
 
     /**
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    public function getAttributes(array $normalized): array
+    {
+        /** @var array<string, mixed> $attributes */
+        $attributes = [
+            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
+                ? $normalized[ArtifactField::ID]
+                : AttributeValues::REDACTED_ID,
+            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
+                ? $normalized[ArtifactField::TYPE]
+                : AttributeValues::REDACTED_TYPE,
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized[ArtifactField::CLASSIFICATION] ?? null)
+                ? $normalized[ArtifactField::CLASSIFICATION]
+                : AttributeValues::UNKNOWN_CLASSIFICATION,
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
+                ? $normalized[ArtifactField::EXECUTION_ID]
+                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
+        ];
+
+        if (is_string($normalized[ArtifactField::ACTIVITY_ID] ?? null)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $normalized[ArtifactField::ACTIVITY_ID];
+        }
+
+        return $attributes;
+    }
+
+    /**
      * @param array<string, mixed> $attributes
      */
     private function emit(string $eventName, string $body, array $attributes, ?int $timeEpochSeconds): void
@@ -208,19 +238,28 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         }
     }
 
-    public function getAttributes(array $normalized): array
+    /**
+     * Builds the occurrence-specific attribute set for a redacted occurrence
+     * projection. Occurrence identity (id, type, source) and correlation fields
+     * (execution, activity) are preserved, together with the redaction marker.
+     * Extension attributes are intentionally not re-exported.
+     *
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    private function buildRedactedOccurrenceAttributes(array $normalized): array
     {
         /** @var array<string, mixed> $attributes */
         $attributes = [
-            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
+            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null)
                 ? $normalized[ArtifactField::ID]
                 : AttributeValues::REDACTED_ID,
-            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
+            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
                 ? $normalized[ArtifactField::TYPE]
                 : AttributeValues::REDACTED_TYPE,
-            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized[ArtifactField::CLASSIFICATION] ?? null)
-                ? $normalized[ArtifactField::CLASSIFICATION]
-                : AttributeValues::UNKNOWN_CLASSIFICATION,
+            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized[ArtifactField::SOURCE] ?? null)
+                ? $normalized[ArtifactField::SOURCE]
+                : AttributeValues::REDACTED_SOURCE,
             AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
                 ? $normalized[ArtifactField::EXECUTION_ID]
                 : AttributeValues::EMPTY_IDENTITY,

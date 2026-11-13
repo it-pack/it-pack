@@ -11,37 +11,39 @@ use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Logs\LogRecordBuilderInterface;
 use OpenTelemetry\API\Logs\NoopLoggerProvider;
 use OpenTelemetry\API\Logs\Severity;
-use RuntimeException;
 
 trait LogEmitterBehavior
 {
     private readonly ?LoggerProviderInterface $loggerProvider;
 
-    private function loggerProvider(): LoggerProviderInterface
+    private function loggerProvider(): ?LoggerProviderInterface
     {
         return $this->loggerProvider;
     }
 
-    private function initLoggerProvider(?LoggerProviderInterface $loggerProvider): void
-    {
-        $this->loggerProvider = $loggerProvider ?? new NoopLoggerProvider();
-    }
-
+    /**
+     * @param iterable<string, mixed> $attributes instrumentation scope attributes
+     */
     private function logger(
         string $name = BridgeConfig::INSTRUMENTATION_SCOPE,
         ?string $version = null,
         ?string $schemaUrl = null,
-        iterable $attributes = [], //instrumentation scope attributes
+        iterable $attributes = [],
     ): LoggerInterface {
 
-        return $this->loggerProvider()->getLogger($name, $version, $schemaUrl, $attributes);
+        return ($this->loggerProvider() ?? new NoopLoggerProvider())
+            ->getLogger($name, $version, $schemaUrl, $attributes)
+        ;
     }
 
+    /**
+     * @param iterable<string, mixed> $attributes instrumentation scope attributes
+     */
     private function logRecordBuilder(
         string $name = BridgeConfig::INSTRUMENTATION_SCOPE,
         ?string $version = null,
         ?string $schemaUrl = null,
-        iterable $attributes = [], //instrumentation scope attributes
+        iterable $attributes = [],
     ): LogRecordBuilderInterface {
 
         return $this->logger($name, $version, $schemaUrl, $attributes)
@@ -49,11 +51,14 @@ trait LogEmitterBehavior
         ;
     }
 
+    /**
+     * @param iterable<string, mixed> $attributes instrumentation scope attributes
+     */
     private function infoLogRecordBuilder(
         string $name = BridgeConfig::INSTRUMENTATION_SCOPE,
         ?string $version = null,
         ?string $schemaUrl = null,
-        iterable $attributes = [], //instrumentation scope attributes
+        iterable $attributes = [],
     ): LogRecordBuilderInterface {
 
         return $this->logRecordBuilder($name, $version, $schemaUrl, $attributes)

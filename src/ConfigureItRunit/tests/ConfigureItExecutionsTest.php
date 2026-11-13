@@ -24,6 +24,7 @@ use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
@@ -273,9 +274,11 @@ final class ConfigureItExecutionsTest extends TestCase
 
         $snapshots = array_values(array_filter(
             $artifacts,
-            static fn ($artifact): bool => $artifact->artifactType() === 'snapshot',
+            static fn ($artifact): bool => ($artifact instanceof RedactedArtifactInterface
+                || $artifact instanceof TrustedArtifactProjectionInterface)
+                && $artifact->artifactType() === 'snapshot',
         ));
-        self::assertCount(1, $snapshots);
+        self::assertCount(2, $snapshots);
         $snapshot = $snapshots[0]->normalize();
         self::assertArrayNotHasKey('payload', $snapshot);
         self::assertArrayNotHasKey('content_hash', $snapshot);

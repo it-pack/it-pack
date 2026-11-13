@@ -42,12 +42,12 @@ final readonly class DefaultObservationLogMapper implements
         private SeverityMapInterface     $severityMap,
         private bool                     $mapToSpanEvents = false,
     ) {
-        $this->initLoggerProvider($loggerProvider);
+        $this->loggerProvider = $loggerProvider;
     }
 
     public function map(ObservationInterface $observation): void
     {
-        if (!$this->mapToSpanEvents && $this->loggerProvider() instanceof LoggerProviderInterface) {
+        if (!$this->mapToSpanEvents && !$this->loggerProvider() instanceof LoggerProviderInterface) {
             return;
         }
 
@@ -69,14 +69,16 @@ final readonly class DefaultObservationLogMapper implements
             }
         }
 
-        $this->logRecordBuilder()
-            ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
-            ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
-            ->setSeverityText($this->severityMap->toText($observation->severity()))
-            ->setBody($observation->message())
-            ->setAttributes($attributes)
-            ->emit()
-        ;
+        if ($this->loggerProvider() instanceof LoggerProviderInterface) {
+            $this->logRecordBuilder()
+                ->setTimestamp($observation->timestamp() * Duration::NANOS_PER_SECOND)
+                ->setSeverityNumber($this->severityMap->toNumber($observation->severity()))
+                ->setSeverityText($this->severityMap->toText($observation->severity()))
+                ->setBody($observation->message())
+                ->setAttributes($attributes)
+                ->emit()
+            ;
+        }
 
         if ($this->mapToSpanEvents) {
             Span::getCurrent()->addEvent('runit.observation', $attributes);
@@ -88,7 +90,7 @@ final readonly class DefaultObservationLogMapper implements
      */
     public function mapRedactedObservation(array $normalized): void
     {
-        if (!$this->mapToSpanEvents) {
+        if (!$this->mapToSpanEvents && !$this->loggerProvider() instanceof LoggerProviderInterface) {
             return;
         }
 
@@ -117,14 +119,16 @@ final readonly class DefaultObservationLogMapper implements
         $this->appendThrowableAttributes($otelAttributes, $normalized[ArtifactField::THROWABLE] ?? null);
 
 
-        $this->logRecordBuilder()
-            ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
-            ->setSeverityNumber($this->severityLevelToNumber($level))
-            ->setSeverityText($this->severityLevelToText($level))
-            ->setBody($message)
-            ->setAttributes($otelAttributes)
-            ->emit()
-        ;
+        if ($this->loggerProvider() instanceof LoggerProviderInterface) {
+            $this->logRecordBuilder()
+                ->setTimestamp($timestamp * Duration::NANOS_PER_SECOND)
+                ->setSeverityNumber($this->severityLevelToNumber($level))
+                ->setSeverityText($this->severityLevelToText($level))
+                ->setBody($message)
+                ->setAttributes($otelAttributes)
+                ->emit()
+            ;
+        }
 
 
         if ($this->mapToSpanEvents) {

@@ -50,7 +50,7 @@ final class ClassifiedOccurrenceFactory
                 $fields['subject'],
                 $fields['data_schema'],
                 $fields['content_type'],
-                AttributeCollection::fromArray($fields['extension_attributes']),
+                AttributeCollection::fromArray($this->typedExtensionAttributes($fields['extension_attributes'])),
                 ArtifactSequence::of($fields['sequence']),
             );
 
@@ -63,5 +63,30 @@ final class ClassifiedOccurrenceFactory
         } catch (Throwable) {
             return null;
         }
+    }
+
+    /**
+     * Builds a string-keyed, primitive-bounded attribute map from the raw,
+     * caller-controlled `extension_attributes` of a normalized occurrence.
+     * Non-string keys and non-primitive values are dropped; `AttributeCollection`
+     * validates the result on construction.
+     *
+     * @param array<mixed, mixed> $attributes
+     * @return array<string, int|float|string|bool|null|array<int|string, mixed>>
+     */
+    private function typedExtensionAttributes(array $attributes): array
+    {
+        $result = [];
+        foreach ($attributes as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+
+            if (is_scalar($value) || $value === null) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
     }
 }

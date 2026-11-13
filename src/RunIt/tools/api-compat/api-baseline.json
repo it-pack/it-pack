@@ -2086,22 +2086,22 @@
                     {
                         "name": "loggerProvider",
                         "type": "null|OpenTelemetry\\API\\Logs\\LoggerProviderInterface",
-                        "optional": false
+                        "optional": true
                     },
                     {
                         "name": "snapshotPayloadPolicy",
-                        "type": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SnapshotPayloadPolicy",
-                        "optional": false
+                        "type": "null|ItPack\\RunIt\\Adapter\\OpenTelemetry\\Telemetry\\SnapshotPayloadPolicy",
+                        "optional": true
                     },
                     {
                         "name": "mapOccurrencesToLogs",
                         "type": "bool",
-                        "optional": false
+                        "optional": true
                     },
                     {
                         "name": "mapOccurrencesToSpanEvents",
                         "type": "bool",
-                        "optional": false
+                        "optional": true
                     },
                     {
                         "name": "occurrenceLogAttributeAllowList",
@@ -2146,6 +2146,17 @@
             "mapRedactedSnapshot": {
                 "static": false,
                 "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            },
+            "getAttributes": {
+                "static": false,
+                "return": "array",
                 "params": [
                     {
                         "name": "normalized",
@@ -4455,7 +4466,6 @@
         },
         "cases": []
     },
-
     "ItPack\\RunIt\\Application\\Factory\\RedactedRedactedArtifactFactory": {
         "kind": "class",
         "final": true,
@@ -5559,6 +5569,27 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifiedOccurrenceFactory": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "create": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+                "params": [
+                    {
+                        "name": "fields",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
