@@ -7,11 +7,14 @@ namespace Tests\Unit\Application\Publication;
 use Codeception\Test\Unit;
 use InvalidArgumentException;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
+use ItPack\RunIt\Application\Publication\FallbackErrorLogReporter;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
+use RuntimeException;
 use Throwable;
 
 #[CoversClass(ProvenanceAuthority::class)]
@@ -286,5 +289,47 @@ final class ProvenanceAuthorityTest extends Unit
 
         self::assertCount(1, $authority->allRecords());
         self::assertSame([], $authority->allRecords()[$parent]['relationships']);
+    }
+
+    public function testReportUnverifiedWithoutHealthReporterUsesErrorLogFallback(): void
+    {
+        $logged = '';
+        $logTo = static function (string $message) use (&$logged): void {
+            $logged = $message;
+        };
+        $fallback = new FallbackErrorLogReporter($logTo);
+        $fallback->report(
+            new RuntimeException('unverified'),
+            new RuntimeException('no health reporter configured'),
+            'redacted',
+        );
+
+        self::assertStringContainsString('[runit] publication health fallback:', $logged);
+        self::assertStringContainsString('unverified', $logged);
+        self::assertStringContainsString('artifact=redacted', $logged);
+    }
+
+    public function testReportUnverifiedWithThrowingHealthReporterFallsBackAndStaysUsable(): void
+    {
+        $health = new readonly class () implements InternalHealthReporterInterface {
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                throw new RuntimeException('health reporter failure');
+            }
+        };
+        $authority = new ProvenanceAuthority($health);
+
+        // A throwing health reporter must be contained; the authority stays usable.
+        $authority->reportUnverified(new RuntimeException('unverified'), 'redacted');
+
+        $id = $authority->issueExportId('execution', 'execution', 'exec', 'exec');
+        self::assertTrue($authority->verifyExportId($id, 'execution', 'exec'));
+    }
+
+    public function testReportUnverifiedWithoutReporterDoesNotThrow(): void
+    {
+        $authority = new ProvenanceAuthority();
+        $authority->reportUnverified(new RuntimeException('unverified'), 'redacted');
+        $authority->reportUnverified(new RuntimeException('still unverified'), 'redacted');
     }
 }

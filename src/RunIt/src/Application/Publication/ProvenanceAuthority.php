@@ -624,32 +624,41 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
     /**
      * Report an unverified or dropped artifact through the health channel as a
      * payload-free notice, then contain the failure.
+     *
+     * When no health reporter is configured (standalone composition), the notice
+     * is written through the payload-free error-log fallback so the drop remains
+     * observable instead of being silently dropped.
      */
     public function reportUnverified(Throwable $failure, ?string $artifactId = null): void
     {
-        if (!$this->health instanceof InternalHealthReporterInterface) {
-            return;
+        $artifactId ??= 'redacted';
+
+        if ($this->health instanceof InternalHealthReporterInterface) {
+            try {
+                $this->health->report(
+                    $failure,
+                    new RedactedArtifact([
+                        ArtifactField::ID => $artifactId,
+                        ArtifactField::TYPE => 'runit.artifact.redacted',
+                    ]),
+                );
+
+                return;
+            } catch (Throwable) {
+                // Contain health reporter failures so unverified drops stay fail-open.
+            }
         }
 
+        // No health reporter configured, or it failed: report through the
+        // payload-free error-log fallback so standalone composition stays observable.
         try {
-            $this->health->report(
+            new FallbackErrorLogReporter()->report(
                 $failure,
-                new RedactedArtifact([
-                    ArtifactField::ID => $artifactId ?? 'redacted',
-                    ArtifactField::TYPE => 'runit.artifact.redacted',
-                ]),
+                new RuntimeException('no health reporter configured'),
+                $artifactId,
             );
-        } catch (Throwable $throwable) {
-            // Contain health reporter failures so unverified drops stay fail-open.
-            try {
-                new FallbackErrorLogReporter()->report(
-                    $failure,
-                    $throwable,
-                    $artifactId ?? 'redacted',
-                );
-            } catch (Throwable) {
-                // No further independent sink remains; preserve the business outcome.
-            }
+        } catch (Throwable) {
+            // No further independent sink remains; preserve the business outcome.
         }
     }
 

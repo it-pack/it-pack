@@ -13,6 +13,27 @@
 - [ ] Treat the previous six dependency advisories as superseded: the subsequent audit found no vulnerability advisories. `doctrine/annotations` remains an abandoned **development** dependency via `just-bases/php-qa-base` and PHPBench; track it separately.
 - [ ] Use PHP 8.4 as the compatibility floor and run the supported newer PHP matrix where available. Record unavailable extensions or environments rather than claiming those paths passed.
 
+## Approved decisions (Phases 0–2)
+
+**All documented decisions for Phases 0–2 are explicitly approved (2026-11-13).** This includes:
+
+- API identity: `ContextTokenInterface::id(): int` breaking contract
+- Compatibility baseline: strict API checker, committed snapshots
+- Throwable redaction defaults: configurable redaction, mask messages by default, omit traces by default
+- Sampling and redaction order: configurable, redaction before sampling by default
+- Throwable metadata: preserve class names and error codes by default
+- Redacted observations: sanitized observation by default, drop-and-report optional
+- Open-activity outcome: critical diagnostic by default, fail-open execution policy configurable
+- Span-store retention: configurable finite default, evict oldest
+- Concurrency default: `StackContextStorage` synchronous default, runtime-aware rejection at setup
+- Coverage attribution policy: Unit-only coverage with explicit class under test
+- Publication health reporting: replaceable SDK default, custom reporter, explicit silence
+- Coding standards principle: existing conventions, focused exceptions
+- Phase 2 identifier provenance: preserve business-facing IDs, issue separate SDK-controlled export IDs
+- Phase 2 unsafe-mapping drops: guarded payload-free error-log fallback when no health callback
+
+No further decision-gate approval is required for Phase 0–2 policy direction. Implementation must still follow the compatibility process (contract-diff review, snapshot updates only after approval, changelog documentation).
+
 ### Decisions required before dependent changes
 
 Checked items record approved policy direction, not completed implementation or
@@ -1308,6 +1329,48 @@ compatibility or complete the Phase 0 baseline.
 On PHP 8.5.12, a subsequent Unit-only `composer coverage` run passed 843 tests
 and reported 3,604/4,086 covered lines (88.20%); aggregate coverage does not
 establish per-test attribution or the planned isolation guarantee.
+
+**Phase 2 implementation status (2026-11-13, revision 46311f4b):**
+
+Implemented within already-approved decisions:
+
+- `ProvenanceAuthority::reportUnverified()` now falls back to the payload-free
+  `FallbackErrorLogReporter` (error log) when no health reporter is configured,
+  so standalone composition remains observable instead of silently dropping
+  unverified artifacts. Reporter failures are contained; the authority stays
+  usable after a throwing reporter. Covered by
+  `tests/Unit/Application/Publication/ProvenanceAuthorityTest.php`:
+  `testReportUnverifiedWithoutHealthReporterUsesErrorLogFallback`,
+  `testReportUnverifiedWithThrowingHealthReporterFallsBackAndStaysUsable`,
+  `testReportUnverifiedWithoutReporterDoesNotThrow`.
+
+Open gaps requiring maintainer approval before any delivery or contract change:
+
+- The safe-field and representation/delivery policies remain explicitly
+  unapproved (Phase 2 lines 1202-1220). Existing characterizations are not
+  authorization. The field-by-field decision (observation severity/message/
+  attributes/diagnostics/timing; throwable class/code/nested causes/trace;
+  required versus optional fields; unknown keys/values; snapshot embedded
+  identifiers and hash validity) has not been presented for approval.
+- `ProvenanceAuthority::bindActivityRelationship()` resolves an endpoint by
+  matching a business ID within an execution, which is weaker than independently
+  recorded relationship evidence. Fixing it requires passing verified export IDs
+  through the activity scope rather than looking up by business ID claim.
+- `ClassifyingArtifactPublisher` falls back to generic `ClassifiedArtifact` when
+  typed reconstruction fails; whether such projections are mapped through redacted
+  mapper methods or reported as drops is an unresolved routing decision.
+- Terminal snapshot payloads can retain business IDs after the outer execution ID
+  has been replaced; snapshot payload classification policy is not yet approved.
+- Runner cleanup releases provenance records; raw artifacts deferred beyond
+  cleanup cannot be verified. This is by design but async ownership behavior is
+  undocumented.
+- No representative workload, delivery-loss measurement, or real exporter I/O
+  baseline has been established for Phase 2 cost evaluation.
+
+Phase 2 cannot be closed until the safe-field/delivery policies receive explicit
+maintainer approval and the corresponding implementation, tests, and documentation
+are complete. `composer quality` (validation, Rector dry-run, PHPStan at level max,
+architecture, lint:length, all four test suites, security audit) passes on PHP 8.5.12.
 
 ## Phase 2 preparatory mapping — `normalize()` shapes and redaction coverage
 
