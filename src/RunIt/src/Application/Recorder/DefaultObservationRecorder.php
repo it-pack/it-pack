@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\ObservationRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
@@ -22,6 +23,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -49,6 +51,7 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
         private ThrowableMapperInterface         $throwableMapper,
         /** @var StringIdentifierFactoryInterface<ObservationIdInterface> */
         private StringIdentifierFactoryInterface $observationIdFactory,
+        private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
     ) {
     }
 
@@ -71,6 +74,24 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
             $attributes,
             $description
         );
+
+        // Issue an SDK-controlled export ID for the observation and register the
+        // execution→observation edge so provenance can be verified at publication.
+        try {
+            $exportId = $this->authority->bindArtifact(
+                'observation',
+                'observation',
+                $this->executionId->toString(),
+                $id->toString(),
+                'execution-observation',
+            );
+
+            $this->authority->attest($observation, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $observation->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Observation publication preparation failed.'));
+            return $observation;
+        }
 
         $this->publisher->publish($observation);
 

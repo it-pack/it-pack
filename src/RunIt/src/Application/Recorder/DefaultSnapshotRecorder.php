@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\SnapshotRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
@@ -24,6 +25,7 @@ use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -54,6 +56,7 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
         private HashCalculatorInterface          $hashCalculator,
         private ?SnapshotStoreInterface          $store = null,
         private ?Closure                         $onStoreFailure = null,
+        private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
     ) {
     }
 
@@ -71,6 +74,25 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
             $schemaVersion,
             $attributes
         );
+
+        // Issue an SDK-controlled export ID for the snapshot and register the
+        // execution→snapshot edge so provenance can be verified at publication.
+        try {
+            $exportId = $this->authority->bindArtifact(
+                'snapshot',
+                'snapshot',
+                $this->executionId->toString(),
+                $snapshot->id()->toString(),
+                'execution-snapshot',
+            );
+
+            $this->authority->attest($snapshot, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $snapshot->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Snapshot publication preparation failed.'));
+            $this->persist($snapshot);
+            return $snapshot;
+        }
 
         $this->publisher->publish($snapshot);
         $this->persist($snapshot);

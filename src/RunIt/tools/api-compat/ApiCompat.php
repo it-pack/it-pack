@@ -80,12 +80,13 @@ final class ApiCompat
 
     /**
      * @param list<string> $argv
+     * @param array{publicDirs: list<string>, internalNamespaces: list<string>, baseline: string, schema: array{path: string, baseline: string}}|null $config
      * @throws JsonException
      */
-    public function __construct(private array $argv)
+    public function __construct(private array $argv, ?array $config = null)
     {
         $this->root = dirname(__DIR__, 2);
-        $this->config = $this->loadConfig();
+        $this->config = $config ?? $this->loadConfig();
     }
 
     /**
@@ -165,6 +166,10 @@ final class ApiCompat
                 $issues[] = $this->break("Symbol kind changed for {$fqn}: {$old['kind']} -> {$new['kind']}", $fqn);
             }
 
+            foreach (array_diff($old['implements'], $new['implements']) as $interface) {
+                $issues[] = $this->break("Removed implemented or extended interface {$interface} from {$fqn}", $fqn);
+            }
+
             foreach ($old['methods'] as $name => $oldMethod) {
                 if (!isset($new['methods'][$name])) {
                     $issues[] = $this->break("Removed method {$fqn}::{$name}()", $fqn);
@@ -178,6 +183,13 @@ final class ApiCompat
 
             foreach ($new['methods'] as $name => $newMethod) {
                 if (isset($old['methods'][$name])) {
+                    continue;
+                }
+
+                // Older baselines omit PHP-internal methods, but already record
+                // the interfaces that imposed those obligations.
+                if (isset($newMethod['internalInterface'])
+                    && in_array($newMethod['internalInterface'], $old['implements'], true)) {
                     continue;
                 }
 
@@ -467,10 +479,9 @@ final class ApiCompat
                     continue;
                 }
 
-                if ($m->isStatic() === false
-                    && $m->getDeclaringClass()->getName() !== $fqn
-                    && $m->getDeclaringClass()->isInternal() === false) {
-                    // skip inherited from non-internal parents to keep the surface focused on the declared API
+                // Built-in interface methods are implementation obligations, unlike
+                // methods inherited from built-in classes such as Exception.
+                if ($m->getDeclaringClass()->isInternal() && !$m->getDeclaringClass()->isInterface()) {
                     continue;
                 }
                 $params = [];
@@ -488,6 +499,10 @@ final class ApiCompat
                     'return' => $m->hasReturnType() ? $this->typeToString($m->getReturnType()) : null,
                     'params' => $params,
                 ];
+
+                if ($m->getDeclaringClass()->isInternal() && $m->getDeclaringClass()->isInterface()) {
+                    $entry['methods'][$m->getName()]['internalInterface'] = $m->getDeclaringClass()->getName();
+                }
             }
 
             if ($rc->isEnum()) {

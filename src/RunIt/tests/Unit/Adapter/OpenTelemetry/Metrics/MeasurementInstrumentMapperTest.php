@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Adapter\OpenTelemetry\Metrics;
 
 use Codeception\Test\Unit;
+use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\DefaultMeasurementInstrumentMapper;
 use ItPack\RunIt\Adapter\OpenTelemetry\Metrics\InstrumentCache;
+use ItPack\RunIt\Adapter\OpenTelemetry\TelemetryPublisher;
+use ItPack\RunIt\Application\Publication\RedactedArtifact;
+use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
@@ -17,8 +22,10 @@ use OpenTelemetry\SDK\Metrics\Data\Gauge;
 use OpenTelemetry\SDK\Metrics\Data\Histogram;
 use OpenTelemetry\SDK\Metrics\Data\Metric;
 use OpenTelemetry\SDK\Metrics\Data\Sum;
+use RuntimeException;
 use Tests\Support\Fixture\OpenTelemetry\OtelTestKit;
 use Tests\Support\Fixture\OpenTelemetry\RunItArtifactFactory;
+use Throwable;
 
 /**
  * M9.5 — Measurements to metrics.
@@ -193,5 +200,89 @@ final class MeasurementInstrumentMapperTest extends Unit
         ));
 
         self::assertCount(0, $this->kit->collectMetrics());
+    }
+
+    public function testPublisherWiresPayloadFreeHealthForNonnumericValue(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            /** @var list<array{string, array<string, mixed>}> */
+            public array $reports = [];
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                $this->reports[] = [$error->getMessage(), $artifact->normalize()];
+            }
+        };
+        $publisher = TelemetryPublisher::fromConfig(
+            BridgeConfig::builder()->withMeterProvider($this->kit->meterProvider)->build(),
+            health: $health,
+        );
+        $publisher->publish(new RedactedArtifact([
+            'name' => 'private_metric', 'kind' => 'gauge', 'unit' => 'count',
+            'value' => 'secret-value', 'id' => 'secret-id',
+        ], 'measurement'));
+
+        self::assertSame([[
+            'Redacted measurement has invalid fields.',
+            ['id' => 'redacted', 'type' => 'runit.artifact.redacted'],
+        ]], $health->reports);
+        self::assertNull($this->kit->metric('private_metric'));
+    }
+
+    public function testHealthFailureAndReentryAreContainedWithPayloadFreeFallback(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public ?DefaultMeasurementInstrumentMapper $mapper = null;
+
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+                $this->mapper?->mapRedactedMeasurement(['name' => 'nested', 'value' => 'nested-secret']);
+                throw new RuntimeException('reporter-secret');
+            }
+        };
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            $this->kit->meterProvider,
+            new InstrumentCache(64),
+            [],
+            $health,
+        );
+        $health->mapper = $mapper;
+        $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
+        $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
+
+        self::assertSame(2, $health->calls);
+        self::assertNull($this->kit->metric('metric'));
+    }
+
+    public function testInvalidRedactedMeasurementFieldsAreReportedWithoutRecording(): void
+    {
+        $health = new class () implements InternalHealthReporterInterface {
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+            }
+        };
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            $this->kit->meterProvider,
+            new InstrumentCache(64),
+            [],
+            $health,
+        );
+        $base = ['name' => 'invalid', 'kind' => 'gauge', 'unit' => 'count', 'value' => 1.0];
+        foreach ([['kind' => null], ['kind' => 'secret'], ['unit' => null], ['unit' => 'secret'],
+            ['value' => INF], ['value' => -INF], ['value' => NAN],
+            ['kind' => 'counter', 'value' => 1.5], ['kind' => 'size', 'value' => 1.5]] as $override) {
+            $mapper->mapRedactedMeasurement(array_replace($base, $override));
+        }
+
+        self::assertSame(9, $health->calls);
+        self::assertNull($this->kit->metric('invalid'));
+        $mapper->mapRedactedMeasurement(['name' => 'valid', 'kind' => 'gauge', 'unit' => 'count', 'value' => 1.5]);
+        self::assertNotNull($this->kit->metric('valid'));
     }
 }

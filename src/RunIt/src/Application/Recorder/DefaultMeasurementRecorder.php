@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\MeasurementRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
@@ -20,6 +21,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -44,6 +46,7 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         private SequenceAllocatorInterface $sequenceAllocator,
         private MonotonicClockInterface    $clock,
         private ArtifactPublisherInterface $publisher,
+        private ProvenanceAuthority        $authority = new ProvenanceAuthority(),
     ) {
     }
 
@@ -166,6 +169,27 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
      */
     private function publish(MeasurementInterface $measurement): MeasurementInterface
     {
+        // Issue an SDK-controlled export ID bound to the measurement's unique
+        // sequence (each measurement gets a distinct sequence from the allocator)
+        // and register the execution→measurement relationship edge. The name is
+        // repeatable across calls and cannot serve as a distinct artifact identity.
+        try {
+            $businessId = (string) $measurement->sequence();
+            $exportId = $this->authority->bindArtifact(
+                'measurement',
+                'measurement',
+                $this->executionId->toString(),
+                $businessId,
+                'execution-measurement',
+            );
+
+            $this->authority->attest($measurement, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $measurement->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Measurement publication preparation failed.'));
+            return $measurement;
+        }
+
         $this->publisher->publish($measurement);
 
         return $measurement;

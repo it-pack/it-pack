@@ -1821,6 +1821,27 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedMeasurementInstrumentMapperInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "mapRedactedMeasurement": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedObservationLogMapperInterface": {
         "kind": "interface",
         "final": false,
@@ -2141,7 +2162,8 @@
         "final": true,
         "extends": null,
         "implements": {
-            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface"
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\MeasurementInstrumentMapperInterface",
+            "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedMeasurementInstrumentMapperInterface": "ItPack\\RunIt\\Adapter\\OpenTelemetry\\Contract\\RedactedMeasurementInstrumentMapperInterface"
         },
         "constants": [],
         "methods": {
@@ -2163,6 +2185,11 @@
                         "name": "metricAttributeAllowList",
                         "type": "array",
                         "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
                     }
                 ]
             },
@@ -2173,6 +2200,17 @@
                     {
                         "name": "measurement",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\MeasurementInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "mapRedactedMeasurement": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
                         "optional": false
                     }
                 ]
@@ -3683,7 +3721,7 @@
                     },
                     {
                         "name": "levelMapper",
-                        "type": "ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface",
+                        "type": "null|ItPack\\RunIt\\Adapter\\Psr\\Contract\\ObservationToPsr3LevelMapperInterface",
                         "optional": true
                     },
                     {
@@ -4320,6 +4358,11 @@
                         "name": "type",
                         "type": "null|ItPack\\RunIt\\Contract\\Domain\\SnapshotTypeInterface",
                         "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "null|ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -4342,10 +4385,37 @@
         "final": true,
         "extends": null,
         "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\HealthAwarePublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\HealthAwarePublisherStackFactoryInterface",
             "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface"
         },
         "constants": [],
         "methods": {
+            "composeWithHealth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    }
+                ]
+            },
             "compose": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
@@ -4364,6 +4434,21 @@
                         "name": "samplingPolicy",
                         "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "limits",
+                        "type": "null|ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "null|ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             }
@@ -5055,72 +5140,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -5252,74 +5271,7 @@
             "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
         },
         "constants": [],
-        "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            }
-        },
+        "methods": [],
         "cases": []
     },
     "ItPack\\RunIt\\Application\\Publication\\BufferedArtifactPublisher": {
@@ -5509,6 +5461,311 @@
                         "optional": false
                     }
                 ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifiedArtifact": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TrustedArtifactProjectionInterface": "ItPack\\RunIt\\Contract\\Domain\\TrustedArtifactProjectionInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactType",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifiedRedactedObservation": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface": "ItPack\\RunIt\\Contract\\Domain\\ObservationInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+            "Countable": "Countable",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\AttributedInterface": "ItPack\\RunIt\\Contract\\Domain\\AttributedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface": "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface": "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "observation",
+                        "type": "ItPack\\RunIt\\Domain\\Observation\\Observation",
+                        "optional": false
+                    }
+                ]
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ObservationIdInterface",
+                "params": []
+            },
+            "executionId": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                "params": []
+            },
+            "activityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\StringIdentifierInterface",
+                "params": []
+            },
+            "severity": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ObservationSeverityInterface",
+                "params": []
+            },
+            "message": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "diagnosticCode": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "throwableDescription": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\ThrowableDescriptionInterface",
+                "params": []
+            },
+            "attributes": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "timestamp": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "sequence": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifiedRedactedOccurrence": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+            "Countable": "Countable",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface": "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface": "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Domain\\Occurrence\\Occurrence",
+                        "optional": false
+                    }
+                ]
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceIdInterface",
+                "params": []
+            },
+            "executionId": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                "params": []
+            },
+            "activityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\StringIdentifierInterface",
+                "params": []
+            },
+            "type": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceTypeInterface",
+                "params": []
+            },
+            "source": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "subject": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "time": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
+            },
+            "timestamp": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "data": {
+                "static": false,
+                "return": "mixed",
+                "params": []
+            },
+            "dataSchema": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "contentType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "extensionAttributes": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "sequence": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifyingArtifactPublisher": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "inner",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "limits",
+                        "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    }
+                ]
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "flush": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "close": {
+                "static": false,
+                "return": "void",
+                "params": []
             }
         },
         "cases": []
@@ -6387,6 +6644,530 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Publication\\ProvenanceArtifactPublisher": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\FlushablePublisherInterface",
+            "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface": "ItPack\\RunIt\\Contract\\Port\\CloseablePublisherInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": false
+                    },
+                    {
+                        "name": "inner",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "publish": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "flush": {
+                "static": false,
+                "return": "void",
+                "params": []
+            },
+            "close": {
+                "static": false,
+                "return": "void",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthorityInterface": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthorityInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "health",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": true
+                    },
+                    {
+                        "name": "maxRecords",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "maxEdges",
+                        "type": "int",
+                        "optional": true
+                    },
+                    {
+                        "name": "maxIdentifierBytes",
+                        "type": "int",
+                        "optional": true
+                    }
+                ]
+            },
+            "attest": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "exportId",
+                        "type": "null|string",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdForArtifact": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "attestSuccessor": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "previous",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "successor",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdentityFields": {
+                "static": false,
+                "return": "null|array",
+                "params": [
+                    {
+                        "name": "artifact",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "issueExportId": {
+                "static": false,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "kind",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationships",
+                        "type": "array",
+                        "optional": true
+                    }
+                ]
+            },
+            "verifyExportId": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "registerRelationship": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "fromExportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "toExportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationshipType",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "bindActivityRelationship": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "targetId",
+                        "type": "null|string",
+                        "optional": false
+                    },
+                    {
+                        "name": "activityId",
+                        "type": "null|string",
+                        "optional": false
+                    },
+                    {
+                        "name": "parent",
+                        "type": "bool",
+                        "optional": true
+                    }
+                ]
+            },
+            "businessIdForExportId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "executionIdForExportId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdForBusinessId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdForBusinessIdExcluding": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "excludeExecutionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "hasLiveRecords": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "allRecords": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "bindArtifact": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "kind",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationshipType",
+                        "type": "string",
+                        "optional": true
+                    }
+                ]
+            },
+            "releaseExecution": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "reportUnverified": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "failure",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthorityInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "issueExportId": {
+                "static": false,
+                "return": "string",
+                "params": [
+                    {
+                        "name": "kind",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationships",
+                        "type": "array",
+                        "optional": true
+                    }
+                ]
+            },
+            "verifyExportId": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "role",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "businessIdForExportId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "executionIdForExportId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "exportId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "exportIdForBusinessId": {
+                "static": false,
+                "return": "null|string",
+                "params": [
+                    {
+                        "name": "businessId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "registerRelationship": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "fromExportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "toExportId",
+                        "type": "string",
+                        "optional": false
+                    },
+                    {
+                        "name": "relationshipType",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "hasLiveRecords": {
+                "static": false,
+                "return": "bool",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "releaseExecution": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "executionId",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "reportUnverified": {
+                "static": false,
+                "return": "void",
+                "params": [
+                    {
+                        "name": "failure",
+                        "type": "Throwable",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactId",
+                        "type": "null|string",
+                        "optional": true
+                    }
+                ]
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Publication\\PublicationGuard": {
         "kind": "class",
         "final": true,
@@ -6679,72 +7460,6 @@
                 "static": true,
                 "return": "ItPack\\RunIt\\Application\\Publication\\RecursivePublicationException",
                 "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -6806,7 +7521,7 @@
                 "params": [
                     {
                         "name": "redactor",
-                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
                         "optional": false
                     },
                     {
@@ -6822,6 +7537,11 @@
                     {
                         "name": "dropRedactedObservations",
                         "type": "bool",
+                        "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "null|ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
                     }
                 ]
@@ -7016,72 +7736,6 @@
                 "static": true,
                 "return": "ItPack\\RunIt\\Application\\Publication\\SamplingDropException",
                 "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -7116,6 +7770,45 @@
                         "optional": false
                     }
                 ]
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Publication\\VerifiedArtifactProjection": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "normalized",
+                        "type": "array",
+                        "optional": false
+                    },
+                    {
+                        "name": "artifactType",
+                        "type": "string",
+                        "optional": false
+                    }
+                ]
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
             }
         },
         "cases": []
@@ -7157,6 +7850,11 @@
                         "name": "publisher",
                         "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -7345,6 +8043,11 @@
                         "name": "observationIdFactory",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\Factory\\StringIdentifierFactoryInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -7429,6 +8132,11 @@
                         "name": "occurrenceIdFactory",
                         "type": "ItPack\\RunIt\\Contract\\Domain\\Factory\\StringIdentifierFactoryInterface",
                         "optional": false
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -7543,6 +8251,11 @@
                         "name": "onStoreFailure",
                         "type": "null|Closure",
                         "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -7636,6 +8349,11 @@
                     {
                         "name": "limits",
                         "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
+                        "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
                         "optional": true
                     }
                 ]
@@ -7791,6 +8509,11 @@
                         "name": "limits",
                         "type": "ItPack\\RunIt\\Domain\\Shared\\SecurityLimits",
                         "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -7813,6 +8536,109 @@
             "now": {
                 "static": false,
                 "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Runner\\ExecutionScopeSetup": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Application\\Runner\\ExecutionScopeSetupInterface": "ItPack\\RunIt\\Application\\Runner\\ExecutionScopeSetupInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "scope",
+                        "type": "ItPack\\RunIt\\Application\\Scope\\ExecutionScope",
+                        "optional": false
+                    },
+                    {
+                        "name": "execution",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "id",
+                        "type": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "exportId",
+                        "type": "null|string",
+                        "optional": false
+                    },
+                    {
+                        "name": "scopeAuthority",
+                        "type": "mixed",
+                        "optional": false
+                    }
+                ]
+            },
+            "scope": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Application\\Scope\\ExecutionScope",
+                "params": []
+            },
+            "execution": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                "params": []
+            },
+            "exportId": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "scopeAuthority": {
+                "static": false,
+                "return": "mixed",
+                "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Application\\Runner\\ExecutionScopeSetupInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": [],
+        "constants": [],
+        "methods": {
+            "scope": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Application\\Scope\\ExecutionScope",
+                "params": []
+            },
+            "execution": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionInterface",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                "params": []
+            },
+            "exportId": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "scopeAuthority": {
+                "static": false,
+                "return": "mixed",
                 "params": []
             }
         },
@@ -7989,6 +8815,11 @@
                         "name": "currentActivityId",
                         "type": "null|Closure",
                         "optional": true
+                    },
+                    {
+                        "name": "authority",
+                        "type": "ItPack\\RunIt\\Application\\Publication\\ProvenanceAuthority",
+                        "optional": true
                     }
                 ]
             },
@@ -8158,72 +8989,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -8310,7 +9075,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -9480,7 +10246,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -9580,7 +10347,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "sequence": {
                 "static": false,
@@ -9626,7 +10394,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -9662,7 +10431,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -9804,7 +10574,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -9840,7 +10611,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10077,7 +10849,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10164,7 +10937,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10231,7 +11005,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10377,7 +11152,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -10495,7 +11271,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10583,7 +11360,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "sequence": {
                 "static": false,
@@ -10624,7 +11402,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10660,7 +11439,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10779,7 +11559,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "attributes": {
                 "static": false,
@@ -10881,7 +11662,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10945,7 +11727,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "sequence": {
                 "static": false,
@@ -11006,7 +11789,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11076,7 +11860,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11145,7 +11930,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "sequence": {
                 "static": false,
@@ -11215,7 +12001,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11303,7 +12090,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "sequence": {
                 "static": false,
@@ -11349,7 +12137,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11415,7 +12204,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -11470,7 +12260,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11553,7 +12344,8 @@
             "count": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Countable"
             },
             "attributes": {
                 "static": false,
@@ -11594,7 +12386,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11628,7 +12421,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11672,7 +12466,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11707,7 +12502,8 @@
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11846,6 +12642,31 @@
             "count": {
                 "static": false,
                 "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Domain\\TrustedArtifactProjectionInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
                 "params": []
             }
         },
@@ -11941,72 +12762,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -12102,72 +12857,6 @@
             "malformedJson": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Contract\\Exception\\InvalidCloudEventException",
-                "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
                 "params": []
             }
         },
@@ -12285,72 +12974,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -12408,72 +13031,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -12492,42 +13049,50 @@
             "getMessage": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getCode": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getFile": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getLine": {
                 "static": false,
                 "return": "int",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTrace": {
                 "static": false,
                 "return": "array",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getPrevious": {
                 "static": false,
                 "return": "null|Throwable",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTraceAsString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12546,42 +13111,50 @@
             "getMessage": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getCode": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getFile": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getLine": {
                 "static": false,
                 "return": "int",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTrace": {
                 "static": false,
                 "return": "array",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getPrevious": {
                 "static": false,
                 "return": "null|Throwable",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTraceAsString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12599,42 +13172,50 @@
             "getMessage": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getCode": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getFile": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getLine": {
                 "static": false,
                 "return": "int",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTrace": {
                 "static": false,
                 "return": "array",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getPrevious": {
                 "static": false,
                 "return": "null|Throwable",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTraceAsString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12650,74 +13231,7 @@
             "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
         },
         "constants": [],
-        "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            }
-        },
+        "methods": [],
         "cases": []
     },
     "ItPack\\RunIt\\Contract\\Exception\\SerializationExceptionInterface": {
@@ -12734,42 +13248,50 @@
             "getMessage": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getCode": {
                 "static": false,
                 "return": null,
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getFile": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getLine": {
                 "static": false,
                 "return": "int",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTrace": {
                 "static": false,
                 "return": "array",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getPrevious": {
                 "static": false,
                 "return": "null|Throwable",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "getTraceAsString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Throwable"
             },
             "__toString": {
                 "static": false,
                 "return": "string",
-                "params": []
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12894,6 +13416,65 @@
                 "static": false,
                 "return": "void",
                 "params": []
+            }
+        },
+        "cases": []
+    },
+    "ItPack\\RunIt\\Contract\\Port\\HealthAwarePublisherStackFactoryInterface": {
+        "kind": "interface",
+        "final": false,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface": "ItPack\\RunIt\\Contract\\Port\\PublisherStackFactoryInterface"
+        },
+        "constants": [],
+        "methods": {
+            "composeWithHealth": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "health",
+                        "type": "ItPack\\RunIt\\Contract\\Application\\Publication\\InternalHealthReporterInterface",
+                        "optional": false
+                    }
+                ]
+            },
+            "compose": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                "params": [
+                    {
+                        "name": "base",
+                        "type": "ItPack\\RunIt\\Contract\\Port\\ArtifactPublisherInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "redactor",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\RedactorInterface",
+                        "optional": false
+                    },
+                    {
+                        "name": "samplingPolicy",
+                        "type": "null|ItPack\\RunIt\\Contract\\Application\\Publication\\SamplingPolicyInterface",
+                        "optional": false
+                    }
+                ]
             }
         },
         "cases": []
@@ -14197,72 +14778,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -14289,72 +14804,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -14387,72 +14836,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -14471,72 +14854,6 @@
             "sharedStackWithConcurrentEngine": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Domain\\Exception\\IncompatibleContextStorageException",
-                "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
                 "params": []
             }
         },
@@ -14569,72 +14886,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -14658,72 +14909,6 @@
             "alreadyDetached": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidContextTokenException",
-                "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
                 "params": []
             }
         },
@@ -14765,72 +14950,6 @@
             "unsupportedCharacters": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidIdentifierException",
-                "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
                 "params": []
             }
         },
@@ -14875,72 +14994,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -14960,72 +15013,6 @@
             "forNonFiniteValue": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Domain\\Exception\\InvalidMeasurementValueException",
-                "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
                 "params": []
             }
         },
@@ -15058,72 +15045,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -15142,72 +15063,6 @@
             "instance": {
                 "static": true,
                 "return": "ItPack\\RunIt\\Domain\\Exception\\NoActiveExecutionException",
-                "params": []
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
                 "params": []
             }
         },
@@ -15234,72 +15089,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -20156,72 +19945,6 @@
                         "optional": false
                     }
                 ]
-            },
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
             }
         },
         "cases": []
@@ -20236,74 +19959,7 @@
             "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface"
         },
         "constants": [],
-        "methods": {
-            "__construct": {
-                "static": false,
-                "return": null,
-                "params": [
-                    {
-                        "name": "message",
-                        "type": "string",
-                        "optional": true
-                    },
-                    {
-                        "name": "code",
-                        "type": "int",
-                        "optional": true
-                    },
-                    {
-                        "name": "previous",
-                        "type": "null|Throwable",
-                        "optional": true
-                    }
-                ]
-            },
-            "__wakeup": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getMessage": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getCode": {
-                "static": false,
-                "return": null,
-                "params": []
-            },
-            "getFile": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "getLine": {
-                "static": false,
-                "return": "int",
-                "params": []
-            },
-            "getTrace": {
-                "static": false,
-                "return": "array",
-                "params": []
-            },
-            "getPrevious": {
-                "static": false,
-                "return": "null|Throwable",
-                "params": []
-            },
-            "getTraceAsString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            },
-            "__toString": {
-                "static": false,
-                "return": "string",
-                "params": []
-            }
-        },
+        "methods": [],
         "cases": []
     },
     "ItPack\\RunIt\\SDK\\Execution\\MetadataExecutionDefinitionFactory": {

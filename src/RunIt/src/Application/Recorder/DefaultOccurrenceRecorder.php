@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Recorder;
 
 use Closure;
+use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Behavior\Application\InstantClockBehavior;
 use ItPack\RunIt\Contract\Application\OccurrenceRecorderInterface;
 use ItPack\RunIt\Contract\Domain\ActivityIdInterface;
@@ -20,6 +21,8 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
+use RuntimeException;
+use Throwable;
 
 /**
  * Default occurrence recorder.
@@ -44,6 +47,7 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
         private ArtifactPublisherInterface $publisher,
         /** @var StringIdentifierFactoryInterface<OccurrenceIdInterface> */
         private StringIdentifierFactoryInterface $occurrenceIdFactory,
+        private ProvenanceAuthority              $authority = new ProvenanceAuthority(),
     ) {
     }
 
@@ -70,6 +74,24 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
             $extensionAttributes,
             $this->sequence(),
         );
+
+        // Issue an SDK-controlled export ID for the occurrence and register the
+        // execution→occurrence edge so provenance can be verified at publication.
+        try {
+            $exportId = $this->authority->bindArtifact(
+                'occurrence',
+                'occurrence',
+                $this->executionId->toString(),
+                $occurrence->id()->toString(),
+                'execution-occurrence',
+            );
+
+            $this->authority->attest($occurrence, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $occurrence->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Occurrence publication preparation failed.'));
+            return $occurrence;
+        }
 
         $this->publisher->publish($occurrence);
 

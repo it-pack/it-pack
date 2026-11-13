@@ -10,6 +10,7 @@ use ItPack\RunIt\Adapter\Psr\Event\DefaultPsrEventToOccurrenceMapper;
 use ItPack\RunIt\Adapter\Psr\Event\OccurrenceEvent;
 use ItPack\RunIt\Adapter\Psr\Event\OccurrenceEventWrapper;
 use ItPack\RunIt\Adapter\Psr\Event\OccurrencePublisher;
+use ItPack\RunIt\Application\Publication\ClassifyingArtifactPublisher;
 use ItPack\RunIt\Contract\Application\Publication\PublicationFailurePolicyInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
@@ -52,6 +53,20 @@ final class OccurrenceEventTest extends Unit
         self::assertCount(1, $dispatcher->dispatched());
         self::assertInstanceOf(OccurrenceEvent::class, $dispatcher->dispatched()[0]);
         self::assertSame($occurrence, $dispatcher->dispatched()[0]->occurrence);
+    }
+
+    public function testClassifierDispatchesIndependentTypedOccurrence(): void
+    {
+        $dispatcher = new RecordingEventDispatcher();
+        $original = $this->occurrence();
+        new ClassifyingArtifactPublisher(new OccurrencePublisher($dispatcher))->publish($original);
+
+        self::assertCount(1, $dispatcher->dispatched());
+        $event = $dispatcher->dispatched()[0];
+        self::assertInstanceOf(OccurrenceEvent::class, $event);
+        $published = $event->occurrence;
+        self::assertNotSame($original, $published);
+        self::assertEquals($original->normalize(), $published->normalize());
     }
 
     public function testPublisherIgnoresNonOccurrenceArtifacts(): void

@@ -16,4 +16,5 @@ use ItPack\RunIt\Contract\Domain\MeasurementInterface;
 interface MeasurementInstrumentMapperInterface
 {
     public function record(MeasurementInterface $measurement): void;
+
 }

@@ -13,6 +13,7 @@ use ItPack\RunIt\Adapter\CloudEvents\Mapping\DefaultOccurrenceToCloudEventMapper
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
+use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
@@ -52,12 +53,15 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         if ($artifact instanceof OccurrenceInterface) {
-            $this->sink->send($this->mapper->map($artifact, $this->policy));
+            $event = $this->mapper->map($artifact, $this->policy);
+            $this->sink->send($artifact instanceof RedactedArtifactInterface
+                ? $event->withExtensions(['redacted' => true]) : $event);
 
             return;
         }
 
-        if ($artifact instanceof RedactedArtifactInterface) {
+        if (($artifact instanceof RedactedArtifactInterface || $artifact instanceof TrustedArtifactProjectionInterface)
+            && $artifact->artifactType() === 'occurrence') {
             $this->sink->send($this->mapRedacted($artifact));
 
             return;
@@ -73,7 +77,7 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
      * and declares `redacted=true`, so the delivery is observable without exposing any
      * sensitive data.
      */
-    private function mapRedacted(RedactedArtifactInterface $artifact): CloudEvent
+    private function mapRedacted(ExecutionArtifactInterface $artifact): CloudEvent
     {
         $normalized = $artifact->normalize();
 

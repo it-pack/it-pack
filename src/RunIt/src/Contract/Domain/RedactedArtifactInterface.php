@@ -21,11 +21,12 @@ namespace ItPack\RunIt\Contract\Domain;
 interface RedactedArtifactInterface extends ExecutionArtifactInterface
 {
     /**
-     * Trusted artifact kind this redacted projection represents.
+     * Artifact kind this redacted projection represents.
      *
      * Set by the redactor that produced the projection. Adapters must route
      * redacted artifacts by this signal, never by inferring type from the
-     * user-controlled normalized fields.
+     * user-controlled normalized fields. This value alone does not establish
+     * provenance; verify that separately at the publication boundary.
      */
     public function artifactType(): string;
 }

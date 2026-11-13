@@ -134,6 +134,7 @@ final class NestedSnapshotBench
         unset($item);
         $expected = $this->snapshot->normalize();
         $expected['payload'] = $expectedPayload;
+        unset($expected['content_hash']);
         $this->publisher->publish($this->snapshot);
         if ($this->snapshot->payload() !== $payload
             || $this->snapshot->normalize()['payload'] !== $payload

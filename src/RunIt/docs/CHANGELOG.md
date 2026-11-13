@@ -28,16 +28,158 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Provenance retention is capped at 100,000 live records across each SDK
+  authority as well as per execution. At capacity new bindings are dropped and
+  reported through the configured health path; releasing executions frees capacity.
+  Dropped artifacts have no trusted provenance and are not published as verified.
+- Phase 2 introduces the public `TrustedArtifactProjectionInterface` for routing
+  projections; implementing it does not establish provenance. Trust requires an
+  upstream provenance check. The API baseline has not been updated for this or
+  the internal `ClassifiedRedactedOccurrence` addition.
+- The default sampler receives redacted projections before classification, which
+  can be generic rather than the original domain type, even when values are
+  unchanged. Custom sampling policies relying on domain interfaces must account
+  for projections. Resolving execution kinds from projected child export IDs to
+  business IDs remains an unresolved compatibility issue.
+- The API checker recognizes built-in interface methods already implied by a
+  baseline's inherited interfaces without reporting them as new obligations;
+  genuinely added requirements remain compatibility breaks. The API baseline
+  records the internal `VerifiedArtifactProjection` class and
+  `ProvenanceAuthority::bindActivityRelationship()` method. No public contract
+  interface or normalization schema changed for these additions.
+- Publisher stack factories retain the three-argument `compose()` contract.
+  Factories can implement `HealthAwarePublisherStackFactoryInterface` to receive
+  the builder's health reporter; existing implementations need no changes. The
+  previously baselined optional fourth `health` parameter has been removed from
+  the interface: consumers passing it directly must use the health-aware interface
+  instead. The API baseline update was approved; downstream migration is pending.
+- A snapshot whose payload is redacted no longer exposes the original content
+  hash. Classification can publish the redacted payload without a hash, but drops
+  and reports a snapshot if it cannot preserve an accompanying hash and payload
+  unchanged. Consumers must tolerate hashless redacted snapshots.
 - Explicit redacted-observation drop reporting now suppresses recursive reports
   from the same publisher and resets its guard after reporter failures. The
   publisher is no longer declared `readonly`; reflection-based consumers may
   observe this change. Concurrent interleaving can suppress an independent
   report while another report is in progress.
+- Provenance publication now binds artifact-specific issuance evidence to exact
+  object instances through a `WeakMap`, replacing ID-only lookups that accepted
+  forged copies. `ProvenanceArtifactPublisher` guards the publication boundary,
+  dropping unverifiable artifacts with a payload-free health report while
+  preserving the business outcome. Relationship edges are registered from
+  attested execution and activity objects, not business-ID lookups. Duplicate
+  live execution IDs are handled fail-open: telemetry is suppressed but the
+  business operation still runs.
+- Provenance records are bounded per execution; edges and identifier bytes have
+  their own limits. Multiple live executions can exceed the per-execution record
+  limit in aggregate. Exceeding a limit drops telemetry with a payload-free notice and
+  preserves the business result. Release prunes incoming relationship edges from
+  live records.
+- `DefaultExecutionRunner` setup complexity was reduced by extracting
+  `setupExecutionScope()` and `registerExecutionEdges()` helpers, bringing
+  control-flow complexity below the architecture threshold.
+- Typed publication now reconstructs classified executions, activities,
+  measurements, occurrences, observations (including redacted observations via
+  `ClassifiedRedactedObservation`), and snapshots solely from sanitized
+  projected values. Typed reconstruction requires exact normalized equality;
+  incomplete or unverifiable projections fall back to generic `ClassifiedArtifact`
+  delivery. Activity duration (`duration_ns`) is preserved through
+  classification. Unknown artifact kinds are dropped with a payload-free health
+  report rather than bypassing classification bounds.
+- `ProvenanceRetentionPolicy` was folded into `ProvenanceAuthority` as capacity
+  limits with fail-open drop-and-report behavior. No standalone policy interface
+  was added.
 - Sampling-drop health reports now contain a fixed, payload-free placeholder
   rather than the rejected artifact; reporters relying on its identity or fields
   must migrate. Recursive and throwing reporters are contained. The sampling
   publisher is also no longer `readonly`, and its per-instance guard has the
   same concurrent-interleaving limitation.
+- `TelemetryPublisher` now delivers redacted measurements through
+  the optional `RedactedMeasurementInstrumentMapperInterface`. Custom mappers
+  without this capability drop redacted measurements with a payload-free health
+  report; their existing `MeasurementInstrumentMapperInterface` remains unchanged.
+  The classified publisher stack reconstructs typed executions, activities,
+  occurrences, measurements, observations, and snapshots when their projected
+  fields can be represented without change. Other artifacts and incomplete
+  projections remain generic; consumers relying on typed dispatch must account
+  for those cases.
+- `ExecutionSnapshotFactory` no longer constructs a default
+  `ProvenanceAuthority`. The SDK shares its own authority with the factory;
+  custom factories constructed without an authority never accumulate
+  unreleased snapshot records. The runner validates and attests terminal
+  snapshots from factories supplied via `withSnapshotFactory()` before
+  publication; invalid ownership or identity is dropped and reported without
+  affecting the business result.
+- `ProvenanceAuthority::releaseExecution()` removes each record from the
+  `byBusinessExecution` index directly via the record's business ID/execution
+  ID key instead of scanning every bucket.
+- Releasing provenance records also removes incoming relationship edges held by
+  live executions.
+- `DefaultExecutionRunner` rejects a repeated execution ID before any
+  provenance record is issued via `hasLiveRecords()`, so two live executions
+  can never share an ID and releasing one cannot drop the other's export
+  bindings.
+- `ClassifyingArtifactPublisher` truncates multibyte strings at a UTF-8
+  character boundary using `mb_strcut()`, preventing invalid UTF-8 in projected
+  values that would cause JSON encoders to throw.
+- Sampling wraps the classifier in the default stack, so classification runs
+  after sampling. Redaction wraps both and runs first.
+- `HeadBasedSamplingPolicy` docblock aligned with the key derivation: the
+  execution key comes from `ExecutionOwnedInterface::executionId()` when
+  available, otherwise from the trusted `execution_id` field of
+  `TrustedArtifactProjectionInterface` instances, and from any
+  `RedactedArtifactInterface` instance as a fallback. User-supplied redacted
+  artifacts that report another execution's `execution_id` can occupy that
+  execution's decision cache.
+- Fixed `tools/api-compat/ApiCompat::buildApiMap()` parent-skip filter: it
+  previously skipped all inherited methods from non-internal declaring
+  classes/interfaces, causing `api:check` to falsely report inherited interface
+  methods (e.g. `ExtendedRunItBuilderInterface::build()`) as "Removed". It now
+  skips methods inherited from internal PHP classes while retaining inherited
+  built-in interface requirements such as `Countable::count()`. The corrected
+  discovery can report requirements absent from an older API baseline; those
+  differences require review before a baseline update.
+
+### Provenance and Safe Publication (Phase 2)
+
+- Introduces `ProvenanceAuthority` (SDK-internal, not a public contract) that
+  mints opaque export IDs from controlled randomness and binds them to artifact
+  kind, role, owning execution, and recorded relationships. Business-facing IDs
+  from caller-supplied generators are preserved but are never treated as
+  provenance; verification against the authority is needed to establish trust.
+  The SDK publication boundary verifies issuance and drops unverified artifacts.
+- Wires the authority through `RunItBuilder`, `DefaultExecutionRunner`,
+  `ExecutionScope`, and all recorders. Execution parent/link edges, activity
+  edges, observation/occurrence/measurement/snapshot edges, and terminal
+  snapshot edges are registered through the authority. Unverified parent IDs in
+  activity definitions are not trusted without a recorded edge.
+- Adds `ClassifyingArtifactPublisher` after sampling in the publisher stack,
+  creating immutable, bounded classified projections
+  using an explicit per-kind field allowlist. Budgets: depth 16, 1,024 nodes,
+  4,096 bytes per string, 1 MiB total, nested attribute map counts capped by
+  `SecurityLimits::maxAttributeCount`. Objects, resources, and unknown fields
+  are rejected; on exhaustion, optional fields are omitted, required fields
+  cause drop-and-report. The classifier runs even when the deny-list redactor
+  returns the artifact unchanged.
+- Adds `TrustedArtifactProjectionInterface` (extends `RedactedArtifactInterface`)
+  as a marker for SDK-created classified projections. Sampling predicates also
+  accept unmarked `RedactedArtifactInterface` instances and may use their
+  supplied type and normalized fields; the marker is not an admission boundary.
+- `HeadBasedSamplingPolicy` derives its default execution key from
+  `ExecutionOwnedInterface::executionId()` or the normalized `execution_id` of
+  trusted projections and any redacted artifact. User-supplied redacted artifacts
+  can therefore occupy another execution's decision cache. Artifacts without a
+  nonempty key are sampled independently and do not occupy the cache.
+- Measurements now receive an SDK-controlled artifact-specific export ID bound
+  to the owning execution.
+- `RedactedArtifact` does not implement `TrustedArtifactProjectionInterface`;
+  user-created instances can specify their own artifact type.
+- Health-aware publisher stack factories can receive an internal health reporter
+  through a separate optional interface.
+- Documents disclosure-path audit: publisher stack classification is covered by
+  Phase 2; `DefaultSnapshotRecorder` store pass-through, HTTP middleware
+  headers, CloudEvents import/export, and PSR-14 paths are out of scope for
+  this phase.
 - The maintainer approved the recent API changes and regenerated the API baseline
   on 2026-11-12. This includes the redacted-artifact type contract and redacted
   OpenTelemetry span mapper interface methods. Third-party implementations still
@@ -60,10 +202,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   drops redacted artifacts whose type is not one of the recognized kinds rather
   than delivering them. Trusted-type dispatch is preserved; field-based inference
   is not reintroduced.
-- Redacted measurements are reported through the health channel and dropped, where
-  previously they were dropped without a report, since there is no typed redacted
-  measurement mapper. Third-party redacted projections with no trusted type signal
-  are likewise reported and dropped rather than routed by heuristic.
+- Redacted measurements can be handled by a mapper implementing the optional
+  `RedactedMeasurementInstrumentMapperInterface`. When the configured mapper
+  lacks that interface, they are reported through the health path and dropped.
 - Redaction traversal limits (16 levels, 1,024 nodes) that exceed the budget now
   report truncation through the health path as a bounded, payload-free notice.
 - `ArtifactRedactionConfig::$redactObservationMessages` defaults to `true` (deny-by-default
@@ -71,9 +212,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   `redactObservationMessages: false` as the explicit opt-in to publish raw observation
   messages; this is a breaking default change for consumers that previously relied on
   raw messages being exposed, since observation messages can carry secrets or PII.
-- The publication stack applies redaction before sampling, so samplers and adapters
-  see redacted artifacts unless the redactor returns the original instance unchanged
-  (when no masking stage modifies any field).
+- The default publication stack applies redaction before sampling and classification.
+  Redactors can leave fields unchanged, so samplers must still treat their input as
+  potentially sensitive.
 
 - Bound redacted throwable cause traversal to 16 levels, replace traces with
   null, and omit unrecognized throwable fields and invalid class or code values.
