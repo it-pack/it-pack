@@ -11,10 +11,11 @@ use OpenTelemetry\API\Logs\LoggerProviderInterface;
 use OpenTelemetry\API\Logs\LogRecordBuilderInterface;
 use OpenTelemetry\API\Logs\NoopLoggerProvider;
 use OpenTelemetry\API\Logs\Severity;
+use RuntimeException;
 
 trait LogEmitterBehavior
 {
-    readonly private ?LoggerProviderInterface $loggerProvider;
+    private readonly ?LoggerProviderInterface $loggerProvider;
 
     private function loggerProvider(): LoggerProviderInterface
     {
@@ -23,13 +24,7 @@ trait LogEmitterBehavior
 
     private function initLoggerProvider(?LoggerProviderInterface $loggerProvider): void
     {
-        $this->loggerProvider = $loggerProvider;
-
-        if ($this->loggerProvider instanceof NoopLoggerProvider) {
-            throw new \RuntimeException(
-                'noop logger provider'
-            );
-        }
+        $this->loggerProvider = $loggerProvider ?? new NoopLoggerProvider();
     }
 
     private function logger(
@@ -50,7 +45,8 @@ trait LogEmitterBehavior
     ): LogRecordBuilderInterface {
 
         return $this->logger($name, $version, $schemaUrl, $attributes)
-            ->logRecordBuilder();
+            ->logRecordBuilder()
+        ;
     }
 
     private function infoLogRecordBuilder(
@@ -62,6 +58,7 @@ trait LogEmitterBehavior
 
         return $this->logRecordBuilder($name, $version, $schemaUrl, $attributes)
             ->setSeverityNumber(Severity::INFO)
-            ->setSeverityText(ObservationSeverity::Info->value);
+            ->setSeverityText(ObservationSeverity::Info->value)
+        ;
     }
 }

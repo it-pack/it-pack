@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\LogEmitterBehavior;
-use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\ObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\RedactedObservationLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\SeverityMapInterface;

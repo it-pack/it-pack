@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
 use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\LogEmitterBehavior;
-use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
@@ -13,13 +12,10 @@ use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\SnapshotPayloadPolicy;
 use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\StringIdentifierInterface;
-use ItPack\RunIt\Domain\Observation\ObservationSeverity;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use JsonException;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
-use OpenTelemetry\API\Logs\NoopLoggerProvider;
-use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\API\Trace\Span;
 
 /**
@@ -43,9 +39,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
      */
     public function __construct(
         ?LoggerProviderInterface         $loggerProvider = null,
-        private SnapshotPayloadPolicy    $snapshotPayloadPolicy,
-        private bool                     $mapOccurrencesToLogs,
-        private bool                     $mapOccurrencesToSpanEvents,
+        private ?SnapshotPayloadPolicy    $snapshotPayloadPolicy = null,
+        private bool                     $mapOccurrencesToLogs = false,
+        private bool                     $mapOccurrencesToSpanEvents = false,
         private array                    $occurrenceLogAttributeAllowList = [],
     ) {
         $this->initLoggerProvider($loggerProvider);
