@@ -6,8 +6,8 @@ namespace ItPack\RunIt\Application\Factory;
 
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
 use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
-use ItPack\RunIt\Domain\Artifact\ArtifactType;
 
 /** @param array<string, mixed> $normalized */
 final readonly class RedactedRedactedArtifactFactory implements RedactedArtifactFactoryInterface
@@ -36,8 +36,9 @@ final readonly class RedactedRedactedArtifactFactory implements RedactedArtifact
         return $this->artifactType;
     }
 
-    public function withArtifactType(ArtifactType|string $artifactType = ArtifactType::UNKNOWN): self
-    {
+    public function withArtifactType(
+        ArtifactType|string $artifactType = ArtifactType::UNKNOWN
+    ): RedactedArtifactFactoryInterface {
         return new self($artifactType);
     }
 }

@@ -2,16 +2,8 @@
 
 declare(strict_types=1);
 
-namespace ItPack\RunIt\Domain\Artifact;
+namespace ItPack\RunIt\Contract\Domain;
 
-use ItPack\RunIt\Contract\Domain\ActivityInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Contract\Domain\ExecutionInterface;
-use ItPack\RunIt\Contract\Domain\MeasurementInterface;
-use ItPack\RunIt\Contract\Domain\ObservationInterface;
-use ItPack\RunIt\Contract\Domain\OccurrenceInterface;
-use ItPack\RunIt\Contract\Domain\SnapshotInterface;
-use ItPack\RunIt\Contract\Domain\TypedExecutionArtifactInterface;
 use ValueError;
 
 enum ArtifactType: string
