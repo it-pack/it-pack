@@ -7,6 +7,7 @@ namespace Tests\Unit\Application\Publication;
 use Closure;
 use Codeception\Test\Unit;
 use ItPack\RunIt\Adapter\Memory\InMemoryArtifactPublisher;
+use ItPack\RunIt\Application\Factory\PublisherStackFactory;
 use ItPack\RunIt\Application\Publication\ArtifactRedactionConfig;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\DefaultArtifactRedactor;
@@ -139,6 +140,48 @@ final class RedactionSecurityCharacterizationTest extends Unit
         self::assertSame('4111-1111-1111-1111', $normalized['data']['credit_card']);
         self::assertSame('alice', $normalized['data']['user']);
         self::assertSame($before, $original->normalize(), 'The original occurrence is unchanged.');
+    }
+
+    public function testSamplerAndSinkReceiveUnclassifiedNestedOccurrenceData(): void
+    {
+        $spy = new class () implements SamplingPolicyInterface {
+            /** @var list<array<string, mixed>> */
+            public array $seen = [];
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen[] = $artifact->normalize();
+
+                return true;
+            }
+        };
+        $original = Occurrence::create(
+            OccurrenceId::fromString('occ-spy'),
+            ExecutionId::fromString('exec-spy'),
+            OccurrenceType::fromString('itpack.test.event.v1'),
+            'synthetic-source-secret',
+            Instant::of(1000),
+            ['nested' => [
+                'password' => 'synthetic-masked-secret',
+                'synthetic-secret-key' => 'synthetic-secret-value',
+            ]],
+        );
+        $before = $original->normalize();
+        $sink = new InMemoryArtifactPublisher();
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveDataKeys: ['password']));
+
+        new PublisherStackFactory()->compose($sink, $redactor, $spy)->publish($original);
+
+        self::assertCount(1, $spy->seen);
+        self::assertIsArray($spy->seen[0]['data']);
+        self::assertSame([
+            'password' => '[redacted]',
+            'synthetic-secret-key' => 'synthetic-secret-value',
+        ], $spy->seen[0]['data']['nested']);
+        self::assertSame('synthetic-source-secret', $spy->seen[0]['source']);
+        self::assertCount(1, $sink->published());
+        self::assertSame($spy->seen[0], $sink->published()[0]->normalize());
+        self::assertSame($before, $original->normalize());
     }
 
     public function testMeasurementValuePassesThroughUnmaskedByDefault(): void

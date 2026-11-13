@@ -38,6 +38,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
+use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -181,6 +182,40 @@ final class RunItBuilderTest extends TestCase
         $result = $runtime->run($this->definition(), static fn (): string => 'value');
 
         self::assertSame('value', $result);
+    }
+
+    public function testDefaultTerminalSnapshotSinkRetainsBusinessIdInPayload(): void
+    {
+        $sink = new RecordingArtifactPublisher();
+        $generator = new class () implements IdentifierGeneratorInterface {
+            private int $sequence = 0;
+
+            public function generate(): string
+            {
+                return ++$this->sequence === 1 ? 'caller-business-execution-id' : 'caller-id-' . $this->sequence;
+            }
+        };
+        $runtime = RunItBuilder::create()
+            ->withPublisher($sink)
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator($generator)
+            ->build()
+        ;
+
+        $runtime->run($this->definition(), static fn (): int => 1);
+
+        $snapshots = array_values(array_filter(
+            $sink->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool =>
+                ($artifact->normalize()['type'] ?? null) === 'execution.terminal',
+        ));
+        self::assertCount(1, $snapshots);
+        $snapshot = $snapshots[0]->normalize();
+        self::assertNotSame('caller-business-execution-id', $snapshot['execution_id']);
+        self::assertIsArray($snapshot['payload']);
+        self::assertSame('caller-business-execution-id', $snapshot['payload']['id']);
     }
 
     public function testSamplingPolicyDropsArtifacts(): void
@@ -346,6 +381,43 @@ final class RunItBuilderTest extends TestCase
         $this->builder()->withPublisherStackFactory($factory)->build();
 
         self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
+    }
+
+    public function testCustomPublisherStackReceivesRawBusinessIdentityAfterProvenanceCheck(): void
+    {
+        $seen = new InMemoryArtifactPublisher();
+        $factory = new SpyPublisherStackFactory($seen);
+        $generator = new class () implements IdentifierGeneratorInterface {
+            private int $sequence = 0;
+
+            public function generate(): string
+            {
+                return 'synthetic-secret-identity-' . ++$this->sequence;
+            }
+        };
+        $runtime = $this->builder()
+            ->withIdentifierGenerator($generator)
+            ->withPublisherStackFactory($factory)
+            ->build()
+        ;
+
+        $businessId = $runtime->run(
+            $this->definition(),
+            static fn (ExecutionScopeInterface $scope): string => $scope->execution()->id()->toString(),
+        );
+
+        self::assertTrue($factory->called);
+        self::assertIsString($businessId);
+        self::assertStringStartsWith('synthetic-secret-identity-', $businessId);
+        $executions = array_values(array_filter(
+            $seen->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        foreach ($executions as $execution) {
+            self::assertInstanceOf(ExecutionInterface::class, $execution);
+            self::assertSame($businessId, $execution->id()->toString());
+        }
     }
 
     public function testHealthAwareFactoryReportsThroughConfiguredCallback(): void

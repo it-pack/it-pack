@@ -34,6 +34,72 @@ Benchmarks live in `benchmarks/` and are autoloaded under the `Benchmarks\` name
 Additional adapter and context workloads are discussed below; some use temporary
 harnesses rather than the checked-in PHPBench suite.
 
+## Phase 2 Partial Baseline (2026-11-13)
+
+At starting revision `2944e703f36e9f64272d99a5454bca5d1011b7fe`, the
+worktree had only an untracked root `graphify-out/` directory. PHPBench 1.7.0
+ran PHP 8.5.12 CLI NTS on x86-64 WSL2 (Linux 5.10.16.3), a Microsoft
+hypervisor guest with four virtual CPUs on an Intel Core i7-9700. The default
+PHP has PCOV, OpenTelemetry and Swoole extensions loaded; Xdebug is absent.
+CLI OPcache, JIT and PCOV were disabled by the commands. The host was unpinned
+and not isolated; no other benchmark was deliberately run concurrently.
+An unrelated modification to
+`tests/Unit/Application/Publication/RedactionSecurityCharacterizationTest.php`
+appeared during this work, so the worktree was not immutable throughout the run;
+the benchmark subjects do not use that test file.
+
+From the package directory, run these three commands sequentially, then repeat
+the same sequence once:
+
+```bash
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/NestedSnapshotBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/SampledOutBench.php --config=phpbench.json --report=aggregate
+php -d opcache.enable_cli=0 -d opcache.jit=disable -d pcov.enabled=0 vendor/bin/phpbench run benchmarks/ExecutionBench.php --config=phpbench.json --filter=benchRedaction --report=aggregate
+```
+
+All six invocations exited 0, reporting no errors or failures and zero PHPBench
+assertions. Values are PHPBench modes in microseconds per operation, or per
+128-publication batch for the sampled-out case; parentheses show relative
+standard deviation within that run, not a confidence interval.
+
+| Workload | First run | Repeat |
+| --- | ---: | ---: |
+| Snapshot projection, 8 rows | 1.388 (3.86%) | 1.377 (1.40%) |
+| Snapshot projection, 64 rows | 1.385 (2.73%) | 1.407 (5.29%) |
+| Configured redaction, 8 rows | 43.813 (5.61%) | 43.801 (9.27%) |
+| Configured redaction, 64 rows | 258.772 (4.07%) | 274.499 (1.93%) |
+| JSON normalization, 8 rows | 47.106 (2.03%) | 47.973 (5.19%) |
+| JSON normalization, 64 rows | 346.947 (0.20%) | 356.929 (3.30%) |
+| Redacting publisher, 8 rows | 50.428 (3.24%) | 52.561 (3.44%) |
+| Redacting publisher, 64 rows | 299.868 (3.87%) | 287.522 (4.77%) |
+| Sampled-out, 128 publications | 38.315 (9.79%) | 39.507 (11.62%) |
+| Always-sampled small snapshot chain | 10.397 (2.59%) | 10.727 (7.30%) |
+
+Nested snapshot subjects use five iterations of 100 revolutions after two
+warmups, prebuilt 8- or 64-row payloads and two sensitive keys per row. Setup
+checks masking, source immutability, normalization and the JSON-encoding
+in-memory sink; it does not verify each timed output. Projection is not deep
+serialization. The sampled-out subject uses ten one-revolution iterations,
+without warmup, each publishing the same snapshot 128 times directly through
+`NeverSamplePolicy` without a redactor or health reporting; its hooks check
+the empty sink and an always-sampled positive control. The small chain uses
+five iterations of 100 revolutions after two warmups, a prebuilt two-field
+snapshot, `AlwaysSamplePolicy`, default redactor and in-memory sink, in that
+sampling-before-redaction order; it has no timed-output verification. Setup is
+outside timing. These are separate workloads, not an isolated cost comparison.
+
+The repeated 64-row redaction modes differ by about 6%; only two runs and a
+small iteration count do not characterize host variability. PHPBench process
+peaks include the runtime and fixture and are not per-artifact memory profiles.
+No PHP 8.4 or 8.6 measurement was made. Mixed artifact traffic, failed execution
+and nested throwable redaction, adapter routing and health-reporting failure
+paths, real exporter I/O, concurrency, dedicated memory profiles and the planned
+SDK-owned export-ID issuance and provenance retention have no measurement in
+these runs. In particular, the sampling-only rejection benchmark cannot predict
+the cost of redaction-before-sampling. These synthetic results are not production
+throughput, regression thresholds or controlled before/after comparisons, and do
+not establish Phase 2 performance coverage or completion.
+
 ## Phase 0 Matrix (2026-11-11)
 
 This inventory distinguishes durable workloads from historical temporary harnesses;

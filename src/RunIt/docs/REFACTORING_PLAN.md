@@ -1174,6 +1174,76 @@ verified. This coverage does not complete the remaining Phase 1 requirements.
 
 **Depends on:** Phase 0 and the redaction/routing decisions; mapping and regression tests may proceed while tracked Phase 1 follow-ups remain open. **Review:** nested throwable leakage, sampling order, lost redacted observations.
 
+**Current investigation (2026-11-13):** Phase 2 remains open. The historical
+preparatory and progress descriptions below do not describe all current defaults:
+observation-message redaction now defaults to true, recognized throwable traces
+are omitted and traversal is bounded, and the built-in stack redacts before
+sampling. This does not mean sampler input is classified: classification happens
+after sampling and retains bounded nested map keys and values. Configured masking
+and boundedness are not proof that free-form data is safe. The default SDK path
+uses a provenance authority to replace verified top-level business identities;
+standalone factory composition and custom stacks have different boundaries.
+
+The factory-level `RedactionSecurityCharacterizationTest` spy demonstrates that
+an unclassified nested occurrence key, value and source reach both sampler and
+sink, while a configured sensitive data value is masked. This is current behavior,
+not a guarantee or approval to expose those fields. Builder tests also demonstrate
+that a normal custom stack receives an attested artifact's raw business execution
+ID and that the default terminal snapshot sink receives the business execution ID
+inside its payload even though its outer execution ID is replaced. These tests do
+not establish sampler or OpenTelemetry behavior for that snapshot, nor cover the
+health-aware custom factory. A source audit also identified risks requiring further
+reproductions: activity relationship binding can rely on
+caller-supplied business IDs; and overlapping activities on the same execution
+scope may share mutable activity context. Raw work deferred past runner cleanup
+cannot rely on records already released. These observations do not establish that
+every configuration is affected, and do not authorize a change in delivery.
+
+**Field-policy proposal, not approved:** Before sampler and sink access, retain
+only verified locally issued export IDs and verified relationships; report and
+drop when the execution identity is unknown. Treat arbitrary names, kinds,
+diagnostic codes, messages, source/subject, units, attribute and data keys and
+values, result content, snapshot payload/hash and custom projection fields as
+unclassified unless a separate explicit policy establishes otherwise. Consider
+validated finite enum values and bounded numeric timing/sequence separately;
+bounded strings or hashes are not inherently safe. For each artifact kind, decide
+whether optional fields are omitted, replaced or retained by explicit opt-in, and
+whether missing required fields require a reported drop or a new representation.
+Preserve only approved throwable class/code metadata by default and omit traces;
+the implications of user-controlled exception types and codes still need review.
+An observation proposal must specify severity, messages, attributes, diagnostics,
+timing, identifiers and drop reporting together. A terminal snapshot requires a
+separate decision about embedded execution fields, relationships and hash validity;
+do not silently rewrite arbitrary payloads. Review typed sampling, custom
+generators, custom factories, imported artifacts, asynchronous retention, schemas,
+consumers and loss estimates before approval. This proposal is not implementation
+authority and does not supersede the existing decision gates.
+
+**Evidence completed:**
+
+- [x] Inspect the current built-in factory ordering, classifier field allowlist,
+  and provenance-aware versus standalone composition paths. This is an initial
+  boundary audit, not a complete adapter or downstream field inventory.
+- [x] Add a factory-level sampler and sink characterization for configured and
+  unclassified nested occurrence data. It does not exercise builder provenance.
+- [x] Characterize raw business identity at a normal custom stack and in the
+  default terminal-snapshot sink payload; both are current-behavior tests.
+- [x] Prepare the field-policy proposal above for maintainer review. Delivery-loss
+  and retention evidence and explicit approval remain prerequisites to adoption.
+
+On the worktree based on `2944e703f36e9f64272d99a5454bca5d1011b7fe`, PHP
+8.5.12 and Composer 2.9.7, `composer quality --quiet` passed after correcting
+style and static-analysis issues in the new tests. It includes the API check
+and all four configured suites, but not coverage or benchmarks. The two changed
+Unit test files also passed individually on PHP 8.4.27. An earlier parallel
+PHP 8.4 run encountered a missing generated Codeception trait; its serial rerun
+passed. The focused publication, OpenTelemetry, PSR-3 and integration suites
+also passed before the new characterizations were added. The synthetic partial
+benchmark and its limitations are recorded in `docs/benchmarks.md`; no
+representative delivery-loss, retention-cost or exporter-I/O measurement has
+been established. PHP 8.6, OpenSwoole and Swow were unavailable in this run.
+Passing characterization tests do not satisfy the Phase 2 security exit.
+
 **Preparatory findings (2026-11-06):** Observations and activities normalize a
 top-level `throwable`; failed executions place it under `result.throwable`.
 Throwable projections contain `class`, `message`, `code`, `previous`, and `trace`.
@@ -1475,6 +1545,13 @@ The representation and delivery decisions remain open.
 ## Phase 3: Bounded buffering and performance
 
 **Depends on:** Phase 0; coordinate queue representation changes with byte-limit changes. **Review:** hard byte bound and repeated `array_shift()`.
+
+**Oversized-item decision (2026-11-13):** Reject an incoming item whose
+nonnegative estimate exceeds the entire byte limit without evicting existing
+items. `Fail` reports and throws; the other strategies report and immediately
+drop the incoming item, including `BlockWithTimeout`. This is an approved
+future behavior, not an implementation or a decision about invalid estimates
+and configuration values.
 
 Additional characterization shows that integer overflow in byte accounting
 can throw after appending, leaving the item unaccounted and a negative estimate
