@@ -27,6 +27,7 @@ use ItPack\RunIt\Contract\Application\ExecutionSnapshotFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\AttributeCollectionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionSnapshotInterface;
@@ -34,6 +35,7 @@ use ItPack\RunIt\Contract\Domain\HashCalculatorInterface;
 use ItPack\RunIt\Contract\Domain\ObservationInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\SnapshotInterface;
+use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
@@ -46,6 +48,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
 use ItPack\RunIt\Domain\Shared\SecurityLimits;
@@ -216,6 +219,7 @@ final class RunItBuilderTest extends TestCase
 
         self::assertNotEmpty($spy->published);
         self::assertGreaterThan(0, $redactor->calls);
+        self::assertSame('redacted-name', $spy->published[0]->normalize()['name']);
     }
 
     public function testNewSeamWithersReturnNewBuilderInstances(): void
@@ -544,14 +548,21 @@ final class RunItBuilderTest extends TestCase
             ->build()
         ;
 
-        $runtime->run($this->definition(), static fn (): int => 1);
+        $runtime->run($this->definition(), static function (ExecutionScopeInterface $scope): int {
+            $scope->measurements()->counter('limit.test', 1, attributes: AttributeCollection::fromArray([
+                'first' => 1,
+                'second' => 2,
+            ]));
+            return 1;
+        });
 
         $published = $sink->published();
-        self::assertNotEmpty($published);
-        $execution = $published[0]->normalize();
-        self::assertArrayHasKey('id', $execution);
-        self::assertArrayHasKey('name', $execution);
-        self::assertGreaterThan(2, count($execution));
+        $measurements = array_values(array_filter($published, static fn (ExecutionArtifactInterface $artifact): bool =>
+            ($artifact->normalize()['name'] ?? null) === 'limit.test'));
+        self::assertCount(1, $measurements);
+        $attributes = $measurements[0]->normalize()['attributes'];
+        self::assertIsArray($attributes);
+        self::assertCount(1, $attributes);
     }
 
     public function testCustomSnapshotFactoryPublishesTerminalSnapshot(): void
@@ -590,9 +601,15 @@ final class RunItBuilderTest extends TestCase
             ExecutionInterface $execution,
         ): ExecutionSnapshotInterface {
             $snapshot = $this->createMock(ExecutionSnapshotInterface::class);
-            $snapshot->method('id')->willReturn(SnapshotId::fromString('snapshot'));
+            $real = new ExecutionSnapshotFactory(
+                new StringIdentifierFactory(SnapshotId::fromString(...), new RandomIdentifierGenerator()),
+                new DeterministicHashCalculator(),
+            )->terminal($execution);
+            $snapshot->method('id')->willReturn($real->id());
             $snapshot->method('executionId')->willReturn($execution->executionId());
-            $snapshot->method('normalize')->willReturn(['id' => 'snapshot', 'execution_id' => 'another-execution']);
+            $normalized = $real->normalize();
+            $normalized['execution_id'] = 'another-execution';
+            $snapshot->method('normalize')->willReturn($normalized);
 
             return $snapshot;
         });
@@ -610,6 +627,57 @@ final class RunItBuilderTest extends TestCase
         self::assertStringContainsString('provenance', $failures[0]->getMessage());
         foreach ($sink->published as $artifact) {
             self::assertNotInstanceOf(SnapshotInterface::class, $artifact);
+            self::assertFalse(
+                $artifact instanceof TrustedArtifactProjectionInterface && $artifact->artifactType() === 'snapshot',
+            );
+            self::assertFalse(
+                $artifact instanceof RedactedArtifactInterface && $artifact->artifactType() === 'snapshot',
+            );
+        }
+    }
+
+    public function testRecorderNormalizationFailuresPreserveBusinessResult(): void
+    {
+        $failures = [];
+        $attributes = $this->createMock(AttributeCollectionInterface::class);
+        $attributes->method('toArray')->willThrowException(new RuntimeException('sensitive normalization error'));
+        $runtime = $this->builder()->withPublicationFailureHandler(
+            static function (Throwable $failure) use (&$failures): void {
+                $failures[] = $failure;
+            },
+        )->build();
+
+        $result = $runtime->run($this->definition(), static function (
+            ExecutionScopeInterface $scope,
+        ) use ($attributes): string {
+            $scope->observations()->record('test', null, $attributes);
+            $scope->measurements()->counter('test', 1, attributes: $attributes);
+            $scope->occurrences()->record(
+                OccurrenceType::fromString('test.event.v1'),
+                'test',
+                extensionAttributes: $attributes,
+            );
+            $scope->snapshots()->record(SnapshotType::fromString('test.snapshot'), [], attributes: $attributes);
+            return 'result';
+        });
+
+        self::assertSame('result', $result);
+        self::assertCount(4, $failures);
+        foreach ($failures as $failure) {
+            self::assertStringNotContainsString('sensitive normalization error', $failure->getMessage());
+        }
+
+        $businessFailure = new RuntimeException('business failure');
+        try {
+            $runtime->run($this->definition(), static function (
+                ExecutionScopeInterface $scope,
+            ) use ($attributes, $businessFailure): never {
+                $scope->observations()->record('test', null, $attributes);
+                throw $businessFailure;
+            });
+            self::fail('The original business exception must propagate.');
+        } catch (RuntimeException $runtimeException) {
+            self::assertSame($businessFailure, $runtimeException);
         }
     }
 
@@ -785,6 +853,11 @@ final readonly class RedactedTagArtifact implements ExecutionArtifactInterface
 
     public function normalize(): array
     {
-        return $this->inner->normalize();
+        $normalized = $this->inner->normalize();
+        if (isset($normalized['name'])) {
+            $normalized['name'] = 'redacted-name';
+        }
+
+        return $normalized;
     }
 }

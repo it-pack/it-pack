@@ -21,7 +21,8 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Shared\MediaTypes;
 use ItPack\RunIt\Domain\Occurrence\Occurrence;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
+use RuntimeException;
+use Throwable;
 
 /**
  * Default occurrence recorder.
@@ -76,19 +77,21 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
 
         // Issue an SDK-controlled export ID for the occurrence and register the
         // execution→occurrence edge so provenance can be verified at publication.
-        $rawId = $occurrence->normalize()[ArtifactField::ID] ?? null;
-        $businessId = is_string($rawId) ? $rawId : 'unknown';
-        $exportId = $this->authority->bindArtifact(
-            'occurrence',
-            'occurrence',
-            $this->executionId->toString(),
-            $businessId,
-            'execution-occurrence',
-        );
+        try {
+            $exportId = $this->authority->bindArtifact(
+                'occurrence',
+                'occurrence',
+                $this->executionId->toString(),
+                $occurrence->id()->toString(),
+                'execution-occurrence',
+            );
 
-        $this->authority->attest($occurrence, $exportId);
-        $activityId = $occurrence->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
-        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
+            $this->authority->attest($occurrence, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $occurrence->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Occurrence publication preparation failed.'));
+            return $occurrence;
+        }
 
         $this->publisher->publish($occurrence);
 

@@ -86,21 +86,18 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         }
 
         $unitValue = $normalized[ArtifactField::UNIT] ?? null;
-        try {
-            $unit = is_string($unitValue) ? MeasurementUnit::from($unitValue) : MeasurementUnit::Count;
-        } catch (Throwable) {
-            $unit = MeasurementUnit::Count;
-        }
-
         $kindValue = $normalized[ArtifactField::KIND] ?? null;
-        try {
-            $kind = is_string($kindValue) ? MeasurementKind::from($kindValue) : MeasurementKind::Gauge;
-        } catch (Throwable) {
-            $kind = MeasurementKind::Gauge;
+        $unit = is_string($unitValue) ? MeasurementUnit::tryFrom($unitValue) : null;
+        $kind = is_string($kindValue) ? MeasurementKind::tryFrom($kindValue) : null;
+        if ($unit === null || $kind === null) {
+            $this->reportInvalidValue();
+            return;
         }
 
         $value = $normalized[ArtifactField::VALUE] ?? null;
-        if (!is_int($value) && !is_float($value)) {
+        if ((!is_int($value) && !is_float($value))
+            || (is_float($value) && !is_finite($value))
+            || (($kind === MeasurementKind::Counter || $kind === MeasurementKind::Size) && !is_int($value))) {
             $this->reportInvalidValue();
             return;
         }
@@ -135,7 +132,7 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         try {
             if ($this->health instanceof InternalHealthReporterInterface) {
                 $this->health->report(
-                    new RuntimeException('Redacted measurement has a nonnumeric value.'),
+                    new RuntimeException('Redacted measurement has invalid fields.'),
                     new readonly class () implements ExecutionArtifactInterface {
                         public function normalize(): array
                         {
@@ -151,7 +148,7 @@ final readonly class DefaultMeasurementInstrumentMapper implements
         }
 
         try {
-            error_log('[runit] publication health: Redacted measurement has a nonnumeric value.');
+            error_log('[runit] publication health: Redacted measurement has invalid fields.');
         } catch (Throwable) {
             // The last-resort sink must not affect the business outcome.
         } finally {

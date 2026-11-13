@@ -5603,6 +5603,117 @@
         },
         "cases": []
     },
+    "ItPack\\RunIt\\Application\\Publication\\ClassifiedRedactedOccurrence": {
+        "kind": "class",
+        "final": true,
+        "extends": null,
+        "implements": {
+            "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\RedactedArtifactInterface",
+            "Countable": "Countable",
+            "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface": "ItPack\\RunIt\\Contract\\Domain\\NormalizableInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface": "ItPack\\RunIt\\Contract\\Domain\\SequencedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface": "ItPack\\RunIt\\Contract\\Domain\\TimestampedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ActivityOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionOwnedInterface",
+            "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface": "ItPack\\RunIt\\Contract\\Domain\\ExecutionArtifactInterface"
+        },
+        "constants": [],
+        "methods": {
+            "__construct": {
+                "static": false,
+                "return": null,
+                "params": [
+                    {
+                        "name": "occurrence",
+                        "type": "ItPack\\RunIt\\Domain\\Occurrence\\Occurrence",
+                        "optional": false
+                    }
+                ]
+            },
+            "artifactType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "id": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceIdInterface",
+                "params": []
+            },
+            "executionId": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\ExecutionIdInterface",
+                "params": []
+            },
+            "activityId": {
+                "static": false,
+                "return": "null|ItPack\\RunIt\\Contract\\Domain\\StringIdentifierInterface",
+                "params": []
+            },
+            "type": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\OccurrenceTypeInterface",
+                "params": []
+            },
+            "source": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "subject": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "time": {
+                "static": false,
+                "return": "ItPack\\RunIt\\Contract\\Domain\\InstantInterface",
+                "params": []
+            },
+            "timestamp": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "data": {
+                "static": false,
+                "return": "mixed",
+                "params": []
+            },
+            "dataSchema": {
+                "static": false,
+                "return": "null|string",
+                "params": []
+            },
+            "contentType": {
+                "static": false,
+                "return": "string",
+                "params": []
+            },
+            "extensionAttributes": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "sequence": {
+                "static": false,
+                "return": "int",
+                "params": []
+            },
+            "normalize": {
+                "static": false,
+                "return": "array",
+                "params": []
+            },
+            "count": {
+                "static": false,
+                "return": "int",
+                "params": []
+            }
+        },
+        "cases": []
+    },
     "ItPack\\RunIt\\Application\\Publication\\ClassifyingArtifactPublisher": {
         "kind": "class",
         "final": true,
@@ -8960,6 +9071,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10125,6 +10242,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10221,6 +10344,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "sequence": {
                 "static": false,
                 "return": "int",
@@ -10261,6 +10390,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10292,6 +10427,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10429,6 +10570,12 @@
                 "static": false,
                 "return": "array",
                 "params": []
+            },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -10460,6 +10607,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10692,6 +10845,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10774,6 +10933,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10836,6 +11001,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -10977,6 +11148,12 @@
                         "optional": true
                     }
                 ]
+            },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -11090,6 +11267,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11174,6 +11357,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "sequence": {
                 "static": false,
                 "return": "int",
@@ -11209,6 +11398,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11240,6 +11435,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11355,6 +11556,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "attributes": {
                 "static": false,
                 "return": "array",
@@ -11451,6 +11658,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11511,6 +11724,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "sequence": {
                 "static": false,
                 "return": "int",
@@ -11566,6 +11785,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11631,6 +11856,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11696,6 +11927,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "sequence": {
                 "static": false,
                 "return": "int",
@@ -11760,6 +11997,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11844,6 +12087,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "sequence": {
                 "static": false,
                 "return": "int",
@@ -11884,6 +12133,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -11945,6 +12200,12 @@
                 "static": false,
                 "return": "int",
                 "params": []
+            },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -11995,6 +12256,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12074,6 +12341,12 @@
                 "return": "int",
                 "params": []
             },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
+            },
             "attributes": {
                 "static": false,
                 "return": "array",
@@ -12109,6 +12382,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12138,6 +12417,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12177,6 +12462,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12207,6 +12498,12 @@
                 "static": false,
                 "return": "string",
                 "params": []
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
             }
         },
         "cases": []
@@ -12341,6 +12638,12 @@
                 "static": false,
                 "return": "int",
                 "params": []
+            },
+            "count": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Countable"
             }
         },
         "cases": []
@@ -12742,7 +13045,56 @@
             "Throwable": "Throwable"
         },
         "constants": [],
-        "methods": [],
+        "methods": {
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Contract\\Exception\\LifecycleExceptionInterface": {
@@ -12755,7 +13107,56 @@
             "Throwable": "Throwable"
         },
         "constants": [],
-        "methods": [],
+        "methods": {
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Contract\\Exception\\RunItExceptionInterface": {
@@ -12767,7 +13168,56 @@
             "Stringable": "Stringable"
         },
         "constants": [],
-        "methods": [],
+        "methods": {
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Contract\\Exception\\SerializationException": {
@@ -12794,7 +13244,56 @@
             "Throwable": "Throwable"
         },
         "constants": [],
-        "methods": [],
+        "methods": {
+            "getMessage": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getCode": {
+                "static": false,
+                "return": null,
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getFile": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getLine": {
+                "static": false,
+                "return": "int",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTrace": {
+                "static": false,
+                "return": "array",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getPrevious": {
+                "static": false,
+                "return": "null|Throwable",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "getTraceAsString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Throwable"
+            },
+            "__toString": {
+                "static": false,
+                "return": "string",
+                "params": [],
+                "internalInterface": "Stringable"
+            }
+        },
         "cases": []
     },
     "ItPack\\RunIt\\Contract\\Port\\ArtifactByteEstimatorInterface": {

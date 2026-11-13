@@ -144,8 +144,8 @@ $runtime = RunItBuilder::create()
 ;
 ```
 
-The builder composes redaction closest to the sink and sampling outside it;
-consequently, configured samplers receive the original artifact. When redaction
+The default builder stack applies redaction before sampling; consequently,
+configured samplers receive the redacted artifact. When redaction
 changes an artifact, the resulting generic projection does not necessarily follow
 the same adapter path as the original typed artifact. Do not assume that all
 fields reaching an exporter have been masked or that every redacted artifact is

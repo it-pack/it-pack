@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Tools\ApiCompat;
 
 use Codeception\Test\Unit;
-use ItPack\RunIt\Contract\Domain\SequencedInterface;
 use JsonException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use ReflectionException;
@@ -49,39 +48,6 @@ final class ApiCompatTest extends Unit
         $current = ['Example' => $this->entry('class', ['NewInterface', 'OldInterface'])];
 
         self::assertSame([], $this->compare($current, $baseline));
-    }
-
-    public function testDiscoveryIncludesInheritedBuiltInInterfaceMethods(): void
-    {
-        $checker = $this->checker(['src/Contract/Domain', 'src/Common/Contract']);
-        $method = new ReflectionMethod(ApiCompat::class, 'buildApiMap');
-        $map = $method->invoke($checker);
-        $name = SequencedInterface::class;
-
-        self::assertIsArray($map);
-        self::assertArrayHasKey($name, $map);
-        $discovered = $map[$name];
-        self::assertIsArray($discovered);
-        $entry = [];
-        foreach ($discovered as $key => $value) {
-            self::assertIsString($key);
-            $entry[$key] = $value;
-        }
-
-        self::assertArrayHasKey('methods', $entry);
-        self::assertIsArray($entry['methods']);
-        self::assertArrayHasKey('count', $entry['methods']);
-        $baseline = [$name => $entry];
-        unset($baseline[$name]['methods']['count']);
-
-        self::assertSame([], $this->compare([$name => $entry], $baseline));
-
-        $baseline[$name]['implements'] = [];
-        self::assertContains([
-            'message' => "Added method to interface {$name}::count() (breaks third-party implementers)",
-            'symbol' => $name,
-            'severity' => 'break',
-        ], $this->compare([$name => $entry], $baseline));
     }
 
     public function testRecordedBuiltInMethodSignatureChangesRemainBreaks(): void

@@ -293,9 +293,6 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         ?ExecutionScopeInterface $current,
         ?string $exportId,
     ): void {
-        $parentExportId = null;
-        $linkedExportIds = [];
-
         if ($mode === NestedExecutionMode::ChildExecution && $current instanceof ExecutionScopeInterface) {
             $parentExportId = $this->authority->exportIdForArtifact($current->execution());
             if ($parentExportId !== null && $exportId !== null) {
@@ -304,13 +301,10 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
         }
 
         if ($mode === NestedExecutionMode::DetachedExecution && $current instanceof ExecutionScopeInterface) {
-            $linkedBusinessId = $current->execution()->id()->toString();
             $linkedExportId = $this->authority->exportIdForArtifact($current->execution());
             if ($linkedExportId !== null && $exportId !== null) {
                 $this->authority->registerRelationship($linkedExportId, $exportId, 'link');
             }
-
-            $linkedExportIds[] = ExecutionId::fromString($linkedExportId ?? $linkedBusinessId);
         }
     }
 
@@ -325,8 +319,7 @@ final readonly class DefaultExecutionRunner implements ExecutionRunnerInterface
             $scopeSetup = $this->setupExecutionScope($mode, $current, $definition);
             $token = $this->contextStorage->attach($scopeSetup->scope());
         } catch (Throwable $throwable) {
-            // Release the export record on setup failure so it cannot be reused
-            // by a later execution through exportIdForBusinessIdExcluding().
+            // Release the export record on setup failure so it cannot be reused.
             if (isset($scopeSetup) && $scopeSetup->exportId() !== null && $scopeSetup->id() instanceof ExecutionId) {
                 $this->authority->releaseExecution($scopeSetup->id()->toString());
             }

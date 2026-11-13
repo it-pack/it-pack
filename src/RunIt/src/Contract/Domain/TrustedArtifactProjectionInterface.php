@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Contract\Domain;
 
 /**
- * Marker for an artifact projection produced by the SDK's own classifying
- * publisher, as opposed to a user-supplied {@see RedactedArtifactInterface}.
+ * Marker used for classified artifact projections.
  *
- * The artifactType() on a trusted projection is set internally by the SDK and
- * is not forgeable by callers. Sampling policies may rely on it to route
- * redacted observations by severity. User-supplied redacted artifacts must not
- * be trusted by their artifact type alone.
+ * This public interface can be implemented by callers. Neither implementing it
+ * nor supplying artifactType() proves provenance. Consumers may route by that
+ * type, but must establish trust through an upstream provenance check.
  *
  * @api
  *

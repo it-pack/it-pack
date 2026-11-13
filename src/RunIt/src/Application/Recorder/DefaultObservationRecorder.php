@@ -23,7 +23,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Observation\Observation;
 use ItPack\RunIt\Domain\Observation\ObservationSeverity;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -77,17 +77,21 @@ final readonly class DefaultObservationRecorder implements ObservationRecorderIn
 
         // Issue an SDK-controlled export ID for the observation and register the
         // execution→observation edge so provenance can be verified at publication.
-        $exportId = $this->authority->bindArtifact(
-            'observation',
-            'observation',
-            $this->executionId->toString(),
-            $id->toString(),
-            'execution-observation',
-        );
+        try {
+            $exportId = $this->authority->bindArtifact(
+                'observation',
+                'observation',
+                $this->executionId->toString(),
+                $id->toString(),
+                'execution-observation',
+            );
 
-        $this->authority->attest($observation, $exportId);
-        $activityId = $observation->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
-        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
+            $this->authority->attest($observation, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $observation->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Observation publication preparation failed.'));
+            return $observation;
+        }
 
         $this->publisher->publish($observation);
 

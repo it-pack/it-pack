@@ -14,6 +14,7 @@ use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Domain\Exception\InvalidIdentifierException;
 use ItPack\RunIt\Domain\Execution\ExecutionId;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 
 /**
  * Shared execution-kind predicate.
@@ -26,8 +27,9 @@ use ItPack\RunIt\Domain\Execution\ExecutionId;
  *
  * Artifacts implementing {@see ExecutionOwnedInterface} are resolved through their
  * `executionId()` method. Trusted projections and all {@see RedactedArtifactInterface}
- * instances are resolved through their normalized `execution_id`, which user-supplied
- * redacted artifacts can control. Missing or invalid IDs and unresolved kinds do not match.
+ * instances are resolved through their normalized `id` for executions or `execution_id`
+ * for other artifacts, which user-supplied redacted artifacts can control. Missing or
+ * invalid IDs and unresolved kinds do not match.
  *
  * @internal
  *
@@ -76,7 +78,10 @@ final readonly class ExecutionKindPredicate implements ArtifactPredicateInterfac
     private function resolveKindFromNormalized(ExecutionArtifactInterface $artifact): bool
     {
         $normalized = $artifact->normalize();
-        $executionId = $normalized['execution_id'] ?? null;
+        $isExecution = ($artifact instanceof RedactedArtifactInterface
+            || $artifact instanceof VerifiedArtifactProjection)
+            && $artifact->artifactType() === 'execution';
+        $executionId = $normalized[$isExecution ? ArtifactField::ID : ArtifactField::EXECUTION_ID] ?? null;
         if (!is_string($executionId)) {
             return false;
         }

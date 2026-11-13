@@ -28,6 +28,15 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Phase 2 introduces the public `TrustedArtifactProjectionInterface` for routing
+  projections; implementing it does not establish provenance. Trust requires an
+  upstream provenance check. The API baseline has not been updated for this or
+  the internal `ClassifiedRedactedOccurrence` addition.
+- The default sampler receives redacted projections before classification, which
+  can be generic rather than the original domain type, even when values are
+  unchanged. Custom sampling policies relying on domain interfaces must account
+  for projections. Resolving execution kinds from projected child export IDs to
+  business IDs remains an unresolved compatibility issue.
 - The API checker recognizes built-in interface methods already implied by a
   baseline's inherited interfaces without reporting them as new obligations;
   genuinely added requirements remain compatibility breaks. The API baseline
@@ -57,8 +66,9 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
   attested execution and activity objects, not business-ID lookups. Duplicate
   live execution IDs are handled fail-open: telemetry is suppressed but the
   business operation still runs.
-- Provenance retention is globally bounded (records, edges, and identifier
-  bytes). Exceeding a limit drops telemetry with a payload-free notice and
+- Provenance records are bounded per execution; edges and identifier bytes have
+  their own limits. Multiple live executions can exceed the per-execution record
+  limit in aggregate. Exceeding a limit drops telemetry with a payload-free notice and
   preserves the business result. Release prunes incoming relationship edges from
   live records.
 - `DefaultExecutionRunner` setup complexity was reduced by extracting

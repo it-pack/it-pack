@@ -12,6 +12,7 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -65,7 +66,7 @@ final class SamplingArtifactPublisher implements
             try {
                 new FallbackErrorLogReporter()->report(
                     SamplingDropException::forArtifact(),
-                    $throwable,
+                    new RuntimeException('Health reporter failed: ' . $throwable::class),
                 );
             } catch (Throwable) {
                 // No further independent sink remains; preserve the business outcome.

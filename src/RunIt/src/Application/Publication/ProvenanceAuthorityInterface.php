@@ -18,7 +18,7 @@ interface ProvenanceAuthorityInterface
     /**
      * Mint an opaque export ID bound to a locally created artifact.
      *
-     * @param list<string> $relationships
+     * @param list<string> $relationships Initial relationships are unsupported and must be empty.
      */
     public function issueExportId(
         string $kind,

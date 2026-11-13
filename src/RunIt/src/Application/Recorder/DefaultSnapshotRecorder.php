@@ -23,9 +23,9 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Contract\Port\SerializerInterface;
 use ItPack\RunIt\Contract\Port\SnapshotStoreInterface;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Snapshot\ExecutionSnapshot;
 use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -77,19 +77,22 @@ final readonly class DefaultSnapshotRecorder implements SnapshotRecorderInterfac
 
         // Issue an SDK-controlled export ID for the snapshot and register the
         // execution→snapshot edge so provenance can be verified at publication.
-        $rawId = $snapshot->normalize()[ArtifactField::ID] ?? null;
-        $businessId = is_string($rawId) ? $rawId : 'unknown';
-        $exportId = $this->authority->bindArtifact(
-            'snapshot',
-            'snapshot',
-            $this->executionId->toString(),
-            $businessId,
-            'execution-snapshot',
-        );
+        try {
+            $exportId = $this->authority->bindArtifact(
+                'snapshot',
+                'snapshot',
+                $this->executionId->toString(),
+                $snapshot->id()->toString(),
+                'execution-snapshot',
+            );
 
-        $this->authority->attest($snapshot, $exportId);
-        $activityId = $snapshot->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
-        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
+            $this->authority->attest($snapshot, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $snapshot->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Snapshot publication preparation failed.'));
+            $this->persist($snapshot);
+            return $snapshot;
+        }
 
         $this->publisher->publish($snapshot);
         $this->persist($snapshot);

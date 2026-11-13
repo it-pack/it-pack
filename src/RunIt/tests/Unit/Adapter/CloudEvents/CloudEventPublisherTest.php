@@ -102,7 +102,7 @@ final class CloudEventPublisherTest extends Unit
         self::assertIsArray($captured->data);
         self::assertSame('visible', $captured->data['safe']);
         self::assertNotSame('secret-value', $captured->data['password']);
-        self::assertArrayNotHasKey('redacted', $captured->extensions);
+        self::assertTrue($captured->extensions['redacted']);
     }
 
     public function testBuildsFromBridgeConfig(): void

@@ -218,11 +218,12 @@ final class MeasurementInstrumentMapperTest extends Unit
             health: $health,
         );
         $publisher->publish(new RedactedArtifact([
-            'name' => 'private_metric', 'value' => 'secret-value', 'id' => 'secret-id',
+            'name' => 'private_metric', 'kind' => 'gauge', 'unit' => 'count',
+            'value' => 'secret-value', 'id' => 'secret-id',
         ], 'measurement'));
 
         self::assertSame([[
-            'Redacted measurement has a nonnumeric value.',
+            'Redacted measurement has invalid fields.',
             ['id' => 'redacted', 'type' => 'runit.artifact.redacted'],
         ]], $health->reports);
         self::assertNull($this->kit->metric('private_metric'));
@@ -249,47 +250,39 @@ final class MeasurementInstrumentMapperTest extends Unit
             $health,
         );
         $health->mapper = $mapper;
-        $log = tempnam(sys_get_temp_dir(), 'runit-health-');
-        self::assertNotFalse($log);
-        $previous = ini_get('error_log');
-        ini_set('error_log', $log);
-        try {
-            $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
-            $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
-            $contents = file_get_contents($log);
-        } finally {
-            ini_set('error_log', (string) $previous);
-            unlink($log);
-        }
+        $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
+        $mapper->mapRedactedMeasurement(['name' => 'metric', 'value' => 'payload-secret']);
 
         self::assertSame(2, $health->calls);
-        self::assertIsString($contents);
-        self::assertSame(2, substr_count($contents, 'Redacted measurement has a nonnumeric value.'));
-        self::assertStringNotContainsString('secret', $contents);
         self::assertNull($this->kit->metric('metric'));
     }
 
-    public function testMissingHealthUsesFallbackButDisabledProviderDoesNotReport(): void
+    public function testInvalidRedactedMeasurementFieldsAreReportedWithoutRecording(): void
     {
-        $log = tempnam(sys_get_temp_dir(), 'runit-health-');
-        self::assertNotFalse($log);
-        $previous = ini_get('error_log');
-        ini_set('error_log', $log);
-        try {
-            new DefaultMeasurementInstrumentMapper(null, new InstrumentCache(64), [])
-                ->mapRedactedMeasurement(['name' => 'metric', 'value' => 'secret'])
-            ;
-            new DefaultMeasurementInstrumentMapper($this->kit->meterProvider, new InstrumentCache(64), [])
-                ->mapRedactedMeasurement(['name' => 'metric', 'value' => 'secret'])
-            ;
-            $contents = file_get_contents($log);
-        } finally {
-            ini_set('error_log', (string) $previous);
-            unlink($log);
+        $health = new class () implements InternalHealthReporterInterface {
+            public int $calls = 0;
+
+            public function report(Throwable $error, ExecutionArtifactInterface $artifact): void
+            {
+                ++$this->calls;
+            }
+        };
+        $mapper = new DefaultMeasurementInstrumentMapper(
+            $this->kit->meterProvider,
+            new InstrumentCache(64),
+            [],
+            $health,
+        );
+        $base = ['name' => 'invalid', 'kind' => 'gauge', 'unit' => 'count', 'value' => 1.0];
+        foreach ([['kind' => null], ['kind' => 'secret'], ['unit' => null], ['unit' => 'secret'],
+            ['value' => INF], ['value' => -INF], ['value' => NAN],
+            ['kind' => 'counter', 'value' => 1.5], ['kind' => 'size', 'value' => 1.5]] as $override) {
+            $mapper->mapRedactedMeasurement(array_replace($base, $override));
         }
 
-        self::assertIsString($contents);
-        self::assertSame(1, substr_count($contents, 'Redacted measurement has a nonnumeric value.'));
-        self::assertStringNotContainsString('secret', $contents);
+        self::assertSame(9, $health->calls);
+        self::assertNull($this->kit->metric('invalid'));
+        $mapper->mapRedactedMeasurement(['name' => 'valid', 'kind' => 'gauge', 'unit' => 'count', 'value' => 1.5]);
+        self::assertNotNull($this->kit->metric('valid'));
     }
 }

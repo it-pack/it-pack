@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Application\Publication;
 
 use Codeception\Test\Unit;
+use InvalidArgumentException;
 use ItPack\RunIt\Application\Publication\CallbackHealthReporter;
 use ItPack\RunIt\Application\Publication\ProvenanceAuthority;
 use ItPack\RunIt\Application\Publication\RedactedArtifact;
@@ -102,6 +103,30 @@ final class ProvenanceAuthorityTest extends Unit
         self::assertNotNull(
             $authority->bindArtifact('observation', 'observation', 'next', 'one', 'execution-observation'),
         );
+    }
+
+    public function testRecordCapacityIsIndependentPerLiveExecution(): void
+    {
+        $authority = new ProvenanceAuthority(null, 2, 10);
+        $authority->issueExportId('execution', 'execution', 'first', 'first');
+        self::assertNotNull($authority->bindArtifact('observation', 'observation', 'first', 'one'));
+        self::assertNull($authority->bindArtifact('observation', 'observation', 'first', 'two'));
+
+        $second = $authority->issueExportId('execution', 'execution', 'second', 'second');
+        self::assertNotNull($authority->bindArtifact('observation', 'observation', 'second', 'one'));
+        self::assertNull($authority->bindArtifact('observation', 'observation', 'second', 'two'));
+        self::assertTrue($authority->verifyExportId($second, 'execution', 'second'));
+
+        $authority->releaseExecution('first');
+        self::assertNull($authority->bindArtifact('observation', 'observation', 'second', 'three'));
+        $authority->issueExportId('execution', 'execution', 'first', 'first');
+        self::assertNotNull($authority->bindArtifact('observation', 'observation', 'first', 'new'));
+    }
+
+    public function testRecordLimitMustBePositive(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new ProvenanceAuthority(null, 0);
     }
 
     public function testIdentifierByteLimitRejectsOversizedIssuance(): void

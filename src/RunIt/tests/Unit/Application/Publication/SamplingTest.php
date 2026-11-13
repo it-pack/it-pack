@@ -109,6 +109,9 @@ final class SamplingTest extends Unit
             ['job' => true],
         );
         self::assertTrue($kind->sample($info));
+        self::assertTrue($kind->sample(new VerifiedArtifactProjection(['id' => 'exec-1'], 'execution')));
+        self::assertTrue($kind->sample(new RedactedArtifact(['id' => 'exec-1'], 'execution')));
+        self::assertFalse($kind->sample(new RedactedArtifact(['execution_id' => 'exec-1'], 'execution')));
     }
 
     public function testClassifierPreservesTypedActivityDuration(): void

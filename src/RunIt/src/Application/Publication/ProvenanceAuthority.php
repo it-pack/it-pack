@@ -26,9 +26,8 @@ use WeakMap;
  * remain self-contained after release; a late raw artifact without a live binding
  * drops and reports.
  *
- * Concurrency: records are mutable only through the authority's own methods; each
- * record entry is never modified in place except for its released flag, which is set
- * once during release. The authority is safe for use from a single persistent worker.
+ * Concurrency: records and their relationship lists are mutated by the authority.
+ * The authority is safe for use from a single persistent worker.
  *
  * @internal provenance authority; not a public contract.
  *
@@ -262,7 +261,10 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * execution, and the artifact's own business ID so verification can reject
      * copied, substituted, or forged evidence.
      *
-     * @param list<string> $relationships
+     * The record limit applies independently to each execution. The number of
+     * simultaneous executions is not bounded by this authority.
+     *
+     * @param list<string> $relationships Initial relationships are unsupported and must be empty.
      */
     public function issueExportId(
         string $kind,
@@ -275,7 +277,7 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             throw new RuntimeException('Provenance authority is releasing; no new issuance permitted.');
         }
 
-        if (count($this->records) >= $this->maxRecords
+        if (count($this->byExecution[$executionId] ?? []) >= $this->maxRecords
             || strlen($kind) > $this->maxIdentifierBytes || strlen($role) > $this->maxIdentifierBytes
             || strlen($executionId) > $this->maxIdentifierBytes || strlen($businessId) > $this->maxIdentifierBytes
             || $relationships !== []) {

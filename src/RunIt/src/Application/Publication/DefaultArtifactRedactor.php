@@ -247,7 +247,7 @@ final class DefaultArtifactRedactor implements RedactorInterface
     ): array {
         if (!$this->config->redactThrowableMessages
             || !$this->isTypeOf($artifact, 'execution')
-            || !is_array($normalized[ArtifactField::RESULT])
+            || !is_array($normalized[ArtifactField::RESULT] ?? null)
             || !isset($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
             || !is_array($normalized[ArtifactField::RESULT][ArtifactField::THROWABLE])
         ) {

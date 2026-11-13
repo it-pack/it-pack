@@ -275,8 +275,8 @@ final class RunItBuilder implements ExtendedRunItBuilderInterface
 
     /**
      * Overrides how the redaction/sampling stack is composed around the base
-     * publisher. The default factory applies redaction closest to the sink and
-     * sampling outside it; overriding must preserve that security ordering.
+     * publisher. The default factory applies redaction before sampling, so the
+     * sampler receives redacted artifacts; overriding must preserve that ordering.
      */
     public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilder
     {

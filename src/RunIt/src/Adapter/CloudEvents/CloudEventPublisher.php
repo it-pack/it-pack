@@ -53,7 +53,9 @@ final readonly class CloudEventPublisher implements ArtifactPublisherInterface
     public function publish(ExecutionArtifactInterface $artifact): void
     {
         if ($artifact instanceof OccurrenceInterface) {
-            $this->sink->send($this->mapper->map($artifact, $this->policy));
+            $event = $this->mapper->map($artifact, $this->policy);
+            $this->sink->send($artifact instanceof RedactedArtifactInterface
+                ? $event->withExtensions(['redacted' => true]) : $event);
 
             return;
         }

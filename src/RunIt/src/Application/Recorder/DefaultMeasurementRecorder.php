@@ -21,7 +21,7 @@ use ItPack\RunIt\Contract\Port\MonotonicClockInterface;
 use ItPack\RunIt\Domain\Measurement\Measurement;
 use ItPack\RunIt\Domain\Measurement\MeasurementName;
 use ItPack\RunIt\Domain\Measurement\MeasurementUnit;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -173,19 +173,22 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
         // sequence (each measurement gets a distinct sequence from the allocator)
         // and register the execution→measurement relationship edge. The name is
         // repeatable across calls and cannot serve as a distinct artifact identity.
-        $rawSequence = $measurement->normalize()[ArtifactField::SEQUENCE] ?? null;
-        $businessId = is_int($rawSequence) ? (string) $rawSequence : 'unknown';
-        $exportId = $this->authority->bindArtifact(
-            'measurement',
-            'measurement',
-            $this->executionId->toString(),
-            $businessId,
-            'execution-measurement',
-        );
+        try {
+            $businessId = (string) $measurement->sequence();
+            $exportId = $this->authority->bindArtifact(
+                'measurement',
+                'measurement',
+                $this->executionId->toString(),
+                $businessId,
+                'execution-measurement',
+            );
 
-        $this->authority->attest($measurement, $exportId);
-        $activityId = $measurement->normalize()[ArtifactField::ACTIVITY_ID] ?? null;
-        $this->authority->bindActivityRelationship($exportId, is_string($activityId) ? $activityId : null);
+            $this->authority->attest($measurement, $exportId);
+            $this->authority->bindActivityRelationship($exportId, $measurement->activityId()?->toString());
+        } catch (Throwable) {
+            $this->authority->reportUnverified(new RuntimeException('Measurement publication preparation failed.'));
+            return $measurement;
+        }
 
         $this->publisher->publish($measurement);
 

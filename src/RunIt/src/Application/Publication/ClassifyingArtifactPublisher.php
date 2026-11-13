@@ -236,6 +236,10 @@ final class ClassifyingArtifactPublisher implements
             $classified = new ClassifiedRedactedObservation($classified);
         }
 
+        if ($artifact instanceof RedactedArtifactInterface && $classified instanceof Occurrence) {
+            $classified = new ClassifiedRedactedOccurrence($classified);
+        }
+
         $classified ??= new ClassifiedArtifact($projected, $kind);
         $this->inner->publish($classified);
     }

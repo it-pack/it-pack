@@ -144,7 +144,7 @@ interface RunItBuilderInterface
 
     /**
      * Overrides how the redaction/sampling stack is composed around the base publisher.
-     * The default factory applies redaction closest to the sink and sampling outside it;
+     * The default factory applies redaction before sampling, so samplers receive redacted artifacts;
      * an override must preserve that security ordering.
      */
     public function withPublisherStackFactory(PublisherStackFactoryInterface $factory): RunItBuilderInterface;

@@ -13,10 +13,9 @@ use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
  * The wrapper carries the redacted normalization of the original artifact and
  * never mutates the original. It implements {@see ExecutionArtifactInterface} and
  * the {@see RedactedArtifactInterface} marker so any publisher can recognize it as
- * a suppressed signal. The {@see artifactType()} is the delivery signal set by
- * the redactor that produced the projection. User-supplied redacted artifacts are
- * NOT trusted by their artifact type: only SDK-classified projections
- * ({@see TrustedArtifactProjectionInterface}) are routed by it.
+ * a redacted signal. Consumers route using {@see artifactType()}, but the value
+ * alone does not establish provenance: instances can be constructed by callers.
+ * Provenance must be verified upstream where it is required.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -24,7 +23,7 @@ final readonly class RedactedArtifact implements ExecutionArtifactInterface, Red
 {
     /**
      * @param array<string, mixed> $normalized the redacted normalization
-     * @param string               $artifactType trusted artifact kind set by the redactor
+     * @param string               $artifactType artifact kind supplied by the producer
      */
     public function __construct(
         private array $normalized,
@@ -38,7 +37,7 @@ final readonly class RedactedArtifact implements ExecutionArtifactInterface, Red
     }
 
     /**
-     * The trusted artifact kind this redacted projection represents.
+     * The artifact kind this redacted projection represents.
      */
     public function artifactType(): string
     {

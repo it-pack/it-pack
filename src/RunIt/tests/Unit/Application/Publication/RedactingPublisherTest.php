@@ -88,6 +88,16 @@ use Throwable;
 #[UsesClass(SnapshotType::class)]
 final class RedactingPublisherTest extends Unit
 {
+    public function testExecutionProjectionWithoutResultCanBeRedacted(): void
+    {
+        $artifact = new RedactedArtifact(['id' => 'exec', 'attributes' => ['password' => 'secret']], 'execution');
+        $redactor = new DefaultArtifactRedactor(new ArtifactRedactionConfig(sensitiveAttributeKeys: ['password']));
+
+        $attributes = $redactor->redact($artifact)->normalize()['attributes'];
+        self::assertIsArray($attributes);
+        self::assertSame('[redacted]', $attributes['password']);
+    }
+
     public function testVerifiedProjectionMarksOnlyActuallyRedactedObservations(): void
     {
         foreach (['disabled', 'no-match', 'default'] as $mode) {
