@@ -6,6 +6,13 @@ on:
   pull_request:
     paths:
       - 'src/RunIt/src/**'
+      - 'src/AsyncIt/src/**'
+      - 'src/DeriveItRunit/src/**'
+      - 'src/RunItThirdPartySample/src/**'
+      - 'src/CommitItRunit/src/**'
+      - 'src/ConfigureItRunit/src/**'
+      - 'src/DeriveItRunit/src/**'
+      - 'src/RunItThirdPartySample/src/**'
       - 'tools/repo/downstream-test*.php'
       - '.github/workflows/runit-downstream-compat.yml'
   workflow_dispatch:
@@ -24,11 +31,11 @@ jobs:
       matrix:
         include:
           - php: '8.5'
+            package: AsyncIt
+          - php: '8.5'
             package: DeriveItRunit
           - php: '8.4'
             package: RunItThirdPartySample
-          - php: '8.5'
-            package: AsyncIt
           - php: '8.5'
             package: CommitItRunit
           - php: '8.5'
