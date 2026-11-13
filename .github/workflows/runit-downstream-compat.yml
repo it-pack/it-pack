@@ -5,7 +5,7 @@ on:
     branches: [main, release]
   pull_request:
     paths:
-      - 'src/**'
+      - 'src/RunIt/src/**'
       - 'tools/repo/downstream-test*.php'
       - '.github/workflows/runit-downstream-compat.yml'
   workflow_dispatch:
@@ -18,14 +18,13 @@ jobs:
     name: ${{ matrix.package }} (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: ${{ matrix.experimental == true }}
+    #continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - php: '8.4'
+          - php: '8.5'
             package: DeriveItRunit
-            experimental: true
           - php: '8.4'
             package: RunItThirdPartySample
           - php: '8.5'
