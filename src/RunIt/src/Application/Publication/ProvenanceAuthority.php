@@ -472,14 +472,19 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         $key = $businessId . "\0" . $executionId;
         $candidates = $this->byBusinessExecution[$key] ?? [];
 
+        $matched = null;
         foreach ($candidates as $exportId) {
             $record = $this->records[$exportId] ?? null;
             if ($record !== null && !$record['released'] && ($role === null || $record['role'] === $role)) {
-                return $exportId;
+                if ($matched !== null) {
+                    return null;
+                }
+
+                $matched = $exportId;
             }
         }
 
-        return null;
+        return $matched;
     }
 
     /**
@@ -692,9 +697,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         // payload-free error-log fallback so standalone composition stays observable.
         try {
             new FallbackErrorLogReporter()->report(
-                $failure,
+                new RuntimeException('publication health reporting failed'),
                 new RuntimeException('no health reporter configured'),
-                $artifactId,
             );
         } catch (Throwable) {
             // No further independent sink remains; preserve the business outcome.

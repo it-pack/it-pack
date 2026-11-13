@@ -85,7 +85,7 @@ enum ArtifactType: string
     public static function tryFromArtifact(ExecutionArtifactInterface $artifact): ?self
     {
         if ($artifact instanceof TypedExecutionArtifactInterface) {
-            return self::from($artifact->artifactType());
+            return self::tryFrom($artifact->artifactType());
         }
 
         foreach (self::INTERFACES as $type => $interface) {

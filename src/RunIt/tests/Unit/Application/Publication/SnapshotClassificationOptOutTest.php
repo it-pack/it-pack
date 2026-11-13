@@ -92,9 +92,9 @@ final class SnapshotClassificationOptOutTest extends TestCase
             foreach ([$sampler->seen, $sink->published()] as $artifacts) {
                 $isTerminalSnapshot = static fn (ExecutionArtifactInterface $artifact): bool => (
                     $artifact instanceof SnapshotInterface
-                    || ($artifact instanceof VerifiedArtifactProjection
-                        || $artifact instanceof RedactedArtifactInterface)
-                        && $artifact->artifactType() === 'snapshot'
+                    || (($artifact instanceof VerifiedArtifactProjection
+                            || $artifact instanceof RedactedArtifactInterface)
+                        && $artifact->artifactType() === 'snapshot')
                 ) && ($artifact->normalize()['classification'] ?? null) === SnapshotClassification::Terminal->value;
 
                 $snapshots = array_values(array_filter($artifacts, $isTerminalSnapshot));

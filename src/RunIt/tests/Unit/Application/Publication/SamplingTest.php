@@ -167,7 +167,7 @@ final class SamplingTest extends Unit
     {
         foreach ([true, false] as $terminal) {
             $health = $this->createMock(InternalHealthReporterInterface::class);
-            $health->expects(self::never())->method('report');
+            $health->expects($this->never())->method('report');
             $authority = new ProvenanceAuthority($health);
             $executionId = $authority->issueExportId('execution', 'execution', 'business-exec', 'business-exec');
             $snapshotId = $authority->bindArtifact(
@@ -256,7 +256,7 @@ final class SamplingTest extends Unit
     public function testInvalidSnapshotTimingDropsWithPayloadFreeHealth(): void
     {
         $health = $this->createMock(InternalHealthReporterInterface::class);
-        $health->expects(self::once())->method('report')->willReturnCallback(
+        $health->expects($this->once())->method('report')->willReturnCallback(
             static function (Throwable $failure, ExecutionArtifactInterface $notice): void {
                 self::assertSame('Redaction provenance verification failed.', $failure->getMessage());
                 self::assertSame(['id' => 'redacted', 'type' => 'runit.artifact.redacted'], $notice->normalize());
@@ -287,7 +287,7 @@ final class SamplingTest extends Unit
         );
         self::assertTrue($authority->attest($snapshot, $snapshotId));
         $sampler = $this->createMock(SamplingPolicyInterface::class);
-        $sampler->expects(self::never())->method('sample');
+        $sampler->expects($this->never())->method('sample');
         $sink = new InMemoryArtifactPublisher();
         new PublisherStackFactory()->compose($sink, new DefaultSdkRedactor(), $sampler, $health, authority: $authority)
             ->publish($snapshot)
@@ -308,7 +308,7 @@ final class SamplingTest extends Unit
 
         foreach ($cases as $label => [$classification, $replacement, $remove]) {
             $health = $this->createMock(InternalHealthReporterInterface::class);
-            $health->expects(self::once())->method('report');
+            $health->expects($this->once())->method('report');
             $authority = new ProvenanceAuthority($health);
             $authority->issueExportId('execution', 'execution', 'business-exec', 'business-exec');
             $terminal = $classification === SnapshotClassification::Terminal;
@@ -337,7 +337,7 @@ final class SamplingTest extends Unit
 
             $controlSink = new InMemoryArtifactPublisher();
             $controlPolicy = $this->createMock(SamplingPolicyInterface::class);
-            $controlPolicy->expects(self::once())->method('sample')->willReturn(true);
+            $controlPolicy->expects($this->once())->method('sample')->willReturn(true);
             new PublisherStackFactory()->compose(
                 $controlSink,
                 null,
@@ -347,7 +347,7 @@ final class SamplingTest extends Unit
             self::assertCount(1, $controlSink->published(), $label);
 
             $redactor = $this->createMock(RedactorInterface::class);
-            $redactor->expects(self::once())->method('redact')->willReturnCallback(
+            $redactor->expects($this->once())->method('redact')->willReturnCallback(
                 static function (ExecutionArtifactInterface $artifact) use ($replacement, $remove): RedactedArtifact {
                     $fields = $artifact->normalize();
                     if ($remove) {
@@ -360,7 +360,7 @@ final class SamplingTest extends Unit
                 },
             );
             $policy = $this->createMock(SamplingPolicyInterface::class);
-            $policy->expects(self::never())->method('sample');
+            $policy->expects($this->never())->method('sample');
             $sink = new InMemoryArtifactPublisher();
             new PublisherStackFactory()->compose($sink, $redactor, $policy, authority: $authority)->publish($snapshot);
             self::assertSame([], $sink->published(), $label);
@@ -372,7 +372,7 @@ final class SamplingTest extends Unit
         $info = new VerifiedArtifactProjection(['execution_id' => 'exec-1', 'level' => 200], 'observation');
         $error = new VerifiedArtifactProjection(['execution_id' => 'exec-1', 'level' => 400], 'observation');
         $inner = $this->createMock(SamplingPolicyInterface::class);
-        $inner->expects(self::once())->method('sample')->willReturn(false);
+        $inner->expects($this->once())->method('sample')->willReturn(false);
         $head = new HeadBasedSamplingPolicy($inner);
         self::assertFalse($head->sample($info));
         self::assertFalse($head->sample($error));
@@ -409,6 +409,9 @@ final class SamplingTest extends Unit
         self::assertSame(123, $published->duration()?->nanoseconds());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testClassifierReconstructsLifecycleArtifactsAndSnapshot(): void
     {
         $sink = new InMemoryArtifactPublisher();
@@ -416,13 +419,18 @@ final class SamplingTest extends Unit
         $execution = RunItArtifactFactory::execution('exec-1', 'job', 'task', 'failed');
         $activity = RunItArtifactFactory::activity('act-1', 'exec-1', 'work', 'task', 'failed');
         $snapshot = RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['safe' => 'value']);
-        foreach ([$execution, $activity, $snapshot] as $artifact) {
+        $artifacts = [$execution, $activity, $snapshot];
+
+        foreach ($artifacts as $artifact) {
             $classifier->publish($artifact);
         }
 
         foreach ([ExecutionInterface::class, ActivityInterface::class, SnapshotInterface::class] as $i => $type) {
             self::assertInstanceOf($type, $sink->published()[$i]);
-            self::assertSame([$execution, $activity, $snapshot][$i]->normalize(), $sink->published()[$i]->normalize());
+            self::assertSame(
+                $artifacts[$i]->normalize(),
+                $sink->published()[$i]->normalize()
+            );
             self::assertNotSame([$execution, $activity, $snapshot][$i], $sink->published()[$i]);
         }
 
@@ -457,11 +465,14 @@ final class SamplingTest extends Unit
         self::assertSame($snapshot->contentHash(), $sink->published()[0]->contentHash());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testClassifierRejectsUnsupportedArtifactsWithoutExposingPayload(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $health = $this->createMock(InternalHealthReporterInterface::class);
-        $health->expects(self::exactly(3))->method('report')->willReturnCallback(
+        $health->expects($this->exactly(3))->method('report')->willReturnCallback(
             static function (Throwable $error, ExecutionArtifactInterface $artifact): void {
                 self::assertStringNotContainsString('secret', $error->getMessage());
                 self::assertStringNotContainsString('secret', json_encode($artifact->normalize(), JSON_THROW_ON_ERROR));
@@ -570,11 +581,14 @@ final class SamplingTest extends Unit
         );
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testClassifierDropsSnapshotsWhenPayloadOrHashChanges(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $health = $this->createMock(InternalHealthReporterInterface::class);
-        $health->expects(self::once())->method('report');
+        $health->expects($this->once())->method('report');
         $classifier = new ClassifyingArtifactPublisher($sink, $health);
         $classifier->publish(RunItArtifactFactory::snapshot('snap-1', 'exec-1', ['safe' => 'value']));
         $classifier->publish(new RedactedArtifact([
@@ -619,11 +633,14 @@ final class SamplingTest extends Unit
         self::assertSame($fields, $sink->published()[0]->normalize());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testClassifierEnforcesSnapshotPayloadByteAndDepthLimits(): void
     {
         $sink = new InMemoryArtifactPublisher();
         $health = $this->createMock(InternalHealthReporterInterface::class);
-        $health->expects(self::exactly(4))->method('report');
+        $health->expects($this->exactly(4))->method('report');
         $classifier = new ClassifyingArtifactPublisher(
             $sink,
             $health,
@@ -668,7 +685,7 @@ final class SamplingTest extends Unit
     {
         $sink = new InMemoryArtifactPublisher();
         $health = $this->createMock(InternalHealthReporterInterface::class);
-        $health->expects(self::once())->method('report');
+        $health->expects($this->once())->method('report');
         $classifier = new ClassifyingArtifactPublisher($sink, $health);
         $classifier->publish(new RedactedArtifact([
             'id' => 'snap-1', 'execution_id' => 'exec-1', 'payload' => ['large' => str_repeat('x', 262144)],
@@ -677,6 +694,9 @@ final class SamplingTest extends Unit
         self::assertSame([], $sink->published());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testClassifierPreservesRequiredFieldsAndBoundsNestedMaps(): void
     {
         $sink = new InMemoryArtifactPublisher();
@@ -913,6 +933,9 @@ final class SamplingTest extends Unit
         self::assertCount(1, $keepSink->published());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testSamplingHealthReportIsPayloadFreeAndGuardsReentry(): void
     {
         $artifact = Observation::info(
@@ -958,6 +981,9 @@ final class SamplingTest extends Unit
         self::assertSame([], $sink->published());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testSamplingHealthReporterFailureIsContainedAndGuardResets(): void
     {
         $health = new class () implements InternalHealthReporterInterface {
@@ -979,6 +1005,9 @@ final class SamplingTest extends Unit
         self::assertSame([], $sink->published());
     }
 
+    /**
+     * @throws Throwable
+     */
     public function testHealthAwareFactoryReportsSamplingDrops(): void
     {
         $health = new class () implements InternalHealthReporterInterface {
