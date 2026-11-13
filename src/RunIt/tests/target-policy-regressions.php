@@ -133,8 +133,13 @@ foreach ([
     $publisher->publish(Observation::error(ObservationId::fromString('high'), $id, 'high', attributes: $attributes));
     $published = $sink->published();
     $check(
-        count($published) === 1 && ($published[0]->normalize()['message'] ?? null) === 'high',
+        count($published) === 1
+            && ($published[0]->normalize()['severity'] ?? null) === ObservationSeverity::Error->label(),
         "$name preserves typed decisions with redaction"
+    );
+    $check(
+        count($published) === 1 && ($published[0]->normalize()['message'] ?? null) === '[redacted]',
+        "$name masks the published observation message"
     );
     $check(
         count($published) === 1 && ($published[0]->normalize()['attributes']['private'] ?? null) === '[redacted]',

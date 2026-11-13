@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\SamplingPolicyInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
@@ -34,11 +37,17 @@ final class SamplingArtifactPublisher implements
 
     private bool $publishingHealthReport = false;
 
+    private readonly RedactedArtifactFactoryInterface $redactedFactory;
+
     public function __construct(
         private readonly SamplingPolicyInterface          $policy,
         private readonly ArtifactPublisherInterface       $inner,
         private readonly ?InternalHealthReporterInterface $health = null,
+        ?RedactedArtifactFactoryInterface $redactedFactory = null,
     ) {
+        $this->redactedFactory =
+            $redactedFactory?->withArtifactType(ArtifactType::UNKNOWN)
+            ?? new RedactedRedactedArtifactFactory(ArtifactType::UNKNOWN);
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void
@@ -55,7 +64,7 @@ final class SamplingArtifactPublisher implements
 
         try {
             $this->publishingHealthReport = true;
-            $this->health->report(SamplingDropException::forArtifact(), new RedactedArtifact([
+            $this->health->report(SamplingDropException::forArtifact(), $this->redactedFactory->create([
                 ArtifactField::ID => 'redacted',
                 ArtifactField::TYPE => 'runit.artifact.redacted',
             ]));

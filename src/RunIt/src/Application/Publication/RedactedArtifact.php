@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Application\Publication;
 
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
 
@@ -19,16 +20,21 @@ use ItPack\RunIt\Contract\Domain\RedactedArtifactInterface;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-final readonly class RedactedArtifact implements ExecutionArtifactInterface, RedactedArtifactInterface
+final readonly class RedactedArtifact implements RedactedArtifactInterface
 {
+    private string $artifactType;
+
     /**
      * @param array<string, mixed> $normalized the redacted normalization
-     * @param string               $artifactType artifact kind supplied by the producer
+     * @param ArtifactType|string $artifactType artifact kind supplied by the producer
      */
     public function __construct(
         private array $normalized,
-        private string $artifactType = 'unknown',
+        ArtifactType|string $artifactType = ArtifactType::UNKNOWN,
     ) {
+        $this->artifactType = $artifactType instanceof ArtifactType
+            ? $artifactType->value
+            : $artifactType;
     }
 
     public function normalize(): array

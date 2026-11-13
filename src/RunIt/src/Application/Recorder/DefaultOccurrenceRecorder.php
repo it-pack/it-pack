@@ -87,7 +87,16 @@ final readonly class DefaultOccurrenceRecorder implements OccurrenceRecorderInte
             );
 
             $this->authority->attest($occurrence, $exportId);
-            $this->authority->bindActivityRelationship($exportId, $occurrence->activityId()?->toString());
+            $activityBusinessId = $occurrence->activityId()?->toString();
+            if ($exportId !== null && $activityBusinessId !== null) {
+                $executionId = $this->authority->executionIdForExportId($exportId);
+                $activityExportId = $executionId !== null
+                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
+                    : null;
+                if ($activityExportId !== null) {
+                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
+                }
+            }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Occurrence publication preparation failed.'));
             return $occurrence;

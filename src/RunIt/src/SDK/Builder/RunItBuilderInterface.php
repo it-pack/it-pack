@@ -67,9 +67,8 @@ interface RunItBuilderInterface
     /**
      * Overrides the default redactor. When this method is never called, the
      * built runtime installs the default redactor.
-     * Its current throwable masking does not cover every artifact shape, and a
-     * configured sampler receives the artifact before redaction. Call
-     * `withRedactor($custom)` to supply a custom strategy — including one
+     * The default stack invokes the redactor before a configured sampler, but
+     * not every field is classified safe. Call `withRedactor($custom)` to supply a custom strategy — including one
      * configured with `sensitiveDataKeys` for occurrence/snapshot payload
      * masking — or `withRedactor(null)` to explicitly publish unredacted (the
      * choice is recorded, so null is an opt-out, not a reset to defaults).

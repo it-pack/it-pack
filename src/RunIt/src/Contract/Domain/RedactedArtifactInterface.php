@@ -18,7 +18,7 @@ namespace ItPack\RunIt\Contract\Domain;
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
-interface RedactedArtifactInterface extends ExecutionArtifactInterface
+interface RedactedArtifactInterface extends TypedExecutionArtifactInterface
 {
     /**
      * Artifact kind this redacted projection represents.

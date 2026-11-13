@@ -7,7 +7,6 @@ namespace ItPack\RunIt\Application\Publication;
 use Closure;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
-use ItPack\RunIt\Domain\Shared\ArtifactField;
 use RuntimeException;
 use Throwable;
 
@@ -17,9 +16,8 @@ use Throwable;
  * Used by tests and by applications that collect internal publication failures
  * (for example into a metrics counter) without touching the guarded publisher.
  *
- * A throwing callback is forwarded to the fallback sink along with the primary
- * failure. If normalization or that sink fails, a bounded system-log fallback
- * receives a payload-free diagnostic; failure of that last resort is contained.
+ * A throwing callback triggers a payload-free fallback diagnostic. If that
+ * sink fails, a separate system-log diagnostic is attempted and contained.
  *
  * @see https://w3id.org/itpack/runit#Execution
  */
@@ -41,23 +39,24 @@ final readonly class CallbackHealthReporter implements InternalHealthReporterInt
     {
         try {
             ($this->callback)($error, $artifact);
-        } catch (Throwable $throwable) {
+        } catch (Throwable) {
             try {
-                $id = $artifact->normalize()[ArtifactField::ID] ?? null;
-
-                $this->fallback->report($error, $throwable, is_string($id) ? $id : null);
-            } catch (Throwable $fallbackFailure) {
-                $this->reportLastResort($fallbackFailure);
+                $this->fallback->report(
+                    new RuntimeException('Publication health reporting failed'),
+                    new RuntimeException('Health callback failed'),
+                );
+            } catch (Throwable) {
+                $this->reportLastResort();
             }
         }
     }
 
-    private function reportLastResort(Throwable $fallbackFailure): void
+    private function reportLastResort(): void
     {
         try {
             new FallbackErrorLogReporter()->report(
                 new RuntimeException('Publication health reporting failed'),
-                new RuntimeException('Fallback failure: ' . $fallbackFailure::class),
+                new RuntimeException('Fallback failure'),
             );
         } catch (Throwable) {
             // No further independent sink remains; preserve the business outcome.

@@ -260,7 +260,7 @@ adapters are optional and never referenced by the domain (ADR-006, ADR-010).
 
 RunIt's adapters are optional and sit at the edge. Pick what you need:
 
-- **OpenTelemetry** — executions→traces, activities→spans, measurements→metrics. See [`docs/integrations/opentelemetry.md`](docs/integrations/opentelemetry.md).
+- **OpenTelemetry** — executions→traces, activities→spans, measurements→metrics when the configured publication policy permits them. See [`docs/integrations/opentelemetry.md`](docs/integrations/opentelemetry.md).
 - **CloudEvents** — occurrences as versioned events, both directions. See [`docs/integrations/cloudevents.md`](docs/integrations/cloudevents.md).
 - **PSR-3 / PSR-14** — observations and occurrences to logs and events. See [`docs/integrations/psr.md`](docs/integrations/psr.md).
 - **HTTP** — per-request execution context and middleware. See [`docs/integrations/README.md`](docs/integrations/README.md).
@@ -285,10 +285,13 @@ Other entry points: [glossary](docs/glossary.md), [vocabulary](docs/vocabulary.m
 
 ## Security and Privacy
 
-Context, observations, occurrences, and snapshots are treated as potential data
-exfiltration paths. Secret values are never exported or serialized; restricted values
-are masked on redaction; cardinality and payload sizes are bounded by default. These are
-deny-by-default behaviors, with negative tests required for security-sensitive changes.
+Context, observations, occurrences, measurements, and snapshots are potential data
+exfiltration paths. The default SDK stack applies redaction and field classification,
+but custom redactors and publisher stacks are responsible for their own policies.
+Not every composition is a complete security boundary. The default policy currently
+reports and drops measurements with unclassified values, replaces occurrence types,
+and emits payload-free snapshot projections; consumers must account for those changes.
+See the security documentation for current limits and remaining gaps.
 
 - Threat model and supply chain: [`docs/SECURITY.md`](docs/SECURITY.md), [`docs/security/`](docs/security/threat-model.md).
 - Classification and redaction behavior: [`docs/architecture/security.md`](docs/architecture/security.md).

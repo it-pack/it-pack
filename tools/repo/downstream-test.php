@@ -156,7 +156,7 @@ function main(array $argv): int
                 $repositories = $manifest['repositories'] ?? [];
                 $repositories = array_values(array_filter($repositories, static fn ($entry) => !isset($entry['url']) || $entry['url'] !== '../RunIt'));
                 $pathRepo = ['type' => 'path', 'url' => '../RunIt', 'options' => ['symlink' => true]];
-                $expectedVersion = $package === 'CommitItRunit' ? '1.1.2' : null;
+                $expectedVersion = in_array($package, ['CommitItRunit', 'ConfigureItRunit'], true) ? '1.1.2' : null;
                 if ($expectedVersion !== null) {
                     $pathRepo['options']['versions'] = ['it-pack/run-it' => $expectedVersion];
                 }

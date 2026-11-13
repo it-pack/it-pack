@@ -269,11 +269,11 @@ final class RunItArtifactFactory
      * @param mixed $payload
      */
     public static function snapshot(
-        string $id,
-        string $executionId,
-        $payload,
+        string  $id,
+        string  $executionId,
+        mixed   $payload,
         ?string $activityId = null,
-        string $type = 'execution.snapshot',
+        string  $type = 'execution.snapshot',
     ): SnapshotInterface {
         return Snapshot::create(
             SnapshotId::fromString($id),

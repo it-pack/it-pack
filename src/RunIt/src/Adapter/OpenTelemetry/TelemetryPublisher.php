@@ -152,13 +152,26 @@ final class TelemetryPublisher implements ArtifactPublisherInterface
 
             return;
         }
+
+        if (method_exists($artifact, 'artifactType')) {
+            $artifactType = $artifact->artifactType();
+            $this->dispatchRedactedArtifact(is_string($artifactType) ? $artifactType : '', $artifact->normalize());
+
+            return;
+        }
     }
 
     private function publishRedactedArtifact(RedactedArtifactInterface $artifact): void
     {
-        $normalized = $artifact->normalize();
+        $this->dispatchRedactedArtifact($artifact->artifactType(), $artifact->normalize());
+    }
 
-        switch ($artifact->artifactType()) {
+    /**
+     * @param array<string, mixed> $normalized
+     */
+    private function dispatchRedactedArtifact(string $artifactType, array $normalized): void
+    {
+        switch ($artifactType) {
             case 'observation':
                 $this->publishRedactedObservation($normalized);
 

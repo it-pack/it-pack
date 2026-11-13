@@ -147,24 +147,26 @@ final class DerivationExecutionFunctionalTest extends TestCase
             static fn (DeriveEventSinkInterface $sink) => $sink->observed(
                 $message,
                 DeriveObservationSeverity::WARNING,
-                ['component' => 'derivation'],
+                ['component' => 'sensitive component secret'],
             ),
         );
 
         $published = $this->publisher->published();
         $redacted = array_values(array_filter(
             $published,
-            static fn ($artifact): bool => $artifact instanceof RedactedArtifactInterface,
+            static fn ($artifact): bool => $artifact instanceof RedactedArtifactInterface
+                && $artifact->artifactType() === 'observation',
         ));
         self::assertCount(1, $redacted);
         $observation = $redacted[0]->normalize();
         self::assertSame('[redacted]', $observation['message']);
         self::assertSame('warning', $observation['severity']);
-        self::assertSame(['component' => 'derivation'], $observation['attributes']);
+        self::assertSame([], $observation['attributes']);
         self::assertNotEmpty($observation['id']);
         self::assertNotEmpty($observation['execution_id']);
         foreach ($published as $artifact) {
             self::assertStringNotContainsString($message, json_encode($artifact->normalize(), JSON_THROW_ON_ERROR));
+            self::assertStringNotContainsString('sensitive component secret', json_encode($artifact->normalize(), JSON_THROW_ON_ERROR));
         }
     }
 
@@ -187,36 +189,32 @@ final class DerivationExecutionFunctionalTest extends TestCase
     }
 
     /**
-     * Exercises every sink branch directly through a captured sink so the mutation
+     * Exercises every sink branch directly while the execution is active so the mutation
      * tester has assertions pinning each recorder call (per-unit measurement arms,
      * per-severity observation arms, attribute/subject handling).
      */
     public function testSinkExercisesEveryRecorderBranch(): void
     {
-        $sink = null;
         DeriveItExecutions::run(
             $this->runtime(),
             'sink.exercise',
-            static function (DeriveEventSinkInterface $captured) use (&$sink): void {
-                $sink = $captured;
+            static function (DeriveEventSinkInterface $sink): void {
+                $sink->activityStarted('act.start', ['k' => 'v']);
+                $sink->activityFinished('act.finish');
+                $sink->activityFinished('act.fail', false, ['x' => 'y']);
+                $sink->measured('m.count', 3, DeriveUnits::UNIT_COUNT, ['a' => '1']);
+                $sink->measured('m.bytes', 10, DeriveUnits::UNIT_BYTES);
+                $sink->measured('m.ms', 1.5, DeriveUnits::UNIT_MILLISECONDS);
+                $sink->measured('m.pct', 0.5, DeriveUnits::UNIT_PERCENT);
+                $sink->measured('m.gauge', 2.0, 'unknown-unit');
+                $sink->observed('obs.debug', DeriveObservationSeverity::DEBUG);
+                $sink->observed('obs.info', DeriveObservationSeverity::INFO);
+                $sink->observed('obs.warn', DeriveObservationSeverity::WARNING);
+                $sink->observed('obs.error', DeriveObservationSeverity::ERROR);
+                $sink->occurred('custom.type', ['target' => 'SubjectX', 'extra' => 'z']);
+                $sink->occurred('custom.empty', []);
             },
         );
-        \assert($sink instanceof DeriveEventSinkInterface);
-
-        $sink->activityStarted('act.start', ['k' => 'v']);
-        $sink->activityFinished('act.finish');
-        $sink->activityFinished('act.fail', false, ['x' => 'y']);
-        $sink->measured('m.count', 3, DeriveUnits::UNIT_COUNT, ['a' => '1']);
-        $sink->measured('m.bytes', 10, DeriveUnits::UNIT_BYTES);
-        $sink->measured('m.ms', 1.5, DeriveUnits::UNIT_MILLISECONDS);
-        $sink->measured('m.pct', 0.5, DeriveUnits::UNIT_PERCENT);
-        $sink->measured('m.gauge', 2.0, 'unknown-unit');
-        $sink->observed('obs.debug', DeriveObservationSeverity::DEBUG);
-        $sink->observed('obs.info', DeriveObservationSeverity::INFO);
-        $sink->observed('obs.warn', DeriveObservationSeverity::WARNING);
-        $sink->observed('obs.error', DeriveObservationSeverity::ERROR);
-        $sink->occurred('custom.type', ['target' => 'SubjectX', 'extra' => 'z']);
-        $sink->occurred('custom.empty', []);
 
         $published = $this->publisher->published();
 

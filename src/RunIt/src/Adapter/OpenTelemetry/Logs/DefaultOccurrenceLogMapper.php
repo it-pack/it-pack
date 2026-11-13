@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace ItPack\RunIt\Adapter\OpenTelemetry\Logs;
 
-use ItPack\RunIt\Adapter\OpenTelemetry\BridgeConfig;
+use ItPack\RunIt\Adapter\OpenTelemetry\Behavior\LogEmitterBehavior;
 use ItPack\RunIt\Adapter\OpenTelemetry\Contract\OccurrenceLogMapperInterface;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeKeys;
 use ItPack\RunIt\Adapter\OpenTelemetry\Telemetry\AttributeValues;
@@ -16,7 +16,6 @@ use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\Duration;
 use JsonException;
 use OpenTelemetry\API\Logs\LoggerProviderInterface;
-use OpenTelemetry\API\Logs\Severity;
 use OpenTelemetry\API\Trace\Span;
 
 /**
@@ -32,17 +31,20 @@ use OpenTelemetry\API\Trace\Span;
  */
 final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperInterface
 {
+    use LogEmitterBehavior;
+
     /**
-     * @param list<string> $occurrenceLogAttributeAllowList extension-attribute keys exported to
-     *                                                     logs; empty keeps the default unrestricted copy (bounded upstream by occurrence validation)
+     * @param list<string> $occurrenceLogAttributeAllowList extension-attribute keys exported to logs;
+     * empty keeps the default unrestricted copy (bounded upstream by occurrence validation)
      */
     public function __construct(
-        private ?LoggerProviderInterface $loggerProvider,
-        private SnapshotPayloadPolicy    $snapshotPayloadPolicy,
-        private bool                     $mapOccurrencesToLogs,
-        private bool                     $mapOccurrencesToSpanEvents,
+        ?LoggerProviderInterface         $loggerProvider = null,
+        private ?SnapshotPayloadPolicy    $snapshotPayloadPolicy = null,
+        private bool                     $mapOccurrencesToLogs = false,
+        private bool                     $mapOccurrencesToSpanEvents = false,
         private array                    $occurrenceLogAttributeAllowList = [],
     ) {
+        $this->loggerProvider = $loggerProvider;
     }
 
     public function mapOccurrence(OccurrenceInterface $occurrence): void
@@ -76,13 +78,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             $attributes[$key] = $value;
         }
 
-        if ($this->mapOccurrencesToLogs && $this->loggerProvider instanceof LoggerProviderInterface) {
-            $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
-            $logger
-                ->logRecordBuilder()
+        if ($this->mapOccurrencesToLogs) {
+            $this->infoLogRecordBuilder()
                 ->setTimestamp($occurrence->time()->epochSeconds() * Duration::NANOS_PER_SECOND)
-                ->setSeverityNumber(Severity::INFO)
-                ->setSeverityText('info')
                 ->setBody($occurrence->type()->toString())
                 ->setEventName('runit.occurrence')
                 ->setAttributes($attributes)
@@ -130,13 +128,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             );
         }
 
-        if ($this->mapOccurrencesToLogs && $this->loggerProvider instanceof LoggerProviderInterface) {
-            $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
-            $logger
-                ->logRecordBuilder()
+        if ($this->mapOccurrencesToLogs) {
+            $this->infoLogRecordBuilder()
                 ->setTimestamp($snapshot->timestamp() * Duration::NANOS_PER_SECOND)
-                ->setSeverityNumber(Severity::INFO)
-                ->setSeverityText('info')
                 ->setBody($snapshot->type()->toString())
                 ->setEventName('runit.snapshot')
                 ->setAttributes($attributes)
@@ -151,27 +145,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
 
     public function mapRedactedOccurrence(array $normalized): void
     {
-        /** @var array<string, mixed> $attributes */
-        $attributes = [
-            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null)
-                ? $normalized[ArtifactField::ID]
-                : AttributeValues::REDACTED_ID,
-            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
-                ? $normalized[ArtifactField::TYPE]
-                : AttributeValues::REDACTED_TYPE,
-            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized[ArtifactField::SOURCE] ?? null)
-                ? $normalized[ArtifactField::SOURCE]
-                : AttributeValues::REDACTED_SOURCE,
-            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
-                ? $normalized[ArtifactField::EXECUTION_ID]
-                : AttributeValues::EMPTY_IDENTITY,
-            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
-        ];
-
-        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
-        if (is_string($activityId)) {
-            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
-        }
+        $attributes = $this->buildRedactedOccurrenceAttributes($normalized);
 
         // The subject of a redacted occurrence is an unclassified, caller-controlled
         // string and is deliberately omitted from the suppressed delivery. Extension
@@ -192,27 +166,7 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
 
     public function mapRedactedSnapshot(array $normalized): void
     {
-        /** @var array<string, mixed> $attributes */
-        $attributes = [
-            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
-                ? $normalized[ArtifactField::ID]
-                : AttributeValues::REDACTED_ID,
-            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
-                ? $normalized[ArtifactField::TYPE]
-                : AttributeValues::REDACTED_TYPE,
-            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized[ArtifactField::CLASSIFICATION] ?? null)
-                ? $normalized[ArtifactField::CLASSIFICATION]
-                : AttributeValues::UNKNOWN_CLASSIFICATION,
-            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
-                ? $normalized[ArtifactField::EXECUTION_ID]
-                : AttributeValues::EMPTY_IDENTITY,
-            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
-        ];
-
-        $activityId = $normalized[ArtifactField::ACTIVITY_ID] ?? null;
-        if (is_string($activityId)) {
-            $attributes[AttributeKeys::ACTIVITY_ID] = $activityId;
-        }
+        $attributes = $this->getAttributes($normalized);
 
         $hash = $normalized[ArtifactField::CONTENT_HASH] ?? null;
         if ($this->snapshotPayloadPolicy !== SnapshotPayloadPolicy::None && is_string($hash)) {
@@ -231,6 +185,36 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
     }
 
     /**
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    public function getAttributes(array $normalized): array
+    {
+        /** @var array<string, mixed> $attributes */
+        $attributes = [
+            AttributeKeys::SNAPSHOT_ID => is_string($normalized[ArtifactField::ID] ?? null)
+                ? $normalized[ArtifactField::ID]
+                : AttributeValues::REDACTED_ID,
+            AttributeKeys::SNAPSHOT_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
+                ? $normalized[ArtifactField::TYPE]
+                : AttributeValues::REDACTED_TYPE,
+            AttributeKeys::SNAPSHOT_CLASSIFICATION => is_string($normalized[ArtifactField::CLASSIFICATION] ?? null)
+                ? $normalized[ArtifactField::CLASSIFICATION]
+                : AttributeValues::UNKNOWN_CLASSIFICATION,
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
+                ? $normalized[ArtifactField::EXECUTION_ID]
+                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
+        ];
+
+        if (is_string($normalized[ArtifactField::ACTIVITY_ID] ?? null)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $normalized[ArtifactField::ACTIVITY_ID];
+        }
+
+        return $attributes;
+    }
+
+    /**
      * @param array<string, mixed> $attributes
      */
     private function emit(string $eventName, string $body, array $attributes, ?int $timeEpochSeconds): void
@@ -239,13 +223,9 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
             ? $timeEpochSeconds * Duration::NANOS_PER_SECOND
             : (int) (microtime(as_float: true) * Duration::NANOS_PER_SECOND);
 
-        if ($this->mapOccurrencesToLogs && $this->loggerProvider instanceof LoggerProviderInterface) {
-            $logger = $this->loggerProvider->getLogger(BridgeConfig::INSTRUMENTATION_SCOPE);
-            $logger
-                ->logRecordBuilder()
+        if ($this->mapOccurrencesToLogs) {
+            $this->infoLogRecordBuilder()
                 ->setTimestamp($timeNanos)
-                ->setSeverityNumber(Severity::INFO)
-                ->setSeverityText('info')
                 ->setBody($body)
                 ->setEventName($eventName)
                 ->setAttributes($attributes)
@@ -256,5 +236,40 @@ final readonly class DefaultOccurrenceLogMapper implements OccurrenceLogMapperIn
         if ($this->mapOccurrencesToSpanEvents) {
             Span::getCurrent()->addEvent($eventName, $attributes);
         }
+    }
+
+    /**
+     * Builds the occurrence-specific attribute set for a redacted occurrence
+     * projection. Occurrence identity (id, type, source) and correlation fields
+     * (execution, activity) are preserved, together with the redaction marker.
+     * Extension attributes are intentionally not re-exported.
+     *
+     * @param array<string, mixed> $normalized
+     * @return array<string, mixed>
+     */
+    private function buildRedactedOccurrenceAttributes(array $normalized): array
+    {
+        /** @var array<string, mixed> $attributes */
+        $attributes = [
+            AttributeKeys::OCCURRENCE_ID => is_string($normalized[ArtifactField::ID] ?? null)
+                ? $normalized[ArtifactField::ID]
+                : AttributeValues::REDACTED_ID,
+            AttributeKeys::OCCURRENCE_TYPE => is_string($normalized[ArtifactField::TYPE] ?? null)
+                ? $normalized[ArtifactField::TYPE]
+                : AttributeValues::REDACTED_TYPE,
+            AttributeKeys::OCCURRENCE_SOURCE => is_string($normalized[ArtifactField::SOURCE] ?? null)
+                ? $normalized[ArtifactField::SOURCE]
+                : AttributeValues::REDACTED_SOURCE,
+            AttributeKeys::EXECUTION_ID => is_string($normalized[ArtifactField::EXECUTION_ID] ?? null)
+                ? $normalized[ArtifactField::EXECUTION_ID]
+                : AttributeValues::EMPTY_IDENTITY,
+            AttributeKeys::REDACTED => AttributeValues::REDACTED_MARKER,
+        ];
+
+        if (is_string($normalized[ArtifactField::ACTIVITY_ID] ?? null)) {
+            $attributes[AttributeKeys::ACTIVITY_ID] = $normalized[ArtifactField::ACTIVITY_ID];
+        }
+
+        return $attributes;
     }
 }

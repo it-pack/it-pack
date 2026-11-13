@@ -4,17 +4,17 @@
 
 ## Problem
 
-Phase 1 is not complete: its exit depends on the unfinished Phase 0 baseline,
-and runtime-specific validation is incomplete. PHP 8.4 and native Swow were not
-tested in the most recent work; OpenSwoole was also not tested. The synchronous
-default is intentionally not Fiber-isolated: the regression test demonstrates
-cross-Fiber ambient scope exposure and an unintended parent relationship.
+Phase 0 is complete as a documented baseline with the limitations in the plan.
+Phase 1's checklist is checked, but runtime-specific and performance follow-ups
+remain. On 2026-11-13, the conformance and concurrency suites passed on PHP
+8.4.27, including native Swoole; OpenSwoole and Swow were unavailable. The
+synchronous default is intentionally not Fiber-isolated: the regression test
+demonstrates cross-Fiber ambient scope exposure and an unintended parent relationship.
 
 ## Follow-up
 
-- Re-establish the Phase 0 evidence specified in the refactoring plan,
-  including exact revisions, dependency and extension state, command results,
-  Unit-only coverage evidence and representative benchmarks.
+- Use the documented Phase 0 baseline and its explicit measurement gaps when
+  comparing affected workloads; do not treat it as a representative benchmark.
 - Run relevant ownership, conformance and interleaving tests on PHP 8.4 and
   available supported newer versions, including real Swoole, OpenSwoole and
   Swow environments where applicable. Record unavailable environments and skips.

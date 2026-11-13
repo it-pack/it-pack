@@ -82,7 +82,16 @@ final readonly class DefaultActivityRunner implements ActivityRunnerInterface
 
         $activity = Activity::start($activityId, $this->executionId, $definition, $startedAt, $sequence);
         $this->authority->attest($activity, $exportId);
-        $this->authority->bindActivityRelationship($exportId, $definition->parentActivityId()?->toString(), true);
+        $parentActivityId = $definition->parentActivityId()?->toString();
+        if ($exportId !== null && $parentActivityId !== null) {
+            $executionId = $this->authority->executionIdForExportId($exportId);
+            $parentExportId = $executionId !== null
+                ? $this->authority->exportIdForBusinessId($parentActivityId, $executionId, 'activity')
+                : null;
+            if ($parentExportId !== null) {
+                $this->authority->bindActivityRelationship($exportId, $parentExportId, true);
+            }
+        }
 
         $this->scope->trackOpenActivity($activity);
         $previousActivityId = $this->scope->currentActivityId();

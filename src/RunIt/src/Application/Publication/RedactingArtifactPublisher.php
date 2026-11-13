@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace ItPack\RunIt\Application\Publication;
 
 use InvalidArgumentException;
+use ItPack\RunIt\Application\Factory\RedactedRedactedArtifactFactory;
 use ItPack\RunIt\Behavior\Application\Publication\DelegatesPublisherLifecycleBehavior;
 use ItPack\RunIt\Contract\Application\Publication\InternalHealthReporterInterface;
+use ItPack\RunIt\Contract\Application\Publication\RedactedArtifactFactoryInterface;
 use ItPack\RunIt\Contract\Application\Publication\RedactorInterface;
 use ItPack\RunIt\Contract\Domain\ActivityInterface;
+use ItPack\RunIt\Contract\Domain\ArtifactType;
 use ItPack\RunIt\Contract\Domain\ExecutionArtifactInterface;
 use ItPack\RunIt\Contract\Domain\ExecutionInterface;
 use ItPack\RunIt\Contract\Domain\MeasurementInterface;
@@ -20,16 +23,16 @@ use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\CloseablePublisherInterface;
 use ItPack\RunIt\Contract\Port\FlushablePublisherInterface;
 use ItPack\RunIt\Domain\Shared\ArtifactField;
+use ItPack\RunIt\Domain\Snapshot\SnapshotClassification;
 use RuntimeException;
 use Throwable;
 
 /**
  * Artifact publisher that redacts before delegating to the inner publisher.
  *
- * Redaction happens before any external publication, so secrets and restricted
- * values never reach an adapter. The original immutable artifact is never mutated:
- * the redactor returns either the same instance (nothing matched) or a redacted
- * projection, and only that result is published.
+ * The configured redactor is applied before delegation. It may return the same
+ * artifact when nothing matches, so this decorator alone does not guarantee that
+ * unclassified values are withheld from downstream publishers.
  *
  * When `dropRedactedObservations` is enabled and redaction produces a
  * {@see RedactedArtifact} from an observation, the redacted observation is not
@@ -50,16 +53,23 @@ final class RedactingArtifactPublisher implements
 
     private bool $publishingHealthReport = false;
 
+    private readonly RedactedArtifactFactoryInterface $redactedFactory;
+
     public function __construct(
         private readonly ?RedactorInterface         $redactor,
         private readonly ArtifactPublisherInterface $inner,
         private readonly ?InternalHealthReporterInterface $health = null,
         private readonly bool                       $dropRedactedObservations = false,
         private readonly ?ProvenanceAuthority       $authority = null,
+        ?RedactedArtifactFactoryInterface $redactedFactory = null,
     ) {
         if ($dropRedactedObservations && !$health instanceof InternalHealthReporterInterface) {
             throw new InvalidArgumentException('dropRedactedObservations requires a health reporter.');
         }
+
+        $this->redactedFactory =
+            $redactedFactory?->withArtifactType(ArtifactType::UNKNOWN)
+            ?? new RedactedRedactedArtifactFactory(ArtifactType::UNKNOWN);
     }
 
     public function publish(ExecutionArtifactInterface $artifact): void
@@ -87,7 +97,7 @@ final class RedactingArtifactPublisher implements
                 $this->publishingHealthReport = true;
                 $this->health?->report(
                     BoundDropException::forReason('drop-redacted-observation'),
-                    new RedactedArtifact([
+                    $this->redactedFactory->create([
                         ArtifactField::ID => 'redacted',
                         ArtifactField::TYPE => 'runit.artifact.redacted',
                     ]),
@@ -136,6 +146,9 @@ final class RedactingArtifactPublisher implements
             if ($kind === '' || !$this->stillVerified($authority, $artifact)
                 || array_intersect_key($original, $fields) !== array_intersect_key($normalized, $fields)
                 || ($redacted instanceof RedactedArtifactInterface && $redacted->artifactType() !== $kind)
+                || ($kind === 'snapshot'
+                    && ($original[ArtifactField::CLASSIFICATION] ?? null)
+                        !== ($normalized[ArtifactField::CLASSIFICATION] ?? null))
             ) {
                 throw new RuntimeException();
             }
@@ -145,12 +158,19 @@ final class RedactingArtifactPublisher implements
                 throw new RuntimeException();
             }
 
+            if ($this->redactor instanceof DefaultSdkRedactor && $artifact instanceof SnapshotInterface) {
+                if (!$this->validSnapshotStructure($artifact, $normalized)) {
+                    throw new RuntimeException();
+                }
+            }
+
             return $this->buildExportProjection(
                 $normalized,
                 $fields,
                 $exportFields,
                 $kind,
                 $redacted instanceof RedactedArtifactInterface,
+                $this->redactor instanceof DefaultSdkRedactor && $artifact instanceof SnapshotInterface,
             );
         } catch (Throwable) {
             $authority->reportUnverified(new RuntimeException('Redaction provenance verification failed.'));
@@ -161,6 +181,20 @@ final class RedactingArtifactPublisher implements
     private function stillVerified(ProvenanceAuthority $authority, ExecutionArtifactInterface $artifact): bool
     {
         return $authority->exportIdForArtifact($artifact) !== null;
+    }
+
+    /** @param array<string, mixed> $normalized */
+    private function validSnapshotStructure(SnapshotInterface $artifact, array $normalized): bool
+    {
+        $classification = $normalized[ArtifactField::CLASSIFICATION] ?? null;
+        $safeClassification = is_string($classification) ? SnapshotClassification::tryFrom($classification) : null;
+
+        return $safeClassification !== null
+            && $safeClassification->isTerminal() === $artifact->classification()->isTerminal()
+            && is_int($normalized[ArtifactField::CREATED_AT] ?? null)
+            && $normalized[ArtifactField::CREATED_AT] === $artifact->timestamp()
+            && is_int($normalized[ArtifactField::SEQUENCE] ?? null)
+            && $normalized[ArtifactField::SEQUENCE] >= 0;
     }
 
     /**
@@ -174,6 +208,7 @@ final class RedactingArtifactPublisher implements
         array $exportFields,
         string $kind,
         bool $isRedacted,
+        bool $isDefaultSnapshot,
     ): ExecutionArtifactInterface {
         $nullable = [
             ArtifactField::ACTIVITY_ID, ArtifactField::OBSERVATION_ID,
@@ -194,10 +229,19 @@ final class RedactingArtifactPublisher implements
         /** @var array<string, mixed> $projection */
         $projection = array_replace($projection, $exportFields);
 
+        // Only structural fields and authority-issued identities are classified safe.
+        if ($isDefaultSnapshot) {
+            $projection = array_intersect_key($projection, array_flip([
+                ArtifactField::ID, ArtifactField::EXECUTION_ID, ArtifactField::ACTIVITY_ID,
+                ArtifactField::PREDECESSOR_ID, ArtifactField::CLASSIFICATION,
+                ArtifactField::CREATED_AT, ArtifactField::SEQUENCE,
+            ]));
+        }
+
         // Freeze the validated projection so a mutable redactor result cannot
         // substitute different identifiers when sampled or classified.
         return $isRedacted
-            ? new RedactedArtifact($projection, $kind)
+            ? $this->redactedFactory->create($projection, $kind)
             : new VerifiedArtifactProjection($projection, $kind);
     }
 }

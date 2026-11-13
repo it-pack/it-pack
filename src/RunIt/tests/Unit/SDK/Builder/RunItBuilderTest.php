@@ -38,6 +38,7 @@ use ItPack\RunIt\Contract\Domain\SnapshotInterface;
 use ItPack\RunIt\Contract\Domain\TrustedArtifactProjectionInterface;
 use ItPack\RunIt\Contract\Port\ArtifactPublisherInterface;
 use ItPack\RunIt\Contract\Port\HealthAwarePublisherStackFactoryInterface;
+use ItPack\RunIt\Contract\Port\IdentifierGeneratorInterface;
 use ItPack\RunIt\Contract\Port\PublisherStackFactoryInterface;
 use ItPack\RunIt\Domain\Activity\ActivityDefinition;
 use ItPack\RunIt\Domain\Activity\ActivityKind;
@@ -48,6 +49,7 @@ use ItPack\RunIt\Domain\Execution\ExecutionKind;
 use ItPack\RunIt\Domain\Execution\ExecutionName;
 use ItPack\RunIt\Domain\Factory\StringIdentifierFactory;
 use ItPack\RunIt\Domain\Occurrence\OccurrenceType;
+use ItPack\RunIt\Domain\Shared\ArtifactField;
 use ItPack\RunIt\Domain\Shared\AttributeCollection;
 use ItPack\RunIt\Domain\Shared\DefaultThrowableMapper;
 use ItPack\RunIt\Domain\Shared\DeterministicHashCalculator;
@@ -181,6 +183,47 @@ final class RunItBuilderTest extends TestCase
         $result = $runtime->run($this->definition(), static fn (): string => 'value');
 
         self::assertSame('value', $result);
+    }
+
+    public function testDefaultTerminalSnapshotSinkOmitsPayloadByDefault(): void
+    {
+        $sink = new RecordingArtifactPublisher();
+        $generator = new class () implements IdentifierGeneratorInterface {
+            private int $sequence = 0;
+
+            public function generate(): string
+            {
+                return ++$this->sequence === 1 ? 'caller-business-execution-id' : 'caller-id-' . $this->sequence;
+            }
+        };
+        $runtime = RunItBuilder::create()
+            ->withPublisher($sink)
+            ->withClock(new SystemMonotonicClock())
+            ->withSequenceAllocator(new InMemorySequenceAllocator())
+            ->withSnapshotSerializer(new JsonSnapshotSerializer())
+            ->withIdentifierGenerator($generator)
+            ->build()
+        ;
+
+        $runtime->run($this->definition(), static fn (): int => 1);
+
+        $executions = array_values(array_filter(
+            $sink->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        $execution = $executions[0]->normalize();
+
+        $snapshots = array_values(array_filter(
+            $sink->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool =>
+                $artifact instanceof TrustedArtifactProjectionInterface && $artifact->artifactType() === 'snapshot',
+        ));
+        self::assertCount(1, $snapshots);
+        $snapshot = $snapshots[0]->normalize();
+        self::assertSame($execution['id'], $snapshot['execution_id']);
+        self::assertArrayNotHasKey(ArtifactField::PAYLOAD, $snapshot);
+        self::assertArrayNotHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }
 
     public function testSamplingPolicyDropsArtifacts(): void
@@ -348,6 +391,43 @@ final class RunItBuilderTest extends TestCase
         self::assertInstanceOf(InternalHealthReporterInterface::class, $factory->health);
     }
 
+    public function testCustomPublisherStackReceivesRawBusinessIdentityAfterProvenanceCheck(): void
+    {
+        $seen = new InMemoryArtifactPublisher();
+        $factory = new SpyPublisherStackFactory($seen);
+        $generator = new class () implements IdentifierGeneratorInterface {
+            private int $sequence = 0;
+
+            public function generate(): string
+            {
+                return 'synthetic-secret-identity-' . ++$this->sequence;
+            }
+        };
+        $runtime = $this->builder()
+            ->withIdentifierGenerator($generator)
+            ->withPublisherStackFactory($factory)
+            ->build()
+        ;
+
+        $businessId = $runtime->run(
+            $this->definition(),
+            static fn (ExecutionScopeInterface $scope): string => $scope->execution()->id()->toString(),
+        );
+
+        self::assertTrue($factory->called);
+        self::assertIsString($businessId);
+        self::assertStringStartsWith('synthetic-secret-identity-', $businessId);
+        $executions = array_values(array_filter(
+            $seen->published(),
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        foreach ($executions as $execution) {
+            self::assertInstanceOf(ExecutionInterface::class, $execution);
+            self::assertSame($businessId, $execution->id()->toString());
+        }
+    }
+
     public function testHealthAwareFactoryReportsThroughConfiguredCallback(): void
     {
         $factory = new SpyHealthAwarePublisherStackFactory();
@@ -465,6 +545,46 @@ final class RunItBuilderTest extends TestCase
         }
     }
 
+    public function testDefaultObservationIsClassifiedBeforeSamplerAndSink(): void
+    {
+        $spy = new RecordingArtifactPublisher();
+        $sampling = new class () implements SamplingPolicyInterface {
+            /** @var list<ExecutionArtifactInterface> */
+            public array $seen = [];
+
+            public function sample(ExecutionArtifactInterface $artifact): bool
+            {
+                $this->seen[] = $artifact;
+                return true;
+            }
+        };
+        $runtime = $this->builder()->withPublisher($spy)->withSamplingPolicy($sampling)->build();
+        try {
+            $runtime->run($this->definition(), static function (): never {
+                throw new RuntimeException('synthetic-secret-failure');
+            });
+        } catch (RuntimeException) {
+            // The business exception is expected.
+        }
+
+        foreach ([$sampling->seen, $spy->published] as $artifacts) {
+            $observations = array_values(array_filter(
+                $artifacts,
+                static fn (ExecutionArtifactInterface $a): bool => $a instanceof ObservationInterface
+            ));
+            self::assertNotEmpty($observations);
+            foreach ($observations as $observation) {
+                self::assertInstanceOf(ObservationInterface::class, $observation);
+                self::assertSame('[redacted]', $observation->message());
+                self::assertSame([], $observation->attributes());
+                self::assertStringNotContainsString(
+                    'synthetic-secret',
+                    json_encode($observation->normalize(), JSON_THROW_ON_ERROR)
+                );
+            }
+        }
+    }
+
     public function testExplicitNullRedactorOptOutPublishesUnredacted(): void
     {
         $spy = new RecordingArtifactPublisher();
@@ -544,6 +664,7 @@ final class RunItBuilderTest extends TestCase
         $sink = new InMemoryArtifactPublisher();
         $runtime = $this->builder()
             ->withPublisher($sink)
+            ->withRedactor(null)
             ->withSecurityLimits(new SecurityLimits(maxAttributeCount: 1))
             ->build()
         ;
@@ -584,12 +705,26 @@ final class RunItBuilderTest extends TestCase
         self::assertSame('result', $runtime->run($this->definition(), static fn (): string => 'result'));
         self::assertNotEmpty($sink->published);
         self::assertSame([], $failures);
+        // Terminal snapshots are published as classified projections (payload omitted by default).
+        $executions = array_values(array_filter(
+            $sink->published,
+            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof ExecutionInterface,
+        ));
+        self::assertNotEmpty($executions);
+        $execution = $executions[0]->normalize();
+
         $snapshots = array_values(array_filter(
             $sink->published,
-            static fn (ExecutionArtifactInterface $artifact): bool => $artifact instanceof SnapshotInterface,
+            static fn (ExecutionArtifactInterface $artifact): bool =>
+                $artifact instanceof SnapshotInterface
+                || ($artifact instanceof TrustedArtifactProjectionInterface
+                    && $artifact->artifactType() === 'snapshot'),
         ));
         self::assertCount(1, $snapshots);
-        self::assertSame($sink->published[1]->normalize()['id'], $snapshots[0]->normalize()['execution_id']);
+        $snapshot = $snapshots[0]->normalize();
+        self::assertSame($execution['id'], $snapshot['execution_id']);
+        self::assertArrayNotHasKey(ArtifactField::PAYLOAD, $snapshot);
+        self::assertArrayNotHasKey(ArtifactField::CONTENT_HASH, $snapshot);
     }
 
     public function testCustomSnapshotFactoryCannotForgeExecutionOwnership(): void

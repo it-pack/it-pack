@@ -30,6 +30,7 @@ final class TerminalSnapshotRedactionTest extends Unit
     {
         $attributes = $this->exportFailedSnapshot(false);
 
+        self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_PAYLOAD, $attributes);
         self::assertArrayNotHasKey(AttributeKeys::SNAPSHOT_HASH, $attributes);
         $export = json_encode($attributes, JSON_THROW_ON_ERROR);
         foreach (['outer-snapshot-secret', 'middle-snapshot-secret', 'inner-snapshot-secret'] as $secret) {
@@ -93,12 +94,14 @@ final class TerminalSnapshotRedactionTest extends Unit
 
         $snapshots = [];
         foreach ($kit->logs() as $record) {
-            if ($record->getEventName() === 'runit.snapshot' && $record->getBody() === 'execution.terminal') {
+            if ($record->getEventName() === 'runit.snapshot') {
+                self::assertSame($mask ? 'execution.terminal' : AttributeValues::REDACTED_TYPE, $record->getBody());
                 $snapshots[] = $record->getAttributes()->toArray();
             }
         }
 
         self::assertCount(1, $snapshots, 'The terminal snapshot must reach the in-memory OTel exporter.');
+        self::assertSame('terminal', $snapshots[0][AttributeKeys::SNAPSHOT_CLASSIFICATION]);
 
         return $snapshots[0];
     }

@@ -184,7 +184,16 @@ final readonly class DefaultMeasurementRecorder implements MeasurementRecorderIn
             );
 
             $this->authority->attest($measurement, $exportId);
-            $this->authority->bindActivityRelationship($exportId, $measurement->activityId()?->toString());
+            $activityBusinessId = $measurement->activityId()?->toString();
+            if ($exportId !== null && $activityBusinessId !== null) {
+                $executionId = $this->authority->executionIdForExportId($exportId);
+                $activityExportId = $executionId !== null
+                    ? $this->authority->exportIdForBusinessId($activityBusinessId, $executionId, 'activity')
+                    : null;
+                if ($activityExportId !== null) {
+                    $this->authority->bindActivityRelationship($exportId, $activityExportId);
+                }
+            }
         } catch (Throwable) {
             $this->authority->reportUnverified(new RuntimeException('Measurement publication preparation failed.'));
             return $measurement;
