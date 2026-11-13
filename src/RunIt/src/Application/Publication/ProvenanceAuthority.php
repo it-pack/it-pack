@@ -117,8 +117,9 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
         private readonly int $maxRecords = 100000,
         private readonly int $maxEdges = 200000,
         private readonly int $maxIdentifierBytes = 1024,
+        private readonly int $maxTotalRecords = 100000,
     ) {
-        if ($maxRecords < 1 || $maxEdges < 1 || $maxIdentifierBytes < 1) {
+        if ($maxRecords < 1 || $maxEdges < 1 || $maxIdentifierBytes < 1 || $maxTotalRecords < 1) {
             throw new InvalidArgumentException('Provenance retention limits must be positive.');
         }
 
@@ -261,8 +262,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
      * execution, and the artifact's own business ID so verification can reject
      * copied, substituted, or forged evidence.
      *
-     * The record limit applies independently to each execution. The number of
-     * simultaneous executions is not bounded by this authority.
+     * Records are bounded both per execution and across this authority. At either
+     * limit issuance fails; bindArtifact drops and reports the rejected binding.
      *
      * @param list<string> $relationships Initial relationships are unsupported and must be empty.
      */
@@ -277,7 +278,8 @@ final class ProvenanceAuthority implements ProvenanceAuthorityInterface
             throw new RuntimeException('Provenance authority is releasing; no new issuance permitted.');
         }
 
-        if (count($this->byExecution[$executionId] ?? []) >= $this->maxRecords
+        if (count($this->records) >= $this->maxTotalRecords
+            || count($this->byExecution[$executionId] ?? []) >= $this->maxRecords
             || strlen($kind) > $this->maxIdentifierBytes || strlen($role) > $this->maxIdentifierBytes
             || strlen($executionId) > $this->maxIdentifierBytes || strlen($businessId) > $this->maxIdentifierBytes
             || $relationships !== []) {

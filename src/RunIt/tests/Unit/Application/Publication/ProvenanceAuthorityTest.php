@@ -129,6 +129,50 @@ final class ProvenanceAuthorityTest extends Unit
         new ProvenanceAuthority(null, 0);
     }
 
+    public function testAggregateCapacityDropsAndReportsUntilRecordsAreReleased(): void
+    {
+        $reports = [];
+        $health = new CallbackHealthReporter(static function (
+            Throwable $failure,
+            ExecutionArtifactInterface $artifact,
+        ) use (&$reports): void {
+            $reports[] = [$failure->getMessage(), $artifact->normalize()];
+        });
+        $authority = new ProvenanceAuthority($health, 10, 10, 1024, 2);
+        $first = $authority->issueExportId('execution', 'execution', 'first', 'first');
+        $second = $authority->issueExportId('execution', 'execution', 'second', 'second');
+        $artifact = new RedactedArtifact(['id' => 'secret', 'execution_id' => 'second']);
+
+        self::assertNull($authority->bindArtifact(
+            'observation',
+            'observation',
+            'second',
+            'secret',
+            'execution-observation',
+        ));
+        self::assertFalse($authority->attest($artifact, null));
+        self::assertNull($authority->exportIdentityFields($artifact));
+        self::assertNull($authority->exportIdForBusinessId('secret', 'second'));
+        self::assertCount(2, $authority->allRecords());
+        self::assertSame('Provenance issuance rejected.', $reports[0][0]);
+        self::assertStringNotContainsString('secret', serialize($reports));
+
+        $authority->releaseExecution('first');
+        self::assertFalse($authority->verifyExportId($first, 'execution', 'first'));
+        self::assertNull($authority->exportIdForBusinessId('first', 'first'));
+        $issued = $authority->bindArtifact('observation', 'observation', 'second', 'secret', 'execution-observation');
+        self::assertNotNull($issued);
+        self::assertTrue($authority->attest($artifact, $issued));
+        self::assertSame(['id' => $issued, 'execution_id' => $second], $authority->exportIdentityFields($artifact));
+        self::assertCount(2, $authority->allRecords());
+    }
+
+    public function testAggregateRecordLimitMustBePositive(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        new ProvenanceAuthority(null, 10, 10, 1024, 0);
+    }
+
     public function testIdentifierByteLimitRejectsOversizedIssuance(): void
     {
         $authority = new ProvenanceAuthority(null, 10, 10, 11);

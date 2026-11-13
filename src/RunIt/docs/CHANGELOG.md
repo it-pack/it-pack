@@ -28,6 +28,10 @@ First release candidate for the stable `1.0.0` API (milestone M15.1).
 
 ## Unreleased
 
+- Provenance retention is capped at 100,000 live records across each SDK
+  authority as well as per execution. At capacity new bindings are dropped and
+  reported through the configured health path; releasing executions frees capacity.
+  Dropped artifacts have no trusted provenance and are not published as verified.
 - Phase 2 introduces the public `TrustedArtifactProjectionInterface` for routing
   projections; implementing it does not establish provenance. Trust requires an
   upstream provenance check. The API baseline has not been updated for this or
